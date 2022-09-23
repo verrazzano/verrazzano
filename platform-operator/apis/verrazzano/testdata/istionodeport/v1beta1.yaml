@@ -19,7 +19,7 @@ spec:
             controller:
               service:
                 externalIPs:
-                - 2.2.2.2
+                  - 2.2.2.2
             foo: bar
 
     istio:
@@ -31,6 +31,8 @@ spec:
               components:
                 egressGateways:
                   - enabled: true
+                    k8s:
+                      replicaCount: 2
                     name: istio-egressgateway
                 ingressGateways:
                   - enabled: true
