@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profilesRelativePath = "../../../../manifests/profiles/v1alpha1"
+const profilesRelativePath = "../../../../manifests/profiles"
 
 var dnsComponents = vzapi.ComponentSpec{
 	DNS: &vzapi.DNSComponent{

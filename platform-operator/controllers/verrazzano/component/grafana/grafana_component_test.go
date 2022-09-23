@@ -5,6 +5,7 @@ package grafana
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -19,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profilesRelativePath = "../../../../manifests/profiles/v1alpha1"
+const profilesRelativePath = "../../../../manifests/profiles"
 
 var (
 	falseValue = false
@@ -378,4 +379,38 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 	// THEN the function does not return an error
 	newVz.Spec.Components.Grafana.Enabled = &trueValue
 	assert.NoError(t, NewComponent().ValidateUpdateV1Beta1(oldVz, newVz))
+}
+
+func TestValidateInstall(t *testing.T) {
+	svc := common.MkSvc(constants.IstioSystemNamespace, ComponentName)
+	dep := common.MkDep(constants.IstioSystemNamespace, ComponentName)
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{},
+			},
+		},
+	}
+	common.RunValidateInstallTest(t, NewComponent,
+		common.ValidateInstallTest{
+			Name:      "NoExistingGrafana",
+			WantErr:   "",
+			Appsv1Cli: common.MockGetAppsV1(),
+			Corev1Cli: common.MockGetCoreV1(),
+			Vz:        vz,
+		},
+		common.ValidateInstallTest{
+			Name:      "ExistingDeployment",
+			WantErr:   ComponentName,
+			Appsv1Cli: common.MockGetAppsV1(dep),
+			Corev1Cli: common.MockGetCoreV1(),
+			Vz:        vz,
+		},
+		common.ValidateInstallTest{
+			Name:      "ExistingService",
+			WantErr:   ComponentName,
+			Appsv1Cli: common.MockGetAppsV1(),
+			Corev1Cli: common.MockGetCoreV1(svc),
+			Vz:        vz,
+		})
 }

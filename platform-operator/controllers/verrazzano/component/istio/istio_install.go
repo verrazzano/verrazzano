@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	os2 "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -40,6 +41,8 @@ const (
 	istioTempSuffix           = "yaml"
 	istioTmpFileCreatePattern = istioTempPrefix + "*." + istioTempSuffix
 	istioTmpFileCleanPattern  = istioTempPrefix + ".*\\." + istioTempSuffix
+
+	vzNsLabel = "verrazzano.io/namespace"
 )
 
 // create func vars for unit tests
@@ -73,7 +76,7 @@ type installMonitorType struct {
 	inputCh  chan installRoutineParams
 }
 
-//installRoutineParams - Used to pass args to the install goroutine
+// installRoutineParams - Used to pass args to the install goroutine
 type installRoutineParams struct {
 	overrides     string
 	fileOverrides []string
@@ -272,29 +275,32 @@ func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) (
 	// Only create override file if the CR has an Istio component
 	if cr.Spec.Components.Istio != nil {
 		// create operator YAML
-		istioOperatorYaml, err := BuildIstioOperatorYaml(compContext, cr.Spec.Components.Istio)
+		convertedVZ := &v1beta1.Verrazzano{}
+		err := cr.ConvertTo(convertedVZ)
+		if err != nil {
+			return files, log.ErrorfNewErr("Error converting from v1alpha1 to v1beta1: %v", err)
+		}
+		jaegerTracingYaml, err := buildJaegerTracingYaml(compContext, convertedVZ.Spec.Components.Istio, convertedVZ.Namespace)
 		if err != nil {
 			return files, log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}
-
 		// Write the overrides to a tmp file and append it to files
-		userFileCR, err := createTempFile(log, istioOperatorYaml)
+		jaegerTracingFile, err := createTempFile(log, jaegerTracingYaml)
 		if err != nil {
 			return files, err
 		}
-		files = append(files, userFileCR)
-
 		// get the install overrides from the VZ CR, write it to a temp file and append it
-		files, err = appendOverrideFilesInOrder(compContext, files)
+		files, err = appendOverrideFilesInOrder(compContext, convertedVZ, files)
 		if err != nil {
 			return files, err
 		}
+		files = append(files, jaegerTracingFile)
 	}
 	return files, nil
 }
 
-func appendOverrideFilesInOrder(ctx spi.ComponentContext, files []string) ([]string, error) {
-	overrideYAMLs, err := common.GetInstallOverridesYAML(ctx, ctx.EffectiveCR().Spec.Components.Istio.ValueOverrides)
+func appendOverrideFilesInOrder(ctx spi.ComponentContext, cr *v1beta1.Verrazzano, files []string) ([]string, error) {
+	overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(ctx.Client(), cr.Spec.Components.Istio.ValueOverrides, cr.Namespace)
 	if err != nil {
 		return files, err
 	}
@@ -341,7 +347,7 @@ func labelNamespace(compContext spi.ComponentContext) error {
 		if ns.Labels == nil {
 			ns.Labels = make(map[string]string)
 		}
-		ns.Labels["verrazzano.io/namespace"] = IstioNamespace
+		ns.Labels[vzNsLabel] = IstioNamespace
 		return nil
 	}); err != nil {
 		return err

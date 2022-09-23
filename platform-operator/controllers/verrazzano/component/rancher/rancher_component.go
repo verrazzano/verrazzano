@@ -17,7 +17,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
@@ -276,8 +275,12 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed removing Rancher bootstrap secret: %s", err.Error())
 	}
 
-	if err := configureAuthProviders(ctx, false); err != nil {
+	if err := configureAuthProviders(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring rancher auth providers: %s", err.Error())
+	}
+
+	if err := configureUISettings(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring rancher UI settings: %s", err.Error())
 	}
 
 	if err := r.HelmComponent.PostInstall(ctx); err != nil {
@@ -315,8 +318,12 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if err := configureAuthProviders(ctx, true); err != nil {
+	if err := configureAuthProviders(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring rancher auth providers: %s", err.Error())
+	}
+
+	if err := configureUISettings(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring rancher UI settings: %s", err.Error())
 	}
 
 	if err := r.HelmComponent.PostUpgrade(ctx); err != nil {
@@ -347,9 +354,9 @@ func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
 // +creates or updates admin clusterRole binding for  user verrazzano.
 // +disables first login setting to disable prompting for password on first login.
 // +enables or disables Keycloak Auth provider.
-func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
+func configureAuthProviders(ctx spi.ComponentContext) error {
 	log := ctx.Log()
-	if vzconfig.IsKeycloakEnabled(ctx.ActualCR()) {
+	if vzconfig.IsKeycloakEnabled(ctx.ActualCR()) && isKeycloakAuthEnabled(ctx.ActualCR()) {
 		if err := configureKeycloakOIDC(ctx); err != nil {
 			return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
 		}
@@ -375,10 +382,6 @@ func configureAuthProviders(ctx spi.ComponentContext, isUpgrade bool) error {
 		}
 	}
 
-	if err := toggleKeycloakAuthProvider(ctx, isUpgrade); err != nil {
-		return log.ErrorfThrottledNewErr("failed enabling or disbling auth providers: %s", err.Error())
-	}
-
 	return nil
 }
 
@@ -402,102 +405,36 @@ func createOrUpdateClusterRoleTemplateBindings(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func parseVersions(ctx spi.ComponentContext, isUpgrade bool) (*semver.SemVersion, *semver.SemVersion, *semver.SemVersion, error) {
-	ver140, err := semver.NewSemVersion("v" + constants.VerrazzanoVersion1_4_0)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	var vzSourceVersion, vzTargetVersion *semver.SemVersion
-	vz := ctx.ActualCR()
-
-	if vz.Spec.Version != "" {
-		vzTargetVersion, err = semver.NewSemVersion(vz.Spec.Version)
-		if err != nil {
-			return nil, nil, nil, ctx.Log().ErrorfNewErr("Failed Rancher post-%v: Invalid Verrazzano spec version: %v", formatBool(isUpgrade, "upgrade", "install"), err)
-		}
-	}
-
-	if vz.Status.Version != "" {
-		vzSourceVersion, err = semver.NewSemVersion(vz.Status.Version)
-		if err != nil {
-			return nil, nil, nil, ctx.Log().ErrorfNewErr("Failed Rancher post-%v: Invalid Verrazzano status version: %v", formatBool(isUpgrade, "upgrade", "install"), err)
-		}
-	}
-
-	return ver140, vzSourceVersion, vzTargetVersion, nil
-}
-
-func authProviderForRancherImplemented(ver140 *semver.SemVersion, vzSourceVersion *semver.SemVersion, vzTargetVersion *semver.SemVersion, isUpgrade bool) (bool, error) {
-	var version *semver.SemVersion
-	if isUpgrade {
-		version = vzTargetVersion
-	} else {
-		version = vzSourceVersion
-	}
-
-	return version == nil || version.IsGreaterThanOrEqualTo(ver140), nil
-}
-
 // isKeycloakAuthEnabled checks if Keycloak as an Auth provider is enabled for Rancher
 // +returns false if Keycloak component is itself disabled.
-// +returns true when the keycloakAuthEnabled attribute is set to true in rancher component of VZ CR.
-// +when keycloakAuthEnabled is not specified, returns true for new installs and in case of upgrades between versions>=1.4.
-// +returns false otherwise.
-func isKeycloakAuthEnabled(isUpgrade bool, vz *vzapi.Verrazzano, ver140 *semver.SemVersion, vzSourceVersion *semver.SemVersion, vzTargetVersion *semver.SemVersion) bool {
+// +returns the value of the keycloakAuthEnabled attribute if it is set in rancher component of VZ CR.
+// +returns true otherwise.
+func isKeycloakAuthEnabled(vz *vzapi.Verrazzano) bool {
 	if !vzconfig.IsKeycloakEnabled(vz) {
 		return false
 	}
 
-	if vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.KeycloakAuthEnabled != nil && *vz.Spec.Components.Rancher.KeycloakAuthEnabled {
-		return true
+	if vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.KeycloakAuthEnabled != nil {
+		return *vz.Spec.Components.Rancher.KeycloakAuthEnabled
 	}
 
-	if vz.Spec.Components.Rancher == nil || vz.Spec.Components.Rancher.KeycloakAuthEnabled == nil {
-		if !isUpgrade {
-			return true
-		}
-
-		if vzSourceVersion != nil && vzSourceVersion.IsGreaterThanOrEqualTo(ver140) && vzTargetVersion != nil && vzTargetVersion.IsGreaterThanOrEqualTo(vzSourceVersion) {
-			return true
-		}
-
-	}
-
-	return false
+	return true
 }
 
-// toggleKeycloakAuthProvider enables/disables Keycloak as Auth provider
-func toggleKeycloakAuthProvider(ctx spi.ComponentContext, isUpgrade bool) error {
-	ver140, vzSourceVersion, vzTargetVersion, err := parseVersions(ctx, isUpgrade)
-	if err != nil {
-		return err
-	}
-
-	checkAuthProvider, err := authProviderForRancherImplemented(ver140, vzSourceVersion, vzTargetVersion, isUpgrade)
-	if err != nil {
-		return err
-	}
-
-	if !checkAuthProvider {
-		ctx.Log().Debug("Rancher Keycloak AuthProvider not implemented")
-		return nil
-	}
-
+// configureUISettings configures Rancher setting ui-pl, ui-logo-light and ui-logo-dark.
+func configureUISettings(ctx spi.ComponentContext) error {
 	log := ctx.Log()
-	vz := ctx.ActualCR()
-	enableKeycloak := isKeycloakAuthEnabled(isUpgrade, vz, ver140, vzSourceVersion, vzTargetVersion)
-	if err := disableOrEnableAuthProvider(ctx, common.AuthConfigKeycloak, enableKeycloak); err != nil {
-		return log.ErrorfThrottledNewErr("failed to %s keycloak oidc auth provider, error: %s", formatBool(enableKeycloak, "enable", "disable"), err.Error())
+	if err := createOrUpdateUIPlSetting(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring ui-pl setting: %s", err.Error())
+	}
+
+	if err := createOrUpdateUILogoSetting(ctx, SettingUILogoLight, SettingUILogoLightLogoFilePath); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo path %s: %s", SettingUILogoLight, SettingUILogoLightLogoFilePath, err.Error())
+	}
+
+	if err := createOrUpdateUILogoSetting(ctx, SettingUILogoDark, SettingUILogoDarkLogoFilePath); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo path %s: %s", SettingUILogoDark, SettingUILogoDarkLogoFilePath, err.Error())
 	}
 
 	return nil
-
-}
-
-func formatBool(isTrue bool, trueValue string, falseValue string) string {
-	if isTrue {
-		return trueValue
-	}
-	return falseValue
 }

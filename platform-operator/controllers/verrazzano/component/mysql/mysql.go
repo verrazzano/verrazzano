@@ -7,63 +7,51 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-
 	"os"
 	"path/filepath"
 	"strings"
 
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
 const (
-	secretName            = "mysql"
-	mySQLUsernameKey      = "auth.username"
-	mySQLUsername         = "keycloak"
-	helmPwd               = "auth.password"     //nolint:gosec //#gosec G101
-	helmRootPwd           = "auth.rootPassword" //nolint:gosec //#gosec G101
-	helmCreateDb          = "auth.createDatabase"
-	helmDatabase          = "auth.database"
-	mySQLKey              = "mysql-password"
-	mySQLRootKey          = "mysql-root-password"
-	mySQLInitFilePrefix   = "init-mysql-"
-	initdbScriptsFile     = "initdbScripts.create-db\\.sql"
-	backupHookScriptsFile = "configurationFiles.mysql-hook\\.sh"
-	persistenceEnabledKey = "primary.persistence.enabled"
-	statefulsetClaimName  = "data-mysql-0"
-	mySQLHookFile         = "platform-operator/scripts/hooks/mysql-hook.sh"
+	secretName          = "mysql"
+	mySQLUsernameKey    = "mysqlUser"
+	mySQLUsername       = "keycloak"
+	helmPwd             = "mysqlPassword"
+	helmRootPwd         = "mysqlRootPassword"
+	mySQLKey            = "mysql-password"
+	mySQLRootKey        = "mysql-root-password"
+	mySQLInitFilePrefix = "init-mysql-"
+	mySQLHookFile       = "platform-operator/scripts/hooks/mysql-hook.sh"
 )
 
 // isMySQLReady checks to see if the MySQL component is in ready state
 func isMySQLReady(context spi.ComponentContext) bool {
-	statefulset := []types.NamespacedName{
+	deployments := []types.NamespacedName{
 		{
 			Name:      ComponentName,
 			Namespace: ComponentNamespace,
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	return status.StatefulSetsAreReady(context.Log(), context.Client(), statefulset, 1, prefix)
+	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 // appendMySQLOverrides appends the MySQL helm overrides
@@ -76,34 +64,6 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	}
 
 	if compContext.Init(ComponentName).GetOperation() == vzconst.UpgradeOperation {
-		// create the ini file if the former MySQL deployment exists (rather than a stateful set) and there is ephemeral storage
-		deployment := &appsv1.Deployment{}
-
-		if err := compContext.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, deployment); err != nil {
-			if errors.IsNotFound(err) {
-				compContext.Log().Debugf("Deployment does not exist.  No need to intialize db")
-			}
-		}
-
-		if deployment != nil {
-			convertedVZ := v1beta1.Verrazzano{}
-			if err := common.ConvertVerrazzanoCR(compContext.EffectiveCR(), &convertedVZ); err != nil {
-				return nil, err
-			}
-			mySQLVolumeSource := getMySQLVolumeSource(&convertedVZ)
-			// check for ephemeral storage
-			if mySQLVolumeSource != nil && mySQLVolumeSource.EmptyDir != nil {
-				// we are in the process of upgrading from a MySQL deployment using ephemeral storage, so we need to
-				// provide the sql initialization file
-				mySQLInitFile, err := createMySQLInitFile(compContext)
-				if err != nil {
-					return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-				}
-				kvs = append(kvs, bom.KeyValue{Key: initdbScriptsFile, Value: mySQLInitFile, SetFile: true})
-				kvs = append(kvs, bom.KeyValue{Key: backupHookScriptsFile, Value: mySQLHookFile, SetFile: true})
-			}
-		}
-
 		kvs, err = appendMySQLSecret(compContext, kvs)
 		if err != nil {
 			return []bom.KeyValue{}, err
@@ -117,8 +77,8 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
-		kvs = append(kvs, bom.KeyValue{Key: initdbScriptsFile, Value: mySQLInitFile, SetFile: true})
-		kvs = append(kvs, bom.KeyValue{Key: backupHookScriptsFile, Value: mySQLHookFile, SetFile: true})
+		kvs = append(kvs, bom.KeyValue{Key: "initializationFiles.create-db\\.sql", Value: mySQLInitFile, SetFile: true})
+		kvs = append(kvs, bom.KeyValue{Key: "configurationFiles.mysql-hook\\.sh", Value: mySQLHookFile, SetFile: true})
 		kvs, err = appendMySQLSecret(compContext, kvs)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
@@ -133,7 +93,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	}
 
 	// Convert MySQL install-args to helm overrides
-	kvs = append(kvs, convertOldInstallArgs(helm.GetInstallArgs(getInstallArgs(cr)))...)
+	kvs = append(kvs, helm.GetInstallArgs(getInstallArgs(cr))...)
 
 	return kvs, nil
 }
@@ -220,31 +180,19 @@ func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.K
 	if err := common.ConvertVerrazzanoCR(compContext.EffectiveCR(), &convertedVZ); err != nil {
 		return nil, err
 	}
-	kvs, err := doGenerateVolumeSourceOverrides(&convertedVZ, kvs)
-	if err != nil {
-		return kvs, err
-	}
-
-	pvList, err := common.GetPersistentVolumes(compContext, ComponentName)
-	if err != nil {
-		return kvs, err
-	}
-	if len(pvList.Items) > 0 {
-		// need to use existing claim
-		compContext.Log().Infof("Using existing PVC for MySQL persistence")
-		kvs = append(kvs, bom.KeyValue{
-			Key:       "primary.persistence.existingClaim",
-			Value:     statefulsetClaimName,
-			SetString: true,
-		})
-	}
-
-	return kvs, err
+	return doGenerateVolumeSourceOverrides(&convertedVZ, kvs)
 }
 
 // doGenerateVolumeSourceOverrides generates the appropriate persistence overrides given the effective CR
 func doGenerateVolumeSourceOverrides(effectiveCR *v1beta1.Verrazzano, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	mySQLVolumeSource := getMySQLVolumeSource(effectiveCR)
+	var mySQLVolumeSource *v1.VolumeSource
+	if effectiveCR.Spec.Components.Keycloak != nil {
+		mySQLVolumeSource = effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
+	}
+	if mySQLVolumeSource == nil {
+		mySQLVolumeSource = effectiveCR.Spec.DefaultVolumeSource
+	}
+
 	// No volumes to process, return what we have
 	if mySQLVolumeSource == nil {
 		return kvs, nil
@@ -253,7 +201,7 @@ func doGenerateVolumeSourceOverrides(effectiveCR *v1beta1.Verrazzano, kvs []bom.
 	if mySQLVolumeSource.EmptyDir != nil {
 		// EmptyDir, disable persistence
 		kvs = append(kvs, bom.KeyValue{
-			Key:   persistenceEnabledKey,
+			Key:   "persistence.enabled",
 			Value: "false",
 		})
 	} else if mySQLVolumeSource.PersistentVolumeClaim != nil {
@@ -266,7 +214,7 @@ func doGenerateVolumeSourceOverrides(effectiveCR *v1beta1.Verrazzano, kvs []bom.
 		storageClass := storageSpec.StorageClassName
 		if storageClass != nil && len(*storageClass) > 0 {
 			kvs = append(kvs, bom.KeyValue{
-				Key:       "primary.persistence.storageClass",
+				Key:       "persistence.storageClass",
 				Value:     *storageClass,
 				SetString: true,
 			})
@@ -274,7 +222,7 @@ func doGenerateVolumeSourceOverrides(effectiveCR *v1beta1.Verrazzano, kvs []bom.
 		storage := storageSpec.Resources.Requests.Storage()
 		if storageSpec.Resources.Requests != nil && !storage.IsZero() {
 			kvs = append(kvs, bom.KeyValue{
-				Key:       "primary.persistence.size",
+				Key:       "persistence.size",
 				Value:     storage.String(),
 				SetString: true,
 			})
@@ -283,30 +231,18 @@ func doGenerateVolumeSourceOverrides(effectiveCR *v1beta1.Verrazzano, kvs []bom.
 		if len(accessModes) > 0 {
 			// MySQL only allows a single AccessMode value, so just choose the first
 			kvs = append(kvs, bom.KeyValue{
-				Key:       "primary.persistence.accessMode",
+				Key:       "persistence.accessMode",
 				Value:     string(accessModes[0]),
 				SetString: true,
 			})
 		}
 		// Enable MySQL persistence
 		kvs = append(kvs, bom.KeyValue{
-			Key:   persistenceEnabledKey,
+			Key:   "persistence.enabled",
 			Value: "true",
 		})
 	}
 	return kvs, nil
-}
-
-// getMySQLVolumeSourceV1beta1 returns the volume source from v1beta1.Verrazzano
-func getMySQLVolumeSource(effectiveCR *v1beta1.Verrazzano) *v1.VolumeSource {
-	var mySQLVolumeSource *v1.VolumeSource
-	if effectiveCR.Spec.Components.Keycloak != nil {
-		mySQLVolumeSource = effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
-	}
-	if mySQLVolumeSource == nil {
-		mySQLVolumeSource = effectiveCR.Spec.DefaultVolumeSource
-	}
-	return mySQLVolumeSource
 }
 
 //appendCustomImageOverrides - Append the custom overrides for the busybox initContainer
@@ -316,7 +252,7 @@ func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
-	imageOverrides, err := bomFile.BuildImageOverrides("mysql")
+	imageOverrides, err := bomFile.BuildImageOverrides("oraclelinux")
 	if err != nil {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
@@ -340,13 +276,12 @@ func GetOverrides(object runtime.Object) interface{} {
 			return effectiveCR.Spec.Components.Keycloak.MySQL.ValueOverrides
 		}
 		return []vzapi.Overrides{}
-	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+	} else if effectiveCR, ok := object.(*v1beta1.Verrazzano); ok {
 		if effectiveCR.Spec.Components.Keycloak != nil {
 			return effectiveCR.Spec.Components.Keycloak.MySQL.ValueOverrides
 		}
-		return []installv1beta1.Overrides{}
+		return []v1beta1.Overrides{}
 	}
-
 	return []vzapi.Overrides{}
 }
 
@@ -375,93 +310,5 @@ func appendMySQLSecret(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]
 		Key:   helmPwd,
 		Value: string(secret.Data[mySQLKey]),
 	})
-	kvs = append(kvs, bom.KeyValue{
-		Key:   helmCreateDb,
-		Value: "false",
-	})
-	kvs = append(kvs, bom.KeyValue{
-		Key:   helmDatabase,
-		Value: "",
-	})
 	return kvs, nil
-}
-
-// preUpgrade handles the re-association of a previous MySQL deployment PV/PVC with the new MySQL statefulset (if needed)
-func preUpgrade(ctx spi.ComponentContext) error {
-	if ctx.IsDryRun() {
-		ctx.Log().Debug("MySQL pre upgrade dry run")
-		return nil
-	}
-
-	// following steps are only needed for persistent storage
-	convertedVZ := v1beta1.Verrazzano{}
-	if err := common.ConvertVerrazzanoCR(ctx.EffectiveCR(), &convertedVZ); err != nil {
-		return err
-	}
-	mySQLVolumeSource := getMySQLVolumeSource(&convertedVZ)
-	if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
-		deploymentPvc := types.NamespacedName{Namespace: ComponentNamespace, Name: DeploymentPersistentVolumeClaim}
-		err := common.RetainPersistentVolume(ctx, deploymentPvc, ComponentName)
-		if err != nil {
-			return err
-		}
-
-		// get the current MySQL deployment
-		deployment := &appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-			},
-		}
-		// delete the deployment to free up the pv/pvc
-		ctx.Log().Debugf("Deleting deployment %s", ComponentName)
-		if err := ctx.Client().Delete(context.TODO(), deployment); err != nil {
-			if !errors.IsNotFound(err) {
-				ctx.Log().Debugf("Unable to delete deployment %s", ComponentName)
-				return err
-			}
-		} else {
-			ctx.Log().Debugf("Deployment %v deleted", deployment.ObjectMeta)
-		}
-
-		ctx.Log().Debugf("Deleting PVC %v", deploymentPvc)
-		if err := common.DeleteExistingVolumeClaim(ctx, deploymentPvc); err != nil {
-			ctx.Log().Debugf("Unable to delete existing PVC %v", deploymentPvc)
-			return err
-		}
-
-		ctx.Log().Debugf("Updating PV/PVC %v", deploymentPvc)
-		if err := common.UpdateExistingVolumeClaims(ctx, deploymentPvc, StatefulsetPersistentVolumeClaim, ComponentName); err != nil {
-			ctx.Log().Debugf("Unable to update PV/PVC")
-			return err
-		}
-	}
-	return nil
-}
-
-// postUpgrade perform operations required after the helm upgrade completes
-func postUpgrade(ctx spi.ComponentContext) error {
-	if ctx.IsDryRun() {
-		ctx.Log().Debug("MySQL post upgrade dry run")
-		return nil
-	}
-	convertedVZ := v1beta1.Verrazzano{}
-	if err := common.ConvertVerrazzanoCR(ctx.EffectiveCR(), &convertedVZ); err != nil {
-		return err
-	}
-	mySQLVolumeSource := getMySQLVolumeSource(&convertedVZ)
-	if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
-		return common.ResetVolumeReclaimPolicy(ctx, ComponentName)
-	}
-	return nil
-}
-
-// convertOldInstallArgs changes persistence.* install args to primary.persistence.* to keep compatibility with the new chart
-func convertOldInstallArgs(kvs []bom.KeyValue) []bom.KeyValue {
-	for i, kv := range kvs {
-		if strings.HasPrefix(kv.Key, "persistence") {
-			kvs[i].Key = strings.Replace(kv.Key, "persistence", "primary.persistence", 1)
-		}
-	}
-	return kvs
 }

@@ -8,6 +8,7 @@ set -e
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/common.sh
+. $SCRIPT_DIR/common-release.sh
 
 usage() {
     cat <<EOM
@@ -48,7 +49,7 @@ function verify_released_artifacts() {
     local url="https://github.com/verrazzano/verrazzano/releases/download/$VERSION/$i"
     curl -Ss -L --show-error --fail -o $i ${url} || { echo "Unable to download ${url}"; exit; }
   done
-  ${SHA_CMD} operator.yaml.sha256
+  ${SHA_CMD} verrazzano-platform-operator.yaml.sha256
   ${SHA_CMD} verrazzano-${RELEASE_VERSION}-darwin-amd64.tar.gz.sha256
   ${SHA_CMD} verrazzano-${RELEASE_VERSION}-darwin-arm64.tar.gz.sha256
   ${SHA_CMD} verrazzano-${RELEASE_VERSION}-linux-amd64.tar.gz.sha256
@@ -66,7 +67,7 @@ function verify_released_artifacts() {
     local url="https://github.com/verrazzano/verrazzano/releases/latest/download/$i"
     curl -Ss -L --show-error --fail -o $i ${url} || { echo "Unable to download ${url}"; exit; }
   done
-  ${SHA_CMD} operator.yaml.sha256
+  ${SHA_CMD} verrazzano-platform-operator.yaml.sha256
   ${SHA_CMD} verrazzano-${RELEASE_VERSION}-darwin-amd64.tar.gz.sha256
   ${SHA_CMD} verrazzano-${RELEASE_VERSION}-darwin-arm64.tar.gz.sha256
   ${SHA_CMD} verrazzano-${RELEASE_VERSION}-linux-amd64.tar.gz.sha256

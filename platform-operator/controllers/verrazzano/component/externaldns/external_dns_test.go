@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	profileDir = "../../../../manifests/profiles/v1alpha1"
+	profileDir = "../../../../manifests/profiles"
 )
 
 // Default Verrazzano object

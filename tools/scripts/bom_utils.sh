@@ -6,7 +6,7 @@
 #
 
 # variables
-BOM_FILE=./verrazzano-bom.json
+BOM_FILE=${BOM_FILE:-./verrazzano-bom.json}
 
 # Get the global Docker registry specified in the BOM
 function get_bom_global_registry() {

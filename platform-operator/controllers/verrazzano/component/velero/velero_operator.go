@@ -6,6 +6,7 @@ package velero
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	pkgstatus "github.com/verrazzano/verrazzano/pkg/k8s/status"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -24,7 +25,7 @@ const (
 
 // isVeleroOperatorReady checks if the Velero deployment is ready
 func isVeleroOperatorReady(context spi.ComponentContext) bool {
-	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, componentPrefix) &&
+	return pkgstatus.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, componentPrefix) &&
 		status.DaemonSetsAreReady(context.Log(), context.Client(), daemonSets, 1, componentPrefix)
 }
 
@@ -35,6 +36,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		{Key: "initContainers[0].imagePullPolicy", Value: "IfNotPresent"},
 		{Key: "initContainers[0].volumeMounts[0].name", Value: "plugins"},
 		{Key: "initContainers[0].volumeMounts[0].mountPath", Value: "/target"},
+		{Key: "metrics.serviceMonitor.namespace", Value: ComponentNamespace},
 	}
 	kvs = append(kvs, arguments...)
 	return kvs, nil

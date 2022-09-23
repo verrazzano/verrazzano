@@ -1,0 +1,701 @@
+{
+  "metadata": {
+    "resourceVersion": "38006"
+  },
+  "items": [
+    {
+      "kind": "Verrazzano",
+      "apiVersion": "install.verrazzano.io/v1beta1",
+      "metadata": {
+        "name": "example-verrazzano",
+        "namespace": "default",
+        "uid": "332a51bc-3ae3-436c-b0eb-b2771ed166f4",
+        "resourceVersion": "2325",
+        "generation": 1,
+        "creationTimestamp": "2022-09-14T17:52:49Z",
+        "annotations": {
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"install.verrazzano.io/v1alpha1\",\"kind\":\"Verrazzano\",\"metadata\":{\"annotations\":{},\"name\":\"example-verrazzano\",\"namespace\":\"default\"},\"spec\":{\"profile\":\"dev\"}}\n"
+        },
+        "finalizers": [
+          "install.verrazzano.io"
+        ],
+        "managedFields": [
+          {
+            "manager": "kubectl-client-side-apply",
+            "operation": "Update",
+            "apiVersion": "install.verrazzano.io/v1alpha1",
+            "time": "2022-09-14T17:52:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:profile": {}
+              }
+            }
+          },
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "install.verrazzano.io/v1alpha1",
+            "time": "2022-09-14T17:56:26Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:finalizers": {
+                  ".": {},
+                  "v:\"install.verrazzano.io\"": {}
+                }
+              },
+              "f:status": {
+                "f:components": {
+                  ".": {},
+                  "f:cert-manager": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:state": {},
+                    "f:version": {}
+                  },
+                  "f:coherence-operator": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:state": {},
+                    "f:version": {}
+                  },
+                  "f:external-dns": {
+                    ".": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:state": {}
+                  },
+                  "f:fluentd": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  },
+                  "f:grafana": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  },
+                  "f:ingress-controller": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  },
+                  "f:istio": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  },
+                  "f:jaeger-operator": {
+                    ".": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:state": {}
+                  },
+                  "f:keycloak": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  },
+                  "f:kiali-server": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  },
+                  "f:kube-state-metrics": {
+                    ".": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:state": {}
+                  },
+                  "f:mysql": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  },
+                  "f:mysql-operator": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:state": {}
+                  },
+                  "f:oam-kubernetes-runtime": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:state": {},
+                    "f:version": {}
+                  },
+                  "f:opensearch": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  },
+                  "f:opensearch-dashboards": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  },
+                  "f:prometheus-adapter": {
+                    ".": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:state": {}
+                  },
+                  "f:prometheus-node-exporter": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  },
+                  "f:prometheus-operator": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  },
+                  "f:prometheus-pushgateway": {
+                    ".": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:state": {}
+                  },
+                  "f:rancher": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  },
+                  "f:rancher-backup": {
+                    ".": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:state": {}
+                  },
+                  "f:velero": {
+                    ".": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:state": {}
+                  },
+                  "f:verrazzano": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  },
+                  "f:verrazzano-application-operator": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  },
+                  "f:verrazzano-authproxy": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  },
+                  "f:verrazzano-console": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  },
+                  "f:verrazzano-monitoring-operator": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  },
+                  "f:weblogic-operator": {
+                    ".": {},
+                    "f:conditions": {},
+                    "f:lastReconciledGeneration": {},
+                    "f:name": {},
+                    "f:reconcilingGeneration": {},
+                    "f:state": {}
+                  }
+                },
+                "f:conditions": {},
+                "f:state": {},
+                "f:version": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "profile": "dev",
+        "components": {},
+        "security": {}
+      },
+      "status": {
+        "version": "1.4.0-3157+11c8d7d8",
+        "conditions": [
+          {
+            "type": "InstallStarted",
+            "status": "True",
+            "lastTransitionTime": "2022-09-14T17:52:55Z",
+            "message": "Verrazzano install in progress"
+          }
+        ],
+        "state": "Reconciling",
+        "components": {
+          "cert-manager": {
+            "name": "cert-manager",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              },
+              {
+                "type": "InstallStarted",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:53:03Z",
+                "message": "Install started"
+              },
+              {
+                "type": "InstallComplete",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:54:07Z",
+                "message": "Install complete"
+              }
+            ],
+            "state": "Ready",
+            "version": "v1.7.1",
+            "lastReconciledGeneration": 1
+          },
+          "coherence-operator": {
+            "name": "coherence-operator",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              },
+              {
+                "type": "InstallStarted",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:53:05Z",
+                "message": "Install started"
+              },
+              {
+                "type": "InstallComplete",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:56:26Z",
+                "message": "Install complete"
+              }
+            ],
+            "state": "Ready",
+            "version": "3.2.6",
+            "lastReconciledGeneration": 1
+          },
+          "external-dns": {
+            "name": "external-dns",
+            "state": "Disabled",
+            "lastReconciledGeneration": 1
+          },
+          "fluentd": {
+            "name": "fluentd",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              }
+            ],
+            "state": "PreInstalling",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          },
+          "grafana": {
+            "name": "grafana",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              }
+            ],
+            "state": "PreInstalling",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          },
+          "ingress-controller": {
+            "name": "ingress-controller",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              }
+            ],
+            "state": "PreInstalling",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          },
+          "istio": {
+            "name": "istio",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              },
+              {
+                "type": "InstallStarted",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:56:03Z",
+                "message": "Install started"
+              }
+            ],
+            "state": "Installing",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          },
+          "jaeger-operator": {
+            "name": "jaeger-operator",
+            "state": "Disabled",
+            "lastReconciledGeneration": 1
+          },
+          "keycloak": {
+            "name": "keycloak",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              }
+            ],
+            "state": "PreInstalling",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          },
+          "kiali-server": {
+            "name": "kiali-server",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              }
+            ],
+            "state": "PreInstalling",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          },
+          "kube-state-metrics": {
+            "name": "kube-state-metrics",
+            "state": "Disabled",
+            "lastReconciledGeneration": 1
+          },
+          "mysql": {
+            "name": "mysql",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              }
+            ],
+            "state": "PreInstalling",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          },
+          "mysql-operator": {
+            "name": "mysql-operator",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              },
+              {
+                "type": "InstallStarted",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:53:08Z",
+                "message": "Install started"
+              },
+              {
+                "type": "InstallComplete",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:54:45Z",
+                "message": "Install complete"
+              }
+            ],
+            "state": "Ready",
+            "lastReconciledGeneration": 1
+          },
+          "oam-kubernetes-runtime": {
+            "name": "oam-kubernetes-runtime",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              },
+              {
+                "type": "InstallStarted",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:59Z",
+                "message": "Install started"
+              },
+              {
+                "type": "InstallComplete",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:53:28Z",
+                "message": "Install complete"
+              }
+            ],
+            "state": "Ready",
+            "version": "0.3.0",
+            "lastReconciledGeneration": 1
+          },
+          "opensearch": {
+            "name": "opensearch",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              }
+            ],
+            "state": "PreInstalling",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          },
+          "opensearch-dashboards": {
+            "name": "opensearch-dashboards",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              }
+            ],
+            "state": "PreInstalling",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          },
+          "prometheus-adapter": {
+            "name": "prometheus-adapter",
+            "state": "Disabled",
+            "lastReconciledGeneration": 1
+          },
+          "prometheus-node-exporter": {
+            "name": "prometheus-node-exporter",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              }
+            ],
+            "state": "PreInstalling",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          },
+          "prometheus-operator": {
+            "name": "prometheus-operator",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              }
+            ],
+            "state": "PreInstalling",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          },
+          "prometheus-pushgateway": {
+            "name": "prometheus-pushgateway",
+            "state": "Disabled",
+            "lastReconciledGeneration": 1
+          },
+          "rancher": {
+            "name": "rancher",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              }
+            ],
+            "state": "PreInstalling",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          },
+          "rancher-backup": {
+            "name": "rancher-backup",
+            "state": "Disabled",
+            "lastReconciledGeneration": 1
+          },
+          "velero": {
+            "name": "velero",
+            "state": "Disabled",
+            "lastReconciledGeneration": 1
+          },
+          "verrazzano": {
+            "name": "verrazzano",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              }
+            ],
+            "state": "PreInstalling",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          },
+          "verrazzano-application-operator": {
+            "name": "verrazzano-application-operator",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              }
+            ],
+            "state": "PreInstalling",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          },
+          "verrazzano-authproxy": {
+            "name": "verrazzano-authproxy",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              }
+            ],
+            "state": "PreInstalling",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          },
+          "verrazzano-console": {
+            "name": "verrazzano-console",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              }
+            ],
+            "state": "PreInstalling",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          },
+          "verrazzano-monitoring-operator": {
+            "name": "verrazzano-monitoring-operator",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              }
+            ],
+            "state": "PreInstalling",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          },
+          "weblogic-operator": {
+            "name": "weblogic-operator",
+            "conditions": [
+              {
+                "type": "PreInstall",
+                "status": "True",
+                "lastTransitionTime": "2022-09-14T17:52:55Z",
+                "message": "PreInstall started"
+              }
+            ],
+            "state": "PreInstalling",
+            "lastReconciledGeneration": 1,
+            "reconcilingGeneration": 1
+          }
+        }
+      }
+    }
+  ]
+}

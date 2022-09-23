@@ -295,7 +295,7 @@ func (v *verrazzanoLogger) doLog(once bool, args ...interface{}) {
 	}
 }
 
-//doError Logs an error message first checking against the log cache; same behavior as doLog() except that messages
+// doError Logs an error message first checking against the log cache; same behavior as doLog() except that messages
 // are recorded as errors at the throttling frequency.  Errors are never once-only.
 func (v *verrazzanoLogger) doError(args ...interface{}) {
 	msg := fmt.Sprint(args...)
@@ -305,12 +305,14 @@ func (v *verrazzanoLogger) doError(args ...interface{}) {
 	}
 }
 
-//shouldLogMessage Checks candidate log message against the cache and returns true if that message should be recorded in the log.
+// shouldLogMessage Checks candidate log message against the cache and returns true if that message should be recorded in the log.
 //
 // A message should be recorded when
 // - A message is newly added to the cache (seen for the first time)
 // - A message is throttled, but it has not exceeded its frequency threshold since the last occurrence
 func (v *verrazzanoLogger) shouldLogMessage(once bool, msg string) bool {
+	lock.Lock()
+	defer lock.Unlock()
 	// If the message is in the trash, that means it should never be logged again.
 	_, ok := v.trashMessages[msg]
 	if ok {

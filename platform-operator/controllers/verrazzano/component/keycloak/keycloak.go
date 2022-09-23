@@ -9,8 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"reflect"
 	"strings"
 	"text/template"
@@ -19,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -30,6 +29,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -54,6 +54,8 @@ const (
 	vzInternalPromUser      = "verrazzano-prom-internal"
 	vzInternalEsUser        = "verrazzano-es-internal"
 	keycloakPodName         = "keycloak-0"
+	realmManagement         = "realm-management"
+	viewUsersRole           = "view-users"
 )
 
 // Define the Keycloak Key:Value pair for init container.
@@ -746,6 +748,11 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 			return err
 		}
 
+		// Add view-users role to verrazzano user
+		err = addClientRoleToUser(ctx, cfg, cli, vzUserName, realmManagement, vzSysRealm, viewUsersRole)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Setting password policy for master
@@ -1549,4 +1556,18 @@ func updateRancherClientSecretForKeycloakAuthConfig(ctx spi.ComponentContext) er
 	authConfig := make(map[string]interface{})
 	authConfig[common.AuthConfigKeycloakAttributeClientSecret] = clientSecret
 	return common.UpdateKeycloakOIDCAuthConfig(ctx, authConfig)
+}
+
+// addClientRoleToUser adds client role to the given user in the target realm
+func addClientRoleToUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, userName, clientID, targetRealm, roleName string) error {
+	kcPod := keycloakPod()
+	addRoleCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + targetRealm + " --uusername " + userName + " --cclientid " + clientID + " --rolename " + roleName
+	ctx.Log().Debugf("addRoleCmd: add role %s to the user %s, command = %s", roleName, userName, addRoleCmd)
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(addRoleCmd))
+	if err != nil {
+		ctx.Log().Errorf("Adding role %s to the user %s failed: stdout = %s, stderr = %s", roleName, userName, stdout, stderr)
+		return err
+	}
+	ctx.Log().Once("Successfully added role to user")
+	return nil
 }

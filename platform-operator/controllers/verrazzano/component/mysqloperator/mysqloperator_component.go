@@ -6,8 +6,11 @@ package mysqloperator
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -120,31 +123,25 @@ func (c mysqlOperatorComponent) PreUpgrade(compContext spi.ComponentContext) err
 	return nil
 }
 
-// PreUninstall waits until MySQL has been uninstalled. This is needed since the pods have finalizers
+// PreUninstall waits until MySQL pods in the Keycloak namespace are gone. This is needed since the pods have finalizers
 // that are processed by the MySQL operator
 func (c mysqlOperatorComponent) PreUninstall(compContext spi.ComponentContext) error {
-	// Keycloak enabled determines if MySQL is enabled
-	if !vzconfig.IsKeycloakEnabled(compContext.EffectiveCR()) {
-		return nil
-	}
+	const (
+		labelKey = "mysql.oracle.com/cluster"
+		labelVal = "mysql"
+	)
 
-	// Create a component context for mysql
-	spiCtx, err := spi.NewContext(compContext.Log(), compContext.Client(), compContext.ActualCR(), compContext.ActualCRV1Beta1(), compContext.IsDryRun())
+	// Find the MySQL pods in keycloak namespace, including the router pods
+	var podList corev1.PodList
+	req, _ := labels.NewRequirement(labelKey, selection.Equals, []string{labelVal})
+	selector := labels.NewSelector().Add(*req)
+	err := compContext.Client().List(context.TODO(), &podList, &client.ListOptions{Namespace: keycloak.ComponentNamespace, LabelSelector: selector})
 	if err != nil {
-		spiCtx.Log().Errorf("Failed to create component context: %v", err)
+		compContext.Log().ErrorfNewErr("Failed to List MySQL pods in Keycloak namespace: %v", err)
 		return err
 	}
-	mySQLContext := spiCtx.Init(mysql.ComponentName).Operation(vpocons.UninstallOperation)
-
-	// Check if MySQL is installed
-	mySQLComp := mysql.NewComponent()
-	installed, err := mySQLComp.IsInstalled(mySQLContext)
-	if err != nil {
-		spiCtx.Log().Errorf("Failed to check if MySQL is installed: %v", err)
-		return err
-	}
-	if installed {
-		spiCtx.Log().Progressf("MySQL operator uninstall is waiting for MySQL to be uninstalled")
+	if len(podList.Items) > 0 {
+		compContext.Log().Progressf("MySQL operator uninstall is waiting for MySQL to be uninstalled")
 		return ctrlerrors.RetryableError{Source: ComponentName}
 	}
 

@@ -4,6 +4,7 @@
 package helpers
 
 import (
+	"fmt"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -11,7 +12,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 )
 
 const (
@@ -39,6 +39,7 @@ func CreateVerrazzanoObjectWithVersion() client.Object {
 func CreateTestVPOObjects() []client.Object {
 	return []client.Object{
 		CreateVPOPod(constants.VerrazzanoPlatformOperator),
+		CreateVPOReplicaset(constants.VerrazzanoPlatformOperator),
 		&appsv1.Deployment{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
@@ -51,13 +52,8 @@ func CreateTestVPOObjects() []client.Object {
 				},
 			},
 			Status: appsv1.DeploymentStatus{
-				Conditions: []appsv1.DeploymentCondition{
-					{
-						Type:               appsv1.DeploymentAvailable,
-						Status:             corev1.ConditionTrue,
-						LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
-					},
-				},
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
 			},
 		},
 	}
@@ -72,6 +68,19 @@ func CreateVPOPod(name string) client.Object {
 			Labels: map[string]string{
 				"app":               constants.VerrazzanoPlatformOperator,
 				"pod-template-hash": "56f78ffcfd",
+			},
+		},
+	}
+}
+
+func CreateVPOReplicaset(name string) client.Object {
+	return &appsv1.ReplicaSet{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      fmt.Sprintf("%s-56f78ffcfd", name),
+			Annotations: map[string]string{
+				"deployment.kubernetes.io/revision": "1",
 			},
 		},
 	}

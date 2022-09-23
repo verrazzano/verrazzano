@@ -4,6 +4,7 @@
 package operator
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"testing"
 
 	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -19,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profilesRelativePath = "../../../../../manifests/profiles/v1alpha1"
+const profilesRelativePath = "../../../../../manifests/profiles"
 
 // TestIsEnabled tests the IsEnabled function for the Prometheus Operator component
 func TestIsEnabled(t *testing.T) {
@@ -173,4 +174,38 @@ func TestPostUpgrade(t *testing.T) {
 	ctx := spi.NewFakeContext(client, vz, nil, false, profilesRelativePath)
 	err := NewComponent().PostUpgrade(ctx)
 	assert.NoError(t, err)
+}
+
+func TestValidateInstall(t *testing.T) {
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{},
+			},
+		},
+	}
+	tests := []common.ValidateInstallTest{
+		{
+			Name:      "NoExistingGrafana",
+			WantErr:   "",
+			Appsv1Cli: common.MockGetAppsV1(),
+			Corev1Cli: common.MockGetCoreV1(),
+			Vz:        vz,
+		},
+		{
+			Name:      "ExistingDeployment",
+			WantErr:   istioPrometheus,
+			Appsv1Cli: common.MockGetAppsV1(common.MkDep(constants.IstioSystemNamespace, istioPrometheus)),
+			Corev1Cli: common.MockGetCoreV1(),
+			Vz:        vz,
+		},
+		{
+			Name:      "ExistingService",
+			WantErr:   istioPrometheus,
+			Appsv1Cli: common.MockGetAppsV1(),
+			Corev1Cli: common.MockGetCoreV1(common.MkSvc(constants.IstioSystemNamespace, istioPrometheus)),
+			Vz:        vz,
+		},
+	}
+	common.RunValidateInstallTest(t, NewComponent, tests...)
 }

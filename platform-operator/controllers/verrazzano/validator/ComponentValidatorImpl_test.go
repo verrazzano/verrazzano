@@ -6,8 +6,13 @@ package validator
 import (
 	"testing"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
+	appsv1Cli "k8s.io/client-go/kubernetes/typed/apps/v1"
+	corev1Cli "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 var disabled = false
@@ -17,6 +22,12 @@ var disabled = false
 // WHEN ValidateInstall is called
 // THEN ensure that no error is raised
 func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
+	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset().CoreV1(), nil
+	}
+	k8sutil.GetAppsV1Func = func(_ ...vzlog.VerrazzanoLogger) (appsv1Cli.AppsV1Interface, error) {
+		return k8sfake.NewSimpleClientset().AppsV1(), nil
+	}
 	tests := []struct {
 		name           string
 		vz             *vzapi.Verrazzano
@@ -44,8 +55,12 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 			numberOfErrors: 0,
 		},
 	}
-	config.TestProfilesDir = "../../../manifests/profiles/v1alpha1"
-	defer func() { config.TestProfilesDir = "" }()
+	config.TestProfilesDir = "../../../manifests/profiles"
+	defer func() {
+		config.TestProfilesDir = ""
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		k8sutil.GetAppsV1Func = k8sutil.GetAppsV1Client
+	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := ComponentValidatorImpl{}
@@ -120,7 +135,7 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 			numberOfErrors: 2,
 		},
 	}
-	config.TestProfilesDir = "../../../manifests/profiles/v1alpha1"
+	config.TestProfilesDir = "../../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
