@@ -11,13 +11,13 @@ import (
 	"strconv"
 	"time"
 
+	"context"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/oracle/oci-go-sdk/v53/common"
 	"github.com/oracle/oci-go-sdk/v53/common/auth"
 	ocice "github.com/oracle/oci-go-sdk/v53/containerengine"
 	ocicore "github.com/oracle/oci-go-sdk/v53/core"
-	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
