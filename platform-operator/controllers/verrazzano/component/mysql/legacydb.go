@@ -256,7 +256,7 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 
 	// Root priv
 	var rootCmd strings.Builder
-	temp := fmt.Sprintf("mysql -uroot -p%s -e ", rootPwd)
+	temp := fmt.Sprintf("/usr/bin/mysql -uroot -p%s -e ", rootPwd)
 	rootCmd.WriteString(temp)
 	rootCmd.WriteString(mySQLRootCommand)
 	rootExecCmd := []string{rootCmd.String()}
