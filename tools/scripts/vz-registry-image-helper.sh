@@ -100,6 +100,7 @@ function exit_trap() {
 trap exit_trap EXIT
 
 function run_docker() {
+  local fatal=false
   if [ "${DRY_RUN}" != "true" ]; then
     tmpfile=$(mktemp -t vz-helper-docker-err.XXXXXX)
     docker $* 2>${tmpfile}
@@ -115,14 +116,17 @@ $(cat ${tmpfile})
 Please log into the target registry and try again.
 
       """
-      rm ${tmpfile}
-      exit 1
+      fatal=true
     elif [ "${result}" != "0" ]; then
       echo "An error occurred running docker command:"
       cat ${tmpfile}
     fi
   fi
   rm ${tmpfile}
+  if [ "${fatal}" == "true" ]; then
+    # Fatal error occurred, exit immeditately
+    exit 1
+  fi
   return ${result}
 }
 
