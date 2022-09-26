@@ -15,8 +15,8 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
@@ -87,13 +87,35 @@ func TestPreUpgrade(t *testing.T) {
 // GIVEN a network policies helm component
 //  WHEN the PostUpgrade function is called
 //  THEN the call returns no error
+//   AND the "app" podSelector label matcher from the previous version of the network policy has been removed
 func TestPostUpgrade(t *testing.T) {
-	fakeClient := fake.NewClientBuilder().Build()
+	fakeClient := fake.NewClientBuilder().WithObjects(
+		&netv1.NetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.KeycloakNamespace,
+				Name:      keycloakMySQLNetPolicyName,
+			},
+			Spec: netv1.NetworkPolicySpec{
+				PodSelector: metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						podSelectorAppLabelName: "mysql",
+						"tier":                  "mysql",
+					},
+				},
+			},
+		},
+	).Build()
 	ctx := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
 	comp := NewComponent()
 
 	err := comp.PostUpgrade(ctx)
 	assert.NoError(t, err)
+
+	// validate that the podSelector label from the old policy has been removed
+	netpol := &netv1.NetworkPolicy{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: constants.KeycloakNamespace, Name: keycloakMySQLNetPolicyName}, netpol)
+	assert.NoError(t, err)
+	assert.NotContains(t, netpol.Spec.PodSelector.MatchLabels, podSelectorAppLabelName)
 }
 
 // GIVEN a network policies helm component
