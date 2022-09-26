@@ -37,9 +37,10 @@ func TestAppendOverrides(t *testing.T) {
 	}
 	kvs, err := AppendOverrides(spi.NewFakeContext(fakeClient, vz, nil, false), "", "", "", []bom.KeyValue{{Key: "key1", Value: "value1"}})
 	assert.Nil(t, err)
-	assert.Len(t, kvs, 2)
+	assert.Len(t, kvs, 3)
 	assert.Equal(t, bom.KeyValue{Key: "key1", Value: "value1"}, kvs[0])
 	assert.Equal(t, bom.KeyValue{Key: webFQDNKey, Value: fmt.Sprintf("%s.default.mydomain.com", kialiHostName)}, kvs[1])
+	assert.Equal(t, signingKeyPath, kvs[2].Key)
 }
 
 // TestIsKialiReady tests the isKialiReady function
