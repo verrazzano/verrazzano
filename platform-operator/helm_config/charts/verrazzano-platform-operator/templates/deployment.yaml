@@ -94,3 +94,4 @@ spec:
             path: /var/log
             type: ""
       serviceAccountName: {{ .Values.name }}
+      restartPolicy: Never
