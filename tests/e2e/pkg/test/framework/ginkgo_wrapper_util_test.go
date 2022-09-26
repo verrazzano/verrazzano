@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 )
 
 // TestIsBodyFunc - test function for introspecting an interface value

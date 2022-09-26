@@ -90,7 +90,7 @@ func TestReconcileRestart(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-containerized-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *oamv1.ContainerizedWorkload) error {
-			assert.NoError(updateObjectFromYAMLTemplate(workload, "test/templates/containerized_workload_deployment.yaml", params))
+			assert.NoError(updateObjectFromYAMLTemplate(workload, "testdata/templates/containerized_workload_deployment.yaml", params))
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
 			return nil

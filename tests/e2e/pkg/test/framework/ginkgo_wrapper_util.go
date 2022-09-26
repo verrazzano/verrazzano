@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	testmetrics "github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	testmetrics "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 )
 
 const (

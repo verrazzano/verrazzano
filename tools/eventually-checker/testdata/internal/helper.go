@@ -2,14 +2,14 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package internal
 
-import . "github.com/onsi/gomega" //nolint
+import "github.com/onsi/gomega"
 
 func DoSomething() (bool, error) {
 	return someNestedFunc(), nil
 }
 
 func someNestedFunc() bool {
-	Expect(false).To(BeTrue())
+	gomega.Expect(false).To(gomega.BeTrue())
 	return true
 }
 
@@ -18,12 +18,12 @@ func AnotherFunc() bool {
 }
 
 func DoCallExpect() bool {
-	return Expect(true).To(BeTrue())
+	return gomega.Expect(true).To(gomega.BeTrue())
 }
 
 func DoCallEventually() (bool, error) {
-	Eventually(func() (bool, error) {
-		Expect(true).To(BeTrue())
+	gomega.Eventually(func() (bool, error) {
+		gomega.Expect(true).To(gomega.BeTrue())
 		return true, nil
 	})
 	return true, nil

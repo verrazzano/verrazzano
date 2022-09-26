@@ -5,8 +5,8 @@ package framework
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	"go.uber.org/zap"
 	"os"
 	"reflect"

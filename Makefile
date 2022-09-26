@@ -111,3 +111,7 @@ check-eventually: check-eventually-test ## check for correct use of Gomega Event
 .PHONY: check-eventually-test
 check-eventually-test: ## run tests for Gomega Eventually checker
 	(cd tools/eventually-checker; go test .)
+
+.PHONY: unit-tests
+unit-test:
+	go test $$(go list ./... | grep -v /tests/e2e) 
