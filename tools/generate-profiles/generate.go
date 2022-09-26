@@ -55,7 +55,7 @@ func main() {
 
 	parseFlags(defaultDir)
 	if help {
-		fmt.Println(info)
+		fmt.Print(info)
 		os.Exit(0)
 	}
 
@@ -105,7 +105,7 @@ func generateAndWrite(profileType string, outputLocation string, verrazzanoDir s
 		return err
 	}
 	defer file.Close()
-	err = os.WriteFile(fileLoc, crYAML, 0666)
+	err = os.WriteFile(fileLoc, crYAML, 0600)
 	if err != nil {
 		return err
 	}

@@ -42,7 +42,7 @@ type ComponentValidator interface {
 	ValidateUpdateV1Beta1(old *Verrazzano, new *Verrazzano) []error
 }
 
-var componentValidator ComponentValidator = nil
+var componentValidator ComponentValidator
 
 func SetComponentValidator(v ComponentValidator) {
 	componentValidator = v

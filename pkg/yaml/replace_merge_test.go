@@ -256,8 +256,6 @@ k2:
 // WHEN ReplacementMerge is called
 // THEN ensure that the result is correct.
 func TestReplaceMany(t *testing.T) {
-	const indent = 2
-
 	tests := []struct {
 		testName string
 		values   []string

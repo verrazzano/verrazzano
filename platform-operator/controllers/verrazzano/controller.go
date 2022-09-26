@@ -552,11 +552,6 @@ func buildClusterRoleBindingName(namespace string, name string) string {
 	return fmt.Sprintf("verrazzano-install-%s-%s", namespace, name)
 }
 
-// buildInternalConfigMapName returns the name of the internal configmap associated with an install resource.
-func buildInternalConfigMapName(name string) string {
-	return fmt.Sprintf("verrazzano-install-%s-internal", name)
-}
-
 func isOperatorSameVersionAsCR(vzVersion string) bool {
 	bomVersion, currentVersion, ok := getVzAndOperatorVersions(vzVersion)
 	if ok {
@@ -864,17 +859,6 @@ func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, vz *insta
 	return r.updateStatus(log, vz, msg, newCondition)
 }
 
-// getInternalConfigMap Convenience method for getting the saved install ConfigMap
-func (r *Reconciler) getInternalConfigMap(ctx context.Context, vz *installv1alpha1.Verrazzano) (installConfig *corev1.ConfigMap, err error) {
-	key := client.ObjectKey{
-		Namespace: getInstallNamespace(),
-		Name:      buildInternalConfigMapName(vz.Name),
-	}
-	installConfig = &corev1.ConfigMap{}
-	err = r.Get(ctx, key, installConfig)
-	return installConfig, err
-}
-
 // createVerrazzanoSystemNamespace creates the Verrazzano system namespace if it does not already exist
 func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, cr *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
 	// remove injection label if disabled
@@ -1114,22 +1098,6 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 // This is needed for unit testing
 func initUnitTesing() {
 	unitTesting = true
-}
-
-func (r *Reconciler) updateVerrazzano(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
-	err := r.Update(context.TODO(), vz)
-	if err == nil {
-		return nil
-	}
-	if ctrlerrors.IsUpdateConflict(err) {
-		log.Info("Requeuing to get a new copy of the Verrazzano resource since the current one is outdated.")
-	} else if statusErr, ok := err.(*errors.StatusError); ok && strings.Contains(statusErr.Status().Message, "conversion webhook") {
-		log.Oncef("Timed out connecting to conversion webhook")
-	} else {
-		log.Errorf("Failed to update Verrazzano resource :v", err)
-	}
-	// Return error so that reconcile gets called again
-	return err
 }
 
 func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
