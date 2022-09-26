@@ -53,7 +53,11 @@ pipeline {
         choice (name: 'KIND_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KIND Cluster',
                 // 1st choice is the default value
-                choices: [ "1.20", "1.21", "1.22", "1.23", "1.24" ])
+                choices: [ "1.21", "1.22", "1.23", "1.24" ])
+        string (name: 'VERSION_FOR_INSTALL',
+                defaultValue: 'v1.1.2',
+                description: 'This is the Verrazzano version for install before doing an upgrade.  By default, the v1.0.2 release will be installed',
+                trim: true)
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
