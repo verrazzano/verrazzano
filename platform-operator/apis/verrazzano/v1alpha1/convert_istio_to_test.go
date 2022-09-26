@@ -292,7 +292,7 @@ func TestConfigureGateways(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			actualData, err := configureGateways(tt.istioComponent, tt.externalIP)
 			assert.NoError(t, err)
-			assert.Equal(t, tt.expectedData, actualData)
+			assert.YAMLEq(t, tt.expectedData, actualData)
 		})
 	}
 }

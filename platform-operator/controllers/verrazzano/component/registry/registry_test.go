@@ -5,6 +5,7 @@ package registry
 
 import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
 	"testing"
 
@@ -67,36 +68,67 @@ func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
 
-	a.Len(comps, 29, "Wrong number of components")
-	a.Equal(comps[0].Name(), oam.ComponentName)
-	a.Equal(comps[1].Name(), appoper.ComponentName)
-	a.Equal(comps[2].Name(), istio.ComponentName)
-	a.Equal(comps[3].Name(), weblogic.ComponentName)
-	a.Equal(comps[4].Name(), nginx.ComponentName)
-	a.Equal(comps[5].Name(), certmanager.ComponentName)
-	a.Equal(comps[6].Name(), externaldns.ComponentName)
-	a.Equal(comps[7].Name(), rancher.ComponentName)
-	a.Equal(comps[8].Name(), verrazzano.ComponentName)
-	a.Equal(comps[9].Name(), vmo.ComponentName)
-	a.Equal(comps[10].Name(), opensearch.ComponentName)
-	a.Equal(comps[11].Name(), opensearchdashboards.ComponentName)
-	a.Equal(comps[12].Name(), grafana.ComponentName)
-	a.Equal(comps[13].Name(), authproxy.ComponentName)
-	a.Equal(comps[14].Name(), coherence.ComponentName)
-	a.Equal(comps[15].Name(), mysqloperator.ComponentName)
-	a.Equal(comps[16].Name(), mysql.ComponentName)
-	a.Equal(comps[17].Name(), keycloak.ComponentName)
-	a.Equal(comps[18].Name(), kiali.ComponentName)
-	a.Equal(comps[19].Name(), promoperator.ComponentName)
-	a.Equal(comps[20].Name(), promadapter.ComponentName)
-	a.Equal(comps[21].Name(), kubestatemetrics.ComponentName)
-	a.Equal(comps[22].Name(), pushgateway.ComponentName)
-	a.Equal(comps[23].Name(), promnodeexporter.ComponentName)
-	a.Equal(comps[24].Name(), jaegeroperator.ComponentName)
-	a.Equal(comps[25].Name(), console.ComponentName)
-	a.Equal(comps[26].Name(), fluentd.ComponentName)
-	a.Equal(comps[27].Name(), velero.ComponentName)
-	a.Equal(comps[28].Name(), rancherbackup.ComponentName)
+	var i int
+	a.Len(comps, 30, "Wrong number of components")
+	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), oam.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), appoper.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), istio.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), weblogic.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), nginx.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), certmanager.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), externaldns.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), rancher.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), verrazzano.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), vmo.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), opensearch.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), opensearchdashboards.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), grafana.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), authproxy.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), coherence.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), mysqloperator.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), mysql.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), keycloak.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), kiali.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), promoperator.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), promadapter.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), kubestatemetrics.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), pushgateway.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), promnodeexporter.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), jaegeroperator.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), console.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), fluentd.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), velero.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), rancherbackup.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -348,25 +380,50 @@ func TestComponentDependenciesCycle(t *testing.T) {
 // GIVEN a registry of components with dependencies, and some with cycles
 //  WHEN I call ComponentDependenciesMet for it
 //  THEN it returns false if there's a cycle in the dependencies
+func TestIndirectDependencyMetButNotReady(t *testing.T) {
+	// directCycle -> fake1, directCycle
+	indirectDependency := fakeComponent{name: "indirectDependency", enabled: false, ready: true}
+	directDependency := fakeComponent{name: "directDependency", enabled: true, ready: false, dependencies: []string{"indirectDependency"}}
+	dependent := fakeComponent{name: "dependent", enabled: false, ready: false, dependencies: []string{"directDependency"}}
+
+	OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			directDependency,
+			indirectDependency,
+			dependent,
+		}
+	})
+	defer ResetGetComponentsFn()
+
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	assert.True(t, ComponentDependenciesMet(indirectDependency, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)))
+	assert.True(t, ComponentDependenciesMet(directDependency, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)))
+	assert.False(t, ComponentDependenciesMet(dependent, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)))
+}
+
+// TestComponentDependenciesCycles tests ComponentDependenciesMet
+// GIVEN a registry of components with dependencies, and some with cycles
+//  WHEN I call ComponentDependenciesMet for it
+//  THEN it returns false if there's a cycle in the dependencies
 func TestComponentDependenciesCycles(t *testing.T) {
 	// directCycle -> fake1, directCycle
-	directCycle := fakeComponent{name: "directCycle", dependencies: []string{"fake1", "directCycle"}}
+	directCycle := fakeComponent{name: "directCycle", enabled: true, dependencies: []string{"fake1", "directCycle"}}
 	// indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
-	indirectCycle1 := fakeComponent{name: "indirectCycle1", dependencies: []string{"fake3"}}
+	indirectCycle1 := fakeComponent{name: "indirectCycle1", enabled: true, dependencies: []string{"fake3"}}
 	// indirectCycle2 -> fake4 -> fake3 -> fake2 -> indirectCycle -> fake3
-	indirectCycle2 := fakeComponent{name: "indirectCycle2", dependencies: []string{"fake4"}}
-	nocycles := fakeComponent{name: "nocycles", dependencies: []string{"fake6", "fake5"}}
-	noDependencies := fakeComponent{name: "fake1"}
+	indirectCycle2 := fakeComponent{name: "indirectCycle2", enabled: true, dependencies: []string{"fake4"}}
+	nocycles := fakeComponent{name: "nocycles", enabled: true, ready: true, dependencies: []string{"fake6", "fake5"}}
+	noDependencies := fakeComponent{name: "fake1", enabled: true, ready: true}
 	OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
 			noDependencies,
 			// fake2 -> indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
-			fakeComponent{name: "fake2", dependencies: []string{"indirectCycle1", "fake1"}},
+			fakeComponent{name: "fake2", enabled: true, dependencies: []string{"indirectCycle1", "fake1"}},
 			// fake3 -> fake2 -> indirectCycle1 -> fake3
-			fakeComponent{name: "fake3", dependencies: []string{"fake2"}},
-			fakeComponent{name: "fake4", dependencies: []string{"fake3"}},
-			fakeComponent{name: "fake5", dependencies: []string{"fake1"}},
-			fakeComponent{name: "fake6", dependencies: []string{"fake5"}},
+			fakeComponent{name: "fake3", enabled: true, dependencies: []string{"fake2"}},
+			fakeComponent{name: "fake4", enabled: true, dependencies: []string{"fake3"}},
+			fakeComponent{name: "fake5", enabled: true, ready: true, dependencies: []string{"fake1"}},
+			fakeComponent{name: "fake6", enabled: true, ready: true, dependencies: []string{"fake5"}},
 			nocycles,
 			indirectCycle1,
 			indirectCycle2,
@@ -382,72 +439,17 @@ func TestComponentDependenciesCycles(t *testing.T) {
 	assert.True(t, ComponentDependenciesMet(noDependencies, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)))
 }
 
-// TestComponentDependenciesCycles tests ComponentDependenciesMet
-// GIVEN a registry of components with dependencies, and some with cycles
-//  WHEN I call ComponentDependenciesMet for it
-//  THEN it returns false if there's a cycle in the dependencies
-func Test_checkDependencies(t *testing.T) {
-	// directCycle -> fake1, directCycle
-	directCycle := fakeComponent{name: "directCycle", dependencies: []string{"fake1", "directCycle"}}
-	// indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
-	indirectCycle1 := fakeComponent{name: "indirectCycle1", dependencies: []string{"fake3"}}
-	// indirectCycle2 -> fake4 -> fake3 -> fake2 -> indirectCycle -> fake3
-	indirectCycle2 := fakeComponent{name: "indirectCycle2", dependencies: []string{"fake4"}}
-	nocycles := fakeComponent{name: "nocycles", dependencies: []string{"fake6", "fake5"}}
-	noDependencies := fakeComponent{name: "fake1"}
-	OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			noDependencies,
-			// fake2 -> indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
-			fakeComponent{name: "fake2", dependencies: []string{"indirectCycle1", "fake1"}},
-			// fake3 -> fake2 -> indirectCycle1 -> fake3
-			fakeComponent{name: "fake3", dependencies: []string{"fake2"}},
-			fakeComponent{name: "fake4", dependencies: []string{"fake3"}},
-			fakeComponent{name: "fake5", dependencies: []string{"fake1"}},
-			fakeComponent{name: "fake6", dependencies: []string{"fake5"}},
-			nocycles,
-			indirectCycle1,
-			indirectCycle2,
-		}
-	})
-	defer ResetGetComponentsFn()
-
-	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)
-
-	_, err := checkDependencies(directCycle, ctx, make(map[string]bool), make(map[string]bool))
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "dependency cycle found for directCycle")
-	_, err = checkDependencies(indirectCycle1, ctx, make(map[string]bool), make(map[string]bool))
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "dependency cycle found for indirectCycle1")
-	_, err = checkDependencies(indirectCycle2, ctx, make(map[string]bool), make(map[string]bool))
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "dependency cycle found for fake3")
-	dependencies, err := checkDependencies(nocycles, ctx, make(map[string]bool), make(map[string]bool))
-	assert.NoError(t, err)
-	assert.Equal(t, map[string]bool{
-		"fake6": true,
-		"fake5": true,
-		"fake1": true,
-	}, dependencies)
-
-	dependencies, err = checkDependencies(noDependencies, ctx, make(map[string]bool), make(map[string]bool))
-	assert.NoError(t, err)
-	assert.Equal(t, map[string]bool{}, dependencies)
-}
-
 // TestComponentDependenciesCycle tests ComponentDependenciesMet
 // GIVEN a component
 //  WHEN I call ComponentDependenciesMet for it
 //  THEN it returns false if there's a cycle in the dependencies
 func TestComponentDependenciesChainNoCycle(t *testing.T) {
-	chainNoCycle := fakeComponent{name: "chainNoCycle", dependencies: []string{"fake2"}}
-	repeatDepdendency := fakeComponent{name: "repeatDependency", dependencies: []string{"fake1", "fake2", "fake1"}}
+	chainNoCycle := fakeComponent{name: "chainNoCycle", enabled: true, ready: true, dependencies: []string{"fake2"}}
+	repeatDepdendency := fakeComponent{name: "repeatDependency", enabled: true, ready: true, dependencies: []string{"fake1", "fake2", "fake1"}}
 	OverrideGetComponentsFn(func() []spi.Component {
 		return []spi.Component{
-			fakeComponent{name: "fake1"},
-			fakeComponent{name: "fake2", dependencies: []string{"fake1"}},
+			fakeComponent{name: "fake1", enabled: true, ready: true},
+			fakeComponent{name: "fake2", enabled: true, ready: true, dependencies: []string{"fake1"}},
 			chainNoCycle,
 			repeatDepdendency,
 		}
@@ -465,7 +467,64 @@ func TestComponentDependenciesChainNoCycle(t *testing.T) {
 	assert.True(t, ready)
 }
 
-// TestRegistryDependencies tests the default Registry components for cycles
+// TestComponentDependenciesCycles validates the test method checkDependencyCycles, which is used by another test to
+// validate that the production component registry does not have any cycles declared.
+//
+// GIVEN a registry of components with dependencies, and some with cycles
+//  WHEN I call checkDependencyCycles for it
+//  THEN it returns an error if there's a cycle in the dependencies
+func Test_checkDependencyCycles(t *testing.T) {
+	// directCycle -> fake1, directCycle
+	directCycle := fakeComponent{name: "directCycle", enabled: true, dependencies: []string{"fake1", "directCycle"}}
+	// indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
+	indirectCycle1 := fakeComponent{name: "indirectCycle1", enabled: true, dependencies: []string{"fake3"}}
+	// indirectCycle2 -> fake4 -> fake3 -> fake2 -> indirectCycle -> fake3
+	indirectCycle2 := fakeComponent{name: "indirectCycle2", enabled: true, dependencies: []string{"fake4"}}
+	nocycles := fakeComponent{name: "nocycles", enabled: true, dependencies: []string{"fake6", "fake5"}}
+	noDependencies := fakeComponent{name: "fake1", enabled: true, ready: true}
+	OverrideGetComponentsFn(func() []spi.Component {
+		return []spi.Component{
+			noDependencies,
+			// fake2 -> indirectCycle1 -> fake3 -> fake2 -> indirectCycle1
+			fakeComponent{name: "fake2", enabled: true, dependencies: []string{"indirectCycle1", "fake1"}},
+			// fake3 -> fake2 -> indirectCycle1 -> fake3
+			fakeComponent{name: "fake3", enabled: true, dependencies: []string{"fake2"}},
+			fakeComponent{name: "fake4", enabled: true, dependencies: []string{"fake3"}},
+			fakeComponent{name: "fake5", enabled: true, ready: true, dependencies: []string{"fake1"}},
+			fakeComponent{name: "fake6", enabled: true, ready: true, dependencies: []string{"fake5"}},
+			nocycles,
+			indirectCycle1,
+			indirectCycle2,
+		}
+	})
+	defer ResetGetComponentsFn()
+
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)
+
+	_, err := checkDependencyCycles(directCycle, ctx, make(map[string]bool), make(map[string]bool))
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "dependency cycle found for directCycle")
+	_, err = checkDependencyCycles(indirectCycle1, ctx, make(map[string]bool), make(map[string]bool))
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "dependency cycle found for indirectCycle1")
+	_, err = checkDependencyCycles(indirectCycle2, ctx, make(map[string]bool), make(map[string]bool))
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "dependency cycle found for fake3")
+	dependencies, err := checkDependencyCycles(nocycles, ctx, make(map[string]bool), make(map[string]bool))
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]bool{
+		"fake6": true,
+		"fake5": true,
+		"fake1": true,
+	}, dependencies)
+
+	dependencies, err = checkDependencyCycles(noDependencies, ctx, make(map[string]bool), make(map[string]bool))
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]bool{}, dependencies)
+}
+
+// TestRegistryDependencies tests the production Registry components for dependency cycles
 // GIVEN a component
 //  WHEN I call checkDependencies for it
 //  THEN No error is returned that indicates a cycle in the chain
@@ -477,7 +536,7 @@ func TestRegistryDependencies(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	for _, comp := range GetComponents() {
-		_, err := checkDependencies(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false, profileDir),
+		_, err := checkDependencyCycles(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false, profileDir),
 			make(map[string]bool), make(map[string]bool))
 		assert.NoError(t, err)
 	}
@@ -563,6 +622,37 @@ func runDepenencyStateCheckTest(t *testing.T, state v1alpha1.CompStateType, enab
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, cr, nil, true))
 	assert.Equal(t, expectedResult, ready)
+}
+
+// checkDependencies Check the ready state of any dependencies and check for cycles
+func checkDependencyCycles(c spi.Component, context spi.ComponentContext, visited map[string]bool, stateMap map[string]bool) (map[string]bool, error) {
+	compName := c.Name()
+	log := context.Log()
+	log.Debugf("Checking %s dependencies", compName)
+	if _, wasVisited := visited[compName]; wasVisited {
+		return stateMap, context.Log().ErrorfNewErr("Failed, illegal state, dependency cycle found for %s", c.Name())
+	}
+	visited[compName] = true
+	for _, dependencyName := range c.GetDependencies() {
+		if compName == dependencyName {
+			return stateMap, context.Log().ErrorfNewErr("Failed, illegal state, dependency cycle found for %s", c.Name())
+		}
+		if _, ok := stateMap[dependencyName]; ok {
+			// dependency already checked
+			log.Debugf("Dependency %s already checked", dependencyName)
+			continue
+		}
+		found, dependency := FindComponent(dependencyName)
+		if !found {
+			return stateMap, context.Log().ErrorfNewErr("Failed, illegal state, declared dependency not found for %s: %s", c.Name(), dependencyName)
+		}
+		if trace, err := checkDependencyCycles(dependency, context, visited, stateMap); err != nil {
+			return trace, err
+		}
+		// Only check if dependency is ready when the dependency is enabled
+		stateMap[dependencyName] = true
+	}
+	return stateMap, nil
 }
 
 // Create a new deployment object for testing

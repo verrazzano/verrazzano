@@ -5,15 +5,16 @@ package verifydistribution
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"github.com/onsi/gomega"
+	. "github.com/verrazzano/verrazzano/pkg/files"
+	. "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
-	"sort"
 )
 
 const SLASH = string(filepath.Separator)
@@ -30,6 +31,7 @@ var allPaths = map[string]string{
 	"bin":       SLASH + "bin",
 	"images":    SLASH + "images",
 	"manifests": SLASH + "manifests",
+	"profiles":  SLASH + "manifests" + SLASH + "profiles",
 	"k8s":       SLASH + "manifests" + SLASH + "k8s",
 }
 
@@ -38,14 +40,16 @@ var opensourcefileslistbydir = map[string][]string{
 	"bin":       {"bom_utils.sh", "vz", "vz-registry-image-helper.sh"},
 	"manifests": {"charts", "k8s", "profiles", "verrazzano-bom.json"},
 	"k8s":       {"verrazzano-platform-operator.yaml"},
+	"profiles":  {"dev.yaml", "managed-cluster.yaml", "prod.yaml"},
 }
 
 var fullBundleFileslistbydir = map[string][]string{
-	"top": {"LICENSE", "README.md", "README.html", "bin", "images", "manifests"},
-	"bin": {"bom_utils.sh", "darwin-amd64", "darwin-arm64", "linux-amd64", "linux-arm64", "vz-registry-image-helper.sh"},
-	//"vz":        {"vz"},
+	"top":       {"LICENSE", "README.md", "README.html", "bin", "images", "manifests"},
+	"bin":       {"bom_utils.sh", "darwin-amd64", "darwin-arm64", "linux-amd64", "linux-arm64", "vz-registry-image-helper.sh"},
+	"vz":        {"vz"},
 	"manifests": {"charts", "k8s", "profiles", "verrazzano-bom.json"},
 	"k8s":       {"verrazzano-platform-operator.yaml"},
+	"profiles":  {"dev.yaml", "managed-cluster.yaml", "prod.yaml"},
 }
 
 var t = framework.NewTestFramework("verifydistribution")
@@ -79,7 +83,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				for _, each := range filesInfo {
 					filesList = append(filesList, each.Name())
 				}
-				gomega.Expect(compareSlices(filesList, liteBundleZipContents)).To(gomega.BeTrue())
+				gomega.Expect(CompareTwoSlices(filesList, liteBundleZipContents)).To(gomega.BeTrue())
 			})
 
 			t.It("Verify Lite bundle extracted contents", func() {
@@ -87,6 +91,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				verifyDistributionByDirectory(generatedPath+allPaths["bin"], "bin", variant)
 				verifyDistributionByDirectory(generatedPath+allPaths["manifests"], "manifests", variant)
 				verifyDistributionByDirectory(generatedPath+allPaths["k8s"], "k8s", variant)
+				verifyDistributionByDirectory(generatedPath+allPaths["profiles"], "profiles", variant)
 			})
 		})
 	} else {
@@ -95,13 +100,14 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				verifyDistributionByDirectory(generatedPath+allPaths["top"], "top", variant)
 				verifyDistributionByDirectory(generatedPath+allPaths["bin"], "bin", variant)
 
-				//verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/darwin-amd64", "vz", variant)
-				//verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/darwin-arm64", "vz", variant)
-				//verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/linux-amd64", "vz", variant)
-				//verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/linux-arm64", "vz", variant)
+				verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/darwin-amd64", "vz", variant)
+				verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/darwin-arm64", "vz", variant)
+				verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/linux-amd64", "vz", variant)
+				verifyDistributionByDirectory(generatedPath+allPaths["bin"]+"/linux-arm64", "vz", variant)
 
 				verifyDistributionByDirectory(generatedPath+allPaths["manifests"], "manifests", variant)
 				verifyDistributionByDirectory(generatedPath+allPaths["k8s"], "k8s", variant)
+				verifyDistributionByDirectory(generatedPath+allPaths["profiles"], "profiles", variant)
 			})
 		})
 
@@ -128,7 +134,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 					eachName = regexSemi.ReplaceAllString(eachName, "-")
 					componentsList = append(componentsList, eachName)
 				}
-				componentsList = removeDuplicate(componentsList)
+				componentsList = helpers.RemoveDuplicate(componentsList)
 
 				imagesList := []string{}
 				imagesInfo, err2 := ioutil.ReadDir(generatedPath + allPaths["images"])
@@ -144,7 +150,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 					imagesList = append(imagesList, eachName)
 				}
 
-				gomega.Expect(compareSlices(componentsList, imagesList)).To(gomega.BeTrue())
+				gomega.Expect(CompareTwoSlices(componentsList, imagesList)).To(gomega.BeTrue())
 			})
 		})
 	}
@@ -166,40 +172,14 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				eachName := re1.ReplaceAllString(each, "")
 				chartsFilesListFiltered = append(chartsFilesListFiltered, eachName)
 			}
-			gomega.Expect(compareSlices(sourcesFilesFilteredList, chartsFilesListFiltered)).To(gomega.BeTrue())
+			gomega.Expect(CompareTwoSlices(sourcesFilesFilteredList, chartsFilesListFiltered)).To(gomega.BeTrue())
 		})
 	})
 })
 
-// GetMatchingFiles returns the filenames for files that match a regular expression.
-func GetMatchingFiles(rootDirectory string, fileMatchRe *regexp.Regexp) (fileMatches []string, err error) {
-	if len(rootDirectory) == 0 {
-		return nil, errors.New("GetMatchingFiles requires a rootDirectory")
-	}
-
-	if fileMatchRe == nil {
-		return nil, fmt.Errorf("GetMatchingFiles requires a regular expression")
-	}
-
-	walkFunc := func(fileName string, fileInfo os.FileInfo, err error) error {
-		if !fileMatchRe.MatchString(fileName) {
-			return nil
-		}
-		if !fileInfo.IsDir() {
-			fileMatches = append(fileMatches, fileName)
-		}
-		return nil
-	}
-
-	err = filepath.Walk(rootDirectory, walkFunc)
-	if err != nil {
-		return nil, err
-	}
-	return fileMatches, err
-}
-
 // verifyDistributionByDirectory verifies the contents of inputDir with Values from map
 func verifyDistributionByDirectory(inputDir string, key string, variant string) {
+	fmt.Printf("Input DIR provided is: %s, key provided: %s, Variant provided: %s", inputDir, key, variant)
 	filesList := []string{}
 	filesInfo, err := ioutil.ReadDir(inputDir)
 	if err != nil {
@@ -211,41 +191,10 @@ func verifyDistributionByDirectory(inputDir string, key string, variant string) 
 	}
 	if variant == liteDistribution {
 		fmt.Println("Provided variant is: ", variant)
-		gomega.Expect(compareSlices(filesList, opensourcefileslistbydir[key])).To(gomega.BeTrue())
+		gomega.Expect(CompareTwoSlices(filesList, opensourcefileslistbydir[key])).To(gomega.BeTrue())
 	} else {
 		fmt.Println("Provided variant is: Full")
-		gomega.Expect(compareSlices(filesList, fullBundleFileslistbydir[key])).To(gomega.BeTrue())
+		gomega.Expect(CompareTwoSlices(filesList, fullBundleFileslistbydir[key])).To(gomega.BeTrue())
 	}
 	fmt.Printf("All files found for %s \n", key)
-}
-
-// compareSlices compares 2 string slices after sorting
-func compareSlices(slice1 []string, slice2 []string) bool {
-	sort.Strings(slice1)
-	sort.Strings(slice2)
-
-	if len(slice1) != len(slice2) {
-		fmt.Printf("Length mismatched for %s and %s", slice1, slice2)
-		return false
-	}
-	for i, v := range slice1 {
-		if v != slice2[i] {
-			fmt.Printf("%s != %s", slice1, slice2)
-			return false
-		}
-	}
-	return true
-}
-
-// removeDuplicate removes duplicates from origSlice
-func removeDuplicate(origSlice []string) []string {
-	allKeys := make(map[string]bool)
-	returnSlice := []string{}
-	for _, item := range origSlice {
-		if _, value := allKeys[item]; !value {
-			allKeys[item] = true
-			returnSlice = append(returnSlice, item)
-		}
-	}
-	return returnSlice
 }

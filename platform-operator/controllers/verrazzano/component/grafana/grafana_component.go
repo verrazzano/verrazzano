@@ -5,6 +5,7 @@ package grafana
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -56,7 +57,7 @@ func (g grafanaComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of the Grafana component
 func (g grafanaComponent) GetDependencies() []string {
-	return []string{vmo.ComponentName}
+	return []string{networkpolicies.ComponentName, vmo.ComponentName}
 }
 
 // GetCertificateNames returns the Grafana certificate names if Nginx is enabled, otherwise returns

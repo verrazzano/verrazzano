@@ -4,34 +4,103 @@
 package istio
 
 import (
+	"bytes"
 	"fmt"
+	"text/template"
+
+	"github.com/Jeffail/gabs/v2"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"sigs.k8s.io/yaml"
 )
 
 const collectorZipkinPort = 9411
 
-//configureJaeger configures Jaeger for Istio integration and returns install args for the Istio install.
+const istioTracingTemplate = `
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  meshConfig:
+    defaultConfig:
+      tracing:
+        tlsSettings:
+          mode: "{{.TracingTLSMode}}"
+        zipkin:
+          address: "{{.JaegerCollectorURL}}"
+`
+
+type istioTracingTemplateData struct {
+	JaegerCollectorURL string
+	TracingTLSMode     string
+}
+
+// buildJaegerTracingYaml builds the IstioOperator CR YAML that will contain the default system generated Jaeger
+// configurations merged with any user provided overrides.
+func buildJaegerTracingYaml(ctx spi.ComponentContext, comp *v1beta1.IstioComponent, namespace string) (string, error) {
+	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
+	// get istio overrides for Jaeger tracing
+	jaegerTracingYaml, err := configureJaegerTracing()
+	if err != nil {
+		return "", err
+	}
+	expandedYamls := []string{jaegerTracingYaml}
+	installOverrideYamls, err := common.GetInstallOverridesYAMLUsingClient(ctx.Client(), comp.ValueOverrides, namespace)
+	if err != nil {
+		return "", err
+	}
+	for _, overrideYaml := range installOverrideYamls {
+		// If user provided overrided already contains Jaeger tracing related settings, then merge it with
+		// default values and use that else use the default values as a system added override.
+		if containsJaegerTracingOverrides(overrideYaml) {
+			expandedYamls = append(expandedYamls, overrideYaml)
+		}
+	}
+	// Merge all of the expanded YAMLs into a single YAML,
+	// second has precedence over first, third over second, and so forth.
+	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
+	if err != nil {
+		return "", err
+	}
+	return merged, nil
+}
+
+func containsJaegerTracingOverrides(overrideYaml string) bool {
+	jsonOverride, err := yaml.YAMLToJSON([]byte(overrideYaml))
+	if err != nil {
+		return false
+	}
+	jsonString, err := gabs.ParseJSON(jsonOverride)
+	if err != nil {
+		return false
+	}
+	return jsonString.ExistsP(meshConfigTracingPath)
+}
+
+// configureJaegerTracing configures Jaeger for Istio integration and returns install args for the Istio install.
 // return Istio install args for the tracing endpoint and the Istio tracing TLS mode
-func configureJaeger(ctx spi.ComponentContext) ([]vzapi.InstallArgs, error) {
-	// During istio bootstrap, if Jaeger operator is not enabled, or if the Jaeger services are not created yet,
-	// use the collector URL of the default Jaeger instance that would eventually be created.
+func configureJaegerTracing() (string, error) {
 	collectorURL := fmt.Sprintf("%s-%s.%s.svc.cluster.local.:%d",
 		globalconst.JaegerInstanceName,
 		globalconst.JaegerCollectorComponentName,
 		constants.VerrazzanoMonitoringNamespace,
 		collectorZipkinPort,
 	)
-	return []vzapi.InstallArgs{
-		{
-			Name:  meshConfigTracingTLSMode,
-			Value: "ISTIO_MUTUAL",
-		},
-		{
-			Name:  meshConfigTracingAddress,
-			Value: collectorURL,
-		},
-	}, nil
+	t, err := template.New("tracing_template").Parse(istioTracingTemplate)
+	if err != nil {
+		return "", err
+	}
+	var b bytes.Buffer
+	var data = istioTracingTemplateData{}
+	data.JaegerCollectorURL = collectorURL
+	data.TracingTLSMode = "ISTIO_MUTUAL"
+
+	err = t.Execute(&b, &data)
+	if err != nil {
+		return "", err
+	}
+	return b.String(), nil
 }

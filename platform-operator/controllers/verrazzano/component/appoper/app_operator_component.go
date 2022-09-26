@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
@@ -50,7 +51,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			AppendOverridesFunc:       AppendApplicationOperatorOverrides,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
-			Dependencies:              []string{oam.ComponentName, istio.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, oam.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
