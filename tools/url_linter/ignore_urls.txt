@@ -43,6 +43,8 @@ https://vault.example.com:8200
 https://verrazzano
 https://verrazzano.example.com
 https://verrazzano.xyz.nip.io
+https://kiali.vmi.system
+https://jaeger
 
 # Partial URLs (ie: things that get substitutions at runtime that result in valid URLs)
 https://api.github.com/repos/jetstack/cert-manager/tags
