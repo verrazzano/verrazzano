@@ -6,11 +6,13 @@ package nginx
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -24,7 +26,7 @@ import (
 const ComponentName = "ingress-controller"
 
 // ComponentNamespace is the namespace of the component
-const ComponentNamespace = "ingress-nginx"
+const ComponentNamespace = vpoconst.IngressNginxNamespace
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "ingress"
@@ -58,7 +60,7 @@ func NewComponent() spi.Component {
 			PreInstallFunc:            PreInstall,
 			AppendOverridesFunc:       AppendOverrides,
 			PostInstallFunc:           PostInstall,
-			Dependencies:              []string{istio.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
