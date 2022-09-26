@@ -99,7 +99,7 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 	message := "Wrote kubeconfig to file"
 	if existingKubeconfig {
 		// write new kubeconfig to temp file and merge with existing file
-		if err = os.WriteFile(newKubeconfigPath, []byte(kubeconfigContents), 0700); err != nil {
+		if err = os.WriteFile(newKubeconfigPath, []byte(kubeconfigContents), 0600); err != nil {
 			return err
 		}
 
@@ -113,7 +113,7 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 			os.Remove(newKubeconfigPath)
 		}()
 	}
-	if err = os.WriteFile(filePath, []byte(kubeconfigContents), 0700); err != nil {
+	if err = os.WriteFile(filePath, []byte(kubeconfigContents), 0600); err != nil {
 		fmt.Fprintf(helper.GetOutputStream(), "Failed to write kubeconfig to file %s - %v\n", filePath, err)
 		return err
 	}

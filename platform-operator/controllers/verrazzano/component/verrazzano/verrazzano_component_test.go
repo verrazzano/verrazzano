@@ -42,6 +42,8 @@ var crEnabled = vzapi.Verrazzano{
 	},
 }
 
+var getControllerRuntimeClient = getClient
+
 // genericTestRunner is used to run generic OS commands with expected results
 type genericTestRunner struct {
 }
