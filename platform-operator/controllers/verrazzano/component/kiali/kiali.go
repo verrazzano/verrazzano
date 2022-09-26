@@ -74,9 +74,8 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return kvs, err
 	}
 	kvs = append(kvs, bom.KeyValue{
-		Key:       signingKeyPath,
-		Value:     signingKey,
-		SetString: true,
+		Key:   signingKeyPath,
+		Value: signingKey,
 	})
 	return kvs, nil
 }
