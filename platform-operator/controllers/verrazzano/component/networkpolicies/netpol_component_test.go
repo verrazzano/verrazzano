@@ -135,11 +135,6 @@ func TestPostUpgrade(t *testing.T) {
 
 	err = comp.PostUpgrade(ctx)
 	assert.NoError(t, err)
-
-	// validate that the podSelector label from the old policy has been removed
-	netpol = &netv1.NetworkPolicy{}
-	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: constants.KeycloakNamespace, Name: keycloakMySQLNetPolicyName}, netpol)
-	assert.NoError(t, err)
 }
 
 // GIVEN a network policies helm component
