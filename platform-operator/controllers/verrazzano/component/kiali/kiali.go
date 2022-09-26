@@ -210,6 +210,7 @@ func buildKialiHostnameForDomain(dnsDomain string) string {
 
 // getKialiSigningKey this secret holds the data for the Kiali signing key
 func getKialiSigningKey(ctx spi.ComponentContext) (string, error) {
+
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      kialiSigningKeySecret,
@@ -231,10 +232,6 @@ func getKialiSigningKey(ctx spi.ComponentContext) (string, error) {
 		}
 		_, err = controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &secret, func() error {
 			if secret.Data[signingKey] == nil {
-				pw, err := password.GeneratePassword(16)
-				if err != nil {
-					return err
-				}
 				secret.Data[signingKey] = []byte(pw)
 			}
 			return nil
