@@ -37,7 +37,6 @@ func TestGetInstanceInfo(t *testing.T) {
 	const esURL = "elasticsearch." + dnsDomain
 	const promURL = "prometheus." + dnsDomain
 	const grafanaURL = "grafana." + dnsDomain
-	const kialiURL = "kiali." + dnsDomain
 	const kibanaURL = "kibana." + dnsDomain
 	const rancherURL = "rancher." + dnsDomain
 	const consoleURL = "verrazzano." + dnsDomain

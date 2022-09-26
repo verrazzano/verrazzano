@@ -39,7 +39,7 @@ func GetPodsList(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedNam
 // EnsurePodsAreReady makes sure pods using the latest workload revision are ready.
 // A list of pods using the latest revision are passed to this function.
 func EnsurePodsAreReady(log vzlog.VerrazzanoLogger, podsToCheck []corev1.Pod, expectedPods int32, prefix string) (int32, bool) {
-	var podsReady int32 = 0
+	var podsReady int32
 	for _, pod := range podsToCheck {
 		// Check that init containers are ready
 		for _, initContainerStatus := range pod.Status.InitContainerStatuses {
