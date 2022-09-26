@@ -35,9 +35,10 @@ const (
 	imagePullSecretHelmKey = "global.imagePullSecrets[0]"
 	ownerIDHelmKey         = "txtOwnerId"
 	prefixKey              = "txtPrefix"
-
+	longestSystemURLPrefix = "elasticsearch.vmi.system"
 	clusterRoleName        = ComponentName
 	clusterRoleBindingName = ComponentName
+	preOccupiedspace       = len(longestSystemURLPrefix) + 2
 )
 
 func preInstall(compContext spi.ComponentContext) error {
@@ -220,13 +221,15 @@ func GetOverrides(object runtime.Object) interface{} {
 func validateLongestHostName(effectiveCR runtime.Object) error {
 	envName := getEnvironmentName(effectiveCR)
 	dnsSuffix, wildcard := getDNSSuffix(effectiveCR)
-	longestHostName := fmt.Sprintf("%s.%s.%s", "elasticsearch.vmi.system", envName, dnsSuffix)
+	spaceOccupied := preOccupiedspace
+	longestHostName := fmt.Sprintf("%s.%s.%s", longestSystemURLPrefix, envName, dnsSuffix)
 	if len(longestHostName) > 64 {
 		if wildcard {
-			return fmt.Errorf("The specified environmentName %s is too long", envName)
+			spaceOccupied = spaceOccupied + len(dnsSuffix)
+			return fmt.Errorf("spec.environmentName %s is too long. For the given configuration it must have at most %v characters", envName, 64-spaceOccupied)
 		}
 
-		return fmt.Errorf("The specified environmentName %s and DNS suffix %s will result in host names for system endpoints longer than 64 characters", envName, dnsSuffix)
+		return fmt.Errorf("spec.environmentName %s and DNS suffix %s are too long. For the given configuration they must have at most %v characters in combination", envName, dnsSuffix, 64-spaceOccupied)
 	}
 	return nil
 }
