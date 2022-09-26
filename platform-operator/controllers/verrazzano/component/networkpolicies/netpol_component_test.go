@@ -84,11 +84,13 @@ func TestPreUpgrade(t *testing.T) {
 	assertNetPolicyHelmOwnership(t, fakeClient)
 }
 
-// GIVEN a network policies helm component
-//  WHEN the PostUpgrade function is called
-//  THEN the call returns no error
-//   AND the "app" podSelector label matcher from the previous version of the network policy has been removed
+// TestPostUpgrade tests the component PostUpgrade function
 func TestPostUpgrade(t *testing.T) {
+	// GIVEN a network policies helm component
+	//  WHEN the PostUpgrade function is called
+	//   AND the podSelector has a label matcher for the "app" label
+	//  THEN the call returns no error
+	//   AND the "app" podSelector label matcher from the previous version of the network policy has been removed
 	fakeClient := fake.NewClientBuilder().WithObjects(
 		&netv1.NetworkPolicy{
 			ObjectMeta: metav1.ObjectMeta{
@@ -116,6 +118,28 @@ func TestPostUpgrade(t *testing.T) {
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: constants.KeycloakNamespace, Name: keycloakMySQLNetPolicyName}, netpol)
 	assert.NoError(t, err)
 	assert.NotContains(t, netpol.Spec.PodSelector.MatchLabels, podSelectorAppLabelName)
+
+	// GIVEN a network policies helm component
+	//  WHEN the PostUpgrade function is called
+	//   AND the podSelector has no label matchers
+	//  THEN the call returns no error
+	fakeClient = fake.NewClientBuilder().WithObjects(
+		&netv1.NetworkPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.KeycloakNamespace,
+				Name:      keycloakMySQLNetPolicyName,
+			},
+		},
+	).Build()
+	ctx = spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
+
+	err = comp.PostUpgrade(ctx)
+	assert.NoError(t, err)
+
+	// validate that the podSelector label from the old policy has been removed
+	netpol = &netv1.NetworkPolicy{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: constants.KeycloakNamespace, Name: keycloakMySQLNetPolicyName}, netpol)
+	assert.NoError(t, err)
 }
 
 // GIVEN a network policies helm component
