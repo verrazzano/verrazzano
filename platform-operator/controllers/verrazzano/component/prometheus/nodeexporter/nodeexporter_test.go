@@ -40,7 +40,7 @@ func TestIsPrometheusNodeExporterReady(t *testing.T) {
 			// WHEN we call isPrometheusNodeExporterReady
 			// THEN the call returns true
 			name: "Test IsReady when Prometheus Node-Exporter is successfully deployed",
-			client: fake.NewFakeClientWithScheme(testScheme,
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.DaemonSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
@@ -74,7 +74,7 @@ func TestIsPrometheusNodeExporterReady(t *testing.T) {
 					},
 					Revision: 1,
 				},
-			),
+			).Build(),
 			expectTrue: true,
 		},
 		{
@@ -82,7 +82,7 @@ func TestIsPrometheusNodeExporterReady(t *testing.T) {
 			// WHEN we call isPrometheusNodeExporterReady
 			// THEN the call returns false
 			name: "Test IsReady when Prometheus Node-Exporter deployment is not ready",
-			client: fake.NewFakeClientWithScheme(testScheme,
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.DaemonSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
@@ -92,7 +92,8 @@ func TestIsPrometheusNodeExporterReady(t *testing.T) {
 						NumberAvailable:        0,
 						UpdatedNumberScheduled: 1,
 					},
-				}),
+				},
+			).Build(),
 			expectTrue: false,
 		},
 		{
@@ -100,7 +101,7 @@ func TestIsPrometheusNodeExporterReady(t *testing.T) {
 			// WHEN we call isPrometheusNodeExporterReady
 			// THEN the call returns false
 			name:       "Test IsReady when Prometheus Node-Exporter deployment does not exist",
-			client:     fake.NewFakeClientWithScheme(testScheme),
+			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
 			expectTrue: false,
 		},
 	}
@@ -117,14 +118,14 @@ func TestCreateOrUpdateNetworkPolicies(t *testing.T) {
 	// GIVEN a Prometheus Node Exporter component
 	// WHEN  the createOrUpdateNetworkPolicies function is called
 	// THEN  no error is returned and the expected network policies have been created
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
 
 	err := createOrUpdateNetworkPolicies(ctx)
 	assert.NoError(t, err)
 
 	netPolicy := &netv1.NetworkPolicy{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: networkPolicyName, Namespace: ComponentNamespace}, netPolicy)
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: networkPolicyName, Namespace: ComponentNamespace}, netPolicy)
 	assert.NoError(t, err)
 	assert.Equal(t, []netv1.PolicyType{netv1.PolicyTypeIngress}, netPolicy.Spec.PolicyTypes)
 	assert.Equal(t, int32(9100), netPolicy.Spec.Ingress[0].Ports[0].Port.IntVal)

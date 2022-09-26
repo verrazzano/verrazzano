@@ -58,7 +58,7 @@ func TestCheckCertificatesReady(t *testing.T) {
 	time2 := metav1.NewTime(now.Add(-180 * time.Second))
 	time3 := metav1.NewTime(now)
 
-	client := fake.NewFakeClientWithScheme(getScheme(),
+	client := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(
 		&certv1.Certificate{
 			ObjectMeta: v1.ObjectMeta{Name: certNames[0].Name, Namespace: certNames[0].Namespace},
 			Spec:       certv1.CertificateSpec{},
@@ -79,7 +79,7 @@ func TestCheckCertificatesReady(t *testing.T) {
 				},
 			},
 		},
-	)
+	).Build()
 	allReady, notReadyCerts := CertificatesAreReady(client, vzlog.DefaultLogger(), vz, certNames)
 	assert.True(t, allReady)
 	assert.Len(t, notReadyCerts, 0)
@@ -112,7 +112,7 @@ func TestCheckCertificatesNotReady(t *testing.T) {
 	time1 := metav1.NewTime(now.Add(-300 * time.Second))
 	time3 := metav1.NewTime(now)
 
-	client := fake.NewFakeClientWithScheme(getScheme(),
+	client := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(
 		&certv1.Certificate{
 			ObjectMeta: v1.ObjectMeta{Name: certNames[0].Name, Namespace: certNames[0].Namespace},
 			Spec:       certv1.CertificateSpec{},
@@ -132,7 +132,7 @@ func TestCheckCertificatesNotReady(t *testing.T) {
 				},
 			},
 		},
-	)
+	).Build()
 	allReady, notReadyActual := CertificatesAreReady(client, vzlog.DefaultLogger(), vz, certNames)
 	assert.False(t, allReady)
 	assert.Equal(t, notReadyExpected, notReadyActual)
@@ -158,7 +158,7 @@ func TestCheckCertificatesNotReadyCertManagerDisabled(t *testing.T) {
 		},
 	}
 
-	client := fake.NewFakeClientWithScheme(getScheme())
+	client := fake.NewClientBuilder().WithScheme(getScheme()).Build()
 	allReady, notReadyActual := CertificatesAreReady(client, vzlog.DefaultLogger(), vz, certNames)
 	assert.True(t, allReady)
 	assert.Len(t, notReadyActual, 0)
@@ -179,7 +179,7 @@ func TestCheckCertificatesNotReadyNoCertsPassed(t *testing.T) {
 		},
 	}
 
-	client := fake.NewFakeClientWithScheme(getScheme())
+	client := fake.NewClientBuilder().WithScheme(getScheme()).Build()
 	allReady, notReady := CertificatesAreReady(client, vzlog.DefaultLogger(), vz, []types.NamespacedName{})
 	assert.Len(t, notReady, 0)
 	assert.True(t, allReady)

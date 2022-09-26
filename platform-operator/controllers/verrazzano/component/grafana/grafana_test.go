@@ -40,7 +40,7 @@ func TestIsGrafanaInstalled(t *testing.T) {
 			// WHEN we call isGrafanaInstalled
 			// THEN the call returns true
 			name: "Test isGrafanaInstalled when Grafana is successfully deployed",
-			client: fake.NewFakeClientWithScheme(testScheme,
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
@@ -51,7 +51,8 @@ func TestIsGrafanaInstalled(t *testing.T) {
 						Replicas:          1,
 						UpdatedReplicas:   1,
 					},
-				}),
+				},
+			).Build(),
 			expectTrue: true,
 		},
 		{
@@ -59,7 +60,7 @@ func TestIsGrafanaInstalled(t *testing.T) {
 			// WHEN we call isGrafanaInstalled
 			// THEN the call returns false
 			name:       "Test isGrafanaInstalled when Grafana deployment does not exist",
-			client:     fake.NewFakeClientWithScheme(testScheme),
+			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
 			expectTrue: false,
 		},
 	}
@@ -84,7 +85,7 @@ func TestIsGrafanaReady(t *testing.T) {
 			// WHEN we call isGrafanaReady
 			// THEN the call returns true
 			name: "Test isGrafanaReady when Grafana is successfully deployed and the admin secret exists",
-			client: fake.NewFakeClientWithScheme(testScheme,
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
@@ -125,7 +126,8 @@ func TestIsGrafanaReady(t *testing.T) {
 						Namespace: ComponentNamespace,
 					},
 					Data: map[string][]byte{},
-				}),
+				},
+			).Build(),
 			expectTrue: true,
 		},
 		{
@@ -134,7 +136,7 @@ func TestIsGrafanaReady(t *testing.T) {
 			// WHEN we call isGrafanaReady
 			// THEN the call returns false
 			name: "Test isGrafanaReady when Grafana is successfully deployed and the admin secret does not exist",
-			client: fake.NewFakeClientWithScheme(testScheme,
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
@@ -145,7 +147,8 @@ func TestIsGrafanaReady(t *testing.T) {
 						Replicas:          1,
 						UpdatedReplicas:   1,
 					},
-				}),
+				},
+			).Build(),
 			expectTrue: false,
 		},
 		{
@@ -153,7 +156,7 @@ func TestIsGrafanaReady(t *testing.T) {
 			// WHEN we call isGrafanaReady
 			// THEN the call returns false
 			name: "Test isGrafanaReady when Grafana is deployed but there are no available replicas",
-			client: fake.NewFakeClientWithScheme(testScheme,
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
@@ -164,7 +167,8 @@ func TestIsGrafanaReady(t *testing.T) {
 						Replicas:          1,
 						UpdatedReplicas:   1,
 					},
-				}),
+				},
+			).Build(),
 			expectTrue: false,
 		},
 	}

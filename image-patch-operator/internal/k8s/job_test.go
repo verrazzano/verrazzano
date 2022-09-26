@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package k8s
@@ -21,12 +21,14 @@ func TestDeleteJob(t *testing.T) {
 	const name = "test"
 	const namespace = "testns"
 
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&batchv1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
+			},
 		},
-	})
+	).Build()
 
 	err := DeleteJob(client, name, namespace)
 	assert.NoError(t, err, "Error deleting job")
