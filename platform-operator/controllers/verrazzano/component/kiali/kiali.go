@@ -5,7 +5,6 @@ package kiali
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/security/password"
@@ -38,8 +37,7 @@ const (
 	kialiServicePort      = "20001"
 	kialiMetricsPort      = "9090"
 	webFQDNKey            = "server.web_fqdn"
-	configMapKey          = "config.yaml"
-	kialiSigningKeySecret = "kiali-signing-key"
+	kialiSigningKeySecret = "kiali-signing-key" //nolint:gosec //#gosec G101
 	signingKey            = "signing-key"
 	signingKeyPath        = "login_token.signing_key"
 )
@@ -245,7 +243,7 @@ func getKialiSigningKey(ctx spi.ComponentContext) (string, error) {
 	}
 	signingKeyData, ok := secret.Data[signingKey]
 	if !ok {
-		return "", errors.New(fmt.Sprintf("Error retrieving signing key from secret %s", kialiSigningKeySecret))
+		return "", fmt.Errorf(fmt.Sprintf("Error retrieving signing key from secret %s", kialiSigningKeySecret))
 	}
 	return string(signingKeyData), nil
 }
