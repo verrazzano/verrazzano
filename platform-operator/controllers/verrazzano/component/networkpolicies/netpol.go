@@ -5,13 +5,14 @@ package networkpolicies
 
 import (
 	"context"
-	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"io/fs"
 	"io/ioutil"
+	"os"
+
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
@@ -28,10 +29,13 @@ const (
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
+
+	keycloakMySQLNetPolicyName = "keycloak-mysql"
+	podSelectorAppLabelName    = "app"
 )
 
 // netpolNamespaceNames specifies the NSNs that have network policies
-var netpolNamespaceNames []types.NamespacedName = []types.NamespacedName{
+var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: vzconst.CertManagerNamespace, Name: "cert-manager"},
 	{Namespace: vzconst.CertManagerNamespace, Name: "external-dns"},
 	{Namespace: constants.IngressNginxNamespace, Name: "ingress-nginx-controller"},
@@ -42,7 +46,7 @@ var netpolNamespaceNames []types.NamespacedName = []types.NamespacedName{
 	{Namespace: vzconst.IstioSystemNamespace, Name: "istiocoredns"},
 	{Namespace: vzconst.IstioSystemNamespace, Name: "istiod-access"},
 	{Namespace: vzconst.KeycloakNamespace, Name: "keycloak"},
-	{Namespace: vzconst.KeycloakNamespace, Name: "keycloak-mysql"},
+	{Namespace: vzconst.KeycloakNamespace, Name: keycloakMySQLNetPolicyName},
 	{Namespace: vzconst.MySQLOperatorNamespace, Name: "mysql-operator"},
 	{Namespace: vzconst.RancherSystemNamespace, Name: "cattle-cluster-agent"},
 	{Namespace: vzconst.RancherSystemNamespace, Name: "rancher"},
@@ -207,4 +211,27 @@ func cleanTempFiles(ctx spi.ComponentContext) {
 	if err := vzos.RemoveTempFiles(ctx.Log().GetZapLogger(), tmpFileCleanPattern); err != nil {
 		ctx.Log().Errorf("Failed deleting temp files: %v", err)
 	}
+}
+
+// fixKeycloakMySQLNetPolicy fixes the keycloak-mysql network policy after an upgrade. When we apply the new version
+// of the network policy, the podSelector match labels are merged with the existing policy match labels, but the
+// old label no longer exists on the new MySQL pod. This function removes that label matcher if it exists.
+func fixKeycloakMySQLNetPolicy(ctx spi.ComponentContext) error {
+	netpol := &netv1.NetworkPolicy{}
+	nsn := types.NamespacedName{Namespace: constants.KeycloakNamespace, Name: keycloakMySQLNetPolicyName}
+	if err := ctx.Client().Get(context.TODO(), nsn, netpol); err != nil {
+		ctx.Log().Errorf("Error retrieving network policy %s/%s: %v", constants.KeycloakNamespace, keycloakMySQLNetPolicyName, err)
+		return err
+	}
+
+	// if the podSelector has an "app" label matcher, remove it
+	if _, exists := netpol.Spec.PodSelector.MatchLabels[podSelectorAppLabelName]; exists {
+		delete(netpol.Spec.PodSelector.MatchLabels, podSelectorAppLabelName)
+		if err := ctx.Client().Update(context.TODO(), netpol, &clipkg.UpdateOptions{}); err != nil {
+			ctx.Log().Errorf("Error updating network policy %s/%s: %v", constants.KeycloakNamespace, keycloakMySQLNetPolicyName, err)
+			return err
+		}
+	}
+
+	return nil
 }
