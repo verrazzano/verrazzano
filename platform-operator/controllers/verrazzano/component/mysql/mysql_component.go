@@ -178,23 +178,6 @@ func (c mysqlComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs
 	return nil
 }
 
-func (c mysqlComponent) getInstallOverridesV1beta1(object runtime.Object) []v1beta1.Overrides {
-	if vz, ok := object.(*vzapi.Verrazzano); ok {
-		if vz != nil && vz.Spec.Components.Keycloak != nil {
-			valueOverrides, err := vzapi.ConvertInstallOverridesWithArgsToV1Beta1(vz.Spec.Components.Keycloak.MySQL.MySQLInstallArgs, vz.Spec.Components.Keycloak.MySQL.InstallOverrides)
-			if err != nil {
-				return nil
-			}
-			return valueOverrides.ValueOverrides
-		}
-	}
-	vz := object.(*v1beta1.Verrazzano)
-	if vz != nil && vz.Spec.Components.Keycloak != nil {
-		return vz.Spec.Components.Keycloak.MySQL.InstallOverrides.ValueOverrides
-	}
-	return nil
-}
-
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
 func (c mysqlComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	if ctx.EffectiveCR().Spec.Components.Keycloak != nil {

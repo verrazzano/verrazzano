@@ -115,7 +115,7 @@ func hasRole(roles []vmov1.NodeRole, roleToHave vmov1.NodeRole) bool {
 
 // findESReplicas searches the ES install args to find the correct resources to search for in isReady
 func findESReplicas(ctx spi.ComponentContext, nodeType vmov1.NodeRole) int32 {
-	var replicas int32 = 0
+	var replicas int32
 	if vzconfig.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
 		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
 			for _, role := range node.Roles {
