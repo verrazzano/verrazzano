@@ -31,9 +31,8 @@ const ingressIPNotFound = "../../pkg/analysis/test/cluster/ingress-ip-not-found"
 
 // TestAnalyzeCommandDefault
 // GIVEN a CLI analyze command
-//
-//	WHEN I call cmd.Execute without specifying flag capture-dir
-//	THEN expect the command to analyze the live cluster
+// WHEN I call cmd.Execute without specifying flag capture-dir
+// THEN expect the command to analyze the live cluster
 func TestAnalyzeCommandDefault(t *testing.T) {
 	c := getClientWithWatch()
 	installVZ(t, c)
@@ -58,9 +57,8 @@ func TestAnalyzeCommandDefault(t *testing.T) {
 
 // TestAnalyzeCommandDetailedReport
 // GIVEN a CLI analyze command
-//
-//	WHEN I call cmd.Execute with a valid capture-dir and report-format set to "detailed"
-//	THEN expect the command to provide the report containing all the details for one or more issues reported
+// WHEN I call cmd.Execute with a valid capture-dir and report-format set to "detailed"
+// THEN expect the command to provide the report containing all the details for one or more issues reported
 func TestAnalyzeCommandDetailedReport(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -77,9 +75,8 @@ func TestAnalyzeCommandDetailedReport(t *testing.T) {
 
 // TestAnalyzeCommandSummaryReport
 // GIVEN a CLI analyze command
-//
-//	WHEN I call cmd.Execute with a valid capture-dir and report-format set to "summary"
-//	THEN expect the command to provide the report containing only summary for one or more issues reported
+// WHEN I call cmd.Execute with a valid capture-dir and report-format set to "summary"
+// THEN expect the command to provide the report containing only summary for one or more issues reported
 func TestAnalyzeCommandSummaryReport(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -96,9 +93,8 @@ func TestAnalyzeCommandSummaryReport(t *testing.T) {
 
 // TestAnalyzeCommandInvalidReportFormat
 // GIVEN a CLI analyze command
-//
-//	WHEN I call cmd.Execute with an invalid value for report-format
-//	THEN expect the command to fail with an appropriate error message to indicate the issue
+// WHEN I call cmd.Execute with an invalid value for report-format
+// THEN expect the command to fail with an appropriate error message to indicate the issue
 func TestAnalyzeCommandInvalidReportFormat(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -114,9 +110,8 @@ func TestAnalyzeCommandInvalidReportFormat(t *testing.T) {
 
 // TestAnalyzeCommandDefaultReportFormat
 // GIVEN a CLI analyze command
-//
-//	WHEN I call cmd.Execute without report-format
-//	THEN expect the command to take the default value of summary for report-format and perform the analysis
+// WHEN I call cmd.Execute without report-format
+// THEN expect the command to take the default value of summary for report-format and perform the analysis
 func TestAnalyzeCommandDefaultReportFormat(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -132,9 +127,8 @@ func TestAnalyzeCommandDefaultReportFormat(t *testing.T) {
 
 // TestAnalyzeCommandWithReportFile
 // GIVEN a CLI analyze command
-//
-//	WHEN I call cmd.Execute with a valid report-file
-//	THEN expect the command to create the report file, containing the analysis report
+// WHEN I call cmd.Execute with a valid report-file
+// THEN expect the command to create the report file, containing the analysis report
 func TestAnalyzeCommandWithReportFile(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -153,9 +147,8 @@ func TestAnalyzeCommandWithReportFile(t *testing.T) {
 
 // TestAnalyzeCommandInvalidCapturedDir
 // GIVEN a CLI analyze command
-//
-//	WHEN I call cmd.Execute with capture-dir not containing the cluster snapshot
-//	THEN expect the command to fail with an appropriate error message
+// WHEN I call cmd.Execute with capture-dir not containing the cluster snapshot
+// THEN expect the command to fail with an appropriate error message
 func TestAnalyzeCommandInvalidCapturedDir(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
