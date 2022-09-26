@@ -6,8 +6,6 @@ package mysql
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -255,11 +253,8 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	rootPwd := rootSecret.Data[rootPasswordKey]
 
 	// Root priv
-	var rootCmd strings.Builder
-	temp := fmt.Sprintf("/usr/bin/mysql -uroot -p%s -e ", rootPwd)
-	rootCmd.WriteString(temp)
-	rootCmd.WriteString(mySQLRootCommand)
-	rootExecCmd := []string{rootCmd.String()}
+	rootCmd := fmt.Sprintf(mySQLRootCommand, rootPwd)
+	rootExecCmd := []string{rootCmd}
 	// CHECK and ADD Primary Key Cmd
 	sqlCmd := fmt.Sprintf(mySQLDbCommands, rootPwd)
 	execCmd := []string{sqlCmd}
