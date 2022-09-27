@@ -473,7 +473,7 @@ func Test_reconcileNamespace(t *testing.T) {
 func Test_reconcileNamespaceDelete(t *testing.T) {
 	asserts := assert.New(t)
 
-	nc, err := newTestController(fake.NewFakeClientWithScheme(testScheme))
+	nc, err := newTestController(fake.NewClientBuilder().WithScheme(testScheme).Build())
 	asserts.NoErrorf(err, "Error creating test controller")
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{

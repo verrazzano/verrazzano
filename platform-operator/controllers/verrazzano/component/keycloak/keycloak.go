@@ -25,7 +25,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -604,7 +604,7 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 }
 
 // updateKeycloakUris invokes kcadm.sh in Keycloak pod to update the client with Keycloak rewrite and weborigin uris
-func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod, clientID string, uriTemplate string) error {
+func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod, clientID string, uriTemplate string) error {
 	data, err := populateSubdomainInTemplate(ctx, "{"+uriTemplate+"}")
 	if err != nil {
 		return err
@@ -816,7 +816,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 // loginKeycloak logs into Keycloak so kcadm API calls can be made
 func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface) error {
 	// Get the Keycloak admin password
-	secret := &v1.Secret{}
+	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
 		Namespace: "keycloak",
 		Name:      "keycloak-http",
@@ -856,8 +856,8 @@ func bashCMD(command string) []string {
 	}
 }
 
-func keycloakPod() *v1.Pod {
-	return &v1.Pod{
+func keycloakPod() *corev1.Pod {
+	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      keycloakPodName,
 			Namespace: ComponentNamespace,
@@ -867,7 +867,7 @@ func keycloakPod() *v1.Pod {
 
 // createAuthSecret verifies the secret doesn't already exists and creates it
 func createAuthSecret(ctx spi.ComponentContext, namespace string, secretname string, username string) error {
-	secret := &v1.Secret{
+	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: secretname, Namespace: namespace},
 	}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
@@ -901,7 +901,7 @@ func createAuthSecret(ctx spi.ComponentContext, namespace string, secretname str
 
 // getSecretPassword retrieves the password associated with a secret
 func getSecretPassword(ctx spi.ComponentContext, namespace string, secretname string) (string, error) {
-	secret := &v1.Secret{}
+	secret := &corev1.Secret{}
 	err := ctx.Client().Get(context.TODO(), client.ObjectKey{
 		Namespace: namespace,
 		Name:      secretname,
@@ -1165,7 +1165,7 @@ func removeLoginConfigFile(ctx spi.ComponentContext, cfg *restclient.Config, cli
 }
 
 // getKeycloakGroups returns a structure of Groups in Realm verrazzano-system
-func getKeycloakGroups(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod) (KeycloakGroups, error) {
+func getKeycloakGroups(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod) (KeycloakGroups, error) {
 	var keycloakGroups KeycloakGroups
 	// Get the Client ID JSON array
 	cmd := fmt.Sprintf("/opt/jboss/keycloak/bin/kcadm.sh get groups -r %s", vzSysRealm)
@@ -1217,7 +1217,7 @@ func getGroupID(keycloakGroups KeycloakGroups, groupName string) string {
 }
 
 // getKeycloakRoless returns a structure of Groups in Realm verrazzano-system
-func getKeycloakRoles(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod) (KeycloakRoles, error) {
+func getKeycloakRoles(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod) (KeycloakRoles, error) {
 	var keycloakRoles KeycloakRoles
 	// Get the Client ID JSON array
 	out, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get-roles -r "+vzSysRealm))
@@ -1249,7 +1249,7 @@ func roleExists(keycloakRoles KeycloakRoles, roleName string) bool {
 }
 
 // getKeycloakUsers returns a structure of Users in Realm verrazzano-system
-func getKeycloakUsers(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod) ([]KeycloakUser, error) {
+func getKeycloakUsers(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod) ([]KeycloakUser, error) {
 	var keycloakUsers []KeycloakUser
 	// Get the Client ID JSON array
 	out, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get users -r "+vzSysRealm))
@@ -1327,7 +1327,7 @@ func isKeycloakReady(ctx spi.ComponentContext) bool {
 }
 
 // isPodReady determines if the pod is running by checking for a Ready condition with Status equal True
-func isPodReady(pod *v1.Pod) bool {
+func isPodReady(pod *corev1.Pod) bool {
 	conditions := pod.Status.Conditions
 	for j := range conditions {
 		if conditions[j].Type == "Ready" && conditions[j].Status == "True" {
@@ -1374,7 +1374,7 @@ func upgradeStatefulSet(ctx spi.ComponentContext) error {
 
 	// Is there an override for affinity?
 	found := false
-	affinityOverride := &v1.Affinity{}
+	affinityOverride := &corev1.Affinity{}
 	for _, overrideYaml := range overrides {
 		if strings.Contains(overrideYaml, "affinity: |") {
 			found = true
@@ -1501,7 +1501,7 @@ func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error
 	return clientSecret.Value, nil
 }
 
-func generateClientSecret(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, createClientOutput string, kcPod *v1.Pod) error {
+func generateClientSecret(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, createClientOutput string, kcPod *corev1.Pod) error {
 	if len(createClientOutput) == 0 {
 		err := fmt.Errorf("Component Keycloak failed; %s client ID from Keycloak is zero length", clientName)
 		ctx.Log().Error(err)

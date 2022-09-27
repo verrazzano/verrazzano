@@ -26,7 +26,6 @@ import (
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
-	k8net "k8s.io/api/networking/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -919,7 +918,7 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 	// Expect a call to get the Rancher ingress and return no spec rules, which will cause registration to fail
 	mock.EXPECT().
 		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *k8net.Ingress) error {
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress) error {
 			return nil
 		})
 
@@ -976,7 +975,7 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 	// Expect a call to get the ingress host name but there are no ingress rules
 	mock.EXPECT().
 		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *k8net.Ingress) error {
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress) error {
 			return nil
 		})
 
@@ -995,8 +994,8 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 	// Expect a call to get the ingress host name
 	mock.EXPECT().
 		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *k8net.Ingress) error {
-			rule := k8net.IngressRule{Host: "rancher.unit-test.com"}
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress) error {
+			rule := networkingv1.IngressRule{Host: "rancher.unit-test.com"}
 			ingress.Spec.Rules = append(ingress.Spec.Rules, rule)
 			return nil
 		})
@@ -1544,14 +1543,14 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 	if !externalES {
 		mock.EXPECT().
 			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: vmiIngest}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *networkingv1.Ingress) error {
 				ingress.TypeMeta = metav1.TypeMeta{
 					APIVersion: "networking.k8s.io/v1",
 					Kind:       "ingress"}
 				ingress.ObjectMeta = metav1.ObjectMeta{
 					Namespace: name.Namespace,
 					Name:      name.Name}
-				ingress.Spec.Rules = []k8net.IngressRule{{
+				ingress.Spec.Rules = []networkingv1.IngressRule{{
 					Host: "vz-testhost",
 				}}
 				return nil
@@ -1602,7 +1601,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name}
-			ingress.Spec.Rules = []k8net.IngressRule{{
+			ingress.Spec.Rules = []networkingv1.IngressRule{{
 				Host: "keycloak",
 			}}
 			return nil
@@ -1835,8 +1834,8 @@ func expectRancherConfigK8sCalls(t *testing.T, k8sMock *mocks.MockClient) {
 	// Expect a call to get the ingress host name
 	k8sMock.EXPECT().
 		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *k8net.Ingress) error {
-			rule := k8net.IngressRule{Host: "rancher.unit-test.com"}
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress) error {
+			rule := networkingv1.IngressRule{Host: "rancher.unit-test.com"}
 			ingress.Spec.Rules = append(ingress.Spec.Rules, rule)
 			return nil
 		})
