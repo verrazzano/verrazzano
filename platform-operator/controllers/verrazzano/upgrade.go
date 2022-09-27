@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
@@ -225,7 +227,11 @@ func isLastCondition(st installv1alpha1.VerrazzanoStatus, conditionType installv
 // postVerrazzanoUpgrade restarts pods with old Istio sidecar proxies
 func postVerrazzanoUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, cr *installv1alpha1.Verrazzano) error {
 	log.Oncef("Checking if any pods with Istio sidecars need to be restarted to pick up the new version of the Istio proxy")
-	return istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), cr.Generation, istio.DoesPodContainOldIstioSidecar)
+	if err := istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), cr.Generation, istio.DoesPodContainOldIstioSidecar); err != nil {
+		return err
+	}
+	log.Oncef("MySQL post-upgrade cleanup")
+	return mysql.PostUpgradeCleanup(log, client)
 }
 
 // getTrackerKey gets the tracker key for the Verrazzano resource
