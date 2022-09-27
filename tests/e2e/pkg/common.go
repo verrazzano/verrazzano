@@ -417,7 +417,7 @@ func isReadyAndRunning(pod v1.Pod) bool {
 		}
 		return true
 	}
-	// Jaeger has ES index cleaner pods that with a Succeeded phase. Return true for these type of pods.
+	// Jaeger Operator has index cleaner pods with a Succeeded status phase. Return true for these type of pods.
 	if pod.Status.Phase == v1.PodSucceeded {
 		return true
 	}
