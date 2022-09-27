@@ -417,6 +417,10 @@ func isReadyAndRunning(pod v1.Pod) bool {
 		}
 		return true
 	}
+	// Jaeger has ES index cleaner pods that with a Succeeded phase. Return true for these type of pods.
+	if pod.Status.Phase == v1.PodSucceeded {
+		return true
+	}
 	if pod.Status.Reason == "Evicted" && len(pod.Status.ContainerStatuses) == 0 {
 		Log(Info, fmt.Sprintf("Pod %v was Evicted", pod.Name))
 		return true // ignore this evicted pod
