@@ -208,8 +208,7 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationWithout
 // GIVEN a call to validateSecrets
 // WHEN called with various MultiClusterApplicationConfiguration resources
 // THEN the validation should succeed or fail based on what secrets are specified in the
-//
-//	MultiClusterApplicationConfiguration resource
+// MultiClusterApplicationConfiguration resource
 func TestValidateSecrets(t *testing.T) {
 	asrt := assert.New(t)
 	v := newMultiClusterApplicationConfigurationValidator()

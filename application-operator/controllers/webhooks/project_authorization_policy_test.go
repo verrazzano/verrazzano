@@ -24,9 +24,8 @@ import (
 
 // TestDeleteOnePolicyOneNamespace tests when an authorization policy is cleaned up
 // GIVEN a single project with one namespace and a single authorization policy
-//
-//	WHEN cleanupAuthorizationPoliciesForProjects is called
-//	THEN the cleanupAuthorizationPoliciesForProjects should return success
+// WHEN cleanupAuthorizationPoliciesForProjects is called
+// THEN the cleanupAuthorizationPoliciesForProjects should return success
 func TestDeleteOnePolicyOneNamespace(t *testing.T) {
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
@@ -98,10 +97,9 @@ func TestDeleteOnePolicyOneNamespace(t *testing.T) {
 
 // TestDeleteTwoPoliciesOneNamespace tests when an authorization policy is cleaned up
 // GIVEN a single projects with one namespace and two authorization policies
-//
-//	WHEN cleanupAuthorizationPoliciesForProjects is called
-//	THEN the cleanupAuthorizationPoliciesForProjects should return success and cleanup the authorization policy of
-//	  the remaining authorization policy
+// WHEN cleanupAuthorizationPoliciesForProjects is called
+// THEN the cleanupAuthorizationPoliciesForProjects should return success and cleanup the authorization policy of
+// the remaining authorization policy
 func TestDeleteTwoPoliciesOneNamespace(t *testing.T) {
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
@@ -285,10 +283,9 @@ func TestDeleteTwoPoliciesOneNamespace(t *testing.T) {
 
 // TestDeleteThreePoliciesTwoNamespace tests when an authorization policy is cleaned up
 // GIVEN a single projects with two namespace and three authorization policies
-//
-//	WHEN cleanupAuthorizationPoliciesForProjects is called
-//	THEN the cleanupAuthorizationPoliciesForProjects should return success and cleanup the authorization policy of
-//	  the remaining authorization policies
+// WHEN cleanupAuthorizationPoliciesForProjects is called
+// THEN the cleanupAuthorizationPoliciesForProjects should return success and cleanup the authorization policy of
+// the remaining authorization policies
 func TestDeleteThreePoliciesTwoNamespace(t *testing.T) {
 	scheme := runtime.NewScheme()
 	err := cluv1alpha1.AddToScheme(scheme)
