@@ -224,7 +224,12 @@ func fixKeycloakMySQLNetPolicy(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// if the podSelector has an "app" label matcher, remove it
+	// If there aren't any label matchers, we're done
+	if netpol.Spec.PodSelector.MatchLabels == nil {
+		return nil
+	}
+
+	// If the podSelector has an "app" label matcher, remove it
 	if _, exists := netpol.Spec.PodSelector.MatchLabels[podSelectorAppLabelName]; exists {
 		delete(netpol.Spec.PodSelector.MatchLabels, podSelectorAppLabelName)
 		if err := ctx.Client().Update(context.TODO(), netpol, &clipkg.UpdateOptions{}); err != nil {
