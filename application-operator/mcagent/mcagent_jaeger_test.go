@@ -15,7 +15,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -153,7 +152,7 @@ func createMCRegSecret(mutualTLS bool) *corev1.Secret {
 		data[mcconstants.JaegerOSTLSCertKey] = []byte("jaegeropensearchtlscertkey")
 	}
 	return &corev1.Secret{
-		ObjectMeta: v12.ObjectMeta{Name: constants.MCRegistrationSecret,
+		ObjectMeta: metav1.ObjectMeta{Name: constants.MCRegistrationSecret,
 			Namespace: constants.VerrazzanoSystemNamespace},
 		Data: data,
 	}

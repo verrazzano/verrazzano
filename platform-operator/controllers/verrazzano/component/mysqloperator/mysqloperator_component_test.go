@@ -15,8 +15,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
@@ -24,14 +23,14 @@ import (
 var testScheme = runtime.NewScheme()
 
 func init() {
-	_ = clientgoscheme.AddToScheme(testScheme)
+	_ = scheme.AddToScheme(testScheme)
 	_ = vzapi.AddToScheme(testScheme)
 }
 
 // TestGetInstallOverrides tests the GetInstallOverrides function
 // GIVEN a call to GetInstallOverrides
-//  WHEN there is a valid MySQL Operator configuration
-//  THEN the correct Helm overrides are returned
+// WHEN there is a valid MySQL Operator configuration
+// THEN the correct Helm overrides are returned
 func TestGetInstallOverrides(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -56,8 +55,8 @@ func TestGetInstallOverrides(t *testing.T) {
 
 // TestIsEnabled tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN varying the enabled states of keycloak and MySQL Operator
-//  THEN check for the expected response
+// WHEN varying the enabled states of keycloak and MySQL Operator
+// THEN check for the expected response
 func TestIsEnabled(t *testing.T) {
 	trueValue := true
 	falseValue := false
@@ -117,8 +116,8 @@ func TestIsEnabled(t *testing.T) {
 
 // TestIsMySQLOperatorReady tests the isReady function
 // GIVEN a call to isReady
-//  WHEN the deployment object has enough replicas available
-//  THEN true is returned
+// WHEN the deployment object has enough replicas available
+// THEN true is returned
 func TestIsMySQLOperatorReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&appsv1.Deployment{
@@ -162,8 +161,8 @@ func TestIsMySQLOperatorReady(t *testing.T) {
 
 // TestIsMySQLOperatorNotReady tests the isReady function
 // GIVEN a call to isReady
-//  WHEN the deployment object does NOT have enough replicas available
-//  THEN false is returned
+// WHEN the deployment object does NOT have enough replicas available
+// THEN false is returned
 func TestIsMySQLOperatorNotReady(t *testing.T) {
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
@@ -186,8 +185,8 @@ func TestIsMySQLOperatorNotReady(t *testing.T) {
 
 // TestIsInstalled tests the isInstalled function
 // GIVEN a call to isInstalled
-//  WHEN the deployment object exists
-//  THEN true is returned
+// WHEN the deployment object exists
+// THEN true is returned
 func TestIsInstalled(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&appsv1.Deployment{
@@ -209,8 +208,8 @@ func TestIsInstalled(t *testing.T) {
 
 // TestIsInstalledFalse tests the isInstalled function
 // GIVEN a call to isInstalled
-//  WHEN the deployment object does not exist
-//  THEN false is returned
+// WHEN the deployment object does not exist
+// THEN false is returned
 func TestIsInstalledFalse(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects().Build()
 
@@ -219,8 +218,8 @@ func TestIsInstalledFalse(t *testing.T) {
 
 // TestValidateInstall tests the ValidateInstall function
 // GIVEN a call to ValidateInstall
-//  WHEN there is a valid MySQL Operator configuration
-//  THEN the correct Helm overrides are returned
+// WHEN there is a valid MySQL Operator configuration
+// THEN the correct Helm overrides are returned
 func TestValidateInstall(t *testing.T) {
 	trueValue := true
 	falseValue := false
@@ -295,8 +294,8 @@ func TestValidateInstall(t *testing.T) {
 
 // TestAppendOverrides tests the AppendOverrides function
 // GIVEN a call to AppendOverrides
-//  WHEN the verrazzano-container-registry secret exists in the mysql-operator namespace
-//  THEN the correct Helm overrides are returned
+// WHEN the verrazzano-container-registry secret exists in the mysql-operator namespace
+// THEN the correct Helm overrides are returned
 func TestAppendOverrides(t *testing.T) {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -304,7 +303,7 @@ func TestAppendOverrides(t *testing.T) {
 			Name:      constants.GlobalImagePullSecName,
 		},
 	}
-	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(secret).Build()
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(secret).Build()
 
 	kvs, err := AppendOverrides(spi.NewFakeContext(fakeClient, nil, nil, false), "", "", "", []bom.KeyValue{{Key: "key1", Value: "value1"}})
 	assert.Nil(t, err)
@@ -315,10 +314,10 @@ func TestAppendOverrides(t *testing.T) {
 
 // TestAppendOverridesNoSecret tests the AppendOverrides function
 // GIVEN a call to AppendOverrides
-//  WHEN the verrazzano-container-registry secret does not exist in the mysql-operator namespace
-//  THEN the correct Helm overrides are returned
+// WHEN the verrazzano-container-registry secret does not exist in the mysql-operator namespace
+// THEN the correct Helm overrides are returned
 func TestAppendOverridesNoSecret(t *testing.T) {
-	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 	kvs, err := AppendOverrides(spi.NewFakeContext(fakeClient, nil, nil, false), "", "", "", []bom.KeyValue{{Key: "key1", Value: "value1"}})
 	assert.Nil(t, err)
 	assert.Len(t, kvs, 1)

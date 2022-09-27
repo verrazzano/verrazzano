@@ -15,7 +15,6 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -89,7 +88,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncPrometheusScraper(ctx context.C
 }
 
 // newScrapeConfig will return a prometheus scraper configuration based on the entries in the prometheus info structure provided
-func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *v1.Secret, vmc *clustersv1alpha1.VerrazzanoManagedCluster) (*gabs.Container, error) {
+func (r *VerrazzanoManagedClusterReconciler) newScrapeConfig(cacrtSecret *corev1.Secret, vmc *clustersv1alpha1.VerrazzanoManagedCluster) (*gabs.Container, error) {
 	var newScrapeConfig *gabs.Container
 	if cacrtSecret == nil || vmc.Status.PrometheusHost == "" {
 		return newScrapeConfig, nil
@@ -156,7 +155,7 @@ func getCAKey(vmc *clustersv1alpha1.VerrazzanoManagedCluster) string {
 
 // mutateAdditionalScrapeConfigs adds and removes scrape config for managed clusters to the additional scrape configurations secret. Prometheus Operator appends the raw scrape config
 // in this secret to the scrape config it generates from PodMonitor and ServiceMonitor resources.
-func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, cacrtSecret *v1.Secret) error {
+func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, cacrtSecret *corev1.Secret) error {
 	// get the existing additional scrape config, if the secret doesn't exist we will create it
 	secret, err := r.getSecret(vpoconst.VerrazzanoMonitoringNamespace, constants.PromAdditionalScrapeConfigsSecretName, false)
 	if err != nil && !errors.IsNotFound(err) {
@@ -211,7 +210,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateAdditionalScrapeConfigs(ctx c
 }
 
 // mutateManagedClusterCACertsSecret adds and removes managed cluster CA certs to/from the managed cluster CA certs secret
-func (r *VerrazzanoManagedClusterReconciler) mutateManagedClusterCACertsSecret(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, cacrtSecret *v1.Secret) error {
+func (r *VerrazzanoManagedClusterReconciler) mutateManagedClusterCACertsSecret(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, cacrtSecret *corev1.Secret) error {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      vpoconst.PromManagedClusterCACertsSecretName,
