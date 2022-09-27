@@ -46,7 +46,7 @@ func NewYAMLApplier(client crtpkg.Client, namespaceOverride string) *YAMLApplier
 	}
 }
 
-//Objects is the list of objects created using the ApplyX methods
+// Objects is the list of objects created using the ApplyX methods
 func (y *YAMLApplier) Objects() []unstructured.Unstructured {
 	return y.objects
 }
@@ -56,7 +56,7 @@ func (y *YAMLApplier) ObjectResultMsgs() []string {
 	return y.objectResultMsgs
 }
 
-//ApplyD applies all YAML files in a directory to Kubernetes
+// ApplyD applies all YAML files in a directory to Kubernetes
 func (y *YAMLApplier) ApplyD(directory string) error {
 	files, err := os.ReadDir(directory)
 	if err != nil {
@@ -76,7 +76,7 @@ func (y *YAMLApplier) ApplyD(directory string) error {
 	return nil
 }
 
-//ApplyDT applies a directory of file templates to Kubernetes
+// ApplyDT applies a directory of file templates to Kubernetes
 func (y *YAMLApplier) ApplyDT(directory string, args map[string]interface{}) error {
 	files, err := os.ReadDir(directory)
 	if err != nil {
@@ -96,12 +96,12 @@ func (y *YAMLApplier) ApplyDT(directory string, args map[string]interface{}) err
 	return nil
 }
 
-//ApplyF applies a file spec to Kubernetes
+// ApplyF applies a file spec to Kubernetes
 func (y *YAMLApplier) ApplyF(filePath string) error {
 	return y.doFileAction(filePath, y.applyAction)
 }
 
-//ApplyFT applies a file template spec (go text.template) to Kubernetes
+// ApplyFT applies a file template spec (go text.template) to Kubernetes
 func (y *YAMLApplier) ApplyFT(filePath string, args map[string]interface{}) error {
 	return y.doTemplatedFileAction(filePath, y.applyAction, args)
 }
@@ -120,12 +120,12 @@ func (y *YAMLApplier) ApplyFTDefaultConfig(filePath string, args map[string]inte
 	return y.ApplyFT(filePath, args)
 }
 
-//DeleteF deletes a file spec from Kubernetes
+// DeleteF deletes a file spec from Kubernetes
 func (y *YAMLApplier) DeleteF(filePath string) error {
 	return y.doFileAction(filePath, y.deleteAction)
 }
 
-//DeleteFT deletes a file template spec (go text.template) to Kubernetes
+// DeleteFT deletes a file template spec (go text.template) to Kubernetes
 func (y *YAMLApplier) DeleteFT(filePath string, args map[string]interface{}) error {
 	return y.doTemplatedFileAction(filePath, y.deleteAction, args)
 }
@@ -144,7 +144,7 @@ func (y *YAMLApplier) DeleteFTDefaultConfig(filePath string, args map[string]int
 	return y.DeleteFT(filePath, args)
 }
 
-//applyAction creates a merge patch of the object with the server object
+// applyAction creates a merge patch of the object with the server object
 func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 	var ns = strings.TrimSpace(y.namespaceOverride)
 	if len(ns) > 0 {
@@ -226,7 +226,7 @@ func (y *YAMLApplier) applyAction(obj *unstructured.Unstructured) error {
 	return nil
 }
 
-//deleteAction deletes the object from the server
+// deleteAction deletes the object from the server
 func (y *YAMLApplier) deleteAction(obj *unstructured.Unstructured) error {
 	var ns = strings.TrimSpace(y.namespaceOverride)
 	if len(ns) > 0 {
@@ -240,7 +240,7 @@ func (y *YAMLApplier) deleteAction(obj *unstructured.Unstructured) error {
 	return nil
 }
 
-//doFileAction runs the action against a file
+// doFileAction runs the action against a file
 func (y *YAMLApplier) doFileAction(filePath string, f action) error {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -251,7 +251,7 @@ func (y *YAMLApplier) doFileAction(filePath string, f action) error {
 
 }
 
-//doTemplatedFileAction runs the action against a template file
+// doTemplatedFileAction runs the action against a template file
 func (y *YAMLApplier) doTemplatedFileAction(filePath string, f action, args map[string]interface{}) error {
 	templateName := path.Base(filePath)
 	tmpl, err := template.New(templateName).
@@ -267,7 +267,7 @@ func (y *YAMLApplier) doTemplatedFileAction(filePath string, f action, args map[
 	return y.doAction(bufio.NewReader(buffer), f)
 }
 
-//doAction executes the action on a YAML reader
+// doAction executes the action on a YAML reader
 func (y *YAMLApplier) doAction(reader *bufio.Reader, f action) error {
 	objs, err := y.unmarshall(reader)
 	if err != nil {
@@ -282,7 +282,7 @@ func (y *YAMLApplier) doAction(reader *bufio.Reader, f action) error {
 	return nil
 }
 
-//unmarshall a reader containing YAML to a list of unstructured objects
+// unmarshall a reader containing YAML to a list of unstructured objects
 func (y *YAMLApplier) unmarshall(reader *bufio.Reader) ([]unstructured.Unstructured, error) {
 	buffer := bytes.Buffer{}
 	objs := []unstructured.Unstructured{}
@@ -337,16 +337,16 @@ func (y *YAMLApplier) unmarshall(reader *bufio.Reader) ([]unstructured.Unstructu
 	}
 }
 
-//merge keys from m2 into m1, overwriting existing keys of m1.
+// merge keys from m2 into m1, overwriting existing keys of m1.
 func merge(m1, m2 map[string]interface{}) {
 	for k, v := range m2 {
 		m1[k] = v
 	}
 }
 
-//DeleteAll deletes all objects created by the applier
-//If you are using a YAMLApplier in a temporary context, please use defer y.DeleteAll()
-//to clean up resources when you are done.
+// DeleteAll deletes all objects created by the applier
+// If you are using a YAMLApplier in a temporary context, please use defer y.DeleteAll()
+// to clean up resources when you are done.
 func (y *YAMLApplier) DeleteAll() error {
 	for i := range y.objects {
 		if err := y.client.Delete(context.TODO(), &y.objects[i]); err != nil {
@@ -360,7 +360,7 @@ func (y *YAMLApplier) DeleteAll() error {
 	return nil
 }
 
-//isYamlExt checks if a file has a YAML extension.
+// isYamlExt checks if a file has a YAML extension.
 func isYamlExt(fileName string) bool {
 	ext := path.Ext(fileName)
 	return ext == ".yml" || ext == ".yaml"

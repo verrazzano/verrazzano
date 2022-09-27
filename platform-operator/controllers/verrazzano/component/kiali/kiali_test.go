@@ -20,8 +20,9 @@ import (
 
 // TestAppendOverrides tests the AppendOverrides function
 // GIVEN a call to AppendOverrides
-//  WHEN there is a valid DNS configuration
-//  THEN the correct Helm overrides are returned
+//
+//	WHEN there is a valid DNS configuration
+//	THEN the correct Helm overrides are returned
 func TestAppendOverrides(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	vz := &vzapi.Verrazzano{
@@ -44,8 +45,9 @@ func TestAppendOverrides(t *testing.T) {
 
 // TestIsKialiReady tests the isKialiReady function
 // GIVEN a call to isKialiReady
-//  WHEN the deployment object has enough replicas available
-//  THEN true is returned
+//
+//	WHEN the deployment object has enough replicas available
+//	THEN true is returned
 func TestIsKialiReady(t *testing.T) {
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
@@ -94,8 +96,9 @@ func TestIsKialiReady(t *testing.T) {
 
 // TestIsKialiNotReady tests the isKialiReady function
 // GIVEN a call to isKialiReady
-//  WHEN the deployment object does NOT have enough replicas available
-//  THEN false is returned
+//
+//	WHEN the deployment object does NOT have enough replicas available
+//	THEN false is returned
 func TestIsKialiNotReady(t *testing.T) {
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
@@ -118,8 +121,9 @@ func TestIsKialiNotReady(t *testing.T) {
 
 // TestIsKialiNotReadyChartNotFound tests the isKialiReady function
 // GIVEN a call to isKialiReady
-//  WHEN the Kiali chart is not found
-//  THEN false is returned
+//
+//	WHEN the Kiali chart is not found
+//	THEN false is returned
 func TestIsKialiNotReadyChartNotFound(t *testing.T) {
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartNotFound, nil

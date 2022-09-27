@@ -5,7 +5,7 @@ package string
 
 import "testing"
 
-//TestCommaSeparatedContainsString tests the CommaSeparatedStringContains function
+// TestCommaSeparatedContainsString tests the CommaSeparatedStringContains function
 func TestCommaSeparatedContainsString(t *testing.T) {
 	type args struct {
 		commaSeparated string

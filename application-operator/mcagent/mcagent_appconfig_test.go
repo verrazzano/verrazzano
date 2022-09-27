@@ -247,7 +247,9 @@ func TestDeleteMCAppConfig(t *testing.T) {
 // TestDeleteMCAppConfigNoOAMComponent tests the synchronization method for the following use case.
 // GIVEN a request to sync MultiClusterApplicationConfiguration objects
 // WHEN a MultiClusterApplicationConfiguration object is deleted from the admin cluster that references a
-//   MultiClusterComponent objec.
+//
+//	MultiClusterComponent objec.
+//
 // THEN ensure that the MultiClusterApplicationConfiguration is deleted and OAM component object is not deleted
 func TestDeleteMCAppConfigNoOAMComponent(t *testing.T) {
 	assert := asserts.New(t)

@@ -182,7 +182,7 @@ var _ = Describe("Testing hello app lifecycle", func() {
 	})
 })
 
-//// Helper functions
+// // Helper functions
 func isOperatorRunning() bool {
 	return K8sClient.IsPodRunning(verrazzanoAppOperator, verrazzanoSystem)
 }

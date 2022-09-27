@@ -111,7 +111,9 @@ func TestOwnerReference(t *testing.T) {
 // TestMultipleOwnerReference tests the handling of a Pod resource
 // GIVEN a call to the webhook Handle function
 // WHEN the pod resource has nested owner references and the 2nd owner reference
-//   is the workload resource
+//
+//	is the workload resource
+//
 // THEN the Handle function should succeed and the pod is mutated
 func TestMultipleOwnerReference(t *testing.T) {
 	a := newLabelerPodWebhook()
@@ -174,7 +176,9 @@ func TestMultipleOwnerReference(t *testing.T) {
 // TestMultipleOwnerReferenceAndWorkloadResources tests the handling of a Pod resource
 // GIVEN a call to the webhook Handle function
 // WHEN the pod resource has nested owner references and two owner references are found to be
-//   a workload resource
+//
+//	a workload resource
+//
 // THEN the Handle function should fail and return an error
 func TestMultipleOwnerReferenceAndWorkloadResources(t *testing.T) {
 	a := newLabelerPodWebhook()

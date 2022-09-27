@@ -398,7 +398,7 @@ type OpenSearchComponent struct {
 	Nodes []OpenSearchNode `json:"nodes,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 }
 
-//OpenSearchNode specifies a node group in the OpenSearch cluster
+// OpenSearchNode specifies a node group in the OpenSearch cluster
 type OpenSearchNode struct {
 	Name      string                       `json:"name,omitempty"`
 	Replicas  int32                        `json:"replicas,omitempty"`

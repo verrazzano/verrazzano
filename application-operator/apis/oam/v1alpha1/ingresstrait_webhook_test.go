@@ -452,7 +452,9 @@ func TestValidateUpdateAddPath(t *testing.T) {
 // TestValidateUpdateAddHostCollision tests validation of an IngressTrait update where a new host and path is added to an
 // existing trait and that new host and path causes a collision with another existing trait.
 // GIVEN an existing IngressTrait with a specified host and path that is going to be updated
-//   AND another existing IngressTrait with the same different host and path
+//
+//	AND another existing IngressTrait with the same different host and path
+//
 // WHEN validate is called on an updated IngressTrait with an added host and path that conflicts with another existing trait
 // THEN validate fails and returns an error
 func TestValidateUpdateAddHostCollision(t *testing.T) {
@@ -507,7 +509,9 @@ func TestValidateUpdateChangeHost(t *testing.T) {
 // TestValidateUpdateChangeHostCollision tests validation of an IngressTrait update where the host is changed and
 // that causes a collision with another existing trait with a matching host and path.
 // GIVEN an existing IngressTrait with a specified host and path that is going to be updated
-//   AND another existing IngressTrait with a different host and the same path
+//
+//	AND another existing IngressTrait with a different host and the same path
+//
 // WHEN validate is called on an updated IngressTrait with the changed host that conflicts with another existing trait
 // THEN validate fails and returns an error
 func TestValidateUpdateChangeHostCollision(t *testing.T) {

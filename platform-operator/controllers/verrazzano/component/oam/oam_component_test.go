@@ -132,8 +132,9 @@ func TestValidateUpdateV1Beta1(t *testing.T) {
 
 // TestPreUpgrade tests the OAM PreUpgrade call
 // GIVEN an OAM component
-//  WHEN I call PreUpgrade with defaults
-//  THEN no error is returned
+//
+//	WHEN I call PreUpgrade with defaults
+//	THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook

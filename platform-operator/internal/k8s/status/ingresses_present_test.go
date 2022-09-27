@@ -30,7 +30,7 @@ func TestIngressesPresent(t *testing.T) {
 	}
 	multipleNames := append(oneName, types.NamespacedName{Name: "anotherIng", Namespace: "foobar"})
 
-	var noName []types.NamespacedName = nil
+	var noName []types.NamespacedName
 	var tests = []struct {
 		name    string
 		c       client.Client

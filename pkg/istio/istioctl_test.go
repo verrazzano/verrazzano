@@ -34,8 +34,9 @@ type badRunner struct {
 
 // TestUpgrade tests the istioctl upgrade command
 // GIVEN a set of upgrade parameters
-//  WHEN I call Upgrade
-//  THEN the istioctl upgrade returns success and the cmd object has correct values
+//
+//	WHEN I call Upgrade
+//	THEN the istioctl upgrade returns success and the cmd object has correct values
 func TestUpgrade(t *testing.T) {
 	overrideYaml := "my-override.yaml"
 
@@ -51,8 +52,9 @@ func TestUpgrade(t *testing.T) {
 
 // TestUpgradeFail tests the istioctl upgrade command failure condition
 // GIVEN a set of upgrade parameters and a fake runner that fails
-//  WHEN I call Upgrade
-//  THEN the istioctl upgrade returns an error
+//
+//	WHEN I call Upgrade
+//	THEN the istioctl upgrade returns an error
 func TestUpgradeFail(t *testing.T) {
 	assert := assert.New(t)
 	SetCmdRunner(badRunner{t: t})
@@ -66,8 +68,9 @@ func TestUpgradeFail(t *testing.T) {
 
 // TestInstall tests the istioctl install command
 // GIVEN a set of upgrade parameters
-//  WHEN I call Install
-//  THEN the istioctl install returns success and the cmd object has correct values
+//
+//	WHEN I call Install
+//	THEN the istioctl install returns success and the cmd object has correct values
 func TestInstall(t *testing.T) {
 	overrideYaml := "my-override.yaml"
 
@@ -83,8 +86,9 @@ func TestInstall(t *testing.T) {
 
 // TestIsInstalled tests if the component is installed
 // GIVEN a component
-//  WHEN I call IsInstalled
-//  THEN true is returned
+//
+//	WHEN I call IsInstalled
+//	THEN true is returned
 func TestIsInstalled(t *testing.T) {
 	assert := assert.New(t)
 
@@ -96,8 +100,9 @@ func TestIsInstalled(t *testing.T) {
 
 // TestUninstall tests the istioctl uninstall command
 // GIVEN a set of uninstall parameters and a fake uninstall runner
-//  WHEN I call Uninstall
-//  THEN the istioctl uninstall returns success
+//
+//	WHEN I call Uninstall
+//	THEN the istioctl uninstall returns success
 func TestUninstall(t *testing.T) {
 
 	assert := assert.New(t)
@@ -112,8 +117,9 @@ func TestUninstall(t *testing.T) {
 
 // TestUninstallFail tests the istioctl uninstall command failure condition
 // GIVEN a set of uninstall parameters and a fake runner that fails
-//  WHEN I call Uninstall
-//  THEN the istioctl uninstall returns an error
+//
+//	WHEN I call Uninstall
+//	THEN the istioctl uninstall returns an error
 func TestUninstallFail(t *testing.T) {
 	assert := assert.New(t)
 	SetCmdRunner(badRunner{t: t})

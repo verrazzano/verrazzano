@@ -28,8 +28,9 @@ import (
 
 // TestHandleBadRequest tests handling an invalid admission.Request
 // GIVEN an IstioWebhook and an admission.Request
-//  WHEN Handle is called with an invalid admission.Request containing no content
-//  THEN Handle should return an error with http.StatusBadRequest
+//
+//	WHEN Handle is called with an invalid admission.Request containing no content
+//	THEN Handle should return an error with http.StatusBadRequest
 func TestHandleBadRequest(t *testing.T) {
 
 	decoder := decoder()
@@ -44,8 +45,9 @@ func TestHandleBadRequest(t *testing.T) {
 
 // TestHandleIstioDisabled tests handling an admission.Request
 // GIVEN a IstioWebhook and an admission.Request
-//  WHEN Handle is called with an admission.Request containing a pod resource with Istio disabled
-//  THEN Handle should return an Allowed response with no action required
+//
+//	WHEN Handle is called with an admission.Request containing a pod resource with Istio disabled
+//	THEN Handle should return an Allowed response with no action required
 func TestHandleIstioDisabled(t *testing.T) {
 
 	defaulter := &IstioWebhook{
@@ -81,8 +83,9 @@ func TestHandleIstioDisabled(t *testing.T) {
 
 // TestHandleNoOnwerReference tests handling an admission.Request
 // GIVEN a IstioWebhook and an admission.Request
-//  WHEN Handle is called with an admission.Request containing a pod resource with no owner references
-//  THEN Handle should return an Allowed response with no action required
+//
+//	WHEN Handle is called with an admission.Request containing a pod resource with no owner references
+//	THEN Handle should return an Allowed response with no action required
 func TestHandleNoOnwerReference(t *testing.T) {
 
 	defaulter := &IstioWebhook{
@@ -115,8 +118,9 @@ func TestHandleNoOnwerReference(t *testing.T) {
 
 // TestHandleNoAppConfigOnwerReference tests handling an admission.Request
 // GIVEN a IstioWebhook and an admission.Request
-//  WHEN Handle is called with an admission.Request containing a pod resource with no parent appconfig owner references
-//  THEN Handle should return an Allowed response with no action required
+//
+//	WHEN Handle is called with an admission.Request containing a pod resource with no parent appconfig owner references
+//	THEN Handle should return an Allowed response with no action required
 func TestHandleNoAppConfigOnwerReference(t *testing.T) {
 
 	defaulter := &IstioWebhook{
@@ -183,9 +187,10 @@ func TestHandleNoAppConfigOnwerReference(t *testing.T) {
 
 // TestHandleAppConfigOnwerReference1 tests handling an admission.Request
 // GIVEN a IstioWebhook and an admission.Request
-//  WHEN Handle is called with an admission.Request containing a pod resource with a parent appconfig owner reference
-//    and a default service account referenced by the pod
-//  THEN Handle should return an Allowed response with patch values
+//
+//	WHEN Handle is called with an admission.Request containing a pod resource with a parent appconfig owner reference
+//	  and a default service account referenced by the pod
+//	THEN Handle should return an Allowed response with patch values
 func TestHandleAppConfigOnwerReference1(t *testing.T) {
 
 	scheme := runtime.NewScheme()
@@ -257,9 +262,10 @@ func TestHandleAppConfigOnwerReference1(t *testing.T) {
 
 // TestHandleAppConfigOnwerReference2 tests handling an admission.Request
 // GIVEN a IstioWebhook and an admission.Request
-//  WHEN Handle is called with an admission.Request containing a pod resource with a parent appconfig owner reference
-//    and a non-default service account referenced by the pod
-//  THEN Handle should return an Allowed response with patch values
+//
+//	WHEN Handle is called with an admission.Request containing a pod resource with a parent appconfig owner reference
+//	  and a non-default service account referenced by the pod
+//	THEN Handle should return an Allowed response with patch values
 func TestHandleAppConfigOnwerReference2(t *testing.T) {
 
 	scheme := runtime.NewScheme()
@@ -343,9 +349,10 @@ func TestHandleAppConfigOnwerReference2(t *testing.T) {
 
 // TestHandleAppConfigOnwerReference3 tests handling an admission.Request
 // GIVEN a IstioWebhook and an admission.Request
-//  WHEN Handle is called twice with an admission.Request containing a pod resource with a parent appconfig owner reference
-//    A different service account is used on each call.
-//  THEN Handle should return an Allowed response with patch values
+//
+//	WHEN Handle is called twice with an admission.Request containing a pod resource with a parent appconfig owner reference
+//	  A different service account is used on each call.
+//	THEN Handle should return an Allowed response with patch values
 func TestHandleAppConfigOnwerReference3(t *testing.T) {
 
 	scheme := runtime.NewScheme()
@@ -485,9 +492,10 @@ func TestHandleAppConfigOnwerReference3(t *testing.T) {
 
 // TestHandleAppConfigOnwerReference4 tests handling an admission.Request
 // GIVEN a IstioWebhook and an admission.Request
-//  WHEN Handle is called twice with an admission.Request containing a pod resource with a parent appconfig owner reference
-//    The same service account is used on each call.
-//  THEN Handle should return an Allowed response with patch values
+//
+//	WHEN Handle is called twice with an admission.Request containing a pod resource with a parent appconfig owner reference
+//	  The same service account is used on each call.
+//	THEN Handle should return an Allowed response with patch values
 func TestHandleAppConfigOnwerReference4(t *testing.T) {
 
 	scheme := runtime.NewScheme()
@@ -617,9 +625,10 @@ func TestHandleAppConfigOnwerReference4(t *testing.T) {
 
 // TestHandleProject1 tests handling an admission.Request
 // GIVEN a IstioWebhook and an admission.Request
-//  WHEN Handle is called with an admission.Request containing a pod resource with a parent appconfig owner reference
-//	  and a project that matches the namespace of pod resource
-//  THEN Handle should return an Allowed response with patch values
+//
+//	 WHEN Handle is called with an admission.Request containing a pod resource with a parent appconfig owner reference
+//		  and a project that matches the namespace of pod resource
+//	 THEN Handle should return an Allowed response with patch values
 func TestHandleProject1(t *testing.T) {
 
 	scheme := runtime.NewScheme()
@@ -711,9 +720,10 @@ func TestHandleProject1(t *testing.T) {
 
 // TestHandleProject2 tests handling an admission.Request
 // GIVEN a IstioWebhook and an admission.Request
-//  WHEN Handle is called twice with an admission.Request containing a pod resource with a parent appconfig owner reference
-//	  and a project that matches the namespace of pod resource. There are 2 different appconfigs.
-//  THEN Handle should return an Allowed response with patch values
+//
+//	 WHEN Handle is called twice with an admission.Request containing a pod resource with a parent appconfig owner reference
+//		  and a project that matches the namespace of pod resource. There are 2 different appconfigs.
+//	 THEN Handle should return an Allowed response with patch values
 func TestHandleProject2(t *testing.T) {
 
 	scheme := runtime.NewScheme()
@@ -869,9 +879,10 @@ func TestHandleProject2(t *testing.T) {
 
 // TestHandleProject3 tests handling an admission.Request
 // GIVEN a IstioWebhook and an admission.Request
-//  WHEN Handle is called twice with an admission.Request containing a pod resource with a parent appconfig owner reference
-//	  and a project that does not matches the namespace of pod resource.  There are 2 different appconfigs.
-//  THEN Handle should return an Allowed response with patch values
+//
+//	 WHEN Handle is called twice with an admission.Request containing a pod resource with a parent appconfig owner reference
+//		  and a project that does not matches the namespace of pod resource.  There are 2 different appconfigs.
+//	 THEN Handle should return an Allowed response with patch values
 func TestHandleProject3(t *testing.T) {
 
 	scheme := runtime.NewScheme()

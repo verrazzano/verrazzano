@@ -139,7 +139,7 @@ func GetKubernetesClientset() (*kubernetes.Clientset, error) {
 	return GetKubernetesClientsetWithConfig(config)
 }
 
-//GetKubernetesClientsetOrDie returns the kubernetes clientset, panic if it cannot be created.
+// GetKubernetesClientsetOrDie returns the kubernetes clientset, panic if it cannot be created.
 func GetKubernetesClientsetOrDie() *kubernetes.Clientset {
 	clientset, err := GetKubernetesClientset()
 	if err != nil {
@@ -278,7 +278,7 @@ func GetHostnameFromGatewayInCluster(namespace string, appConfigName string, kub
 // NewPodExecutor is to be overridden during unit tests
 var NewPodExecutor = remotecommand.NewSPDYExecutor
 
-//ExecPod runs a remote command a pod, returning the stdout and stderr of the command.
+// ExecPod runs a remote command a pod, returning the stdout and stderr of the command.
 func ExecPod(client kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, container string, command []string) (string, string, error) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}

@@ -134,7 +134,7 @@ func NewBom(bomPath string) (Bom, error) {
 	return NewBOMFromJSON(jsonBom)
 }
 
-//NewBOMFromJSON Create a new BOM instance from a JSON payload
+// NewBOMFromJSON Create a new BOM instance from a JSON payload
 func NewBOMFromJSON(jsonBom []byte) (Bom, error) {
 	bom := Bom{
 		subComponentMap: make(map[string]*BomSubComponent),

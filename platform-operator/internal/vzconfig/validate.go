@@ -7,7 +7,7 @@ import (
 	"k8s.io/api/rbac/v1"
 )
 
-//ValidateRoleBindingSubject - Validates the requested subject content, used to validate the Verrazzano CR security customizations
+// ValidateRoleBindingSubject - Validates the requested subject content, used to validate the Verrazzano CR security customizations
 // - refactored from the install_config code
 func ValidateRoleBindingSubject(subject v1.Subject, name string) error {
 	if len(subject.Name) < 1 {

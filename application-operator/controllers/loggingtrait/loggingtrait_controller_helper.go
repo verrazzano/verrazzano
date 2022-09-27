@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-//struct2Unmarshal - Struct to unstructured
+// struct2Unmarshal - Struct to unstructured
 func struct2Unmarshal(obj interface{}) (unstructured.Unstructured, error) {
 	marshal, err := json.Marshal(obj)
 	var c unstructured.Unstructured
@@ -18,7 +18,7 @@ func struct2Unmarshal(obj interface{}) (unstructured.Unstructured, error) {
 	return c, err
 }
 
-//appendSliceOfInterface - Append two slices of interfaces in to one slice without duplicates
+// appendSliceOfInterface - Append two slices of interfaces in to one slice without duplicates
 func appendSliceOfInterface(aSlice []interface{}, bSlice []interface{}) []interface{} {
 
 	res := make([]interface{}, 0)
@@ -40,7 +40,7 @@ func appendSliceOfInterface(aSlice []interface{}, bSlice []interface{}) []interf
 
 }
 
-//locateContainersField locate the containers field
+// locateContainersField locate the containers field
 func locateContainersField(res *unstructured.Unstructured) (bool, []string) {
 	var containersFieldPath []string
 	var ok = false
@@ -67,7 +67,7 @@ func locateContainersField(res *unstructured.Unstructured) (bool, []string) {
 	return ok, containersFieldPath
 }
 
-//locateVolumesField locate the volumes field
+// locateVolumesField locate the volumes field
 func locateVolumesField(res *unstructured.Unstructured) (bool, []string) {
 	var volumeFieldPath []string
 	var ok = false

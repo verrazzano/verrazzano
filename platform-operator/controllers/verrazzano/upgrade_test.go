@@ -49,7 +49,7 @@ import (
 // unitTestBomFIle is used for unit test
 const unitTestBomFile = "../../verrazzano-bom.json"
 
-//ingress list constants
+// ingress list constants
 const dnsDomain = "myenv.testverrazzano.com"
 const keycloakURL = "keycloak." + dnsDomain
 const esURL = "elasticsearch." + dnsDomain

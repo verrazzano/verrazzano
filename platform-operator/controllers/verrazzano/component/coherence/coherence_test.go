@@ -19,8 +19,9 @@ import (
 
 // TestIsCoherenceOperatorReady tests the isCoherenceOperatorReady function
 // GIVEN a call to isCoherenceOperatorReady
-//  WHEN the deployment object has enough replicas available
-//  THEN true is returned
+//
+//	WHEN the deployment object has enough replicas available
+//	THEN true is returned
 func TestIsCoherenceOperatorReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
@@ -63,8 +64,9 @@ func TestIsCoherenceOperatorReady(t *testing.T) {
 
 // TestIsCoherenceOperatorNotReady tests the isCoherenceOperatorReady function
 // GIVEN a call to isCoherenceOperatorReady
-//  WHEN the deployment object does NOT have enough replicas available
-//  THEN false is returned
+//
+//	WHEN the deployment object does NOT have enough replicas available
+//	THEN false is returned
 func TestIsCoherenceOperatorNotReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{

@@ -151,7 +151,7 @@ func (r *Reconciler) NewTraitDefaultsForWLSDomainWorkload(ctx context.Context, w
 func (r *Reconciler) NewTraitDefaultsForCOHWorkload(ctx context.Context, workload *unstructured.Unstructured) (*vzapi.MetricsTraitSpec, error) {
 	path := defaultScrapePath
 	port := defaultCohScrapePort
-	var secret *string = nil
+	var secret *string
 
 	enabled, p, s, err := r.fetchCoherenceMetricsSpec(ctx, workload)
 	if err != nil {

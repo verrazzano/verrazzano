@@ -30,8 +30,9 @@ var crEnabled = vzapi.Verrazzano{
 
 // TestIsOAMOperatorReady tests the isOAMReady function
 // GIVEN a call to isOAMReady
-//  WHEN the deployment object has enough replicas available
-//  THEN true is returned
+//
+//	WHEN the deployment object has enough replicas available
+//	THEN true is returned
 func TestIsOAMOperatorReady(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -75,8 +76,9 @@ func TestIsOAMOperatorReady(t *testing.T) {
 
 // TestIsOAMOperatorNotReady tests the isOAMReady function
 // GIVEN a call to isOAMReady
-//  WHEN the deployment object does NOT have enough replicas available
-//  THEN false is returned
+//
+//	WHEN the deployment object does NOT have enough replicas available
+//	THEN false is returned
 func TestIsOAMOperatorNotReady(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
@@ -95,8 +97,9 @@ func TestIsOAMOperatorNotReady(t *testing.T) {
 
 // TestIsEnabledNilOAM tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The OAM component is nil
-//  THEN true is returned
+//
+//	WHEN The OAM component is nil
+//	THEN true is returned
 func TestIsEnabledNilOAM(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.OAM = nil
@@ -105,16 +108,18 @@ func TestIsEnabledNilOAM(t *testing.T) {
 
 // TestIsEnabledNilComponent tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The OAM component is nil
-//  THEN false is returned
+//
+//	WHEN The OAM component is nil
+//	THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
 	assert.True(t, NewComponent().IsEnabled(&vzapi.Verrazzano{}))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The OAM component enabled is nil
-//  THEN true is returned
+//
+//	WHEN The OAM component enabled is nil
+//	THEN true is returned
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.OAM.Enabled = nil
@@ -123,8 +128,9 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 
 // TestIsEnabledExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The OAM component is explicitly enabled
-//  THEN true is returned
+//
+//	WHEN The OAM component is explicitly enabled
+//	THEN true is returned
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.OAM.Enabled = getBoolPtr(true)
@@ -133,8 +139,9 @@ func TestIsEnabledExplicit(t *testing.T) {
 
 // TestIsDisableExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The OAM component is explicitly disabled
-//  THEN false is returned
+//
+//	WHEN The OAM component is explicitly disabled
+//	THEN false is returned
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.OAM.Enabled = getBoolPtr(false)
