@@ -320,15 +320,15 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 							return pkg.MetricsExistInCluster(vendoRequestsCount, m, adminKubeconfig)
 						}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 					},
-					func() {
-						clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
-						Eventually(func() bool {
-							m := make(map[string]string)
-							m[labelNS] = appNamespace
-							m[clusterNameMetricsLabel] = clusterName
-							return pkg.MetricsExistInCluster(cpuCFSPeriods, m, adminKubeconfig)
-						}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-					},
+					//func() {
+					//	clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
+					//	Eventually(func() bool {
+					//		m := make(map[string]string)
+					//		m[labelNS] = appNamespace
+					//		m[clusterNameMetricsLabel] = clusterName
+					//		return pkg.MetricsExistInCluster(cpuCFSPeriods, m, adminKubeconfig)
+					//	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					//},
 					func() {
 						clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
 						Eventually(func() bool {
