@@ -44,9 +44,9 @@ const (
 	expectedResponse = "A perfect example of a swivel chair trained calf"
 
 	// metrics
-	jvmUptime            = "base_jvm_uptime_seconds"
-	vendoRequestsCount   = "vendor_requests_count_total"
-	cpuCFSPeriods        = "container_cpu_cfs_periods_total"
+	jvmUptime          = "base_jvm_uptime_seconds"
+	vendoRequestsCount = "vendor_requests_count_total"
+	//cpuCFSPeriods        = "container_cpu_cfs_periods_total"
 	serviceMessagesLocal = "vendor:coherence_service_messages_local"
 
 	// various labels
@@ -58,10 +58,10 @@ const (
 	k8sLabelCoherenceCluster     = "kubernetes.labels.coherenceCluster"
 	k8sPodName                   = "kubernetes.pod_name"
 	labelApp                     = "app"
-	labelNS                      = "namespace"
-	labelCluster                 = "cluster"
-	skipVerifications            = "Skip Verifications"
-	skipDeletions                = "Skip Deletions"
+	//labelNS                      = "namespace"
+	labelCluster      = "cluster"
+	skipVerifications = "Skip Verifications"
+	skipDeletions     = "Skip Deletions"
 
 	// application resources
 	appConfiguration     = "tests/testdata/test-applications/coherence/hello-coherence/hello-coherence-mc-app.yaml"
