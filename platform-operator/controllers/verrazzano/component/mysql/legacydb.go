@@ -6,8 +6,6 @@ package mysql
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -255,18 +253,15 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	rootPwd := rootSecret.Data[rootPasswordKey]
 
 	// Root priv
-	var rootCmd strings.Builder
-	temp := fmt.Sprintf("mysql -uroot -p%s -e ", rootPwd)
-	rootCmd.WriteString(temp)
-	rootCmd.WriteString(mySQLRootCommand)
-	rootExecCmd := []string{"bash", "-c", rootCmd.String()}
+	rootCmd := fmt.Sprintf(mySQLRootCommand, rootPwd)
+	rootExecCmd := []string{"bash", "-c", rootCmd}
 	// CHECK and ADD Primary Key Cmd
 	sqlCmd := fmt.Sprintf(mySQLDbCommands, rootPwd)
-	execCmd := []string{"bash", "-c", sqlCmd}
+	execCmd := []string{"bash", "-c", "LC_ALL=C.utf8", sqlCmd}
 	// util.dumpInstance() Cmd
 	cleanupCmd := []string{"bash", "-c", mySQLCleanup}
 	sqlShCmd := fmt.Sprintf(mySQLShCommands, rootPwd)
-	execShCmd := []string{"bash", "-c", sqlShCmd}
+	execShCmd := []string{"bash", "-c", "LC_ALL=C.utf8", sqlShCmd}
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
@@ -276,27 +271,27 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 		return err
 	}
 	// Grant root privilege =
-	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", rootExecCmd)
+	_, _, err = k8sutil.ExecPodNoTty(cli, cfg, mysqlPod, "mysql", rootExecCmd)
 	if err != nil {
 		errorMsg := maskPw(fmt.Sprintf("Failed granting root priv, err = %v", err))
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	// Check and Update Primary Key
-	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execCmd)
+	_, _, err = k8sutil.ExecPodNoTty(cli, cfg, mysqlPod, "mysql", execCmd)
 	if err != nil {
 		errorMsg := maskPw(fmt.Sprintf("Failed updating table, err = %v", err))
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Debug("Successfully updated keycloak table primary key")
-	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", cleanupCmd)
+	_, _, err = k8sutil.ExecPodNoTty(cli, cfg, mysqlPod, "mysql", cleanupCmd)
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to remove resources from previous attempts, err = %v", err)
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", err.Error())
 	}
-	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execShCmd)
+	_, _, err = k8sutil.ExecPodNoTty(cli, cfg, mysqlPod, "mysql", execShCmd)
 	if err != nil {
 		errorMsg := maskPw(fmt.Sprintf("Failed executing database dump, err = %v", err))
 		ctx.Log().Error(errorMsg)
