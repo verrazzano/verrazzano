@@ -46,7 +46,7 @@ const (
 	secretKey             = "mysql-password"
 	mySQLUsername         = "keycloak"
 	rootPasswordKey       = "mysql-root-password" //nolint:gosec //#gosec G101
-	statefulsetClaimName  = "dump-claim"
+	legacyDBDumpClaim     = "dump-claim"
 	mySQLInitFilePrefix   = "init-mysql-"
 	dbLoadJobName         = "load-dump"
 	dbLoadContainerName   = "mysqlsh-load-dump"
@@ -498,7 +498,7 @@ func PostUpgradeCleanup(log vzlog.VerrazzanoLogger, client clipkg.Client) error 
 	log.Progressf("MySQL post-upgrade cleanup")
 	pvc := &v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      statefulsetClaimName,
+			Name:      legacyDBDumpClaim,
 			Namespace: ComponentNamespace,
 		},
 	}

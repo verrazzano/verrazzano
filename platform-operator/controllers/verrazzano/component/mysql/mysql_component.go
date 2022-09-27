@@ -35,9 +35,6 @@ const ComponentNamespace = vzconst.KeycloakNamespace
 // DeploymentPersistentVolumeClaim is the name of a volume claim associated with a MySQL deployment
 const DeploymentPersistentVolumeClaim = "mysql"
 
-// StatefulsetPersistentVolumeClaim is the name of a volume claim associated with a MySQL statefulset
-const StatefulsetPersistentVolumeClaim = "dump-claim"
-
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "keycloak.mysql"
 

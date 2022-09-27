@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -424,14 +426,14 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 		})
 	// createPVCFromPV
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: statefulsetClaimName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: legacyDBDumpClaim}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
 			return nil
 		})
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, pvc *v1.PersistentVolumeClaim, opts ...client.UpdateOption) error {
-			assert.Equal(t, statefulsetClaimName, pvc.Name)
+			assert.Equal(t, legacyDBDumpClaim, pvc.Name)
 			assert.Equal(t, "volumeName", pvc.Spec.VolumeName)
 			return nil
 		})
@@ -640,7 +642,7 @@ func TestPostUpgradeProdProfile(t *testing.T) {
 				Spec: v1.PersistentVolumeSpec{
 					ClaimRef: &v1.ObjectReference{
 						Namespace: ComponentNamespace,
-						Name:      statefulsetClaimName,
+						Name:      legacyDBDumpClaim,
 					},
 					PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimRetain,
 				},
@@ -1271,6 +1273,72 @@ func TestIsMySQLReadyInnoDBClusterNotOnline(t *testing.T) {
 		},
 	}
 	assert.False(t, isMySQLReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
+}
+
+// TestPostUpgradeCleanup tests the PostUpgradeCleanup function
+// GIVEN a call to PostUpgradeCleanup
+//  WHEN The legacy DB upgrade PVC exists
+//  THEN It is deleted and no error is returned
+func TestPostUpgradeCleanup(t *testing.T) {
+	asserts := assert.New(t)
+	legacyPVC := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Name: legacyDBDumpClaim, Namespace: ComponentNamespace},
+	}
+	otherPVC := &v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"}}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(legacyPVC, otherPVC).Build()
+
+	asserts.NoError(PostUpgradeCleanup(vzlog.DefaultLogger(), fakeClient))
+
+	pvc := &v1.PersistentVolumeClaim{}
+	notFoundErr := fakeClient.Get(context.TODO(), client.ObjectKeyFromObject(legacyPVC), pvc)
+	asserts.Error(notFoundErr)
+	asserts.True(errors.IsNotFound(notFoundErr))
+
+	otherErr := fakeClient.Get(context.TODO(), client.ObjectKeyFromObject(otherPVC), pvc)
+	asserts.NoError(otherErr)
+	asserts.Equal(client.ObjectKeyFromObject(otherPVC), client.ObjectKeyFromObject(pvc))
+}
+
+// TestPostUpgradeCleanupNoLegacyPVC tests the PostUpgradeCleanup function
+// GIVEN a call to PostUpgradeCleanup
+//  WHEN The legacy DB upgrade PVC does NOT exist
+//  THEN no error is returned
+func TestPostUpgradeCleanupNoLegacyPVC(t *testing.T) {
+	asserts := assert.New(t)
+	legacyPVC := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Name: legacyDBDumpClaim, Namespace: ComponentNamespace},
+	}
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
+
+	pvc := &v1.PersistentVolumeClaim{}
+	notFoundErr := fakeClient.Get(context.TODO(), client.ObjectKeyFromObject(legacyPVC), pvc)
+	asserts.Error(notFoundErr)
+	asserts.True(errors.IsNotFound(notFoundErr))
+
+	asserts.NoError(PostUpgradeCleanup(vzlog.DefaultLogger(), fakeClient))
+}
+
+// TestPostUpgradeCleanupErrorOnDelete tests the PostUpgradeCleanup function
+// GIVEN a call to PostUpgradeCleanup
+//  WHEN When an error other than IsNotFound is returned from the controllerruntime client
+//  THEN an error is returned
+func TestPostUpgradeCleanupErrorOnDelete(t *testing.T) {
+	asserts := assert.New(t)
+
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	legacyPVC := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Name: legacyDBDumpClaim, Namespace: ComponentNamespace},
+	}
+
+	expectedErr := fmt.Errorf("An error")
+	mock.EXPECT().Delete(gomock.Any(), legacyPVC).Return(expectedErr)
+
+	err := PostUpgradeCleanup(vzlog.DefaultLogger(), mock)
+	asserts.Error(err)
+	asserts.Equal(expectedErr, err)
 }
 
 // TestIsEnabledNilComponent tests the IsEnabled function
