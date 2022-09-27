@@ -42,9 +42,9 @@ func TestCreateMCAppConfig(t *testing.T) {
 	testComponent, err := getSampleOamComponent("testdata/hello-component.yaml")
 	assert.NoError(err, "failed to read sample data for OAM Component")
 
-	adminClient := fake.NewFakeClientWithScheme(newScheme(), &testMCAppConfig, &testComponent)
+	adminClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(&testMCAppConfig, &testComponent).Build()
 
-	localClient := fake.NewFakeClientWithScheme(newScheme())
+	localClient := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 
 	// Make the request
 	s := &Syncer{
@@ -90,9 +90,9 @@ func TestCreateMCAppConfigNoOAMComponent(t *testing.T) {
 	testMCComponent, err := getSampleMCComponent("testdata/mc-hello-component.yaml")
 	assert.NoError(err, "failed to read sample data for MultiCusterComponent")
 
-	adminClient := fake.NewFakeClientWithScheme(newScheme(), &testMCAppConfig)
+	adminClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(&testMCAppConfig).Build()
 
-	localClient := fake.NewFakeClientWithScheme(newScheme(), &testMCComponent)
+	localClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(&testMCComponent).Build()
 
 	// Make the request
 	s := &Syncer{
@@ -142,9 +142,9 @@ func TestUpdateMCAppConfig(t *testing.T) {
 	testComponent2, err := getSampleOamComponent("testdata/goodbye-component.yaml")
 	assert.NoError(err, "failed to read sample data for OAM Component")
 
-	adminClient := fake.NewFakeClientWithScheme(newScheme(), &testMCAppConfigUpdate, &testComponent1, &testComponent2)
+	adminClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(&testMCAppConfigUpdate, &testComponent1, &testComponent2).Build()
 
-	localClient := fake.NewFakeClientWithScheme(newScheme(), &testMCAppConfig, &testComponent1, &testComponent2)
+	localClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(&testMCAppConfig, &testComponent1, &testComponent2).Build()
 
 	// Make the request
 	s := &Syncer{
@@ -204,8 +204,8 @@ func TestDeleteMCAppConfig(t *testing.T) {
 	testComponent, err := getSampleOamComponent("testdata/hello-component.yaml")
 	assert.NoError(err, "failed to read sample data for OAM Component")
 
-	adminClient := fake.NewFakeClientWithScheme(newScheme(), &testMCAppConfig, &testComponent)
-	localClient := fake.NewFakeClientWithScheme(newScheme(), &testComponent, &testMCAppConfig, &testMCAppConfigOrphan)
+	adminClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(&testMCAppConfig, &testComponent).Build()
+	localClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(&testComponent, &testMCAppConfig, &testMCAppConfigOrphan).Build()
 
 	// Make the request
 	s := &Syncer{
@@ -263,8 +263,8 @@ func TestDeleteMCAppConfigNoOAMComponent(t *testing.T) {
 	testMCComponent, err := getSampleMCComponent("testdata/mc-hello-component.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterComponent")
 
-	adminClient := fake.NewFakeClientWithScheme(newScheme(), &testMCAppConfig)
-	localClient := fake.NewFakeClientWithScheme(newScheme(), &testOAMComponent, &testMCComponent)
+	adminClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(&testMCAppConfig).Build()
+	localClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(&testOAMComponent, &testMCComponent).Build()
 
 	// Make the request
 	s := &Syncer{
@@ -334,8 +334,8 @@ func TestDeleteMCAppConfigShared(t *testing.T) {
 	testComponent, err := getSampleOamComponent("testdata/hello-component.yaml")
 	assert.NoError(err, "failed to read sample data for OAM Component")
 
-	adminClient := fake.NewFakeClientWithScheme(newScheme(), &testMCAppConfig, &testComponent)
-	localClient := fake.NewFakeClientWithScheme(newScheme(), &testComponent, &testMCAppConfig, &testMCAppConfig2)
+	adminClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(&testMCAppConfig, &testComponent).Build()
+	localClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(&testComponent, &testMCAppConfig, &testMCAppConfig2).Build()
 
 	// Make the request
 	s := &Syncer{
@@ -398,8 +398,8 @@ func TestDeleteOrphanedComponents(t *testing.T) {
 	testComponent2, err := getSampleOamComponent("testdata/goodbye-component.yaml")
 	assert.NoError(err, "failed to read sample data for OAM Component")
 
-	adminClient := fake.NewFakeClientWithScheme(newScheme())
-	localClient := fake.NewFakeClientWithScheme(newScheme(), &testComponent1, &testComponent2)
+	adminClient := fake.NewClientBuilder().WithScheme(newScheme()).Build()
+	localClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(&testComponent1, &testComponent2).Build()
 
 	// Make the request
 	s := &Syncer{
@@ -441,9 +441,9 @@ func TestMCAppConfigPlacement(t *testing.T) {
 	localMCAppConfig, err := getSampleMCAppConfig("testdata/multicluster-appconfig.yaml")
 	assert.NoError(err, "failed to read sample data for MultiClusterApplicationConfiguration")
 
-	adminClient := fake.NewFakeClientWithScheme(newScheme(), &adminMCAppConfig)
+	adminClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(&adminMCAppConfig).Build()
 
-	localClient := fake.NewFakeClientWithScheme(newScheme(), &localMCAppConfig)
+	localClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(&localMCAppConfig).Build()
 
 	// Make the request
 	s := &Syncer{
@@ -480,7 +480,7 @@ func TestSyncComponentList(t *testing.T) {
 	log := zap.S().With("test")
 
 	// Create a fake client for the admin cluster
-	adminClient := fake.NewFakeClientWithScheme(newScheme(),
+	adminClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(
 		&oamv1alpha2.Component{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        compName1,
@@ -509,10 +509,10 @@ func TestSyncComponentList(t *testing.T) {
 				},
 			},
 		},
-	)
+	).Build()
 
 	// Create a fake client for the local cluster
-	localClient := fake.NewFakeClientWithScheme(newScheme())
+	localClient := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 
 	// MultiClusterApplicationConfiguration test data
 	mcAppConfig := clustersv1alpha1.MultiClusterApplicationConfiguration{

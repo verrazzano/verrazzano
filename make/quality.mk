@@ -9,22 +9,34 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 #
 ##@ Linting and coverage
 
-.PHONY: check
-check: install-linter word-linter url-linter check-linter ## run all linters
+GOLANGCI_LINT_VERSION=1.47.3
 
-.PHONY: check-linter
-check-linter: install-linter ## run Go linters
-	$(LINTER) --color never run --timeout 300s
+.PHONY: check
+check: lint-go word-linter url-linter ## run all linters
+
+.PHONY: lint-go
+lint-go: check-golangci-lint
+	golangci-lint --color never run --max-same-issues 25 --timeout 300s
+
+.PHONY: check-golangci-lint
+check-golangci-lint: install-golangci-lint ## run Go linters
+	@{ \
+		set -eu ; \
+		ACTUAL_GOLANGCI_LINT_VERSION=$$(golangci-lint version --format short | sed -e 's%^v%%') ; \
+		if [ "$${ACTUAL_GOLANGCI_LINT_VERSION}" != "${GOLANGCI_LINT_VERSION}" ] ; then \
+			echo "Bad golangci-lint version $${ACTUAL_GOLANGCI_LINT_VERSION}, please install ${GOLANGCI_LINT_VERSION}" ; \
+		fi ; \
+	}
 
 # find or download golangci-lint
-.PHONY: install-linter
-install-linter: ## install linters
-ifeq (, $(shell command -v golangci-lint))
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v1.38.0
-	$(eval LINTER=$(GOPATH)/bin/golangci-lint)
-else
-	$(eval LINTER=$(shell command -v golangci-lint))
-endif
+.PHONY: install-golangci-lint
+install-golangci-lint: ## install golangci-lint
+	@{ \
+		set -eu ; \
+		if ! command -v golangci-lint ; then \
+			curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $$(go env GOPATH)/bin v${GOLANGCI_LINT_VERSION} ; \
+		fi; \
+	}
 
 # search for internal words that should not be in the repo
 # check fails if res from http req is not successful (200)
