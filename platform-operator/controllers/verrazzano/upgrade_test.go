@@ -19,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -49,7 +48,7 @@ import (
 // unitTestBomFIle is used for unit test
 const unitTestBomFile = "../../verrazzano-bom.json"
 
-//ingress list constants
+// ingress list constants
 const dnsDomain = "myenv.testverrazzano.com"
 const keycloakURL = "keycloak." + dnsDomain
 const esURL = "elasticsearch." + dnsDomain
@@ -1756,7 +1755,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 						Type: vzapi.CondInstallComplete,
 					},
 				},
-				Components: func() v1alpha1.ComponentStatusMap {
+				Components: func() vzapi.ComponentStatusMap {
 					statusMap := makeVerrazzanoComponentStatusMap()
 					statusMap[keycloak.ComponentName].State = vzapi.CompStateDisabled
 					statusMap[istio.ComponentName].State = vzapi.CompStateDisabled

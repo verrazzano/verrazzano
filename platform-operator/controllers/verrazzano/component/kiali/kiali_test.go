@@ -52,7 +52,7 @@ func TestIsKialiReady(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
-	fakeClient := fake.NewFakeClientWithScheme(testScheme,
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
@@ -87,7 +87,7 @@ func TestIsKialiReady(t *testing.T) {
 				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 			},
 		},
-	)
+	).Build()
 
 	assert.True(t, isKialiReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
