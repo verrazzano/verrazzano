@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/x509"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -104,8 +105,12 @@ func UpdateKeycloakOIDCAuthConfig(ctx spi.ComponentContext, attributes map[strin
 	keycloakAuthConfigName := types.NamespacedName{Name: AuthConfigKeycloak}
 	err := c.Get(context.Background(), keycloakAuthConfigName, &keycloakAuthConfig)
 	if err != nil {
-		log.Progressf("Waiting to fetch Keycloak authConfig needed for OIDC configuration: %s", err.Error())
-		return ctrlerrors.RetryableError{}
+		if errors.IsNotFound(err) {
+			log.Progressf("Rancher component is waiting for Keycloak authConfig to exist")
+			return ctrlerrors.RetryableError{}
+		}
+		return log.ErrorfThrottledNewErr("Failed to fetch Keycloak authConfig: %v", err.Error())
+
 	}
 
 	authConfig := keycloakAuthConfig.UnstructuredContent()
