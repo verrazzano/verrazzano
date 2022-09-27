@@ -265,7 +265,7 @@ func TestOwnerIDTextPrefix_HelmValueExists(t *testing.T) {
 	localvz.UID = "uid"
 	localvz.Spec.Components.DNS.OCI = oci
 
-	client := fake.NewFakeClientWithScheme(testScheme, localvz)
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz).Build()
 	compContext := spi.NewFakeContext(client, vz, nil, false)
 
 	ids, err := getOrBuildIDs(compContext, ComponentName, ComponentNamespace)

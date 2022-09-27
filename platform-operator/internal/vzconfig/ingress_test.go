@@ -101,7 +101,7 @@ func TestGetIngressServiceNotFound(t *testing.T) {
 			},
 		},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	_, err := GetIngressIP(fakeClient, vz)
 	assert.Error(t, err)
 }
@@ -184,7 +184,7 @@ func TestGetIngressIP(t *testing.T) {
 					},
 				}
 			}
-			fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, svc)
+			fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(svc).Build()
 			got, err := GetIngressIP(fakeClient, vz)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetIngressIP() error = %v, wantErr %v", err, tt.wantErr)
@@ -346,7 +346,7 @@ func TestGetDNSSuffix(t *testing.T) {
 					},
 				}
 			}
-			fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, svc)
+			fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(svc).Build()
 			got, err := GetDNSSuffix(fakeClient, vz)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetDNSSuffix() error = %v, wantErr %v", err, tt.wantErr)
@@ -400,7 +400,7 @@ func TestBuildDNSDomainDefaultEnv(t *testing.T) {
 			},
 		},
 	}
-	domain, err := BuildDNSDomain(fake.NewFakeClientWithScheme(k8scheme.Scheme), vz)
+	domain, err := BuildDNSDomain(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build(), vz)
 	assert.NoError(t, err)
 	assert.Equal(t, "default."+testDomain, domain)
 }
@@ -423,7 +423,7 @@ func TestBuildDNSDomainCustomEnv(t *testing.T) {
 			},
 		},
 	}
-	domain, err := BuildDNSDomain(fake.NewFakeClientWithScheme(k8scheme.Scheme), vz)
+	domain, err := BuildDNSDomain(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build(), vz)
 	assert.NoError(t, err)
 	assert.Equal(t, "myenv."+testDomain, domain)
 }

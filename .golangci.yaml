@@ -1,6 +1,11 @@
 # Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+linters-settings:
+  stylecheck:
+    go: "1.17"
+    checks: ["ST1019"]
+
 linters:
   enable:
     - govet
@@ -10,6 +15,7 @@ linters:
     - gosec
     - revive
     - unused
+    - stylecheck
   disable-all: true
   fast: true
 

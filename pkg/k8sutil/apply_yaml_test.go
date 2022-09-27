@@ -49,7 +49,7 @@ func TestApplyD(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+			c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 			y := k8sutil.NewYAMLApplier(c, "")
 			err := y.ApplyD(tt.dir)
 			if tt.isError {
@@ -97,7 +97,7 @@ func TestApplyF(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+			c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 			y := k8sutil.NewYAMLApplier(c, "test")
 			err := y.ApplyF(tt.file)
 			if tt.isError {
@@ -265,7 +265,7 @@ func TestApplyFT(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+			c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 			y := k8sutil.NewYAMLApplier(c, "")
 			err := y.ApplyFT(tt.file, tt.args)
 			if tt.isError {
@@ -311,7 +311,7 @@ func TestApplyDT(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+			c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 			y := k8sutil.NewYAMLApplier(c, "")
 			err := y.ApplyDT(tt.dir, tt.args)
 			if tt.isError {
@@ -344,7 +344,7 @@ func TestDeleteF(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+			c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 			y := k8sutil.NewYAMLApplier(c, "")
 			err := y.DeleteF(tt.file)
 			if tt.isError {
@@ -379,7 +379,7 @@ func TestDeleteFD(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+			c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 			y := k8sutil.NewYAMLApplier(c, "")
 			err := y.DeleteFT(tt.file, tt.args)
 			if tt.isError {
@@ -392,7 +392,7 @@ func TestDeleteFD(t *testing.T) {
 }
 
 func TestDeleteAll(t *testing.T) {
-	c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	y := k8sutil.NewYAMLApplier(c, "")
 	err := y.ApplyD(objects)
 	assert.NoError(t, err)

@@ -28,6 +28,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
@@ -84,6 +85,7 @@ const (
 	fluentdMetricName              metricName = fluentd.ComponentName
 	veleroMetricName               metricName = velero.ComponentName
 	rancherBackupMetricName        metricName = rancherbackup.ComponentName
+	networkpoliciesMetricName      metricName = networkpolicies.ComponentName
 )
 
 func init() {
@@ -180,6 +182,7 @@ func initMetricComponentMap() map[metricName]*MetricsComponent {
 		fluentdMetricName:              newMetricsComponent("fluentd"),
 		veleroMetricName:               newMetricsComponent("velero"),
 		rancherBackupMetricName:        newMetricsComponent("rancher-backup"),
+		networkpoliciesMetricName:      newMetricsComponent("networkpolicies"),
 	}
 }
 

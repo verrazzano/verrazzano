@@ -290,7 +290,7 @@ func TestUseAdditionalCAs(t *testing.T) {
 //	THEN getRancherHostname should return the Rancher hostname
 func TestGetRancherHostname(t *testing.T) {
 	expected := fmt.Sprintf("%s.%s.rancher", common.RancherName, vzAcmeDev.Spec.EnvironmentName)
-	actual, _ := getRancherHostname(fake.NewFakeClientWithScheme(getScheme()), &vzAcmeDev)
+	actual, _ := getRancherHostname(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzAcmeDev)
 	assert.Equal(t, expected, actual)
 }
 
@@ -300,6 +300,6 @@ func TestGetRancherHostname(t *testing.T) {
 //	WHEN getRancherHostname is called
 //	THEN getRancherHostname should return an error
 func TestGetRancherHostnameNotFound(t *testing.T) {
-	_, err := getRancherHostname(fake.NewFakeClientWithScheme(getScheme()), &vzapi.Verrazzano{})
+	_, err := getRancherHostname(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzapi.Verrazzano{})
 	assert.NotNil(t, err)
 }
