@@ -40,6 +40,10 @@ pipeline {
                 trim: true)
         choice (description: 'Predefined config permutations for Verrazzano installation. Prod profile is the default profile for NONE', name: 'VZ_INSTALL_CONFIG',
                 choices: ["NONE", "dev-kind-persistence"])
+        choice (name: 'KIND_CLUSTER_VERSION',
+                description: 'Kubernetes Version for KIND Cluster',
+                // 1st choice is the default value
+                choices: [ "1.21", "1.22", "1.23", "1.24" ])
         string (name: 'EXCLUDE_RELEASES',
                 defaultValue: "v1.0.0, v1.0.1, v1.0.2, v1.0.3, v1.0.4, v1.1.0",
                 description: 'This is to exclude the specified releases from upgrade tests.', trim: true)

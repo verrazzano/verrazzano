@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package imagejob
@@ -23,8 +23,8 @@ type JobConfig struct {
 
 // NewJob returns a job resource for building an ImageBuildRequest
 func NewJob(jobConfig *JobConfig) *batchv1.Job {
-	var annotations map[string]string = nil
-	var backoffLimit int32 = 0
+	var annotations map[string]string
+	var backoffLimit int32
 	if jobConfig.DryRun {
 		annotations = make(map[string]string, 1)
 		annotations[k8s.DryRunAnnotationName] = strconv.FormatBool(jobConfig.DryRun)

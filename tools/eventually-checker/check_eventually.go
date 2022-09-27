@@ -228,7 +228,7 @@ func getEventuallyFuncName(pkg string, args []ast.Expr) (string, bool) {
 	case *ast.Ident:
 		return pkg + "." + x.Name, false
 	case *ast.SelectorExpr:
-		var p string = pkg + "."
+		var p = pkg + "."
 		if ident, ok := x.X.(*ast.Ident); ok {
 			p = ident.Name + "."
 		}

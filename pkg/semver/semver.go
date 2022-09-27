@@ -24,7 +24,7 @@ type SemVersion struct {
 	Build      string
 }
 
-var compiledRegEx *regexp.Regexp = nil
+var compiledRegEx *regexp.Regexp
 
 func getRegex() (*regexp.Regexp, error) {
 	if compiledRegEx != nil {
@@ -72,7 +72,7 @@ func NewSemVersion(version string) (*SemVersion, error) {
 		return nil, err
 	}
 
-	var patchVer int64 = 0
+	var patchVer int64
 	if numComponents > 3 {
 		patchVer, err = strconv.ParseInt(versionComponents[3], 10, 64)
 		if err != nil {

@@ -6,10 +6,8 @@ package verrazzano
 import (
 	"context"
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"math/big"
-	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -65,14 +63,6 @@ const jaegerURL = "jaeger." + dnsDomain
 
 var istioEnabled = false
 var jaegerEnabled = true
-
-// goodRunner is used to test helm success without actually running an OS exec command
-type goodRunner struct {
-}
-
-// badRunner is used to test helm failure without actually running an OS exec command
-type badRunner struct {
-}
 
 // TestUpgradeNoVersion tests the reconcileUpgrade method for the following use case
 // GIVEN a request to reconcile a verrazzano resource after install is completed
@@ -1543,14 +1533,6 @@ func TestIsLastConditionTrue(t *testing.T) {
 		},
 	}
 	asserts.True(isLastCondition(st, vzapi.CondInstallFailed), "isLastCondition should have returned true")
-}
-
-func (r goodRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return []byte("success"), []byte(""), nil
-}
-
-func (r badRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return []byte(""), []byte("failure"), errors.New("Helm Error")
 }
 
 // TestInstanceRestoreWithEmptyStatus tests the reconcileUpdate method for the following use case
