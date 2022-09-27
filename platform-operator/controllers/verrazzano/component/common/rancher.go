@@ -6,6 +6,7 @@ package common
 import (
 	"context"
 	"crypto/x509"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -103,7 +104,8 @@ func UpdateKeycloakOIDCAuthConfig(ctx spi.ComponentContext, attributes map[strin
 	keycloakAuthConfigName := types.NamespacedName{Name: AuthConfigKeycloak}
 	err := c.Get(context.Background(), keycloakAuthConfigName, &keycloakAuthConfig)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher, unable to fetch keycloak authConfig: %s", err.Error())
+		log.Progressf("Waiting to fetch Keycloak authConfig needed for OIDC configuration: %s", err.Error())
+		return ctrlerrors.RetryableError{}
 	}
 
 	authConfig := keycloakAuthConfig.UnstructuredContent()
@@ -112,7 +114,7 @@ func UpdateKeycloakOIDCAuthConfig(ctx spi.ComponentContext, attributes map[strin
 	}
 	err = c.Update(context.Background(), &keycloakAuthConfig, &client.UpdateOptions{})
 	if err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher: %s", err.Error())
+		return log.ErrorfThrottledNewErr("failed configuring Keycloak as OIDC provider for rancher: %s", err.Error())
 	}
 
 	return nil
