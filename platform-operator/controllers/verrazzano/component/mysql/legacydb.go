@@ -257,11 +257,11 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	rootExecCmd := []string{"bash", "-c", rootCmd}
 	// CHECK and ADD Primary Key Cmd
 	sqlCmd := fmt.Sprintf(mySQLDbCommands, rootPwd)
-	execCmd := []string{"bash", "-c", sqlCmd}
+	execCmd := []string{"bash", "-c", "LC_ALL=C.utf8", sqlCmd}
 	// util.dumpInstance() Cmd
 	cleanupCmd := []string{"bash", "-c", mySQLCleanup}
 	sqlShCmd := fmt.Sprintf(mySQLShCommands, rootPwd)
-	execShCmd := []string{"bash", "-c", sqlShCmd}
+	execShCmd := []string{"bash", "-c", "LC_ALL=C.utf8", sqlShCmd}
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
