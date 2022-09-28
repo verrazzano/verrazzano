@@ -257,11 +257,11 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	rootExecCmd := []string{"bash", "-c", rootCmd}
 	// CHECK and ADD Primary Key Cmd
 	sqlCmd := fmt.Sprintf(mySQLDbCommands, rootPwd)
-	execCmd := []string{"bash", "-c", "LC_ALL=C.utf8", sqlCmd}
+	execCmd := []string{"bash", "-c", sqlCmd}
 	// util.dumpInstance() Cmd
 	cleanupCmd := []string{"bash", "-c", mySQLCleanup}
 	sqlShCmd := fmt.Sprintf(mySQLShCommands, rootPwd)
-	execShCmd := []string{"bash", "-c", "LC_ALL=C.utf8", sqlShCmd}
+	execShCmd := []string{"bash", "-c", sqlShCmd}
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
@@ -277,7 +277,7 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
-	ctx.Log().Debug("Successfully updated root privileges")
+	ctx.Log().Info("Successfully updated root privileges")
 	// Check and Update Primary Key
 	_, _, err = k8sutil.ExecPodNoTty(cli, cfg, mysqlPod, "mysql", execCmd)
 	if err != nil {
@@ -285,7 +285,7 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
-	ctx.Log().Debug("Successfully updated keycloak table primary key")
+	ctx.Log().Info("Successfully updated keycloak table primary key")
 	_, _, err = k8sutil.ExecPodNoTty(cli, cfg, mysqlPod, "mysql", cleanupCmd)
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to remove resources from previous attempts, err = %v", err)
@@ -298,7 +298,7 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
-	ctx.Log().Debug("Successfully persisted database dump")
+	ctx.Log().Info("Successfully persisted database dump")
 	err = updateDBMigrationInProgressSecret(ctx, databaseDumpedStage)
 	if err != nil {
 		return err
