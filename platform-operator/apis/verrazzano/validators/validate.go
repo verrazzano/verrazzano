@@ -8,6 +8,10 @@ import (
 	"encoding/pem"
 	goerrors "errors"
 	"fmt"
+	"io/fs"
+	"os"
+	"strings"
+
 	"github.com/onsi/gomega/gstruct/errors"
 	"github.com/oracle/oci-go-sdk/v53/common"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -16,16 +20,14 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
-	"io/fs"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
+	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
-	"strings"
 )
 
 const (
@@ -63,6 +65,9 @@ type AuthData struct {
 type OciAuth struct {
 	Auth AuthData `json:"auth"`
 }
+
+var getKubernetesClusterVersion = getKubernetesVersion
+var getSupportedVersions = getSupportedKubernetesVersions
 
 func CleanTempFiles(log *zap.SugaredLogger) error {
 	if err := vzos.RemoveTempFiles(log, validateTempFilePattern); err != nil {
@@ -350,4 +355,76 @@ func GetClient(scheme *runtime.Scheme) (client.Client, error) {
 	}
 
 	return client.New(config, client.Options{Scheme: scheme})
+}
+
+// IsKubernetesVersionSupported verifies if Kubernetes version of cluster is supported
+func IsKubernetesVersionSupported() bool {
+	log := zap.S().With("validate", "kubernetes.version")
+	supportedKubernetesVersions, err := getSupportedVersions()
+	if err != nil {
+		log.Error(err)
+		return false
+	}
+
+	if len(supportedKubernetesVersions) == 0 {
+		log.Info("supported kubernetes versions not specified in the bom, assuming supports all versions")
+		return true
+	}
+
+	version, err := getKubernetesClusterVersion()
+	if err != nil {
+		log.Error(err)
+		return false
+	}
+
+	kubernetesVersion, err := semver.NewSemVersion(version)
+	if err != nil {
+		log.Errorf("invalid kubernetes version %s, error %v", version, err.Error())
+		return false
+	}
+
+	for _, supportedVersion := range supportedKubernetesVersions {
+		version, err := semver.NewSemVersion(supportedVersion)
+		if err != nil {
+			log.Errorf("invalid supported kubernetes version %s, error %v", supportedVersion, err.Error())
+			continue
+		}
+
+		if kubernetesVersion.IsEqualToOrPatchVersionOf(version) {
+			return true
+		}
+	}
+
+	log.Errorf("kubernetes version %s not supported, supported versions are %v", kubernetesVersion.ToString(), supportedKubernetesVersions)
+	return false
+}
+
+//getKubernetesVersion returns the version of Kubernetes cluster in which operator is deployed
+func getKubernetesVersion() (string, error) {
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		return "", fmt.Errorf("error while getting kubernetes client config %v", err.Error())
+	}
+
+	client, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return "", fmt.Errorf("error while getting kubernetes client %v", err.Error())
+	}
+
+	versionInfo, err := client.ServerVersion()
+	if err != nil {
+		return "", fmt.Errorf("error while getting kubernetes version %v", err.Error())
+	}
+
+	return versionInfo.String(), nil
+}
+
+//getSupportedKubernetesVersions returns the Kubernetes versions supported by operator
+func getSupportedKubernetesVersions() ([]string, error) {
+	bom, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return nil, fmt.Errorf("error while reading the bom %v", err.Error())
+	}
+
+	return bom.GetSupportedKubernetesVersion(), nil
 }
