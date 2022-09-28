@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -27,7 +26,7 @@ import (
 func TestCreateWebhookCertificates(t *testing.T) {
 	assert := assert.New(t)
 
-	dir, err := ioutil.TempDir("", "certs")
+	dir, err := os.MkdirTemp("", "certs")
 	if err != nil {
 		assert.Nil(err, "error should not be returned creating temporary directory")
 	}
@@ -41,7 +40,7 @@ func TestCreateWebhookCertificates(t *testing.T) {
 	assert.FileExists(crtFile, dir, "tls.crt", "expected tls.crt file not found")
 	assert.FileExists(keyFile, dir, "tls.key", "expected tls.key file not found")
 
-	crtBytes, err := ioutil.ReadFile(crtFile)
+	crtBytes, err := os.ReadFile(crtFile)
 	if assert.NoError(err) {
 		block, _ := pem.Decode(crtBytes)
 		assert.NotEmptyf(block, "failed to decode PEM block containing public key")
