@@ -399,7 +399,7 @@ func IsKubernetesVersionSupported() bool {
 	return false
 }
 
-//getKubernetesVersion returns the version of Kubernetes cluster in which operator is deployed
+// getKubernetesVersion returns the version of Kubernetes cluster in which operator is deployed
 func getKubernetesVersion() (string, error) {
 	config, err := ctrl.GetConfig()
 	if err != nil {
@@ -419,7 +419,7 @@ func getKubernetesVersion() (string, error) {
 	return versionInfo.String(), nil
 }
 
-//getSupportedKubernetesVersions returns the Kubernetes versions supported by operator
+// getSupportedKubernetesVersions returns the Kubernetes versions supported by operator
 func getSupportedKubernetesVersions() ([]string, error) {
 	bom, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
