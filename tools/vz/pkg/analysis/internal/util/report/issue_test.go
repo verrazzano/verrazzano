@@ -8,6 +8,8 @@ import (
 	"testing"
 )
 
+const test_msg = "test message"
+
 // TestHandlingUnknownIssues Tests unknown issue types are handled correctly when using the known issue helpers
 // GIVEN a call to *KnownIssue* helper
 // WHEN with an unknown issue type
@@ -17,7 +19,7 @@ func TestHandlingUnknownIssues(t *testing.T) {
 		PendingIssues: make(map[string]Issue),
 	}
 	rootDirectory := "test root directory"
-	messages := []string{"test message"}
+	messages := []string{test_msg}
 	files := []string{"test file name"}
 	matches := make([]utilfiles.TextMatch, 1)
 	matches[0] = utilfiles.TextMatch{
@@ -47,7 +49,7 @@ func TestHandlingKnownIssues(t *testing.T) {
 		PendingIssues: make(map[string]Issue),
 	}
 	rootDirectory := "test root directory"
-	messages := []string{"test message"}
+	messages := []string{test_msg}
 	files := []string{"test file name"}
 	matches := make([]utilfiles.TextMatch, 1)
 	matches[0] = utilfiles.TextMatch{
@@ -73,7 +75,7 @@ func TestHandlingKnownIssues(t *testing.T) {
 
 // TestMiscHelpers tests misc helpers
 func TestMiscHelpers(t *testing.T) {
-	messages := SingleMessage("test message")
+	messages := SingleMessage(test_msg)
 	assert.NotNil(t, messages)
 	assert.True(t, len(messages) == 1)
 }
