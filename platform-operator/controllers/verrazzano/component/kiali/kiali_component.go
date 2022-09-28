@@ -146,7 +146,7 @@ func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 
 // IsEnabled Kiali-specific enabled check for installation
 func (c kialiComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsKialiEnabled(effectiveCR)
+	return vzconfig.IsIstioEnabled(effectiveCR) && vzconfig.IsKialiEnabled(effectiveCR)
 }
 
 // createOrUpdateKialiResources create or update related Kiali resources
