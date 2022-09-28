@@ -14,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
-	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/yaml"
@@ -221,11 +220,11 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 	}
 
 	// Does the Helm installed app_version number match the chart?
-	chartInfo, err := helmcli.GetChartInfo(h.ChartDir)
+	chartInfo, err := helm.GetChartInfo(h.ChartDir)
 	if err != nil {
 		return false
 	}
-	releaseAppVersion, err := helmcli.GetReleaseAppVersion(h.ReleaseName, h.ChartNamespace)
+	releaseAppVersion, err := helm.GetReleaseAppVersion(h.ReleaseName, h.ChartNamespace)
 	if err != nil {
 		return false
 	}
@@ -358,7 +357,7 @@ func (h HelmComponent) Uninstall(context spi.ComponentContext) error {
 		context.Log().Infof("%s already uninstalled", h.Name())
 		return nil
 	}
-	_, stderr, err := helmcli.Uninstall(context.Log(), h.ReleaseName, h.resolveNamespace(context), context.IsDryRun())
+	_, stderr, err := helm.Uninstall(context.Log(), h.ReleaseName, h.resolveNamespace(context), context.IsDryRun())
 	if err != nil {
 		context.Log().Errorf("Error uninstalling %s, error: %s, stderr: %s", h.Name(), err.Error(), stderr)
 		return err

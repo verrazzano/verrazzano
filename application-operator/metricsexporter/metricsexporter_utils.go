@@ -368,7 +368,11 @@ func StartMetricsServer() error {
 	}
 	go wait.Until(func() {
 		http.Handle("/metrics", promhttp.Handler())
-		err := http.ListenAndServe(":9100", nil)
+		server := &http.Server{
+			Addr:              ":9100",
+			ReadHeaderTimeout: 3 * time.Second,
+		}
+		err := server.ListenAndServe()
 		if err != nil {
 			vlog.Oncef("Failed to start metrics server for VMI: %v", err)
 		}
