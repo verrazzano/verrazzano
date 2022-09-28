@@ -220,8 +220,11 @@ func fixKeycloakMySQLNetPolicy(ctx spi.ComponentContext) error {
 	netpol := &netv1.NetworkPolicy{}
 	nsn := types.NamespacedName{Namespace: constants.KeycloakNamespace, Name: keycloakMySQLNetPolicyName}
 	if err := ctx.Client().Get(context.TODO(), nsn, netpol); err != nil {
-		ctx.Log().Errorf("Error retrieving network policy %s/%s: %v", constants.KeycloakNamespace, keycloakMySQLNetPolicyName, err)
-		return err
+		// policy might not exist, e.g. MC managed cluster
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return ctx.Log().ErrorfThrottledNewErr("Error getting NetworkPolicy %v: %v", nsn, err)
 	}
 
 	// If there aren't any label matchers, we're done
