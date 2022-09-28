@@ -13,11 +13,13 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+const templateGreeting = "greeting %v"
+
 func TestInitLogsDefaultInfo(t *testing.T) {
 	InitLogs(kzap.Options{})
-	zap.S().Errorf("greeting %v", "hello")
-	zap.S().Infof("greeting %v", "hello")
-	zap.S().Debugf("greeting %v", "hello")
+	zap.S().Errorf(templateGreeting, "hello")
+	zap.S().Infof(templateGreeting, "hello")
+	zap.S().Debugf(templateGreeting, "hello")
 	msg := "InfoLevel is enabled"
 	assert.NotNil(t, zap.L().Check(zapcore.InfoLevel, msg), msg)
 	msg = "ErrorLevel is enabled"
