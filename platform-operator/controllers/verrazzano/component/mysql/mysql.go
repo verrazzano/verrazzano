@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost'; flush privileges;
 EOF
 `
-	mySQLDbCommands  = `/usr/bin/mysql -uroot -p%s <<EOF
+	mySQLDbCommands = `/usr/bin/mysql -uroot -p%s <<EOF
 use keycloak;
 delimiter //
 drop procedure if exists updatePrimaryKey //
