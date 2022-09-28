@@ -71,26 +71,9 @@ func (e externalDNSComponent) PostUninstall(ctx spi.ComponentContext) error {
 	return postUninstall(ctx.Log(), ctx.Client())
 }
 
-func (e externalDNSComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	if err := validateLongestHostName(vz); err != nil {
-		return err
-	}
-	return e.HelmComponent.ValidateInstall(vz)
-}
-
-func (e externalDNSComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	if err := validateLongestHostName(vz); err != nil {
-		return err
-	}
-	return e.HelmComponent.ValidateInstallV1Beta1(vz)
-}
-
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (e externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
-	if err := validateLongestHostName(new); err != nil {
-		return err
-	}
 	if e.IsEnabled(old) && !e.IsEnabled(new) {
 		return fmt.Errorf("Disabling an existing OCI DNS configuration is not allowed")
 	}
@@ -100,9 +83,6 @@ func (e externalDNSComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.V
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (e externalDNSComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
-	if err := validateLongestHostName(new); err != nil {
-		return err
-	}
 	if e.IsEnabled(old) && !e.IsEnabled(new) {
 		return fmt.Errorf("Disabling an existing OCI DNS configuration is not allowed")
 	}
