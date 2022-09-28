@@ -244,7 +244,7 @@ pipeline {
                         echo "Downloading VZ CLI from object storage"
                         oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
                         tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
-                        ${GO_REPO_PATH}/vz version
+                        ${VZ_COMMAND} version
                     """
                 }
             }
@@ -378,7 +378,7 @@ def runInstallOnly(stagePrefix, iteration) {
             sh """
                 # sleep for a period to ensure async deletion of Verrazzano components from uninstall above has completed
                 #sleep 90
-                ${GO_REPO_PATH}/vz install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE}
+                ${VZ_COMMAND} install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE}
             """
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                dumpK8sCluster('verrazzano-${dirPrefix}-${iteration}-cluster-snapshot')
@@ -470,10 +470,15 @@ def uninstallVerrazzano(vpoLogsDir) {
         echo "Platform operator uninstall logs dir: ${vpoLogsDir}"
 
         // Delete VZ in the background
-        sh """
+        while (true) {
             echo "Deleting the Verrazzano resource..."
-            ${GO_REPO_PATH}/vz uninstall --timeout=20m
-        """
+            result = sh(returnStatus: true, script: "${VZ_COMMAND} uninstall --timeout=20m")
+            if (result == 0) {
+                break
+            }
+            echo "vz uninstall result: ${result}"
+            sh "sleep 5"
+        }
     }
 }
 
