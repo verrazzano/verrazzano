@@ -44,9 +44,10 @@ const (
 	expectedResponse = "A perfect example of a swivel chair trained calf"
 
 	// metrics
-	jvmUptime          = "base_jvm_uptime_seconds"
-	vendoRequestsCount = "vendor_requests_count_total"
-	//cpuCFSPeriods        = "container_cpu_cfs_periods_total"
+	jvmUptime            = "base_jvm_uptime_seconds"
+	vendorRequestsCount  = "vendor_requests_count_total"
+	memUsageBytes        = "container_memory_usage_bytes"
+	clusterSize          = "vendor:coherence_cluster_size"
 	serviceMessagesLocal = "vendor:coherence_service_messages_local"
 
 	// various labels
@@ -58,10 +59,10 @@ const (
 	k8sLabelCoherenceCluster     = "kubernetes.labels.coherenceCluster"
 	k8sPodName                   = "kubernetes.pod_name"
 	labelApp                     = "app"
-	//labelNS                      = "namespace"
-	labelCluster      = "cluster"
-	skipVerifications = "Skip Verifications"
-	skipDeletions     = "Skip Deletions"
+	labelNS                      = "namespace"
+	labelCluster                 = "cluster"
+	skipVerifications            = "Skip Verifications"
+	skipDeletions                = "Skip Deletions"
 
 	// application resources
 	appConfiguration     = "tests/testdata/test-applications/coherence/hello-coherence/hello-coherence-mc-app.yaml"
@@ -317,18 +318,27 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 							m := make(map[string]string)
 							m[labelApp] = appName
 							m[clusterNameMetricsLabel] = clusterName
-							return pkg.MetricsExistInCluster(vendoRequestsCount, m, adminKubeconfig)
+							return pkg.MetricsExistInCluster(vendorRequestsCount, m, adminKubeconfig)
 						}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 					},
-					//func() {
-					//	clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
-					//	Eventually(func() bool {
-					//		m := make(map[string]string)
-					//		m[labelNS] = appNamespace
-					//		m[clusterNameMetricsLabel] = clusterName
-					//		return pkg.MetricsExistInCluster(cpuCFSPeriods, m, adminKubeconfig)
-					//	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
-					//},
+					func() {
+						clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
+						Eventually(func() bool {
+							m := make(map[string]string)
+							m[labelNS] = appNamespace
+							m[clusterNameMetricsLabel] = clusterName
+							return pkg.MetricsExistInCluster(memUsageBytes, m, adminKubeconfig)
+						}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					},
+					func() {
+						clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
+						Eventually(func() bool {
+							m := make(map[string]string)
+							m[labelCluster] = cohClusterName
+							m[clusterNameMetricsLabel] = clusterName
+							return pkg.MetricsExistInCluster(clusterSize, m, adminKubeconfig)
+						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find coherence metric")
+					},
 					func() {
 						clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
 						Eventually(func() bool {
