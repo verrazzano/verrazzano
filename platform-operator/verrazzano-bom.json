@@ -703,7 +703,7 @@
     },
     {
       "name": "velero",
-      "version": "1.8.1",
+      "version": "1.9.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -711,18 +711,18 @@
           "images": [
             {
               "image": "velero",
-              "tag": "v1.8.1-20220816040906-c3e3b0c6",
+              "tag": "v1.9.1-20220928065349-147272cf",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "velero-plugin-for-aws",
-              "tag": "v1.4.1-20220816055024-94cac710",
+              "tag": "v1.5.0-20220924005304-4a142d0a",
               "helmFullImageKey": "initContainers[0].image"
             },
             {
               "image": "velero-restic-restore-helper",
-              "tag": "v1.8.1-20220816040906-c3e3b0c6",
+              "tag": "v1.9.1-20220928065349-147272cf",
               "helmFullImageKey": "configMaps.restic-restore-action-config.data.image"
             }
           ]
@@ -760,5 +760,12 @@
         }
       ]
     }
+  ],
+  "supportedKubernetesVersions": [
+    "v1.20.0",
+    "v1.21.0",
+    "v1.22.0",
+    "v1.23.0",
+    "v1.24.0"
   ]
 }

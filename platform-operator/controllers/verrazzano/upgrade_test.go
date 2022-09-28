@@ -6,10 +6,8 @@ package verrazzano
 import (
 	"context"
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"math/big"
-	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -21,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -51,7 +48,7 @@ import (
 // unitTestBomFIle is used for unit test
 const unitTestBomFile = "../../verrazzano-bom.json"
 
-//ingress list constants
+// ingress list constants
 const dnsDomain = "myenv.testverrazzano.com"
 const keycloakURL = "keycloak." + dnsDomain
 const esURL = "elasticsearch." + dnsDomain
@@ -65,14 +62,6 @@ const jaegerURL = "jaeger." + dnsDomain
 
 var istioEnabled = false
 var jaegerEnabled = true
-
-// goodRunner is used to test helm success without actually running an OS exec command
-type goodRunner struct {
-}
-
-// badRunner is used to test helm failure without actually running an OS exec command
-type badRunner struct {
-}
 
 // TestUpgradeNoVersion tests the reconcileUpgrade method for the following use case
 // GIVEN a request to reconcile a verrazzano resource after install is completed
@@ -1545,14 +1534,6 @@ func TestIsLastConditionTrue(t *testing.T) {
 	asserts.True(isLastCondition(st, vzapi.CondInstallFailed), "isLastCondition should have returned true")
 }
 
-func (r goodRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return []byte("success"), []byte(""), nil
-}
-
-func (r badRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return []byte(""), []byte("failure"), errors.New("Helm Error")
-}
-
 // TestInstanceRestoreWithEmptyStatus tests the reconcileUpdate method for the following use case
 // WHEN instance is restored via backup and restore instance status is not updated
 // WHEN components are already installed.
@@ -1774,7 +1755,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 						Type: vzapi.CondInstallComplete,
 					},
 				},
-				Components: func() v1alpha1.ComponentStatusMap {
+				Components: func() vzapi.ComponentStatusMap {
 					statusMap := makeVerrazzanoComponentStatusMap()
 					statusMap[keycloak.ComponentName].State = vzapi.CompStateDisabled
 					statusMap[istio.ComponentName].State = vzapi.CompStateDisabled

@@ -27,7 +27,6 @@ import (
 	appsv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
-	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/util/homedir"
@@ -41,9 +40,9 @@ const EnvVarKubeConfig = "KUBECONFIG"
 // EnvVarTestKubeConfig Name of Environment Variable for test KUBECONFIG
 const EnvVarTestKubeConfig = "TEST_KUBECONFIG"
 
-type ClientConfigFunc func() (*restclient.Config, kubernetes.Interface, error)
+type ClientConfigFunc func() (*rest.Config, kubernetes.Interface, error)
 
-var ClientConfig ClientConfigFunc = func() (*restclient.Config, kubernetes.Interface, error) {
+var ClientConfig ClientConfigFunc = func() (*rest.Config, kubernetes.Interface, error) {
 	cfg, err := controllerruntime.GetConfig()
 	if err != nil {
 		return nil, nil, err
@@ -87,11 +86,11 @@ func GetKubeConfigLocation() (string, error) {
 }
 
 // GetKubeConfigGivenPath GetKubeConfig will get the kubeconfig from the given kubeconfigPath
-func GetKubeConfigGivenPath(kubeconfigPath string) (*restclient.Config, error) {
+func GetKubeConfigGivenPath(kubeconfigPath string) (*rest.Config, error) {
 	return buildKubeConfig(kubeconfigPath)
 }
 
-func buildKubeConfig(kubeconfig string) (*restclient.Config, error) {
+func buildKubeConfig(kubeconfig string) (*rest.Config, error) {
 	return clientcmd.BuildConfigFromFlags("", kubeconfig)
 }
 
@@ -139,7 +138,7 @@ func GetKubernetesClientset() (*kubernetes.Clientset, error) {
 	return GetKubernetesClientsetWithConfig(config)
 }
 
-//GetKubernetesClientsetOrDie returns the kubernetes clientset, panic if it cannot be created.
+// GetKubernetesClientsetOrDie returns the kubernetes clientset, panic if it cannot be created.
 func GetKubernetesClientsetOrDie() *kubernetes.Clientset {
 	clientset, err := GetKubernetesClientset()
 	if err != nil {
@@ -278,7 +277,7 @@ func GetHostnameFromGatewayInCluster(namespace string, appConfigName string, kub
 // NewPodExecutor is to be overridden during unit tests
 var NewPodExecutor = remotecommand.NewSPDYExecutor
 
-//ExecPod runs a remote command a pod, returning the stdout and stderr of the command.
+// ExecPod runs a remote command a pod, returning the stdout and stderr of the command.
 func ExecPod(client kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, container string, command []string) (string, string, error) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}

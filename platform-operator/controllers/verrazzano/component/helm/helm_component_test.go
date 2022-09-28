@@ -110,9 +110,9 @@ func TestUpgrade(t *testing.T) {
 }
 
 func newFakeClient() clipkg.Client {
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&corev1.Secret{ObjectMeta: v1.ObjectMeta{Name: constants.GlobalImagePullSecName, Namespace: "default"}},
-	)
+	).Build()
 	return client
 }
 
