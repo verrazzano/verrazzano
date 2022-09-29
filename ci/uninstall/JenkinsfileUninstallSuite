@@ -130,7 +130,7 @@ pipeline {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-uninstall-resiliency-suite/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-uninstall-resiliency-test/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
