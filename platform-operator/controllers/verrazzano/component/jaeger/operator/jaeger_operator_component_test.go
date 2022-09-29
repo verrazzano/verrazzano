@@ -118,7 +118,7 @@ func TestGetMinVerrazzanoVersion(t *testing.T) {
 // TestGetDependencies tests whether the cert-manager and opensearch components are dependencies
 // that need to be installed prior to Jaeger operator
 func TestGetDependencies(t *testing.T) {
-	assert.Equal(t, []string{"cert-manager", "opensearch"}, NewComponent().GetDependencies())
+	assert.Equal(t, []string{"verrazzano-network-policies", "cert-manager", "opensearch"}, NewComponent().GetDependencies())
 }
 
 // TestIsReady tests the IsReady function for the Jaeger Operator

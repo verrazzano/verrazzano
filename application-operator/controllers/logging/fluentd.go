@@ -12,7 +12,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -54,10 +53,10 @@ type Fluentd struct {
 
 // FluentdPod contains pod information for pods which require FLUENTD integration
 type FluentdPod struct {
-	Containers   []v1.Container
-	Volumes      []v1.Volume
-	VolumeMounts []v1.VolumeMount
-	HandlerEnv   []v1.EnvVar
+	Containers   []corev1.Container
+	Volumes      []corev1.Volume
+	VolumeMounts []corev1.VolumeMount
+	HandlerEnv   []corev1.EnvVar
 	LogPath      string
 }
 
@@ -169,7 +168,7 @@ func (f *Fluentd) ensureFluentdConfigMapExists(namespace string) error {
 }
 
 // createFluentdConfigMap creates the FLUENTD configmap per given namespace.
-func (f *Fluentd) createFluentdConfigMap(namespace string) *v1.ConfigMap {
+func (f *Fluentd) createFluentdConfigMap(namespace string) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      configMapName + "-" + f.WorkloadType,
@@ -275,16 +274,16 @@ func (f *Fluentd) createFluentdContainer(fluentdPod *FluentdPod, logInfo *LogInf
 			},
 			{
 				Name: "APP_CONF_NAME",
-				ValueFrom: &v1.EnvVarSource{
-					FieldRef: &v1.ObjectFieldSelector{
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
 						FieldPath: "metadata.labels['" + oam.LabelAppName + "']",
 					},
 				},
 			},
 			{
 				Name: "COMPONENT_NAME",
-				ValueFrom: &v1.EnvVarSource{
-					FieldRef: &v1.ObjectFieldSelector{
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
 						FieldPath: "metadata.labels['" + oam.LabelAppComponent + "']",
 					},
 				},

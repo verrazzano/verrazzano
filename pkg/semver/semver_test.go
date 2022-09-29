@@ -384,3 +384,33 @@ func TestIsGreatherThanOrEqualTo(t *testing.T) {
 	assert.True(t, v0010.IsGreaterThanOrEqualTo(v009))
 	assert.True(t, v009.IsGreaterThanOrEqualTo(v009))
 }
+
+// TestIsEqualToOrPatchVersionOf Tests IsEqualToOrPatchVersionOf for various combinations of SemVersion objects
+// GIVEN a call to IsEqualToOrPatchVersionOf with different SemVersion objects
+// WHEN v == arg, v != arg, v as patch version of arg and v as not a patch version of arg
+// THEN True v == arg or v is a patch version of arg, false otherwise
+func TestIsEqualToOrPatchVersionOf(t *testing.T) {
+	v01, err := NewSemVersion("v0.1.0")
+	assert.NoError(t, err)
+	v011, err := NewSemVersion("v0.1.1")
+	assert.NoError(t, err)
+	v02, err := NewSemVersion("v0.2.0")
+	assert.NoError(t, err)
+	v020, err := NewSemVersion("v0.2.0")
+	assert.NoError(t, err)
+	v021, err := NewSemVersion("v0.2.1")
+	assert.NoError(t, err)
+
+	assert.True(t, v01.IsEqualToOrPatchVersionOf(v01))
+	assert.True(t, v011.IsEqualToOrPatchVersionOf(v01))
+	assert.True(t, v011.IsEqualToOrPatchVersionOf(v011))
+	assert.False(t, v01.IsEqualToOrPatchVersionOf(v02))
+	assert.False(t, v02.IsEqualToOrPatchVersionOf(v011))
+
+	assert.True(t, v02.IsEqualToOrPatchVersionOf(v02))
+	assert.True(t, v020.IsEqualToOrPatchVersionOf(v02))
+	assert.True(t, v020.IsEqualToOrPatchVersionOf(v020))
+	assert.True(t, v021.IsEqualToOrPatchVersionOf(v02))
+	assert.True(t, v021.IsEqualToOrPatchVersionOf(v021))
+	assert.False(t, v021.IsEqualToOrPatchVersionOf(v011))
+}

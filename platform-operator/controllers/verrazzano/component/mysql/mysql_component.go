@@ -5,6 +5,7 @@ package mysql
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -52,7 +53,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
 			AppendOverridesFunc:       appendMySQLOverrides,
-			Dependencies:              []string{istio.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
@@ -149,23 +150,6 @@ func validatePersistenceSpecificChanges(oldSetting, newSetting []bom.KeyValue) e
 func (c mysqlComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
 	if vz != nil && vz.Spec.Components.Keycloak != nil {
 		return vz.Spec.Components.Keycloak.MySQL.MySQLInstallArgs
-	}
-	return nil
-}
-
-func (c mysqlComponent) getInstallOverridesV1beta1(object runtime.Object) []v1beta1.Overrides {
-	if vz, ok := object.(*vzapi.Verrazzano); ok {
-		if vz != nil && vz.Spec.Components.Keycloak != nil {
-			valueOverrides, err := vzapi.ConvertInstallOverridesWithArgsToV1Beta1(vz.Spec.Components.Keycloak.MySQL.MySQLInstallArgs, vz.Spec.Components.Keycloak.MySQL.InstallOverrides)
-			if err != nil {
-				return nil
-			}
-			return valueOverrides.ValueOverrides
-		}
-	}
-	vz := object.(*v1beta1.Verrazzano)
-	if vz != nil && vz.Spec.Components.Keycloak != nil {
-		return vz.Spec.Components.Keycloak.MySQL.InstallOverrides.ValueOverrides
 	}
 	return nil
 }
