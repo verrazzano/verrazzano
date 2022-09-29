@@ -6,9 +6,12 @@ package topology
 import (
 	"context"
 	"fmt"
+	"time"
+
 	. "github.com/onsi/gomega"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vmoClient "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
+	vmoConfig "github.com/verrazzano/verrazzano-monitoring-operator/pkg/config"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -16,7 +19,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"time"
+	"k8s.io/client-go/rest"
 )
 
 const (
@@ -28,10 +31,12 @@ const (
 )
 
 var (
-	t             = framework.NewTestFramework("topology")
-	namespace     = pkg.GenerateNamespace("vmi")
-	client        *vmoClient.Clientset
-	kubeClientSet *kubernetes.Clientset
+	t               = framework.NewTestFramework("topology")
+	namespace       = pkg.GenerateNamespace("vmi")
+	client          *vmoClient.Clientset
+	kubeClientSet   *kubernetes.Clientset
+	restConfig      *rest.Config
+	isMinVersion140 bool
 )
 
 var _ = t.BeforeSuite(func() {
@@ -39,6 +44,12 @@ var _ = t.BeforeSuite(func() {
 	client, err = vmiClientFromConfig()
 	Expect(err).To(BeNil())
 	kubeClientSet, err = k8sutil.GetKubernetesClientset()
+	Expect(err).To(BeNil())
+	restConfig, err = k8sutil.GetKubeConfig()
+	Expect(err).To(BeNil())
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	Expect(err).To(BeNil())
+	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 	Expect(err).To(BeNil())
 
 	Eventually(func() bool {
@@ -157,13 +168,13 @@ func eventuallyPodsReady(master, data, ingest int) {
 }
 
 func verifyReadyReplicas(master, data, ingest int) error {
-	if err := assertPodsFound(kubeClientSet, master, labelSelector("master")); err != nil {
+	if err := assertPodsFoundAndVerifyHeapSettings(master, labelSelector("master")); err != nil {
 		return err
 	}
-	if err := assertPodsFound(kubeClientSet, data, labelSelector("data")); err != nil {
+	if err := assertPodsFoundAndVerifyHeapSettings(data, labelSelector("data")); err != nil {
 		return err
 	}
-	if err := assertPodsFound(kubeClientSet, ingest, labelSelector("ingest")); err != nil {
+	if err := assertPodsFoundAndVerifyHeapSettings(ingest, labelSelector("ingest")); err != nil {
 		return err
 	}
 	return nil
@@ -173,8 +184,8 @@ func labelSelector(label string) string {
 	return fmt.Sprintf("opensearch.verrazzano.io/role-%s=true", label)
 }
 
-func assertPodsFound(clientSet *kubernetes.Clientset, count int, selector string) error {
-	pods, err := clientSet.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: selector})
+func assertPodsFoundAndVerifyHeapSettings(count int, selector string) error {
+	pods, err := kubeClientSet.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: selector})
 	if err != nil {
 		return err
 	}
@@ -185,6 +196,13 @@ func assertPodsFound(clientSet *kubernetes.Clientset, count int, selector string
 		for _, status := range pod.Status.ContainerStatuses {
 			if !status.Ready {
 				return fmt.Errorf("container %s/%s is not yet ready", pod.Name, status.Name)
+			}
+
+			if isMinVersion140 {
+				err := verifyHeapSettings(pod)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -274,4 +292,58 @@ func copySecret(secretName, src, dest string) error {
 	}
 	_, err = kubeClientSet.CoreV1().Secrets(dest).Create(context.TODO(), secretCopy, metav1.CreateOptions{})
 	return err
+}
+
+//Verify that heap max and min settings in config/jvm.options file are same as OPENSEARCH_JAVA_OPTS env variable
+func verifyHeapSettings(pod corev1.Pod) error {
+	containerName := ""
+	validContainerNames := []string{vmoConfig.ElasticsearchMaster.Name, vmoConfig.ElasticsearchData.Name, vmoConfig.ElasticsearchIngest.Name}
+	for _, container := range pod.Spec.Containers {
+		for _, validContainerName := range validContainerNames {
+			if container.Name == validContainerName {
+				containerName = validContainerName
+				break
+			}
+		}
+		if containerName != "" {
+			break
+		}
+	}
+	if containerName == "" {
+		return fmt.Errorf("pod %s does not contain an opensearch container", pod.GetName())
+	}
+
+	stdout, stderr, err := k8sutil.ExecPod(kubeClientSet, restConfig, &pod, containerName, []string{"env | grep OPENSEARCH_JAVA_OPTS | cut -d \"=\" -f2 | xargs"})
+	if err != nil {
+		return fmt.Errorf("error getting value from OPENSEARCH_JAVA_OPTS env variable in container %s, pod %s, error %v", containerName, pod.GetName(), err.Error())
+	}
+
+	if stderr != "" {
+		return fmt.Errorf("error getting value from OPENSEARCH_JAVA_OPTS env variable in container %s, pod %s, error %v", containerName, pod.GetName(), stderr)
+	}
+
+	if stdout == "" {
+		return fmt.Errorf("empty OPENSEARCH_JAVA_OPTS env variable in container %s, pod %s", containerName, pod.GetName())
+	}
+
+	heapSettingFromEnvVar := stdout
+	stdout, stderr, err = k8sutil.ExecPod(kubeClientSet, restConfig, &pod, containerName, []string{"grep '^-Xm' config/jvm.options | tr '\n' ' ' | xargs"})
+	if err != nil {
+		return fmt.Errorf("error getting heap settings from config/jvm.options in container %s, pod %s, error %v", containerName, pod.GetName(), err.Error())
+	}
+
+	if stderr != "" {
+		return fmt.Errorf("error getting heap settings from config/jvm.options in container %s, pod %s, error %v", containerName, pod.GetName(), stderr)
+	}
+
+	if stdout == "" {
+		return fmt.Errorf("empty heap settings in container %s, pod %s", containerName, pod.GetName())
+	}
+
+	heapSettingsFromJvmConfigFile := stdout
+	if heapSettingsFromJvmConfigFile != heapSettingFromEnvVar {
+		return fmt.Errorf("heap settings from config/jvm.options not same as value from OPENSEARCH_JAVA_OPTS env variable in container %s, pod %s, env var value: %v, value from config file: %v", containerName, pod.GetName(), heapSettingFromEnvVar, heapSettingsFromJvmConfigFile)
+	}
+
+	return nil
 }
