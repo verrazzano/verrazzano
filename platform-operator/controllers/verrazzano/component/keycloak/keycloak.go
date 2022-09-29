@@ -1561,12 +1561,12 @@ func updateRancherClientSecretForKeycloakAuthConfig(ctx spi.ComponentContext) er
 func addClientRoleToUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, userName, clientID, targetRealm, roleName string) error {
 	kcPod := keycloakPod()
 	addRoleCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + targetRealm + " --uusername " + userName + " --cclientid " + clientID + " --rolename " + roleName
-	ctx.Log().Debugf("addRoleCmd: add role %s to the user %s, command = %s", roleName, userName, addRoleCmd)
+	ctx.Log().Debugf("Adding client role %s to the user %s, using command: %s", roleName, userName, addRoleCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(addRoleCmd))
 	if err != nil {
-		ctx.Log().Errorf("Adding role %s to the user %s failed: stdout = %s, stderr = %s", roleName, userName, stdout, stderr)
+		ctx.Log().Errorf("Adding client role %s to the user %s failed: stdout = %s, stderr = %s, error = %s", roleName, userName, stdout, stderr, err.Error())
 		return err
 	}
-	ctx.Log().Once("Successfully added role to user")
+	ctx.Log().Oncef("Added client role %s to the user %s", roleName, userName)
 	return nil
 }
