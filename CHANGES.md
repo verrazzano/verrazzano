@@ -4,7 +4,7 @@ Features:
 - Added the Verrazzano command-line tool (CLI) for interactive installation, upgrade, uninstall, cluster analysis, and bug reporting.
 - Added backup and restore functionality using Velero and rancher-backup.
 - Added Prometheus Operator based metrics collection (using ServiceMonitors and PodMonitors) for both Verrazzano system components and applications.
-- Added a new API version for the Verrazzano resource, `install.verrazzano.io/v1beta1`. See the [Deprecated API Migration Guide]({{< relref "/docs/reference/migration" >}}).
+- Added a new API version for the Verrazzano resource, `install.verrazzano.io/v1beta1`. See the [Deprecated API Migration Guide](https://verrazzano.io/latest/docs/reference/migration").
 - Verrazzano distribution `tar.gz` artifacts now include the new CLI binaries and tooling.
 - Replaced Elasticsearch and Kibana with OpenSearch and OpenSearch dashboards (pods, URLs, CRD fields).
 - Improved Rancher integration.
