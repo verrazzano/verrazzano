@@ -6,6 +6,7 @@ package mysql
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -191,7 +192,7 @@ func handleLegacyDatabasePreUpgrade(ctx spi.ComponentContext) error {
 		}
 	}
 	ctx.Log().Debugf("Updating PV/PVC %v", mysqlPVC)
-	if err := common.UpdateExistingVolumeClaims(ctx, mysqlPVC, StatefulsetPersistentVolumeClaim, ComponentName); err != nil {
+	if err := common.UpdateExistingVolumeClaims(ctx, mysqlPVC, legacyDBDumpClaim, ComponentName); err != nil {
 		ctx.Log().Debugf("Unable to update PV/PVC")
 		return err
 	}

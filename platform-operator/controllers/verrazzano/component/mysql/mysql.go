@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	k8sstatus "github.com/verrazzano/verrazzano/pkg/k8s/status"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -43,7 +45,7 @@ const (
 	secretKey             = "mysql-password"
 	mySQLUsername         = "keycloak"
 	rootPasswordKey       = "mysql-root-password" //nolint:gosec //#gosec G101
-	statefulsetClaimName  = "dump-claim"
+	legacyDBDumpClaim     = "dump-claim"
 	mySQLInitFilePrefix   = "init-mysql-"
 	dbLoadJobName         = "load-dump"
 	dbLoadContainerName   = "mysqlsh-load-dump"
@@ -487,6 +489,26 @@ func postUpgrade(ctx spi.ComponentContext) error {
 	}
 
 	return common.ResetVolumeReclaimPolicy(ctx, ComponentName)
+}
+
+// PostUpgradeCleanup - Clean up any remaining resources after a successful upgrade
+func PostUpgradeCleanup(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
+	// Clean up the dump volume claim used during the database upgrade
+	log.Progressf("MySQL post-upgrade cleanup")
+	pvc := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      legacyDBDumpClaim,
+			Namespace: ComponentNamespace,
+		},
+	}
+	if err := client.Delete(context.TODO(), pvc); err != nil {
+		if !errors.IsNotFound(err) {
+			log.Progressf("Error deleting temporary database upgrade volume claim %v: %v", clipkg.ObjectKeyFromObject(pvc), err.Error())
+			return err
+		}
+	}
+	log.Oncef("Deleted temporary legacy database volume claim %v", clipkg.ObjectKeyFromObject(pvc))
+	return nil
 }
 
 // convertOldInstallArgs changes persistence.* install args to primary.persistence.* to keep compatibility with the new chart
