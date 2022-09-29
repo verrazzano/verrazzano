@@ -176,7 +176,7 @@ pipeline {
             parallel {
                 stage('Multi Cluster Tests') {
                     when {
-                        expression { return params.RUN_MULTICLUSTER == true; }
+                        expression { return params.RUN_MULTICLUSTER }
                     }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -194,7 +194,7 @@ pipeline {
                 }
                 stage('Uninstall Tests') {
                     when {
-                        expression { return params.RUN_UNINSTALL == true; }
+                        expression { return params.RUN_UNINSTALL }
                     }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -212,7 +212,7 @@ pipeline {
                 }
                 stage('OCI DNS tests') {
                     when {
-                        expression { return params.RUN_OCI_DNS_USER_AUTH == true; }
+                        expression { return params.RUN_OCI_DNS_USER_AUTH }
                     }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -231,7 +231,7 @@ pipeline {
                 }
                 stage('OCI DNS tests with instance principal') {
                     when {
-                        expression { return params.RUN_OCI_DNS_IP_AUTH == true; }
+                        expression { return params.RUN_OCI_DNS_IP_AUTH }
                     }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -253,7 +253,7 @@ pipeline {
                }
                 stage('Verrazzano in OCNE environment') {
                     when {
-                        expression { return params.RUN_OCNE == true; }
+                        expression { return params.RUN_OCNE }
                     }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -274,7 +274,7 @@ pipeline {
                 }
                stage('Backup and Restore Tests') {
                     when {
-                        expression { return params.RUN_BACKUP_RESTORE == true; }
+                        expression { return params.RUN_BACKUP_RESTORE }
                     }
                    steps {
                        retry(count: JOB_PROMOTION_RETRIES) {
@@ -294,7 +294,7 @@ pipeline {
                }
                 stage('Kind Acceptance Tests With HA and Grafana DB on 1.24') {
                     when {
-                        expression { return params.RUN_KIND_GRAFANA_DB_124 == true; }
+                        expression { return params.RUN_KIND_GRAFANA_DB_124 }
                     }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -316,7 +316,7 @@ pipeline {
                 }
                 stage('Kind Acceptance Tests on 1.21') {
                     when {
-                        expression { return params.RUN_KIND_121 == true; }
+                        expression { return params.RUN_KIND_121 }
                     }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -336,7 +336,7 @@ pipeline {
                 }
                 stage('Kind Acceptance Tests on 1.22') {
                     when {
-                        expression { return params.RUN_KIND_122 == true; }
+                        expression { return params.RUN_KIND_122 }
                     }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -356,7 +356,7 @@ pipeline {
                 }
                 stage('Kind Acceptance Tests on 1.23') {
                     when {
-                        expression { return params.RUN_KIND_123 == true; }
+                        expression { return params.RUN_KIND_123 }
                     }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -376,7 +376,7 @@ pipeline {
                 }
                 stage('Kind Acceptance Tests on 1.24') {
                     when {
-                        expression { return params.RUN_KIND_124 == true; }
+                        expression { return params.RUN_KIND_124 }
                     }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -396,7 +396,7 @@ pipeline {
                 }
                 stage('Upgrade Path Minor Release Tests') {
                     when {
-                        expression { return params.RUN_UPGRADE_PATHS_MINOR; }
+                        expression { return params.RUN_UPGRADE_PATHS_MINOR }
                     }
                     steps {
                             script {
@@ -414,7 +414,7 @@ pipeline {
                 }
                 stage('Upgrade Resiliency tests') {
                     when {
-                        expression { return params.RUN_UPGRADE_RESILIENCY; }
+                        expression { return params.RUN_UPGRADE_RESILIENCY }
                     }
                     steps {
                         script {
@@ -445,7 +445,7 @@ pipeline {
                 }
                 stage('Kind Acceptance Tests on 1.24 Non-Calico') {
                     when {
-                        expression { return params.RUN_KIND_124_NO_CALICO; }
+                        expression { return params.RUN_KIND_124_NO_CALICO }
                     }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -473,7 +473,7 @@ pipeline {
                 }
                 stage('Kind Acceptance Tests on 1.24 sslip.io') {
                     when {
-                        expression { return params.RUN_KIND_124_SSLIP_IO; }
+                        expression { return params.RUN_KIND_124_SSLIP_IO }
                     }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -501,7 +501,7 @@ pipeline {
                 }
                 stage('Dynamic Configuration Tests') {
                     when {
-                        expression { return params.RUN_DYNAMIC_CONFIG; }
+                        expression { return params.RUN_DYNAMIC_CONFIG }
                     }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -527,7 +527,7 @@ pipeline {
                 }
                 stage('OCI DNS/ACME-Staging Tests') {
                     when {
-                        expression { return params.RUN_OCI_LETSENCRYPT_STAGING; }
+                        expression { return params.RUN_OCI_LETSENCRYPT_STAGING }
                     }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -555,7 +555,7 @@ pipeline {
                 }
                 stage('OCI Service Integration Tests') {
                     when {
-                        expression { return params.RUN_OCI_INTEGRATION; }
+                        expression { return params.RUN_OCI_INTEGRATION }
                     }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -580,7 +580,7 @@ pipeline {
                 }
                 stage('Verrazzano Examples') {
                     when {
-                        expression { return params.RUN_EXAMPLES; }
+                        expression { return params.RUN_EXAMPLES }
                     }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
@@ -616,8 +616,8 @@ pipeline {
                     expression { TESTS_FAILED == false }
                 }
                 anyOf {
-                    expression { return params.RUN_PRIVATE_REGISTRY_LITE; }
-                    expression { return params.RUN_PRIVATE_REGISTRY_FULL; }
+                    expression { return params.RUN_PRIVATE_REGISTRY_LITE }
+                    expression { return params.RUN_PRIVATE_REGISTRY_FULL }
                 }
             }
             stages {
@@ -642,7 +642,7 @@ pipeline {
                     parallel {
                         stage('Private Registry - Lite Distribution') {
                             when {
-                                expression { return params.RUN_PRIVATE_REGISTRY_LITE; }
+                                expression { return params.RUN_PRIVATE_REGISTRY_LITE }
                             }
                             steps {
                                 retry(count: JOB_PROMOTION_RETRIES) {
@@ -659,7 +659,7 @@ pipeline {
                         }
                         stage('Private Registry - Full Distribution') {
                             when {
-                                expression { return params.RUN_PRIVATE_REGISTRY_FULL; }
+                                expression { return params.RUN_PRIVATE_REGISTRY_FULL }
                             }
                             steps {
                                 retry(count: JOB_PROMOTION_RETRIES) {
