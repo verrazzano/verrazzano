@@ -22,6 +22,7 @@ pipeline {
         string (description: 'The release version (major.minor.patch format, e.g. 1.0.1)', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
         string (description: 'The source commit for the release (required for full release)', name: 'RELEASE_COMMIT', defaultValue: 'NONE', trim: true )
         string (description: 'The full git commit hash from the source build', name: 'GIT_COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
+        booleanParam (description: 'Enable scanning for test run. Scanning is always done if not a test run, it is disabled for test runs unless this is enabled', name: 'ENABLE_TEST_SCAN', defaultValue: false)
         booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: true)
     }
 
@@ -123,7 +124,13 @@ pipeline {
                 VIRUS_DEFINITION_LOCATION = credentials('virus-definition-location')
                 NO_PROXY_SUFFIX = credentials('cdn-no-proxy')
             }
-           steps {
+            when {
+               allOf {
+                   not { buildingTag() }
+                   expression {return params.TEST_RUN == false || params.ENABLE_TEST_SCAN == true }
+               }
+            }
+            steps {
                 script {
                     // The scan takes more than 3 hours for the full bundle, so setting a higher timeout
                     timeout(time: 300, unit: 'MINUTES') {
