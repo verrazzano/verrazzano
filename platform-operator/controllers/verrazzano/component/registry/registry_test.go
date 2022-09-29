@@ -5,6 +5,7 @@ package registry
 
 import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	corev1 "k8s.io/api/core/v1"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -322,10 +323,10 @@ func TestComponentDependenciesCycle(t *testing.T) {
 		Dependencies:   []string{"istiod", "cert-manager", "istiod"},
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		newReadyDeployment("istiod", "istio-system"),
-		newReadyDeployment(certManagerDeploymentName, certManagerNamespace),
-		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace),
-		newReadyDeployment(webhookDeploymentName, certManagerNamespace)).Build()
+		newReadyDeployment("istiod", "istio-system", nil),
+		newReadyDeployment(certManagerDeploymentName, certManagerNamespace, nil),
+		newReadyDeployment(cainjectorDeploymentName, certManagerNamespace, nil),
+		newReadyDeployment(webhookDeploymentName, certManagerNamespace, nil)).Build()
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
@@ -354,9 +355,9 @@ func TestIndirectDependencyMetButNotReady(t *testing.T) {
 	defer ResetGetComponentsFn()
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	assert.True(t, ComponentDependenciesMet(indirectDependency, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)))
-	assert.True(t, ComponentDependenciesMet(directDependency, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)))
-	assert.False(t, ComponentDependenciesMet(dependent, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false)))
+	assert.True(t, ComponentDependenciesMet(indirectDependency, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false)))
+	assert.True(t, ComponentDependenciesMet(directDependency, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false)))
+	assert.False(t, ComponentDependenciesMet(dependent, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false)))
 }
 
 // TestComponentDependenciesCycles tests ComponentDependenciesMet
@@ -417,11 +418,11 @@ func TestComponentDependenciesChainNoCycle(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	// Dependency chain, no cycle
-	ready := ComponentDependenciesMet(chainNoCycle, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false))
+	ready := ComponentDependenciesMet(chainNoCycle, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false))
 	assert.True(t, ready)
 
 	// Same dependency listed twice, not an error
-	ready = ComponentDependenciesMet(repeatDepdendency, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, nil, false))
+	ready = ComponentDependenciesMet(repeatDepdendency, spi.NewFakeContext(client, &v1alpha1.Verrazzano{}, false))
 	assert.True(t, ready)
 }
 
@@ -578,7 +579,7 @@ func runDepenencyStateCheckTest(t *testing.T, state v1alpha1.CompStateType, enab
 	}
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
-	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, cr, nil, true))
+	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, cr, true))
 	assert.Equal(t, expectedResult, ready)
 }
 
@@ -614,7 +615,7 @@ func checkDependencyCycles(c spi.Component, context spi.ComponentContext, visite
 }
 
 // Create a new deployment object for testing
-func newReadyDeployment(name string, namespace string) *appsv1.Deployment {
+func newReadyDeployment(name string, namespace string, labels map[string]string) *appsv1.Deployment {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
