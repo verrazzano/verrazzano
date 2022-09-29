@@ -120,9 +120,9 @@ func isLegacyDatabaseUpgrade(compContext spi.ComponentContext) bool {
 }
 
 // appendLegacyUpgradePersistenceValues appends the helm values necessary to support a legacy persistent database upgrade
-func appendLegacyUpgradePersistenceValues(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func appendLegacyUpgradePersistenceValues(bomFile *bom.Bom, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	var err error
-	kvs, err = appendCustomImageOverrides(kvs)
+	kvs, err = appendCustomImageOverrides(bomFile, kvs)
 	if err != nil {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
