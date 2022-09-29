@@ -174,12 +174,16 @@ pipeline {
                 script {
                     sh """
                         if [ $TEST_RUN == true ] ; then
-                          echo "TEST_RUN is set to true, NOT pushing scan artifacts to object storage, but confirming they exist to be pushed"
-                          echo ""
-                          ls ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_report.out
-                          ls ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_summary.out
-                          ls ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_report.out
-                          ls ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_summary.out
+                          if [ $ENABLE_TEST_SCAN == true ] ; then
+                            echo "TEST_RUN is set to true, NOT pushing scan artifacts to object storage, but confirming they exist to be pushed"
+                            echo ""
+                            ls ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_report.out
+                            ls ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_summary.out
+                            ls ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_report.out
+                            ls ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_summary.out
+                          else
+                            echo "TEST_RUN is set to true, ENABLE_TEST_SCAN is set to false. NOT pushing anything to object storage, and didn't scan anything"
+                          fi
                         else
                           oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_report_vz_lite.out --file ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_report.out
                           oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_summary_vz_lite.out --file ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_summary.out
