@@ -5,7 +5,7 @@ name: Upstream-Pull-Request-For-Rancher
 on:
   push:
     branches:
-      - 'upstream-rancher-*'
+      - 'upstream-rancher-**'
 
 jobs:
   pull-request:
