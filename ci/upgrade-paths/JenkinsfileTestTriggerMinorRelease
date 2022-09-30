@@ -228,7 +228,6 @@ def isPagerDutyEnabled() {
     return false
 }
 
-
 // Called in Stage Clean workspace and checkout steps
 @NonCPS
 def getCommitList() {
