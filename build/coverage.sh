@@ -9,7 +9,6 @@ TEST_PKGS=$(go list ./... | \
   grep -Ev github.com/verrazzano/verrazzano/application-operator/test/integ | \
   grep -Ev github.com/verrazzano/verrazzano/application-operator/mocks | \
   grep -Ev github.com/verrazzano/verrazzano/application-operator/clients | \
-  grep -Ev github.com/verrazzano/verrazzano/image-patch-operator/clients | \
   grep -Ev github.com/verrazzano/verrazzano/platform-operator/mocks | \
   grep -Ev github.com/verrazzano/verrazzano/platform-operator/test/integ | \
   grep -Ev github.com/verrazzano/verrazzano/platform-operator/clients | \

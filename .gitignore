@@ -41,10 +41,6 @@ out/
 **/*.log
 platform-operator/THIRD_PARTY_LICENSES.txt
 application-operator/THIRD_PARTY_LICENSES.txt
-image-patch-operator/THIRD_PARTY_LICENSES.txt
-image-patch-operator/weblogic-imagetool/THIRD_PARTY_LICENSES.txt
-image-patch-operator/weblogic-imagetool/installers/*
-!image-patch-operator/weblogic-imagetool/installers/.gitkeep
 tools/analysis/THIRD_PARTY_LICENSES.txt
 tests/e2e/**/*.test
 **/.DS_Store
