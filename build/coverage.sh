@@ -6,11 +6,9 @@
 # Code coverage generation
 # Excludes test utility packages and the test directory
 TEST_PKGS=$(go list ./... | \
-  grep -Ev github.com/verrazzano/verrazzano/application-operator/test/integ | \
   grep -Ev github.com/verrazzano/verrazzano/application-operator/mocks | \
   grep -Ev github.com/verrazzano/verrazzano/application-operator/clients | \
   grep -Ev github.com/verrazzano/verrazzano/platform-operator/mocks | \
-  grep -Ev github.com/verrazzano/verrazzano/platform-operator/test/integ | \
   grep -Ev github.com/verrazzano/verrazzano/platform-operator/clients | \
   grep -Ev github.com/verrazzano/verrazzano/tools/eventually-checker | \
   grep -Ev github.com/verrazzano/verrazzano/tools/fix-copyright | \

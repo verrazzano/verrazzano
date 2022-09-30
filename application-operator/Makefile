@@ -51,18 +51,10 @@ ifndef RELEASE_BRANCH
 endif
 
 DIST_DIR:=dist
-K8S_NAMESPACE:=default
-WATCH_NAMESPACE:=
-EXTRA_PARAMS=
-INTEG_RUN_ID=
-ENV_NAME=verrazzano-application-operator
 GO ?= CGO_ENABLED=0 GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
-KIND_CONFIG ?= kind-config.yaml
 CRD_PATH=../platform-operator/helm_config/charts/verrazzano-application-operator/crds
 OAM_PATH=../platform-operator/thirdparty/charts/oam-kubernetes-runtime/crds
-
-CLUSTER_SNAPSHOT_LOCATION ?= application-operator-integ-cluster-snapshot
 
 .PHONY: build
 build: go-fmt go-vet
