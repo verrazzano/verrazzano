@@ -6,6 +6,7 @@ package topology
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	. "github.com/onsi/gomega"
@@ -326,23 +327,22 @@ func verifyHeapSettings(pod corev1.Pod) error {
 		return fmt.Errorf("empty OPENSEARCH_JAVA_OPTS env variable in container %s, pod %s", containerName, pod.GetName())
 	}
 
-	heapSettingFromEnvVar := stdout
-	stdout, stderr, err = k8sutil.ExecPod(kubeClientSet, restConfig, &pod, containerName, []string{"grep '^-Xm' config/jvm.options | tr '\n' ' ' | xargs"})
+	heapSettingFromEnvVar := strings.ReplaceAll(stdout, " ", "")
+	stdout, stderr, err = k8sutil.ExecPod(kubeClientSet, restConfig, &pod, containerName, []string{"cat /proc/1/cmdline"})
 	if err != nil {
-		return fmt.Errorf("error getting heap settings from config/jvm.options in container %s, pod %s, error %v", containerName, pod.GetName(), err.Error())
+		return fmt.Errorf("error getting process command line for container %s, pod %s, error %v", containerName, pod.GetName(), err.Error())
 	}
 
 	if stderr != "" {
-		return fmt.Errorf("error getting heap settings from config/jvm.options in container %s, pod %s, error %v", containerName, pod.GetName(), stderr)
+		return fmt.Errorf("error getting process command line for container %s, pod %s, error %v", containerName, pod.GetName(), stderr)
 	}
 
 	if stdout == "" {
-		return fmt.Errorf("empty heap settings in container %s, pod %s", containerName, pod.GetName())
+		return fmt.Errorf("empty command line for container %s, pod %s", containerName, pod.GetName())
 	}
 
-	heapSettingsFromJvmConfigFile := stdout
-	if heapSettingsFromJvmConfigFile != heapSettingFromEnvVar {
-		return fmt.Errorf("heap settings from config/jvm.options not same as value from OPENSEARCH_JAVA_OPTS env variable in container %s, pod %s, env var value: %v, value from config file: %v", containerName, pod.GetName(), heapSettingFromEnvVar, heapSettingsFromJvmConfigFile)
+	if !strings.Contains(stdout, heapSettingFromEnvVar) {
+		return fmt.Errorf("heap settings on container command line not same as value from OPENSEARCH_JAVA_OPTS env variable in container %s, pod %s, env var value: %v,container command line: %v", containerName, pod.GetName(), heapSettingFromEnvVar, stdout)
 	}
 
 	return nil
