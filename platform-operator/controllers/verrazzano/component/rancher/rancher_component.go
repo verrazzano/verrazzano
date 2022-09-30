@@ -6,10 +6,6 @@ package rancher
 import (
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strconv"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -21,6 +17,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/types"
+	"os"
+	"path/filepath"
+	"strconv"
 )
 
 // ComponentName is the name of the component
@@ -65,7 +64,7 @@ func NewComponent() spi.Component {
 	}
 }
 
-//AppendOverrides set the Rancher overrides for Helm
+// AppendOverrides set the Rancher overrides for Helm
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	rancherHostName, err := getRancherHostname(ctx.Client(), ctx.EffectiveCR())
 	if err != nil {
@@ -84,7 +83,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	return appendCAOverrides(kvs, ctx)
 }
 
-//appendRegistryOverrides appends overrides if a custom registry is being used
+// appendRegistryOverrides appends overrides if a custom registry is being used
 func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 	// If using external registry, add registry overrides to Rancher
 	registry := os.Getenv(constants.RegistryOverrideEnvVar)
@@ -104,7 +103,7 @@ func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 	return kvs
 }
 
-//appendCAOverrides sets overrides for CA Issuers, ACME or CA.
+// appendCAOverrides sets overrides for CA Issuers, ACME or CA.
 func appendCAOverrides(kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyValue, error) {
 	cm := ctx.EffectiveCR().Spec.Components.CertManager
 	if cm == nil {
@@ -257,7 +256,26 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := removeBootstrapSecretIfExists(log, c); err != nil {
 		return log.ErrorfThrottledNewErr("Error removing Rancher bootstrap secret: %s", err.Error())
 	}
+	if err := disableFirstLogin(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("failed disabling first login setting: %s", err.Error())
+	}
 	return r.HelmComponent.PostInstall(ctx)
+}
+
+// PostUpgrade disables the rancher first-login setting and adds
+// cert-manager related annotation to the rancher ingress
+func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	c := ctx.Client()
+	log := ctx.Log()
+	if err := disableFirstLogin(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("failed disabling first login setting: %s", err.Error())
+	}
+
+	if err := r.HelmComponent.PostUpgrade(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("Failed helm component post upgrade: %s", err.Error())
+	}
+
+	return patchRancherIngress(c, ctx.EffectiveCR())
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

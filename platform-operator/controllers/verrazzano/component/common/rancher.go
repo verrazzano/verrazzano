@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/http"
 	"strings"
 
@@ -24,13 +25,15 @@ const (
 	// RancherName is the name of the component
 	RancherName = "rancher"
 	// CattleSystem is the namespace of the component
-	CattleSystem         = "cattle-system"
-	RancherIngressCAName = "tls-rancher-ingress"
-	RancherAdminSecret   = "rancher-admin-secret"
-	RancherCACert        = "ca.crt"
-	contentTypeHeader    = "Content-Type"
-	authorizationHeader  = "Authorization"
-	applicationJSON      = "application/json"
+	CattleSystem                     = "cattle-system"
+	RancherIngressCAName             = "tls-rancher-ingress"
+	RancherAdminSecret               = "rancher-admin-secret"
+	RancherCACert                    = "ca.crt"
+	contentTypeHeader                = "Content-Type"
+	authorizationHeader              = "Authorization"
+	applicationJSON                  = "application/json"
+	APIGroupRancherManagement        = "management.cattle.io"
+	APIGroupVersionRancherManagement = "v3"
 	// Path to get a login token
 	loginActionPath = "/v3-public/localProviders/local?action=login"
 	// Template body to POST for a login token
@@ -85,6 +88,15 @@ func NewClient(c client.Reader, hostname, password string) (*RESTClient, error) 
 		hostname: hostname,
 		password: password,
 	}, nil
+}
+
+// GetRancherMgmtAPIGVKForKind returns a management.cattle.io/v3 GroupVersionKind structure for specified kind
+func GetRancherMgmtAPIGVKForKind(kind string) schema.GroupVersionKind {
+	return schema.GroupVersionKind{
+		Group:   APIGroupRancherManagement,
+		Version: APIGroupVersionRancherManagement,
+		Kind:    kind,
+	}
 }
 
 // GetAdminSecret fetches the Rancher admin secret
