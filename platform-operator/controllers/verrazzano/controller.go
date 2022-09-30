@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -79,6 +80,9 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	if ctx == nil {
+		return ctrl.Result{}, goerrors.New("context cannot be nil")
+	}
 	// Get the Verrazzano resource
 	zapLogForMetrics := zap.S().With(log.FieldController, "verrazzano")
 	counterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter)
@@ -100,9 +104,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	reconcileDurationMetricObject.TimerStart()
 	defer reconcileDurationMetricObject.TimerStop()
-	if ctx == nil {
-		ctx = context.TODO()
-	}
 	vz := &installv1alpha1.Verrazzano{}
 	if err := r.Get(ctx, req.NamespacedName, vz); err != nil {
 		errorCounterMetricObject.Inc()
