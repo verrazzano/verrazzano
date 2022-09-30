@@ -9,6 +9,8 @@ import (
 	"testing"
 )
 
+const errWas = "Err was"
+
 // TestInvalidIssues Tests the helpers with invalid issues
 // GIVEN a call to helper
 // WHEN with an invalid issue
@@ -23,21 +25,21 @@ func TestInvalidIssues(t *testing.T) {
 	// This will fail as there is no Type specified
 	err := ContributeIssue(logger, invalidIssue)
 	assert.NotNil(t, err)
-	logger.Debugf("Err was", err)
+	logger.Debugf(errWas, err)
 	assert.True(t, strings.Contains(err.Error(), "Type"))
 
 	// Next set the Type on the issue, it should then complain that no Source is specified
 	invalidIssue.Type = "MyIssueType"
 	err = ContributeIssue(logger, invalidIssue)
 	assert.NotNil(t, err)
-	logger.Debugf("Err was", err)
+	logger.Debugf(errWas, err)
 	assert.True(t, strings.Contains(err.Error(), "Source"))
 
 	// Next set the Source on the issue, it should then complain that no Summary is specified
 	invalidIssue.Source = "MyIssueSource"
 	err = ContributeIssue(logger, invalidIssue)
 	assert.NotNil(t, err)
-	logger.Debugf("Err was", err)
+	logger.Debugf(errWas, err)
 	assert.True(t, strings.Contains(err.Error(), "Summary"))
 
 	// Next set the summary but also set a confidence to a value out of range
@@ -45,8 +47,8 @@ func TestInvalidIssues(t *testing.T) {
 	invalidIssue.Confidence = 11
 	err = ContributeIssue(logger, invalidIssue)
 	assert.NotNil(t, err)
-	logger.Debugf("Err was", err)
+	logger.Debugf(errWas, err)
 	assert.True(t, strings.Contains(err.Error(), "Confidence"))
 }
 
-// TODO: Add tests
+// Add tests

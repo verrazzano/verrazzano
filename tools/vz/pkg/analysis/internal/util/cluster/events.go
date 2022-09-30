@@ -48,7 +48,7 @@ func GetEventList(log *zap.SugaredLogger, path string) (eventList *corev1.EventL
 	return eventList, nil
 }
 
-// TODO: Need to add an optional time range to the get events, that will allow us to find events related to
+// Need to add an optional time range to the get events, that will allow us to find events related to
 // pods/services/etc that happened only within a given time range
 
 // GetEventsRelatedToPod gets events related to a pod

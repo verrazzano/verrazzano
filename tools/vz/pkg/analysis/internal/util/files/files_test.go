@@ -12,6 +12,11 @@ import (
 	"testing"
 )
 
+const testDir = "../../../test"
+const testNotFound = "../../../test-not-found"
+const jsonRegex = ".*son$"
+const templateStatFailed = "Stat failed for file: %s"
+
 // TestGetMatchingFilesGood Tests that we can find the expected set of files with a matching expression
 // GIVEN a call to GetMatchingDirectories
 // WHEN with a valid rootDirectory and regular expression
@@ -37,14 +42,14 @@ func TestGetMatchingFilesGood(t *testing.T) {
 func TestGetMatchingDirectoriesGood(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 	// the .*son will match directories with names like "json"
-	myFiles, err := GetMatchingDirectories(logger, "../../../test", regexp.MustCompile(".*son$"))
+	myFiles, err := GetMatchingDirectories(logger, testDir, regexp.MustCompile(jsonRegex))
 	assert.Nil(t, err)
 	assert.NotNil(t, myFiles)
 	assert.True(t, len(myFiles) > 0)
 	for _, file := range myFiles {
 		assert.True(t, len(checkIsDirectory(logger, file)) == 0)
 	}
-	myFiles, err = GetMatchingDirectories(logger, "../../../test", regexp.MustCompile("none_shall_match"))
+	myFiles, err = GetMatchingDirectories(logger, testDir, regexp.MustCompile("none_shall_match"))
 	assert.Nil(t, err)
 	assert.Nil(t, myFiles)
 }
@@ -55,14 +60,14 @@ func TestGetMatchingDirectoriesGood(t *testing.T) {
 // THEN we get failures as expected
 func TestGetMatchingInvalidInputs(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	_, err := GetMatchingDirectories(logger, "../../../test", nil)
+	_, err := GetMatchingDirectories(logger, testDir, nil)
 	assert.NotNil(t, err)
-	filesFound, err := GetMatchingDirectories(logger, "../../../test-not-found", regexp.MustCompile(".*son$"))
+	filesFound, err := GetMatchingDirectories(logger, testNotFound, regexp.MustCompile(jsonRegex))
 	assert.Nil(t, err)
 	assert.Nil(t, filesFound)
-	_, err = GetMatchingFiles(logger, "../../../test", nil)
+	_, err = GetMatchingFiles(logger, testDir, nil)
 	assert.NotNil(t, err)
-	filesFound, err = GetMatchingFiles(logger, "../../../test-not-found", regexp.MustCompile(".*son$"))
+	filesFound, err = GetMatchingFiles(logger, testNotFound, regexp.MustCompile(jsonRegex))
 	assert.Nil(t, err)
 	assert.Nil(t, filesFound)
 
@@ -84,14 +89,14 @@ func TestMiscUtils(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-// TODO: Add more test cases (more expression variants, negative cases, etc...)
+// Add more test cases (more expression variants, negative cases, etc...)
 
 func checkIsDirectory(logger *zap.SugaredLogger, fileName string) string {
 	failText := ""
 	stat, err := os.Stat(fileName)
 	if err != nil {
-		logger.Errorf("Stat failed for file: %s", fileName, err)
-		failText = fmt.Sprintf("Stat failed for file: %s", fileName)
+		logger.Errorf(templateStatFailed, fileName, err)
+		failText = fmt.Sprintf(templateStatFailed, fileName)
 	} else if !stat.IsDir() {
 		failText = fmt.Sprintf("Matched file was not a directory: %s", fileName)
 	}
@@ -105,8 +110,8 @@ func checkIsRegularFile(logger *zap.SugaredLogger, fileName string) string {
 	failText := ""
 	stat, err := os.Stat(fileName)
 	if err != nil {
-		logger.Errorf("Stat failed for file: %s", fileName, err)
-		failText = fmt.Sprintf("Stat failed for file: %s", fileName)
+		logger.Errorf(templateStatFailed, fileName, err)
+		failText = fmt.Sprintf(templateStatFailed, fileName)
 	} else if stat.IsDir() {
 		failText = fmt.Sprintf("Matched file was a directory: %s", fileName)
 	} else if !stat.Mode().IsRegular() {
