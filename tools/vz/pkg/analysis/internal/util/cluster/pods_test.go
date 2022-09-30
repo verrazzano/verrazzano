@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// TODO: Add more tests
+// Add tests
 
 func TestPodConditionMessage(t *testing.T) {
 	ns := "test"
