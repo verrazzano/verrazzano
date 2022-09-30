@@ -30,10 +30,6 @@ coverageTmp.cov
 coverage.html
 coverage.xml
 coverage.raw.cov
-platform-operator/test/integ/integ*result.xml
-platform-operator/test/integ/integ.coverprofile
-application-operator/test/integ/integ*result.xml
-application-operator/test/integ/integ.coverprofile
 out/
 **/test-report.xml
 **/*test-result.xml
