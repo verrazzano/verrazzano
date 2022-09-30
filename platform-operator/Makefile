@@ -166,13 +166,19 @@ endif
 unit-test: go-install
 	$(GO) test -v  ./internal/... ./controllers/... ./apis/...
 
-OPERATOR_YAML ?= build/deploy/operator.yaml
+CLUSTER_NAME = verrazzano
+BUILD_DEPLOY = build/deploy
+OPERATOR_YAML ?= ${BUILD_DEPLOY}/operator.yaml
 
 .PHONY: generate-operator-yaml
 generate-operator-yaml:
 	OPERATOR_DIR=$$(dirname ${OPERATOR_YAML}) ; \
 	mkdir -p $${OPERATOR_DIR} ; \
 	env DOCKER_IMAGE=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG} IMAGE_PULL_SECRETS=${IMAGE_PULL_SECRETS} APP_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} ../tools/scripts/generate_operator_yaml.sh > ${OPERATOR_YAML}
+
+.PHONY: delete-cluster
+delete-cluster:
+	kind delete cluster --name ${CLUSTER_NAME}
 
 .PHONY: push-tag
 push-tag:
