@@ -14,6 +14,44 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+const (
+	// vzStateInstallStart is the state where Verrazzano is starting the install flow
+	vzStateInstallStart installState = "vzStateInstallStart"
+
+	// vzStateInstallRancherLocal is the state where the Rancher local cluster is being installed
+	vzStateInstallRancherLocal installState = "vzStateInstallRancherLocal"
+
+	// vzStateInstallMC is the state where the multi-cluster resources are being installed
+	vzStateInstallMC installState = "vzStateInstallMC"
+
+	// vzStateInstallComponents is the state where the components are being installed
+	vzStateInstallComponents installState = "vzStateInstallComponents"
+
+	// vzStateInstallCleanup is the state where the final cleanup is performed for a full install
+	vzStateInstallCleanup installState = "vzStateInstallCleanup"
+
+	// vzStateInstallDone is the state when install is done
+	vzStateInstallDone installState = "vzStateInstallDone"
+
+	// vzStateInstallEnd is the terminal state
+	vzStateInstallEnd installState = "vzStateInstallEnd"
+)
+
+// installState identifies the state of a Verrazzano install operation
+type installState string
+
+// installTracker has the Install context for the Verrazzano Install
+// This tracker keeps an in-memory Install state for Verrazzano and the components that
+// are being Install.
+type installTracker struct {
+	vzState installState
+	gen     int64
+	compMap map[string]*componentInstallContext
+}
+
+// installTrackerMap has a map of InstallTrackers, one entry per Verrazzano CR resource generation
+var installTrackerMap = make(map[string]*installTracker)
+
 // reconcileComponents reconciles each component using the following rules:
 // 1. Always requeue until all enabled components have completed installation
 // 2. Don't update the component state until all the work in that state is done, since
