@@ -5,7 +5,6 @@ package mysql
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -15,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -33,9 +33,6 @@ const ComponentNamespace = vzconst.KeycloakNamespace
 
 // DeploymentPersistentVolumeClaim is the name of a volume claim associated with a MySQL deployment
 const DeploymentPersistentVolumeClaim = "mysql"
-
-// StatefulsetPersistentVolumeClaim is the name of a volume claim associated with a MySQL statefulset
-const StatefulsetPersistentVolumeClaim = "dump-claim"
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "keycloak.mysql"

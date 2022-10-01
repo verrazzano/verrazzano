@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	k8sstatus "github.com/verrazzano/verrazzano/pkg/k8s/status"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -43,7 +45,7 @@ const (
 	secretKey             = "mysql-password"
 	mySQLUsername         = "keycloak"
 	rootPasswordKey       = "mysql-root-password" //nolint:gosec //#gosec G101
-	statefulsetClaimName  = "dump-claim"
+	legacyDBDumpClaim     = "dump-claim"
 	mySQLInitFilePrefix   = "init-mysql-"
 	dbLoadJobName         = "load-dump"
 	dbLoadContainerName   = "mysqlsh-load-dump"
@@ -76,15 +78,36 @@ CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
   DEPLOYMENT_ID varchar(10) DEFAULT NULL,
   PRIMARY KEY (ID,AUTHOR,FILENAME)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;`
-	mySQLRootCommand = `/usr/bin/mysql -uroot -p%s -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost';"`
-	mySQLDbCommands  = `/usr/bin/mysqlsh -uroot -p%s --py --execute "
-if (session.run_sql(\"SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_TYPE = 'PRIMARY KEY' AND TABLE_NAME = 'DATABASECHANGELOG' AND TABLE_SCHEMA = 'keycloak'\").fetch_one()[0] == 0):
-     session.run_sql('ALTER TABLE keycloak.DATABASECHANGELOG ADD PRIMARY KEY (ID,AUTHOR,FILENAME)')"
+	mySQLRootCommand = `/usr/bin/mysql -uroot -p%s <<EOF
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost'; flush privileges;
+EOF
+`
+	mySQLDbCommands = `/usr/bin/mysql -uroot -p%s <<EOF
+use keycloak;
+delimiter //
+drop procedure if exists updatePrimaryKey //
+create procedure updatePrimaryKey()
+begin
+   declare updateRequired INT DEFAULT 0;
+   select count(*)
+   into updateRequired
+   from INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+   where CONSTRAINT_TYPE = 'PRIMARY KEY'
+   and TABLE_NAME = 'DATABASECHANGELOG'
+   and TABLE_SCHEMA = 'keycloak';
+   if updateRequired = 0 then
+      ALTER TABLE keycloak.DATABASECHANGELOG ADD PRIMARY KEY (ID,AUTHOR,FILENAME);
+   end if;
+end//
+delimiter ;
+call updatePrimaryKey();
+EOF
 `
 	mySQLCleanup    = `rm -rf /var/lib/mysql/dump`
-	mySQLShCommands = `/usr/bin/mysqlsh -uroot -p%s --js --execute 'util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_definers", "strip_restricted_grants"]})'
+	mySQLShCommands = `/usr/bin/mysqlsh -uroot -p%s -S /var/lib/mysql/mysql.sock --js <<EOF
+util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_definers", "strip_restricted_grants"]})
+EOF
 `
-
 	innoDBClusterStatusOnline = "ONLINE"
 )
 
@@ -466,6 +489,26 @@ func postUpgrade(ctx spi.ComponentContext) error {
 	}
 
 	return common.ResetVolumeReclaimPolicy(ctx, ComponentName)
+}
+
+// PostUpgradeCleanup - Clean up any remaining resources after a successful upgrade
+func PostUpgradeCleanup(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
+	// Clean up the dump volume claim used during the database upgrade
+	log.Progressf("MySQL post-upgrade cleanup")
+	pvc := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      legacyDBDumpClaim,
+			Namespace: ComponentNamespace,
+		},
+	}
+	if err := client.Delete(context.TODO(), pvc); err != nil {
+		if !errors.IsNotFound(err) {
+			log.Progressf("Error deleting temporary database upgrade volume claim %v: %v", clipkg.ObjectKeyFromObject(pvc), err.Error())
+			return err
+		}
+	}
+	log.Oncef("Deleted temporary legacy database volume claim %v", clipkg.ObjectKeyFromObject(pvc))
+	return nil
 }
 
 // convertOldInstallArgs changes persistence.* install args to primary.persistence.* to keep compatibility with the new chart

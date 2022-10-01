@@ -398,7 +398,7 @@ type OpenSearchComponent struct {
 	Nodes []OpenSearchNode `json:"nodes,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 }
 
-//OpenSearchNode specifies a node group in the OpenSearch cluster
+// OpenSearchNode specifies a node group in the OpenSearch cluster
 type OpenSearchNode struct {
 	Name      string                       `json:"name,omitempty"`
 	Replicas  int32                        `json:"replicas,omitempty"`
@@ -561,16 +561,6 @@ type IngressNginxComponent struct {
 	// +optional
 	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`
-}
-
-// IstioIngressSection specifies the specific config options available for the Istio Ingress Gateways.
-type IstioIngressSection struct {
-	// Type of ingress.  Default is LoadBalancer
-	// +optional
-	Type IngressType `json:"type,omitempty"`
-	// Ports to be used for Istio Ingress Gateway
-	// +optional
-	Ports []corev1.ServicePort `json:"ports,omitempty"`
 }
 
 // IstioComponent specifies the Istio configuration

@@ -241,7 +241,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup the validation webhook
+	// Setup the validation webhook for VMC
 	if config.WebhooksEnabled {
 		log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
 		if err = (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
