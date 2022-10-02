@@ -268,7 +268,7 @@ pipeline {
                             archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
                         }
                         always {
-                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,${env.INSTALL_CONFIG_FILE_KIND}", allowEmptyArchive: true
+                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,**/${env.INSTALL_CONFIG_FILE_KIND}", allowEmptyArchive: true
                             script {
                                 VZ_TEST_METRIC = metricJobName('')
                                 metricTimerStart("${VZ_TEST_METRIC}")
