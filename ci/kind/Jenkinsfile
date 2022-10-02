@@ -90,7 +90,7 @@ pipeline {
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
         INSTALL_CONFIG_FILE_KIND_TESTS = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
         INSTALL_CONFIG_FILE_KIND_HA = "./examples/ha/ha.yaml"
-        INSTALL_CONFIG_FILE_KIND = "${params.INSTALL_HA == true ? env.INSTALL_CONFIG_FILE_KIND_HA : env.INSTALL_CONFIG_FILE_KIND_TESTS}"
+        INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/install-verrazzano.yaml"
         INSTALL_PROFILE = "${params.INSTALL_HA == true ? "prod" : "dev"}"
         KIND_NODE_COUNT = "${params.INSTALL_HA == true ? "4" : "1"}"
         VZ_ENVIRONMENT_NAME = "default"
@@ -227,6 +227,17 @@ pipeline {
                         REALM_NAME = "test-realm"
                     }
                     steps {
+                        script {
+                            if (params.INSTALL_HA) {
+                                sh """
+                                    cp ${env.INSTALL_CONFIG_FILE_KIND_HA} ${env.INSTALL_CONFIG_FILE_KIND}
+                                """
+                            } else {
+                                sh """
+                                    cp ${env.INSTALL_CONFIG_FILE_KIND_TESTS} ${env.INSTALL_CONFIG_FILE_KIND}
+                                """
+                            }
+                        }
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
                             ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${params.USE_DB_FOR_GRAFANA}
