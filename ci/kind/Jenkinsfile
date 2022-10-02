@@ -90,7 +90,7 @@ pipeline {
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
         INSTALL_CONFIG_FILE_KIND_TESTS = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
         INSTALL_CONFIG_FILE_KIND_HA = "./examples/ha/ha.yaml"
-        INSTALL_CONFIG_FILE_KIND = "install-verrazzano.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/install-verrazzano.yaml"
         INSTALL_PROFILE = "${params.INSTALL_HA == true ? "prod" : "dev"}"
         KIND_NODE_COUNT = "${params.INSTALL_HA == true ? "4" : "1"}"
         VZ_ENVIRONMENT_NAME = "default"
@@ -268,7 +268,7 @@ pipeline {
                             archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
                         }
                         always {
-                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,${env.INSTALL_CONFIG_FILE_KIND}", allowEmptyArchive: true
+                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
                             script {
                                 VZ_TEST_METRIC = metricJobName('')
                                 metricTimerStart("${VZ_TEST_METRIC}")
