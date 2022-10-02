@@ -231,6 +231,8 @@ pipeline {
                             if (params.INSTALL_HA) {
                                 sh """
                                     cp ${env.INSTALL_CONFIG_FILE_KIND_HA} ${env.INSTALL_CONFIG_FILE_KIND}
+                                    cd ${GO_REPO_PATH}/verrazzano
+                                    ci/scripts/prepare_ha_test_at_environment.sh ${env.INSTALL_CONFIG_FILE_KIND}
                                 """
                             } else {
                                 sh """
