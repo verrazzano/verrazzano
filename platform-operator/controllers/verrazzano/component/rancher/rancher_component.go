@@ -6,11 +6,11 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	v1 "k8s.io/api/core/v1"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -490,14 +490,14 @@ func checkExistingRancher(vz runtime.Object) error {
 
 // checkNS checks if there is already an existing Rancher namespace that is not created by Verrazzano
 func checkNS(ns []v1.Namespace) error {
-	for _, n := range ns {
-		if isRancherNamespace(&n) {
-			for l := range n.Labels {
+	for i := range ns {
+		if isRancherNamespace(&ns[i]) {
+			for l := range ns[i].Labels {
 				if l == namespaceLabelKey {
 					return nil
 				}
 			}
-			return fmt.Errorf("found existing Rancher namespace %s not created by Verrazzano", n.Name)
+			return fmt.Errorf("found existing Rancher namespace %s not created by Verrazzano", ns[i].Name)
 		}
 	}
 	return nil
