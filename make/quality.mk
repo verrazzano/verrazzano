@@ -49,7 +49,7 @@ word-linter: ## check for use of 'bad' words
 
 .PHONY: url-linter
 url-linter: ## check for invalid URLs
-	${TOOLS_DIR}/url_linter/invalid_url_linter.sh .
+	go run ${TOOLS_DIR}/url_linter/url_linter.go
 
 .PHONY: coverage
 coverage:  ## test code coverage
