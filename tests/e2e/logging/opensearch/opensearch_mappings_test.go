@@ -5,17 +5,17 @@ package opensearch
 
 import (
 	"fmt"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"time"
 )
 
 const (
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 1 * time.Minute
+	longWaitTimeout      = 5 * time.Minute
 	indexDocumentURL     = "%s/_doc"
 )
 
@@ -140,6 +140,6 @@ var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.e
 				return false
 			}
 			return true
-		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to fail writing data with concrete value for object field in OpenSearch")
+		}, longWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to fail writing data with concrete value for object field in OpenSearch")
 	})
 })
