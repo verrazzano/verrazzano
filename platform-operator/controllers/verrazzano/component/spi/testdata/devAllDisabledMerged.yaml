@@ -216,6 +216,18 @@ spec:
           - values:
               serverInstances: 1
               routerInstances: 1
+              router:
+                podSpec:
+                  affinity:
+                    podAntiAffinity:
+                      preferredDuringSchedulingIgnoredDuringExecution:
+                        - weight: 100
+                          podAffinityTerm:
+                            labelSelector:
+                              matchLabels:
+                                app.kubernetes.io/instance: mysql-innodbcluster-mysql-router
+                                app.kubernetes.io/name: mysql-router
+                            topologyKey: kubernetes.io/hostname
               image:
                 pullPolicy: IfNotPresent
                 pullSecrets:
