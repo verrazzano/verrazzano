@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -148,4 +149,20 @@ func newAdminSecret(c client.Client, password string) error {
 		},
 	}
 	return c.Create(context.TODO(), adminSecret)
+}
+
+// addNameSpaceLabels labels the namespace created by rancher component
+func labelNamespace(c client.Client) error {
+	nsList := &corev1.NamespaceList{}
+	err := c.List(context.TODO(), nsList, &client.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, ns := range nsList.Items {
+		if  _, found := ns.Labels[namespaceLabelKey]; isRancherNamespace(&ns) && ! found {
+			ns.Labels[namespaceLabelKey] = ns.Name
+			c.Update(context.TODO(), &ns, &client.UpdateOptions{})
+		}
+	}
+	return nil
 }

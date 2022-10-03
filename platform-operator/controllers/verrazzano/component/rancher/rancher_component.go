@@ -4,7 +4,12 @@
 package rancher
 
 import (
+	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	v1 "k8s.io/api/core/v1"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -166,6 +171,24 @@ func (r rancherComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzconfig.IsRancherEnabled(effectiveCR)
 }
 
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+// and also if the rancher is already installed by some other source by checking the namespace labels.
+func (r rancherComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	if err := checkExistingRancher(vz); err != nil {
+		return err
+	}
+	return r.HelmComponent.ValidateInstall(vz)
+}
+
+// ValidateInstallV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
+// and also if the rancher is already installed by some other source by checking the namespace labels.
+func (r rancherComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	if err := checkExistingRancher(vz); err != nil {
+		return err
+	}
+	return r.HelmComponent.ValidateInstallV1Beta1(vz)
+}
+
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (r rancherComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Block all changes for now, particularly around storage changes
@@ -242,6 +265,7 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // PostInstall
 /* Additional setup for Rancher after the component is installed
+- Label Rancher Component Namespaces
 - Create the Rancher admin secret if it does not already exist
 - Retrieve the Rancher admin password
 - Retrieve the Rancher hostname
@@ -251,6 +275,11 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	log := ctx.Log()
+
+	if err := labelNamespace(c); err != nil {
+		return log.ErrorfThrottledNewErr("failed labelling namespace the for Rancher component: %s", err.Error())
+	}
+	log.Debugf("Rancher component namespaces labelled")
 
 	if err := createAdminSecretIfNotExists(log, c); err != nil {
 		return log.ErrorfThrottledNewErr("Failed creating Rancher admin secret: %s", err.Error())
@@ -436,5 +465,39 @@ func configureUISettings(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo path %s: %s", SettingUILogoDark, SettingUILogoDarkLogoFilePath, err.Error())
 	}
 
+	return nil
+}
+
+// checkExistingRancher checks if there is already an existing Rancher or not
+func checkExistingRancher(vz runtime.Object) error {
+	if !vzconfig.IsRancherEnabled(vz) {
+		return nil
+	}
+	client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return err
+	}
+	ns, err := client.Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil && !kerrs.IsNotFound(err) {
+		return err
+	}
+	if err = checkNS(ns.Items); err != nil {
+		return err
+	}
+	return nil
+}
+
+// checkNS checks if there is already an existing Rancher namespace that is not created by Verrazzano
+func checkNS(ns []v1.Namespace) error {
+	for _, n := range ns {
+		if isRancherNamespace(&n) {
+			for l := range n.Labels {
+				if l == namespaceLabelKey {
+					return nil
+				}
+			}
+			return fmt.Errorf("found existing Rancher namespace %s not created by Verrazzano", n.Name)
+		}
+	}
 	return nil
 }

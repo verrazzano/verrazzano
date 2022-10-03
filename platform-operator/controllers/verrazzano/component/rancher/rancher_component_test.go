@@ -508,3 +508,38 @@ func newReplicaSet(namespace string, name string) *appsv1.ReplicaSet {
 		},
 	}
 }
+
+// Test_RancherComponent_ValidateInstall verifies the ValidateInstall function of Rancher Component
+// When there is namespace without the required label,
+// Then ValidateInstall should throw error
+func Test_RancherComponent_ValidateInstall(t *testing.T) {
+	namespaceWithoutLabels := &corev1.Namespace{}
+	namespaceWithoutLabels.Name = FleetSystemNamespace
+	namespaceWithoutLabels.Namespace = FleetSystemNamespace
+	labelledNamespace := &corev1.Namespace{}
+	labelledNamespace.Name = FleetSystemNamespace
+	labelledNamespace.Namespace = FleetSystemNamespace
+	labelledNamespace.Labels = map[string]string{namespaceLabelKey:FleetSystemNamespace}
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Rancher: &vzapi.RancherComponent{},
+			},
+		},
+	}
+	common.RunValidateInstallTest(t, NewComponent,
+		common.ValidateInstallTest{
+			Name:      "ValidRancherNamespace",
+			WantErr:   "",
+			Appsv1Cli: common.MockGetAppsV1(),
+			Corev1Cli: common.MockGetCoreV1(labelledNamespace),
+			Vz:        vz,
+		},
+		common.ValidateInstallTest{
+			Name:      "InvalidRancherNamespace",
+			WantErr:   FleetSystemNamespace,
+			Appsv1Cli: common.MockGetAppsV1(),
+			Corev1Cli: common.MockGetCoreV1(namespaceWithoutLabels),
+			Vz:        vz,
+		})
+}
