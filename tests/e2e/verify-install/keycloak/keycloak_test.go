@@ -21,15 +21,24 @@ import (
 )
 
 const (
-	waitTimeout              = 10 * time.Minute
-	pollingInterval          = 30 * time.Second
-	keycloakNamespace string = "keycloak"
+	waitTimeout       = 10 * time.Minute
+	pollingInterval   = 30 * time.Second
+	keycloakNamespace = "keycloak"
+	vzUser            = "verrazzano"
+	vzSysRealm        = "verrazzano-system"
+	realmMgmt         = "realm-management"
+	viewUsersRole     = "view-users"
 )
 
 // KeycloakClients represents an array of clients currently configured in Keycloak
 type KeycloakClients []struct {
 	ID       string `json:"id"`
 	ClientID string `json:"clientId"`
+}
+
+// keycloakRoles represents an array of role names configured in Keycloak
+type keycloakRoles []struct {
+	Name string `json:"name"`
 }
 
 type Client struct {
@@ -100,12 +109,25 @@ var volumeClaims map[string]*corev1.PersistentVolumeClaim
 
 var t = framework.NewTestFramework("keycloak")
 
+var isMinVersion140 bool
+var isKeycloakEnabled bool
+
 var _ = t.BeforeSuite(func() {
 	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
 		var err error
 		volumeClaims, err = pkg.GetPersistentVolumeClaims(keycloakNamespace)
 		return volumeClaims, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	isKeycloakEnabled = pkg.IsKeycloakEnabled(kubeconfigPath)
+	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+	if err != nil {
+		Fail(err.Error())
+	}
 })
 
 var _ = t.AfterEach(func() {})
@@ -186,6 +208,20 @@ var _ = t.Describe("Verify Keycloak", Label("f:platform-lcm.install"), func() {
 	})
 })
 
+var _ = t.Describe("Verify client role", Label("f:platform-lcm.install"), func() {
+	t.It("Verify clients role for verrazzano user", func() {
+		isManagedClusterProfile := pkg.IsManagedClusterProfile()
+		// verrazzano user has the view-user role, starting from v1.4.0
+		if isKeycloakEnabled && isMinVersion140 && !isManagedClusterProfile {
+			Eventually(func() bool {
+				return verifyUserClientRole(vzUser, viewUsersRole)
+			}, waitTimeout, pollingInterval).Should(BeTrue())
+		} else {
+			t.Logs.Info("Skipping client role verification")
+		}
+	})
+})
+
 func verifyKeycloakVerrazzanoRealmPasswordPolicyIsCorrect() bool {
 	return verifyKeycloakRealmPasswordPolicyIsCorrect("verrazzano-system")
 }
@@ -251,30 +287,13 @@ func verifyKeycloakRealmPasswordPolicyIsCorrect(realm string) bool {
 func verifyKeycloakClientURIs() bool {
 	var keycloakClients KeycloakClients
 
-	// Get the Keycloak admin password
-	secret, err := pkg.GetSecret("keycloak", "keycloak-http")
-	if err != nil {
-		t.Logs.Error(fmt.Printf("Failed to get KeyCloak secret: %s\n", err))
-		return false
-	}
-	pw := secret.Data["password"]
-	keycloakpw := string(pw)
-	if keycloakpw == "" {
-		t.Logs.Error(fmt.Print("Invalid Keycloak password. Empty String returned"))
-		return false
-	}
-
 	// Login to Keycloak
-	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--",
-		"/opt/jboss/keycloak/bin/kcadm.sh", "config", "credentials", "--server", "http://localhost:8080/auth", "--realm", "master", "--user", "keycloakadmin", "--password", keycloakpw)
-	_, err = cmd.Output()
-	if err != nil {
-		t.Logs.Error(fmt.Printf("Error logging into Keycloak: %s\n", err))
+	if !loginKeycloak() {
 		return false
 	}
 
 	// Get the Client ID JSON array
-	cmd = exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
+	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get", "clients", "-r", "verrazzano-system", "--fields", "id,clientId")
 	out, err := cmd.Output()
 	if err != nil {
 		t.Logs.Error(fmt.Printf("Error retrieving ID for client ID, zero length: %s\n", err))
@@ -314,12 +333,7 @@ func verifyKeycloakClientURIs() bool {
 		return false
 	}
 
-	minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
-	if err != nil {
-		t.Logs.Error(fmt.Printf("Error checking minimum Verrazzano version: %s\n", err))
-		return false
-	}
-	if minVer14 {
+	if isMinVersion140 {
 		keycloakClient, err = getKeycloakClientByClientID(keycloakClients, "rancher")
 		if err != nil {
 			t.Logs.Error(fmt.Printf("Error retrieving Verrazzano rancher client: %s\n", err))
@@ -499,4 +513,67 @@ func verifyRancherClientURIs(keycloakClient *Client, env string) bool {
 	}
 
 	return true
+}
+
+// loginKeycloak logs into master realm, by calling kcadmin.sh config credentials
+func loginKeycloak() bool {
+	// Get the Keycloak admin password
+	secret, err := pkg.GetSecret("keycloak", "keycloak-http")
+	if err != nil {
+		t.Logs.Error(fmt.Printf("Failed to get KeyCloak secret: %s\n", err))
+		return false
+	}
+	pw := secret.Data["password"]
+	keycloakpw := string(pw)
+	if keycloakpw == "" {
+		t.Logs.Error(fmt.Print("Invalid Keycloak password. Empty String returned"))
+		return false
+	}
+
+	// Login to Keycloak
+	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--",
+		"/opt/jboss/keycloak/bin/kcadm.sh", "config", "credentials", "--server", "http://localhost:8080/auth", "--realm", "master", "--user", "keycloakadmin", "--password", keycloakpw)
+	_, err = cmd.Output()
+	if err != nil {
+		t.Logs.Error(fmt.Printf("Error logging into Keycloak: %s\n", err))
+		return false
+	}
+	return true
+}
+
+// verifyUserClientRole verifies whether user has the specified client role
+func verifyUserClientRole(user, userRole string) bool {
+	var kcRoles keycloakRoles
+
+	// Login to Keycloak
+	if !loginKeycloak() {
+		return false
+	}
+
+	// Get the roles for the user
+	cmd := exec.Command("kubectl", "exec", "keycloak-0", "-n", "keycloak", "-c", "keycloak", "--", "/opt/jboss/keycloak/bin/kcadm.sh", "get-roles", "-r", vzSysRealm, "--uusername", user, "--cclientid", realmMgmt, "--effective", "--fields", "name")
+	out, err := cmd.Output()
+	if err != nil {
+		t.Logs.Error(fmt.Printf("Error retrieving client role for the user %s: %s\n", vzUser, err.Error()))
+		return false
+	}
+
+	if len(string(out)) == 0 {
+		t.Logs.Error(fmt.Print("Client roles retrieved from Keycloak is of zero length\n"))
+		return false
+	}
+
+	err = json.Unmarshal([]byte(out), &kcRoles)
+	if err != nil {
+		t.Logs.Error(fmt.Sprintf("Error unmarshalling Keycloak client role, received as JSON: %s\n", err.Error()))
+		return false
+	}
+
+	for _, role := range kcRoles {
+		if role.Name == userRole {
+			t.Logs.Info(fmt.Printf("Client role %s found\n", userRole))
+			return true
+		}
+	}
+	return false
 }

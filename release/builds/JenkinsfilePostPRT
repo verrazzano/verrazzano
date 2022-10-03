@@ -22,6 +22,7 @@ pipeline {
         string (description: 'The release version (major.minor.patch format, e.g. 1.0.1)', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
         string (description: 'The source commit for the release (required for full release)', name: 'RELEASE_COMMIT', defaultValue: 'NONE', trim: true )
         string (description: 'The full git commit hash from the source build', name: 'GIT_COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
+        booleanParam (description: 'Enable scanning for test run. Scanning is always done if not a test run, it is disabled for test runs unless this is enabled', name: 'ENABLE_TEST_SCAN', defaultValue: false)
         booleanParam (description: 'Indicate whether this is a test run', name: 'TEST_RUN', defaultValue: true)
     }
 
@@ -123,7 +124,13 @@ pipeline {
                 VIRUS_DEFINITION_LOCATION = credentials('virus-definition-location')
                 NO_PROXY_SUFFIX = credentials('cdn-no-proxy')
             }
-           steps {
+            when {
+               allOf {
+                   not { buildingTag() }
+                   expression {return params.TEST_RUN == false || params.ENABLE_TEST_SCAN == true }
+               }
+            }
+            steps {
                 script {
                     // The scan takes more than 3 hours for the full bundle, so setting a higher timeout
                     timeout(time: 300, unit: 'MINUTES') {
@@ -167,12 +174,16 @@ pipeline {
                 script {
                     sh """
                         if [ $TEST_RUN == true ] ; then
-                          echo "TEST_RUN is set to true, NOT pushing scan artifacts to object storage, but confirming they exist to be pushed"
-                          echo ""
-                          ls ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_report.out
-                          ls ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_summary.out
-                          ls ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_report.out
-                          ls ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_summary.out
+                          if [ $ENABLE_TEST_SCAN == true ] ; then
+                            echo "TEST_RUN is set to true, NOT pushing scan artifacts to object storage, but confirming they exist to be pushed"
+                            echo ""
+                            ls ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_report.out
+                            ls ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_summary.out
+                            ls ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_report.out
+                            ls ${SCAN_REPORT_BASE_DIR}/${VZ_FULL}/scan_summary.out
+                          else
+                            echo "TEST_RUN is set to true, ENABLE_TEST_SCAN is set to false. NOT pushing anything to object storage, and didn't scan anything"
+                          fi
                         else
                           oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_report_vz_lite.out --file ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_report.out
                           oci --region ${OCI_REGION} os object put --force --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${params.RELEASE_VERSION}-scan_summary_vz_lite.out --file ${SCAN_REPORT_BASE_DIR}/${VZ_LITE}/scan_summary.out

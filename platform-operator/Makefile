@@ -53,18 +53,12 @@ ifndef RELEASE_BRANCH
 endif
 
 DIST_DIR:=dist
-K8S_NAMESPACE:=default
-WATCH_NAMESPACE:=
-EXTRA_PARAMS=
-INTEG_RUN_ID=
-ENV_NAME=verrazzano-platform-operator
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
 GO_BINDATA_VERSION ?= $(shell go list -m -f '{{.Version}}' 'github.com/go-bindata/go-bindata/v3' )
 
 CRD_PATH=helm_config/charts/verrazzano-platform-operator/crds
 
-CLUSTER_SNAPSHOT_LOCATION ?= platform-operator-integ-cluster-snapshot
 SHELL = bash
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
@@ -81,7 +75,6 @@ install-crds:
 .PHONY: uninstall-crds
 uninstall-crds:
 	kubectl delete -f ${CRD_PATH}
-
 
 #
 # Go build related tasks
@@ -173,58 +166,15 @@ endif
 unit-test: go-install
 	$(GO) test -v  ./internal/... ./controllers/... ./apis/...
 
-#
-# Test-related tasks
-#
-# On Jenkins we have pre-created clusters ready to go that are named specifically for the integ-test case
 CLUSTER_NAME = verrazzano
-VERRAZZANO_NS = verrazzano-install
 BUILD_DEPLOY = build/deploy
 OPERATOR_YAML ?= ${BUILD_DEPLOY}/operator.yaml
-DEPLOY = deploy
-OPERATOR_SETUP = test/operatorsetup
-
-CLUSTER_SNAPSHOT_LOCATION ?= platform-operator-integ-cluster-snapshot
-KIND_CONFIG ?= kind-config.yaml
-
-.PHONY: integ-test
-integ-test: create-cluster generate-operator-yaml
-	echo 'Load docker image for the verrazzano-platform-operator...'
-	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
-	echo 'Deploy Verrazzano platform operator ...'
-	kubectl apply -f ${OPERATOR_YAML} || (echo 'Platform operator install failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_SNAPSHOT_LOCATION} -r ${CLUSTER_SNAPSHOT_LOCATION}/analysis.report; exit 1)
-	echo 'Run tests...'
-	ginkgo -v --keep-going -cover test/integ/... || (echo 'Platform operator tests failed, capturing kind cluster dump'; ../tools/scripts/k8s-dump-cluster.sh -d ${CLUSTER_SNAPSHOT_LOCATION} -r ${CLUSTER_SNAPSHOT_LOCATION}/analysis.report; exit 1)
 
 .PHONY: generate-operator-yaml
 generate-operator-yaml:
 	OPERATOR_DIR=$$(dirname ${OPERATOR_YAML}) ; \
 	mkdir -p $${OPERATOR_DIR} ; \
 	env DOCKER_IMAGE=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG} IMAGE_PULL_SECRETS=${IMAGE_PULL_SECRETS} APP_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} ../tools/scripts/generate_operator_yaml.sh > ${OPERATOR_YAML}
-
-.PHONY: cleanup-cluster
-cleanup-cluster:
-	./build/scripts/cleanup.sh ${CLUSTER_NAME}
-
-.PHONY: create-cluster
-create-cluster: WORKSPACE ?= ${CURDIR}
-create-cluster:
-	kind_clusters=$$(kind get clusters) ; \
-    if [ -z "$${kind_clusters}" ] || ! kind get clusters | egrep "^${CLUSTER_NAME}\$$" > /dev/null ; then \
-		echo 'Create cluster...' ;\
-		echo 'KUBECONFIG=${KUBECONFIG}' ;\
-		HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster -v 1 \
-			--name ${CLUSTER_NAME} \
-			--wait 5m \
-			--config=test/${KIND_CONFIG} ;\
-		if [ $$? -ne 0 ] ; then \
-			mkdir ${WORKSPACE}/kind-logs ;\
-			kind export logs ${WORKSPACE}/kind-logs ;\
-			echo "Kind cluster creation failed" ;\
-			exit 1 ;\
-		fi ;\
-		kubectl config set-context kind-${CLUSTER_NAME} ;\
-	fi
 
 .PHONY: delete-cluster
 delete-cluster:
