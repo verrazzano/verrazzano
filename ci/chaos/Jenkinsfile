@@ -26,7 +26,7 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.20", "1.21", "1.22", "1.23", "1,24" ])
+                choices: ["1.21", "1.22", "1.23", "1,24" ])
         string (name: 'VERSION_FOR_INSTALL',
                 defaultValue: 'v1.1.2',
                 description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
@@ -236,7 +236,7 @@ pipeline {
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
                 OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
-                OCI_OS_LOCATION="${OCI_OS_LOCATION}"
+                OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                 OPERATOR_YAML="${OPERATOR_YAML_FILE}"
                 CLUSTER_SNAPSHOT_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
             }

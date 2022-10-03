@@ -14,7 +14,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // pod label used to identify the controllerRevision resource for daemonsets and statefulsets
@@ -52,7 +51,7 @@ func StatefulSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, name
 }
 
 // DoStatefulSetsExist checks if the named statefulsets exist
-func DoStatefulSetsExist(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedNames []types.NamespacedName, _ int32, prefix string) bool {
+func DoStatefulSetsExist(log vzlog.VerrazzanoLogger, client client.Client, namespacedNames []types.NamespacedName, _ int32, prefix string) bool {
 	for _, namespacedName := range namespacedNames {
 		statuefulset := appsv1.StatefulSet{}
 		if err := client.Get(context.TODO(), namespacedName, &statuefulset); err != nil {
@@ -69,7 +68,7 @@ func DoStatefulSetsExist(log vzlog.VerrazzanoLogger, client clipkg.Client, names
 
 // podsReadyStatefulSet checks for an expected number of pods to be using the latest controllerRevision resource and are
 // running and ready
-func podsReadyStatefulSet(log vzlog.VerrazzanoLogger, client clipkg.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector, expectedReplicas int32, prefix string) bool {
+func podsReadyStatefulSet(log vzlog.VerrazzanoLogger, client client.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector, expectedReplicas int32, prefix string) bool {
 	// Get a list of pods for a given namespace and labels selector
 	pods := status.GetPodsList(log, client, namespacedName, selector)
 	if pods == nil {

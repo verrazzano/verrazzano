@@ -26,7 +26,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,6 +53,8 @@ const (
 	vzInternalPromUser      = "verrazzano-prom-internal"
 	vzInternalEsUser        = "verrazzano-es-internal"
 	keycloakPodName         = "keycloak-0"
+	realmManagement         = "realm-management"
+	viewUsersRole           = "view-users"
 )
 
 // Define the Keycloak Key:Value pair for init container.
@@ -584,7 +585,7 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 }
 
 // updateKeycloakUris invokes kcadm.sh in Keycloak pod to update the client with Keycloak rewrite and weborigin uris
-func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod, clientID string, uriTemplate string) error {
+func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod, clientID string, uriTemplate string) error {
 	data, err := populateSubdomainInTemplate(ctx, "{"+uriTemplate+"}")
 	if err != nil {
 		return err
@@ -746,6 +747,11 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 			return err
 		}
 
+		// Add view-users role to verrazzano user
+		err = addClientRoleToUser(ctx, cfg, cli, vzUserName, realmManagement, vzSysRealm, viewUsersRole)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Setting password policy for master
@@ -831,8 +837,8 @@ func bashCMD(command string) []string {
 	}
 }
 
-func keycloakPod() *v1.Pod {
-	return &v1.Pod{
+func keycloakPod() *corev1.Pod {
+	return &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      keycloakPodName,
 			Namespace: ComponentNamespace,
@@ -1140,7 +1146,7 @@ func removeLoginConfigFile(ctx spi.ComponentContext, cfg *restclient.Config, cli
 }
 
 // getKeycloakGroups returns a structure of Groups in Realm verrazzano-system
-func getKeycloakGroups(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod) (KeycloakGroups, error) {
+func getKeycloakGroups(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod) (KeycloakGroups, error) {
 	var keycloakGroups KeycloakGroups
 	// Get the Client ID JSON array
 	cmd := fmt.Sprintf("/opt/jboss/keycloak/bin/kcadm.sh get groups -r %s", vzSysRealm)
@@ -1192,7 +1198,7 @@ func getGroupID(keycloakGroups KeycloakGroups, groupName string) string {
 }
 
 // getKeycloakRoless returns a structure of Groups in Realm verrazzano-system
-func getKeycloakRoles(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod) (KeycloakRoles, error) {
+func getKeycloakRoles(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod) (KeycloakRoles, error) {
 	var keycloakRoles KeycloakRoles
 	// Get the Client ID JSON array
 	out, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get-roles -r "+vzSysRealm))
@@ -1224,7 +1230,7 @@ func roleExists(keycloakRoles KeycloakRoles, roleName string) bool {
 }
 
 // getKeycloakUsers returns a structure of Users in Realm verrazzano-system
-func getKeycloakUsers(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *v1.Pod) ([]KeycloakUser, error) {
+func getKeycloakUsers(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod) ([]KeycloakUser, error) {
 	var keycloakUsers []KeycloakUser
 	// Get the Client ID JSON array
 	out, _, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get users -r "+vzSysRealm))
@@ -1302,7 +1308,7 @@ func isKeycloakReady(ctx spi.ComponentContext) bool {
 }
 
 // isPodReady determines if the pod is running by checking for a Ready condition with Status equal True
-func isPodReady(pod *v1.Pod) bool {
+func isPodReady(pod *corev1.Pod) bool {
 	conditions := pod.Status.Conditions
 	for j := range conditions {
 		if conditions[j].Type == "Ready" && conditions[j].Status == "True" {
@@ -1476,7 +1482,7 @@ func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error
 	return clientSecret.Value, nil
 }
 
-func generateClientSecret(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, createClientOutput string, kcPod *v1.Pod) error {
+func generateClientSecret(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, createClientOutput string, kcPod *corev1.Pod) error {
 	if len(createClientOutput) == 0 {
 		err := fmt.Errorf("Component Keycloak failed; %s client ID from Keycloak is zero length", clientName)
 		ctx.Log().Error(err)
@@ -1549,4 +1555,18 @@ func updateRancherClientSecretForKeycloakAuthConfig(ctx spi.ComponentContext) er
 	authConfig := make(map[string]interface{})
 	authConfig[common.AuthConfigKeycloakAttributeClientSecret] = clientSecret
 	return common.UpdateKeycloakOIDCAuthConfig(ctx, authConfig)
+}
+
+// addClientRoleToUser adds client role to the given user in the target realm
+func addClientRoleToUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, userName, clientID, targetRealm, roleName string) error {
+	kcPod := keycloakPod()
+	addRoleCmd := "/opt/jboss/keycloak/bin/kcadm.sh add-roles -r " + targetRealm + " --uusername " + userName + " --cclientid " + clientID + " --rolename " + roleName
+	ctx.Log().Debugf("Adding client role %s to the user %s, using command: %s", roleName, userName, addRoleCmd)
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(addRoleCmd))
+	if err != nil {
+		ctx.Log().Errorf("Adding client role %s to the user %s failed: stdout = %s, stderr = %s, error = %s", roleName, userName, stdout, stderr, err.Error())
+		return err
+	}
+	ctx.Log().Oncef("Added client role %s to the user %s", roleName, userName)
+	return nil
 }

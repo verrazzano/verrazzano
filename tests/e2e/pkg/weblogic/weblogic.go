@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package weblogic
@@ -48,10 +48,6 @@ func GetDomainInCluster(namespace string, name string, kubeconfigPath string) (*
 
 // GetHealthOfServers returns a slice of strings, each item representing the health of a server in the domain
 func GetHealthOfServers(uDomain *unstructured.Unstructured) ([]string, error) {
-	// Separator for list of servers
-	const serverSep = ","
-	// Separator for server fields
-	const fieldSep = ":"
 	// jsonpath template used to extract the server info
 	const template = `{.status.servers[*].health}`
 

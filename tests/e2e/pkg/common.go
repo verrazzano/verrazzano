@@ -7,12 +7,15 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io/ioutil"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"net/http"
 	neturl "net/url"
 	"os"
 	"reflect"
 	"regexp"
+	"sigs.k8s.io/yaml"
 	"strconv"
 	"strings"
 	"sync"
@@ -414,6 +417,10 @@ func isReadyAndRunning(pod v1.Pod) bool {
 		}
 		return true
 	}
+	// Jaeger Operator has index cleaner pods with a Succeeded status phase. Return true for these type of pods.
+	if pod.Status.Phase == v1.PodSucceeded {
+		return true
+	}
 	if pod.Status.Reason == "Evicted" && len(pod.Status.ContainerStatuses) == 0 {
 		Log(Info, fmt.Sprintf("Pod %v was Evicted", pod.Name))
 		return true // ignore this evicted pod
@@ -707,4 +714,22 @@ func CalculateSeconds(age string) (int64, error) {
 		return number, nil
 	}
 	return 0, fmt.Errorf("conversion to seconds for time unit %s is unsupported", match[2])
+}
+
+// CreateOverridesOrDie converts the yaml string to JSON object
+func CreateOverridesOrDie(yamlString string) []v1beta1.Overrides {
+	data, err := yaml.YAMLToJSON([]byte(yamlString))
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to convert yaml to JSON: %s", yamlString))
+		panic(err)
+	}
+	return []v1beta1.Overrides{
+		{
+			ConfigMapRef: nil,
+			SecretRef:    nil,
+			Values: &apiextensionsv1.JSON{
+				Raw: data,
+			},
+		},
+	}
 }
