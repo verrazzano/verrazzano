@@ -17,6 +17,10 @@ import (
 	"sync"
 )
 
+const (
+	space2String = "  %s\n"
+)
+
 var (
 	urlRE = regexp.MustCompile(`(http|ftp|https):\/\/([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:\/~+#-]*[\w@?^=%&\/~+#-])`)
 	//go:embed ignore_urls.txt
@@ -263,7 +267,7 @@ func main() {
 		}
 		for u, s := range sr.urlToStatus {
 			if verbose {
-				fmt.Printf("  %s\n", u)
+				fmt.Printf(space2String, u)
 			}
 			switch s {
 			case -1, 404:
@@ -277,16 +281,16 @@ func main() {
 	}
 	fmt.Printf("Relocated URLs\n")
 	for u, files := range relocatedURLs {
-		fmt.Printf("  %s\n", u)
+		fmt.Printf(space2String, u)
 		for _, file := range files {
 			fmt.Printf("    %s\n", file)
 		}
 	}
 	fmt.Printf("Dead URLs\n")
 	for u, files := range deadURLs {
-		fmt.Printf("  %s\n", u)
+		fmt.Printf(space2String, u)
 		for _, file := range files {
-			fmt.Printf("    %s\n", file)
+			fmt.Printf(space2String, file)
 		}
 	}
 
