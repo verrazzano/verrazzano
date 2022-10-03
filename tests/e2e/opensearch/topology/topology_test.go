@@ -40,7 +40,8 @@ var (
 	isMinVersion140 bool
 )
 
-var _ = t.BeforeSuite(func() {
+var clusterDump = pkg.NewClusterDumpWrapper(namespace)
+var _ = clusterDump.BeforeSuite(func() {
 	var err error
 	client, err = vmiClientFromConfig()
 	Expect(err).To(BeNil())
@@ -81,7 +82,8 @@ var _ = t.BeforeSuite(func() {
 	}, timeout, pollInterval).Should(BeTrue())
 })
 
-var _ = t.AfterSuite(func() {
+var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
+var _ = clusterDump.AfterSuite(func() {
 	Eventually(func() bool {
 		if err := client.VerrazzanoV1().VerrazzanoMonitoringInstances(namespace).Delete(context.TODO(), vmiName, metav1.DeleteOptions{}); err != nil &&
 			!apierrors.IsNotFound(err) {
