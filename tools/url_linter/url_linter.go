@@ -275,15 +275,15 @@ func main() {
 			}
 		}
 	}
-	fmt.Printf("Dead URLs\n")
-	for u, files := range deadURLs {
+	fmt.Printf("Relocated URLs\n")
+	for u, files := range relocatedURLs {
 		fmt.Printf("  %s\n", u)
 		for _, file := range files {
 			fmt.Printf("    %s\n", file)
 		}
 	}
-	fmt.Printf("Relocated URLs\n")
-	for u, files := range relocatedURLs {
+	fmt.Printf("Dead URLs\n")
+	for u, files := range deadURLs {
 		fmt.Printf("  %s\n", u)
 		for _, file := range files {
 			fmt.Printf("    %s\n", file)
