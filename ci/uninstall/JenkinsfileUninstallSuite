@@ -2,7 +2,6 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def agentLabel = env.JOB_NAME.contains('master') ? "phxsmall" : "VM.Standard2.2"
-def branchSpecificSchedule = getCronSchedule()
 
 pipeline {
     options {
@@ -18,10 +17,6 @@ pipeline {
             registryCredentialsId 'ocir-pull-and-push-account'
             label "${agentLabel}"
         }
-    }
-
-    triggers {
-        cron(branchSpecificSchedule)
     }
 
     parameters {
@@ -82,7 +77,13 @@ pipeline {
                 script {
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
-                        def scmInfo = checkout scm
+                        def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: env.BRANCH_NAME]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                     } else {
@@ -406,13 +407,4 @@ def metricBuildDuration() {
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }
-}
-
-def getCronSchedule() {
-    if (env.BRANCH_NAME.equals("master")) {
-        return "H */12 * * *"
-    } else if (env.BRANCH_NAME.startsWith("release-1")) {
-        return "@daily"
-    }
-    return ""
 }
