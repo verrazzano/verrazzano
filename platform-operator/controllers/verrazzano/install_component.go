@@ -168,12 +168,13 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 					installContext.state = compStateInstallStarted
 				}
 			}
+			installContext.state = compStateInstallEnd
 
 		case compStateInstallStarted:
 			oldState := componentStatus.State
 			oldGen := componentStatus.ReconcilingGeneration
 			componentStatus.ReconcilingGeneration = 0
-			if err := r.updateComponentStatus(compContext, "PreInstall started", vzapi.CondPreInstall); err != nil {
+			if err := r.updateComponentStatus(compContext, "Install started", vzapi.CondInstallStarted); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
 			compLog.Oncef("CR.generation: %v reset component %s state: %v generation: %v to state: %v generation: %v ",
