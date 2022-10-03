@@ -55,7 +55,11 @@ func gitTopLevelDir() (string, error) {
 	return strings.TrimSpace(string(stdout)), nil
 }
 
-func gitLsFiles() ([]string, error) {
+func gitLsFiles(gitRoot string) ([]string, error) {
+	err := os.Chdir(gitRoot)
+	if err != nil {
+		return nil, err
+	}
 	cmd := exec.Command("git", "ls-files", "--exclude-standard", "--cached")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -111,14 +115,14 @@ func scanFileForURLs(path string) ([]string, error) {
 	return urls, nil
 }
 
-func findURLs(gitRoot string, files []string) (map[string]*scanResult, error) {
+func findURLs(gitRoot string, files []string) map[string]*scanResult {
 
 	fileToScanResults := make(map[string]*scanResult)
 
 	var absoluteFiles []string
 	for _, file := range files {
 		if strings.HasPrefix(file, "ci/") || strings.HasPrefix(file, "tests/e2e/") || strings.HasPrefix(file, "platform-operator/thirdparty/") || strings.Contains(file, "/testdata/") ||
-		strings.Contains(file, "/test/") || strings.HasSuffix(file, "_test.go") {
+			strings.Contains(file, "/test/") || strings.HasSuffix(file, "_test.go") {
 			continue
 		}
 		absoluteFile := path.Join(gitRoot, file)
@@ -190,7 +194,7 @@ func findURLs(gitRoot string, files []string) (map[string]*scanResult, error) {
 				}
 				res, err := client.Head(url)
 				if err != nil {
-					fmt.Printf("%v\n", err)
+					fmt.Printf("Failed to issue HEAD to URL %s: %v\n", url, err)
 					continue
 				}
 				res.Body.Close()
@@ -210,7 +214,7 @@ func findURLs(gitRoot string, files []string) (map[string]*scanResult, error) {
 		}
 	}
 
-	return fileToScanResults, nil
+	return fileToScanResults
 }
 
 func main() {
@@ -225,7 +229,8 @@ func main() {
 	flag.Parse()
 
 	if help {
-		//printUsage()
+		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		flag.PrintDefaults()
 		os.Exit(0)
 	}
 
@@ -233,21 +238,21 @@ func main() {
 
 	gitTopLevel, err := gitTopLevelDir()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed to get git top level directory: %v", err)
 		os.Exit(1)
 	}
 
-	files, err := gitLsFiles()
+	files, err := gitLsFiles(gitTopLevel)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed to list files with git: %v", err)
 		os.Exit(1)
 	}
 	initignoredURLs()
 
-	fileToScanResults, err := findURLs(gitTopLevel, files)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v", err)
-		os.Exit(1)
+	fileToScanResults := findURLs(gitTopLevel, files)
+
+	if verbose {
+		fmt.Printf("URLs checked\n")
 	}
 
 	var deadURLs = make(map[string][]string)
@@ -257,6 +262,9 @@ func main() {
 			continue
 		}
 		for u, s := range sr.urlToStatus {
+			if verbose {
+				fmt.Printf("  %s\n", u)
+			}
 			switch s {
 			case -1, 404:
 				files := append(deadURLs[u], f)
@@ -269,20 +277,20 @@ func main() {
 	}
 	fmt.Printf("Dead URLs\n")
 	for u, files := range deadURLs {
-		fmt.Printf("%s\n", u)
+		fmt.Printf("  %s\n", u)
 		for _, file := range files {
-			fmt.Printf("\t%s\n", file)
+			fmt.Printf("    %s\n", file)
 		}
 	}
 	fmt.Printf("Relocated URLs\n")
 	for u, files := range relocatedURLs {
-		fmt.Printf("%s\n", u)
+		fmt.Printf("  %s\n", u)
 		for _, file := range files {
-			fmt.Printf("\t%s\n", file)
+			fmt.Printf("    %s\n", file)
 		}
 	}
 
-	if len(deadURLs) > 0 { 
+	if len(deadURLs) > 0 {
 		os.Exit(1)
 	}
 	os.Exit(0)
