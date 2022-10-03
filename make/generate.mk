@@ -24,16 +24,6 @@ application-manifests: controller-gen
 	# Add copyright headers to the kubebuilder generated manifests
 	./hack/add-yml-header.sh PROJECT
 
-# Generate manifests e.g. CRD, RBAC etc.
-.PHONY: image-patch-manifests
-image-patch-manifests: controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./api/..." output:crd:artifacts:config=$(CRD_PATH)
-	# Add copyright headers to the kubebuilder generated CRDs
-	./hack/add-crd-header.sh
-	./hack/update-codegen.sh "images:v1alpha1" "images" "boilerplate.go.txt"
-	# Add copyright headers to the kubebuilder generated manifests
-	./hack/add-yml-header.sh PROJECT
-
 # Generate code
 .PHONY: generate
 generate: controller-gen

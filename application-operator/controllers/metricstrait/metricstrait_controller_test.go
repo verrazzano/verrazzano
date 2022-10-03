@@ -81,7 +81,7 @@ func TestMetricsTraitCreatedForContainerizedWorkload(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	assert.NoError(err)
@@ -116,7 +116,7 @@ func TestMetricsTraitCreatedForVerrazzanoWorkload(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -150,7 +150,7 @@ func TestMetricsTraitCreatedForDeploymentWorkload(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -181,7 +181,7 @@ func TestMetricsTraitDeletedForContainerizedWorkload(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	assert.NoError(err)
@@ -209,7 +209,7 @@ func TestMetricsTraitDeletedForContainerizedWorkloadWhenDeploymentDeleted(t *tes
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	assert.NoError(err)
@@ -236,7 +236,7 @@ func TestMetricsTraitDeletedForDeploymentWorkload(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	assert.NoError(err)
@@ -265,7 +265,7 @@ func TestFetchTraitError(t *testing.T) {
 	// Create and make the request
 	reconciler := newMetricsTraitReconciler(c)
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	assert.Nil(err)
@@ -308,7 +308,7 @@ func TestWorkloadFetchError(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	assert.NotNil(err)
@@ -439,7 +439,7 @@ func TestDeploymentUpdateError(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -490,7 +490,7 @@ func TestUnsupportedWorkloadType(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	assert.NoError(err)
@@ -512,7 +512,7 @@ func TestMetricsTraitCreatedForWLSWorkload(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	assert.NoError(err)
@@ -535,7 +535,7 @@ func TestMetricsTraitDeletedForWLSWorkload(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	assert.NoError(err)
@@ -560,7 +560,7 @@ func TestMetricsTraitCreatedWithMultiplePorts(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	assert.NoError(err)
@@ -585,7 +585,7 @@ func TestMetricsTraitCreatedWithMultiplePortsAndPort(t *testing.T) {
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 
 	reconciler := newMetricsTraitReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	assert.NoError(err)
@@ -608,7 +608,7 @@ func TestMetricsTraitDeletedForCOHWorkload(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	assert.NoError(err)
@@ -650,19 +650,19 @@ func TestUseHTTPSForScrapeTargetFalseConditions(t *testing.T) {
 		})
 
 	mtrait.Spec.WorkloadReference.Kind = "VerrazzanoCoherenceWorkload"
-	https, _ := useHTTPSForScrapeTarget(nil, nil, &mtrait)
+	https, _ := useHTTPSForScrapeTarget(context.TODO(), nil, &mtrait)
 	// Expect https to be false for scrape target of Kind VerrazzanoCoherenceWorkload
 	assert.False(https, "Expected https to be false for Workload of Kind VerrazzanoCoherenceWorkload")
 
 	mtrait.Spec.WorkloadReference.Kind = "Coherence"
-	https, _ = useHTTPSForScrapeTarget(nil, nil, &mtrait)
+	https, _ = useHTTPSForScrapeTarget(context.TODO(), nil, &mtrait)
 	// Expect https to be false for scrape target of Kind Coherence
 	assert.False(https, "Expected https to be false for Workload of Kind Coherence")
 
 	reconciler := newMetricsTraitReconciler(mock)
 
 	mtrait.Spec.WorkloadReference.Kind = ""
-	https, _ = useHTTPSForScrapeTarget(nil, reconciler.Client, &mtrait)
+	https, _ = useHTTPSForScrapeTarget(context.TODO(), reconciler.Client, &mtrait)
 	// Expect https to be false for namespaces NOT labeled for istio-injection
 	assert.False(https, "Expected https to be false for namespace NOT labeled for istio injection")
 	mocker.Finish()
@@ -707,7 +707,7 @@ func TestUseHTTPSForScrapeTargetTrueCondition(t *testing.T) {
 		"istio-injection": "enabled",
 	}
 	testNamespace.ObjectMeta.Labels = labels
-	https, _ := useHTTPSForScrapeTarget(nil, reconciler.Client, &mtrait)
+	https, _ := useHTTPSForScrapeTarget(context.TODO(), reconciler.Client, &mtrait)
 	// Expect https to be true for namespaces labeled for istio-injection
 	assert.True(https, "Expected https to be true for namespaces labeled for Istio injection")
 	mocker.Finish()
@@ -762,7 +762,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: vzconst.KubeSystem, Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -783,7 +783,7 @@ func TestMetricsTraitDisabledForContainerizedWorkload(t *testing.T) {
 	// Create and make the request
 	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: "test-namespace", Name: "test-trait-name"}}
 	reconciler := newMetricsTraitReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 	// Validate the results
 	assert.NoError(err)
 	assert.Equal(true, result.Requeue)

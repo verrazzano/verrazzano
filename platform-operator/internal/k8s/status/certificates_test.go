@@ -18,8 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func getScheme() *runtime.Scheme {
@@ -45,7 +43,7 @@ func TestCheckCertificatesReady(t *testing.T) {
 	}
 	cmEnabled := true
 	vz := &v1alpha1.Verrazzano{
-		ObjectMeta: v1.ObjectMeta{Namespace: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "foo"},
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
 				CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},
@@ -58,9 +56,9 @@ func TestCheckCertificatesReady(t *testing.T) {
 	time2 := metav1.NewTime(now.Add(-180 * time.Second))
 	time3 := metav1.NewTime(now)
 
-	client := fake.NewFakeClientWithScheme(getScheme(),
+	client := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(
 		&certv1.Certificate{
-			ObjectMeta: v1.ObjectMeta{Name: certNames[0].Name, Namespace: certNames[0].Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: certNames[0].Name, Namespace: certNames[0].Namespace},
 			Spec:       certv1.CertificateSpec{},
 			Status: certv1.CertificateStatus{
 				Conditions: []certv1.CertificateCondition{
@@ -71,7 +69,7 @@ func TestCheckCertificatesReady(t *testing.T) {
 			},
 		},
 		&certv1.Certificate{
-			ObjectMeta: v1.ObjectMeta{Name: certNames[1].Name, Namespace: certNames[1].Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: certNames[1].Name, Namespace: certNames[1].Namespace},
 			Spec:       certv1.CertificateSpec{},
 			Status: certv1.CertificateStatus{
 				Conditions: []certv1.CertificateCondition{
@@ -79,7 +77,7 @@ func TestCheckCertificatesReady(t *testing.T) {
 				},
 			},
 		},
-	)
+	).Build()
 	allReady, notReadyCerts := CertificatesAreReady(client, vzlog.DefaultLogger(), vz, certNames)
 	assert.True(t, allReady)
 	assert.Len(t, notReadyCerts, 0)
@@ -100,7 +98,7 @@ func TestCheckCertificatesNotReady(t *testing.T) {
 	}
 	cmEnabled := true
 	vz := &v1alpha1.Verrazzano{
-		ObjectMeta: v1.ObjectMeta{Namespace: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "foo"},
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
 				CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},
@@ -112,9 +110,9 @@ func TestCheckCertificatesNotReady(t *testing.T) {
 	time1 := metav1.NewTime(now.Add(-300 * time.Second))
 	time3 := metav1.NewTime(now)
 
-	client := fake.NewFakeClientWithScheme(getScheme(),
+	client := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(
 		&certv1.Certificate{
-			ObjectMeta: v1.ObjectMeta{Name: certNames[0].Name, Namespace: certNames[0].Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: certNames[0].Name, Namespace: certNames[0].Namespace},
 			Spec:       certv1.CertificateSpec{},
 			Status: certv1.CertificateStatus{
 				Conditions: []certv1.CertificateCondition{
@@ -124,7 +122,7 @@ func TestCheckCertificatesNotReady(t *testing.T) {
 			},
 		},
 		&certv1.Certificate{
-			ObjectMeta: v1.ObjectMeta{Name: certNames[1].Name, Namespace: certNames[1].Namespace},
+			ObjectMeta: metav1.ObjectMeta{Name: certNames[1].Name, Namespace: certNames[1].Namespace},
 			Spec:       certv1.CertificateSpec{},
 			Status: certv1.CertificateStatus{
 				Conditions: []certv1.CertificateCondition{
@@ -132,7 +130,7 @@ func TestCheckCertificatesNotReady(t *testing.T) {
 				},
 			},
 		},
-	)
+	).Build()
 	allReady, notReadyActual := CertificatesAreReady(client, vzlog.DefaultLogger(), vz, certNames)
 	assert.False(t, allReady)
 	assert.Equal(t, notReadyExpected, notReadyActual)
@@ -150,7 +148,7 @@ func TestCheckCertificatesNotReadyCertManagerDisabled(t *testing.T) {
 
 	cmEnabled := false
 	vz := &v1alpha1.Verrazzano{
-		ObjectMeta: v1.ObjectMeta{Namespace: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "foo"},
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
 				CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},
@@ -158,7 +156,7 @@ func TestCheckCertificatesNotReadyCertManagerDisabled(t *testing.T) {
 		},
 	}
 
-	client := fake.NewFakeClientWithScheme(getScheme())
+	client := fake.NewClientBuilder().WithScheme(getScheme()).Build()
 	allReady, notReadyActual := CertificatesAreReady(client, vzlog.DefaultLogger(), vz, certNames)
 	assert.True(t, allReady)
 	assert.Len(t, notReadyActual, 0)
@@ -171,7 +169,7 @@ func TestCheckCertificatesNotReadyCertManagerDisabled(t *testing.T) {
 func TestCheckCertificatesNotReadyNoCertsPassed(t *testing.T) {
 	cmEnabled := true
 	vz := &v1alpha1.Verrazzano{
-		ObjectMeta: v1.ObjectMeta{Namespace: "foo"},
+		ObjectMeta: metav1.ObjectMeta{Namespace: "foo"},
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
 				CertManager: &v1alpha1.CertManagerComponent{Enabled: &cmEnabled},
@@ -179,7 +177,7 @@ func TestCheckCertificatesNotReadyNoCertsPassed(t *testing.T) {
 		},
 	}
 
-	client := fake.NewFakeClientWithScheme(getScheme())
+	client := fake.NewClientBuilder().WithScheme(getScheme()).Build()
 	allReady, notReady := CertificatesAreReady(client, vzlog.DefaultLogger(), vz, []types.NamespacedName{})
 	assert.Len(t, notReady, 0)
 	assert.True(t, allReady)

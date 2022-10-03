@@ -171,3 +171,8 @@ func compareVersionSubstring(v1 string, v2 string) int {
 func (v *SemVersion) IsGreaterThanOrEqualTo(from *SemVersion) bool {
 	return v.IsGreatherThan(from) || v.IsEqualTo(from)
 }
+
+// IsEqualOrPatchVersionOf Returns true if to == from or to is a patch version of from
+func (v *SemVersion) IsEqualToOrPatchVersionOf(from *SemVersion) bool {
+	return v.IsEqualTo(from) || (from.Patch == int64(0) && v.Major == from.Major && v.Minor == from.Minor)
+}
