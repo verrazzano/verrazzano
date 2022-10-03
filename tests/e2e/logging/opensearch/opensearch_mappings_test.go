@@ -17,7 +17,7 @@ import (
 const (
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 1 * time.Minute
-	longWaitTimeout      = 5 * time.Minute
+	longWaitTimeout      = 10 * time.Minute
 	indexDocumentURL     = "%s/_doc"
 )
 
@@ -107,7 +107,7 @@ var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.e
 				}
 			}
 			return true
-		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue(), "Expected to write data successfully to OpenSearch with different data types")
+		}).WithPolling(shortPollingInterval).WithTimeout(longWaitTimeout).Should(BeTrue(), "Expected to write data successfully to OpenSearch with different data types")
 	})
 
 	MinimumVerrazzanoIt("Documents with object fields get stored as objects", func() {
