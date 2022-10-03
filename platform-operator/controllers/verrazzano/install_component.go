@@ -64,16 +64,22 @@ func (r *Reconciler) installComponents(log vzlog.VerrazzanoLogger, cr *installv1
 
 	tracker := getInstallTracker(cr)
 
+	var requeue bool
+
 	// Loop through all of the Verrazzano components and install each one.
 	// Don't move to the next component until the current one has been succcessfully installed
 	for _, comp := range registry.GetComponents() {
 		installContext := tracker.getComponentInstallContext(comp.Name())
 		result, err := r.installSingleComponent(spiCtx, installContext, comp, preUpgrade)
 		if err != nil || result.Requeue {
-			return result, err
+			requeue = true
 		}
 
 	}
+	if requeue {
+		return newRequeueWithDelay(), nil
+	}
+
 	deleteInstallTracker(cr)
 
 	// All components have been installed
