@@ -9,7 +9,7 @@ def VERRAZZANO_DEV_VERSION = ""
 def tarfilePrefix=""
 def storeLocation=""
 
-def agentLabel = "largeexperimental" //env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
 
 pipeline {
     options {
@@ -20,7 +20,7 @@ pipeline {
 
     agent {
        docker {
-            image "${EXPERIMENTAL_RUNNER_DOCKER_IMAGE}"
+            image "${RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
