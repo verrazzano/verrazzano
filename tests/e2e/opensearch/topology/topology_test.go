@@ -129,7 +129,7 @@ var _ = t.Describe("OpenSearch Cluster Topology", func() {
 						vmov1.IngestRole,
 					},
 					Resources: vmov1.Resources{
-						RequestMemory: "48Mi",
+						RequestMemory: "948Mi",
 					},
 					Storage: &vmov1.Storage{
 						Size: "5Gi",
@@ -142,7 +142,7 @@ var _ = t.Describe("OpenSearch Cluster Topology", func() {
 						vmov1.MasterRole,
 					},
 					Resources: vmov1.Resources{
-						RequestMemory: "48Mi",
+						RequestMemory: "2.5Gi",
 					},
 					Storage: &vmov1.Storage{
 						Size: "5Gi",
@@ -271,7 +271,7 @@ func createSingleNodeVMI() (*vmov1.VerrazzanoMonitoringInstance, error) {
 						Size: "5Gi",
 					},
 					Resources: vmov1.Resources{
-						RequestMemory: "48Mi",
+						RequestMemory: "1.3Gi",
 					},
 				},
 			},
@@ -329,7 +329,8 @@ func verifyHeapSettings(pod corev1.Pod) error {
 		return fmt.Errorf("empty OPENSEARCH_JAVA_OPTS env variable in container %s, pod %s", containerName, pod.GetName())
 	}
 
-	heapSettingFromEnvVar := strings.ReplaceAll(stdout, " ", "")
+	r := strings.NewReplacer(" ", "", "\t", "", "\n", "", "\r", "", "\x00", "", " ", "")
+	heapSettingFromEnvVar := r.Replace(stdout)
 	stdout, stderr, err = k8sutil.ExecPod(kubeClientSet, restConfig, &pod, containerName, []string{"cat /proc/1/cmdline"})
 	if err != nil {
 		return fmt.Errorf("error getting process command line for container %s, pod %s, error %v", containerName, pod.GetName(), err.Error())
@@ -343,7 +344,7 @@ func verifyHeapSettings(pod corev1.Pod) error {
 		return fmt.Errorf("empty command line for container %s, pod %s", containerName, pod.GetName())
 	}
 
-	if !strings.Contains(stdout, heapSettingFromEnvVar) {
+	if !strings.Contains(r.Replace(stdout), heapSettingFromEnvVar) {
 		return fmt.Errorf("heap settings on container command line not same as value from OPENSEARCH_JAVA_OPTS env variable in container %s, pod %s, env var value: %v,container command line: %v", containerName, pod.GetName(), heapSettingFromEnvVar, stdout)
 	}
 
