@@ -46,8 +46,6 @@ spec:
           startupProbe:
             exec:
               command:
-                - sh
-                - -c
                 - /verrazzano/startup_probe.sh
             periodSeconds: 5
             timeoutSeconds: 3
