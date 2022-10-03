@@ -358,7 +358,7 @@ func TestReconcileVerrazzanoProject(t *testing.T) {
 			request := clusterstest.NewRequest(tt.fields.vpNamespace, tt.fields.vpName)
 			reconciler := newVerrazzanoProjectReconciler(mockClient)
 			_ = vmcclient.AddToScheme(reconciler.Scheme)
-			_, err := reconciler.Reconcile(nil, request)
+			_, err := reconciler.Reconcile(context.TODO(), request)
 
 			mocker.Finish()
 
@@ -475,7 +475,7 @@ func TestNetworkPolicies(t *testing.T) {
 	request := clusterstest.NewRequest(constants.VerrazzanoMultiClusterNamespace, vpName)
 	reconciler := newVerrazzanoProjectReconciler(mockClient)
 	_ = vmcclient.AddToScheme(reconciler.Scheme)
-	_, err := reconciler.Reconcile(nil, request)
+	_, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 
 	mocker.Finish()
@@ -506,7 +506,7 @@ func TestDeleteVerrazzanoProject(t *testing.T) {
 	// Make the request
 	request := clusterstest.NewRequest(constants.VerrazzanoMultiClusterNamespace, vpName)
 	reconciler := newVerrazzanoProjectReconciler(mockClient)
-	_, err := reconciler.Reconcile(nil, request)
+	_, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 
 	mocker.Finish()
@@ -612,7 +612,7 @@ func TestDeleteVerrazzanoProjectFinalizer(t *testing.T) {
 	request := clusterstest.NewRequest(constants.VerrazzanoMultiClusterNamespace, vpName)
 	reconciler := newVerrazzanoProjectReconciler(mockClient)
 	_ = vmcclient.AddToScheme(reconciler.Scheme)
-	_, err := reconciler.Reconcile(nil, request)
+	_, err := reconciler.Reconcile(context.TODO(), request)
 	assert.NoError(err)
 
 	mocker.Finish()
@@ -800,7 +800,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
 	reconciler := newVerrazzanoProjectReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.Nil(err)

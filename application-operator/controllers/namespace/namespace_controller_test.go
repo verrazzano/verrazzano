@@ -102,7 +102,7 @@ func TestReconcileNamespaceUpdate(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
 	}
-	result, err := nc.Reconcile(nil, req)
+	result, err := nc.Reconcile(context.TODO(), req)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -148,7 +148,7 @@ func runTestReconcileGetError(t *testing.T, returnErr error, expectedResult ctrl
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
 	}
-	result, err := nc.Reconcile(nil, req)
+	result, err := nc.Reconcile(context.TODO(), req)
 
 	mocker.Finish()
 	asserts.Nil(err)
@@ -202,7 +202,7 @@ func TestReconcileNamespaceDeleted(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
 	}
-	result, err := nc.Reconcile(nil, req)
+	result, err := nc.Reconcile(context.TODO(), req)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -247,7 +247,7 @@ func TestReconcileNamespaceDeletedErrorOnUpdate(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
 	}
-	result, _ := nc.Reconcile(nil, req)
+	result, _ := nc.Reconcile(context.TODO(), req)
 
 	mocker.Finish()
 	asserts.True(result.Requeue)
@@ -283,7 +283,7 @@ func TestReconcileNamespaceDeletedNoFinalizer(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
 	}
-	result, err := nc.Reconcile(nil, req)
+	result, err := nc.Reconcile(context.TODO(), req)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -735,7 +735,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: vzconst.KubeSystem},
 	}
-	result, err := nc.Reconcile(nil, req)
+	result, err := nc.Reconcile(context.TODO(), req)
 
 	// Validate the results
 	mocker.Finish()
