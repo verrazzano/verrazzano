@@ -92,7 +92,7 @@ pipeline {
         INSTALL_CONFIG_FILE_KIND_HA = "./examples/ha/ha.yaml"
         INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/install-verrazzano.yaml"
         INSTALL_PROFILE = "${params.INSTALL_HA == true ? "prod" : "dev"}"
-        KIND_NODE_COUNT = "${params.INSTALL_HA == true ? "4" : "1"}"
+        KIND_NODE_COUNT = "${params.INSTALL_HA == true ? "5" : "1"}"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
