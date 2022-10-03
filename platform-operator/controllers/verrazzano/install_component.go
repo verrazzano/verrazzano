@@ -46,8 +46,6 @@ const (
 
 	// compStateInstallEnd is the terminal state
 	compStateInstallEnd componentInstallState = "compStateInstallEnd"
-
-	startGlobalInstall componentInstallState = "startGlobalInstall"
 )
 
 // componentInstallContext has the install context for a Verrazzano component install
@@ -64,6 +62,8 @@ func (r *Reconciler) installComponents(log vzlog.VerrazzanoLogger, cr *installv1
 
 	spiCtx.Log().Progress("Reconciling components for Verrazzano installation")
 
+	tracker := getInstallTracker(cr)
+
 	// Loop through all of the Verrazzano components and install each one.
 	// Don't move to the next component until the current one has been succcessfully installed
 	for _, comp := range registry.GetComponents() {
@@ -74,6 +74,8 @@ func (r *Reconciler) installComponents(log vzlog.VerrazzanoLogger, cr *installv1
 		}
 
 	}
+	deleteInstallTracker(cr)
+
 	// All components have been installed
 	return ctrl.Result{}, nil
 }

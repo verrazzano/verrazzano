@@ -156,7 +156,7 @@ func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv
 
 // getUninstallTracker gets the Uninstall tracker for Verrazzano
 func getUninstallTracker(cr *installv1alpha1.Verrazzano) *UninstallTracker {
-	key := getTrackerKey(cr)
+	key := getInstallTrackerKey(cr)
 	vuc, ok := UninstallTrackerMap[key]
 	// If the entry is missing or the generation is different create a new entry
 	if !ok || vuc.gen != cr.Generation {
@@ -173,7 +173,7 @@ func getUninstallTracker(cr *installv1alpha1.Verrazzano) *UninstallTracker {
 // DeleteUninstallTracker deletes the Uninstall tracker for the Verrazzano resource
 // This needs to be called when uninstall is completely done
 func DeleteUninstallTracker(cr *installv1alpha1.Verrazzano) {
-	key := getTrackerKey(cr)
+	key := getInstallTrackerKey(cr)
 	_, ok := UninstallTrackerMap[key]
 	if ok {
 		delete(UninstallTrackerMap, key)
