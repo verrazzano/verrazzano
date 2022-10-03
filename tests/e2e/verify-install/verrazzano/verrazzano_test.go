@@ -566,7 +566,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 			t.It("has correct number of pods running", func() {
 				if isMinVersion110 {
-					err := validateCorrectNumberOfPodsRunningSts(constants.Keycloak, constants.KeycloakNamespace, "app.kubernetes.io/name")
+					err := validateCorrectNumberOfPodsRunningSts(constants.Keycloak, constants.KeycloakNamespace, "app.kubernetes.io/name", constants.Keycloak)
 					Expect(err).To(BeNil())
 				} else {
 					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
@@ -576,6 +576,60 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			t.It("has affinity configured as expected", func() {
 				if isMinVersion140 {
 					assertPodAntiAffinity(map[string]string{"app.kubernetes.io/name": constants.Keycloak}, constants.KeycloakNamespace)
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
+				}
+			})
+
+			// check associated mysql elements
+			t.It("has expected mysql statefulset", func() {
+				if isMinVersion140 {
+					Eventually(func() (bool, error) {
+						return pkg.DoesStatefulSetExist(constants.KeycloakNamespace, "mysql")
+					}, waitTimeout, pollingInterval).Should(BeTrue())
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
+				}
+			})
+
+			t.It("has correct number of mysql server pods running", func() {
+				if isMinVersion140 {
+					err := validateCorrectNumberOfPodsRunningSts("mysql", constants.KeycloakNamespace, "app.kubernetes.io/name", "mysql-innodbcluster-mysql-server")
+					Expect(err).To(BeNil())
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
+				}
+			})
+
+			t.It("has expected mysql router deployment", func() {
+				if isMinVersion140 {
+					Eventually(func() (bool, error) {
+						return pkg.DoesDeploymentExist(constants.KeycloakNamespace, "mysql-router")
+					}, waitTimeout, pollingInterval).Should(BeTrue())
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
+				}
+			})
+
+			t.It("has correct number of mysql router pods running", func() {
+				if isMinVersion140 {
+					validateCorrectNumberOfPodsRunning("mysql-router", constants.KeycloakNamespace)
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
+				}
+			})
+
+			t.It("has affinity configured for mysql statefulset as expected", func() {
+				if isMinVersion140 {
+					assertPodAntiAffinity(map[string]string{"app.kubernetes.io/name": "mysql-innodbcluster-mysql-server"}, constants.KeycloakNamespace)
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
+				}
+			})
+
+			t.It("has affinity configured for mysql router deployment as expected", func() {
+				if isMinVersion140 {
+					assertPodAntiAffinity(map[string]string{"app.kubernetes.io/name": "mysql-router"}, constants.KeycloakNamespace)
 				} else {
 					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
 				}
@@ -700,7 +754,7 @@ func validateCorrectNumberOfIngressNGINXPodsRunning() {
 }
 
 // validateCorrectNumberOfPodsRunningSts - validate the expected number of pods is running for a statefulset
-func validateCorrectNumberOfPodsRunningSts(stsName string, nameSpace string, label string) error {
+func validateCorrectNumberOfPodsRunningSts(stsName string, nameSpace string, label string, labelValue string) error {
 	// Get the deployment
 	var statefulset *appsv1.StatefulSet
 	Eventually(func() (*appsv1.StatefulSet, error) {
