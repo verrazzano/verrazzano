@@ -233,6 +233,11 @@ pipeline {
                     }
                 }
             }
+            post {
+                failure {
+                    dumpK8sCluster('lre-upgrade-failure-cluster-snapshot')
+                }
+            }
         }
 
         stage('Verify Install') {
@@ -241,9 +246,6 @@ pipeline {
                    return params.RUN_TESTS
                }
             }
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
-            }
             steps {
                 runGinkgoRandomize('verify-install')
             }
@@ -251,6 +253,9 @@ pipeline {
                 always {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    dumpK8sCluster('lre-verify-install-failure-cluster-snapshot')
                 }
             }
         }
@@ -263,52 +268,34 @@ pipeline {
             }
             parallel {
                 stage('verify-scripts') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-scripts"
-                    }
                     steps {
                         runGinkgoRandomize('scripts', "${KUBECONFIG}")
                     }
                 }
                 stage('verify-infra restapi') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-restapi"
-                    }
                     steps {
                         runGinkgoRandomize('verify-infra/restapi')
                     }
                 }
                 stage('verify-infra oam') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-oam"
-                    }
                     steps {
                         runGinkgoRandomize('verify-infra/oam')
                     }
                 }
 
                 stage('verify-infra vmi') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-infra-vmi"
-                    }
                     steps {
                         runGinkgoRandomize('verify-infra/vmi')
                     }
                 }
 
                 stage('security role based access') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
-                    }
                     steps {
                         runGinkgo('security/rbac')
                     }
                 }
 
                 stage('system component metrics') {
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/system-component-metrics"
-                    }
                     steps {
                         runGinkgo('metrics/syscomponents')
                     }
@@ -319,16 +306,17 @@ pipeline {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
+                failure {
+                    dumpK8sCluster('lre-verify-infra-failure-cluster-snapshot')
+                }
             }
         }
+
         stage('Hello Helidon Application Test') {
             when {
                expression {
                    return params.RUN_TESTS
                }
-            }
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-helidon"
             }
             steps {
                 script {
@@ -339,6 +327,9 @@ pipeline {
                 always {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    dumpK8sCluster('lre-hello-helidon-failure-cluster-snapshot')
                 }
             }
         }
@@ -410,4 +401,10 @@ def emitJobMetrics() {
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgoRandomize('jobmetrics')
+}
+
+def dumpK8sCluster(dumpDirectory) {
+    sh """
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
+    """
 }
