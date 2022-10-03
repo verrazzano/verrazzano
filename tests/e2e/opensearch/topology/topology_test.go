@@ -316,7 +316,7 @@ func verifyHeapSettings(pod corev1.Pod) error {
 		return fmt.Errorf("pod %s does not contain an opensearch container", pod.GetName())
 	}
 
-	stdout, stderr, err := k8sutil.ExecPod(kubeClientSet, restConfig, &pod, containerName, []string{"env | grep OPENSEARCH_JAVA_OPTS | cut -d \"=\" -f2 | xargs"})
+	stdout, stderr, err := k8sutil.ExecPod(kubeClientSet, restConfig, &pod, containerName, []string{"sh", "-c", "env | grep OPENSEARCH_JAVA_OPTS | cut -d \"=\" -f2 | xargs"})
 	if err != nil {
 		return fmt.Errorf("error getting value from OPENSEARCH_JAVA_OPTS env variable in container %s, pod %s, error %v", containerName, pod.GetName(), err.Error())
 	}
@@ -331,7 +331,7 @@ func verifyHeapSettings(pod corev1.Pod) error {
 
 	r := strings.NewReplacer(" ", "", "\t", "", "\n", "", "\r", "", "\x00", "", " ", "")
 	heapSettingFromEnvVar := r.Replace(stdout)
-	stdout, stderr, err = k8sutil.ExecPod(kubeClientSet, restConfig, &pod, containerName, []string{"cat /proc/1/cmdline"})
+	stdout, stderr, err = k8sutil.ExecPod(kubeClientSet, restConfig, &pod, containerName, []string{"sh", "-c", "cat /proc/1/cmdline"})
 	if err != nil {
 		return fmt.Errorf("error getting process command line for container %s, pod %s, error %v", containerName, pod.GetName(), err.Error())
 	}
