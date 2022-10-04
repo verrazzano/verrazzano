@@ -594,7 +594,7 @@
           "images": [
             {
               "image": "jaeger-operator",
-              "tag": "1.37.0-20221004064114-107d507c",
+              "tag": "1.37.0-20221004180219-6cd8417f",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
