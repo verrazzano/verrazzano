@@ -18,13 +18,13 @@ import (
 type componentInstallState string
 
 const (
-	// compStateInit is the state when a component is initialized
+	// compStateInstallDisabled is the state when a component is initialized
 	compStateInstallInit componentInstallState = "componentStateInit"
 
-	// compStateReady is the state when a component is ready
+	// compStateInstallDisabled is the state when a component is ready
 	compStateInstallReady componentInstallState = "componentStateReady"
 
-	// compStateDisabled is the state when a component is disabled
+	// compStateInstallDisabled is the state when a component is disabled
 	compStateInstallDisabled componentInstallState = "componentStateDisabled"
 
 	// compStateInstallStarted is the state when a component writes the Install Started Condition
