@@ -445,8 +445,9 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 
 // TestPreUpgradeDevProfile tests the preUpgrade function
 // GIVEN a call to preUpgrade during upgrade of a dev profile cluster
-// WHEN the pre upgrade executes
-// THEN the pv/pvc steps are skipped
+//
+//   WHEN the pre upgrade executes
+//   THEN the pv/pvc steps are skipped
 func TestPreUpgradeDevProfile(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
@@ -1443,8 +1444,9 @@ func TestIsEnabledManagedClusterProfile(t *testing.T) {
 
 // TestIsEnabledProdProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and prod profile
-//  THEN false is returned
+//
+//	WHEN The Keycloak enabled flag is nil and prod profile
+//	THEN false is returned
 func TestIsEnabledProdProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -1454,8 +1456,9 @@ func TestIsEnabledProdProfile(t *testing.T) {
 
 // TestIsEnabledDevProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and dev profile
-//  THEN false is returned
+//
+//	WHEN The Keycloak enabled flag is nil and dev profile
+//	THEN false is returned
 func TestIsEnabledDevProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil

@@ -54,8 +54,9 @@ func (r genericTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err
 
 // TestGetValues tests the Helm get values command
 // GIVEN a set of upgrade parameters
-//  WHEN I call Upgrade
-//  THEN the Helm upgrade returns success and the cmd object has correct values
+//
+//	WHEN I call Upgrade
+//	THEN the Helm upgrade returns success and the cmd object has correct values
 func TestGetValues(t *testing.T) {
 	assert := assert.New(t)
 	SetCmdRunner(getValuesRunner{t: t})
@@ -68,8 +69,9 @@ func TestGetValues(t *testing.T) {
 
 // TestUpgrade tests the Helm upgrade command
 // GIVEN a set of upgrade parameters
-//  WHEN I call Upgrade
-//  THEN the Helm upgrade returns success and the cmd object has correct values
+//
+//	WHEN I call Upgrade
+//	THEN the Helm upgrade returns success and the cmd object has correct values
 func TestUpgrade(t *testing.T) {
 	var overrides []HelmOverrides
 	overrides = append(overrides, HelmOverrides{FileOverride: "my-override.yaml"})
@@ -94,8 +96,9 @@ func TestUpgrade(t *testing.T) {
 
 // TestUpgradeCustomFileOverrides tests the Helm upgrade command
 // GIVEN a set of upgrade parameters with additional file overrides
-//  WHEN I call Upgrade
-//  THEN the Helm upgrade returns success and the cmd object has correct values
+//
+//	WHEN I call Upgrade
+//	THEN the Helm upgrade returns success and the cmd object has correct values
 func TestUpgradeCustomFileOverrides(t *testing.T) {
 	var overrides []HelmOverrides
 	overrides = append(overrides, HelmOverrides{FileOverride: "my-override.yaml"})
@@ -123,8 +126,9 @@ func TestUpgradeCustomFileOverrides(t *testing.T) {
 
 // TestUpgradeFail tests the Helm upgrade command failure condition
 // GIVEN a set of upgrade parameters and a fake runner that fails
-//  WHEN I call Upgrade
-//  THEN the Helm upgrade returns an error
+//
+//	WHEN I call Upgrade
+//	THEN the Helm upgrade returns an error
 func TestUpgradeFail(t *testing.T) {
 	var overrides []HelmOverrides
 	assert := assert.New(t)
@@ -139,8 +143,9 @@ func TestUpgradeFail(t *testing.T) {
 
 // TestUninstall tests the Helm Uninstall fn
 // GIVEN a call to Uninstall
-//  WHEN the command executes successfully
-//  THEN the function returns no error
+//
+//	WHEN the command executes successfully
+//	THEN the function returns no error
 func TestUninstall(t *testing.T) {
 	stdout := []byte{}
 	stdErr := []byte{}
@@ -157,8 +162,9 @@ func TestUninstall(t *testing.T) {
 
 // TestUninstallError tests the Helm Uninstall fn
 // GIVEN a call to Uninstall
-//  WHEN the command executes and returns an error
-//  THEN the function returns an error
+//
+//	WHEN the command executes and returns an error
+//	THEN the function returns an error
 func TestUninstallError(t *testing.T) {
 	var stdout []byte
 	var stdErr []byte
@@ -175,8 +181,9 @@ func TestUninstallError(t *testing.T) {
 
 // TestIsReleaseInstalled tests checking if a Helm release is installed
 // GIVEN a release name and namespace
-//  WHEN I call IsReleaseInstalled
-//  THEN the function returns success and found equal true
+//
+//	WHEN I call IsReleaseInstalled
+//	THEN the function returns success and found equal true
 func TestIsReleaseInstalled(t *testing.T) {
 	assert := assert.New(t)
 	SetCmdRunner(foundRunner{t: t})
@@ -189,8 +196,9 @@ func TestIsReleaseInstalled(t *testing.T) {
 
 // TestIsReleaseNotInstalled tests checking if a Helm release is not installed
 // GIVEN a release name and namespace
-//  WHEN I call IsReleaseInstalled
-//  THEN the function returns success and the correct found status
+//
+//	WHEN I call IsReleaseInstalled
+//	THEN the function returns success and the correct found status
 func TestIsReleaseNotInstalled(t *testing.T) {
 	assert := assert.New(t)
 	SetCmdRunner(foundRunner{t: t})
@@ -203,8 +211,9 @@ func TestIsReleaseNotInstalled(t *testing.T) {
 
 // TestIsReleaseInstalledFailed tests failure when checking if a Helm release is installed
 // GIVEN a bad release name and namespace
-//  WHEN I call IsReleaseInstalled
-//  THEN the function returns a failure
+//
+//	WHEN I call IsReleaseInstalled
+//	THEN the function returns a failure
 func TestIsReleaseInstalledFailed(t *testing.T) {
 	assert := assert.New(t)
 	SetCmdRunner(foundRunner{t: t})
@@ -217,8 +226,9 @@ func TestIsReleaseInstalledFailed(t *testing.T) {
 
 // TestIsReleaseDeployed tests checking if a Helm release is installed
 // GIVEN a release name and namespace
-//  WHEN I call IsReleaseDeployed
-//  THEN the function returns success and found equal true
+//
+//	WHEN I call IsReleaseDeployed
+//	THEN the function returns success and found equal true
 func TestIsReleaseDeployed(t *testing.T) {
 	assert := assert.New(t)
 	SetCmdRunner(foundRunner{t: t})
@@ -235,8 +245,9 @@ func TestIsReleaseDeployed(t *testing.T) {
 
 // TestIsReleaseNotDeployed tests checking if a Helm release is not installed
 // GIVEN a release name and namespace
-//  WHEN I call IsReleaseDeployed
-//  THEN the function returns success and the correct found status
+//
+//	WHEN I call IsReleaseDeployed
+//	THEN the function returns success and the correct found status
 func TestIsReleaseNotDeployed(t *testing.T) {
 	assert := assert.New(t)
 	SetCmdRunner(foundRunner{t: t})
@@ -253,8 +264,9 @@ func TestIsReleaseNotDeployed(t *testing.T) {
 
 // TestIsReleaseFailedChartNotFound tests checking if a Helm release is in a failed state
 // GIVEN a release name and namespace
-//  WHEN I call IsReleaseFailed and the status is ChartNotFound
-//  THEN the function returns false and no error
+//
+//	WHEN I call IsReleaseFailed and the status is ChartNotFound
+//	THEN the function returns false and no error
 func TestIsReleaseFailedChartNotFound(t *testing.T) {
 	assert := assert.New(t)
 	SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
@@ -269,8 +281,9 @@ func TestIsReleaseFailedChartNotFound(t *testing.T) {
 
 // TestIsReleaseFailedChartNotFound tests checking if a Helm release is in a failed state
 // GIVEN a release name and namespace
-//  WHEN I call IsReleaseFailed and the status is deployed
-//  THEN the function returns false and no error
+//
+//	WHEN I call IsReleaseFailed and the status is deployed
+//	THEN the function returns false and no error
 func TestIsReleaseFailedChartDeployed(t *testing.T) {
 	assert := assert.New(t)
 	SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
@@ -285,8 +298,9 @@ func TestIsReleaseFailedChartDeployed(t *testing.T) {
 
 // TestIsReleaseFailed tests checking if a Helm release is in a failed state
 // GIVEN a release name and namespace
-//  WHEN I call IsReleaseFailed and the status is failed
-//  THEN the function returns false and no error
+//
+//	WHEN I call IsReleaseFailed and the status is failed
+//	THEN the function returns false and no error
 func TestIsReleaseFailed(t *testing.T) {
 	assert := assert.New(t)
 	SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
@@ -301,8 +315,9 @@ func TestIsReleaseFailed(t *testing.T) {
 
 // TestIsReleaseFailedError tests checking if a Helm release is in a failed state
 // GIVEN a release name and namespace
-//  WHEN I call IsReleaseFailed and the an error is returned by the state function
-//  THEN the function returns false and an error
+//
+//	WHEN I call IsReleaseFailed and the an error is returned by the state function
+//	THEN the function returns false and an error
 func TestIsReleaseFailedError(t *testing.T) {
 	assert := assert.New(t)
 	SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
@@ -317,8 +332,9 @@ func TestIsReleaseFailedError(t *testing.T) {
 
 // Test_getReleaseStateDeployed tests the getReleaseState fn
 // GIVEN a call to getReleaseState
-//  WHEN the chart state is deployed
-//  THEN the function returns ChartStatusDeployed and no error
+//
+//	WHEN the chart state is deployed
+//	THEN the function returns ChartStatusDeployed and no error
 func Test_getReleaseStateDeployed(t *testing.T) {
 	jsonOut := []byte(`
 [
@@ -347,8 +363,9 @@ func Test_getReleaseStateDeployed(t *testing.T) {
 
 // Test_getReleaseStateDeployed tests the getReleaseState fn
 // GIVEN a call to getReleaseState
-//  WHEN the chart state is pending-install
-//  THEN the function returns ChartStatusPendingInstall and no error
+//
+//	WHEN the chart state is pending-install
+//	THEN the function returns ChartStatusPendingInstall and no error
 func Test_getReleaseStatePendingInstall(t *testing.T) {
 	jsonOut := []byte(`
 [
@@ -377,8 +394,9 @@ func Test_getReleaseStatePendingInstall(t *testing.T) {
 
 // Test_getReleaseStateChartNotFound tests the getReleaseState fn
 // GIVEN a call to getReleaseState
-//  WHEN the chart/release can not be found
-//  THEN the function returns "" and no error
+//
+//	WHEN the chart/release can not be found
+//	THEN the function returns "" and no error
 func Test_getReleaseStateChartNotFound(t *testing.T) {
 	jsonOut := []byte(`[]`)
 
@@ -395,8 +413,9 @@ func Test_getReleaseStateChartNotFound(t *testing.T) {
 
 // Test_getChartStatusDeployed tests the getChartStatus fn
 // GIVEN a call to getChartStatus
-//  WHEN Helm returns a deployed state
-//  THEN the function returns "deployed" and no error
+//
+//	WHEN Helm returns a deployed state
+//	THEN the function returns "deployed" and no error
 func Test_getChartStatusDeployed(t *testing.T) {
 	jsonOut := []byte(`
 {
@@ -442,8 +461,9 @@ func Test_getChartStatusDeployed(t *testing.T) {
 
 // Test_getChartStatusNotFound tests the getChartStatus fn
 // GIVEN a call to getChartStatus
-//  WHEN the json structure does not have an status filed in the info section
-//  THEN the function returns an error
+//
+//	WHEN the json structure does not have an status filed in the info section
+//	THEN the function returns an error
 func Test_getChartStatusNotFound(t *testing.T) {
 	jsonOut := []byte(`
 {
@@ -488,8 +508,9 @@ func Test_getChartStatusNotFound(t *testing.T) {
 
 // Test_getChartStatusChartNotFound tests the getChartStatus fn
 // GIVEN a call to getChartStatus
-//  WHEN the Chart is not found
-//  THEN the function returns chart not found and no error
+//
+//	WHEN the Chart is not found
+//	THEN the function returns chart not found and no error
 func Test_getChartStatusChartNotFound(t *testing.T) {
 	stdout := []byte{}
 	stdErr := []byte("Error: release: not found")
@@ -507,8 +528,9 @@ func Test_getChartStatusChartNotFound(t *testing.T) {
 
 // Test_getChartStatusUnexpectedHelmError tests the getChartStatus fn
 // GIVEN a call to getChartStatus
-//  WHEN Helm returns an error
-//  THEN the function returns an error
+//
+//	WHEN Helm returns an error
+//	THEN the function returns an error
 func Test_getChartStatusUnexpectedHelmError(t *testing.T) {
 	var stdout []byte
 	stdErr := []byte("Some unknown helm status error")
@@ -526,8 +548,9 @@ func Test_getChartStatusUnexpectedHelmError(t *testing.T) {
 
 // Test_getChartInfoNotFound tests the getChartStatus fn
 // GIVEN a call to getChartStatus
-//  WHEN the json structure does not have an info section
-//  THEN the function returns an error
+//
+//	WHEN the json structure does not have an info section
+//	THEN the function returns an error
 func Test_getChartInfoNotFound(t *testing.T) {
 	jsonOut := []byte(`
 {
@@ -566,8 +589,9 @@ func Test_getChartInfoNotFound(t *testing.T) {
 
 // TestGetReleaseValue tests the GetReleaseValues fn
 // GIVEN a call to GetReleaseValues
-//  WHEN a valid helm release and namespace are deployed
-//  THEN the function returns the value/true/nil if the helm key exists, or ""/false/nil if it doesn't
+//
+//	WHEN a valid helm release and namespace are deployed
+//	THEN the function returns the value/true/nil if the helm key exists, or ""/false/nil if it doesn't
 func TestGetReleaseValue(t *testing.T) {
 	jsonOut := []byte(`
 {
@@ -608,8 +632,9 @@ func TestGetReleaseValue(t *testing.T) {
 
 // TestGetReleaseStringValue tests the GetReleaseStringValues fn
 // GIVEN a call to GetReleaseStringValues
-//  WHEN a valid helm release and namespace are deployed
-//  THEN the function returns the value/true/nil if the helm key exists, or ""/false/nil if it doesn't
+//
+//	WHEN a valid helm release and namespace are deployed
+//	THEN the function returns the value/true/nil if the helm key exists, or ""/false/nil if it doesn't
 func TestGetReleaseStringValue(t *testing.T) {
 	jsonOut := []byte(`
 {
@@ -650,8 +675,9 @@ func TestGetReleaseStringValue(t *testing.T) {
 
 // TestGetReleaseValueReleaseNotFound tests the GetReleaseValues fn
 // GIVEN a call to GetReleaseValues
-//  WHEN a the helm release is NOT deployed
-//  THEN the function returns the value/true/nil if the helm key exists, or ""/false/nil if it doesn't
+//
+//	WHEN a the helm release is NOT deployed
+//	THEN the function returns the value/true/nil if the helm key exists, or ""/false/nil if it doesn't
 func TestGetReleaseValueReleaseNotFound(t *testing.T) {
 
 	SetCmdRunner(genericTestRunner{
@@ -767,8 +793,9 @@ func (r foundRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err error
 
 // Test_GetReleaseAppVersion tests the GetReleaseAppVersion function
 // GIVEN a call to GetReleaseAppVersion
-//  WHEN varying the inputs and underlying status
-//  THEN test the expected result is returned
+//
+//	WHEN varying the inputs and underlying status
+//	THEN test the expected result is returned
 func Test_GetReleaseAppVersion(t *testing.T) {
 	jsonSuccess := []byte(`
 [

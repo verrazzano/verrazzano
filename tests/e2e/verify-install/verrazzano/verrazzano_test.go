@@ -714,7 +714,7 @@ func validateCorrectNumberOfPodsRunning(deployName string, nameSpace string) {
 			return false
 		}
 		// Compare the number of running pods to the expected number
-		var runningPods int32 = 0
+		var runningPods int32
 		for _, pod := range pods {
 			if pod.Status.Phase == corev1.PodRunning {
 				runningPods++
@@ -748,7 +748,7 @@ func validateCorrectNumberOfIngressNGINXPodsRunning() {
 			return false
 		}
 		// Compare the number of running pods to the expected number
-		var runningPods int32 = 0
+		var runningPods int32
 		for _, pod := range pods {
 			if pod.Status.Phase == corev1.PodRunning {
 				runningPods++
@@ -777,7 +777,7 @@ func validateCorrectNumberOfPodsRunningSts(stsName string, nameSpace string, lab
 			return false
 		}
 		// Compare the number of running pods to the expected number
-		var runningPods int32 = 0
+		var runningPods int32
 		for _, pod := range pods {
 			if pod.Status.Phase == corev1.PodRunning {
 				runningPods++

@@ -11,8 +11,9 @@ import (
 
 // TestRemoveTempFiles tests the RemoveTempFiles function
 // GIVEN a call to RemoveTempFiles
-//  WHEN with a valid prefix and/or suffix
-//  THEN any matching temp files are correctly deleted
+//
+//	WHEN with a valid prefix and/or suffix
+//	THEN any matching temp files are correctly deleted
 func TestRemoveTempFiles(t *testing.T) {
 
 	tests := []struct {

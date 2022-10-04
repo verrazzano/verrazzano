@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-//TestUnionStringMaps verifies the union of two string maps
+// TestUnionStringMaps verifies the union of two string maps
 func TestUnionStringMaps(t *testing.T) {
 	m1 := map[string]string{
 		"a": "1",

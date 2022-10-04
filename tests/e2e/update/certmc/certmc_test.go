@@ -24,7 +24,7 @@ var (
 	t               = framework.NewTestFramework("update fluentd external opensearch")
 	adminCluster    *multicluster.Cluster
 	managedClusters []*multicluster.Cluster
-	tenMinutes      = 10 * time.Minute
+	waitTimeout     = 10 * time.Minute
 	pollingInterval = 5 * time.Second
 )
 
@@ -73,7 +73,7 @@ func updateCustomCA() {
 			GetSecretDataAsString(constants.VerrazzanoSystemNamespace, pocnst.VerrazzanoIngressSecret, mcconstants.CaCrtKey)
 		oldCaCrts[managedCluster.Name] = oldCaCrt
 		oldCM := managedVZ.Spec.Components.CertManager
-		var newCM *vzapi.CertManagerComponent = nil
+		var newCM *vzapi.CertManagerComponent
 		if isDefaultConfig(oldCM) {
 			caname := managedCluster.GenerateCA()
 			newCM = &vzapi.CertManagerComponent{
@@ -82,7 +82,7 @@ func updateCustomCA() {
 		}
 		originalCMs[managedCluster.Name] = oldCM
 		m := &CertModifier{CertManager: newCM}
-		update.RetryUpdate(m, managedCluster.KubeConfigPath, false, pollingInterval, tenMinutes)
+		update.RetryUpdate(m, managedCluster.KubeConfigPath, false, pollingInterval, waitTimeout)
 	}
 }
 
@@ -97,7 +97,7 @@ func revertToDefaultCertManager() {
 		oldCaCrts[managedCluster.Name] = oldCaCrt
 		oldCm := originalCMs[managedCluster.Name]
 		m := &CertModifier{CertManager: oldCm}
-		update.RetryUpdate(m, managedCluster.KubeConfigPath, false, pollingInterval, tenMinutes)
+		update.RetryUpdate(m, managedCluster.KubeConfigPath, false, pollingInterval, waitTimeout)
 	}
 }
 
@@ -116,7 +116,7 @@ func verifyCaSync() {
 				pkg.Log(pkg.Error, fmt.Sprintf("%v of %v took %v updated", pocnst.VerrazzanoIngressSecret, managedCluster.Name, time.Since(start)))
 			}
 			return newCaCrt != oldCaCrt
-		}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Sync CA %v", managedCluster.Name))
+		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Sync CA %v", managedCluster.Name))
 		newCaCrt = managedCluster.
 			GetSecretDataAsString(constants.VerrazzanoSystemNamespace, pocnst.VerrazzanoIngressSecret, mcconstants.CaCrtKey)
 		casecName := fmt.Sprintf("ca-secret-%s", managedCluster.Name)
@@ -129,7 +129,7 @@ func verifyCaSync() {
 				pkg.Log(pkg.Error, fmt.Sprintf("%v of %v is not updated", casecName, managedCluster.Name))
 			}
 			return admCaCrt == newCaCrt
-		}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Sync CA %v", managedCluster.Name))
+		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Sync CA %v", managedCluster.Name))
 	}
 }
 
@@ -155,7 +155,7 @@ func verifyScrapeTargets() {
 				return health.(string) == "up"
 			}
 			return false
-		}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("scrape target of %s is not ready", managedCluster.Name))
+		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("scrape target of %s is not ready", managedCluster.Name))
 	}
 }
 
@@ -167,7 +167,7 @@ func verifyRegistration() {
 			gomega.Eventually(func() bool {
 				reg, err := adminCluster.GetRegistration(managedCluster.Name)
 				return reg != nil && err == nil
-			}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("%s is not registered", managedCluster.Name))
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("%s is not registered", managedCluster.Name))
 		}
 	}
 }

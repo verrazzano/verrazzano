@@ -38,8 +38,8 @@ func createCattleSystemNamespace(log vzlog.VerrazzanoLogger, c client.Client) er
 	return nil
 }
 
-//copyDefaultCACertificate copies the defaultVerrazzanoName TLS Secret to the ComponentNamespace for use by Rancher
-//This method will only copy defaultVerrazzanoName if default CA certificates are being used.
+// copyDefaultCACertificate copies the defaultVerrazzanoName TLS Secret to the ComponentNamespace for use by Rancher
+// This method will only copy defaultVerrazzanoName if default CA certificates are being used.
 func copyDefaultCACertificate(log vzlog.VerrazzanoLogger, c client.Client, vz *vzapi.Verrazzano) error {
 	cm := vz.Spec.Components.CertManager
 	if isUsingDefaultCACertificate(cm) {

@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-//GetInstalledBOMData Exec's into the Platform Operator pod and returns the installed BOM file data as JSON
+// GetInstalledBOMData Exec's into the Platform Operator pod and returns the installed BOM file data as JSON
 func GetInstalledBOMData(kubeconfigPath string) ([]byte, error) {
 	const platformOperatorPodNameSearchString = "verrazzano-platform-operator" // Pod Substring for finding the platform operator pod
 

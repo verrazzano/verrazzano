@@ -107,7 +107,7 @@ func TestCreateMCAppConfigNoOAMComponent(t *testing.T) {
 	assert.NoError(err)
 
 	// Verify the associated OAM component did not get created on local cluster since we are
-	// using a MultiClusterComponent instead of a OAM Component in the MultuClusterApplicationConfiguration
+	// using a MultiClusterComponent instead of an OAM Component in the MultuClusterApplicationConfiguration
 	component := &oamv1alpha2.Component{}
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: testMCComponent.Name, Namespace: testMCComponent.Namespace}, component)
 	assert.True(errors.IsNotFound(err))

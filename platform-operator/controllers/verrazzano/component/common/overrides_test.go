@@ -21,8 +21,9 @@ import (
 
 // TestGetInstallOverridesYAML tests GetInstallOverridesYAML
 // GIVEN an override list
-//  WHEN I call GetInstallOverridesYAML
-//  THEN I get a list of key value pairs of files from the override sources
+//
+//	WHEN I call GetInstallOverridesYAML
+//	THEN I get a list of key value pairs of files from the override sources
 func TestGetInstallOverridesYAML(t *testing.T) {
 	trueval := true
 	dataKey := "testKey"
@@ -232,8 +233,9 @@ func TestGetInstallOverridesYAML(t *testing.T) {
 
 // TestExtractValueFromOverrideString tests ExtractValueFromOverrideString
 // GIVEN an override string
-//  WHEN I call ExtractValueFromOverrideString
-//  THEN I get a value of the specified json path from the override string
+//
+//	WHEN I call ExtractValueFromOverrideString
+//	THEN I get a value of the specified json path from the override string
 func TestExtractValueFromOverrideString(t *testing.T) {
 	goodYAML := "foo:\n  foo: bar\n"
 	badYAML := "foo:\n  {foo: bar\n"

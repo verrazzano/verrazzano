@@ -53,7 +53,7 @@ func actualCRNodes(cr *vzapi.Verrazzano) map[string]vzapi.OpenSearchNode {
 	return nodeMap
 }
 
-//newOpenSearch creates a new OpenSearch resource for the VMI
+// newOpenSearch creates a new OpenSearch resource for the VMI
 // The storage settings for OpenSearch nodes follow this order of precedence:
 // 1. ESInstallArgs values
 // 2. VolumeClaimTemplate overrides
@@ -132,7 +132,7 @@ func newOpenSearch(effectiveCR, actualCR *vzapi.Verrazzano, storage *common.Reso
 	return opensearch, nil
 }
 
-//populateOpenSearchFromInstallArgs loops through each of the install args and sets their value in the corresponding
+// populateOpenSearchFromInstallArgs loops through each of the install args and sets their value in the corresponding
 // OpenSearch object
 func populateOpenSearchFromInstallArgs(opensearch *vmov1.Elasticsearch, opensearchComponent *vzapi.ElasticsearchComponent) error {
 	intSetter := func(val *int32, arg vzapi.InstallArgs) error {
@@ -232,7 +232,7 @@ func findStorageForNode(node vzapi.OpenSearchNode, actualCRNodes map[string]vzap
 	return storageSize
 }
 
-//setPVCNames persists any PVC names from an existing VMI
+// setPVCNames persists any PVC names from an existing VMI
 func setPVCNames(vmi *vmov1.VerrazzanoMonitoringInstance, node *vmov1.ElasticsearchNode) {
 	if vmi != nil {
 		for _, nodeGroup := range vmi.Spec.Elasticsearch.Nodes {

@@ -707,7 +707,7 @@ func (r *Reconciler) mutateVirtualService(virtualService *istioclient.VirtualSer
 	return nil
 }
 
-//createOfUpdateDestinationRule creates or updates the DestinationRule.
+// createOfUpdateDestinationRule creates or updates the DestinationRule.
 func (r *Reconciler) createOrUpdateDestinationRule(ctx context.Context, trait *vzapi.IngressTrait, rule vzapi.IngressRule, name string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger, services []*corev1.Service) {
 	if rule.Destination.HTTPCookie != nil {
 		destinationRule := &istioclient.DestinationRule{
@@ -775,7 +775,7 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 	return controllerutil.SetControllerReference(trait, destinationRule, r.Scheme)
 }
 
-//createOrUpdateAuthorizationPolicies creates or updates the authorization policies associated with the paths defined in the ingress rule.
+// createOrUpdateAuthorizationPolicies creates or updates the authorization policies associated with the paths defined in the ingress rule.
 func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, rule vzapi.IngressRule, namePrefix string, hosts []string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
 	for _, path := range rule.Paths {
 		if path.Policy != nil {
@@ -937,8 +937,9 @@ func (r *Reconciler) isIstioIngressGatewayUpdated(updateEvent event.UpdateEvent)
 	return false
 }
 
-//createIngressTraitReconcileRequests Used by the Console ingress watcher to map a detected change in the ingress
-//  to requests to reconcile any existing application IngressTrait objects
+// createIngressTraitReconcileRequests Used by the Console ingress watcher to map a detected change in the ingress
+//
+//	to requests to reconcile any existing application IngressTrait objects
 func (r *Reconciler) createIngressTraitReconcileRequests() []reconcile.Request {
 	requests := []reconcile.Request{}
 
@@ -1282,9 +1283,11 @@ func convertAPIVersionAndKindToNamespacedName(apiVersion string, kind string) ty
 
 // buildAppFullyQualifiedHostName generates a DNS host name for the application using the following structure:
 // <app>.<namespace>.<dns-subdomain>  where
-//   app is the OAM application name
-//   namespace is the namespace of the OAM application
-//   dns-subdomain is The DNS subdomain name
+//
+//	app is the OAM application name
+//	namespace is the namespace of the OAM application
+//	dns-subdomain is The DNS subdomain name
+//
 // For example: sales.cars.example.com
 func buildAppFullyQualifiedHostName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
 	appName, ok := trait.Labels[oam.LabelAppName]
@@ -1300,8 +1303,10 @@ func buildAppFullyQualifiedHostName(cli client.Reader, trait *vzapi.IngressTrait
 
 // buildNamespacedDomainName generates a domain name for the application using the following structure:
 // <namespace>.<dns-subdomain>  where
-//   namespace is the namespace of the OAM application
-//   dns-subdomain is The DNS subdomain name
+//
+//	namespace is the namespace of the OAM application
+//	dns-subdomain is The DNS subdomain name
+//
 // For example: cars.example.com
 func buildNamespacedDomainName(cli client.Reader, trait *vzapi.IngressTrait) (string, error) {
 	const externalDNSKey = "external-dns.alpha.kubernetes.io/target"

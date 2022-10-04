@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	threeMinutes    = 3 * time.Minute
+	waitTimeout     = 3 * time.Minute
 	pollingInterval = 10 * time.Second
 	documentFile    = "testdata/upgrade/opensearch/document1.json"
 )
@@ -61,6 +61,6 @@ var _ = t.Describe("Pre Upgrade OpenSearch", Label("f:observability.logging.es")
 				}
 			}
 			return true
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(), "Expected not to fail while writing data to OpenSearch")
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue(), "Expected not to fail while writing data to OpenSearch")
 	})
 })
