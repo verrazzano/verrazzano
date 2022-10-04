@@ -114,6 +114,10 @@ const (
 	SettingUILogoDark              = "ui-logo-dark"
 	SettingUILogoDarkLogoFilePath  = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-dark.svg"
 	SettingUILogoValueprefix       = "data:image/svg+xml;base64,"
+	SettingUIPrimaryColor          = "ui-primary-color"
+	SettingUIPrimaryColorValue     = "rgb(48, 99, 142)"
+	SettingUILinkColor             = "ui-link-color"
+	SettingUILinkColorValue        = "rgb(49, 118, 217)"
 )
 
 // auth config
@@ -708,4 +712,14 @@ func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, l
 	}
 
 	return createOrUpdateResource(ctx, types.NamespacedName{Name: settingName}, GVKSetting, map[string]interface{}{"value": fmt.Sprintf("%s%s", SettingUILogoValueprefix, stdout)})
+}
+
+// createOrUpdateUIColorSettings creates/updates the ui-primary-color and ui-link-color settings
+func createOrUpdateUIColorSettings(ctx spi.ComponentContext) error {
+	err := createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUIPrimaryColor}, GVKSetting, map[string]interface{}{"value": SettingUIPrimaryColorValue})
+	if err != nil {
+		return err
+	}
+
+	return createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUILinkColor}, GVKSetting, map[string]interface{}{"value": SettingUILinkColorValue})
 }
