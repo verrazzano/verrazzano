@@ -481,7 +481,7 @@ webhooks:
     namespaceSelector:
       matchExpressions:
           - {key: istio-injection, operator: In, values: [enabled]}
-          - {key: verrazzano.io/namespace, operator: NotIn, values: [verrazzano-system, kube-system, verrazzano-monitoring]}
+          - {key: verrazzano.io/namespace, operator: NotIn, values: [verrazzano-system, kube-system, verrazzano-monitoring,keycloak]}
     clientConfig:
       service:
         name: {{ .Values.name }}

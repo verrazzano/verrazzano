@@ -1,6 +1,14 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+#envs:
+#  imagesDefaultRegistry: ghcr.io
+#  imagesDefaultRepository: verrazzano
+
+image:
+  pullPolicy: Always
+
 envs:
-  imagesDefaultRegistry: ghcr.io
-  imagesDefaultRepository: verrazzano
+  imagesDefaultRegistry: iad.ocir.io
+  imagesDefaultRepository: odsbuilddev/aamitra/dev
+  imagesPullPolicy: Always
