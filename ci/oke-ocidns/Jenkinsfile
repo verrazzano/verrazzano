@@ -268,6 +268,13 @@ pipeline {
             }
             steps {
                 script {
+                    println("+++++++++++++++++++ RUN DETAILS +++++++++++++++++++++++++")
+                    println("AUTH_TYPE = ${params.OCI_DNS_AUTH}")
+                    println("DNS_SCOPE = ${params.DNS_SCOPE}")
+                    println("NGINX_LB_SCOPE = ${params.NGINX_LB_SCOPE}")
+                    println("ISTIO_LB_SCOPE = ${params.ISTIO_LB_SCOPE}")
+                    println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+                   
                     sh """
                         ${WORKSPACE}/tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS $CERT_ISSUER $ACME_ENVIRONMENT ${params.DNS_SCOPE} ${params.NGINX_LB_SCOPE} ${params.ISTIO_LB_SCOPE}
                     """
@@ -289,7 +296,13 @@ pipeline {
                     if (params.NGINX_LB_SCOPE == "PRIVATE" || params.ISTIO_LB_SCOPE == "PRIVATE")  {
                         env.TF_VAR_region = RUNNER_REGION
                         env.OCI_CLI_REGION = RUNNER_REGION
-                        println("+++ Either NGINX_LB_SCOPE or ISTIO_LB_SCOPE is private +++")
+                        if (params.NGINX_LB_SCOPE == "PRIVATE") {
+                            println("NGINX_LB_SCOPE is PRIVATE")
+                        } else if (params.ISTIO_LB_SCOPE == "PRIVATE") {
+                            println("ISTIO_LB_SCOPE is PRIVATE")
+                        } else {
+                            println("Both NGINX_LB_SCOPE and ISTIO_LB_SCOPE are PRIVATE")
+                        }
                    }
                     println("runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}")
                         sh """
