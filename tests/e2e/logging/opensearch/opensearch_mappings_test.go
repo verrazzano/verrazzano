@@ -17,7 +17,7 @@ import (
 const (
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 1 * time.Minute
-	longWaitTimeout      = 10 * time.Minute
+	longWaitTimeout      = 15 * time.Minute
 	indexDocumentURL     = "%s/_doc"
 )
 
