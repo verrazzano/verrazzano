@@ -1109,7 +1109,7 @@ func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *inst
 	if ctrlerrors.IsUpdateConflict(err) {
 		log.Debugf("Requeuing to get a fresh copy of the Verrazzano resource since the current one is outdated.")
 	} else {
-		log.Errorf("Failed to update Verrazzano resource :%v", err)
+		log.Errorf("Failed to update Verrazzano resource :v", err)
 	}
 	// Return error so that reconcile gets called again
 	return err
