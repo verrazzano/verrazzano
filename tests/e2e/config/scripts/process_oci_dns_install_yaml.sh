@@ -44,11 +44,11 @@ if [ "${NGINX_LB_SCOPE}" != "PRIVATE" ] && [ $CRD_API_VERSION == "v1beta1" ]; th
   yq -i eval ".spec.components.ingressNGINX.overrides.values[0].controller.service.annotations.\"service.beta.kubernetes.io/oci-load-balancer-internal\" = \"true\"" ${INSTALL_CONFIG_TO_EDIT}
 fi
 if [ "${ISTIO_LB_SCOPE}" != "PRIVATE" ] && [ $CRD_API_VERSION == "v1beta1" ]; then
-  yq -i eval ".spec.components.istio.overrides.values[0].apiVersion = \"install.istio.io/v1alpha1\"" ${INSTALL_CONFIG_TO_EDIT}
-  yq -i eval ".spec.components.istio.overrides.values[0].kind = \"IstioOperator\"" ${INSTALL_CONFIG_TO_EDIT}
-  yq -i eval ".spec.components.istio.overrides.values[0].spec.components.ingressGateways[0].enabled = \"true\"" ${INSTALL_CONFIG_TO_EDIT}
-  yq -i eval ".spec.components.istio.overrides.values[0].spec.components.ingressGateways[0].name = \"istio-ingressgateway\"" ${INSTALL_CONFIG_TO_EDIT}
-  yq -i eval ".spec.components.istio.overrides.values[0].spec.components.ingressGateways[0].k8s.serviceAnnotations.\"service.beta.kubernetes.io/oci-load-balancer-internal\" = \"true\"" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.istio.overrides[0].values.apiVersion = \"install.istio.io/v1alpha1\"" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.istio.overrides[0].values.kind = \"IstioOperator\"" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.istio.overrides[0].values.spec.components.ingressGateways[0].enabled = \"true\"" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.istio.overrides[0].values.spec.components.ingressGateways[0].name = \"istio-ingressgateway\"" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.istio.overrides[0].values.spec.components.ingressGateways[0].k8s.serviceAnnotations.\"service.beta.kubernetes.io/oci-load-balancer-internal\" = \"true\"" ${INSTALL_CONFIG_TO_EDIT}
 fi
 
 cat ${INSTALL_CONFIG_TO_EDIT}
