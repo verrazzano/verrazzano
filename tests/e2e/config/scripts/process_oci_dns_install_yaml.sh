@@ -41,7 +41,7 @@ elif [ $INSTALL_PROFILE == "dev" ] && [ $CRD_API_VERSION == "v1beta1" ]; then
 fi
 
 if [ "${NGINX_LB_SCOPE}" != "PRIVATE" ] && [ $CRD_API_VERSION == "v1beta1" ]; then
-  yq -i eval ".spec.components.ingressNGINX.overrides.values[0].controller.service.annotations.\"service.beta.kubernetes.io/oci-load-balancer-internal\" = \"true\"" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.ingressNGINX.overrides[0].values.controller.service.annotations.\"service.beta.kubernetes.io/oci-load-balancer-internal\" = \"true\"" ${INSTALL_CONFIG_TO_EDIT}
 fi
 if [ "${ISTIO_LB_SCOPE}" != "PRIVATE" ] && [ $CRD_API_VERSION == "v1beta1" ]; then
   yq -i eval ".spec.components.istio.overrides[0].values.apiVersion = \"install.istio.io/v1alpha1\"" ${INSTALL_CONFIG_TO_EDIT}
