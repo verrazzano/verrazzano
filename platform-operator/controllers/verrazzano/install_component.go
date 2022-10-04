@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -56,15 +57,13 @@ type componentInstallContext struct {
 }
 
 // installComponents will install the components as required
-func (r *Reconciler) installComponents(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, preUpgrade bool) (ctrl.Result, error) {
+func (r *Reconciler) installComponents(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, tracker *installTracker, preUpgrade bool) (ctrl.Result, error) {
 	spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}
 
 	spiCtx.Log().Progress("Reconciling components for Verrazzano installation")
-
-	tracker := getInstallTracker(cr)
 
 	var requeue bool
 
@@ -81,8 +80,6 @@ func (r *Reconciler) installComponents(log vzlog.VerrazzanoLogger, cr *installv1
 	if requeue {
 		return newRequeueWithDelay(), nil
 	}
-
-	deleteInstallTracker(cr)
 
 	// All components have been installed
 	return ctrl.Result{}, nil
@@ -172,6 +169,14 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 					continue
 				}
 			}
+			if r.IsWatchedComponent(comp.GetJSONName()) {
+				if err := comp.Reconcile(compContext); err != nil {
+					return newRequeueWithDelay(), err
+				}
+				r.ClearWatch(comp.GetJSONName())
+				installContext.state = compStateInstallComplete
+				continue
+			}
 			installContext.state = compStateInstallEnd
 
 		case compStateInstallStarted:
@@ -240,6 +245,47 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 	}
 	// Component has been installed
 	return ctrl.Result{}, nil
+}
+
+// checkConfigUpdated checks if the component config in the VZ CR has been updated and the component needs to
+// reset the state back to pre-install to re-enter install flow
+func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails, name string) bool {
+	vzState := ctx.ActualCR().Status.State
+	// Do not interrupt upgrade flow
+	if vzState == vzapi.VzStateUpgrading || vzState == vzapi.VzStatePaused {
+		return false
+	}
+
+	// The component is being reconciled/installed with ReconcilingGeneration of the CR
+	// if CR.Generation > ReconcilingGeneration then re-enter install flow
+	if componentStatus.ReconcilingGeneration > 0 {
+		return ctx.ActualCR().Generation > componentStatus.ReconcilingGeneration
+	}
+	// The component has been reconciled/installed with LastReconciledGeneration of the CR
+	// if CR.Generation > LastReconciledGeneration then re-enter install flow
+	return (componentStatus.State == vzapi.CompStateReady) &&
+		(ctx.ActualCR().Generation > componentStatus.LastReconciledGeneration)
+}
+
+// Check if the component can be installed in this Verrazzano installation based on version
+// Components might require a specific a minimum version of Verrazzano > 1.0.0
+func isVersionOk(log vzlog.VerrazzanoLogger, compVersion string, vzVersion string) bool {
+	if len(vzVersion) == 0 {
+		return true
+	}
+	vzSemver, err := semver.NewSemVersion(vzVersion)
+	if err != nil {
+		log.Errorf("Failed getting semver from status: %v", err)
+		return false
+	}
+	compSemver, err := semver.NewSemVersion(compVersion)
+	if err != nil {
+		log.Errorf("Failed creating new semver for component: %v", err)
+		return false
+	}
+
+	// return false if VZ version is too low to install component, else true
+	return !vzSemver.IsLessThan(compSemver)
 }
 
 // getComponentInstallContext gets the install context for the component
