@@ -4,3 +4,5 @@
 # The coherence-operator image now comes from the bill of materials file (verrazzano-bom.json).
 # This file only specifies the defaultCoherenceImage
 defaultCoherenceImage: ghcr.io/oracle/coherence-ce:21.06.2
+
+replicas: 1
