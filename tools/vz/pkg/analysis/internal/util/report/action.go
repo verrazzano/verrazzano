@@ -17,9 +17,9 @@ import (
 //		 will be evolving rapidly initially as we add analysis cases
 
 // Action describes what a user/developer should do to mitigate an issue that has been found. For example:
-//    - Description of the action if more general
-//    - Link(s) to a Runbook(s) are preferable here as instructions may evolve over time and may be complex
-//    - A list of Steps to take
+//   - Description of the action if more general
+//   - Link(s) to a Runbook(s) are preferable here as instructions may evolve over time and may be complex
+//   - A list of Steps to take
 type Action struct {
 	Summary string   // Required, Summary of the action to take
 	Links   []string // Optional, runbook or other related Links with action details

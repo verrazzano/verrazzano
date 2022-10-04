@@ -13,20 +13,21 @@ import (
 )
 
 // TBD: Overall the intention/design is that we could execute analysis in parallel if we want to do that in the
-//      future. So in general analyzers are independent of each other and thread safe, and not expecting to
-//      be executed in a particular order.
-//      However, there may be special cases where we want an analysis to be done and information gleaned
-//      from that analysis to be available to other analyzers. For example, the analysis of the state
-//      of Verrazzano is something that is likely to fall into that category. It will make a high level
-//      determination of where in the lifecycle we are at, and other analyzers may need to easily get that
-//      information to give better guidance on the issues/actions.
 //
-//      The current implementation is calling the analyzers serially in order.
-//      If we do decide to handle analysis in a parallel fashion later, we likely will need to have some
-//      analyzers called deterministically in exact order before we fire off other analyzers in parallel.
-//      So we may break this into 2 lists in the future: serial analysis functions, parallel analysis functions
-//      Analyzers that may fall into this category should be annotated, with a comment, there currently is only
-//      one that may require that.
+//	future. So in general analyzers are independent of each other and thread safe, and not expecting to
+//	be executed in a particular order.
+//	However, there may be special cases where we want an analysis to be done and information gleaned
+//	from that analysis to be available to other analyzers. For example, the analysis of the state
+//	of Verrazzano is something that is likely to fall into that category. It will make a high level
+//	determination of where in the lifecycle we are at, and other analyzers may need to easily get that
+//	information to give better guidance on the issues/actions.
+//
+//	The current implementation is calling the analyzers serially in order.
+//	If we do decide to handle analysis in a parallel fashion later, we likely will need to have some
+//	analyzers called deterministically in exact order before we fire off other analyzers in parallel.
+//	So we may break this into 2 lists in the future: serial analysis functions, parallel analysis functions
+//	Analyzers that may fall into this category should be annotated, with a comment, there currently is only
+//	one that may require that.
 var clusterAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory string) (err error){
 	"Verrazzano Status":  AnalyzeVerrazzano, // Execute first, this may share data other analyzers can use
 	"Pod Related Issues": AnalyzePodIssues,

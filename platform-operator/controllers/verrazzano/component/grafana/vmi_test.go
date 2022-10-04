@@ -34,8 +34,9 @@ var grafanaEnabledCR = vzapi.Verrazzano{
 
 // TestNewGrafana tests that a Grafana VMO config can be created from a CR
 // GIVEN a Verrazzano CR
-//  WHEN I create new Grafana resource
-//  THEN the configuration in the CR is respected
+//
+//	WHEN I create new Grafana resource
+//	THEN the configuration in the CR is respected
 func TestNewGrafana(t *testing.T) {
 	vmi := vmov1.VerrazzanoMonitoringInstance{}
 	r := &common.ResourceRequestValues{
@@ -57,8 +58,9 @@ func TestNewGrafana(t *testing.T) {
 
 // TestNewGrafanaWithExistingVMI tests that storage values in the VMI are not erased when a new Grafana is created
 // GIVEN a Verrazzano CR and an existing VMO
-//  WHEN I create a new Grafana resource
-//  THEN the storage options from the existing VMO are preserved.
+//
+//	WHEN I create a new Grafana resource
+//	THEN the storage options from the existing VMO are preserved.
 func TestNewGrafanaWithExistingVMI(t *testing.T) {
 	vmi := vmov1.VerrazzanoMonitoringInstance{}
 	existingVmi := vmov1.VerrazzanoMonitoringInstance{

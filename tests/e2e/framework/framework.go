@@ -323,7 +323,7 @@ func (f *Framework) SynchronizedAfterSuite(allProcessBody func(), process1Body f
 	return ginkgo.SynchronizedAfterSuite(allProcessBody, process1Body)
 }
 
-//	JustBeforeEach - wrapper function for Ginkgo JustBeforeEach
+// JustBeforeEach - wrapper function for Ginkgo JustBeforeEach
 func (f *Framework) JustBeforeEach(args ...interface{}) bool {
 	return ginkgo.JustBeforeEach(args...)
 }
@@ -333,12 +333,12 @@ func (f *Framework) JustAfterEach(args ...interface{}) bool {
 	return ginkgo.JustAfterEach(args...)
 }
 
-//BeforeAll - wrapper function for Ginkgo BeforeAll
+// BeforeAll - wrapper function for Ginkgo BeforeAll
 func (f *Framework) BeforeAll(args ...interface{}) bool {
 	return ginkgo.BeforeAll(args...)
 }
 
-//AfterAll - wrapper function for Ginkgo AfterAll
+// AfterAll - wrapper function for Ginkgo AfterAll
 func (f *Framework) AfterAll(args ...interface{}) bool {
 	return ginkgo.AfterAll(args...)
 }

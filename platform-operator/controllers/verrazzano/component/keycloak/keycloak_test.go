@@ -734,16 +734,18 @@ func TestCreateOrUpdateAuthSecret(t *testing.T) {
 
 // TestIsEnabledNilComponent tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is nil
-//  THEN false is returned
+//
+//	WHEN The Keycloak component is nil
+//	THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilKeycloak tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is nil
-//  THEN true is returned
+//
+//	WHEN The Keycloak component is nil
+//	THEN true is returned
 func TestIsEnabledNilKeycloak(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -752,8 +754,9 @@ func TestIsEnabledNilKeycloak(t *testing.T) {
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component enabled is nil
-//  THEN true is returned
+//
+//	WHEN The Keycloak component enabled is nil
+//	THEN true is returned
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = nil
@@ -762,8 +765,9 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 
 // TestIsEnabledExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is explicitly enabled
-//  THEN true is returned
+//
+//	WHEN The Keycloak component is explicitly enabled
+//	THEN true is returned
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(true)
@@ -772,8 +776,9 @@ func TestIsEnabledExplicit(t *testing.T) {
 
 // TestIsDisableExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is explicitly disabled
-//  THEN false is returned
+//
+//	WHEN The Keycloak component is explicitly disabled
+//	THEN false is returned
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(false)
@@ -782,8 +787,9 @@ func TestIsDisableExplicit(t *testing.T) {
 
 // TestIsEnabledManagedClusterProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and managed cluster profile
-//  THEN false is returned
+//
+//	WHEN The Keycloak enabled flag is nil and managed cluster profile
+//	THEN false is returned
 func TestIsEnabledManagedClusterProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -793,8 +799,9 @@ func TestIsEnabledManagedClusterProfile(t *testing.T) {
 
 // TestIsEnabledProdProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and prod profile
-//  THEN false is returned
+//
+//	WHEN The Keycloak enabled flag is nil and prod profile
+//	THEN false is returned
 func TestIsEnabledProdProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -804,8 +811,9 @@ func TestIsEnabledProdProfile(t *testing.T) {
 
 // TestIsEnabledDevProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and dev profile
-//  THEN false is returned
+//
+//	WHEN The Keycloak enabled flag is nil and dev profile
+//	THEN false is returned
 func TestIsEnabledDevProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil

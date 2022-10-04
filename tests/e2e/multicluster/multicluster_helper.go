@@ -241,8 +241,8 @@ func verifyMCResourcesDeleted(kubeConfig string, namespace string, projectName s
 }
 
 const (
-	oneMinute       = 1 * time.Minute
-	fiveMinutes     = 5 * time.Minute
+	shortWait       = 1 * time.Minute
+	mediumWait      = 5 * time.Minute
 	pollingInterval = 5 * time.Second
 	manifestKey     = "yaml"
 )
@@ -399,7 +399,7 @@ func (c *Cluster) apply(data []byte) {
 			pkg.Log(pkg.Error, fmt.Sprintf("Error applying changes on %s: %v", c.Name, err))
 		}
 		return err == nil
-	}, fiveMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf(" %s failed registration", c.Name))
+	}, mediumWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf(" %s failed registration", c.Name))
 }
 
 func (c *Cluster) UpsertManagedCluster(name string) error {
@@ -444,7 +444,7 @@ func (c *Cluster) UpsertManagedCluster(name string) error {
 			return false
 		}
 		return vmcCreated.Status.Conditions[size-1].Type == mcapi.ConditionReady
-	}, fiveMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("VerrazzanoManagedCluster %s is not ready", vmc.Name))
+	}, mediumWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("VerrazzanoManagedCluster %s is not ready", vmc.Name))
 	return nil
 }
 
@@ -474,7 +474,7 @@ func (c *Cluster) GetManifest(name string) ([]byte, error) {
 	gomega.Eventually(func() bool {
 		data, _ := c.GetSecretData(constants.VerrazzanoMultiClusterNamespace, manifest, manifestKey)
 		return len(data) > 0
-	}, oneMinute, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("manifest %s is not ready", manifest))
+	}, shortWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("manifest %s is not ready", manifest))
 	return c.GetSecretData(constants.VerrazzanoMultiClusterNamespace, manifest, manifestKey)
 }
 
@@ -499,7 +499,7 @@ func (c *Cluster) GetCR(waitForReady bool) *vzapi.Verrazzano {
 				return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
 			}
 			return nil
-		}, fiveMinutes, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
+		}, mediumWait, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
 	}
 	// Get the CR
 	cr, err := pkg.GetVerrazzanoInstallResourceInCluster(c.KubeConfigPath)
@@ -537,7 +537,7 @@ spec:
 			return false
 		}
 		return true
-	}, fiveMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Failed creating CA %v", caname))
+	}, mediumWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Failed creating CA %v", caname))
 	return caname
 }
 

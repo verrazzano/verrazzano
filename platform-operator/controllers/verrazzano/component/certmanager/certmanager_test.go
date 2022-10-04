@@ -356,8 +356,9 @@ func TestCreateCAResources(t *testing.T) {
 
 // TestRenewAllCertificatesNoCertsPresent tests the checkRenewAllCertificates function (code coverage mainly)
 // GIVEN a call to checkRenewAllCertificates
-//  WHEN No certs are found
-//  THEN no error is returned
+//
+//	WHEN No certs are found
+//	THEN no error is returned
 func TestRenewAllCertificatesNoCertsPresent(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	fakeContext := spi.NewFakeContext(client, defaultVZConfig, nil, false)

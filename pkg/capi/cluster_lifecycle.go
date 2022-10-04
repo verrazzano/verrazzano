@@ -48,7 +48,7 @@ type ClusterLifeCycleManager interface {
 	Destroy() error
 }
 
-//NewClusterConfig Creates a new ClusterConfig with defaults
+// NewClusterConfig Creates a new ClusterConfig with defaults
 func NewClusterConfig() ClusterConfig {
 	return ClusterConfig{
 		ClusterName:    bootstrapClusterName,

@@ -3541,7 +3541,7 @@ func TestUpdateGatewayServersList(t *testing.T) {
 // IngressTrait definitions.  Post-1.3, we replace this with a 1:1 mapping of Server objects to IngressTrait.
 // Each Server object will define port settings for all hosts in the IngressTrait and be recomputed on each reconcile.
 //
-// On startup, the operator will reconcile all existing IngressTraits which will create the new mappings
+// # On startup, the operator will reconcile all existing IngressTraits which will create the new mappings
 //
 // GIVEN a request to update the gateway servers list for an ingress trait resource
 // WHEN we are upgrading from a release before 1.3 where the Gateway maintains a single Server object for all hosts for an application

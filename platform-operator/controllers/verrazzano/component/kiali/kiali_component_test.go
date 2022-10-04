@@ -55,16 +55,18 @@ func init() {
 
 // TestIsEnabledNilComponent tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Kiali component is nil
-//  THEN false is returned
+//
+//	WHEN The Kiali component is nil
+//	THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilKiali tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Kiali component is nil
-//  THEN true is returned
+//
+//	WHEN The Kiali component is nil
+//	THEN true is returned
 func TestIsEnabledNilKiali(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali = nil
@@ -73,8 +75,9 @@ func TestIsEnabledNilKiali(t *testing.T) {
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Kiali component enabled is nil
-//  THEN true is returned
+//
+//	WHEN The Kiali component enabled is nil
+//	THEN true is returned
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali.Enabled = nil
@@ -83,8 +86,9 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 
 // TestIsEnabledExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Kiali component is explicitly enabled
-//  THEN true is returned
+//
+//	WHEN The Kiali component is explicitly enabled
+//	THEN true is returned
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali.Enabled = getBoolPtr(true)
@@ -93,8 +97,9 @@ func TestIsEnabledExplicit(t *testing.T) {
 
 // TestIsDisableExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Kiali component is explicitly disabled
-//  THEN false is returned
+//
+//	WHEN The Kiali component is explicitly disabled
+//	THEN false is returned
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali.Enabled = getBoolPtr(false)
@@ -103,8 +108,9 @@ func TestIsDisableExplicit(t *testing.T) {
 
 // TestIsEnabledManagedClusterProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Kiali enabled flag is nil and managed cluster profile
-//  THEN false is returned
+//
+//	WHEN The Kiali enabled flag is nil and managed cluster profile
+//	THEN false is returned
 func TestIsEnabledManagedClusterProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali = nil
@@ -114,8 +120,9 @@ func TestIsEnabledManagedClusterProfile(t *testing.T) {
 
 // TestIsEnabledProdProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Kiali enabled flag is nil and prod profile
-//  THEN false is returned
+//
+//	WHEN The Kiali enabled flag is nil and prod profile
+//	THEN false is returned
 func TestIsEnabledProdProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali = nil
@@ -125,8 +132,9 @@ func TestIsEnabledProdProfile(t *testing.T) {
 
 // TestIsEnabledDevProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Kiali enabled flag is nil and dev profile
-//  THEN false is returned
+//
+//	WHEN The Kiali enabled flag is nil and dev profile
+//	THEN false is returned
 func TestIsEnabledDevProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Kiali = nil
@@ -136,8 +144,9 @@ func TestIsEnabledDevProfile(t *testing.T) {
 
 // TestRemoveDeploymentAndService tests the removeDeploymentAndService function
 // GIVEN a call to removeDeploymentAndService
-//  WHEN the Kiali deployment and service exist with incorrect selectors
-//  THEN the deployment and service are deleted
+//
+//	WHEN the Kiali deployment and service exist with incorrect selectors
+//	THEN the deployment and service are deleted
 func TestRemoveDeploymentAndService(t *testing.T) {
 	deployment := &appv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -176,8 +185,9 @@ func TestRemoveDeploymentAndService(t *testing.T) {
 
 // TestRemoveDeploymentAndServiceNoMatch tests the removeDeploymentAndService function
 // GIVEN a call to removeDeploymentAndService
-//  WHEN the Kiali deployment and service exist with correct selectors
-//  THEN the deployment and service are not deleted
+//
+//	WHEN the Kiali deployment and service exist with correct selectors
+//	THEN the deployment and service are not deleted
 func TestRemoveDeploymentAndServiceNoMatch(t *testing.T) {
 	deployment := &appv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -213,8 +223,9 @@ func TestRemoveDeploymentAndServiceNoMatch(t *testing.T) {
 
 // TestKialiPostInstallUpdateResources tests the PostInstall function
 // GIVEN a call to PostInstall
-//  WHEN the Kiali resources already exist
-//  THEN no error is returned
+//
+//	WHEN the Kiali resources already exist
+//	THEN no error is returned
 func TestKialiPostInstallUpdateResources(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -250,8 +261,9 @@ func TestKialiPostInstallUpdateResources(t *testing.T) {
 
 // TestKialiPostInstallCreateResources tests the PostInstall function
 // GIVEN a call to PostInstall
-//  WHEN the Kiali ingress and authpolicies don't yet exist
-//  THEN no error is returned
+//
+//	WHEN the Kiali ingress and authpolicies don't yet exist
+//	THEN no error is returned
 func TestKialiPostInstallCreateResources(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -281,8 +293,9 @@ func TestKialiPostInstallCreateResources(t *testing.T) {
 
 // TestKialiPostUpgradeUpdateResources tests the PostUpgrade function
 // GIVEN a call to PostUpgrade
-//  WHEN the Kiali resources exist
-//  THEN no error is returned
+//
+//	WHEN the Kiali resources exist
+//	THEN no error is returned
 func TestKialiPostUpgradeUpdateResources(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -308,8 +321,9 @@ func TestKialiPostUpgradeUpdateResources(t *testing.T) {
 
 // TestPreUpgrade tests the Kiali PreUpgrade call
 // GIVEN a Kiali component
-//  WHEN I call PreUpgrade with defaults
-//  THEN no error is returned
+//
+//	WHEN I call PreUpgrade with defaults
+//	THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
