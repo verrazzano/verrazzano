@@ -76,8 +76,9 @@ var vmiEnabledCR = vzapi.Verrazzano{
 
 // TestNewVMIResources tests that new VMI resources can be created from a CR
 // GIVEN a Verrazzano CR
-//  WHEN I create new VMI resources
-//  THEN the configuration in the CR is respected
+//
+//	WHEN I create new VMI resources
+//	THEN the configuration in the CR is respected
 func TestNewVMIResources(t *testing.T) {
 	r := &common.ResourceRequestValues{
 		Memory:  "",
@@ -95,8 +96,9 @@ func TestNewVMIResources(t *testing.T) {
 
 // TestOpenSearchInvalidArgs tests trying to create an OpenSearch resource with invalid args
 // GIVEN a Verrazzano CR with invalid install args
-//  WHEN I create a new OpenSearch resource
-//  THEN the OpenSearch resource fails to create
+//
+//	WHEN I create a new OpenSearch resource
+//	THEN the OpenSearch resource fails to create
 func TestOpenSearchInvalidArgs(t *testing.T) {
 	r := &common.ResourceRequestValues{}
 	crBadArgs := &vzapi.Verrazzano{
@@ -120,8 +122,9 @@ func TestOpenSearchInvalidArgs(t *testing.T) {
 
 // TestNewOpenSearchValuesAreCopied tests that VMI and policy values are copied over to the new OpenSearch
 // GIVEN a Verrazzano CR and an existing VMI
-//  WHEN I create a new OpenSearch resource
-//  THEN the storage options from the existing VMi are preserved, and any policy values are copied.
+//
+//	WHEN I create a new OpenSearch resource
+//	THEN the storage options from the existing VMi are preserved, and any policy values are copied.
 func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 	age := "1d"
 	r := &common.ResourceRequestValues{}
@@ -170,7 +173,8 @@ func TestNewOpenSearchValuesAreCopied(t *testing.T) {
 // TestCreateOrUpdateVMI tests a new VMI resources is created in K8s according to the CR
 // GIVEN a Verrazzano CR
 // WHEN I create a new VMI resource
-//  THEN the configuration in the CR is respected
+//
+//	THEN the configuration in the CR is respected
 func TestCreateOrUpdateVMI(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vmiEnabledCR, nil, false)
 	err := common.CreateOrUpdateVMI(ctx, updateFunc)
@@ -190,7 +194,8 @@ func TestCreateOrUpdateVMI(t *testing.T) {
 // TestCreateOrUpdateVMINoNGINX tests a new VMI resources is created in K8s according to the CR
 // GIVEN a Verrazzano CR
 // WHEN I create a new VMI resource and NGINX is not enabled
-//  THEN the configuration in the CR is respected
+//
+//	THEN the configuration in the CR is respected
 func TestCreateOrUpdateVMINoNGINX(t *testing.T) {
 	vmiEnabledCR.Spec.Components.Ingress.Enabled = getBoolPtr(false)
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vmiEnabledCR, nil, false)
@@ -211,7 +216,8 @@ func TestCreateOrUpdateVMINoNGINX(t *testing.T) {
 // TestHasDataNodeStorageOverride tests the detection of data node storage overrides
 // GIVEN a Verrazzano CR
 // WHEN I check for data node storage overrides
-//  THEN hasNodeStorageOverride returns true or false depending on the CR values
+//
+//	THEN hasNodeStorageOverride returns true or false depending on the CR values
 func TestHasDataNodeStorageOverride(t *testing.T) {
 	var tests = []struct {
 		name        string

@@ -44,24 +44,27 @@ const (
 
 // TestValidateUpdate tests the ValidateUpdate function
 // GIVEN a call to ValidateUpdate
-//  WHEN for various CM configurations
-//  THEN an error is returned if anything is misconfigured
+//
+//	WHEN for various CM configurations
+//	THEN an error is returned if anything is misconfigured
 func TestValidateUpdate(t *testing.T) {
 	validationTests(t, true)
 }
 
 // TestValidateInstall tests the ValidateInstall function
 // GIVEN a call to ValidateInstall
-//  WHEN for various CM configurations
-//  THEN an error is returned if anything is misconfigured
+//
+//	WHEN for various CM configurations
+//	THEN an error is returned if anything is misconfigured
 func TestValidateInstall(t *testing.T) {
 	validationTests(t, false)
 }
 
 // TestPostInstallCA tests the PostInstall function
 // GIVEN a call to PostInstall
-//  WHEN the cert type is CA
-//  THEN no error is returned
+//
+//	WHEN the cert type is CA
+//	THEN no error is returned
 func TestPostInstallCA(t *testing.T) {
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.CA = ca
@@ -82,16 +85,18 @@ func TestPostInstallCA(t *testing.T) {
 
 // TestPostUpgradeUpdateCA tests the PostUpgrade function
 // GIVEN a call to PostUpgrade
-//  WHEN the type is CA and the CA is updated
-//  THEN the ClusterIssuer is updated correctly and no error is returned
+//
+//	WHEN the type is CA and the CA is updated
+//	THEN the ClusterIssuer is updated correctly and no error is returned
 func TestPostUpgradeUpdateCA(t *testing.T) {
 	runCAUpdateTest(t, true)
 }
 
 // TestPostInstallUpdateCA tests the PostInstall function
 // GIVEN a call to PostInstall
-//  WHEN the type is CA and the CA is updated
-//  THEN the ClusterIssuer is updated correctly and no error is returned
+//
+//	WHEN the type is CA and the CA is updated
+//	THEN the ClusterIssuer is updated correctly and no error is returned
 func TestPostInstallUpdateCA(t *testing.T) {
 	runCAUpdateTest(t, false)
 }
@@ -146,8 +151,9 @@ func runCAUpdateTest(t *testing.T, upgrade bool) {
 
 // TestPostInstallAcme tests the PostInstall function
 // GIVEN a call to PostInstall
-//  WHEN the cert type is Acme
-//  THEN no error is returned
+//
+//	WHEN the cert type is Acme
+//	THEN no error is returned
 func TestPostInstallAcme(t *testing.T) {
 	localvz := defaultVZConfig.DeepCopy()
 	localvz.Spec.Components.CertManager.Certificate.Acme = acme
@@ -171,16 +177,18 @@ func TestPostInstallAcme(t *testing.T) {
 
 // TestPostUpgradeAcmeUpdate tests the PostUpgrade function
 // GIVEN a call to PostUpgrade
-//  WHEN the cert type is Acme and the config has been updated
-//  THEN the ClusterIssuer is updated as expected no error is returned
+//
+//	WHEN the cert type is Acme and the config has been updated
+//	THEN the ClusterIssuer is updated as expected no error is returned
 func TestPostUpgradeAcmeUpdate(t *testing.T) {
 	runAcmeUpdateTest(t, true)
 }
 
 // TestPostInstallAcme tests the PostInstall function
 // GIVEN a call to PostInstall
-//  WHEN the cert type is Acme and the config has been updated
-//  THEN the ClusterIssuer is updated as expected no error is returned
+//
+//	WHEN the cert type is Acme and the config has been updated
+//	THEN the ClusterIssuer is updated as expected no error is returned
 func TestPostInstallAcmeUpdate(t *testing.T) {
 	runAcmeUpdateTest(t, false)
 }
@@ -428,8 +436,9 @@ func TestClusterIssuerUpdated(t *testing.T) {
 
 // TestDryRun tests the behavior when DryRun is enabled, mainly for code coverage
 // GIVEN a call to PostInstall/PostUpgrade/PreInstall
-//  WHEN the ComponentContext has DryRun set to true
-//  THEN no error is returned
+//
+//	WHEN the ComponentContext has DryRun set to true
+//	THEN no error is returned
 func TestDryRun(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(client, defaultVZConfig, nil, true)

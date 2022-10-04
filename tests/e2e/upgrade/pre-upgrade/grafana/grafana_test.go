@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	threeMinutes         = 3 * time.Minute
+	waitTimeout          = 3 * time.Minute
 	pollingInterval      = 10 * time.Second
 	documentFile         = "testdata/upgrade/grafana/dashboard.json"
 	grafanaErrMsgFmt     = "Failed to GET Grafana testDashboard: status=%d: body=%s"
@@ -72,7 +72,7 @@ var _ = t.BeforeSuite(func() {
 		}
 		json.Unmarshal(resp.Body, &testDashboard)
 		return true
-	}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(),
+	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue(),
 		"It should be possible to create a Grafana dashboard and persist it.")
 })
 
@@ -100,7 +100,7 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 			body := make(map[string]map[string]string)
 			json.Unmarshal(resp.Body, &body)
 			return strings.Contains(body["dashboard"]["title"], testDashboardTitle)
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue())
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
 
 	// GIVEN a running Grafana instance,
@@ -126,7 +126,7 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 			}
 			return false
 
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue())
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
 
 	// GIVEN a running grafana instance,
@@ -148,6 +148,6 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 			body := make(map[string]map[string]string)
 			json.Unmarshal(resp.Body, &body)
 			return strings.Contains(body["dashboard"]["title"], systemDashboardTitle)
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue())
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
 })

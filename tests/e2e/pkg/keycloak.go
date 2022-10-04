@@ -286,7 +286,7 @@ func (c *KeycloakRESTClient) SetPassword(userRealm string, userID string, passwo
 	return nil
 }
 
-//VerifyKeycloakAccess verifies access to Keycloak
+// VerifyKeycloakAccess verifies access to Keycloak
 func VerifyKeycloakAccess(log *zap.SugaredLogger) error {
 	waitTimeout := 5 * time.Minute
 	pollingInterval := 5 * time.Second

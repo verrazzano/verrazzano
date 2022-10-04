@@ -8,7 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
-//ConvertFrom converts from v1beta1.Verrazzano to v1alpha1.Verrazzano
+// ConvertFrom converts from v1beta1.Verrazzano to v1alpha1.Verrazzano
 func (in *Verrazzano) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.Verrazzano)
 	if src == nil {

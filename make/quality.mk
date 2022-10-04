@@ -9,7 +9,7 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 #
 ##@ Linting and coverage
 
-GOLANGCI_LINT_VERSION=1.47.3
+GOLANGCI_LINT_VERSION=1.49.0
 
 .PHONY: check
 check: lint-go word-linter url-linter ## run all linters
@@ -49,7 +49,7 @@ word-linter: ## check for use of 'bad' words
 
 .PHONY: url-linter
 url-linter: ## check for invalid URLs
-	${TOOLS_DIR}/url_linter/invalid_url_linter.sh .
+	go run ${TOOLS_DIR}/url_linter/url_linter.go
 
 .PHONY: coverage
 coverage:  ## test code coverage

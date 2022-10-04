@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	threeMinutes    = 3 * time.Minute
+	waitTimeout     = 3 * time.Minute
 	pollingInterval = 10 * time.Second
 	documentFile    = "testdata/upgrade/opensearch/document1.json"
 	longTimeout     = 10 * time.Minute
@@ -65,7 +65,7 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 				return pkg.IndicesNotExists(oldIndicesPatterns)
 			}
 			return true
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(), "Expected not to find any old indices")
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue(), "Expected not to find any old indices")
 	})
 
 	// GIVEN the OpenSearch pod
@@ -83,7 +83,7 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 				return pkg.CheckForDataStream(pkg.VerrazzanoNamespace)
 			}
 			return true
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(), "Expected not to find any old indices")
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue(), "Expected not to find any old indices")
 	})
 
 	// GIVEN the OpenSearch pod
@@ -130,7 +130,7 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 				}
 			}
 			return true
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(), "Expected to find the old data")
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue(), "Expected to find the old data")
 	})
 
 	// GIVEN a VZ environment with

@@ -23,8 +23,8 @@ var (
 	t               = framework.NewTestFramework("update dns")
 	adminCluster    *multicluster.Cluster
 	managedClusters []*multicluster.Cluster
-	fiveMinutes     = 5 * time.Minute
-	tenMinutes      = 10 * time.Minute
+	shortWait       = 5 * time.Minute
+	longWait        = 10 * time.Minute
 	pollingInterval = 5 * time.Second
 	fluentdName     = "fluentd"
 	adminFluentd    *vzapi.FluentdComponent
@@ -77,7 +77,7 @@ var _ = t.Describe("Update admin-cluster dns", Serial, Ordered, Label("f:platfor
 func updateAdminClusterDNS() string {
 	adminVZ := adminCluster.GetCR(true)
 	var oldDNS = adminVZ.Spec.Components.DNS
-	var newDNS *vzapi.DNSComponent = nil
+	var newDNS *vzapi.DNSComponent
 	var domainOld, domainNew = pkg.NipDomain, pkg.SslipDomain
 	oldEsIng := pkg.GetSystemOpenSearchIngressURL(adminCluster.KubeConfigPath)
 	if pkg.IsDefaultDNS(oldDNS) {
@@ -88,7 +88,7 @@ func updateAdminClusterDNS() string {
 	m := &DNSModifier{DNS: newDNS}
 	gomega.Expect(strings.Contains(oldEsIng, domainOld)).Should(gomega.BeTrue())
 	gomega.Expect(strings.Contains(oldEsIng, domainNew)).Should(gomega.BeFalse())
-	update.RetryUpdate(m, adminCluster.KubeConfigPath, false, pollingInterval, fiveMinutes)
+	update.RetryUpdate(m, adminCluster.KubeConfigPath, false, pollingInterval, shortWait)
 	return oldEsIng
 }
 
@@ -102,7 +102,7 @@ func verifyOpenSearchIngress(oldEsIng string) string {
 	gomega.Eventually(func() bool {
 		newEsIng := pkg.GetSystemOpenSearchIngressURL(adminCluster.KubeConfigPath)
 		return newEsIng != oldEsIng
-	}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("admin-cluster %s is not updated for %v", oldEsIng, time.Since(start)))
+	}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("admin-cluster %s is not updated for %v", oldEsIng, time.Since(start)))
 	return pkg.GetSystemOpenSearchIngressURL(adminCluster.KubeConfigPath)
 }
 
@@ -117,7 +117,7 @@ func verifyManagedClusterFluentd(newEsIng string) {
 			esURL := findEsURL(fp)
 			pkg.Log(pkg.Info, fmt.Sprintf("Cluster %v Fluentd OpenSearch URL updated: %v from %v to %v for %v \n", managedCluster.Name, strings.Contains(esURL, newEsIng), esURL, newEsIng, time.Since(start)))
 			return strings.Contains(esURL, newEsIng)
-		}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("%s Fluentd is not updated for %v", managedCluster.Name, time.Since(start)))
+		}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("%s Fluentd is not updated for %v", managedCluster.Name, time.Since(start)))
 	}
 }
 
@@ -142,7 +142,7 @@ func verifyRegistration() {
 			gomega.Eventually(func() bool {
 				reg, err := adminCluster.GetRegistration(managedCluster.Name)
 				return reg != nil && err == nil
-			}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("%s is not registered", managedCluster.Name))
+			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("%s is not registered", managedCluster.Name))
 		}
 	}
 }

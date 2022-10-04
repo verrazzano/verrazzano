@@ -38,8 +38,9 @@ func (r genericTestRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err e
 
 // TestIsEnabled tests the VMO IsEnabled call
 // GIVEN a VMO component
-//  WHEN I call IsEnabled
-//  THEN true or false is returned
+//
+//	WHEN I call IsEnabled
+//	THEN true or false is returned
 func TestIsEnabled(t *testing.T) {
 	falseValue := false
 	tests := []struct {
@@ -89,8 +90,9 @@ func TestIsEnabled(t *testing.T) {
 
 // TestIsInstalled tests the IsInstalled function
 // GIVEN a call to IsInstalled
-//  WHEN the deployment object is found
-//  THEN true is returned
+//
+//	WHEN the deployment object is found
+//	THEN true is returned
 func TestIsInstalled(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -105,8 +107,9 @@ func TestIsInstalled(t *testing.T) {
 
 // TestIsNotInstalled tests the IsInstalled function
 // GIVEN a call to IsInstalled
-//  WHEN the deployment object is not found
-//  THEN false is returned
+//
+//	WHEN the deployment object is not found
+//	THEN false is returned
 func TestIsNotInstalled(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	installed, err := NewComponent().IsInstalled(spi.NewFakeContext(fakeClient, nil, nil, false))
@@ -116,8 +119,9 @@ func TestIsNotInstalled(t *testing.T) {
 
 // TestIsReady tests the IsReady function
 // GIVEN a call to IsReady
-//  WHEN the deployment object has enough replicas available
-//  THEN true is returned
+//
+//	WHEN the deployment object has enough replicas available
+//	THEN true is returned
 func TestIsReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
@@ -160,16 +164,18 @@ func TestIsReady(t *testing.T) {
 
 // TestIsReady tests the IsReady function
 // GIVEN a call to IsReady
-//  WHEN the VMO is not ready per Helm
-//  THEN true is returned
+//
+//	WHEN the VMO is not ready per Helm
+//	THEN true is returned
 func TestIsNotReady(t *testing.T) {
 	assert.False(t, NewComponent().IsReady(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestPostUpgrade tests the VMO PostUpgrade call
 // GIVEN a VMO component
-//  WHEN I call PostUpgrade with defaults
-//  THEN no error is returned
+//
+//	WHEN I call PostUpgrade with defaults
+//	THEN no error is returned
 func TestPostUpgrade(t *testing.T) {
 	// The actual post-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
@@ -184,8 +190,9 @@ func TestPostUpgrade(t *testing.T) {
 
 // TestPreUpgrade tests the VMO PreUpgrade call
 // GIVEN a VMO component
-//  WHEN I call PreUpgrade with defaults
-//  THEN no error is returned
+//
+//	WHEN I call PreUpgrade with defaults
+//	THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
@@ -200,8 +207,9 @@ func TestPreUpgrade(t *testing.T) {
 
 // TestUninstallHelmChartInstalled tests the VMO Uninstall call
 // GIVEN a VMO component
-//  WHEN I call Uninstall with the VMO helm chart installed
-//  THEN no error is returned
+//
+//	WHEN I call Uninstall with the VMO helm chart installed
+//	THEN no error is returned
 func TestUninstallHelmChartInstalled(t *testing.T) {
 	helm.SetCmdRunner(genericTestRunner{
 		stdOut: []byte(""),
@@ -216,8 +224,9 @@ func TestUninstallHelmChartInstalled(t *testing.T) {
 
 // TestUninstallHelmChartNotInstalled tests the VMO Uninstall call
 // GIVEN a VMO component
-//  WHEN I call Uninstall with the VMO helm chart not installed
-//  THEN no error is returned
+//
+//	WHEN I call Uninstall with the VMO helm chart not installed
+//	THEN no error is returned
 func TestUninstallHelmChartNotInstalled(t *testing.T) {
 	helm.SetCmdRunner(genericTestRunner{
 		stdOut: []byte(""),
