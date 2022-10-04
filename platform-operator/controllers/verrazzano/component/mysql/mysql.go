@@ -56,6 +56,10 @@ const (
 	backupHookScriptsFile = "configurationFiles.mysql-hook\\.sh"
 	dbMigrationSecret     = "db-migration"
 	mySQLHookFile         = "platform-operator/scripts/hooks/mysql-hook.sh"
+	serverVersionKey      = "serverVersion"
+	bomSubComponentName   = "mysql-upgrade"
+	mysqlServerImageName  = "mysql-server"
+	imageRepositoryKey    = "image.repository"
 	initDbScript          = `CREATE USER IF NOT EXISTS keycloak IDENTIFIED BY '%s';
 CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 USE keycloak;
@@ -192,20 +196,20 @@ func isInnoDBClusterOnline(ctx spi.ComponentContext) bool {
 		return false
 	}
 
-	status, exists, err := unstructured.NestedString(innoDBCluster.UnstructuredContent(), innoDBClusterStatusFields...)
+	clusterStatus, exists, err := unstructured.NestedString(innoDBCluster.UnstructuredContent(), innoDBClusterStatusFields...)
 	if err != nil {
-		ctx.Log().Errorf("Error retrieving InnoDBCluster %v status: %v", nsn, err)
+		ctx.Log().Errorf("Error retrieving InnoDBCluster %v clusterStatus: %v", nsn, err)
 		return false
 	}
 	if exists {
-		if status == innoDBClusterStatusOnline {
+		if clusterStatus == innoDBClusterStatusOnline {
 			return true
 		}
-		ctx.Log().Debugf("InnoDBCluster %v status is: %s", nsn, status)
+		ctx.Log().Debugf("InnoDBCluster %v clusterStatus is: %s", nsn, clusterStatus)
 		return false
 	}
 
-	ctx.Log().Debugf("InnoDBCluster %v status not found", nsn)
+	ctx.Log().Debugf("InnoDBCluster %v clusterStatus not found", nsn)
 	return false
 }
 
@@ -214,6 +218,13 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	cr := compContext.EffectiveCR()
 
 	var err error
+	var bomFile bom.Bom
+
+	bomFile, err = bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+	}
+
 	if compContext.Init(ComponentName).GetOperation() == vzconst.UpgradeOperation {
 		var userPwd []byte
 		if isLegacyDatabaseUpgrade(compContext) {
@@ -222,7 +233,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 				return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 			}
 			if isLegacyPersistentDatabase(compContext) {
-				kvs, err = appendLegacyUpgradePersistenceValues(kvs)
+				kvs, err = appendLegacyUpgradePersistenceValues(&bomFile, kvs)
 				if err != nil {
 					return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 				}
@@ -259,6 +270,19 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		}
 	}
 
+	// Apply the version of the MySQL operator to the InnoDB cluster instance for Verrazzano Components
+	mySQLVersion, err := getMySQLVersion(&bomFile)
+	if err != nil {
+		return kvs, err
+	}
+	kvs = append(kvs, mySQLVersion)
+
+	repositorySetting, err := getRegistrySettings(&bomFile)
+	if err != nil {
+		return kvs, err
+	}
+	kvs = append(kvs, repositorySetting)
+
 	// generate the MySQl PV overrides
 	kvs, err = generateVolumeSourceOverrides(compContext, kvs)
 	if err != nil {
@@ -270,6 +294,28 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	kvs = append(kvs, convertOldInstallArgs(helm.GetInstallArgs(getInstallArgs(cr)))...)
 
 	return kvs, nil
+}
+
+func getRegistrySettings(bomFile *bom.Bom) (bom.KeyValue, error) {
+	sc, err := bomFile.GetSubcomponent(bomSubComponentName)
+	if err != nil {
+		return bom.KeyValue{}, err
+	}
+	img, err := bomFile.FindImage(sc, mysqlServerImageName)
+	if err != nil {
+		return bom.KeyValue{}, err
+	}
+	resolvedRegistry := bomFile.ResolveRegistry(sc, img)
+	resolvedRepo := bomFile.ResolveRepo(sc, img)
+	return bom.KeyValue{Key: imageRepositoryKey, Value: fmt.Sprintf("%s/%s", resolvedRegistry, resolvedRepo)}, nil
+}
+
+func getMySQLVersion(bomFile *bom.Bom) (bom.KeyValue, error) {
+	version, err := bomFile.GetComponentVersion(ComponentName)
+	if err != nil {
+		return bom.KeyValue{}, err
+	}
+	return bom.KeyValue{Key: serverVersionKey, Value: version}, nil
 }
 
 // preInstall creates and label the MySQL namespace
@@ -380,12 +426,7 @@ func getMySQLVolumeSource(effectiveCR *v1beta1.Verrazzano) *v1.VolumeSource {
 }
 
 //appendCustomImageOverrides - Append the custom overrides for the busybox initContainer
-func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
-	if err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-	}
-
+func appendCustomImageOverrides(bomFile *bom.Bom, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	imageOverrides, err := bomFile.BuildImageOverrides(mysqlUpgradeSubComp)
 	if err != nil {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
@@ -422,7 +463,7 @@ func GetOverrides(object runtime.Object) interface{} {
 
 func appendMySQLSecret(compContext spi.ComponentContext, secretName types.NamespacedName, rootKey string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	rootSecret := &v1.Secret{}
-	// use self signed
+	// use self-signed
 	kvs = append(kvs, bom.KeyValue{
 		Key:   "tls.useSelfSigned",
 		Value: "true",
