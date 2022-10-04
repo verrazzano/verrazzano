@@ -133,12 +133,4 @@ when the custom resource is deleted.
 * To build and push the Docker image:
     ```
     $ make docker-push
-    ```  
-
-## Running KIND-based integration tests
-Be careful when running these. You should make sure that `KUBECONFIG` is not defined
-and that `$HOME/.kube/config` is empty. It will ensure that the tests
-are not interacting with another cluster.
-```
-$ make build docker-build integ-test
-```
+    ```

@@ -122,7 +122,6 @@ func FindComponent(componentName string) (bool, spi.Component) {
 // so as not to block the dependent.  This would theoretically allow, for example, components that depend on Istio
 // to continue to deploy if it's not enabled.  In the long run, the dependency mechanism should likely go away and
 // allow components to individually make those decisions.
-//
 func ComponentDependenciesMet(c spi.Component, context spi.ComponentContext) bool {
 	log := context.Log()
 	trace, err := checkDirectDependenciesReady(c, context, make(map[string]bool))

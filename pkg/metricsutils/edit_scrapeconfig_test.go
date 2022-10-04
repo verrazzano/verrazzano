@@ -39,7 +39,8 @@ static_configs:
 // GIVEN an updated scrape config job and its name
 // WHEN the function is called
 // THEN the scrape config job should be either added to the scrape configs list, or updated if a
-//      job with that name already exists.
+//
+//	job with that name already exists.
 func TestEditScrapeJob(t *testing.T) {
 	tests := []struct {
 		name           string
@@ -81,7 +82,8 @@ func TestEditScrapeJob(t *testing.T) {
 // GIVEN an updated scrape config job and its name
 // WHEN the function is called
 // THEN the scrape config job should be either added to the scrape configs list, or updated if a
-//      job with that name already exists.
+//
+//	job with that name already exists.
 func TestEditScrapeJobInPrometheusConfig(t *testing.T) {
 	tests := []struct {
 		name           string

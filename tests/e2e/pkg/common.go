@@ -38,11 +38,11 @@ const (
 	// NumRetries - maximum number of retries
 	NumRetries = 7
 
-	// RetryWaitMin - minimum retry wait
-	RetryWaitMin = 1 * time.Second
+	// RetryWaitMinimum - minimum retry wait
+	RetryWaitMinimum = 1 * time.Second
 
-	// RetryWaitMax - maximum retry wait
-	RetryWaitMax = 30 * time.Second
+	// RetryWaitMaximum - maximum retry wait
+	RetryWaitMaximum = 30 * time.Second
 
 	// VerrazzanoNamespace - namespace hosting verrazzano resources
 	VerrazzanoNamespace = "verrazzano-system"

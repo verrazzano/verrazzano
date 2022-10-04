@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-//CreateAndLabelNamespace - Utility function to create a namespace and optionally add either the VZ managed and/or Istio injection labels
+// CreateAndLabelNamespace - Utility function to create a namespace and optionally add either the VZ managed and/or Istio injection labels
 func CreateAndLabelNamespace(client client.Client, ns string, isVerrazzanoManaged bool, withIstioInjection bool) error {
 	nsObj := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}}
 	_, err := controllerruntime.CreateOrUpdate(context.TODO(), client, nsObj,
@@ -35,7 +35,7 @@ func CreateIngressNginxNamespace(client client.Client, istioInjectionEnabled boo
 	return CreateAndLabelNamespace(client, globalconst.IngressNamespace, true, istioInjectionEnabled)
 }
 
-//CreateIstioNamespace - Create/Update and label the Istio namespace
+// CreateIstioNamespace - Create/Update and label the Istio namespace
 func CreateIstioNamespace(client client.Client) error {
 	return CreateAndLabelNamespace(client, globalconst.IstioSystemNamespace, true, false)
 }
@@ -65,7 +65,7 @@ func CreateVerrazzanoSystemNamespace(client client.Client, istioInjectionEnabled
 	return CreateAndLabelNamespace(client, globalconst.VerrazzanoSystemNamespace, true, istioInjectionEnabled)
 }
 
-//CreateVerrazzanoMultiClusterNamespace - Create/Update and label the Verrazzano multi-cluster namespace
+// CreateVerrazzanoMultiClusterNamespace - Create/Update and label the Verrazzano multi-cluster namespace
 func CreateVerrazzanoMultiClusterNamespace(client client.Client) error {
 	return CreateAndLabelNamespace(client, globalconst.VerrazzanoMultiClusterNamespace, false, false)
 }
@@ -83,7 +83,7 @@ func MergeMaps(to map[string]string, from map[string]string) (map[string]string,
 	return mergedMap, updated
 }
 
-//createLabelsMap - Create a map with the the Verrazzano-managed and/or Istio injection labels
+// createLabelsMap - Create a map with the the Verrazzano-managed and/or Istio injection labels
 func createLabelsMap(ns string, isVerrazzanoManaged bool, withIstioInjection bool) map[string]string {
 	annotations := map[string]string{}
 	if isVerrazzanoManaged {

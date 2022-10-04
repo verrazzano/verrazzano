@@ -38,12 +38,12 @@ var rancherBasedKubeConfigEnabled = false
 // Create an agent secret with a kubeconfig that has a token allowing access to the managed cluster
 // with restricted access as defined in the verrazzano-managed-cluster role.
 // The code does the following:
-//   1. get the service account for the managed cluster
-//   2. get the name of the service account token from the service account secret name field
-//   3. get the in-memory client configuration used to access the admin cluster
-//   4. build a kubeconfig struct using data from the client config and the service account token
-//   5. save the kubeconfig as a secret
-//   6. update VMC with the admin secret name
+//  1. get the service account for the managed cluster
+//  2. get the name of the service account token from the service account secret name field
+//  3. get the in-memory client configuration used to access the admin cluster
+//  4. build a kubeconfig struct using data from the client config and the service account token
+//  5. save the kubeconfig as a secret
+//  6. update VMC with the admin secret name
 func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
 	// The same managed name and  vmc namespace is used for the service account and the kubeconfig secret,
 	// for clarity use different vars
@@ -80,7 +80,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.Ver
 	}
 
 	// Build the kubeconfig
-	var err error = nil
+	var err error
 	var kc *vzk8s.KubeConfig
 	// Check feature flag before building kubeconfig from Rancher - feature flag was introduced in
 	// VZ-6448, to be removed when VZ-6449 is completed

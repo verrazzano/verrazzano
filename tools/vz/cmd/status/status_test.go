@@ -23,8 +23,9 @@ import (
 
 // TestStatusCmd tests the status command
 // GIVEN an environment with a single VZ resource
-//  WHEN I run the command vz status
-//  THEN expect a successful status report
+//
+//	WHEN I run the command vz status
+//	THEN expect a successful status report
 func TestStatusCmd(t *testing.T) {
 	name := "verrazzano"
 	namespace := "test"
@@ -105,8 +106,9 @@ func TestStatusCmd(t *testing.T) {
 
 // TestStatusCmdDefaultProfile tests the status command
 // GIVEN an environment with a single VZ resource and the default prod profile
-//  WHEN I run the command vz status
-//  THEN expect a successful status report
+//
+//	WHEN I run the command vz status
+//	THEN expect a successful status report
 func TestStatusCmdDefaultProfile(t *testing.T) {
 	name := "verrazzano"
 	namespace := "test"
@@ -184,8 +186,9 @@ func TestStatusCmdDefaultProfile(t *testing.T) {
 
 // TestVZNotFound tests the status command
 // GIVEN an environment with a no VZ resources exist
-//  WHEN I run the command vz status
-//  THEN expect an error of no VZ resources found
+//
+//	WHEN I run the command vz status
+//	THEN expect an error of no VZ resources found
 func TestVZNotFound(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects().Build()
@@ -206,8 +209,9 @@ func TestVZNotFound(t *testing.T) {
 
 // TestStatusMultipleVZ tests the status command
 // GIVEN an environment with a two VZ resources
-//  WHEN I run the command vz status
-//  THEN expect an error of only expecting one VZ
+//
+//	WHEN I run the command vz status
+//	THEN expect an error of only expecting one VZ
 func TestStatusMultipleVZ(t *testing.T) {
 	name := "verrazzano"
 	namespace1 := "test1"
