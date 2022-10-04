@@ -259,6 +259,22 @@ pipeline {
             }
         }
 
+        stage("process setup-oci-dns-config") {
+            when { expression { return params.TEST_ENV == 'ocidns_oke' } }
+            environment {
+                OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
+                OCI_PRIVATE_KEY_FILE = credentials('oci-api-key')
+                OCI_DNS_ZONE_OCID = "${dns_zone_ocid}"
+            }
+            steps {
+                script {
+                    sh """
+                        ${WORKSPACE}/tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS $CERT_ISSUER $ACME_ENVIRONMENT ${params.DNS_SCOPE}
+                    """
+                }
+            }
+        }
+
         stage("install-oke") {
             when { expression { return params.TEST_ENV != 'kind' } }
             environment {
