@@ -67,7 +67,6 @@ pipeline {
     }
 
     parameters {
-        booleanParam (description: 'Skip tests to private registry stage, useful for testing out private registry testing, support and push to OCIR', name: 'SKIP_TO_PRIVATE_REGISTRY', defaultValue: false)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
@@ -145,14 +144,14 @@ pipeline {
             when {
                 allOf {
                     expression { return runTests() }
-                    expression { params.SKIP_TO_PRIVATE_REGISTRY == false }
                 }
             }
             parallel {
-                stage('DNS_SCOPE=Global,Nginx_LB=Global,Istio_LB=Global') {
+                stage('DNS Test Scenario 1') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
+                                println("DNS_SCOPE=Global,Nginx_LB=Global,Istio_LB=Global")
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -166,10 +165,11 @@ pipeline {
                         }
                     }
                 }
-                stage('DNS_SCOPE=Global,Nginx_LB=Global,Istio_LB=Private') {
+                stage('DNS Test Scenario 2') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
+                                println("DNS_SCOPE=Global,Nginx_LB=Global,Istio_LB=Private")
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'ISTIO_LB_SCOPE', value: 'PRIVATE'),
@@ -185,10 +185,31 @@ pipeline {
                     }
                 }
 
-                stage('DNS_SCOPE=Global,Nginx_LB=Private,Istio_LB=Global') {
+                stage('DNS Test Scenario 3') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
+                                println("DNS_SCOPE=Global,Nginx_LB=Private,Istio_LB=Global")
+                                build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'NGINX_LB_SCOPE', value: 'PRIVATE'),
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                        booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
+                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                    ], wait: true
+                            }
+                        }
+                    }
+                }
+
+                stage('DNS Test Scenario 4') {
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                println("DNS_SCOPE=Global,Nginx_LB=Private,Istio_LB=Private")
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'NGINX_LB_SCOPE', value: 'PRIVATE'),
@@ -205,10 +226,11 @@ pipeline {
                     }
                 }
 
-                stage('DNS_SCOPE=Private,Nginx_LB=Global,Istio_LB=Global') {
+                stage('DNS Test Scenario 5') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
+                                println("DNS_SCOPE=Private,Nginx_LB=Global;Istio_LB=Global")
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'DNS_SCOPE', value: 'PRIVATE'),
@@ -224,10 +246,11 @@ pipeline {
                     }
                 }
 
-                stage('DNS_SCOPE=Private,Nginx_LB=Global,Istio_LB=Private') {
+                stage('DNS Test Scenario 6') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
+                                println("DNS_SCOPE=Private,Nginx_LB=Global;Istio_LB=Private")
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'DNS_SCOPE', value: 'PRIVATE'),
@@ -244,10 +267,11 @@ pipeline {
                     }
                 }
 
-                stage('DNS_SCOPE=Private,Nginx_LB=Private,Istio_LB=Global') {
+                stage('DNS Test Scenario 7') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
+                                println("DNS_SCOPE=Private,Nginx_LB=Private;Istio_LB=Global")
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'DNS_SCOPE', value: 'PRIVATE'),
@@ -264,33 +288,14 @@ pipeline {
                     }
                 }
 
-                stage('DNS_SCOPE=Private,Nginx_LB=Private,Istio_LB=Private') {
+                stage('DNS Test Scenario 8') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'DNS_SCOPE', value: 'PRIVATE'),
-                                        string(name: 'NGINX_LB_SCOPE', value: 'PRIVATE'),
                                         string(name: 'ISTIO_LB_SCOPE', value: 'PRIVATE'),
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
-                                    ], wait: true
-                            }
-                        }
-                    }
-                }
-
-                stage('DNS_SCOPE=Global,Nginx_LB=Private,Istio_LB=Private') {
-                    steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
                                         string(name: 'NGINX_LB_SCOPE', value: 'PRIVATE'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -337,7 +342,6 @@ pipeline {
             when {
                 allOf {
                     expression { return runTests() }
-                    expression { params.SKIP_TO_PRIVATE_REGISTRY == false }
                 }
             }
             parallel {
