@@ -41,6 +41,9 @@ type BomDoc struct {
 
 	// Components is the array of component boms
 	Components []BomComponent `json:"components"`
+
+	// SupportedKubernetesVersions is the array of supported Kubernetes versions
+	SupportedKubernetesVersions []string `json:"supportedKubernetesVersions"`
 }
 
 // BomComponent represents a high level component, such as Istio.
@@ -134,7 +137,7 @@ func NewBom(bomPath string) (Bom, error) {
 	return NewBOMFromJSON(jsonBom)
 }
 
-//NewBOMFromJSON Create a new BOM instance from a JSON payload
+// NewBOMFromJSON Create a new BOM instance from a JSON payload
 func NewBOMFromJSON(jsonBom []byte) (Bom, error) {
 	bom := Bom{
 		subComponentMap: make(map[string]*BomSubComponent),
@@ -361,4 +364,9 @@ func FindKV(kvs []KeyValue, key string) string {
 		}
 	}
 	return ""
+}
+
+// GetSupportedKubernetesVersion gets supported Kubernetes versions
+func (b *Bom) GetSupportedKubernetesVersion() []string {
+	return b.bomDoc.SupportedKubernetesVersions
 }

@@ -45,8 +45,6 @@ const (
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "verrazzano"
 
-var getControllerRuntimeClient = getClient
-
 type verrazzanoComponent struct {
 	helm.HelmComponent
 }

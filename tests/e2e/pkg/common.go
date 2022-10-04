@@ -38,11 +38,11 @@ const (
 	// NumRetries - maximum number of retries
 	NumRetries = 7
 
-	// RetryWaitMin - minimum retry wait
-	RetryWaitMin = 1 * time.Second
+	// RetryWaitMinimum - minimum retry wait
+	RetryWaitMinimum = 1 * time.Second
 
-	// RetryWaitMax - maximum retry wait
-	RetryWaitMax = 30 * time.Second
+	// RetryWaitMaximum - maximum retry wait
+	RetryWaitMaximum = 30 * time.Second
 
 	// VerrazzanoNamespace - namespace hosting verrazzano resources
 	VerrazzanoNamespace = "verrazzano-system"
@@ -415,6 +415,10 @@ func isReadyAndRunning(pod v1.Pod) bool {
 				return false
 			}
 		}
+		return true
+	}
+	// Jaeger Operator has index cleaner pods with a Succeeded status phase. Return true for these type of pods.
+	if pod.Status.Phase == v1.PodSucceeded {
 		return true
 	}
 	if pod.Status.Reason == "Evicted" && len(pod.Status.ContainerStatuses) == 0 {

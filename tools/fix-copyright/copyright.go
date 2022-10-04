@@ -364,7 +364,7 @@ func fixHeaders(args []string) error {
 			if err != nil {
 				return err
 			}
-			var replacement []byte = []byte{}
+			var replacement []byte
 			// if file already contains header, use the created year from that copyright header
 			firstBytes, createdYearFromHeader, updatedYearFromHeader := parseYearsFromHeader(fileContents)
 			modifyExistingHeader := true

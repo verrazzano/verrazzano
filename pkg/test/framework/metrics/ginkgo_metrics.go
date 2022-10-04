@@ -60,7 +60,7 @@ func internalLogger() *zap.SugaredLogger {
 	return log.Sugar()
 }
 
-//NewLogger generates a new logger, and tees ginkgo output to the search db
+// NewLogger generates a new logger, and tees ginkgo output to the search db
 func NewLogger(pkg string, ind string, paths ...string) (*zap.SugaredLogger, error) {
 	var messageKey = zapcore.OmitKey
 	if ind == TestLogIndex {
@@ -141,7 +141,7 @@ func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
 	return log
 }
 
-//configureOutputs configures the search output path if it is available
+// configureOutputs configures the search output path if it is available
 func configureOutputs(ind string) ([]string, error) {
 	var outputs []string
 	searchWriter, err := SearchWriterFromEnv(ind)

@@ -89,12 +89,6 @@ func NewPrometheusMetricsReceiver(cfg PrometheusMetricsReceiverConfig) (*Prometh
 	return &receiver, nil
 }
 
-// overridePusher overrides the Prometheus pusher used by this metrics receiver - tests may
-// use this function to mock the pusher
-func (rcvr *PrometheusMetricsReceiver) overridePusher(pusher push.Pusher) {
-	rcvr.promPusher = &pusher
-}
-
 func (rcvr *PrometheusMetricsReceiver) makeMetricName(name string) string {
 	if rcvr.Name != "" {
 		return rcvr.Name + "_" + name

@@ -89,6 +89,8 @@ func GetValues(log vzlog.VerrazzanoLogger, releaseName string, namespace string)
 	if namespace != "" {
 		args = append(args, "--namespace")
 		args = append(args, namespace)
+		args = append(args, "-o")
+		args = append(args, "yaml")
 	}
 
 	cmd := exec.Command("helm", args...)
@@ -365,7 +367,7 @@ func GetReleaseAppVersion(releaseName string, namespace string) (string, error) 
 	return releaseAppVersionFn(releaseName, namespace)
 }
 
-//GetReleaseStringValues - Returns a subset of Helm release values as a map of strings
+// GetReleaseStringValues - Returns a subset of Helm release values as a map of strings
 func GetReleaseStringValues(log vzlog.VerrazzanoLogger, valueKeys []string, releaseName string, namespace string) (map[string]string, error) {
 	values, err := GetReleaseValues(log, valueKeys, releaseName, namespace)
 	if err != nil {
@@ -378,7 +380,7 @@ func GetReleaseStringValues(log vzlog.VerrazzanoLogger, valueKeys []string, rele
 	return returnVals, err
 }
 
-//GetReleaseValues - Returns a subset of Helm release values as a map of objects
+// GetReleaseValues - Returns a subset of Helm release values as a map of objects
 func GetReleaseValues(log vzlog.VerrazzanoLogger, valueKeys []string, releaseName string, namespace string) (map[string]interface{}, error) {
 	isDeployed, err := IsReleaseDeployed(releaseName, namespace)
 	if err != nil {

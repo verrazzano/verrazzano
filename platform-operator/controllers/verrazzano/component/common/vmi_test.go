@@ -27,8 +27,9 @@ var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 // Test_FindStorageOverride tests the FindStorageOverride function
 // GIVEN a call to FindStorageOverride
-//  WHEN I call with a ComponentContext with different profiles and overrides
-//  THEN the correct resource overrides or an error are returned
+//
+//	WHEN I call with a ComponentContext with different profiles and overrides
+//	THEN the correct resource overrides or an error are returned
 func Test_FindStorageOverride(t *testing.T) {
 
 	tests := []struct {
@@ -177,8 +178,9 @@ func Test_FindStorageOverride(t *testing.T) {
 
 // TestReassociateResources tests the VMO reassociateResources function
 // GIVEN a VMO component
-//  WHEN I call reassociateResources with a VMO service resource
-//  THEN no error is returned and the VMO service contains expected Helm labels and annotations
+//
+//	WHEN I call reassociateResources with a VMO service resource
+//	THEN no error is returned and the VMO service contains expected Helm labels and annotations
 func TestReassociateResources(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
@@ -206,8 +208,9 @@ func TestReassociateResources(t *testing.T) {
 
 // TestExportVmoHelmChart tests the VMO exportVMOHelmChart function
 // GIVEN a VMO component
-//  WHEN I call exportVMOHelmChart with a VMO service resource
-//  THEN no error is returned and the VMO service contains expected Helm labels and annotations
+//
+//	WHEN I call exportVMOHelmChart with a VMO service resource
+//	THEN no error is returned and the VMO service contains expected Helm labels and annotations
 func TestExportVmoHelmChart(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook

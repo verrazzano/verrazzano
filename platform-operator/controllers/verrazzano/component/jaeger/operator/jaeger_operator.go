@@ -688,7 +688,7 @@ func GetHelmManagedResources() []common.HelmManagedResource {
 	}
 }
 
-//Remove old Jaeger resources such as Deployment, services, certs, and webhooks
+// Remove old Jaeger resources such as Deployment, services, certs, and webhooks
 func removeOldJaegerResources(ctx spi.ComponentContext) error {
 	if err := removeDeploymentAndService(ctx); err != nil {
 		return err

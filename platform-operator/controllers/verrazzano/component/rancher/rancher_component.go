@@ -75,7 +75,7 @@ func NewComponent() spi.Component {
 	}
 }
 
-//AppendOverrides set the Rancher overrides for Helm
+// AppendOverrides set the Rancher overrides for Helm
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	log := ctx.Log()
 	rancherHostName, err := getRancherHostname(ctx.Client(), ctx.EffectiveCR())
@@ -99,7 +99,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	return appendCAOverrides(log, kvs, ctx)
 }
 
-//appendRegistryOverrides appends overrides if a custom registry is being used
+// appendRegistryOverrides appends overrides if a custom registry is being used
 func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 	// If using external registry, add registry overrides to Rancher
 	registry := os.Getenv(constants.RegistryOverrideEnvVar)
@@ -119,7 +119,7 @@ func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 	return kvs
 }
 
-//appendCAOverrides sets overrides for CA Issuers, ACME or CA.
+// appendCAOverrides sets overrides for CA Issuers, ACME or CA.
 func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyValue, error) {
 	cm := ctx.EffectiveCR().Spec.Components.CertManager
 	if cm == nil {

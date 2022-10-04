@@ -120,13 +120,13 @@ func IsPodReadyOrCompleted(podStatus corev1.PodStatus) bool {
 
 // This is evolving as we add more cases in podContainerIssues
 //
-//   One thing that switching to this drill-down model makes harder to do is track overarching
-//   issues that are related. I have an IssueReporter that is being passed along and will
-//   consolidate the same KnownIssue types to help with similar issues.
+//	One thing that switching to this drill-down model makes harder to do is track overarching
+//	issues that are related. I have an IssueReporter that is being passed along and will
+//	consolidate the same KnownIssue types to help with similar issues.
 //
-//   Note that this is not showing it here as the current analysis only is using the IssueReporter
-//   but analysis code is free to use the NewKnown* helpers or form fully custom issues and Contribute
-//   those directly to the report.Contribute* helpers
+//	Note that this is not showing it here as the current analysis only is using the IssueReporter
+//	but analysis code is free to use the NewKnown* helpers or form fully custom issues and Contribute
+//	those directly to the report.Contribute* helpers
 func podContainerIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
 	log.Debugf("podContainerIssues analysis called for cluster: %s, ns: %s, pod: %s", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 	podEvents, err := GetEventsRelatedToPod(log, clusterRoot, pod, nil)

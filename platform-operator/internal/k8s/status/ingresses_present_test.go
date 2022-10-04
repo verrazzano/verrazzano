@@ -30,7 +30,7 @@ func TestIngressesPresent(t *testing.T) {
 	}
 	multipleNames := append(oneName, types.NamespacedName{Name: "anotherIng", Namespace: "foobar"})
 
-	var noName []types.NamespacedName = nil
+	var noName []types.NamespacedName
 	var tests = []struct {
 		name    string
 		c       client.Client
@@ -39,31 +39,31 @@ func TestIngressesPresent(t *testing.T) {
 	}{
 		{
 			"should be false when ingress not found",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme),
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build(),
 			oneName,
 			false,
 		},
 		{
 			"should be false when only some ingresses are found",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, &ingress),
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&ingress).Build(),
 			multipleNames,
 			false,
 		},
 		{
 			"should be true when ingress exists",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, &ingress),
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&ingress).Build(),
 			oneName,
 			true,
 		},
 		{
 			"should be true when no ingress names provided",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme),
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build(),
 			noName,
 			true,
 		},
 		{
 			"should be present when ingress exists",
-			fake.NewFakeClientWithScheme(k8scheme.Scheme, &ingress),
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&ingress).Build(),
 			oneName,
 			true,
 		},

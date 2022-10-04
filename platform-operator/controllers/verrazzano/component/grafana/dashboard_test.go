@@ -11,8 +11,9 @@ import (
 
 // TestDashboardNames verifies dashboard filenames in the configmap follow the expected format
 // GIVEN the list of dashboards
-//  WHEN I call dashboardName
-//  THEN the name is formatted correctly
+//
+//	WHEN I call dashboardName
+//	THEN the name is formatted correctly
 func TestDashboardNames(t *testing.T) {
 	for _, dashboard := range dashboardList {
 		name := dashboardName(dashboard)

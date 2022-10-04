@@ -7,31 +7,39 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/status"
+	"github.com/verrazzano/verrazzano/pkg/security/password"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	securityv1beta1 "istio.io/api/security/v1beta1"
 	istiov1beta1 "istio.io/api/type/v1beta1"
+
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	kialiHostName    = "kiali.vmi.system"
-	kialiSystemName  = "vmi-system-kiali"
-	kialiServicePort = "20001"
-	kialiMetricsPort = "9090"
-	webFQDNKey       = "server.web_fqdn"
+	kialiHostName         = "kiali.vmi.system"
+	kialiSystemName       = "vmi-system-kiali"
+	kialiServicePort      = "20001"
+	kialiMetricsPort      = "9090"
+	webFQDNKey            = "server.web_fqdn"
+	kialiSigningKeySecret = "kiali-signing-key" //nolint:gosec //#gosec G101
+	signingKey            = "signing-key"
+	signingKeyPath        = "login_token.signing_key"
 )
 
 // isKialiReady checks if the Kiali deployment is ready
@@ -59,6 +67,14 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 			Value: hostName,
 		})
 	}
+	signingKey, err := getKialiSigningKey(ctx)
+	if err != nil {
+		return kvs, err
+	}
+	kvs = append(kvs, bom.KeyValue{
+		Key:   signingKeyPath,
+		Value: signingKey,
+	})
 	return kvs, nil
 }
 
@@ -190,6 +206,43 @@ func getKialiHostName(context spi.ComponentContext) (string, error) {
 
 func buildKialiHostnameForDomain(dnsDomain string) string {
 	return fmt.Sprintf("%s.%s", kialiHostName, dnsDomain)
+}
+
+// getKialiSigningKey this secret holds the data for the Kiali signing key
+func getKialiSigningKey(ctx spi.ComponentContext) (string, error) {
+
+	secret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kialiSigningKeySecret,
+			Namespace: globalconst.VerrazzanoSystemNamespace,
+		},
+		Data: map[string][]byte{},
+	}
+	err := ctx.Client().Get(context.TODO(), clipkg.ObjectKey{
+		Namespace: constants.VerrazzanoSystemNamespace,
+		Name:      kialiSigningKeySecret,
+	}, &secret)
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return "", ctx.Log().ErrorfThrottledNewErr("Unexpected error getting secret %s, : %V", kialiSigningKeySecret, err)
+		}
+		pw, err := password.GeneratePassword(16)
+		if err != nil {
+			return "", err
+		}
+		_, err = controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &secret, func() error {
+			if secret.Data[signingKey] == nil {
+				secret.Data[signingKey] = []byte(pw)
+			}
+			return nil
+		})
+		return pw, err
+	}
+	signingKeyData, ok := secret.Data[signingKey]
+	if !ok {
+		return "", fmt.Errorf(fmt.Sprintf("Error retrieving signing key from secret %s", kialiSigningKeySecret))
+	}
+	return string(signingKeyData), nil
 }
 
 // GetOverrides returns the Kiali specific install overrides from v1beta1.Verrazzano CR

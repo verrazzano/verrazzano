@@ -117,13 +117,13 @@ var (
 	filesWithErrors map[string][]string
 
 	// numFilesAnalyzed Total number of files analyzed
-	numFilesAnalyzed uint = 0
+	numFilesAnalyzed uint
 
 	// numFilesSkipped Total number of files skipped
-	numFilesSkipped uint = 0
+	numFilesSkipped uint
 
 	// numDirectoriesSkipped Total number of directories skipped
-	numDirectoriesSkipped uint = 0
+	numDirectoriesSkipped uint
 
 	// filesToIgnore Files to ignore
 	filesToIgnore = []string{}
@@ -132,7 +132,7 @@ var (
 	directoriesToIgnore = []string{}
 
 	// enforceCurrentYear Enforce that the current year is present in the copyright string (for modified files checks)
-	enforceCurrentYear = false
+	enforceCurrentYear bool
 
 	// currentYear Holds the current year string if we are enforcing that
 	currentYear string

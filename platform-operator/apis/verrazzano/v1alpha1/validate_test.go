@@ -562,7 +562,7 @@ func runValidateWithIngressChangeTest() error {
 // WHEN no Verrazzano resources are found
 // THEN ensure no error is returned from ValidateActiveInstall
 func TestValidateActiveInstall(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(newScheme())
+	client := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	assert.NoError(t, ValidateActiveInstall(client))
 }
 
@@ -578,7 +578,7 @@ func TestValidateActiveInstallFail(t *testing.T) {
 		},
 		Spec: VerrazzanoSpec{},
 	}
-	client := fake.NewFakeClientWithScheme(newScheme())
+	client := fake.NewClientBuilder().WithScheme(newScheme()).Build()
 	assert.NoError(t, client.Create(context.TODO(), vz))
 	err := ValidateActiveInstall(client)
 	if assert.Error(t, err) {
@@ -707,7 +707,7 @@ func TestValidateOciDnsSecretBadSecret(t *testing.T) {
 	assert.NoError(t, err)
 	err = clientgoscheme.AddToScheme(scheme)
 	assert.NoError(t, err)
-	client := fake.NewFakeClientWithScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	err = validateOCISecrets(client, &vz.Spec)
 	assert.Error(t, err)
@@ -748,7 +748,7 @@ func runValidateOCIDNSAuthTest(t *testing.T, authType validators.AuthenticationT
 	assert.NoError(t, err)
 	err = clientgoscheme.AddToScheme(scheme)
 	assert.NoError(t, err)
-	client := fake.NewFakeClientWithScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	var ociConfig validators.OciAuth
 	switch authType {
@@ -814,7 +814,7 @@ func TestValidateOciDnsSecretNoDataKeys(t *testing.T) {
 	assert.NoError(t, err)
 	err = clientgoscheme.AddToScheme(scheme)
 	assert.NoError(t, err)
-	client := fake.NewFakeClientWithScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -853,7 +853,7 @@ func TestValidateOciDnsSecretTooManyDataKeys(t *testing.T) {
 	assert.NoError(t, err)
 	err = clientgoscheme.AddToScheme(scheme)
 	assert.NoError(t, err)
-	client := fake.NewFakeClientWithScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -897,7 +897,7 @@ func TestValidateOciDnsSecretInvalidAPIKey(t *testing.T) {
 	assert.NoError(t, err)
 	err = clientgoscheme.AddToScheme(scheme)
 	assert.NoError(t, err)
-	client := fake.NewFakeClientWithScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	assert.NoError(t, err)
 	ociConfig := validators.OciAuth{
@@ -952,7 +952,7 @@ func TestValidateOciDnsSecretInvalidAuthType(t *testing.T) {
 	assert.NoError(t, err)
 	err = clientgoscheme.AddToScheme(scheme)
 	assert.NoError(t, err)
-	client := fake.NewFakeClientWithScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	key, err := generateTestPrivateKey()
 	assert.NoError(t, err)
@@ -1008,7 +1008,7 @@ func TestValidateOciDnsSecretNoOci(t *testing.T) {
 	assert.NoError(t, err)
 	err = clientgoscheme.AddToScheme(scheme)
 	assert.NoError(t, err)
-	client := fake.NewFakeClientWithScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	err = validateOCISecrets(client, &vz.Spec)
 	assert.NoError(t, err)
@@ -1161,7 +1161,7 @@ func runTestFluentdOCIConfig(t *testing.T, ociConfigBytes string, errorMsg ...st
 	assert.NoError(t, err)
 	err = clientgoscheme.AddToScheme(scheme)
 	assert.NoError(t, err)
-	client := fake.NewFakeClientWithScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	key, err := generateTestPrivateKey()
 	assert.NoError(t, err)
@@ -1224,7 +1224,7 @@ func runFluentdInvalidKeyTest(t *testing.T, key []byte, msgSnippet string) {
 	assert.NoError(t, err)
 	err = clientgoscheme.AddToScheme(scheme)
 	assert.NoError(t, err)
-	client := fake.NewFakeClientWithScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	ociConfigBytes := `
 [DEFAULT]
@@ -1276,7 +1276,7 @@ func TestValidateFluentdOCISecretMissingKeySection(t *testing.T) {
 	assert.NoError(t, err)
 	err = clientgoscheme.AddToScheme(scheme)
 	assert.NoError(t, err)
-	client := fake.NewFakeClientWithScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	ociConfigBytes := `
 [DEFAULT]
@@ -1326,7 +1326,7 @@ func TestValidateFluentdOCISecretMissingConfigSection(t *testing.T) {
 	assert.NoError(t, err)
 	err = clientgoscheme.AddToScheme(scheme)
 	assert.NoError(t, err)
-	client := fake.NewFakeClientWithScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	key, err := generateTestPrivateKey()
 	assert.NoError(t, err)
@@ -1370,7 +1370,7 @@ func TestValidateFluentdOCISecretMissingSecret(t *testing.T) {
 	assert.NoError(t, err)
 	err = clientgoscheme.AddToScheme(scheme)
 	assert.NoError(t, err)
-	client := fake.NewFakeClientWithScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 
 	err = validateOCISecrets(client, &vz.Spec)
 	assert.Error(t, err)
