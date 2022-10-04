@@ -17,7 +17,8 @@ type HelmManagedResource struct {
 	NamespacedName types.NamespacedName
 }
 
-//AssociateHelmObject annotates an object as being managed by the specified release helm chart
+// AssociateHelmObject annotates an object as being managed by the specified release Helm chart
+// If the object was already associated with a different Helm release (e.g verrazzano), then that relationship will be broken
 func AssociateHelmObject(cli clipkg.Client, obj clipkg.Object, releaseName types.NamespacedName, namespacedName types.NamespacedName, keepResource bool) (clipkg.Object, error) {
 	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
 		if errors.IsNotFound(err) {
@@ -33,6 +34,7 @@ func AssociateHelmObject(cli clipkg.Client, obj clipkg.Object, releaseName types
 	annotations["meta.helm.sh/release-name"] = releaseName.Name
 	annotations["meta.helm.sh/release-namespace"] = releaseName.Namespace
 	if keepResource {
+		// Specify "keep" so that resource doesn't get deleted when we change the release name
 		annotations["helm.sh/resource-policy"] = "keep"
 	}
 	obj.SetAnnotations(annotations)

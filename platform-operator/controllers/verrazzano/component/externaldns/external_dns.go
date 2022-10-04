@@ -9,12 +9,12 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"hash/fnv"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -165,7 +165,7 @@ func getOCIDNS(vz *vzapi.Verrazzano) (*vzapi.OCI, error) {
 	return oci, nil
 }
 
-//getOrBuildIDs Get the owner and TXT prefix IDs from the Helm release if they exist and preserve it, otherwise build a new ones
+// getOrBuildIDs Get the owner and TXT prefix IDs from the Helm release if they exist and preserve it, otherwise build a new ones
 func getOrBuildIDs(compContext spi.ComponentContext, releaseName string, namespace string) ([]string, error) {
 	values, err := helm.GetReleaseStringValues(compContext.Log(), []string{ownerIDHelmKey, prefixKey}, releaseName, namespace)
 	if err != nil {
@@ -188,7 +188,7 @@ func buildPrefixKey(ownerID string) string {
 	return fmt.Sprintf("_%s-", ownerID)
 }
 
-//buildOwnerString Builds a unique owner string ID based on the Verrazzano CR UID and namespaced name
+// buildOwnerString Builds a unique owner string ID based on the Verrazzano CR UID and namespaced name
 func buildOwnerString(uid types.UID) (string, error) {
 	hash := fnv.New32a()
 	_, err := hash.Write([]byte(fmt.Sprintf("%v", uid)))

@@ -229,7 +229,7 @@ func testUpdate(t *testing.T,
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 	mocker.Finish()
 	return asserts, vz, result, fakeCompUpdated, err
 }

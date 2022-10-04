@@ -40,7 +40,7 @@ TEST_RUN=${3:-true}
 VERSION=${RELEASE_VERSION}
 
 if [[ $VERSION != v* ]] ; then
-  VERSION="v${1}"
+  VERSION="v${RELEASE_VERSION}"
 fi
 
 function verify_release_binaries_exist() {

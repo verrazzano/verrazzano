@@ -120,9 +120,9 @@ func isLegacyDatabaseUpgrade(compContext spi.ComponentContext) bool {
 }
 
 // appendLegacyUpgradePersistenceValues appends the helm values necessary to support a legacy persistent database upgrade
-func appendLegacyUpgradePersistenceValues(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+func appendLegacyUpgradePersistenceValues(bomFile *bom.Bom, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	var err error
-	kvs, err = appendCustomImageOverrides(kvs)
+	kvs, err = appendCustomImageOverrides(bomFile, kvs)
 	if err != nil {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
@@ -192,7 +192,7 @@ func handleLegacyDatabasePreUpgrade(ctx spi.ComponentContext) error {
 		}
 	}
 	ctx.Log().Debugf("Updating PV/PVC %v", mysqlPVC)
-	if err := common.UpdateExistingVolumeClaims(ctx, mysqlPVC, StatefulsetPersistentVolumeClaim, ComponentName); err != nil {
+	if err := common.UpdateExistingVolumeClaims(ctx, mysqlPVC, legacyDBDumpClaim, ComponentName); err != nil {
 		ctx.Log().Debugf("Unable to update PV/PVC")
 		return err
 	}
@@ -253,10 +253,14 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	}
 	rootPwd := rootSecret.Data[rootPasswordKey]
 
-	// ADD Primary Key Cmd
+	// Root priv
+	rootCmd := fmt.Sprintf(mySQLRootCommand, rootPwd)
+	rootExecCmd := []string{"bash", "-c", rootCmd}
+	// CHECK and ADD Primary Key Cmd
 	sqlCmd := fmt.Sprintf(mySQLDbCommands, rootPwd)
 	execCmd := []string{"bash", "-c", sqlCmd}
 	// util.dumpInstance() Cmd
+	cleanupCmd := []string{"bash", "-c", mySQLCleanup}
 	sqlShCmd := fmt.Sprintf(mySQLShCommands, rootPwd)
 	execShCmd := []string{"bash", "-c", sqlShCmd}
 	cfg, cli, err := k8sutil.ClientConfig()
@@ -267,20 +271,35 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execCmd)
+	// Grant root privilege =
+	_, _, err = k8sutil.ExecPodNoTty(cli, cfg, mysqlPod, "mysql", rootExecCmd)
+	if err != nil {
+		errorMsg := maskPw(fmt.Sprintf("Failed granting root priv, err = %v", err))
+		ctx.Log().Error(errorMsg)
+		return fmt.Errorf("error: %s", maskPw(err.Error()))
+	}
+	ctx.Log().Info("Successfully updated root privileges")
+	// Check and Update Primary Key
+	_, _, err = k8sutil.ExecPodNoTty(cli, cfg, mysqlPod, "mysql", execCmd)
 	if err != nil {
 		errorMsg := maskPw(fmt.Sprintf("Failed updating table, err = %v", err))
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
-	ctx.Log().Debug("Successfully updated keycloak table primary key")
-	_, _, err = k8sutil.ExecPod(cli, cfg, mysqlPod, "mysql", execShCmd)
+	ctx.Log().Info("Successfully updated keycloak table primary key")
+	_, _, err = k8sutil.ExecPodNoTty(cli, cfg, mysqlPod, "mysql", cleanupCmd)
+	if err != nil {
+		errorMsg := fmt.Sprintf("Failed to remove resources from previous attempts, err = %v", err)
+		ctx.Log().Error(errorMsg)
+		return fmt.Errorf("error: %s", err.Error())
+	}
+	_, _, err = k8sutil.ExecPodNoTty(cli, cfg, mysqlPod, "mysql", execShCmd)
 	if err != nil {
 		errorMsg := maskPw(fmt.Sprintf("Failed executing database dump, err = %v", err))
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
-	ctx.Log().Debug("Successfully persisted database dump")
+	ctx.Log().Info("Successfully persisted database dump")
 	err = updateDBMigrationInProgressSecret(ctx, databaseDumpedStage)
 	if err != nil {
 		return err

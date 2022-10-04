@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -23,7 +24,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -315,15 +315,11 @@ func (c jaegerOperatorComponent) validateJaegerOperator(cr *v1beta1.Verrazzano) 
 	if err != nil {
 		return err
 	}
-	// Validate install overrides for v1beta1
 	return validateInstallOverrides(cr.Spec.Components.JaegerOperator.ValueOverrides, client)
 }
 
-// validateInstallOverrides validates the v1beta1 install overrides (v1beta1.Overrides) configured for Jaeger component
+// validateInstallOverrides validates that the overrides contain only values that are allowed for override
 func validateInstallOverrides(overrides []v1beta1.Overrides, client clipkg.Client) error {
-	if err := v1alpha1.ValidateInstallOverridesV1Beta1(overrides); err != nil {
-		return err
-	}
 	overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(client, overrides, ComponentNamespace)
 	if err != nil {
 		return err
@@ -692,7 +688,7 @@ func GetHelmManagedResources() []common.HelmManagedResource {
 	}
 }
 
-//Remove old Jaeger resources such as Deployment, services, certs, and webhooks
+// Remove old Jaeger resources such as Deployment, services, certs, and webhooks
 func removeOldJaegerResources(ctx spi.ComponentContext) error {
 	if err := removeDeploymentAndService(ctx); err != nil {
 		return err

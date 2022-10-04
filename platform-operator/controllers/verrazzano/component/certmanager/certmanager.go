@@ -28,6 +28,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzresource "github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/security/password"
@@ -35,7 +36,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -190,7 +190,7 @@ type getCertManagerClientFuncType func() (certv1client.CertmanagerV1Interface, e
 
 var getCMClientFunc getCertManagerClientFuncType = GetCertManagerClientset
 
-//GetCertManagerClientset Get a CertManager clientset object
+// GetCertManagerClientset Get a CertManager clientset object
 func GetCertManagerClientset() (certv1client.CertmanagerV1Interface, error) {
 	cfg, err := controllerruntime.GetConfig()
 	if err != nil {
@@ -233,7 +233,7 @@ func checkRenewAllCertificates(compContext spi.ComponentContext, isCAConfig bool
 	return nil
 }
 
-//updateCerts Loop through the certs, and issue a renew request if necessary
+// updateCerts Loop through the certs, and issue a renew request if necessary
 func updateCerts(ctx context.Context, log vzlog.VerrazzanoLogger, cmClient certv1client.CertmanagerV1Interface, issuerCNs []string, certList certv1.CertificateList) error {
 	for index, currentCert := range certList.Items {
 		if currentCert.Name == caCertificateName {
@@ -259,7 +259,7 @@ func updateCerts(ctx context.Context, log vzlog.VerrazzanoLogger, cmClient certv
 	return nil
 }
 
-//getCertIssuerCommonName Gets the CN of the current issuer from the specified Cert secret
+// getCertIssuerCommonName Gets the CN of the current issuer from the specified Cert secret
 func getCertIssuerCommonName(currentCert certv1.Certificate) (string, error) {
 	secret, err := getSecret(currentCert.Namespace, currentCert.Spec.SecretName)
 	if err != nil {
@@ -272,7 +272,7 @@ func getCertIssuerCommonName(currentCert certv1.Certificate) (string, error) {
 	return certIssuerCN, nil
 }
 
-//renewCertificate Requests a new certificate by updating the status of the Certificate object to "Issuing"
+// renewCertificate Requests a new certificate by updating the status of the Certificate object to "Issuing"
 func renewCertificate(ctx context.Context, cmclientv1 certv1client.CertmanagerV1Interface, log vzlog.VerrazzanoLogger, updateCert *certv1.Certificate) error {
 	// Update the certificate status to start a renewal; avoid using controllerruntime.CreateOrUpdate(), while
 	// it should only do an update we don't want to accidentally create a updateCert
@@ -293,7 +293,7 @@ func renewCertificate(ctx context.Context, cmclientv1 certv1client.CertmanagerV1
 	return nil
 }
 
-//cleanupFailedCertificateRequests Delete any failed certificate requests associated with a certificate
+// cleanupFailedCertificateRequests Delete any failed certificate requests associated with a certificate
 func cleanupFailedCertificateRequests(ctx context.Context, cmclientv1 certv1client.CertmanagerV1Interface, log vzlog.VerrazzanoLogger, updateCert *certv1.Certificate) error {
 	crNamespaceClient := cmclientv1.CertificateRequests(updateCert.Namespace)
 	list, err := crNamespaceClient.List(ctx, metav1.ListOptions{})
@@ -410,7 +410,7 @@ func isCertManagerReady(context spi.ComponentContext) bool {
 	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
-//writeCRD writes out CertManager CRD manifests with OCI DNS specifications added
+// writeCRD writes out CertManager CRD manifests with OCI DNS specifications added
 // reads the input CRD file line by line, adding OCI DNS snippets
 func writeCRD(inFilePath, outFilePath string, useOCIDNS bool) error {
 	infile, err := os.Open(inFilePath)
@@ -466,7 +466,7 @@ func writeCRD(inFilePath, outFilePath string, useOCIDNS bool) error {
 	}
 }
 
-//createSnippetWithPadding left pads the OCI DNS snippet with a fixed amount of padding
+// createSnippetWithPadding left pads the OCI DNS snippet with a fixed amount of padding
 func createSnippetWithPadding(padding string) []byte {
 	builder := strings.Builder{}
 	for _, line := range ociDNSSnippet {
@@ -536,7 +536,7 @@ func getSecret(namespace string, name string) (*v1.Secret, error) {
 	return v1Client.Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
-//validateAcmeConfiguration Validate the ACME/LetsEncrypt values
+// validateAcmeConfiguration Validate the ACME/LetsEncrypt values
 func validateAcmeConfiguration(acme v1beta1.Acme) error {
 	if !isLetsEncryptProvider(acme) {
 		return fmt.Errorf("Invalid ACME certificate provider %v", acme.Provider)
@@ -567,7 +567,7 @@ func isLetsEncryptStaging(compContext spi.ComponentContext) bool {
 	return acmeEnvironment != "" && strings.ToLower(acmeEnvironment) != "production"
 }
 
-//createOrUpdateAcmeResources Create or update the ACME ClusterIssuer
+// createOrUpdateAcmeResources Create or update the ACME ClusterIssuer
 // - returns OperationResultNone/error on error
 // - returns OperationResultCreated/nil if the CI is created (initial install)
 // - returns OperationResultUpdated/nil if the CI is updated
@@ -673,7 +673,7 @@ func createAcmeCusterIssuerLookupObject(log vzlog.VerrazzanoLogger) (*unstructur
 
 }
 
-//createOrUpdateCAResources Create or update the CA ClusterIssuer
+// createOrUpdateCAResources Create or update the CA ClusterIssuer
 // - returns OperationResultNone/error on error
 // - returns OperationResultCreated/nil if the CI is created (initial install)
 // - returns OperationResultUpdated/nil if the CI is updated
@@ -765,7 +765,7 @@ func findIssuerCommonName(certificate v1beta1.Certificate, isCAValue bool) ([]st
 	return getACMEIssuerName(certificate.Acme)
 }
 
-//getACMEIssuerName Let's encrypt certificates are published, and the intermediate signing CA CNs are well-known
+// getACMEIssuerName Let's encrypt certificates are published, and the intermediate signing CA CNs are well-known
 func getACMEIssuerName(acme v1beta1.Acme) ([]string, error) {
 	if isLetsEncryptProductionEnv(acme) {
 		return letsEncryptProductionCACommonNames, nil

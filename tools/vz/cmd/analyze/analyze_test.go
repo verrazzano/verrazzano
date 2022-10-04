@@ -6,14 +6,15 @@ package analyze
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	cmdHelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	installcmd "github.com/verrazzano/verrazzano/tools/vz/cmd/install"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-	testhelper "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +24,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
-	"time"
 )
 
 const imagePullCase1 = "../../pkg/analysis/test/cluster/image-pull-case1/"
@@ -31,8 +31,8 @@ const ingressIPNotFound = "../../pkg/analysis/test/cluster/ingress-ip-not-found"
 
 // TestAnalyzeCommandDefault
 // GIVEN a CLI analyze command
-//  WHEN I call cmd.Execute without specifying flag capture-dir
-//  THEN expect the command to analyze the live cluster
+// WHEN I call cmd.Execute without specifying flag capture-dir
+// THEN expect the command to analyze the live cluster
 func TestAnalyzeCommandDefault(t *testing.T) {
 	c := getClientWithWatch()
 	installVZ(t, c)
@@ -57,8 +57,8 @@ func TestAnalyzeCommandDefault(t *testing.T) {
 
 // TestAnalyzeCommandDetailedReport
 // GIVEN a CLI analyze command
-//  WHEN I call cmd.Execute with a valid capture-dir and report-format set to "detailed"
-//  THEN expect the command to provide the report containing all the details for one or more issues reported
+// WHEN I call cmd.Execute with a valid capture-dir and report-format set to "detailed"
+// THEN expect the command to provide the report containing all the details for one or more issues reported
 func TestAnalyzeCommandDetailedReport(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -75,8 +75,8 @@ func TestAnalyzeCommandDetailedReport(t *testing.T) {
 
 // TestAnalyzeCommandSummaryReport
 // GIVEN a CLI analyze command
-//  WHEN I call cmd.Execute with a valid capture-dir and report-format set to "summary"
-//  THEN expect the command to provide the report containing only summary for one or more issues reported
+// WHEN I call cmd.Execute with a valid capture-dir and report-format set to "summary"
+// THEN expect the command to provide the report containing only summary for one or more issues reported
 func TestAnalyzeCommandSummaryReport(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -93,8 +93,8 @@ func TestAnalyzeCommandSummaryReport(t *testing.T) {
 
 // TestAnalyzeCommandInvalidReportFormat
 // GIVEN a CLI analyze command
-//  WHEN I call cmd.Execute with an invalid value for report-format
-//  THEN expect the command to fail with an appropriate error message to indicate the issue
+// WHEN I call cmd.Execute with an invalid value for report-format
+// THEN expect the command to fail with an appropriate error message to indicate the issue
 func TestAnalyzeCommandInvalidReportFormat(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -110,8 +110,8 @@ func TestAnalyzeCommandInvalidReportFormat(t *testing.T) {
 
 // TestAnalyzeCommandDefaultReportFormat
 // GIVEN a CLI analyze command
-//  WHEN I call cmd.Execute without report-format
-//  THEN expect the command to take the default value of summary for report-format and perform the analysis
+// WHEN I call cmd.Execute without report-format
+// THEN expect the command to take the default value of summary for report-format and perform the analysis
 func TestAnalyzeCommandDefaultReportFormat(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -127,8 +127,8 @@ func TestAnalyzeCommandDefaultReportFormat(t *testing.T) {
 
 // TestAnalyzeCommandWithReportFile
 // GIVEN a CLI analyze command
-//  WHEN I call cmd.Execute with a valid report-file
-//  THEN expect the command to create the report file, containing the analysis report
+// WHEN I call cmd.Execute with a valid report-file
+// THEN expect the command to create the report file, containing the analysis report
 func TestAnalyzeCommandWithReportFile(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -147,8 +147,8 @@ func TestAnalyzeCommandWithReportFile(t *testing.T) {
 
 // TestAnalyzeCommandInvalidCapturedDir
 // GIVEN a CLI analyze command
-//  WHEN I call cmd.Execute with capture-dir not containing the cluster snapshot
-//  THEN expect the command to fail with an appropriate error message
+// WHEN I call cmd.Execute with capture-dir not containing the cluster snapshot
+// THEN expect the command to fail with an appropriate error message
 func TestAnalyzeCommandInvalidCapturedDir(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -184,16 +184,20 @@ func getClientWithWatch() client.WithWatch {
 			},
 		},
 		Status: appsv1.DeploymentStatus{
-			Conditions: []appsv1.DeploymentCondition{
-				{
-					Type:               appsv1.DeploymentAvailable,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: metav1.NewTime(time.Now().Add(time.Minute * 10)),
-				},
+			AvailableReplicas: 1,
+			UpdatedReplicas:   1,
+		},
+	}
+	replicaset := &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      fmt.Sprintf("%s-45f78ffddd", constants.VerrazzanoPlatformOperator),
+			Annotations: map[string]string{
+				"deployment.kubernetes.io/revision": "1",
 			},
 		},
 	}
-	c := fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(vpo, deployment).Build()
+	c := fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(vpo, deployment, replicaset).Build()
 	return c
 }
 
@@ -201,12 +205,14 @@ func getClientWithWatch() client.WithWatch {
 func installVZ(t *testing.T, c client.WithWatch) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
-	rc := testhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := installcmd.NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run install command
 	err := cmd.Execute()

@@ -1,5 +1,7 @@
 image:
   pullPolicy: IfNotPresent
+  # The repository setting indicates where the images will be pulled
+  #repository:
   pullSecrets:
     enabled: false
     secretName:

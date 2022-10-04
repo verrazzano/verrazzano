@@ -16,7 +16,7 @@ def agentLabel=env.JOB_NAME.contains('-ocne') ? "" : env.JOB_NAME.contains('mast
 def availableRegions=["us-ashburn-1"]
 def availableDomains=["hXgQ:US-ASHBURN-AD-1", "hXgQ:US-ASHBURN-AD-2", "hXgQ:US-ASHBURN-AD-3"]
 Collections.shuffle(availableDomains)
-def kubernetesVersions=[ "v1.22.5", "v1.21.5", "v1.20.8" ]
+def kubernetesVersions=[ "v1.24.1", "v1.23.4", "v1.22.5", "v1.21.5" ]
 def ocneVersions=[ "1.5"]
 def osVersions=['8', '7']
 def uniquePrefix=UUID.randomUUID().toString().substring(0,4).replace('-','')
@@ -75,6 +75,10 @@ pipeline {
             name: "OCNE_OS_VERSION",
             description: 'OracleLinux OS version for OCNE nodes',
             choices: osVersions)
+        choice (name: 'CRD_API_VERSION',
+                description: 'This is the API crd version.',
+                // 1st choice is the default value
+                choices: [ "v1beta1", "v1alpha1"])
         string (
             name: "INSTALL_PROFILE",
             defaultValue: 'prod',
@@ -137,8 +141,8 @@ pipeline {
         TF_REPO_PATH="$GOPATH/src/github.com/terraform-oci-ocne"
         KUBECONFIG="$WORKSPACE/kubeconfig"
         VZ_COMMAND="$GO_REPO_PATH/vz"
+        INSTALL_CONFIG_FILE_OCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-ocne.yaml"
         OCNE_DUMP_DIR="$WORKSPACE/$VZ_ENVIRONMENT_NAME"
-        INSTALL_CONFIG_FILE_OCNE="$GO_REPO_PATH/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocne.yaml"
         OCNE_TERRAFORM_GIT_URL=credentials("gitlab_ocne_tf_url")
         OCNE_BRANCH_TO_USE="origin/release/${params.OCNE_VERSION}"
         SSHUTTLE_PID_FILE="$WORKSPACE/sshuttle.pid"

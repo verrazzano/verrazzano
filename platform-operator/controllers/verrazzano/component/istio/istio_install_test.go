@@ -10,10 +10,12 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"sigs.k8s.io/yaml"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"sigs.k8s.io/yaml"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -127,10 +129,9 @@ func testCR() *installv1alpha1.Verrazzano {
 }
 
 type fakeMonitor struct {
-	result          bool
-	istioctlSuccess bool
-	err             error
-	running         bool
+	result  bool
+	err     error
+	running bool
 }
 
 func (f *fakeMonitor) run(args installRoutineParams) {
@@ -140,20 +141,15 @@ func (f *fakeMonitor) checkResult() (bool, error) { return f.result, f.err }
 
 func (f *fakeMonitor) reset() {}
 
-func (f *fakeMonitor) init() {}
-
-func (f *fakeMonitor) sendResult(r bool) {}
-
 func (f *fakeMonitor) isRunning() bool { return f.running }
-
-func (f *fakeMonitor) isIstioctlSuccess() bool { return f.istioctlSuccess }
 
 var _ installMonitor = &fakeMonitor{}
 
 // TestAppendOverrideFilesInOrder tests if the override files are appended in reverse order
 // GIVEN a component
-//  WHEN I call appendOverrideFilesInOrder
-//  THEN the overrides are appended in reverse order
+//
+//	WHEN I call appendOverrideFilesInOrder
+//	THEN the overrides are appended in reverse order
 func TestAppendOverrideFilesInOrder(t *testing.T) {
 	type Foo struct {
 		Foo string `json:"foo"`
@@ -175,7 +171,10 @@ func TestAppendOverrideFilesInOrder(t *testing.T) {
 	}
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, cr, nil, false)
-	files, err := appendOverrideFilesInOrder(ctx, []string{})
+	convertedVZ := &v1beta1.Verrazzano{}
+	err := cr.ConvertTo(convertedVZ)
+	assert.NoError(t, err)
+	files, err := appendOverrideFilesInOrder(ctx, convertedVZ, []string{})
 
 	equalFoos := func(jsonFoo, yamlFoo []byte) {
 		jsonFooObj := &Foo{}
@@ -198,8 +197,9 @@ func TestAppendOverrideFilesInOrder(t *testing.T) {
 
 // TestIsOperatorInstallSupported tests if the install is supported
 // GIVEN a component
-//  WHEN I call IsOperatorInstallSupported
-//  THEN true is returned
+//
+//	WHEN I call IsOperatorInstallSupported
+//	THEN true is returned
 func TestIsOperatorInstallSupported(t *testing.T) {
 	a := assert.New(t)
 
@@ -209,8 +209,9 @@ func TestIsOperatorInstallSupported(t *testing.T) {
 
 // TestIsInstalled tests if the component is installed
 // GIVEN a component
-//  WHEN I call IsInstalled
-//  THEN true is returned
+//
+//	WHEN I call IsInstalled
+//	THEN true is returned
 func TestIsInstalled(t *testing.T) {
 	a := assert.New(t)
 
@@ -233,8 +234,9 @@ func getIsInstalledMock(t *testing.T) *mocks.MockClient {
 
 // TestIsNotInstalled tests if the component is not installed
 // GIVEN a component
-//  WHEN I call IsInstalled
-//  THEN false is returned
+//
+//	WHEN I call IsInstalled
+//	THEN false is returned
 func TestIsNotInstalled(t *testing.T) {
 	a := assert.New(t)
 
@@ -257,8 +259,9 @@ func getIsNotInstalledMock(t *testing.T) *mocks.MockClient {
 
 // TestInstall tests the component install
 // GIVEN a component
-//  WHEN I call Install
-//  THEN the install starts a new attempt and returns a RetryableError to requeue
+//
+//	WHEN I call Install
+//	THEN the install starts a new attempt and returns a RetryableError to requeue
 func TestInstall(t *testing.T) {
 	a := assert.New(t)
 
@@ -284,8 +287,9 @@ func TestInstall(t *testing.T) {
 
 // TestBackgroundInstallCompletedSuccessfully tests the component install
 // GIVEN a call to istioComponent.Install()
-//  WHEN when the monitor goroutine failed to successfully complete
-//  THEN the Install() method returns nil without calling the forkInstall function
+//
+//	WHEN when the monitor goroutine failed to successfully complete
+//	THEN the Install() method returns nil without calling the forkInstall function
 func TestBackgroundInstallCompletedSuccessfully(t *testing.T) {
 	a := assert.New(t)
 
@@ -311,8 +315,9 @@ func TestBackgroundInstallCompletedSuccessfully(t *testing.T) {
 
 // TestBackgroundInstallRetryOnFailure tests the component install
 // GIVEN a call to istioComponent.Install()
-//  WHEN when the monitor goroutine failed to successfully complete
-//  THEN the Install() method calls the forkInstall function and returns a retry error
+//
+//	WHEN when the monitor goroutine failed to successfully complete
+//	THEN the Install() method calls the forkInstall function and returns a retry error
 func TestBackgroundInstallRetryOnFailure(t *testing.T) {
 	a := assert.New(t)
 
@@ -342,8 +347,9 @@ func TestBackgroundInstallRetryOnFailure(t *testing.T) {
 
 // Test_forkInstallSuccess tests the forkInstall function
 // GIVEN a call to istioComponent.forkInstall()
-//  WHEN when the monitor install successfully runs istioctl install
-//  THEN retryerrors are returned until the goroutine completes, and sends a success message
+//
+//	WHEN when the monitor install successfully runs istioctl install
+//	THEN retryerrors are returned until the goroutine completes, and sends a success message
 func Test_forkInstallSuccess(t *testing.T) {
 	a := assert.New(t)
 
@@ -385,8 +391,9 @@ func Test_forkInstallSuccess(t *testing.T) {
 
 // Test_forkInstallFailure tests the forkInstall function
 // GIVEN a call to istioComponent.forkInstall()
-//  WHEN when the monitor install unsuccessfully runs istioctl install
-//  THEN retryerrors are returned until the goroutine completes, and sends a failure message when istioctl fails
+//
+//	WHEN when the monitor install unsuccessfully runs istioctl install
+//	THEN retryerrors are returned until the goroutine completes, and sends a failure message when istioctl fails
 func Test_forkInstallFailure(t *testing.T) {
 	a := assert.New(t)
 
@@ -438,8 +445,9 @@ func getIstioInstallMock(t *testing.T) *mocks.MockClient {
 
 // TestCreateCertSecret tests the cert secret
 // GIVEN a component
-//  WHEN I call createCertSecret
-//  THEN the bash function is called to create the secret
+//
+//	WHEN I call createCertSecret
+//	THEN the bash function is called to create the secret
 func TestCreateCertSecret(t *testing.T) {
 	a := assert.New(t)
 
@@ -465,8 +473,9 @@ func createCertSecretMock(t *testing.T) *mocks.MockClient {
 
 // TestCreatePeerAuthentication tests creating the PeerAuthentication resource
 // GIVEN a component
-//  WHEN I call createPeerAuthentication
-//  THEN the PeerAuthentication resource is created with STRICT MTLS
+//
+//	WHEN I call createPeerAuthentication
+//	THEN the PeerAuthentication resource is created with STRICT MTLS
 func TestCreatePeerAuthentication(t *testing.T) {
 	a := assert.New(t)
 
@@ -498,8 +507,9 @@ func createPeerAuthenticationMock(t *testing.T) *mocks.MockClient {
 
 // TestLabelNamespace tests creating the labelNamespace resource
 // GIVEN a component
-//  WHEN I call labelNamespace
-//  THEN the namespace is labelled
+//
+//	WHEN I call labelNamespace
+//	THEN the namespace is labelled
 func TestLabelNamespace(t *testing.T) {
 	a := assert.New(t)
 

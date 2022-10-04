@@ -37,7 +37,7 @@ func TestIsReady(t *testing.T) {
 			// WHEN we call isDeploymentReady
 			// THEN the call returns true
 			name: "Test IsReady when KubeStateMetrics is successfully deployed",
-			client: fake.NewFakeClientWithScheme(testScheme,
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
@@ -72,7 +72,7 @@ func TestIsReady(t *testing.T) {
 						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 					},
 				},
-			),
+			).Build(),
 			expectTrue: true,
 		},
 		{
@@ -80,7 +80,7 @@ func TestIsReady(t *testing.T) {
 			// WHEN we call isDeploymentReady
 			// THEN the call returns false
 			name: "Test IsReady when KubeStateMetrics deployment is not ready",
-			client: fake.NewFakeClientWithScheme(testScheme,
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
@@ -91,7 +91,7 @@ func TestIsReady(t *testing.T) {
 						Replicas:          1,
 						UpdatedReplicas:   0,
 					},
-				}),
+				}).Build(),
 			expectTrue: false,
 		},
 		{
@@ -99,7 +99,7 @@ func TestIsReady(t *testing.T) {
 			// WHEN we call isDeploymentReady
 			// THEN the call returns false
 			name:       "Test IsReady when KubeStateMetrics deployment does not exist",
-			client:     fake.NewFakeClientWithScheme(testScheme),
+			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
 			expectTrue: false,
 		},
 	}

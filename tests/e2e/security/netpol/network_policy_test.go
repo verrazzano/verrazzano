@@ -191,7 +191,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				t.Logs.Info("Test mysql ingress rules")
 				kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
 				label := "app"
-				if ok, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath); ok {
+				if ok, _ := pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath); ok {
 					label = "tier"
 				}
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{label: "mysql"}}, "keycloak", envoyStatsMetricsPort, true)

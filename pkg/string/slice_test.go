@@ -195,3 +195,20 @@ func TestAddString(t *testing.T) {
 		asserts.Equal(test.expectedSlice, result)
 	}
 }
+
+// TestCompareTwoSlices tests the TestCompareTwoSlices func for the following use case
+// GIVEN a request to TestCompareTwoSlices with an input of two slices
+// WHEN function is called
+// THEN return true if same, false if not equal
+func TestCompareTwoSlices(t *testing.T) {
+	assert := asserts.New(t)
+	slice1 := []string{"s1", "s2", "s3"}
+	slice2 := []string{"s1", "s3", "s2"}
+	slice3 := []string{"s1", "s2", "s4"}
+	slice4 := []string{"s1", "s2"}
+
+	assert.True(CompareTwoSlices(slice1, slice2))
+	assert.False(CompareTwoSlices(slice1, slice3))
+	assert.False(CompareTwoSlices(slice2, slice3))
+	assert.False(CompareTwoSlices(slice1, slice4))
+}

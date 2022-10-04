@@ -110,6 +110,7 @@ const (
 	PodProblemsNotReported    = "PodProblemsNotReported"
 	ComponentsNotReady        = "ComponentsNotReady"
 	IngressNoIPFound          = "IngressNoIPFound"
+	IstioIngressNoIP          = "IstioIngressNoIP"
 	IngressShapeInvalid       = "IngressShapeInvalid"
 )
 
@@ -133,6 +134,7 @@ var knownIssues = map[string]Issue{
 	PodProblemsNotReported:    {Type: PodProblemsNotReported, Summary: "Problem pods were detected, however a specific root cause was not identified", Informational: true, Impact: 0, Confidence: 10, Actions: []Action{KnownActions[PodProblemsNotReported]}},
 	ComponentsNotReady:        {Type: InstallFailure, Summary: "Verrazzano install failed, one or more components did not reach Ready state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InstallFailure]}},
 	IngressNoIPFound:          {Type: IngressNoIPFound, Summary: "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressNoIPFound]}},
+	IstioIngressNoIP:          {Type: IstioIngressNoIP, Summary: "Verrazzano install failed as no IP found for service istio-ingressgateway with type LoadBalancer", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IstioIngressNoIP]}},
 	IngressShapeInvalid:       {Type: IngressShapeInvalid, Summary: "Verrazzano install failed as the shape provided for NGINX Ingress Controller is invalid", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressShapeInvalid]}},
 }
 
@@ -306,6 +308,11 @@ func SingleMessage(message string) (messages []string) {
 // GetRelatedPodMessage returns the message for an issue in pod, used for setting supporting data
 func GetRelatedPodMessage(pod, ns string) string {
 	return "Pod \"" + pod + "\" in namespace \"" + ns + "\""
+}
+
+// GetRelatedServiceMessage returns the message for an issue in a service, used for setting supporting data
+func GetRelatedServiceMessage(service, ns string) string {
+	return "Service \"" + service + "\" in namespace \"" + ns + "\""
 }
 
 // GetRelatedLogFromPodMessage returns the message to indicate the issue in the pod log, in a given namespace

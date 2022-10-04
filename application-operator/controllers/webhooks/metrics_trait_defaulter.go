@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-//MetricsTraitDefaulter supplies default MetricsTrait
+// MetricsTraitDefaulter supplies default MetricsTrait
 type MetricsTraitDefaulter struct {
 	Client client.Client
 }
@@ -51,7 +51,7 @@ func (m *MetricsTraitDefaulter) addDefaultTrait(component *oamv1.ApplicationConf
 	component.Traits = append(component.Traits, componentTrait)
 }
 
-//Default method adds default MetricsTrait to ApplicationConfiguration
+// Default method adds default MetricsTrait to ApplicationConfiguration
 func (m *MetricsTraitDefaulter) Default(appConfig *oamv1.ApplicationConfiguration, dryRun bool, log *zap.SugaredLogger) error {
 	for i := range appConfig.Spec.Components {
 		appConfigComponent := &appConfig.Spec.Components[i]
@@ -67,7 +67,7 @@ func (m *MetricsTraitDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguratio
 	return nil
 }
 
-//shouldDefaultTraitBeAdded method verifies whether a trait should be applied to the component
+// shouldDefaultTraitBeAdded method verifies whether a trait should be applied to the component
 func (m *MetricsTraitDefaulter) shouldDefaultTraitBeAdded(appConfig *oamv1.ApplicationConfiguration, appConfigComponent *oamv1.ApplicationConfigurationComponent, log *zap.SugaredLogger) bool {
 	found := m.findMetricsTrait(appConfigComponent)
 	if found {

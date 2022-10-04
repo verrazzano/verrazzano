@@ -45,8 +45,9 @@ func init() {
 
 // TestIsReadySecretNotReady tests the OpenSearch-Dashboards areOpenSearchDashboardsReady call
 // GIVEN an OpenSearch-Dashboards component
-//  WHEN I call areOpenSearchDashboardsReady when it is installed and the deployment availability criteria are met, but the secret is not found
-//  THEN false is returned
+//
+//	WHEN I call areOpenSearchDashboardsReady when it is installed and the deployment availability criteria are met, but the secret is not found
+//	THEN false is returned
 func TestIsReadySecretNotReady(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	falseValue := false
@@ -75,8 +76,9 @@ func TestIsReadySecretNotReady(t *testing.T) {
 
 // TestIsReadyNotInstalled tests the OpenSearch-Dashboards areOpenSearchDashboardsReady call
 // GIVEN an OpenSearch-Dashboards component
-//  WHEN I call areOpenSearchDashboardsReady when it is not installed
-//  THEN false is returned
+//
+//	WHEN I call areOpenSearchDashboardsReady when it is not installed
+//	THEN false is returned
 func TestIsReadyNotInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
@@ -85,8 +87,9 @@ func TestIsReadyNotInstalled(t *testing.T) {
 
 // TestIsReady tests the areOpenSearchDashboardsReady call
 // GIVEN OpenSearch-Dashboards components that are all enabled by default
-//  WHEN I call areOpenSearchDashboardsReady when all requirements are met
-//  THEN false is returned
+//
+//	WHEN I call areOpenSearchDashboardsReady when all requirements are met
+//	THEN false is returned
 func TestIsReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&appsv1.Deployment{
@@ -134,8 +137,9 @@ func TestIsReady(t *testing.T) {
 
 // TestIsReadyDeploymentNotAvailable tests the OpenSearch-Dashboards areOpenSearchDashboardsReady call
 // GIVEN an OpenSearch-Dashboards component
-//  WHEN I call areOpenSearchDashboardsReady when the Kibana deployment is not available
-//  THEN false is returned
+//
+//	WHEN I call areOpenSearchDashboardsReady when the Kibana deployment is not available
+//	THEN false is returned
 func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&appsv1.Deployment{
@@ -160,8 +164,9 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 
 // TestIsReadyDeploymentVMIDisabled tests the OpenSearch-Dashboards areOpenSearchDashboardsReady call
 // GIVEN an OpenSearch-Dashboards component with all VMI components disabled
-//  WHEN I call areOpenSearchDashboardsReady
-//  THEN true is returned
+//
+//	WHEN I call areOpenSearchDashboardsReady
+//	THEN true is returned
 func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil

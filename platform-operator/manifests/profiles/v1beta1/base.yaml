@@ -175,6 +175,8 @@ spec:
                                   app: istiod
                               topologyKey: kubernetes.io/hostname
                             weight: 100
+    jaegerOperator:
+      enabled: false
     keycloak:
       enabled: true
       mysql:
@@ -182,6 +184,18 @@ spec:
           - values:
               serverInstances: 1
               routerInstances: 1
+              router:
+                podSpec:
+                  affinity:
+                    podAntiAffinity:
+                      preferredDuringSchedulingIgnoredDuringExecution:
+                        - weight: 100
+                          podAffinityTerm:
+                            labelSelector:
+                              matchLabels:
+                                app.kubernetes.io/instance: mysql-innodbcluster-mysql-router
+                                app.kubernetes.io/name: mysql-router
+                            topologyKey: kubernetes.io/hostname
               image:
                 pullPolicy: IfNotPresent
                 pullSecrets:
@@ -225,6 +239,8 @@ spec:
                         topologyKey: kubernetes.io/hostname
                       weight: 100
               replicas: 1
+    kubeStateMetrics:
+      enabled: false
     mySQLOperator:
       enabled: true
     oam:
@@ -235,6 +251,10 @@ spec:
       enabled: true
       replicas: 1
     prometheus:
+      enabled: true
+    prometheusAdapter:
+      enabled: false
+    prometheusNodeExporter:
       enabled: true
     prometheusOperator:
       enabled: true
@@ -252,8 +272,14 @@ spec:
                           topologyKey: kubernetes.io/hostname
                         weight: 100
                 replicas: 1
+    prometheusPushgateway:
+      enabled: false
     rancher:
       enabled: true
+    rancherBackup:
+      enabled: false
+    velero:
+      enabled: false
     verrazzano:
       enabled: true
     weblogicOperator:

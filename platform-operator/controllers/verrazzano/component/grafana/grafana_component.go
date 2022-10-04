@@ -5,7 +5,9 @@ package grafana
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -55,7 +57,7 @@ func (g grafanaComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of the Grafana component
 func (g grafanaComponent) GetDependencies() []string {
-	return []string{vmo.ComponentName}
+	return []string{networkpolicies.ComponentName, vmo.ComponentName}
 }
 
 // GetCertificateNames returns the Grafana certificate names if Nginx is enabled, otherwise returns
@@ -131,13 +133,13 @@ func (g grafanaComponent) IsReady(ctx spi.ComponentContext) bool {
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (g grafanaComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
-	return nil
+func (g grafanaComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return checkExistingCNEGrafana(vz)
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (g grafanaComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return nil
+	return checkExistingCNEGrafana(vz)
 }
 
 // PreInstall ensures that preconditions are met before installing the Grafana component
@@ -232,5 +234,20 @@ func (g grafanaComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, 
 
 // Reconcile reconciles the Grafana component
 func (g grafanaComponent) Reconcile(ctx spi.ComponentContext) error {
+	return nil
+}
+
+// checkExistingGrafana checks if Grafana is already installed
+// OLCNE Istio module may have Grafana installed in istio-system namespace
+func checkExistingCNEGrafana(vz runtime.Object) error {
+	if !vzconfig.IsGrafanaEnabled(vz) {
+		return nil
+	}
+	if err := k8sutil.ErrorIfDeploymentExists(constants.IstioSystemNamespace, ComponentName); err != nil {
+		return err
+	}
+	if err := k8sutil.ErrorIfServiceExists(constants.IstioSystemNamespace, ComponentName); err != nil {
+		return err
+	}
 	return nil
 }

@@ -6,11 +6,13 @@ package mysql
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -23,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -63,7 +66,7 @@ var mySQLSecret = v1.Secret{
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 const (
-	minExpectedHelmOverridesCount = 2
+	minExpectedHelmOverridesCount = 4
 	testBomFilePath               = "../../testdata/test_bom.json"
 )
 
@@ -423,14 +426,14 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 		})
 	// createPVCFromPV
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: statefulsetClaimName}, gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: legacyDBDumpClaim}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pvc *v1.PersistentVolumeClaim) error {
 			return nil
 		})
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, pvc *v1.PersistentVolumeClaim, opts ...client.UpdateOption) error {
-			assert.Equal(t, statefulsetClaimName, pvc.Name)
+			assert.Equal(t, legacyDBDumpClaim, pvc.Name)
 			assert.Equal(t, "volumeName", pvc.Spec.VolumeName)
 			return nil
 		})
@@ -639,7 +642,7 @@ func TestPostUpgradeProdProfile(t *testing.T) {
 				Spec: v1.PersistentVolumeSpec{
 					ClaimRef: &v1.ObjectReference{
 						Namespace: ComponentNamespace,
-						Name:      statefulsetClaimName,
+						Name:      legacyDBDumpClaim,
 					},
 					PersistentVolumeReclaimPolicy: v1.PersistentVolumeReclaimRetain,
 				},
@@ -839,7 +842,7 @@ func TestAppendMySQLOverridesUpgradeDevProfile(t *testing.T) {
 	ctx := spi.NewFakeContext(mock, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 0)
+	assert.Len(t, kvs, 2)
 }
 
 // TestAppendMySQLOverridesUpgradeLegacyProdProfile tests the appendMySQLOverrides function
@@ -944,10 +947,52 @@ func TestAppendMySQLOverridesUpgradeLegacyProdProfile(t *testing.T) {
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 }
 
+// TestClusterResourceDefaultRegistry tests the getRegistrySettings function
+// GIVEN a call to getRegistrySettings
+// WHEN there are no registry overrides
+// THEN the default value is returned for the imageRepository helm value
+func TestClusterResourceDefaultRegistry(t *testing.T) {
+	const defaultRegistry = "ghcr.io/verrazzano"
+
+	bomFile, err := bom.NewBom(testBomFilePath)
+	assert.NoError(t, err)
+	kvPair, err := getRegistrySettings(&bomFile)
+	assert.NoError(t, err)
+
+	assert.Equal(t, imageRepositoryKey, kvPair.Key)
+	assert.Equal(t, defaultRegistry, kvPair.Value)
+}
+
+// TestClusterResourcePrivateRegistryOverride tests the getRegistrySettings function
+// GIVEN a call to getRegistrySettings
+// WHEN there are custom private registry overrides
+// THEN the imageRepository helm value points to the correct registry/repo
+func TestClusterResourcePrivateRegistryOverride(t *testing.T) {
+	const registry = "myregistry.io"
+	os.Setenv(vzconst.RegistryOverrideEnvVar, registry)
+	defer func() { os.Unsetenv(vzconst.RegistryOverrideEnvVar) }()
+
+	const repoPath = "someuser/basepath"
+	os.Setenv(vzconst.ImageRepoOverrideEnvVar, repoPath)
+	defer func() { os.Unsetenv(vzconst.ImageRepoOverrideEnvVar) }()
+
+	bomFile, err := bom.NewBom(testBomFilePath)
+	assert.NoError(t, err)
+	kvPair, err := getRegistrySettings(&bomFile)
+	assert.NoError(t, err)
+
+	scRepo, err := bomFile.GetSubcomponent(bomSubComponentName)
+	assert.NoError(t, err)
+
+	assert.Equal(t, imageRepositoryKey, kvPair.Key)
+	assert.Equal(t, fmt.Sprintf("%s/%s/%s", registry, repoPath, scRepo.Repository), kvPair.Value)
+}
+
 // TestIsMySQLReady tests the isMySQLReady function
 // GIVEN a call to isMySQLReady
-//  WHEN the deployment object has enough replicas available
-//  THEN true is returned
+// WHEN the deployment object has enough replicas available
+// AND the InnoDBCluster is online
+// THEN true is returned
 func TestIsMySQLReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.StatefulSet{
@@ -1020,6 +1065,7 @@ func TestIsMySQLReady(t *testing.T) {
 			},
 			Revision: 1,
 		},
+		newInnoDBCluster(innoDBClusterStatusOnline),
 	).Build()
 	servers := []byte(`{"serverInstances": 1}`)
 	routers := []byte(`{"routerInstances": 1}`)
@@ -1054,8 +1100,8 @@ func TestIsMySQLReady(t *testing.T) {
 
 // TestIsMySQLNotReady tests the isMySQLReady function
 // GIVEN a call to isMySQLReady
-//  WHEN the deployment object does NOT have enough replicas available
-//  THEN false is returned
+// WHEN the deployment object does NOT have enough replicas available
+// THEN false is returned
 func TestIsMySQLNotReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.StatefulSet{
@@ -1160,18 +1206,194 @@ func TestIsMySQLNotReady(t *testing.T) {
 	assert.False(t, isMySQLReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
 }
 
+// TestIsMySQLReadyInnoDBClusterNotOnline tests the isMySQLReady function
+// GIVEN a call to isMySQLReady
+// WHEN the deployment object has enough replicas available
+// AND the InnoDBCluster is NOT online
+// THEN false is returned
+func TestIsMySQLReadyInnoDBClusterNotOnline(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName,
+				Labels:    map[string]string{"app": ComponentName},
+			},
+			Spec: appsv1.StatefulSetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": ComponentName},
+				},
+			},
+			Status: appsv1.StatefulSetStatus{
+				ReadyReplicas:   1,
+				Replicas:        1,
+				UpdatedReplicas: 1,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      fmt.Sprintf("%s-router", ComponentName),
+				Labels:    map[string]string{"app": ComponentName},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": ComponentName},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        "mysql-router-95d8c5d96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			},
+		},
+		&v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName + "-0",
+				Labels: map[string]string{
+					"controller-revision-hash": ComponentName + "-f97fd59d8",
+					"pod-template-hash":        "95d8c5d96",
+					"app":                      ComponentName,
+				},
+			},
+		},
+		&v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName + "-router-jfkdlf",
+				Labels: map[string]string{
+					"controller-revision-hash": ComponentName + "-f97fd59d8",
+					"pod-template-hash":        "95d8c5d96",
+					"app":                      ComponentName,
+				},
+			},
+		},
+		&appsv1.ControllerRevision{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ComponentName + "-f97fd59d8",
+				Namespace: ComponentNamespace,
+			},
+			Revision: 1,
+		},
+		newInnoDBCluster("PARTIAL"),
+	).Build()
+	servers := []byte(`{"serverInstances": 1}`)
+	routers := []byte(`{"routerInstances": 1}`)
+
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Profile: vzapi.ProfileType("prod"),
+			Components: vzapi.ComponentSpec{
+				Keycloak: &vzapi.KeycloakComponent{
+					MySQL: vzapi.MySQLComponent{
+						InstallOverrides: vzapi.InstallOverrides{
+							ValueOverrides: []vzapi.Overrides{
+								{
+									Values: &apiextensionsv1.JSON{
+										Raw: servers,
+									},
+								},
+								{
+									Values: &apiextensionsv1.JSON{
+										Raw: routers,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	assert.False(t, isMySQLReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
+}
+
+// TestPostUpgradeCleanup tests the PostUpgradeCleanup function
+// GIVEN a call to PostUpgradeCleanup
+// WHEN The legacy DB upgrade PVC exists
+// THEN It is deleted and no error is returned
+func TestPostUpgradeCleanup(t *testing.T) {
+	asserts := assert.New(t)
+	legacyPVC := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Name: legacyDBDumpClaim, Namespace: ComponentNamespace},
+	}
+	otherPVC := &v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "bar"}}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(legacyPVC, otherPVC).Build()
+
+	asserts.NoError(PostUpgradeCleanup(vzlog.DefaultLogger(), fakeClient))
+
+	pvc := &v1.PersistentVolumeClaim{}
+	notFoundErr := fakeClient.Get(context.TODO(), client.ObjectKeyFromObject(legacyPVC), pvc)
+	asserts.Error(notFoundErr)
+	asserts.True(errors.IsNotFound(notFoundErr))
+
+	otherErr := fakeClient.Get(context.TODO(), client.ObjectKeyFromObject(otherPVC), pvc)
+	asserts.NoError(otherErr)
+	asserts.Equal(client.ObjectKeyFromObject(otherPVC), client.ObjectKeyFromObject(pvc))
+}
+
+// TestPostUpgradeCleanupNoLegacyPVC tests the PostUpgradeCleanup function
+// GIVEN a call to PostUpgradeCleanup
+// WHEN The legacy DB upgrade PVC does NOT exist
+// THEN no error is returned
+func TestPostUpgradeCleanupNoLegacyPVC(t *testing.T) {
+	asserts := assert.New(t)
+	legacyPVC := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Name: legacyDBDumpClaim, Namespace: ComponentNamespace},
+	}
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
+
+	pvc := &v1.PersistentVolumeClaim{}
+	notFoundErr := fakeClient.Get(context.TODO(), client.ObjectKeyFromObject(legacyPVC), pvc)
+	asserts.Error(notFoundErr)
+	asserts.True(errors.IsNotFound(notFoundErr))
+
+	asserts.NoError(PostUpgradeCleanup(vzlog.DefaultLogger(), fakeClient))
+}
+
+// TestPostUpgradeCleanupErrorOnDelete tests the PostUpgradeCleanup function
+// GIVEN a call to PostUpgradeCleanup
+// WHEN an error other than IsNotFound is returned from the controllerruntime client
+// THEN an error is returned
+func TestPostUpgradeCleanupErrorOnDelete(t *testing.T) {
+	asserts := assert.New(t)
+
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	legacyPVC := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Name: legacyDBDumpClaim, Namespace: ComponentNamespace},
+	}
+
+	expectedErr := fmt.Errorf("An error")
+	mock.EXPECT().Delete(gomock.Any(), legacyPVC).Return(expectedErr)
+
+	err := PostUpgradeCleanup(vzlog.DefaultLogger(), mock)
+	asserts.Error(err)
+	asserts.Equal(expectedErr, err)
+}
+
 // TestIsEnabledNilComponent tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is nil
-//  THEN false is returned
+// WHEN The Keycloak component is nil
+// THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesDir).EffectiveCR()))
 }
 
 // TestIsEnabledNilKeycloak tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is nil
-//  THEN true is returned
+// WHEN The Keycloak component is nil
+// THEN true is returned
 func TestIsEnabledNilKeycloak(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -1180,8 +1402,8 @@ func TestIsEnabledNilKeycloak(t *testing.T) {
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component enabled is nil
-//  THEN true is returned
+// WHEN The Keycloak component enabled is nil
+// THEN true is returned
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = nil
@@ -1190,8 +1412,8 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 
 // TestIsEnabledExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is explicitly enabled
-//  THEN true is returned
+// WHEN The Keycloak component is explicitly enabled
+// THEN true is returned
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(true)
@@ -1200,8 +1422,8 @@ func TestIsEnabledExplicit(t *testing.T) {
 
 // TestIsDisableExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is explicitly disabled
-//  THEN false is returned
+// WHEN The Keycloak component is explicitly disabled
+// THEN false is returned
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(false)
@@ -1210,8 +1432,8 @@ func TestIsDisableExplicit(t *testing.T) {
 
 // TestIsEnabledManagedClusterProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and managed cluster profile
-//  THEN false is returned
+// WHEN The Keycloak enabled flag is nil and managed cluster profile
+// THEN false is returned
 func TestIsEnabledManagedClusterProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -1221,8 +1443,8 @@ func TestIsEnabledManagedClusterProfile(t *testing.T) {
 
 // TestIsEnabledProdProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and prod profile
-//  THEN false is returned
+// WHEN The Keycloak enabled flag is nil and prod profile
+// THEN false is returned
 func TestIsEnabledProdProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -1232,8 +1454,8 @@ func TestIsEnabledProdProfile(t *testing.T) {
 
 // TestIsEnabledDevProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and dev profile
-//  THEN false is returned
+// WHEN The Keycloak enabled flag is nil and dev profile
+// THEN false is returned
 func TestIsEnabledDevProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -1243,8 +1465,8 @@ func TestIsEnabledDevProfile(t *testing.T) {
 
 // TestConvertOldInstallArgs tests the convertOldInstallArgs function
 // GIVEN a call to convertOldInstallArgs
-//  WHEN The old persistence values are passed in
-//  THEN the new values are returned
+// WHEN The old persistence values are passed in
+// THEN the new values are returned
 func TestConvertOldInstallArgs(t *testing.T) {
 	persistenceVals := []bom.KeyValue{
 		{
@@ -1273,4 +1495,14 @@ func TestConvertOldInstallArgs(t *testing.T) {
 
 func getBoolPtr(b bool) *bool {
 	return &b
+}
+
+// newInnoDBCluster returns an unstructured representation of an InnoDBCluster resource
+func newInnoDBCluster(status string) *unstructured.Unstructured {
+	innoDBCluster := unstructured.Unstructured{}
+	innoDBCluster.SetGroupVersionKind(innoDBClusterGVK)
+	innoDBCluster.SetNamespace(ComponentNamespace)
+	innoDBCluster.SetName(helmReleaseName)
+	unstructured.SetNestedField(innoDBCluster.Object, status, innoDBClusterStatusFields...)
+	return &innoDBCluster
 }

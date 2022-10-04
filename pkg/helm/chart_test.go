@@ -10,8 +10,9 @@ import (
 
 // TestGetChart tests getting the contents of Chart.yaml
 // GIVEN a chart directory
-//  WHEN I call GetChart
-//  THEN the correct chart data is returned
+//
+//	WHEN I call GetChart
+//	THEN the correct chart data is returned
 func TestGetChart(t *testing.T) {
 	assert := assert.New(t)
 	chart, err := GetChartInfo("./testdata")
@@ -25,8 +26,9 @@ func TestGetChart(t *testing.T) {
 
 // TestGetChartNoFile tests getting the error handling of getting a chart when the file doesn't exist
 // GIVEN a chart directory with no chart file
-//  WHEN I call GetChart
-//  THEN an error is returned
+//
+//	WHEN I call GetChart
+//	THEN an error is returned
 func TestGetChartNoFile(t *testing.T) {
 	assert := assert.New(t)
 	_, err := GetChartInfo("./")

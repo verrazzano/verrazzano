@@ -5,6 +5,9 @@ package main
 
 import (
 	"flag"
+	"os"
+	"sync"
+
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -12,8 +15,6 @@ import (
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"os"
-	"sync"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -117,6 +118,10 @@ func main() {
 	if len(bomOverride) > 0 {
 		log.Infof("Using BOM override file %s", bomOverride)
 		internalconfig.SetDefaultBomFilePath(bomOverride)
+	}
+
+	if !validators.IsKubernetesVersionSupported() {
+		os.Exit(1)
 	}
 
 	// Log the Verrazzano version
@@ -236,7 +241,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup the validation webhook
+	// Setup the validation webhook for VMC
 	if config.WebhooksEnabled {
 		log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
 		if err = (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {

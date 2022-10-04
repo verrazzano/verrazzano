@@ -24,7 +24,9 @@ import (
 
 // TestCreateSecretOneMCAppConfig tests the synchronization method for the following use case.
 // GIVEN a request to sync Secret objects with a single MultiClusterApplicationConfiguration object
-//   containing two secrets
+//
+//	containing two secrets
+//
 // WHEN the new object exists
 // THEN ensure that the Secret objects are created
 func TestCreateSecretOneMCAppConfig(t *testing.T) {
@@ -41,9 +43,9 @@ func TestCreateSecretOneMCAppConfig(t *testing.T) {
 	testSecret2, err := getSampleSecret("testdata/secret2.yaml")
 	assert.NoError(err, "failed to read sample data for Secret")
 
-	adminClient := fake.NewFakeClientWithScheme(newTestScheme(), &testMCAppConfig, &testSecret1, &testSecret2)
+	adminClient := fake.NewClientBuilder().WithScheme(newTestScheme()).WithObjects(&testMCAppConfig, &testSecret1, &testSecret2).Build()
 
-	localClient := fake.NewFakeClientWithScheme(newTestScheme())
+	localClient := fake.NewClientBuilder().WithScheme(newTestScheme()).Build()
 
 	// Make the request
 	s := &Syncer{
@@ -76,7 +78,9 @@ func TestCreateSecretOneMCAppConfig(t *testing.T) {
 
 // TestCreateSecretTwoMCAppConfigs tests the synchronization method for the following use case.
 // GIVEN a request to sync Secret objects with two MultiClusterApplicationConfiguration objects
-//   and one of the secrets is shared by two MultiClusterApplicationConfiguration objects
+//
+//	and one of the secrets is shared by two MultiClusterApplicationConfiguration objects
+//
 // WHEN the new object exists
 // THEN ensure that the Secret objects are created
 func TestCreateSecretTwoMCAppConfigs(t *testing.T) {
@@ -96,9 +100,9 @@ func TestCreateSecretTwoMCAppConfigs(t *testing.T) {
 	testSecret2, err := getSampleSecret("testdata/secret2.yaml")
 	assert.NoError(err, "failed to read sample data for Secret")
 
-	adminClient := fake.NewFakeClientWithScheme(newTestScheme(), &testMCAppConfig1, &testMCAppConfig2, &testSecret1, &testSecret2)
+	adminClient := fake.NewClientBuilder().WithScheme(newTestScheme()).WithObjects(&testMCAppConfig1, &testMCAppConfig2, &testSecret1, &testSecret2).Build()
 
-	localClient := fake.NewFakeClientWithScheme(newTestScheme())
+	localClient := fake.NewClientBuilder().WithScheme(newTestScheme()).Build()
 
 	// Make the request
 	s := &Syncer{
@@ -133,7 +137,9 @@ func TestCreateSecretTwoMCAppConfigs(t *testing.T) {
 
 // TestChangePlacement tests the synchronization method for the following use case.
 // GIVEN a request to move a MultiClusterApplicationConfiguration object
-//   from one cluster to another
+//
+//	from one cluster to another
+//
 // WHEN the new object exists
 // THEN ensure that the Secret objects are created and then removed
 func TestChangePlacement(t *testing.T) {
@@ -150,9 +156,9 @@ func TestChangePlacement(t *testing.T) {
 	testSecret2, err := getSampleSecret("testdata/secret2.yaml")
 	assert.NoError(err, "failed to read sample data for Secret")
 
-	adminClient := fake.NewFakeClientWithScheme(newTestScheme(), &testMCAppConfig, &testSecret1, &testSecret2)
+	adminClient := fake.NewClientBuilder().WithScheme(newTestScheme()).WithObjects(&testMCAppConfig, &testSecret1, &testSecret2).Build()
 
-	localClient := fake.NewFakeClientWithScheme(newTestScheme())
+	localClient := fake.NewClientBuilder().WithScheme(newTestScheme()).Build()
 
 	// Make the request
 	s := &Syncer{
@@ -199,7 +205,9 @@ func TestChangePlacement(t *testing.T) {
 
 // TestDeleteSecret tests the deletion of secrets for the following use case.
 // GIVEN a request to delete a MultiClusterApplicationConfiguration object
-//   containing two secrets that are not shared
+//
+//	containing two secrets that are not shared
+//
 // WHEN the MultiClusterApplicationConfiguration object is deleted
 // THEN ensure that the Secret objects are deleted
 func TestDeleteSecret(t *testing.T) {
@@ -216,9 +224,9 @@ func TestDeleteSecret(t *testing.T) {
 	testSecret2, err := getSampleSecret("testdata/secret2.yaml")
 	assert.NoError(err, "failed to read sample data for Secret")
 
-	adminClient := fake.NewFakeClientWithScheme(newTestScheme(), &testMCAppConfig, &testSecret1, &testSecret2)
+	adminClient := fake.NewClientBuilder().WithScheme(newTestScheme()).WithObjects(&testMCAppConfig, &testSecret1, &testSecret2).Build()
 
-	localClient := fake.NewFakeClientWithScheme(newTestScheme())
+	localClient := fake.NewClientBuilder().WithScheme(newTestScheme()).Build()
 
 	// Make the request
 	s := &Syncer{
@@ -263,10 +271,13 @@ func TestDeleteSecret(t *testing.T) {
 
 // TestDeleteSecretSharedSecret tests the deletion of secrets for the following use case.
 // GIVEN a request to delete a MultiClusterApplicationConfiguration object
-//   containing a secret that is shared by another MultiClusterApplicationConfiguration object
+//
+//	containing a secret that is shared by another MultiClusterApplicationConfiguration object
+//
 // WHEN the MultiClusterApplicationConfiguration object is deleted
 // THEN ensure that the shared secret is not deleted and the verrazzano.io/mc-app-configs label is updated to reflect
-//   the deleted MultiClusterApplicationConfiguration object
+//
+//	the deleted MultiClusterApplicationConfiguration object
 func TestDeleteSecretSharedSecret(t *testing.T) {
 	assert := asserts.New(t)
 	log := zap.S().With("test")
@@ -284,9 +295,9 @@ func TestDeleteSecretSharedSecret(t *testing.T) {
 	testSecret2, err := getSampleSecret("testdata/secret2.yaml")
 	assert.NoError(err, "failed to read sample data for Secret")
 
-	adminClient := fake.NewFakeClientWithScheme(newTestScheme(), &testMCAppConfig1, &testMCAppConfig2, &testSecret1, &testSecret2)
+	adminClient := fake.NewClientBuilder().WithScheme(newTestScheme()).WithObjects(&testMCAppConfig1, &testMCAppConfig2, &testSecret1, &testSecret2).Build()
 
-	localClient := fake.NewFakeClientWithScheme(newTestScheme())
+	localClient := fake.NewClientBuilder().WithScheme(newTestScheme()).Build()
 
 	// Make the request
 	s := &Syncer{
@@ -336,7 +347,9 @@ func TestDeleteSecretSharedSecret(t *testing.T) {
 
 // TestDeleteSecretExtra tests the deletion of secrets for the following use case.
 // GIVEN a request to delete a MultiClusterApplicationConfiguration object
-//   containing a secret and there is also a secret not part of the MultiClusterApplicationConfiguration object
+//
+//	containing a secret and there is also a secret not part of the MultiClusterApplicationConfiguration object
+//
 // WHEN the MultiClusterApplicationConfiguration object is deleted
 // THEN ensure that only the secret in the MultiClusterApplicationConfiguration object is deleted
 func TestDeleteSecretExtra(t *testing.T) {
@@ -353,9 +366,9 @@ func TestDeleteSecretExtra(t *testing.T) {
 	testSecret2, err := getSampleSecret("testdata/secret2.yaml")
 	assert.NoError(err, "failed to read sample data for Secret")
 
-	adminClient := fake.NewFakeClientWithScheme(newTestScheme(), &testMCAppConfig2, &testSecret1)
+	adminClient := fake.NewClientBuilder().WithScheme(newTestScheme()).WithObjects(&testMCAppConfig2, &testSecret1).Build()
 
-	localClient := fake.NewFakeClientWithScheme(newTestScheme(), &testSecret2)
+	localClient := fake.NewClientBuilder().WithScheme(newTestScheme()).WithObjects(&testSecret2).Build()
 
 	// Make the request
 	s := &Syncer{

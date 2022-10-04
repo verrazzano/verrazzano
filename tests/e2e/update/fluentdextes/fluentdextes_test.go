@@ -28,7 +28,7 @@ var (
 	adminCluster     *multicluster.Cluster
 	managedClusters  []*multicluster.Cluster
 	orignalFluentd   *vzapi.FluentdComponent
-	tenMinutes       = 10 * time.Minute
+	waitTimeout      = 10 * time.Minute
 	pollingInterval  = 5 * time.Second
 )
 
@@ -45,7 +45,10 @@ var _ = t.BeforeSuite(func() {
 
 var _ = t.AfterSuite(func() {
 	if extOpensearchURL != "" && extOpensearchURL != pkg.VmiESURL && extOpensearchSec != "" {
-		fluentd.ValidateDaemonset(extOpensearchURL, extOpensearchSec, "")
+		start := time.Now()
+		gomega.Eventually(func() bool {
+			return fluentd.ValidateDaemonset(extOpensearchURL, extOpensearchSec, "")
+		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", extOpensearchURL, time.Since(start)))
 	}
 })
 
@@ -54,8 +57,13 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 		t.It("default Opensearch", func() {
 			if orignalFluentd != nil { //External Collector is enabled
 				m := &fluentd.FluentdModifier{Component: vzapi.FluentdComponent{}}
-				fluentd.ValidateUpdate(m, "")
-				fluentd.ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
+
+				start := time.Now()
+				gomega.Expect(fluentd.ValidateUpdate(m, "")).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", ""))
+
+				gomega.Eventually(func() bool {
+					return fluentd.ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
+				}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
 			}
 		})
 	})
@@ -69,8 +77,12 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			pkg.Log(pkg.Info, fmt.Sprintf("Update fluentd to use %v and %v", extOpensearchURL, extOpensearchSec))
 			if orignalFluentd != nil { //External Collector is enabled
 				m := &fluentd.FluentdModifier{Component: *orignalFluentd}
-				update.RetryUpdate(m, adminCluster.KubeConfigPath, false, pollingInterval, tenMinutes)
-				fluentd.ValidateDaemonset(extOpensearchURL, extOpensearchSec, "")
+				update.RetryUpdate(m, adminCluster.KubeConfigPath, false, pollingInterval, waitTimeout)
+
+				start := time.Now()
+				gomega.Eventually(func() bool {
+					return fluentd.ValidateDaemonset(extOpensearchURL, extOpensearchSec, "")
+				}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", extOpensearchURL, time.Since(start)))
 				verifyCaSync(extOpensearchSec)
 			}
 		})
@@ -90,7 +102,7 @@ func verifyCaSync(esSec string) {
 		if reg != nil {
 			gomega.Eventually(func() bool {
 				return verifyCaBundles(reg, managedCluster, esSec, extEsCa)
-			}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("CA bundle in %s is not synced", esSec))
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("CA bundle in %s is not synced", esSec))
 		}
 	}
 }
@@ -102,7 +114,7 @@ func getRegistration(managedCluster *multicluster.Cluster) *corev1.Secret {
 		gomega.Eventually(func() bool {
 			reg, _ := adminCluster.GetRegistration(managedCluster.Name)
 			return reg != nil
-		}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("%s is not registered", managedCluster.Name))
+		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("%s is not registered", managedCluster.Name))
 		reg, _ = adminCluster.GetRegistration(managedCluster.Name)
 	}
 	return reg

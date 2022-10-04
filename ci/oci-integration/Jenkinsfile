@@ -41,17 +41,21 @@ pipeline {
             choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
             // 1st choice is the default value
-            choices: [ "v1.22.5", "v1.23.4", "v1.24.1", "v1.21.5", "v1.20.8" ])
+            choices: [ "v1.24.1", "v1.23.4", "v1.22.5", "v1.21.5" ])
         choice (description: 'Kubernetes Version for KinD Cluster',
             name: 'KIND_CLUSTER_VERSION',
             // 1st choice is the default value
-            choices: [ "1.22", "1.23", "1.24", "1.21", "1.20" ])
+            choices: [ "1.24", "1.23", "1.22", "1.21" ])
         choice(description: 'Verrazzano Install Profile', name: "INSTALL_PROFILE", choices: installProfiles )
         string defaultValue: 'NONE', description: 'Verrazzano platform operator image name (within ghcr.io/verrazzano repo)', name: 'VERRAZZANO_OPERATOR_IMAGE', trim: true
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
+        choice (name: 'CRD_API_VERSION',
+                description: 'This is the API crd version.',
+                // 1st choice is the default value
+                choices: [ "v1beta1", "v1alpha1"])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -126,8 +130,8 @@ pipeline {
 
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
 
-        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
-        INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-kind-no-persistence.yaml"
+        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-nipio.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind-no-persistence.yaml"
 
         VZ_ENVIRONMENT_NAME = "default"
 

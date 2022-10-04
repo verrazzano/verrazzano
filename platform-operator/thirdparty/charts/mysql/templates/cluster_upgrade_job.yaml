@@ -9,6 +9,7 @@ metadata:
     app: mysql
     component: restore-keycloak-db
 spec:
+  backoffLimit: 6
   template:
     spec:
       initContainers:
@@ -37,7 +38,7 @@ spec:
             - -c
             - >-
               while ! mysqladmin ping -h"{{ $cluster_name }}.{{ .Release.Namespace }}.svc.cluster.local" --silent; do sleep 1; done &&
-              mysqlsh -u root -p{{ .Values.credentials.root.password }} -h {{ $cluster_name }}.{{ .Release.Namespace }}.svc.cluster.local -e 'util.loadDump("/var/lib/dump/{{ .Values.legacyUpgrade.dumpDir }}", {includeSchemas: ["keycloak"], includeUsers: ["keycloak"], loadUsers: true})'
+              mysqlsh -u root -p$(MYSQL_ROOT_PASSWORD) -h {{ $cluster_name }}.{{ .Release.Namespace }}.svc.cluster.local -e 'util.loadDump("/var/lib/dump/{{ .Values.legacyUpgrade.dumpDir }}", {includeSchemas: ["keycloak"], includeUsers: ["keycloak"], loadUsers: true})'
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
@@ -55,5 +56,5 @@ spec:
           volumeMounts:
             - mountPath: /var/lib/dump
               name: keycloak-dump
-      restartPolicy: Never
+      restartPolicy: OnFailure
 {{- end -}}

@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -24,14 +25,14 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "mysql"
 
+// helmReleaseName is the name of the helm release
+const helmReleaseName = ComponentName
+
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.KeycloakNamespace
 
 // DeploymentPersistentVolumeClaim is the name of a volume claim associated with a MySQL deployment
 const DeploymentPersistentVolumeClaim = "mysql"
-
-// StatefulsetPersistentVolumeClaim is the name of a volume claim associated with a MySQL statefulset
-const StatefulsetPersistentVolumeClaim = "dump-claim"
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "keycloak.mysql"
@@ -52,7 +53,7 @@ func NewComponent() spi.Component {
 
 	return mysqlComponent{
 		helm.HelmComponent{
-			ReleaseName:               ComponentName,
+			ReleaseName:               helmReleaseName,
 			JSONName:                  ComponentJSONName,
 			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:            ComponentNamespace,
@@ -62,7 +63,7 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
 			AppendOverridesFunc:       appendMySQLOverrides,
-			Dependencies:              []string{istio.ComponentName, MySQLOperatorComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, MySQLOperatorComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
@@ -170,23 +171,6 @@ func validatePersistenceSpecificChanges(oldSetting, newSetting []bom.KeyValue) e
 func (c mysqlComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
 	if vz != nil && vz.Spec.Components.Keycloak != nil {
 		return vz.Spec.Components.Keycloak.MySQL.MySQLInstallArgs
-	}
-	return nil
-}
-
-func (c mysqlComponent) getInstallOverridesV1beta1(object runtime.Object) []v1beta1.Overrides {
-	if vz, ok := object.(*vzapi.Verrazzano); ok {
-		if vz != nil && vz.Spec.Components.Keycloak != nil {
-			valueOverrides, err := vzapi.ConvertInstallOverridesWithArgsToV1Beta1(vz.Spec.Components.Keycloak.MySQL.MySQLInstallArgs, vz.Spec.Components.Keycloak.MySQL.InstallOverrides)
-			if err != nil {
-				return nil
-			}
-			return valueOverrides.ValueOverrides
-		}
-	}
-	vz := object.(*v1beta1.Verrazzano)
-	if vz != nil && vz.Spec.Components.Keycloak != nil {
-		return vz.Spec.Components.Keycloak.MySQL.InstallOverrides.ValueOverrides
 	}
 	return nil
 }

@@ -5,12 +5,14 @@ package verrazzano
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 
@@ -78,6 +80,9 @@ var unitTesting bool
 // +kubebuilder:rbac:groups=install.verrazzano.io,resources=verrazzanos/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;watch;list;create;update;delete
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	if ctx == nil {
+		return ctrl.Result{}, goerrors.New("context cannot be nil")
+	}
 	// Get the Verrazzano resource
 	zapLogForMetrics := zap.S().With(log.FieldController, "verrazzano")
 	counterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter)
@@ -99,9 +104,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	reconcileDurationMetricObject.TimerStart()
 	defer reconcileDurationMetricObject.TimerStop()
-	if ctx == nil {
-		ctx = context.TODO()
-	}
 	vz := &installv1alpha1.Verrazzano{}
 	if err := r.Get(ctx, req.NamespacedName, vz); err != nil {
 		errorCounterMetricObject.Inc()
@@ -315,7 +317,7 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		return newRequeueWithDelay(), err
 	}
 
-	// Install any new components and do any updates to existing components
+	// Install certain components pre-upgrade, like network policies
 	if result, err := r.reconcileComponents(vzctx, true); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
@@ -331,7 +333,7 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 		}
 	}
 
-	// Install components that should be installed before upgrade
+	// Install components that should be installed after upgrade
 	if result, err := r.reconcileComponents(vzctx, false); err != nil {
 		return newRequeueWithDelay(), err
 	} else if vzctrl.ShouldRequeue(result) {
@@ -551,11 +553,6 @@ func buildClusterRoleBindingName(namespace string, name string) string {
 	return fmt.Sprintf("verrazzano-install-%s-%s", namespace, name)
 }
 
-// buildInternalConfigMapName returns the name of the internal configmap associated with an install resource.
-func buildInternalConfigMapName(name string) string {
-	return fmt.Sprintf("verrazzano-install-%s-internal", name)
-}
-
 func isOperatorSameVersionAsCR(vzVersion string) bool {
 	bomVersion, currentVersion, ok := getVzAndOperatorVersions(vzVersion)
 	if ok {
@@ -595,7 +592,7 @@ func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha
 			t.Year(), t.Month(), t.Day(),
 			t.Hour(), t.Minute(), t.Second()),
 	}
-	cr.Status.Conditions = append(cr.Status.Conditions, condition)
+	cr.Status.Conditions = appendConditionIfNecessary(log, cr.Name, cr.Status.Conditions, condition)
 
 	// Set the state of resource
 	cr.Status.State = conditionToVzState(conditionType)
@@ -626,7 +623,7 @@ func (r *Reconciler) updateVzStatusAndState(log vzlog.VerrazzanoLogger, cr *inst
 			t.Year(), t.Month(), t.Day(),
 			t.Hour(), t.Minute(), t.Second()),
 	}
-	cr.Status.Conditions = append(cr.Status.Conditions, condition)
+	cr.Status.Conditions = appendConditionIfNecessary(log, cr.Name, cr.Status.Conditions, condition)
 
 	// Set the state of resource
 	cr.Status.State = state
@@ -685,7 +682,7 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 			componentStatus.ReconcilingGeneration = cr.Generation
 		}
 	}
-	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus, condition)
+	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus.Name, componentStatus.Conditions, condition)
 
 	// Set the state of resource
 	componentStatus.State = checkCondtitionType(conditionType)
@@ -703,15 +700,20 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	return r.updateVerrazzanoStatus(log, cr)
 }
 
-func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, compStatus *installv1alpha1.ComponentStatusDetails, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
-	for i, existingCondition := range compStatus.Conditions {
-		if existingCondition.Type == newCondition.Type {
-			compStatus.Conditions[i] = newCondition
-			return compStatus.Conditions
+func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, resourceName string, conditions []installv1alpha1.Condition, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
+	var newConditionsList []installv1alpha1.Condition
+	for i, existingCondition := range conditions {
+		if existingCondition.Type != newCondition.Type {
+			// Skip any existing conditions of the same type as the new condition. We will append
+			// the new condition at the end. If there are duplicate conditions from a legacy
+			// VZ resource, they will all be skipped.
+			newConditionsList = append(newConditionsList, conditions[i])
 		}
 	}
-	log.Debugf("Adding %s resource newCondition: %v", compStatus.Name, newCondition.Type)
-	return append(compStatus.Conditions, newCondition)
+	log.Debugf("Adding/modifying %s resource newCondition: %v", resourceName, newCondition.Type)
+	// Always put the new condition at the end of the list since the kubectl status display and
+	// some upgrade stuff depends on the most recent condition being the last one
+	return append(newConditionsList, newCondition)
 }
 
 func checkCondtitionType(currentCondition installv1alpha1.ConditionType) installv1alpha1.CompStateType {
@@ -856,17 +858,6 @@ func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, vz *insta
 		}
 	}
 	return r.updateStatus(log, vz, msg, newCondition)
-}
-
-// getInternalConfigMap Convenience method for getting the saved install ConfigMap
-func (r *Reconciler) getInternalConfigMap(ctx context.Context, vz *installv1alpha1.Verrazzano) (installConfig *corev1.ConfigMap, err error) {
-	key := client.ObjectKey{
-		Namespace: getInstallNamespace(),
-		Name:      buildInternalConfigMapName(vz.Name),
-	}
-	installConfig = &corev1.ConfigMap{}
-	err = r.Get(ctx, key, installConfig)
-	return installConfig, err
 }
 
 // createVerrazzanoSystemNamespace creates the Verrazzano system namespace if it does not already exist
@@ -1110,20 +1101,6 @@ func initUnitTesing() {
 	unitTesting = true
 }
 
-func (r *Reconciler) updateVerrazzano(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
-	err := r.Update(context.TODO(), vz)
-	if err == nil {
-		return nil
-	}
-	if ctrlerrors.IsUpdateConflict(err) {
-		log.Info("Requeuing to get a new copy of the Verrazzano resource since the current one is outdated.")
-	} else {
-		log.Errorf("Failed to update Verrazzano resource :v", err)
-	}
-	// Return error so that reconcile gets called again
-	return err
-}
-
 func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
 	err := r.Status().Update(context.TODO(), vz)
 	if err == nil {
@@ -1138,7 +1115,7 @@ func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *inst
 	return err
 }
 
-//AddWatch adds a component to the watched set
+// AddWatch adds a component to the watched set
 func (r *Reconciler) AddWatch(name string) {
 	r.WatchMutex.Lock()
 	defer r.WatchMutex.Unlock()
@@ -1151,7 +1128,7 @@ func (r *Reconciler) ClearWatch(name string) {
 	delete(r.WatchedComponents, name)
 }
 
-//IsWatchedComponent checks if a component is watched or not
+// IsWatchedComponent checks if a component is watched or not
 func (r *Reconciler) IsWatchedComponent(compName string) bool {
 	r.WatchMutex.RLock()
 	defer r.WatchMutex.RUnlock()

@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"os"
@@ -22,8 +23,9 @@ import (
 
 // TestUpgradeCmdDefaultNoWait
 // GIVEN a CLI upgrade command with all defaults and --wait==false
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command is successful
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command is successful
 func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
@@ -37,6 +39,8 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run upgrade command
 	err := cmd.Execute()
@@ -46,8 +50,9 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 
 // TestUpgradeCmdDefaultTimeout
 // GIVEN a CLI upgrade command with all defaults and --timeout=2s
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command times out
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command times out
 func TestUpgradeCmdDefaultTimeout(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
@@ -61,6 +66,8 @@ func TestUpgradeCmdDefaultTimeout(t *testing.T) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2s")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run upgrade command
 	err := cmd.Execute()
@@ -71,8 +78,9 @@ func TestUpgradeCmdDefaultTimeout(t *testing.T) {
 
 // TestUpgradeCmdDefaultNoVPO
 // GIVEN a CLI upgrade command with all defaults and no VPO found
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command fails
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command fails
 func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateVerrazzanoObjectWithVersion()).Build()
 
@@ -96,8 +104,9 @@ func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 
 // TestUpgradeCmdDefaultMultipleVPO
 // GIVEN a CLI upgrade command with all defaults and multiple VPOs found
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command fails
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command fails
 func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	vpo2 := testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator + "-2")
@@ -110,6 +119,8 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run upgrade command
 	cmdHelpers.SetVpoWaitRetries(1) // override for unit testing
@@ -122,8 +133,9 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 
 // TestUpgradeCmdJsonLogFormat
 // GIVEN a CLI upgrade command with defaults and --log-format=json and --wait==false
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command is successful
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command is successful
 func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
@@ -138,6 +150,8 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "json")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run upgrade command
 	err := cmd.Execute()
@@ -147,8 +161,9 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 
 // TestUpgradeCmdOperatorFile
 // GIVEN a CLI upgrade command with defaults and --wait=false and --operator-file specified
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command is successful
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command is successful
 func TestUpgradeCmdOperatorFile(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion().(*v1beta1.Verrazzano)
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
@@ -163,6 +178,8 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.OperatorFileFlag, "../../test/testdata/operator-file-fake.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run upgrade command
 	err := cmd.Execute()
@@ -191,8 +208,9 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 
 // TestUpgradeCmdNoVerrazzano
 // GIVEN a CLI upgrade command with no verrazzano install resource found
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command fails
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command fails
 func TestUpgradeCmdNoVerrazzano(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects().Build()
 
@@ -210,11 +228,12 @@ func TestUpgradeCmdNoVerrazzano(t *testing.T) {
 	assert.Equal(t, "Error: Verrazzano is not installed: Failed to find any Verrazzano resources\n", errBuf.String())
 }
 
-// TestUpgradeCmdLesserVersion
-// GIVEN a CLI upgrade command specifying a version less than the installed version
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command fails
-func TestUpgradeCmdLesserVersion(t *testing.T) {
+// TestUpgradeCmdLesserStatusVersion
+// GIVEN a CLI upgrade command specifying a version less than the status version
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command fails
+func TestUpgradeCmdLesserStatusVersion(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateVerrazzanoObjectWithVersion()).Build()
 
 	// Send stdout stderr to a byte buffer
@@ -230,4 +249,79 @@ func TestUpgradeCmdLesserVersion(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Upgrade to a lesser version of Verrazzano is not allowed. Upgrade version specified was v1.3.3 and current Verrazzano version is v1.3.4\n", errBuf.String())
+}
+
+// TestUpgradeCmdLesserSpecVersion
+// GIVEN a CLI upgrade command specifying a version less than the spec version
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command fails
+func TestUpgradeCmdLesserSpecVersion(t *testing.T) {
+	vz := &v1beta1.Verrazzano{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "verrazzano",
+		},
+		Spec: v1beta1.VerrazzanoSpec{
+			Version: "v1.3.4",
+		},
+		Status: v1beta1.VerrazzanoStatus{
+			Version: "v1.3.3",
+		},
+	}
+
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vz).Build()
+
+	// Send stdout stderr to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdUpgrade(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.3.3")
+
+	// Run upgrade command
+	err := cmd.Execute()
+	assert.Error(t, err)
+	assert.Equal(t, "Error: Upgrade to a lesser version of Verrazzano is not allowed. Upgrade version specified was v1.3.3 and the upgrade in progress is v1.3.4\n", errBuf.String())
+}
+
+// TestUpgradeCmdInProgress
+// GIVEN a CLI upgrade command an upgrade was in progress
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command is successful
+func TestUpgradeCmdInProgress(t *testing.T) {
+	vz := &v1beta1.Verrazzano{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "verrazzano",
+		},
+		Spec: v1beta1.VerrazzanoSpec{
+			Version: "v1.3.4",
+		},
+		Status: v1beta1.VerrazzanoStatus{
+			Version: "v1.3.3",
+		},
+	}
+
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
+
+	// Send stdout stderr to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdUpgrade(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.3.4")
+
+	// Run upgrade command
+	err := cmd.Execute()
+	assert.NoError(t, err)
+	assert.Equal(t, "", errBuf.String())
 }

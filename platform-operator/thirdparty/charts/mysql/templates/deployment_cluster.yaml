@@ -10,7 +10,10 @@ spec:
   tlsUseSelfSigned: {{ $use_self_signed }}
   router:
     instances: {{ required "routerInstances is required" .Values.routerInstances }}
-{{- if not $use_self_signed }}
+  {{ if ((.Values).router.podSpec) }}
+    podSpec: {{ toYaml ((.Values).router.podSpec) | nindent 6 }}
+  {{ end }}
+  {{- if not $use_self_signed }}
   {{- $default_secret_name := printf "%s-router-tls" $cluster_name }}
   {{- $secret_name := default $default_secret_name ((.Values.tls).routerCertAndPKsecretName) }}
   {{- if not (lookup "v1" "Secret" .Release.Namespace $secret_name) }}
@@ -21,6 +24,10 @@ spec:
 {{- end }}
   secretName: {{ .Release.Name }}-cluster-secret
   imagePullPolicy : {{ required "image.pullPolicy is required" .Values.image.pullPolicy }}
+{{- $repositoryPath := .Values.image.repository }}
+{{- if $repositoryPath }}
+  imageRepository: {{ $repositoryPath }}
+{{- end }}
   baseServerId: {{ required "baseServerId is required" .Values.baseServerId }}
   version: {{ .Values.serverVersion | default .Chart.AppVersion }}
   serviceAccountName: {{ .Release.Name }}-sa

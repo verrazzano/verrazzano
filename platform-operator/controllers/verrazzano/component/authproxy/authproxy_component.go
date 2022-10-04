@@ -5,6 +5,7 @@ package authproxy
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -55,7 +56,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
 			GetInstallOverridesFunc:   GetOverrides,
-			Dependencies:              []string{nginx.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName},
 			Certificates: []types.NamespacedName{
 				{Name: constants.VerrazzanoIngressSecret, Namespace: ComponentNamespace},
 			},

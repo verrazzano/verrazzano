@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
@@ -55,7 +56,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "cert-manager-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_0_0,
-			Dependencies:              []string{},
+			Dependencies:              []string{networkpolicies.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}
@@ -78,26 +79,21 @@ func (c certManagerComponent) IsReady(ctx spi.ComponentContext) bool {
 func (c certManagerComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
 	oldBeta := &v1beta1.Verrazzano{}
 	newBeta := &v1beta1.Verrazzano{}
-
 	if err := old.ConvertTo(oldBeta); err != nil {
 		return err
 	}
-
 	if err := new.ConvertTo(newBeta); err != nil {
 		return err
 	}
-
 	return c.ValidateUpdateV1Beta1(oldBeta, newBeta)
 }
 
 // ValidateInstall checks if the specified new Verrazzano CR is valid for this component to be installed
 func (c certManagerComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 	vzV1Beta1 := &v1beta1.Verrazzano{}
-
 	if err := vz.ConvertTo(vzV1Beta1); err != nil {
 		return err
 	}
-
 	return c.ValidateInstallV1Beta1(vzV1Beta1)
 }
 
@@ -105,8 +101,9 @@ func (c certManagerComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 func (c certManagerComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(vz) {
-		_, err := validateConfiguration(vz.Spec.Components.CertManager)
-		return err
+		if _, err := validateConfiguration(vz.Spec.Components.CertManager); err != nil {
+			return err
+		}
 	}
 	return c.HelmComponent.ValidateInstallV1Beta1(vz)
 }

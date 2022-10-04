@@ -1,0 +1,33 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+name: Upstream-Pull-Request-For-Rancher
+
+on:
+  push:
+    branches:
+      - 'upstream-rancher-**'
+
+jobs:
+  pull-request:
+    name: Open PR to main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        name: checkout
+
+      - uses: repo-sync/pull-request@v2
+        name: pull-request
+        id: open-pr
+        with:
+          destination_branch: "main"
+          pr_title: "CI: Update Rancher Image in BOM"
+          pr_body: "*Automated Pull Request*  Updating Rancher image in BOM for ${{ github.ref }}"
+          pr_reviewer: "ddsharpe,robertpatrick"
+          pr_draft: false
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable Automatic Merge
+        run: gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{steps.open-pr.outputs.pr_url}}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
