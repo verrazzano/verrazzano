@@ -425,7 +425,7 @@ func getMySQLVolumeSource(effectiveCR *v1beta1.Verrazzano) *v1.VolumeSource {
 	return mySQLVolumeSource
 }
 
-//appendCustomImageOverrides - Append the custom overrides for the busybox initContainer
+// appendCustomImageOverrides - Append the custom overrides for the busybox initContainer
 func appendCustomImageOverrides(bomFile *bom.Bom, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	imageOverrides, err := bomFile.BuildImageOverrides(mysqlUpgradeSubComp)
 	if err != nil {

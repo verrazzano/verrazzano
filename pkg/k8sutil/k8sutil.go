@@ -312,7 +312,7 @@ func ExecPod(client kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, contain
 	return stdout.String(), stderr.String(), nil
 }
 
-//ExecPodNoTty runs a remote command a pod, returning the stdout and stderr of the command.
+// ExecPodNoTty runs a remote command a pod, returning the stdout and stderr of the command.
 func ExecPodNoTty(client kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, container string, command []string) (string, string, error) {
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
