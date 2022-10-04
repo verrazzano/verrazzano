@@ -24,7 +24,7 @@ type IngressProperties struct {
 	ExtraAnnotations map[string]string
 }
 
-//SameSiteCookieAnnotations creates annotations for same site cookies to enable sticky sessions on an ingress
+// SameSiteCookieAnnotations creates annotations for same site cookies to enable sticky sessions on an ingress
 func SameSiteCookieAnnotations(cookieName string) map[string]string {
 	return map[string]string{
 		"nginx.ingress.kubernetes.io/affinity":                                 "cookie",

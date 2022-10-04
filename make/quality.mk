@@ -9,7 +9,7 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 #
 ##@ Linting and coverage
 
-GOLANGCI_LINT_VERSION=1.47.3
+GOLANGCI_LINT_VERSION=1.49.0
 
 .PHONY: check
 check: lint-go word-linter url-linter ## run all linters

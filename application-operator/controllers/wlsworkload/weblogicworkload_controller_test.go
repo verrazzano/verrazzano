@@ -1824,10 +1824,11 @@ func TestReconcileRestart(t *testing.T) {
 // GIVEN a VerrazzanoWebLogicWorkload resource
 // WHEN the controller Reconcile function is called and the WebLogic domain CR already exists and the restart-version is specified
 // THEN the WLS domain has restartVersion
-//   This should result in:
-//     1. NEVER written to the WLS domain serverStartPolicy
-//     2. The old serverStartPolicy saved in the domain annotation
-//     3. The WebLogic workload.Status.LastLifeCycleAction should have stop
+//
+//	This should result in:
+//	  1. NEVER written to the WLS domain serverStartPolicy
+//	  2. The old serverStartPolicy saved in the domain annotation
+//	  3. The WebLogic workload.Status.LastLifeCycleAction should have stop
 func TestReconcileStopDomain(t *testing.T) {
 	assert := asserts.New(t)
 
@@ -1957,9 +1958,10 @@ func TestReconcileStopDomain(t *testing.T) {
 // GIVEN a VerrazzanoWebLogicWorkload resource
 // WHEN the controller Reconcile function is called and the WebLogic domain CR already exists and the restart-version is specified
 // THEN the WLS domain has restartVersion
-//   This should result in:
-//     1. IF_NEEDED written to the WLS domain serverStartPolicy
-//     2. The WebLogic workload.Status.LastLifeCycleAction should have start
+//
+//	This should result in:
+//	  1. IF_NEEDED written to the WLS domain serverStartPolicy
+//	  2. The WebLogic workload.Status.LastLifeCycleAction should have start
 func TestReconcileStartDomain(t *testing.T) {
 	assert := asserts.New(t)
 

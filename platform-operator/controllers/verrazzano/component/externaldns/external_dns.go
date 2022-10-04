@@ -165,7 +165,7 @@ func getOCIDNS(vz *vzapi.Verrazzano) (*vzapi.OCI, error) {
 	return oci, nil
 }
 
-//getOrBuildIDs Get the owner and TXT prefix IDs from the Helm release if they exist and preserve it, otherwise build a new ones
+// getOrBuildIDs Get the owner and TXT prefix IDs from the Helm release if they exist and preserve it, otherwise build a new ones
 func getOrBuildIDs(compContext spi.ComponentContext, releaseName string, namespace string) ([]string, error) {
 	values, err := helm.GetReleaseStringValues(compContext.Log(), []string{ownerIDHelmKey, prefixKey}, releaseName, namespace)
 	if err != nil {
@@ -188,7 +188,7 @@ func buildPrefixKey(ownerID string) string {
 	return fmt.Sprintf("_%s-", ownerID)
 }
 
-//buildOwnerString Builds a unique owner string ID based on the Verrazzano CR UID and namespaced name
+// buildOwnerString Builds a unique owner string ID based on the Verrazzano CR UID and namespaced name
 func buildOwnerString(uid types.UID) (string, error) {
 	hash := fnv.New32a()
 	_, err := hash.Write([]byte(fmt.Sprintf("%v", uid)))

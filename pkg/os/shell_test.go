@@ -12,8 +12,9 @@ import (
 
 // TestRunBash tests the exec RunBash command
 // GIVEN a command
-//  WHEN I call Run
-//  THEN the value returned will have the correct stdout and stderr
+//
+//	WHEN I call Run
+//	THEN the value returned will have the correct stdout and stderr
 func TestRunBash(t *testing.T) {
 	assert := assert.New(t)
 
@@ -28,8 +29,9 @@ func TestRunBash(t *testing.T) {
 
 // TestRunBashErr tests the exec Run error condition
 // GIVEN a command and a fake runner that returns an error
-//  WHEN I call Run
-//  THEN the value returned will have and error status and the correct stdout and stderr
+//
+//	WHEN I call Run
+//	THEN the value returned will have and error status and the correct stdout and stderr
 func TestRunBashErr(t *testing.T) {
 	assert := assert.New(t)
 

@@ -62,8 +62,9 @@ const (
 
 // TestGetComponents tests getting the components
 // GIVEN a component
-//  WHEN I call GetComponents
-//  THEN the Get returns the correct components
+//
+//	WHEN I call GetComponents
+//	THEN the Get returns the correct components
 func TestGetComponents(t *testing.T) {
 	a := assert.New(t)
 	comps := GetComponents()
@@ -133,8 +134,9 @@ func TestGetComponents(t *testing.T) {
 
 // TestFindComponent tests FindComponent
 // GIVEN a component
-//  WHEN I call FindComponent
-//  THEN the true and the component are returned, false and an empty comp otherwise
+//
+//	WHEN I call FindComponent
+//	THEN the true and the component are returned, false and an empty comp otherwise
 func TestFindComponent(t *testing.T) {
 	found, comp := FindComponent(istio.ComponentName)
 	assert.True(t, found)
@@ -144,8 +146,9 @@ func TestFindComponent(t *testing.T) {
 
 // TestComponentDependenciesMet tests ComponentDependenciesMet
 // GIVEN a component
-//  WHEN I call ComponentDependenciesMet for it
-//  THEN the true is returned if all dependencies are met
+//
+//	WHEN I call ComponentDependenciesMet for it
+//	THEN the true is returned if all dependencies are met
 func TestComponentDependenciesMet(t *testing.T) {
 	comp := helm2.HelmComponent{
 		ReleaseName:    "foo",
@@ -199,8 +202,9 @@ func TestComponentDependenciesMet(t *testing.T) {
 
 // TestComponentDependenciesNotMet tests ComponentDependenciesMet
 // GIVEN a component
-//  WHEN I call ComponentDependenciesMet for it
-//  THEN the false is returned if any dependencies are not met
+//
+//	WHEN I call ComponentDependenciesMet for it
+//	THEN the false is returned if any dependencies are not met
 func TestComponentDependenciesNotMet(t *testing.T) {
 	comp := helm2.HelmComponent{
 		ReleaseName:    "foo",
@@ -229,8 +233,9 @@ func TestComponentDependenciesNotMet(t *testing.T) {
 
 // TestComponentOptionalDependenciesMet tests ComponentDependenciesMet
 // GIVEN a component
-//  WHEN I call ComponentDependenciesMet for it
-//  THEN true is still returned if the dependency is not enabled
+//
+//	WHEN I call ComponentDependenciesMet for it
+//	THEN true is still returned if the dependency is not enabled
 func TestComponentOptionalDependenciesMet(t *testing.T) {
 	comp := helm2.HelmComponent{
 		ReleaseName:    "foo",
@@ -257,8 +262,9 @@ func TestComponentOptionalDependenciesMet(t *testing.T) {
 
 // TestComponentDependenciesDependencyChartNotInstalled tests ComponentDependenciesMet
 // GIVEN a component
-//  WHEN I call ComponentDependenciesMet for it
-//  THEN the false is returned if the dependent chart isn't installed
+//
+//	WHEN I call ComponentDependenciesMet for it
+//	THEN the false is returned if the dependent chart isn't installed
 func TestComponentDependenciesDependencyChartNotInstalled(t *testing.T) {
 	comp := helm2.HelmComponent{
 		ReleaseName:    "foo",
@@ -277,8 +283,9 @@ func TestComponentDependenciesDependencyChartNotInstalled(t *testing.T) {
 
 // TestComponentMultipleDependenciesPartiallyMet tests ComponentDependenciesMet
 // GIVEN a component
-//  WHEN I call ComponentDependenciesMet for it
-//  THEN the false is returned if any depdencies are not met
+//
+//	WHEN I call ComponentDependenciesMet for it
+//	THEN the false is returned if any depdencies are not met
 func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 	comp := helm2.HelmComponent{
 		ReleaseName:    "foo",
@@ -307,8 +314,9 @@ func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 
 // TestComponentMultipleDependenciesMet tests ComponentDependenciesMet
 // GIVEN a component
-//  WHEN I call ComponentDependenciesMet for it
-//  THEN the true is returned if all dependencies are met
+//
+//	WHEN I call ComponentDependenciesMet for it
+//	THEN the true is returned if all dependencies are met
 func TestComponentMultipleDependenciesMet(t *testing.T) {
 	comp := helm2.HelmComponent{
 		ReleaseName:    "foo",
@@ -354,8 +362,9 @@ func TestComponentMultipleDependenciesMet(t *testing.T) {
 
 // TestComponentDependenciesCycle tests ComponentDependenciesMet
 // GIVEN a component
-//  WHEN I call ComponentDependenciesMet for it
-//  THEN it returns false if there's a cycle in the dependencies
+//
+//	WHEN I call ComponentDependenciesMet for it
+//	THEN it returns false if there's a cycle in the dependencies
 func TestComponentDependenciesCycle(t *testing.T) {
 	comp := helm2.HelmComponent{
 		ReleaseName:    "foo",
@@ -378,8 +387,9 @@ func TestComponentDependenciesCycle(t *testing.T) {
 
 // TestComponentDependenciesCycles tests ComponentDependenciesMet
 // GIVEN a registry of components with dependencies, and some with cycles
-//  WHEN I call ComponentDependenciesMet for it
-//  THEN it returns false if there's a cycle in the dependencies
+//
+//	WHEN I call ComponentDependenciesMet for it
+//	THEN it returns false if there's a cycle in the dependencies
 func TestIndirectDependencyMetButNotReady(t *testing.T) {
 	// directCycle -> fake1, directCycle
 	indirectDependency := fakeComponent{name: "indirectDependency", enabled: false, ready: true}
@@ -403,8 +413,9 @@ func TestIndirectDependencyMetButNotReady(t *testing.T) {
 
 // TestComponentDependenciesCycles tests ComponentDependenciesMet
 // GIVEN a registry of components with dependencies, and some with cycles
-//  WHEN I call ComponentDependenciesMet for it
-//  THEN it returns false if there's a cycle in the dependencies
+//
+//	WHEN I call ComponentDependenciesMet for it
+//	THEN it returns false if there's a cycle in the dependencies
 func TestComponentDependenciesCycles(t *testing.T) {
 	// directCycle -> fake1, directCycle
 	directCycle := fakeComponent{name: "directCycle", enabled: true, dependencies: []string{"fake1", "directCycle"}}
@@ -441,8 +452,9 @@ func TestComponentDependenciesCycles(t *testing.T) {
 
 // TestComponentDependenciesCycle tests ComponentDependenciesMet
 // GIVEN a component
-//  WHEN I call ComponentDependenciesMet for it
-//  THEN it returns false if there's a cycle in the dependencies
+//
+//	WHEN I call ComponentDependenciesMet for it
+//	THEN it returns false if there's a cycle in the dependencies
 func TestComponentDependenciesChainNoCycle(t *testing.T) {
 	chainNoCycle := fakeComponent{name: "chainNoCycle", enabled: true, ready: true, dependencies: []string{"fake2"}}
 	repeatDepdendency := fakeComponent{name: "repeatDependency", enabled: true, ready: true, dependencies: []string{"fake1", "fake2", "fake1"}}
@@ -471,8 +483,9 @@ func TestComponentDependenciesChainNoCycle(t *testing.T) {
 // validate that the production component registry does not have any cycles declared.
 //
 // GIVEN a registry of components with dependencies, and some with cycles
-//  WHEN I call checkDependencyCycles for it
-//  THEN it returns an error if there's a cycle in the dependencies
+//
+//	WHEN I call checkDependencyCycles for it
+//	THEN it returns an error if there's a cycle in the dependencies
 func Test_checkDependencyCycles(t *testing.T) {
 	// directCycle -> fake1, directCycle
 	directCycle := fakeComponent{name: "directCycle", enabled: true, dependencies: []string{"fake1", "directCycle"}}
@@ -526,8 +539,9 @@ func Test_checkDependencyCycles(t *testing.T) {
 
 // TestRegistryDependencies tests the production Registry components for dependency cycles
 // GIVEN a component
-//  WHEN I call checkDependencies for it
-//  THEN No error is returned that indicates a cycle in the chain
+//
+//	WHEN I call checkDependencies for it
+//	THEN No error is returned that indicates a cycle in the chain
 func TestRegistryDependencies(t *testing.T) {
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
@@ -544,8 +558,9 @@ func TestRegistryDependencies(t *testing.T) {
 
 // TestNoComponentDependencies tests ComponentDependenciesMet
 // GIVEN a component
-//  WHEN I call ComponentDependenciesMet for it
-//  THEN it returns true if there are no dependencies
+//
+//	WHEN I call ComponentDependenciesMet for it
+//	THEN it returns true if there are no dependencies
 func TestNoComponentDependencies(t *testing.T) {
 	comp := helm2.HelmComponent{
 		ReleaseName:    "foo",
@@ -559,24 +574,27 @@ func TestNoComponentDependencies(t *testing.T) {
 
 // TestComponentDependenciesMetStateCheckReady tests ComponentDependenciesMet
 // GIVEN a component
-//  WHEN I call ComponentDependenciesMet for it
-//  THEN returns true if a dependency's component status is already in Ready state
+//
+//	WHEN I call ComponentDependenciesMet for it
+//	THEN returns true if a dependency's component status is already in Ready state
 func TestComponentDependenciesMetStateCheckReady(t *testing.T) {
 	runDepenencyStateCheckTest(t, v1alpha1.CompStateReady, true)
 }
 
 // TestComponentDependenciesMetStateCheckNotReady tests ComponentDependenciesMet
 // GIVEN a component
-//  WHEN I call ComponentDependenciesMet for it
-//  THEN returns false if a dependency's component status is not Ready state and the deployments are not ready
+//
+//	WHEN I call ComponentDependenciesMet for it
+//	THEN returns false if a dependency's component status is not Ready state and the deployments are not ready
 func TestComponentDependenciesMetStateCheckNotReady(t *testing.T) {
 	runDepenencyStateCheckTest(t, v1alpha1.CompStatePreInstalling, true)
 }
 
 // TestComponentDependenciesMetStateCheckCompDisabled tests ComponentDependenciesMet
 // GIVEN a component
-//  WHEN I call ComponentDependenciesMet for it
-//  THEN returns false if a dependency is disabled and the component status is disabled
+//
+//	WHEN I call ComponentDependenciesMet for it
+//	THEN returns false if a dependency is disabled and the component status is disabled
 func TestComponentDependenciesMetStateCheckCompDisabled(t *testing.T) {
 	runDepenencyStateCheckTest(t, v1alpha1.CompStateDisabled, false)
 }
