@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: hotrod-container
-          image: "ghcr.io/verrazzano/jaeger-example-hotrod-jenkins:1.37.0-20221003213340-b640f8be"
+          image: "ghcr.io/verrazzano/jaeger-example-hotrod-jenkins:1.37.0-20221004061347-b640f8be"
           env:
             - name: JAEGER_AGENT_HOST
               value: "localhost"
