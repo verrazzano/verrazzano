@@ -445,9 +445,8 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 
 // TestPreUpgradeDevProfile tests the preUpgrade function
 // GIVEN a call to preUpgrade during upgrade of a dev profile cluster
-//
-//   WHEN the pre upgrade executes
-//   THEN the pv/pvc steps are skipped
+// WHEN the pre upgrade executes
+// THEN the pv/pvc steps are skipped
 func TestPreUpgradeDevProfile(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
