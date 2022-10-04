@@ -278,8 +278,9 @@ func TestValidateInstall(t *testing.T) {
 
 // TestPostUpgrade tests the Fluentd PostUpgrade call; simple wrapper exercise, more detailed testing is done elsewhere
 // GIVEN a Verrazzano component upgrading from 1.1.0 to 1.4.0
-//  WHEN I call PostUpgrade
-//  THEN no error is returned
+//
+//	WHEN I call PostUpgrade
+//	THEN no error is returned
 func TestPostUpgrade(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := getFakeComponentContext(c)
@@ -289,8 +290,9 @@ func TestPostUpgrade(t *testing.T) {
 
 // TestPreInstall tests the Fluentd PreInstall call
 // GIVEN a Fluentd component
-//  WHEN I call PreInstall when dependencies are met
-//  THEN no error is returned. Otherwise, return error.
+//
+//	WHEN I call PreInstall when dependencies are met
+//	THEN no error is returned. Otherwise, return error.
 func TestPreInstall(t *testing.T) {
 	var tests = []struct {
 		name   string
@@ -405,8 +407,9 @@ func createFakeClient(extraObjs ...client.Object) client.Client {
 
 // TestInstall tests the Verrazzano Install call
 // GIVEN a Verrazzano component
-//  WHEN I call Install when dependencies are met
-//  THEN no error is returned
+//
+//	WHEN I call Install when dependencies are met
+//	THEN no error is returned
 func TestInstall(t *testing.T) {
 	c := createFakeClient()
 	ctx := spi.NewFakeContext(c, &v1alpha1.Verrazzano{
@@ -434,8 +437,9 @@ func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string,
 
 // TestPreUpgrade tests the Verrazzano PreUpgrade call
 // GIVEN a Verrazzano component
-//  WHEN I call PreUpgrade with defaults
-//  THEN no error is returned. Otherwise, return error.
+//
+//	WHEN I call PreUpgrade with defaults
+//	THEN no error is returned. Otherwise, return error.
 func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
@@ -483,8 +487,9 @@ func TestPreUpgrade(t *testing.T) {
 
 // TestUpgrade tests the Fluentd Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
 // GIVEN a Fluentd component upgrading from 1.1.0 to 1.4.0
-//  WHEN I call Upgrade
-//  THEN no error is returned
+//
+//	WHEN I call Upgrade
+//	THEN no error is returned
 func TestUpgrade(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := getFakeComponentContext(c)
@@ -503,8 +508,9 @@ func TestUpgrade(t *testing.T) {
 
 // TestIsInstalled tests the IsInstalled function
 // GIVEN a call to IsInstalled
-//  WHEN the daemonset object is found
-//  THEN true is returned. Otherwise, return false.
+//
+//	WHEN the daemonset object is found
+//	THEN true is returned. Otherwise, return false.
 func TestIsInstalled(t *testing.T) {
 	var tests = []struct {
 		name        string
@@ -542,8 +548,9 @@ func TestIsInstalled(t *testing.T) {
 
 // TestUninstallHelmChartInstalled tests the Fluentd Uninstall call
 // GIVEN a Fluentd component
-//  WHEN I call Uninstall with the Fluentd helm chart installed
-//  THEN no error is returned
+//
+//	WHEN I call Uninstall with the Fluentd helm chart installed
+//	THEN no error is returned
 func TestUninstallHelmChartInstalled(t *testing.T) {
 	helmcli.SetCmdRunner(os.GenericTestRunner{
 		StdOut: []byte(""),
@@ -558,8 +565,9 @@ func TestUninstallHelmChartInstalled(t *testing.T) {
 
 // TestUninstallHelmChartNotInstalled tests the Fluentd Uninstall call
 // GIVEN a Fluentd component
-//  WHEN I call Uninstall with the Fluentd helm chart not installed
-//  THEN no error is returned
+//
+//	WHEN I call Uninstall with the Fluentd helm chart not installed
+//	THEN no error is returned
 func TestUninstallHelmChartNotInstalled(t *testing.T) {
 	helmcli.SetCmdRunner(os.GenericTestRunner{
 		StdOut: []byte(""),
@@ -574,8 +582,9 @@ func TestUninstallHelmChartNotInstalled(t *testing.T) {
 
 // TestUninstallResources tests the Fluentd Uninstall call
 // GIVEN a Fluentd component
-//  WHEN I call Uninstall with the Fluentd helm chart not installed
-//  THEN ensure that all Fluentd resources are explicity deleted
+//
+//	WHEN I call Uninstall with the Fluentd helm chart not installed
+//	THEN ensure that all Fluentd resources are explicity deleted
 func TestUninstallResources(t *testing.T) {
 	helmcli.SetCmdRunner(os.GenericTestRunner{
 		StdOut: []byte(""),

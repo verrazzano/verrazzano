@@ -107,7 +107,7 @@ func RequiredInitialization() {
 
 }
 
-//This function begins the process of registering metrics
+// This function begins the process of registering metrics
 func RegisterMetrics(log *zap.SugaredLogger) {
 	InitializeAllMetricsArray()
 	go registerMetricsHandlers(log)
@@ -132,7 +132,7 @@ func newMetricsComponent(name string) *MetricsComponent {
 	}
 }
 
-//This function initalizes the simpleCounterMetricMap for the metricsExporter object
+// This function initalizes the simpleCounterMetricMap for the metricsExporter object
 func initSimpleCounterMetricMap() map[metricName]*SimpleCounterMetric {
 	return map[metricName]*SimpleCounterMetric{
 		ReconcileCounter: {
@@ -281,8 +281,11 @@ func initializeFailedMetricsArray() {
 func StartMetricsServer(log *zap.SugaredLogger) {
 	go wait.Until(func() {
 		http.Handle("/metrics", promhttp.Handler())
-		err := http.ListenAndServe(":9100", nil)
-		if err != nil {
+		server := &http.Server{
+			Addr:              ":9100",
+			ReadHeaderTimeout: 3 * time.Second,
+		}
+		if err := server.ListenAndServe(); err != nil {
 			log.Errorf("Failed to start metrics server for verrazzano-platform-operator: %v", err)
 		}
 	}, time.Second*3, wait.NeverStop)

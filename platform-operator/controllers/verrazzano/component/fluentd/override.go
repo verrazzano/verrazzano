@@ -173,7 +173,7 @@ func generateOverridesFile(ctx spi.ComponentContext, overrides *fluentdComponent
 	return overridesFileName, nil
 }
 
-//cleanTempFiles - Clean up the override temp files in the temp dir
+// cleanTempFiles - Clean up the override temp files in the temp dir
 func cleanTempFiles(ctx spi.ComponentContext) {
 	if err := vzos.RemoveTempFiles(ctx.Log().GetZapLogger(), tmpFileCleanPattern); err != nil {
 		ctx.Log().Errorf("Failed deleting temp files: %v", err)

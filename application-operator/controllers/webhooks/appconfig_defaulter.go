@@ -33,7 +33,7 @@ type AppConfigWebhook struct {
 	Defaulters  []AppConfigDefaulter
 }
 
-//AppConfigDefaulter supplies appconfig default values
+// AppConfigDefaulter supplies appconfig default values
 type AppConfigDefaulter interface {
 	Default(appConfig *oamv1.ApplicationConfiguration, dryRun bool, log *zap.SugaredLogger) error
 	Cleanup(appConfig *oamv1.ApplicationConfiguration, dryRun bool, log *zap.SugaredLogger) error

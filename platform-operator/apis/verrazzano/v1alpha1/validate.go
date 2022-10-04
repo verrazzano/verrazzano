@@ -118,7 +118,7 @@ func validateOCIDNSSecret(client client.Client, spec *VerrazzanoSpec) error {
 	return nil
 }
 
-//ValidateInstallOverridesV1Beta1 checks that the overrides slice has only one override type per slice item for v1beta1
+// ValidateInstallOverridesV1Beta1 checks that the overrides slice has only one override type per slice item for v1beta1
 func ValidateInstallOverridesV1Beta1(overrides []v1beta1.Overrides) error {
 	for _, override := range overrides {
 		if err := isValidOverrideItems(override.ConfigMapRef, override.SecretRef, override.Values); err != nil {

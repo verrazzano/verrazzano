@@ -13,29 +13,32 @@ import (
 // a: b
 //
 // Nested values are expanded as follows:
-//   a.b.c : v1
-//     expands to
-//   a:
-//     b:
-//       c: v1
+//
+//	a.b.c : v1
+//	  expands to
+//	a:
+//	  b:
+//	    c: v1
 //
 // If there is more than one value then
-//   a.b : {v1,v2}
-//     expands to
-//   a:
-//     b:
-//       - v1
-//       - v2
+//
+//	a.b : {v1,v2}
+//	  expands to
+//	a:
+//	  b:
+//	    - v1
+//	    - v2
 //
 // The last segment of the name might be a quoted string, for example:
 //
-//   controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape" : 10Mbps
+//	controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape" : 10Mbps
 //
 // which translates to
-//   controller:
-//     service:
-//       annotations:
-//         service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
+//
+//	controller:
+//	  service:
+//	    annotations:
+//	      service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
 //
 // If forcelist is true then always use the list format.
 func Expand(leftMargin int, forceList bool, name string, vals ...string) (string, error) {

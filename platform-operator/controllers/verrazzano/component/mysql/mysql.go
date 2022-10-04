@@ -245,7 +245,7 @@ func doGenerateVolumeSourceOverrides(effectiveCR *v1beta1.Verrazzano, kvs []bom.
 	return kvs, nil
 }
 
-//appendCustomImageOverrides - Append the custom overrides for the busybox initContainer
+// appendCustomImageOverrides - Append the custom overrides for the busybox initContainer
 func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {

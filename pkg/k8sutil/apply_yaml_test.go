@@ -112,8 +112,9 @@ func TestApplyF(t *testing.T) {
 
 // TestApplyFNonSpec
 // GIVEN a object that contains top level fields outside of spec
-//  WHEN I call apply with changes non-spec fields
-//  THEN the resulting object contains the updates
+//
+//	WHEN I call apply with changes non-spec fields
+//	THEN the resulting object contains the updates
 func TestApplyFNonSpec(t *testing.T) {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
@@ -147,8 +148,9 @@ func TestApplyFNonSpec(t *testing.T) {
 
 // TestApplyFMerge
 // GIVEN a object that contains spec field
-//  WHEN I call apply with additions to the spec field
-//  THEN the resulting object contains the merged updates
+//
+//	WHEN I call apply with additions to the spec field
+//	THEN the resulting object contains the merged updates
 func TestApplyFMerge(t *testing.T) {
 	deadlineSeconds := int32(5)
 	deployment := &appv1.Deployment{
@@ -178,8 +180,9 @@ func TestApplyFMerge(t *testing.T) {
 
 // TestApplyFClusterRole
 // GIVEN a ClusterRole object
-//  WHEN I call apply with additions
-//  THEN the resulting object contains the merged updates
+//
+//	WHEN I call apply with additions
+//	THEN the resulting object contains the merged updates
 func TestApplyFClusterRole(t *testing.T) {
 	deadlineSeconds := int32(5)
 	deployment := &appv1.Deployment{

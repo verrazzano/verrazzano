@@ -83,7 +83,7 @@ func GetRancherAdminToken(log *zap.SugaredLogger, httpClient *retryablehttp.Clie
 	return token
 }
 
-//VerifyRancherAccess verifies that Rancher is accessible.
+// VerifyRancherAccess verifies that Rancher is accessible.
 func VerifyRancherAccess(log *zap.SugaredLogger) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -105,7 +105,7 @@ func VerifyRancherAccess(log *zap.SugaredLogger) error {
 	return nil
 }
 
-//VerifyRancherKeycloakAuthConfig verifies that Rancher/Keycloak AuthConfig is correctly populated
+// VerifyRancherKeycloakAuthConfig verifies that Rancher/Keycloak AuthConfig is correctly populated
 func VerifyRancherKeycloakAuthConfig(log *zap.SugaredLogger) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -167,7 +167,7 @@ func VerifyRancherKeycloakAuthConfig(log *zap.SugaredLogger) error {
 	return nil
 }
 
-//GvkToGvr converts a GroupVersionKind to corresponding GroupVersionResource
+// GvkToGvr converts a GroupVersionKind to corresponding GroupVersionResource
 func GvkToGvr(gvk schema.GroupVersionKind) schema.GroupVersionResource {
 	resource := strings.ToLower(gvk.Kind)
 	if strings.HasSuffix(resource, "s") {
