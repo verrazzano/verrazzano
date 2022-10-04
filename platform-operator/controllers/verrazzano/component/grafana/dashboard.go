@@ -60,7 +60,7 @@ func createGrafanaConfigMaps(ctx spi.ComponentContext) error {
 	return err
 }
 
-//dashboardName individual dashboards live in the configmap as files of the format:
+// dashboardName individual dashboards live in the configmap as files of the format:
 // 'dashboard-<component>-<dashboard>.json'
 func dashboardName(dashboard string) string {
 	dashboardNoManifest := strings.Replace(dashboard, "manifests/", "", -1)

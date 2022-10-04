@@ -23,7 +23,7 @@ const (
 	BugReportDir   = "bug-report"
 )
 
-//ClusterDumpWrapper creates cluster snapshots if the test fails (spec or aftersuite)
+// ClusterDumpWrapper creates cluster snapshots if the test fails (spec or aftersuite)
 // A maximum of two cluster snapshots will be generated:
 // - snapshot if any spec in the suite fails
 // - snapshot if the aftersuite fails
@@ -45,7 +45,7 @@ func (c *ClusterDumpWrapper) BeforeSuite(body func()) bool {
 	})
 }
 
-//AfterEach wraps ginkgo.AfterEach
+// AfterEach wraps ginkgo.AfterEach
 // usage: var _ = c.AfterEach(func() { ...after each logic... })
 func (c *ClusterDumpWrapper) AfterEach(body func()) bool {
 	return ginkgo.AfterEach(func() {
@@ -54,7 +54,7 @@ func (c *ClusterDumpWrapper) AfterEach(body func()) bool {
 	})
 }
 
-//AfterSuite wraps ginkgo.AfterSuite
+// AfterSuite wraps ginkgo.AfterSuite
 // usage: var _ = c.AfterSuite(func() { ...after suite logic... })
 func (c *ClusterDumpWrapper) AfterSuite(body func()) bool {
 	// Capture full cluster snapshot when environment variable CAPTURE_FULL_CLUSTER is set

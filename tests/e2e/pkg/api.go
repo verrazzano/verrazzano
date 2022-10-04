@@ -144,11 +144,13 @@ func (api *APIEndpoint) Request(method, path string, body io.Reader) (*HTTPRespo
 // See https://github.com/golang/go/blob/master/src/net/http/response.go
 //
 // Params
-//   resp: Http response returned by http call
-//   httpErr: Http error returned by the http call
-// Returns
-//   HttpReponse which has the body and status code.
 //
+//	resp: Http response returned by http call
+//	httpErr: Http error returned by the http call
+//
+// Returns
+//
+//	HttpReponse which has the body and status code.
 func ProcessHTTPResponse(resp *http.Response) (*HTTPResponse, error) {
 	// Must read entire body and close it.  See http.Response.Body doc
 	defer resp.Body.Close()
@@ -164,7 +166,7 @@ func ProcessHTTPResponse(resp *http.Response) (*HTTPResponse, error) {
 	return processedResponse, nil
 }
 
-//GetIngress fetches ingress from api
+// GetIngress fetches ingress from api
 func (api *APIEndpoint) GetIngress(namespace, name string) (*networkingv1.Ingress, error) {
 	response, err := api.Get(fmt.Sprintf("apis/networking.k8s.io/v1/namespaces/%s/ingresses/%s", namespace, name))
 	if err != nil {
@@ -186,7 +188,7 @@ func (api *APIEndpoint) GetIngress(namespace, name string) (*networkingv1.Ingres
 	return &ingress, nil
 }
 
-//GetElasticURL fetches ElasticSearch endpoint URL
+// GetElasticURL fetches ElasticSearch endpoint URL
 func (api *APIEndpoint) GetElasticURL() (string, error) {
 	ingress, err := api.GetIngress("verrazzano-system", "vmi-system-es-ingest")
 	if err != nil {
@@ -195,7 +197,7 @@ func (api *APIEndpoint) GetElasticURL() (string, error) {
 	return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host), nil
 }
 
-//GetVerrazzanoIngressURL fetches Verrazzano-Ingress endpoint URL
+// GetVerrazzanoIngressURL fetches Verrazzano-Ingress endpoint URL
 func (api *APIEndpoint) GetVerrazzanoIngressURL() (string, error) {
 	ingress, err := api.GetIngress("verrazzano-system", "verrazzano-ingress")
 	if err != nil {

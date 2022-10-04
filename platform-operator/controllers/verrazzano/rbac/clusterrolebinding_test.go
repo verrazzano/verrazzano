@@ -13,8 +13,9 @@ import (
 
 // TestNewClusterRoleBinding tests the creation of a clusterRoleBinding
 // GIVEN a verrazzano.install.verrazzano.io custom resource, clusterRoleBinding name, and serviceAccount name
-//  WHEN I call NewClusterRoleBinding
-//  THEN a cluster role binding is created and verified
+//
+//	WHEN I call NewClusterRoleBinding
+//	THEN a cluster role binding is created and verified
 func TestNewClusterRoleBinding(t *testing.T) {
 	vz := installv1alpha1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{

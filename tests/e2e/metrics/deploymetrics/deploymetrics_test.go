@@ -79,7 +79,9 @@ var _ = clusterDump.BeforeSuite(func() {
 			}
 			serviceName := promJobName
 			err = createService(serviceName)
-			if err != nil {
+			// if this is running post upgrade, we may have already run this test pre-upgrade and
+			// created the service. It is not an error if the service already exists.
+			if err != nil && !errors.IsAlreadyExists(err) {
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to create the Service for the Service Monitor: %v", err))
 				return err
 			}

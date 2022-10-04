@@ -103,7 +103,7 @@ func BuildDNSDomain(client client.Client, vz *vzapi.Verrazzano) (string, error) 
 	return dnsDomain, nil
 }
 
-//GetIngressClassName gets the ingress class name or default of "nginx" if not specified
+// GetIngressClassName gets the ingress class name or default of "nginx" if not specified
 func GetIngressClassName(vz *vzapi.Verrazzano) string {
 	ingressComponent := vz.Spec.Components.Ingress
 	if ingressComponent != nil && ingressComponent.IngressClassName != nil && *ingressComponent.IngressClassName != "" {

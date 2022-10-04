@@ -24,8 +24,9 @@ var kcComponent = NewComponent()
 
 // TestIsEnabled tests the Keycloak IsEnabled call
 // GIVEN a Keycloak component
-//  WHEN I call IsEnabled
-//  THEN true is returned unless Keycloak is explicitly disabled
+//
+//	WHEN I call IsEnabled
+//	THEN true is returned unless Keycloak is explicitly disabled
 func TestIsEnabled(t *testing.T) {
 	disabled := false
 	var tests = []struct {
@@ -76,8 +77,9 @@ func TestIsEnabled(t *testing.T) {
 
 // TestPreinstall tests the Keycloak PreInstall call
 // GIVEN a Keycloak component
-//  WHEN I call PreInstall
-//  THEN an error is returned unless the post-install validation criteria are met
+//
+//	WHEN I call PreInstall
+//	THEN an error is returned unless the post-install validation criteria are met
 func TestPreinstall(t *testing.T) {
 	vzSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -136,8 +138,9 @@ func TestPreinstall(t *testing.T) {
 
 // TestKeycloakComponentValidateUpdate tests the Keycloak ValidateUpdate call
 // GIVEN a Keycloak component
-//  WHEN I call ValidateUpdate
-//  THEN an error is returned if the validation is expected to fail
+//
+//	WHEN I call ValidateUpdate
+//	THEN an error is returned if the validation is expected to fail
 func TestKeycloakComponentValidateUpdate(t *testing.T) {
 	disabled := false
 	tests := []struct {
@@ -207,8 +210,9 @@ func TestKeycloakComponentValidateUpdate(t *testing.T) {
 
 // TestKeycloakComponentValidateUpdateV1Beta1 tests the Keycloak ValidateUpdateV1beta1 call
 // GIVEN a Keycloak component
-//  WHEN I call ValidateUpdate
-//  THEN an error is returned if the validation is expected to fail
+//
+//	WHEN I call ValidateUpdate
+//	THEN an error is returned if the validation is expected to fail
 func TestKeycloakComponentValidateUpdateV1Beta1(t *testing.T) {
 	disabled := false
 	tests := []struct {
@@ -282,8 +286,9 @@ func TestKeycloakComponentValidateUpdateV1Beta1(t *testing.T) {
 
 // TestKeycloakComponent_GetCertificateNames tests the Keycloak GetCertificateNames call
 // GIVEN a Keycloak component
-//  WHEN I call GetCertificateNames
-//  THEN the correct number of certificate names are returned based on what is enabled
+//
+//	WHEN I call GetCertificateNames
+//	THEN the correct number of certificate names are returned based on what is enabled
 func TestKeycloakComponent_GetCertificateNames(t *testing.T) {
 	enabled := true
 	vz := &vzapi.Verrazzano{

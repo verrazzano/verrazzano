@@ -28,7 +28,7 @@ var (
 	managedClusters []*multicluster.Cluster
 	originalCM      *vzapi.CertManagerComponent
 	originalFluentd *vzapi.FluentdComponent
-	tenMinutes      = 10 * time.Minute
+	waitTimeout     = 10 * time.Minute
 	pollingInterval = 5 * time.Second
 )
 
@@ -83,7 +83,7 @@ func updateAdminClusterCA() string {
 		Certificate: vzapi.Certificate{CA: vzapi.CA{SecretName: genCA, ClusterResourceNamespace: constants.CertManagerNamespace}},
 	}
 	m := &CertModifier{CertManager: newCM}
-	update.RetryUpdate(m, adminCluster.KubeConfigPath, false, pollingInterval, tenMinutes)
+	update.RetryUpdate(m, adminCluster.KubeConfigPath, false, pollingInterval, waitTimeout)
 	return oldIngressCaCrt
 }
 
@@ -99,7 +99,7 @@ func revertToDefaultCertManager() string {
 	oldIngressCaCrt := adminCluster.
 		GetSecretDataAsString(constants.VerrazzanoSystemNamespace, pocnst.VerrazzanoIngressSecret, mcconstants.CaCrtKey)
 	m := &CertModifier{CertManager: originalCM}
-	update.RetryUpdate(m, adminCluster.KubeConfigPath, false, pollingInterval, tenMinutes)
+	update.RetryUpdate(m, adminCluster.KubeConfigPath, false, pollingInterval, waitTimeout)
 	return oldIngressCaCrt
 }
 
@@ -119,7 +119,7 @@ func verifyAdminClusterIngressCA(oldIngressCaCrt string) string {
 			pkg.Log(pkg.Error, fmt.Sprintf("%v of %v took %v updated", pocnst.VerrazzanoIngressSecret, adminCluster.Name, time.Since(start)))
 		}
 		return newIngressCaCrt != oldIngressCaCrt
-	}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Fail updating ingress %v CA", adminCluster.Name))
+	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Fail updating ingress %v CA", adminCluster.Name))
 	return adminCluster.
 		GetSecretDataAsString(constants.VerrazzanoSystemNamespace, pocnst.VerrazzanoIngressSecret, mcconstants.CaCrtKey)
 }
@@ -144,7 +144,7 @@ func verifyManagedClusterRegistration(managedCluster *multicluster.Cluster, admC
 			pkg.Log(pkg.Error, fmt.Sprintf("%v of %v is not updated", aocnst.MCRegistrationSecret, managedCluster.Name))
 		}
 		return admCaCrt == newCaCrt
-	}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Sync CA %v", managedCluster.Name))
+	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Sync CA %v", managedCluster.Name))
 }
 
 func verifyManagedFluentd(since time.Time) {
@@ -156,7 +156,7 @@ func verifyManagedFluentd(since time.Time) {
 				pkg.Log(pkg.Error, fmt.Sprintf("%v Fluentd is not read: \n%v\n", managedCluster.Name, logs))
 			}
 			return ok
-		}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("scrape target of %s is not ready", managedCluster.Name))
+		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("scrape target of %s is not ready", managedCluster.Name))
 	}
 }
 
@@ -172,7 +172,7 @@ func verifyRegistration() {
 			gomega.Eventually(func() bool {
 				reg, err := adminCluster.GetRegistration(managedCluster.Name)
 				return reg != nil && err == nil
-			}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("%s is not registered", managedCluster.Name))
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("%s is not registered", managedCluster.Name))
 		}
 	}
 }

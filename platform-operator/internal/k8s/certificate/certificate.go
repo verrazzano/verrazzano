@@ -179,7 +179,7 @@ func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCe
 	return err
 }
 
-//UpdateConversionWebhookConfiguration sets the conversion webhook for the Verrazzano resource
+// UpdateConversionWebhookConfiguration sets the conversion webhook for the Verrazzano resource
 func UpdateConversionWebhookConfiguration(apiextClient *apiextensionsv1client.ApiextensionsV1Client, caCert *bytes.Buffer) error {
 	crd, err := apiextClient.CustomResourceDefinitions().Get(context.TODO(), CRDName, metav1.GetOptions{})
 	if err != nil {
