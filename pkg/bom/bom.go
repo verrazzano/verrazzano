@@ -186,6 +186,17 @@ func (b *Bom) GetComponent(componentName string) (*BomComponent, error) {
 	return nil, errors.New("unknown component " + componentName)
 }
 
+func (b *Bom) GetComponentVersion(componentName string) (string, error) {
+	component, err := b.GetComponent(componentName)
+	if err != nil {
+		return "", err
+	}
+	if len(component.Version) == 0 {
+		return "", fmt.Errorf("Did not find valid version for component %s: %s", component, component.Version)
+	}
+	return component.Version, nil
+}
+
 // GetSubcomponent gets the bom subcomponent
 func (b *Bom) GetSubcomponent(subComponentName string) (*BomSubComponent, error) {
 	sc, ok := b.subComponentMap[subComponentName]
@@ -202,6 +213,15 @@ func (b *Bom) GetSubcomponentImages(subComponentName string) ([]BomImage, error)
 		return nil, err
 	}
 	return sc.Images, nil
+}
+
+func (b *Bom) FindImage(sc *BomSubComponent, imageName string) (BomImage, error) {
+	for _, image := range sc.Images {
+		if image.ImageName == imageName {
+			return image, nil
+		}
+	}
+	return BomImage{}, fmt.Errorf("Image %s not found for sub-component %s", imageName, sc.Name)
 }
 
 // GetSubcomponentImageCount returns the number of subcomponent images

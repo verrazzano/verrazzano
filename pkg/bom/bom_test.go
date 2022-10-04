@@ -10,6 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	ingressControllerComponent = "ingress-controller"
+	ingressControllerImageName = "nginx-ingress-controller"
+)
+
 // testSubComponent contains the override Key values for a subcomponent.
 type testSubComponent struct {
 	// kvs is the map of helm Key to expected helm Value.  These values are used in helm overrides
@@ -38,7 +43,7 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 			"cainjector.image.tag":                    "1.2.0-20210602163405-aac6bdf62",
 		},
 	},
-	"ingress-controller": {
+	ingressControllerComponent: {
 		kvs: map[string]string{
 			"controller.image.repository":     "ghcr.io/verrazzano/nginx-ingress-controller",
 			"controller.image.tag":            "0.46.0-20210510134749-abc2d2088",
@@ -234,7 +239,7 @@ func TestBomSubcomponentOverrides(t *testing.T) {
 	assert.Equal("ghcr.io", bom.GetRegistry(), "Global registry not correct")
 	assert.NoError(err)
 
-	nginxSubcomponent, err := bom.GetSubcomponent("ingress-controller")
+	nginxSubcomponent, err := bom.GetSubcomponent(ingressControllerComponent)
 	assert.NotNil(t, nginxSubcomponent)
 	assert.NoError(err)
 
@@ -250,6 +255,10 @@ func TestBomSubcomponentOverrides(t *testing.T) {
 	assert.Equal("verrazzano", bom.ResolveRepo(vpoSubcomponent, BomImage{}), "VPO subcomponent repo not correct")
 }
 
+// TestBomImageOverrides tests the ability to override the registry settings for a subcomponent
+// GIVEN a call to ResolveRegistry and ResolveRepo for a valid subcomponent
+// WHEN the image has overrides for the registry and repository
+// THEN the correct registry and repository overrides are returned
 func TestBomImageOverrides(t *testing.T) {
 	bom, err := NewBom(testBomImageOverridesPath)
 	assert.NoError(t, err)
@@ -259,6 +268,24 @@ func TestBomImageOverrides(t *testing.T) {
 	img := sc.Images[0]
 	assert.Equal(t, "testRegistry", bom.ResolveRegistry(sc, img))
 	assert.Equal(t, "testRepository", bom.ResolveRepo(sc, img))
+}
+
+// TestBomFindImage tests the FindImage method
+// GIVEN a call to FindImage for a valid subcomponent
+// WHEN I ask for an image for that subcomponent
+// THEN the correct BomImage object is returned if found, or an error if not found
+func TestBomFindImage(t *testing.T) {
+	bom, err := NewBom(testBomFilePath)
+	assert.NoError(t, err)
+
+	sc, err := bom.GetSubcomponent(ingressControllerComponent)
+	assert.NoError(t, err)
+
+	_, err = bom.FindImage(sc, ingressControllerImageName)
+	assert.NoError(t, err)
+
+	_, err = bom.FindImage(sc, "foo")
+	assert.Error(t, err)
 }
 
 // TestBomComponentVersion tests the ability to fetch component version

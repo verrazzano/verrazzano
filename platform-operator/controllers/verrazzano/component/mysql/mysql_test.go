@@ -6,6 +6,7 @@ package mysql
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -65,7 +66,7 @@ var mySQLSecret = v1.Secret{
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 const (
-	minExpectedHelmOverridesCount = 2
+	minExpectedHelmOverridesCount = 4
 	testBomFilePath               = "../../testdata/test_bom.json"
 )
 
@@ -841,7 +842,7 @@ func TestAppendMySQLOverridesUpgradeDevProfile(t *testing.T) {
 	ctx := spi.NewFakeContext(mock, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 0)
+	assert.Len(t, kvs, 2)
 }
 
 // TestAppendMySQLOverridesUpgradeLegacyProdProfile tests the appendMySQLOverrides function
@@ -944,6 +945,47 @@ func TestAppendMySQLOverridesUpgradeLegacyProdProfile(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 7+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
+}
+
+// TestClusterResourceDefaultRegistry tests the getRegistrySettings function
+// GIVEN a call to getRegistrySettings
+// WHEN there are no registry overrides
+// THEN the default value is returned for the imageRepository helm value
+func TestClusterResourceDefaultRegistry(t *testing.T) {
+	const defaultRegistry = "ghcr.io/verrazzano"
+
+	bomFile, err := bom.NewBom(testBomFilePath)
+	assert.NoError(t, err)
+	kvPair, err := getRegistrySettings(&bomFile)
+	assert.NoError(t, err)
+
+	assert.Equal(t, imageRepositoryKey, kvPair.Key)
+	assert.Equal(t, defaultRegistry, kvPair.Value)
+}
+
+// TestClusterResourcePrivateRegistryOverride tests the getRegistrySettings function
+// GIVEN a call to getRegistrySettings
+// WHEN there are custom private registry overrides
+// THEN the imageRepository helm value points to the correct registry/repo
+func TestClusterResourcePrivateRegistryOverride(t *testing.T) {
+	const registry = "myregistry.io"
+	os.Setenv(vzconst.RegistryOverrideEnvVar, registry)
+	defer func() { os.Unsetenv(vzconst.RegistryOverrideEnvVar) }()
+
+	const repoPath = "someuser/basepath"
+	os.Setenv(vzconst.ImageRepoOverrideEnvVar, repoPath)
+	defer func() { os.Unsetenv(vzconst.ImageRepoOverrideEnvVar) }()
+
+	bomFile, err := bom.NewBom(testBomFilePath)
+	assert.NoError(t, err)
+	kvPair, err := getRegistrySettings(&bomFile)
+	assert.NoError(t, err)
+
+	scRepo, err := bomFile.GetSubcomponent(bomSubComponentName)
+	assert.NoError(t, err)
+
+	assert.Equal(t, imageRepositoryKey, kvPair.Key)
+	assert.Equal(t, fmt.Sprintf("%s/%s/%s", registry, repoPath, scRepo.Repository), kvPair.Value)
 }
 
 // TestIsMySQLReady tests the isMySQLReady function
