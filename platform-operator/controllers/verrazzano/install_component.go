@@ -46,6 +46,8 @@ const (
 
 	// compStateInstallEnd is the terminal state
 	compStateInstallEnd componentInstallState = "compStateInstallEnd"
+
+	globalInstallStart componentInstallState = "globalInstallStart"
 )
 
 // componentInstallContext has the install context for a Verrazzano component install
@@ -116,9 +118,14 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 				continue
 			}
 
-			if componentStatus.State == vzapi.CompStateDisabled {
+			switch componentStatus.State {
+			case vzapi.CompStateDisabled:
 				installContext.state = compStateInstallDisabled
-			} else {
+			case vzapi.CompStatePreInstalling:
+				installContext.state = compStateInstallStarted
+			case vzapi.CompStateInstalling:
+				installContext.state = compStateInstallStarted
+			default:
 				installContext.state = compStateInstallReady
 			}
 		case compStateInstallDisabled:
@@ -158,14 +165,11 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 					compLog.Oncef("Skipping update for component %s, monitorChanges set to false", comp.Name())
 				} else {
 					if spiCtx.ActualCR().Status.State == vzapi.VzStateReady {
-						err := r.setInstallingState(spiCtx.Log(), spiCtx.ActualCR())
-						compLog.Oncef("Reset Verrazzano state to %v for generation %v", spiCtx.ActualCR().Status.State, spiCtx.ActualCR().Generation)
-						if err != nil {
-							spiCtx.Log().Errorf("Failed to reset state: %v", err)
-							return newRequeueWithDelay(), err
-						}
+						installContext.state = globalInstallStart
+						return newRequeueWithDelay(), nil
 					}
 					installContext.state = compStateInstallStarted
+					continue
 				}
 			}
 			installContext.state = compStateInstallEnd
@@ -220,7 +224,19 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 				return ctrl.Result{Requeue: true}, err
 			}
 			installContext.state = compStateInstallEnd
+
+		case globalInstallStart:
+			err := r.setInstallingState(spiCtx.Log(), spiCtx.ActualCR())
+			compLog.Oncef("Reset Verrazzano state to %v for generation %v", spiCtx.ActualCR().Status.State, spiCtx.ActualCR().Generation)
+			if err != nil {
+				spiCtx.Log().Errorf("Failed to reset state: %v", err)
+				return newRequeueWithDelay(), err
+			}
+			deleteInstallTracker(spiCtx.ActualCR())
+			return ctrl.Result{Requeue: true}, nil
+
 		}
+
 	}
 	// Component has been installed
 	return ctrl.Result{}, nil
