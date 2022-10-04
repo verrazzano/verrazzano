@@ -990,9 +990,9 @@ func TestClusterResourcePrivateRegistryOverride(t *testing.T) {
 
 // TestIsMySQLReady tests the isMySQLReady function
 // GIVEN a call to isMySQLReady
-//  WHEN the deployment object has enough replicas available
-//   AND the InnoDBCluster is online
-//  THEN true is returned
+// WHEN the deployment object has enough replicas available
+// AND the InnoDBCluster is online
+// THEN true is returned
 func TestIsMySQLReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.StatefulSet{
@@ -1100,8 +1100,8 @@ func TestIsMySQLReady(t *testing.T) {
 
 // TestIsMySQLNotReady tests the isMySQLReady function
 // GIVEN a call to isMySQLReady
-//  WHEN the deployment object does NOT have enough replicas available
-//  THEN false is returned
+// WHEN the deployment object does NOT have enough replicas available
+// THEN false is returned
 func TestIsMySQLNotReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.StatefulSet{
@@ -1208,9 +1208,9 @@ func TestIsMySQLNotReady(t *testing.T) {
 
 // TestIsMySQLReadyInnoDBClusterNotOnline tests the isMySQLReady function
 // GIVEN a call to isMySQLReady
-//  WHEN the deployment object has enough replicas available
-//   AND the InnoDBCluster is NOT online
-//  THEN false is returned
+// WHEN the deployment object has enough replicas available
+// AND the InnoDBCluster is NOT online
+// THEN false is returned
 func TestIsMySQLReadyInnoDBClusterNotOnline(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.StatefulSet{
@@ -1318,8 +1318,8 @@ func TestIsMySQLReadyInnoDBClusterNotOnline(t *testing.T) {
 
 // TestPostUpgradeCleanup tests the PostUpgradeCleanup function
 // GIVEN a call to PostUpgradeCleanup
-//  WHEN The legacy DB upgrade PVC exists
-//  THEN It is deleted and no error is returned
+// WHEN The legacy DB upgrade PVC exists
+// THEN It is deleted and no error is returned
 func TestPostUpgradeCleanup(t *testing.T) {
 	asserts := assert.New(t)
 	legacyPVC := &v1.PersistentVolumeClaim{
@@ -1343,8 +1343,8 @@ func TestPostUpgradeCleanup(t *testing.T) {
 
 // TestPostUpgradeCleanupNoLegacyPVC tests the PostUpgradeCleanup function
 // GIVEN a call to PostUpgradeCleanup
-//  WHEN The legacy DB upgrade PVC does NOT exist
-//  THEN no error is returned
+// WHEN The legacy DB upgrade PVC does NOT exist
+// THEN no error is returned
 func TestPostUpgradeCleanupNoLegacyPVC(t *testing.T) {
 	asserts := assert.New(t)
 	legacyPVC := &v1.PersistentVolumeClaim{
@@ -1362,8 +1362,8 @@ func TestPostUpgradeCleanupNoLegacyPVC(t *testing.T) {
 
 // TestPostUpgradeCleanupErrorOnDelete tests the PostUpgradeCleanup function
 // GIVEN a call to PostUpgradeCleanup
-//  WHEN When an error other than IsNotFound is returned from the controllerruntime client
-//  THEN an error is returned
+// WHEN an error other than IsNotFound is returned from the controllerruntime client
+// THEN an error is returned
 func TestPostUpgradeCleanupErrorOnDelete(t *testing.T) {
 	asserts := assert.New(t)
 
@@ -1384,16 +1384,16 @@ func TestPostUpgradeCleanupErrorOnDelete(t *testing.T) {
 
 // TestIsEnabledNilComponent tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is nil
-//  THEN false is returned
+// WHEN The Keycloak component is nil
+// THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesDir).EffectiveCR()))
 }
 
 // TestIsEnabledNilKeycloak tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is nil
-//  THEN true is returned
+// WHEN The Keycloak component is nil
+// THEN true is returned
 func TestIsEnabledNilKeycloak(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -1402,8 +1402,8 @@ func TestIsEnabledNilKeycloak(t *testing.T) {
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component enabled is nil
-//  THEN true is returned
+// WHEN The Keycloak component enabled is nil
+// THEN true is returned
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = nil
@@ -1412,8 +1412,8 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 
 // TestIsEnabledExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is explicitly enabled
-//  THEN true is returned
+// WHEN The Keycloak component is explicitly enabled
+// THEN true is returned
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(true)
@@ -1422,8 +1422,8 @@ func TestIsEnabledExplicit(t *testing.T) {
 
 // TestIsDisableExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is explicitly disabled
-//  THEN false is returned
+// WHEN The Keycloak component is explicitly disabled
+// THEN false is returned
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(false)
@@ -1432,8 +1432,8 @@ func TestIsDisableExplicit(t *testing.T) {
 
 // TestIsEnabledManagedClusterProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and managed cluster profile
-//  THEN false is returned
+// WHEN The Keycloak enabled flag is nil and managed cluster profile
+// THEN false is returned
 func TestIsEnabledManagedClusterProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -1443,9 +1443,8 @@ func TestIsEnabledManagedClusterProfile(t *testing.T) {
 
 // TestIsEnabledProdProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//
-//	WHEN The Keycloak enabled flag is nil and prod profile
-//	THEN false is returned
+// WHEN The Keycloak enabled flag is nil and prod profile
+// THEN false is returned
 func TestIsEnabledProdProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -1455,9 +1454,8 @@ func TestIsEnabledProdProfile(t *testing.T) {
 
 // TestIsEnabledDevProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//
-//	WHEN The Keycloak enabled flag is nil and dev profile
-//	THEN false is returned
+// WHEN The Keycloak enabled flag is nil and dev profile
+// THEN false is returned
 func TestIsEnabledDevProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -1467,8 +1465,8 @@ func TestIsEnabledDevProfile(t *testing.T) {
 
 // TestConvertOldInstallArgs tests the convertOldInstallArgs function
 // GIVEN a call to convertOldInstallArgs
-//  WHEN The old persistence values are passed in
-//  THEN the new values are returned
+// WHEN The old persistence values are passed in
+// THEN the new values are returned
 func TestConvertOldInstallArgs(t *testing.T) {
 	persistenceVals := []bom.KeyValue{
 		{
