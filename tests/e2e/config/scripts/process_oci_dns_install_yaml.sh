@@ -3,6 +3,8 @@
 # Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+set -x
+
 INSTALL_CONFIG_TO_EDIT=$1
 CERT_MGR=${2:-"acme"}
 ACME_ENV=${3:-"staging"}
@@ -40,10 +42,10 @@ elif [ $INSTALL_PROFILE == "dev" ] && [ $CRD_API_VERSION == "v1beta1" ]; then
   yq -i eval ".spec.components.keycloak.overrides.[0].values.persistence.enabled = false" ${INSTALL_CONFIG_TO_EDIT}
 fi
 
-if [ "${NGINX_LB_SCOPE}" == "PRIVATE" ] && [ $CRD_API_VERSION == "v1beta1" ]; then
+if [ ${NGINX_LB_SCOPE} == "PRIVATE" ] && [ $CRD_API_VERSION == "v1beta1" ]; then
   yq -i eval ".spec.components.ingressNGINX.overrides[0].values.controller.service.annotations.\"service.beta.kubernetes.io/oci-load-balancer-internal\" = \"true\"" ${INSTALL_CONFIG_TO_EDIT}
 fi
-if [ "${ISTIO_LB_SCOPE}" == "PRIVATE" ] && [ $CRD_API_VERSION == "v1beta1" ]; then
+if [ ${ISTIO_LB_SCOPE} == "PRIVATE" ] && [ $CRD_API_VERSION == "v1beta1" ]; then
   yq -i eval ".spec.components.istio.overrides[0].values.apiVersion = \"install.istio.io/v1alpha1\"" ${INSTALL_CONFIG_TO_EDIT}
   yq -i eval ".spec.components.istio.overrides[0].values.kind = \"IstioOperator\"" ${INSTALL_CONFIG_TO_EDIT}
   yq -i eval ".spec.components.istio.overrides[0].values.spec.components.ingressGateways[0].enabled = true" ${INSTALL_CONFIG_TO_EDIT}
