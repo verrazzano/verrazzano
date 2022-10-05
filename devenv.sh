@@ -1,5 +1,6 @@
-
-GOVERSION=$(cat .go-version) 
+# Copyright (C) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+. ./.go-version
 echo "Setting up go version ${GOVERSION}"
 
 GOCMD=go${GOVERSION}
