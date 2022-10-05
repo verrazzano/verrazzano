@@ -273,13 +273,6 @@ pipeline {
                     if (params.NGINX_LB_SCOPE == "PRIVATE" || params.ISTIO_LB_SCOPE == "PRIVATE")  {
                         env.TF_VAR_region = RUNNER_REGION
                         env.OCI_CLI_REGION = RUNNER_REGION
-                        if (params.NGINX_LB_SCOPE == "PRIVATE") {
-                            println("NGINX_LB_SCOPE is PRIVATE")
-                        } else if (params.ISTIO_LB_SCOPE == "PRIVATE") {
-                            println("ISTIO_LB_SCOPE is PRIVATE")
-                        } else {
-                            println("Both NGINX_LB_SCOPE and ISTIO_LB_SCOPE are PRIVATE")
-                        }
                    }
                     println("runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}")
                         sh """
