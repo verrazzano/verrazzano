@@ -62,11 +62,16 @@ pipeline {
         }
     }
 
-    triggers {
-        cron(branchSpecificSchedule)
-    }
 
     parameters {
+        string (name: 'GIT_COMMIT_TO_USE',
+                        defaultValue: 'NONE',
+                        description: 'This is the full git commit hash from the source build to be used for all jobs. A full pipeline specifies a valid commit hash here. NONE can be used for manually triggered jobs, however even for those a commit hash value is preferred to be supplied',
+                        trim: true)
+        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
+                        defaultValue: 'NONE',
+                        description: 'This is for manually testing only where someone needs to use a specific operator image, otherwise the default value of NONE is used',
+                        trim: true)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
