@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -634,7 +633,7 @@ func fakeInstall(log vzlog.VerrazzanoLogger, _ string, overridesFiles ...string)
 	if !strings.Contains(overridesFiles[1], "istio-") || !strings.Contains(overridesFiles[1], ".yaml") {
 		return []byte("error"), []byte(""), fmt.Errorf("incorrect install args overrides file")
 	}
-	installArgsFromFile, err := ioutil.ReadFile(overridesFiles[1])
+	installArgsFromFile, err := os.ReadFile(overridesFiles[1])
 	if err != nil {
 		return []byte("error"), []byte(""), fmt.Errorf("unable to read install args overrides file")
 	}
