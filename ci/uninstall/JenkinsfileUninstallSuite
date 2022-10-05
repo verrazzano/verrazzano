@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-def agentLabel = env.JOB_NAME.contains('master') ? "phxsmall" : "VM.Standard2.2"
+def agentLabel = "VM.Standard2.2_1_4"
 def branchSpecificSchedule = getCronSchedule()
 
 pipeline {
@@ -12,8 +12,8 @@ pipeline {
 
     agent {
        docker {
-            image "${RUNNER_DOCKER_IMAGE}"
-            args "${RUNNER_DOCKER_ARGS}"
+            image "${RUNNER_DOCKER_IMAGE_1_4}"
+            args "${RUNNER_DOCKER_ARGS_1_4}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
             label "${agentLabel}"

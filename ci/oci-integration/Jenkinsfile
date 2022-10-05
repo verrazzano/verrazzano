@@ -6,7 +6,7 @@
 def DEFAULT_REPO_URL
 def testEnvironments = [ "magicdns_oke" ]
 def installProfiles = [ "dev", "prod", "managed-cluster" ]
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = "VM.Standard2.8_1_4"
 
 // pulling "ap-*" from the test regions given discovery of image pull issues
 def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
@@ -25,8 +25,8 @@ pipeline {
 
     agent {
         docker {
-            image "${RUNNER_DOCKER_IMAGE}"
-            args "${RUNNER_DOCKER_ARGS} --cap-add=NET_ADMIN"
+            image "${RUNNER_DOCKER_IMAGE_1_4}"
+            args "${RUNNER_DOCKER_ARGS_1_4} --cap-add=NET_ADMIN"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             label "${agentLabel}"
         }

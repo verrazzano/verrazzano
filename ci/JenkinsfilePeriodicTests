@@ -11,7 +11,7 @@ def LAST_CLEAN_PERIODIC_COMMIT = ""
 def VERRAZZANO_DEV_VERSION = ""
 @Field
 def RELEASABLE_IMAGES_OBJECT_STORE = ""
-def agentLabel = env.JOB_NAME.contains('master') ? "phxsmall" : "VM.Standard2.2"
+def agentLabel = ""VM.Standard2.2_1_4""
 @Field
 def TESTS_FAILED = false
 @Field
@@ -55,8 +55,8 @@ pipeline {
 
     agent {
        docker {
-            image "${RUNNER_DOCKER_IMAGE}"
-            args "${RUNNER_DOCKER_ARGS}"
+            image "${RUNNER_DOCKER_IMAGE_1_4}"
+            args "${RUNNER_DOCKER_ARGS_1_4}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
             label "${agentLabel}"
