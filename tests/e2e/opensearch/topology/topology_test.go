@@ -6,6 +6,8 @@ package topology
 import (
 	"context"
 	"fmt"
+	"time"
+
 	. "github.com/onsi/gomega"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vmoClient "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
@@ -16,14 +18,13 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"time"
 )
 
 const (
 	systemNamespace = "verrazzano-system"
 	verrazzanoName  = "verrazzano"
 	vmiName         = "testing"
-	timeout         = 15 * time.Minute
+	timeout         = 20 * time.Minute
 	pollInterval    = 15 * time.Second
 )
 
