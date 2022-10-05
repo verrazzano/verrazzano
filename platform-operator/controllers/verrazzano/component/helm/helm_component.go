@@ -4,8 +4,11 @@
 package helm
 
 import (
+	ctx "context"
 	"fmt"
+	v1 "k8s.io/api/core/v1"
 	"os"
+	"sort"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -308,6 +311,14 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
+	isDeployed, err := helm.IsReleaseDeployed(h.ReleaseName, h.ChartNamespace)
+	if err != nil {
+		context.Log().Infof("Error getting release status for %s", h.ReleaseName)
+	}
+	if !isDeployed {
+		cleanupLatestSecret(context, h)
+	}
+
 	if h.PreInstallFunc != nil {
 		err := h.PreInstallFunc(context, h.ReleaseName, h.resolveNamespace(context), h.ChartDir)
 		if err != nil {
@@ -315,6 +326,21 @@ func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 		}
 	}
 	return nil
+}
+
+func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent) {
+	secretList := &v1.SecretList{}
+	context.Client().List(ctx.TODO(), secretList, &clipkg.ListOptions{
+		Namespace: h.ChartNamespace,
+	})
+
+	secretListItems := secretList.Items
+	sort.Slice(secretListItems, func(i, j int) bool {
+		return (secretListItems[i].CreationTimestamp.Time).After(secretListItems[j].CreationTimestamp.Time)
+	})
+
+	latestSecret := secretListItems[0] //Delete the latest created secret sorted based on creationTimeStamp
+	context.Client().Delete(ctx.TODO(), &latestSecret)
 }
 
 func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
@@ -344,7 +370,14 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 	return nil
 }
 
-func (h HelmComponent) PreUninstall(_ spi.ComponentContext) error {
+func (h HelmComponent) PreUninstall(context spi.ComponentContext) error {
+	isDeployed, err := helm.IsReleaseDeployed(h.ReleaseName, h.ChartNamespace)
+	if err != nil {
+		context.Log().Infof("Error getting release status for %s", h.ReleaseName)
+	}
+	if !isDeployed {
+		cleanupLatestSecret(context, h)
+	}
 	return nil
 }
 
@@ -432,7 +465,14 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	return err
 }
 
-func (h HelmComponent) PreUpgrade(_ spi.ComponentContext) error {
+func (h HelmComponent) PreUpgrade(context spi.ComponentContext) error {
+	isDeployed, err := helm.IsReleaseDeployed(h.ReleaseName, h.ChartNamespace)
+	if err != nil {
+		context.Log().Infof("Error getting release status for %s", h.ReleaseName)
+	}
+	if !isDeployed {
+		cleanupLatestSecret(context, h)
+	}
 	return nil
 }
 
