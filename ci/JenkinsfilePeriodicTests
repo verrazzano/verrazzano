@@ -11,7 +11,7 @@ def LAST_CLEAN_PERIODIC_COMMIT = ""
 def VERRAZZANO_DEV_VERSION = ""
 @Field
 def RELEASABLE_IMAGES_OBJECT_STORE = ""
-def agentLabel = ""VM.Standard2.2_1_4""
+def agentLabel = "VM.Standard2.2_1_4"
 @Field
 def TESTS_FAILED = false
 @Field
