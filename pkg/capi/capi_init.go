@@ -5,7 +5,6 @@ package capi
 import (
 	os2 "github.com/verrazzano/verrazzano/pkg/os"
 	"go.uber.org/zap"
-	"io/ioutil"
 	"os"
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
@@ -30,7 +29,7 @@ func initializeCAPI(clcm ClusterLifeCycleManager) error {
 }
 
 func createKubeConfigFile(clcm ClusterLifeCycleManager) (*os.File, error) {
-	kcFile, err := ioutil.TempFile(os.TempDir(), "kubeconfig-"+clcm.GetConfig().ClusterName)
+	kcFile, err := os.CreateTemp(os.TempDir(), "kubeconfig-"+clcm.GetConfig().ClusterName)
 	if err != nil {
 		return nil, err
 	}

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -211,7 +210,7 @@ func TestAppendOverrides(t *testing.T) {
 
 			// Read the Verrazzano CR into a struct
 			testCR := vzapi.Verrazzano{}
-			yamlFile, err := ioutil.ReadFile(test.actualCR)
+			yamlFile, err := os.ReadFile(test.actualCR)
 			asserts.NoError(err)
 			err = yaml.Unmarshal(yamlFile, &testCR)
 			asserts.NoError(err)
@@ -223,7 +222,7 @@ func TestAppendOverrides(t *testing.T) {
 				if test.expectedErr != nil {
 					return test.expectedErr
 				}
-				if err := ioutil.WriteFile(filename, data, perm); err != nil {
+				if err := os.WriteFile(filename, data, perm); err != nil {
 					asserts.Failf("Failure writing file %s: %s", filename, err)
 					return err
 				}
@@ -235,7 +234,7 @@ func TestAppendOverrides(t *testing.T) {
 				asserts.NoError(err)
 
 				// read in the expected results' data from a file and unmarshal it into a values object
-				expectedData, err := ioutil.ReadFile(test.expectedYAML)
+				expectedData, err := os.ReadFile(test.expectedYAML)
 				asserts.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
 				expectedValues := authProxyValues{}
 				err = yaml.Unmarshal(expectedData, &expectedValues)
@@ -265,7 +264,7 @@ func TestAppendOverrides(t *testing.T) {
 		})
 	}
 	// Verify temp files are deleted
-	files, err := ioutil.ReadDir(os.TempDir())
+	files, err := os.ReadDir(os.TempDir())
 	assert.NoError(t, err, "Error reading temp dir to verify file cleanup")
 	for _, file := range files {
 		assert.False(t,
