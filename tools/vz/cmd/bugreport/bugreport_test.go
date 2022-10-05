@@ -15,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,7 +54,7 @@ func TestBugReportExistingReportFile(t *testing.T) {
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
-	tmpDir, _ := ioutil.TempDir("", "bug-report")
+	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer os.RemoveAll(tmpDir)
 
 	// Define and create the bug report file
@@ -83,7 +82,7 @@ func TestBugReportExistingDir(t *testing.T) {
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
-	tmpDir, _ := ioutil.TempDir("", "bug-report")
+	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer os.RemoveAll(tmpDir)
 
 	reportDir := tmpDir + string(os.PathSeparator) + "test-report"
@@ -108,7 +107,7 @@ func TestBugReportNonExistingFileDir(t *testing.T) {
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
-	tmpDir, _ := ioutil.TempDir("", "bug-report")
+	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer os.RemoveAll(tmpDir)
 
 	reportDir := tmpDir + string(os.PathSeparator) + "test-report"
@@ -131,7 +130,7 @@ func TestBugReportFileNoPermission(t *testing.T) {
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
-	tmpDir, _ := ioutil.TempDir("", "bug-report")
+	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer os.RemoveAll(tmpDir)
 
 	reportDir := tmpDir + string(os.PathSeparator) + "test-report"
@@ -166,7 +165,7 @@ func TestBugReportSuccess(t *testing.T) {
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
-	tmpDir, _ := ioutil.TempDir("", "bug-report")
+	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer os.RemoveAll(tmpDir)
 
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
@@ -259,7 +258,7 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
-	tmpDir, _ := ioutil.TempDir("", "bug-report")
+	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer os.RemoveAll(tmpDir)
 
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
@@ -285,7 +284,7 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
-	tmpDir, _ := ioutil.TempDir("", "bug-report")
+	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer os.RemoveAll(tmpDir)
 
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"

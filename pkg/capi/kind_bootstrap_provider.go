@@ -4,7 +4,6 @@ package capi
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"text/template"
 
@@ -106,13 +105,13 @@ func (k *kindBootstrapProviderImpl) DestroyCluster(config ClusterConfig) error {
 
 func saveKubeconfigToFile(kubeconfigContents string) (string, error) {
 	// Create a temp file that contains the kubeconfig
-	tmpFile, err := ioutil.TempFile("", "kubeconfig")
+	tmpFile, err := os.CreateTemp("", "kubeconfig")
 	if err != nil {
 		return "", err
 	}
 	kubeConfigBytes := bytes.Buffer{}
 	kubeConfigBytes.WriteString(kubeconfigContents)
-	err = ioutil.WriteFile(tmpFile.Name(), kubeConfigBytes.Bytes(), 0600)
+	err = os.WriteFile(tmpFile.Name(), kubeConfigBytes.Bytes(), 0600)
 	return tmpFile.Name(), err
 }
 
