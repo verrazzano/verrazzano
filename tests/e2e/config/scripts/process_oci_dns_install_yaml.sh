@@ -3,8 +3,6 @@
 # Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-set -x
-
 INSTALL_CONFIG_TO_EDIT=$1
 CERT_MGR=${2:-"acme"}
 ACME_ENV=${3:-"staging"}
