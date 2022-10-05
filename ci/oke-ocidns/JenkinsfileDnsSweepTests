@@ -196,7 +196,7 @@ pipeline {
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                         booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
@@ -217,7 +217,7 @@ pipeline {
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                         booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
@@ -239,7 +239,7 @@ pipeline {
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                         booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
@@ -262,7 +262,7 @@ pipeline {
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                         booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
@@ -284,7 +284,7 @@ pipeline {
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                         booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
@@ -307,7 +307,7 @@ pipeline {
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                         booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
@@ -330,7 +330,7 @@ pipeline {
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                         booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
@@ -353,7 +353,7 @@ pipeline {
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                         booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
@@ -373,7 +373,7 @@ pipeline {
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                         booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
@@ -412,7 +412,7 @@ pipeline {
                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
@@ -433,7 +433,7 @@ pipeline {
                                        booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
@@ -456,7 +456,7 @@ pipeline {
                                        booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
@@ -480,7 +480,7 @@ pipeline {
                                        booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
@@ -503,7 +503,7 @@ pipeline {
                                        booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
@@ -527,7 +527,7 @@ pipeline {
                                        booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
@@ -550,7 +550,7 @@ pipeline {
                                        booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
@@ -574,7 +574,7 @@ pipeline {
                                        booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                    ], wait: true
                            }
