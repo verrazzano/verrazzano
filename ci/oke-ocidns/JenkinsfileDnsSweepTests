@@ -115,14 +115,56 @@ pipeline {
 
     stages {
         stage('Clean workspace and checkout') {
-            when {
-                allOf {
-                    expression { return runTests() }
-                }
-            }
             steps {
+                sh """
+                    echo "${NODE_LABELS}"
+                """
                 script {
-                    cleanWorkspaceAndCheckout()
+                    if (params.GIT_COMMIT_TO_USE == "NONE") {
+                        echo "Specific GIT commit was not specified, use current head"
+                        def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: env.BRANCH_NAME]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    } else {
+                        echo "SCM checkout of ${params.GIT_COMMIT_TO_USE}"
+                        def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: params.GIT_COMMIT_TO_USE]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                        // If the commit we were handed is not what the SCM says we are using, fail
+                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                            exit 1
+                        }
+                    }
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                }
+
+                script {
+                    def props = readProperties file: '.verrazzano-development-version'
+                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                    // update the description with some meaningful info
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    def currentCommitHash = env.GIT_COMMIT
+                    def commitList = getCommitList()
+                    withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
+                        def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
+                        SUSPECT_LIST = getSuspectList(commitList, userMappings)
+                        echo "Suspect list: ${SUSPECT_LIST}"
+                    }
                 }
             }
         }
