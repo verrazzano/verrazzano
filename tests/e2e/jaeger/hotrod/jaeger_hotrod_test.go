@@ -18,7 +18,7 @@ import (
 
 const (
 	shortPollingInterval = 10 * time.Second
-	shortWaitTimeout     = 5 * time.Minute
+	shortWaitTimeout     = 10 * time.Minute
 )
 
 const (
