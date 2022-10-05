@@ -84,6 +84,7 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
+        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
         booleanParam (description: 'Force execution of the tests even if up-to-date', name: 'FORCE', defaultValue: false)
         booleanParam (description: 'Skip test execution (for debugging)', name: 'DRY_RUN', defaultValue: false)
         booleanParam (description: 'Run User principal tests ', name: 'USER_PRINCIPAL_TESTS', defaultValue: false)
