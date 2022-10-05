@@ -543,22 +543,6 @@ pipeline {
                                 runGinkgo('examples/helidonmetrics')
                             }
                         }
-                        stage('console ingress') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
-                            }
-                            steps {
-                                runGinkgo('ingress/console')
-                            }
-                        }
-                        stage('logging trait WebLogic workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
-                            }
-                            steps {
-                                runGinkgo('loggingtrait/weblogicworkload')
-                            }
-                        }
                         stage('logging trait Helidon workload') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
@@ -580,6 +564,27 @@ pipeline {
                         always {
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Run Acceptance Tests Deployments 2') {
+                    parallel {
+                        stage('console ingress') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
+                            }
+                            steps {
+                                runGinkgo('ingress/console')
+                            }
+                        }
+                        stage('logging trait WebLogic workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
+                            }
+                            steps {
+                                runGinkgo('loggingtrait/weblogicworkload')
+                            }
                         }
                     }
                 }
