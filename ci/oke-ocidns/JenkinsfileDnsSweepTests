@@ -86,6 +86,8 @@ pipeline {
                 trim: true)
         booleanParam (description: 'Force execution of the tests even if up-to-date', name: 'FORCE', defaultValue: false)
         booleanParam (description: 'Skip test execution (for debugging)', name: 'DRY_RUN', defaultValue: false)
+        booleanParam (description: 'Run User principal tests ', name: 'USER_PRINCIPAL_TESTS', defaultValue: false)
+        booleanParam (description: 'Run instance principal tests ', name: 'INSTANCE_PRINCIPAL_TESTS', defaultValue: false)
     }
 
     environment {
@@ -177,15 +179,15 @@ pipeline {
         stage ('All DNS Tests with User Principal') {
             when {
                 allOf {
-                    expression { return runTests() }
+                    expression { return runUserPrincipalTests() }
                 }
             }
             parallel {
-                stage('DNS Test Scenario 1') {
+                stage('OCI_AUTH UserPrincipal DNS Test 1') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                println("DNS_SCOPE=Global,Nginx_LB=Global,Istio_LB=Global")
+                                println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=GLOBAL : Nginx_LB=GLOBAL : Istio_LB=GLOBAL")
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -194,16 +196,18 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
                         }
                     }
                 }
-                stage('DNS Test Scenario 2') {
+                stage('OCI_AUTH UserPrincipal DNS Test 2') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                println("DNS_SCOPE=Global,Nginx_LB=Global,Istio_LB=Private")
+
+                                println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=GLOBAL : Nginx_LB=GLOBAL : Istio_LB=PRIVATE")
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'ISTIO_LB_SCOPE', value: 'PRIVATE'),
@@ -213,17 +217,19 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
                         }
                     }
                 }
 
-                stage('DNS Test Scenario 3') {
+                stage('OCI_AUTH UserPrincipal DNS Test 3') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                println("DNS_SCOPE=Global,Nginx_LB=Private,Istio_LB=Global")
+
+                                println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=GLOBAL : Nginx_LB=PRIVATE : Istio_LB=GLOBAL")
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'NGINX_LB_SCOPE', value: 'PRIVATE'),
@@ -233,17 +239,19 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
                         }
                     }
                 }
 
-                stage('DNS Test Scenario 4') {
+                stage('OCI_AUTH UserPrincipal DNS Test 4') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                println("DNS_SCOPE=Global,Nginx_LB=Private,Istio_LB=Private")
+
+                                println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=GLOBAL : Nginx_LB=PRIVATE : Istio_LB=PRIVATE")
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'NGINX_LB_SCOPE', value: 'PRIVATE'),
@@ -254,17 +262,19 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
                         }
                     }
                 }
 
-                stage('DNS Test Scenario 5') {
+                stage('OCI_AUTH UserPrincipal DNS Test 5') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                println("DNS_SCOPE=Private,Nginx_LB=Global;Istio_LB=Global")
+
+                                println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=PRIVATE : Nginx_LB=GLOBAL : Istio_LB=GLOBAL")
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'DNS_SCOPE', value: 'PRIVATE'),
@@ -274,17 +284,19 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
                         }
                     }
                 }
 
-                stage('DNS Test Scenario 6') {
+                stage('OCI_AUTH UserPrincipal DNS Test 6') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                println("DNS_SCOPE=Private,Nginx_LB=Global;Istio_LB=Private")
+
+                                println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=PRIVATE : Nginx_LB=GLOBAL : Istio_LB=PRIVATE")
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'DNS_SCOPE', value: 'PRIVATE'),
@@ -295,17 +307,19 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
                         }
                     }
                 }
 
-                stage('DNS Test Scenario 7') {
+                stage('OCI_AUTH UserPrincipal DNS Test 7') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                println("DNS_SCOPE=Private,Nginx_LB=Private;Istio_LB=Global")
+
+                                println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=PRIVATE : Nginx_LB=PRIVATE : Istio_LB=GLOBAL")
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'DNS_SCOPE', value: 'PRIVATE'),
@@ -316,16 +330,18 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
                         }
                     }
                 }
 
-                stage('DNS Test Scenario 8') {
+                stage('OCI_AUTH UserPrincipal DNS Test 8') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
+                                println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=PRIVATE : Nginx_LB=PRIVATE : Istio_LB=PRIVATE")
                                 build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'DNS_SCOPE', value: 'PRIVATE'),
@@ -337,6 +353,7 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
                         }
@@ -356,6 +373,7 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                                     ], wait: true
                             }
                         }
@@ -375,28 +393,192 @@ pipeline {
         stage ('All DNS Tests with Instance Principal') {
             when {
                 allOf {
-                    expression { return runTests() }
+                    expression { return runInstancePrincipalTests() }
                 }
             }
             parallel {
-                stage('OCI DNS tests with instance principal') {
-                    steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
-                                    ], wait: true
-                            }
-                        }
-                    }
+
+               stage('OCI_AUTH InstancePrincipal DNS Test 1') {
+                   steps {
+                       retry(count: JOB_PROMOTION_RETRIES) {
+                           script {
+                               println("AUTH_TYPE=IP : DNS_SCOPE=GLOBAL : Nginx_LB=GLOBAL : Istio_LB=GLOBAL")
+                               build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                   parameters: [
+                                       string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
+                                       string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                       booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
+                                       string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                       string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                       string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                   ], wait: true
+                           }
+                       }
+                   }
+               }
+               stage('OCI_AUTH InstancePrincipal DNS Test 2') {
+                   steps {
+                       retry(count: JOB_PROMOTION_RETRIES) {
+                           script {
+                               println("AUTH_TYPE=IP : DNS_SCOPE=GLOBAL : Nginx_LB=GLOBAL : Istio_LB=PRIVATE")
+                               build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                   parameters: [
+                                       string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
+                                       string(name: 'ISTIO_LB_SCOPE', value: 'PRIVATE'),
+                                       string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                       string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                       booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
+                                       string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                       string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                   ], wait: true
+                           }
+                       }
+                   }
+               }
+
+               stage('OCI_AUTH InstancePrincipal DNS Test 3') {
+                   steps {
+                       retry(count: JOB_PROMOTION_RETRIES) {
+                           script {
+
+                               println("AUTH_TYPE=IP : DNS_SCOPE=GLOBAL : Nginx_LB=PRIVATE : Istio_LB=GLOBAL")
+                               build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                   parameters: [
+                                       string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
+                                       string(name: 'NGINX_LB_SCOPE', value: 'PRIVATE'),
+                                       string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                       string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                       booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
+                                       string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                       string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                   ], wait: true
+                           }
+                       }
+                   }
+               }
+
+               stage('OCI_AUTH InstancePrincipal DNS Test 4') {
+                   steps {
+                       retry(count: JOB_PROMOTION_RETRIES) {
+                           script {
+
+                               println("AUTH_TYPE=IP : DNS_SCOPE=GLOBAL : Nginx_LB=PRIVATE : Istio_LB=PRIVATE")
+                               build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                   parameters: [
+                                       string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
+                                       string(name: 'NGINX_LB_SCOPE', value: 'PRIVATE'),
+                                       string(name: 'ISTIO_LB_SCOPE', value: 'PRIVATE'),
+                                       string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                       string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                       booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
+                                       string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                       string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                   ], wait: true
+                           }
+                       }
+                   }
+               }
+
+               stage('OCI_AUTH InstancePrincipal DNS Test 5') {
+                   steps {
+                       retry(count: JOB_PROMOTION_RETRIES) {
+                           script {
+
+                               println("AUTH_TYPE=IP : DNS_SCOPE=PRIVATE : Nginx_LB=GLOBAL : Istio_LB=GLOBAL")
+                               build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                   parameters: [
+                                       string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
+                                       string(name: 'DNS_SCOPE', value: 'PRIVATE'),
+                                       string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                       string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                       booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
+                                       string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                       string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                   ], wait: true
+                           }
+                       }
+                   }
+               }
+
+               stage('OCI_AUTH InstancePrincipal DNS Test 6') {
+                   steps {
+                       retry(count: JOB_PROMOTION_RETRIES) {
+                           script {
+
+                               println("AUTH_TYPE=IP : DNS_SCOPE=PRIVATE : Nginx_LB=GLOBAL : Istio_LB=PRIVATE")
+                               build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                   parameters: [
+                                       string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
+                                       string(name: 'DNS_SCOPE', value: 'PRIVATE'),
+                                       string(name: 'ISTIO_LB_SCOPE', value: 'PRIVATE'),
+                                       string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                       string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                       booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
+                                       string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                       string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                   ], wait: true
+                           }
+                       }
+                   }
+               }
+
+               stage('OCI_AUTH InstancePrincipal DNS Test 7') {
+                   steps {
+                       retry(count: JOB_PROMOTION_RETRIES) {
+                           script {
+                               println("AUTH_TYPE=IP : DNS_SCOPE=PRIVATE : Nginx_LB=PRIVATE : Istio_LB=GLOBAL")
+                               build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                   parameters: [
+                                       string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
+                                       string(name: 'DNS_SCOPE', value: 'PRIVATE'),
+                                       string(name: 'NGINX_LB_SCOPE', value: 'PRIVATE'),
+                                       string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                       string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                       booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
+                                       string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                       string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                   ], wait: true
+                           }
+                       }
+                   }
+               }
+
+               stage('OCI_AUTH InstancePrincipal DNS Test 8') {
+                   steps {
+                       retry(count: JOB_PROMOTION_RETRIES) {
+                           script {
+                               println("AUTH_TYPE=IP : DNS_SCOPE=PRIVATE : Nginx_LB=PRIVATE : Istio_LB=PRIVATE")
+                               build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                   parameters: [
+                                       string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
+                                       string(name: 'DNS_SCOPE', value: 'PRIVATE'),
+                                       string(name: 'ISTIO_LB_SCOPE', value: 'PRIVATE'),
+                                       string(name: 'NGINX_LB_SCOPE', value: 'PRIVATE'),
+                                       string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                       string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                       booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
+                                       string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                       string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
+                                       booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                   ], wait: true
+                           }
+                       }
+                   }
                }
             }
         }
@@ -581,6 +763,14 @@ def getLastCleanPeriodicCommit() {
 // Checks all the conditions gating test execution and coallates the result
 def runTests() {
   return params.FORCE || ( ! periodicsUpToDate && ! params.DRY_RUN )
+}
+
+def runUserPrincipalTests() {
+  return params.USER_PRINCIPAL_TESTS && ( ! params.DRY_RUN )
+}
+
+def runInstancePrincipalTests() {
+  return params.INSTANCE_PRINCIPAL_TESTS && ( ! params.DRY_RUN )
 }
 
 def isAlertingEnabled() {
