@@ -24,7 +24,7 @@ import (
 
 const (
 	connectTestCmdFmt   = "timeout %d curl -v http://%s:%d 2>&1"
-	connectTestCmdHttps = "timeout %d curl -k -v https://%s:%d 2>&1"
+	connectTestCmdHTTPS = "timeout %d curl -k -v https://%s:%d 2>&1"
 	connectedFmt        = "Connected to %s (%s) port %d"
 	curlCode52          = "exit code 52"
 	testNamespace       = "netpol-test"
@@ -543,7 +543,7 @@ func doAccessCheck(c accessCheckConfig) error {
 func attemptConnection(fromPod, toPod *corev1.Pod, port int, isHTTPSPort bool, duration time.Duration) bool {
 	var command string
 	if isHTTPSPort {
-		command = fmt.Sprintf(connectTestCmdHttps, duration, toPod.Status.PodIP, port)
+		command = fmt.Sprintf(connectTestCmdHTTPS, duration, toPod.Status.PodIP, port)
 	} else {
 		command = fmt.Sprintf(connectTestCmdFmt, duration, toPod.Status.PodIP, port)
 	}
