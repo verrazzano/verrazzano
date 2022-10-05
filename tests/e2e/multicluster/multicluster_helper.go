@@ -11,7 +11,6 @@ import (
 	errs "errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -633,7 +632,7 @@ func serverFromKubeConfig(kubeCfgPath, name string) string {
 	cmd := exec.Command("kind", "get", "kubeconfig", "--internal", "--Name", name) //nolint:gosec
 	out, err := cmd.Output()
 	if err != nil {
-		out, _ = ioutil.ReadFile(kubeCfgPath)
+		out, _ = os.ReadFile(kubeCfgPath)
 	}
 	yv2.Unmarshal(out, &kubeServerConf)
 	for _, c := range kubeServerConf.Clusters {
