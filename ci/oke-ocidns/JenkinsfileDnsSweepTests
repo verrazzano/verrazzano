@@ -114,19 +114,6 @@ pipeline {
     // need to run those against your branch individually.
 
     stages {
-        stage('Check last clean periodic') {
-            steps {
-                sh """
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${STABLE_COMMIT_OS_LOCATION} --file ${STABLE_COMMIT_LOCATION}
-                """
-
-                script {
-                    // Check if there is already a clean periodic run at this commit already, and set the display name if
-                    // it already is tested, or if doing a special run type (dry run, etc...)
-                    preliminaryChecks()
-                }
-            }
-        }
         stage('Clean workspace and checkout') {
             when {
                 allOf {
