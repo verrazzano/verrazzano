@@ -6,15 +6,37 @@ package verrazzano
 import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+const (
+	// vzStateCheckGeneration
+	vzStateCheckGeneration VerrazzanoInstallState = "checkGeneration"
+
+	// vzStateStartInstall is the state where the components are being installd
+	vzStateStartInstall VerrazzanoInstallState = "vzStartInstall"
+
+	// vzStateInstallComponents is the state where the components are being installd
+	vzStateInstallComponents VerrazzanoInstallState = "vzInstallComponents"
+
+	// vzStateReconcileWatchedComponents is the state when the apps are being restarted
+	vzStateReconcileWatchedComponents VerrazzanoInstallState = "vzReconcileWatchedComponents"
+
+	// vzStateEnd is the terminal state
+	vzStateInstallEnd VerrazzanoInstallState = "vzStateInstallEnd"
+)
+
+// VerrazzanoInstallState identifies the state of a Verrazzano install operation
+type VerrazzanoInstallState string
+
 // installTracker has the Install context for the Verrazzano Install
 // This tracker keeps an in-memory Install state for Verrazzano and the components that
 // are being Install.
 type installTracker struct {
+	vzState VerrazzanoInstallState
 	gen     int64
 	compMap map[string]*componentInstallContext
 }
@@ -34,6 +56,7 @@ func getInstallTracker(cr *vzapi.Verrazzano) *installTracker {
 	// If the entry is missing or the generation is different create a new entry
 	if !ok || vuc.gen != cr.Generation {
 		vuc = &installTracker{
+			vzState: vzStateReconcileWatchedComponents,
 			gen:     cr.Generation,
 			compMap: make(map[string]*componentInstallContext),
 		}
@@ -66,17 +89,80 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 		return newRequeueWithDelay(), err
 	}
 
-	cr := spiCtx.ActualCR()
-	spiCtx.Log().Progress("Reconciling components for Verrazzano installation")
+	tracker := getInstallTracker(spiCtx.ActualCR())
 
-	tracker := getInstallTracker(cr)
+	for tracker.vzState != vzStateInstallEnd {
+		switch tracker.vzState {
+		case vzStateReconcileWatchedComponents:
+			if err := r.reconcileWatchedComponents(spiCtx); err != nil {
+				return ctrl.Result{Requeue: true}, err
+			}
+			tracker.vzState = vzStateCheckGeneration
 
-	res, err := r.installComponents(spiCtx.Log(), cr, tracker, preUpgrade)
-	if err != nil || res.Requeue {
-		return res, err
+		case vzStateCheckGeneration:
+			if spiCtx.ActualCR().Status.State == vzapi.VzStateUpgrading || spiCtx.ActualCR().Status.State == vzapi.VzStatePaused {
+				tracker.vzState = vzStateInstallComponents
+				continue
+			}
+			if checkGenerationUpdated(spiCtx) {
+				if spiCtx.ActualCR().Status.State == vzapi.VzStateReady {
+					tracker.vzState = vzStateStartInstall
+				} else {
+					tracker.vzState = vzStateInstallComponents
+				}
+				continue
+			}
+			tracker.vzState = vzStateInstallEnd
+
+		case vzStateStartInstall:
+			if err := r.updateComponentStatus(spiCtx, "Install started", vzapi.CondInstallStarted); err != nil {
+				return ctrl.Result{Requeue: true}, err
+			}
+			tracker.vzState = vzStateInstallComponents
+
+		case vzStateInstallComponents:
+			res, err := r.installComponents(spiCtx, tracker, preUpgrade)
+			if err != nil || res.Requeue {
+				return res, err
+			}
+			tracker.vzState = vzStateInstallEnd
+		}
 	}
 
-	deleteInstallTracker(cr)
+	deleteInstallTracker(spiCtx.ActualCR())
 
 	return ctrl.Result{}, nil
+}
+
+func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
+	for _, comp := range registry.GetComponents() {
+		componentStatus, ok := spiCtx.ActualCR().Status.Components[comp.Name()]
+		if !ok {
+			spiCtx.Log().Debugf("Did not find status details in map for component %s", comp.Name())
+			// if we can't find the component status, enter install loop to try to fix it
+			return true
+		}
+		if checkConfigUpdated(spiCtx, componentStatus, comp.Name()) &&
+			comp.IsEnabled(spiCtx.EffectiveCR()) &&
+			comp.MonitorOverrides(spiCtx) {
+
+			spiCtx.Log().Oncef("Verrazzano CR generation change detected, generation: %v, component: %s, component reconciling generation: %v, component lastreconciling generation %v",
+				spiCtx.ActualCR().Generation, comp.Name(), componentStatus.ReconcilingGeneration, componentStatus.LastReconciledGeneration)
+			return true
+		}
+	}
+	return false
+}
+
+func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) error {
+	for _, comp := range registry.GetComponents() {
+		if r.IsWatchedComponent(comp.GetJSONName()) {
+			if err := comp.Reconcile(spiCtx); err != nil {
+				spiCtx.Log().ErrorfThrottled("Error reconciling component %: %v", comp.Name(), err)
+				return err
+			}
+			r.ClearWatch(comp.GetJSONName())
+		}
+	}
+	return nil
 }

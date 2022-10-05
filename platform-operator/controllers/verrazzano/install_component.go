@@ -6,7 +6,6 @@ package verrazzano
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -47,8 +46,6 @@ const (
 
 	// compStateInstallEnd is the terminal state
 	compStateInstallEnd componentInstallState = "compStateInstallEnd"
-
-	globalInstallStart componentInstallState = "globalInstallStart"
 )
 
 // componentInstallContext has the install context for a Verrazzano component install
@@ -57,12 +54,7 @@ type componentInstallContext struct {
 }
 
 // installComponents will install the components as required
-func (r *Reconciler) installComponents(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, tracker *installTracker, preUpgrade bool) (ctrl.Result, error) {
-	spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
-	if err != nil {
-		return newRequeueWithDelay(), err
-	}
-
+func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *installTracker, preUpgrade bool) (ctrl.Result, error) {
 	spiCtx.Log().Progress("Reconciling components for Verrazzano installation")
 
 	var requeue bool
@@ -161,21 +153,9 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 				if !comp.MonitorOverrides(compContext) && comp.IsEnabled(spiCtx.EffectiveCR()) {
 					compLog.Oncef("Skipping update for component %s, monitorChanges set to false", comp.Name())
 				} else {
-					if spiCtx.ActualCR().Status.State == vzapi.VzStateReady {
-						installContext.state = globalInstallStart
-						return newRequeueWithDelay(), nil
-					}
 					installContext.state = compStateInstallStarted
 					continue
 				}
-			}
-			if r.IsWatchedComponent(comp.GetJSONName()) {
-				if err := comp.Reconcile(compContext); err != nil {
-					return newRequeueWithDelay(), err
-				}
-				r.ClearWatch(comp.GetJSONName())
-				installContext.state = compStateInstallComplete
-				continue
 			}
 			installContext.state = compStateInstallEnd
 
@@ -229,17 +209,6 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 				return ctrl.Result{Requeue: true}, err
 			}
 			installContext.state = compStateInstallEnd
-
-		case globalInstallStart:
-			err := r.setInstallingState(spiCtx.Log(), spiCtx.ActualCR())
-			compLog.Oncef("Reset Verrazzano state to %v for generation %v", spiCtx.ActualCR().Status.State, spiCtx.ActualCR().Generation)
-			if err != nil {
-				spiCtx.Log().Errorf("Failed to reset state: %v", err)
-				return newRequeueWithDelay(), err
-			}
-			deleteInstallTracker(spiCtx.ActualCR())
-			return ctrl.Result{Requeue: true}, nil
-
 		}
 
 	}
@@ -299,13 +268,3 @@ func (vuc *installTracker) getComponentInstallContext(compName string) *componen
 	}
 	return context
 }
-
-//enabled := comp.IsEnabled(compContext.EffectiveCR())
-//operatorInstall := comp.IsOperatorInstallSupported()
-//installBeforeUpgrade := comp.ShouldInstallBeforeUpgrade()
-//monitorOverrides := comp.MonitorOverrides(compContext)
-//watched := r.IsWatchedComponent(comp.GetJSONName())
-//versionOK := isVersionOk(compLog, comp.GetMinVerrazzanoVersion(), spiCtx.ActualCR().Status.Version)
-//configUpdated := checkConfigUpdated(spiCtx, componentStatus,  compName)
-//compReady := componentStatus.State == vzapi.CompStateReady
-//compDisabled := componentStatus.State == vzapi.CompStateDisabled
