@@ -692,7 +692,7 @@ func (f fakeComponent) GetDependencies() []string {
 }
 
 func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
-	return true
+	return f.ready
 }
 
 func (f fakeComponent) IsEnabled(effectiveCR *v1alpha1.Verrazzano) bool {
