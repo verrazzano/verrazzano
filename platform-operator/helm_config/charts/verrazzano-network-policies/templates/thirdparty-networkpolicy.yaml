@@ -276,6 +276,8 @@ spec:
             app.kubernetes.io/instance: ingress-controller
       ports:
         - protocol: TCP
+          port: 443
+        - protocol: TCP
           port: 444
 ---
 # Network policy for Rancher webhook
