@@ -11,7 +11,7 @@
 // -> Cleanup resources
 
 def testEnvironments=["OCNE"]
-def agentLabel=env.JOB_NAME.contains('-ocne') ? "" : env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel="VM.Standard2.8_1_4"
 // pulling "ap-*" from the test regions given discovery of image pull issues
 def availableRegions=["us-ashburn-1"]
 def availableDomains=["hXgQ:US-ASHBURN-AD-1", "hXgQ:US-ASHBURN-AD-2", "hXgQ:US-ASHBURN-AD-3"]
@@ -31,8 +31,8 @@ pipeline {
 
     agent {
         docker {
-            image "${RUNNER_DOCKER_IMAGE}"
-            args "${RUNNER_DOCKER_ARGS} --cap-add=NET_ADMIN"
+            image "${RUNNER_DOCKER_IMAGE_1_4}"
+            args "${RUNNER_DOCKER_ARGS_1_4} --cap-add=NET_ADMIN"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             label "$agentLabel"
         }
