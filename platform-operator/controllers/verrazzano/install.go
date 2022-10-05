@@ -13,30 +13,30 @@ import (
 )
 
 const (
-	// vzStateCheckGeneration
-	vzStateCheckGeneration VerrazzanoInstallState = "checkGeneration"
+	// reconcileVZState
+	reconcileVZState reconcileState = "vzState"
 
-	// vzStateStartInstall is the state where the components are being installd
-	vzStateStartInstall VerrazzanoInstallState = "vzStartInstall"
+	// reconcileStartInstall is the state where the components are being installd
+	reconcileStartInstall reconcileState = "startInstall"
 
-	// vzStateInstallComponents is the state where the components are being installd
-	vzStateInstallComponents VerrazzanoInstallState = "vzInstallComponents"
+	// reconcileInstallComponents is the state where the components are being installd
+	reconcileInstallComponents reconcileState = "installComponents"
 
-	// vzStateReconcileWatchedComponents is the state when the apps are being restarted
-	vzStateReconcileWatchedComponents VerrazzanoInstallState = "vzReconcileWatchedComponents"
+	// reconcileWatchedComponents is the state when the apps are being restarted
+	reconcileWatchedComponents reconcileState = "watchedComponents"
 
-	// vzStateEnd is the terminal state
-	vzStateInstallEnd VerrazzanoInstallState = "vzStateInstallEnd"
+	// reconcileEnd is the terminal state
+	reconcileEnd reconcileState = "reconcileEnd"
 )
 
-// VerrazzanoInstallState identifies the state of a Verrazzano install operation
-type VerrazzanoInstallState string
+// reconcileState identifies the state of a Verrazzano install operation
+type reconcileState string
 
 // installTracker has the Install context for the Verrazzano Install
 // This tracker keeps an in-memory Install state for Verrazzano and the components that
 // are being Install.
 type installTracker struct {
-	vzState VerrazzanoInstallState
+	vzState reconcileState
 	gen     int64
 	compMap map[string]*componentInstallContext
 }
@@ -56,7 +56,7 @@ func getInstallTracker(cr *vzapi.Verrazzano) *installTracker {
 	// If the entry is missing or the generation is different create a new entry
 	if !ok || vuc.gen != cr.Generation {
 		vuc = &installTracker{
-			vzState: vzStateReconcileWatchedComponents,
+			vzState: reconcileWatchedComponents,
 			gen:     cr.Generation,
 			compMap: make(map[string]*componentInstallContext),
 		}
@@ -82,7 +82,6 @@ func deleteInstallTracker(cr *vzapi.Verrazzano) {
 //    where update status fails, in which case we exit the function and requeue
 //    immediately.
 func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preUpgrade bool) (ctrl.Result, error) {
-
 	spiCtx, err := spi.NewContext(vzctx.Log, r.Client, vzctx.ActualCR, nil, r.DryRun)
 	if err != nil {
 		spiCtx.Log().Errorf("Failed to create component context: %v", err)
@@ -91,41 +90,39 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 
 	tracker := getInstallTracker(spiCtx.ActualCR())
 
-	for tracker.vzState != vzStateInstallEnd {
+	for tracker.vzState != reconcileEnd {
 		switch tracker.vzState {
-		case vzStateReconcileWatchedComponents:
+		case reconcileWatchedComponents:
 			if err := r.reconcileWatchedComponents(spiCtx); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
-			tracker.vzState = vzStateCheckGeneration
+			tracker.vzState = reconcileVZState
 
-		case vzStateCheckGeneration:
-			if spiCtx.ActualCR().Status.State == vzapi.VzStateUpgrading || spiCtx.ActualCR().Status.State == vzapi.VzStatePaused {
-				tracker.vzState = vzStateInstallComponents
-				continue
-			}
-			if checkGenerationUpdated(spiCtx) {
-				if spiCtx.ActualCR().Status.State == vzapi.VzStateReady {
-					tracker.vzState = vzStateStartInstall
+		case reconcileVZState:
+			// reconcileComponents is called from Ready, Reconciling, and Upgrading states
+			// if the VZ state is Ready, start an install if the generation is updated and end reconciling if not
+			// if the VZ state is not Ready, proceed with installing components
+			if spiCtx.ActualCR().Status.State == vzapi.VzStateReady {
+				if checkGenerationUpdated(spiCtx) {
+					tracker.vzState = reconcileStartInstall
 				} else {
-					tracker.vzState = vzStateInstallComponents
+					tracker.vzState = reconcileEnd
 				}
-				continue
 			}
-			tracker.vzState = vzStateInstallEnd
+			tracker.vzState = reconcileInstallComponents
 
-		case vzStateStartInstall:
+		case reconcileStartInstall:
 			if err := r.updateComponentStatus(spiCtx, "Install started", vzapi.CondInstallStarted); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
-			tracker.vzState = vzStateInstallComponents
+			tracker.vzState = reconcileInstallComponents
 
-		case vzStateInstallComponents:
+		case reconcileInstallComponents:
 			res, err := r.installComponents(spiCtx, tracker, preUpgrade)
 			if err != nil || res.Requeue {
 				return res, err
 			}
-			tracker.vzState = vzStateInstallEnd
+			tracker.vzState = reconcileEnd
 		}
 	}
 

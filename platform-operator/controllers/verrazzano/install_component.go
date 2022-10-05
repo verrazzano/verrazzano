@@ -132,14 +132,6 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 				installContext.state = compStateInstallEnd
 				continue
 			}
-			if spiCtx.ActualCR().Status.State == vzapi.VzStateReady {
-				// This is the case where the component was previously disabled but is now enabled in the effective CR, so
-				// we need to prevent the component from being installed when the VPO is upgraded and wait for the user
-				// to initiate the upgrade via the VZ CR
-				compLog.Oncef("Component %s was previously disabled and upgrade is not in progress, skipping install", compName)
-				installContext.state = compStateInstallEnd
-				continue
-			}
 			installContext.state = compStateInstallStarted
 
 		case compStateInstallReady:
@@ -219,12 +211,6 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 // checkConfigUpdated checks if the component config in the VZ CR has been updated and the component needs to
 // reset the state back to pre-install to re-enter install flow
 func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails, name string) bool {
-	vzState := ctx.ActualCR().Status.State
-	// Do not interrupt upgrade flow
-	if vzState == vzapi.VzStateUpgrading || vzState == vzapi.VzStatePaused {
-		return false
-	}
-
 	// The component is being reconciled/installed with ReconcilingGeneration of the CR
 	// if CR.Generation > ReconcilingGeneration then re-enter install flow
 	if componentStatus.ReconcilingGeneration > 0 {
