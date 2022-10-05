@@ -277,6 +277,8 @@ spec:
       ports:
         - protocol: TCP
           port: 443
+        - protocol: TCP
+          port: 444
 ---
 # Network policy for Rancher webhook
 # Ingress: allow access from Kubernetes API server for webhook port 9443
