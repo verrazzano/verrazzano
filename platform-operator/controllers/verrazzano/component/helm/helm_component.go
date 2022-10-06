@@ -10,6 +10,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"os"
 	"sort"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -336,7 +337,7 @@ func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent, isInstal
 
 	filteredHelmSecrets := []v1.Secret{}
 	for _, eachSecret := range secretList.Items {
-		if eachSecret.Type == "helm.sh/release.v1" { // Filter only helm release type secrets
+		if eachSecret.Type == "helm.sh/release.v1" && strings.Contains(eachSecret.Name, "sh.helm.release.v1."+h.ReleaseName+".") { // Filter only helm release type secrets and matching releaseName
 			filteredHelmSecrets = append(filteredHelmSecrets, eachSecret)
 		}
 	}
