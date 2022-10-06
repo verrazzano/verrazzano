@@ -7,14 +7,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"go.uber.org/zap"
-
-	"io/ioutil"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
@@ -116,7 +115,7 @@ func (c *KeycloakRESTClient) GetRealm(realm string) (map[string]interface{}, err
 	if response.StatusCode != 200 {
 		return nil, fmt.Errorf("invalid response status: %d", response.StatusCode)
 	}
-	responseBody, err := ioutil.ReadAll(response.Body)
+	responseBody, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -286,7 +285,7 @@ func (c *KeycloakRESTClient) SetPassword(userRealm string, userID string, passwo
 	return nil
 }
 
-//VerifyKeycloakAccess verifies access to Keycloak
+// VerifyKeycloakAccess verifies access to Keycloak
 func VerifyKeycloakAccess(log *zap.SugaredLogger) error {
 	waitTimeout := 5 * time.Minute
 	pollingInterval := 5 * time.Second

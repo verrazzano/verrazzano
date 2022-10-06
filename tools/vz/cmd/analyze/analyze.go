@@ -11,7 +11,6 @@ import (
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -85,7 +84,7 @@ func runCmdAnalyze(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		}
 
 		// Create a temporary directory to place the generated files, which will also be the input for analyze command
-		directory, err = ioutil.TempDir("", constants.BugReportDir)
+		directory, err = os.MkdirTemp("", constants.BugReportDir)
 		if err != nil {
 			return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
 		}

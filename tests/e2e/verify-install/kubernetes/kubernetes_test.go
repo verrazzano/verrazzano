@@ -18,7 +18,7 @@ import (
 
 const waitTimeout = 15 * time.Minute
 const pollingInterval = 30 * time.Second
-const timeout5Min = 5 * time.Minute
+const shortTimeout = 5 * time.Minute
 
 var t = framework.NewTestFramework("kubernetes")
 
@@ -55,7 +55,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			Eventually(func() (bool, error) {
 				nodes, err := pkg.ListNodes()
 				return nodes != nil && len(nodes.Items) >= 1, err
-			}, timeout5Min, pollingInterval).Should(BeTrue())
+			}, shortTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		t.DescribeTable("the expected namespaces exist",
@@ -68,7 +68,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 						return false, err
 					}
 					return nsListContains(namespaces.Items, namespace) == expected, nil
-				}, timeout5Min, pollingInterval).Should(BeTrue())
+				}, shortTimeout, pollingInterval).Should(BeTrue())
 			},
 			t.Entry("cattle-global-data", "cattle-global-data", !isManagedClusterProfile),
 			t.Entry("cattle-global-nt", "cattle-global-nt", !isManagedClusterProfile),

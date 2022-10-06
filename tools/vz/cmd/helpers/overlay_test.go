@@ -18,8 +18,9 @@ import (
 
 // TestMergeYAMLFilesSingle
 // GIVEN a single YAML file
-//  WHEN I call MergeYAMLFiles
-//  THEN a vz resource is returned representing the single YAML file
+//
+//	WHEN I call MergeYAMLFiles
+//	THEN a vz resource is returned representing the single YAML file
 func TestMergeYAMLFilesSingle(t *testing.T) {
 	obj, err := MergeYAMLFiles([]string{"../../test/testdata/dev-profile.yaml"}, os.Stdin)
 	assert.Nil(t, err)
@@ -32,8 +33,9 @@ func TestMergeYAMLFilesSingle(t *testing.T) {
 
 // TestMergeYAMLFilesComponents
 // GIVEN a base yaml file and components yaml file
-//  WHEN I call MergeYAMLFiles
-//  THEN a vz resource is returned representing the merged YAML files
+//
+//	WHEN I call MergeYAMLFiles
+//	THEN a vz resource is returned representing the merged YAML files
 func TestMergeYAMLFilesComponents(t *testing.T) {
 	obj, err := MergeYAMLFiles([]string{
 		"../../test/testdata/dev-profile.yaml",
@@ -53,8 +55,9 @@ func TestMergeYAMLFilesComponents(t *testing.T) {
 
 // TestMergeYAMLFilesStdin
 // GIVEN a yaml file from stdin
-//  WHEN I call MergeYAMLFiles
-//  THEN a vz resource is returned representing the yaml specified via stdin
+//
+//	WHEN I call MergeYAMLFiles
+//	THEN a vz resource is returned representing the yaml specified via stdin
 func TestMergeYAMLFilesStdin(t *testing.T) {
 	var filenames []string
 	stdinReader := &bytes.Buffer{}
@@ -78,8 +81,9 @@ func TestMergeYAMLFilesStdin(t *testing.T) {
 
 // TestMergeYAMLFilesStdinOverride
 // GIVEN a yaml file from a file and a yaml file from stdin
-//  WHEN I call MergeYAMLFiles
-//  THEN a vz resource is returned representing the merged YAML files
+//
+//	WHEN I call MergeYAMLFiles
+//	THEN a vz resource is returned representing the merged YAML files
 func TestMergeYAMLFilesStdinOverride(t *testing.T) {
 	var filenames []string
 	filenames = append(filenames, "../../test/testdata/dev-profile.yaml", "../../test/testdata/components.yaml")
@@ -103,8 +107,9 @@ func TestMergeYAMLFilesStdinOverride(t *testing.T) {
 
 // TestMergeYAMLFilesEmpty
 // GIVEN a base yaml file and a empty yaml file
-//  WHEN I call MergeYAMLFiles
-//  THEN a vz resource is returned representing the base yaml file
+//
+//	WHEN I call MergeYAMLFiles
+//	THEN a vz resource is returned representing the base yaml file
 func TestMergeYAMLFilesEmpty(t *testing.T) {
 	obj, err := MergeYAMLFiles([]string{
 		"../../test/testdata/dev-profile.yaml",
@@ -120,8 +125,9 @@ func TestMergeYAMLFilesEmpty(t *testing.T) {
 
 // TestMergeYAMLFilesNotFound
 // GIVEN a YAML file that does not exist
-//  WHEN I call MergeYAMLFiles
-//  THEN the call returns an error
+//
+//	WHEN I call MergeYAMLFiles
+//	THEN the call returns an error
 func TestMergeYAMLFilesNotFound(t *testing.T) {
 	_, err := MergeYAMLFiles([]string{"../../test/testdate/file-does-not-exist.yaml"}, os.Stdin)
 	assert.Error(t, err)

@@ -125,7 +125,7 @@ func validateKubeConfig() bool {
 
 // Get the BOM from the platform operator in the cluster and build the BOM structure from it
 func getBOM() {
-	var platformOperatorPodName string = ""
+	var platformOperatorPodName = ""
 	pods, err := pkg.ListPods("verrazzano-install", metav1.ListOptions{})
 	if err != nil {
 		log.Fatal(err)

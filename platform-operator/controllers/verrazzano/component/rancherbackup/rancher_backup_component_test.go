@@ -174,8 +174,9 @@ func TestGetName(t *testing.T) {
 
 // TestPostUninstall tests the postUninstall function
 // GIVEN a call to postUninstall
-//  WHEN the cattle-resources-namespace  namespace exists with a finalizer
-//  THEN true is returned and cattle-resources-namespace namespace is deleted
+//
+//	WHEN the cattle-resources-namespace  namespace exists with a finalizer
+//	THEN true is returned and cattle-resources-namespace namespace is deleted
 func TestPostUninstall(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&corev1.Namespace{
