@@ -20,7 +20,7 @@ jobs:
         run: |
           echo 'PR_URL<<EOF' >> $GITHUB_ENV
           gh pr create \
-            -B "main" \
+            -B "master" \
             -t "CI: Update Rancher image in BOM" \
             -b "*Automated Pull Request*  Updating Rancher image in BOM for ${{ github.ref }}" \
             -r "ddsharpe,robertpatrick"
