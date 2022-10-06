@@ -315,9 +315,7 @@ func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 	releaseStatus, err := helm.GetReleaseStatus(h.ReleaseName, h.ChartNamespace)
 	if err != nil {
 		context.Log().Infof("Error getting release status for %s", h.ReleaseName)
-	}
-	// When helm release is not deployed or uninstalled, cleanup the secret
-	if releaseStatus != release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() {
+	} else if releaseStatus != release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() { // When helm release is not deployed or uninstalled, cleanup the secret
 		cleanupLatestSecret(context, h, true)
 	}
 
@@ -394,11 +392,10 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreUninstall(context spi.ComponentContext) error {
-	isDeployed, err := helm.IsReleaseDeployed(h.ReleaseName, h.ChartNamespace)
+	releaseStatus, err := helm.GetReleaseStatus(h.ReleaseName, h.ChartNamespace)
 	if err != nil {
 		context.Log().Infof("Error getting release status for %s", h.ReleaseName)
-	}
-	if !isDeployed {
+	} else if releaseStatus != release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() { // When helm release is not deployed or uninstalled, cleanup the secret
 		cleanupLatestSecret(context, h, false)
 	}
 	return nil
@@ -489,11 +486,10 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreUpgrade(context spi.ComponentContext) error {
-	isDeployed, err := helm.IsReleaseDeployed(h.ReleaseName, h.ChartNamespace)
+	releaseStatus, err := helm.GetReleaseStatus(h.ReleaseName, h.ChartNamespace)
 	if err != nil {
 		context.Log().Infof("Error getting release status for %s", h.ReleaseName)
-	}
-	if !isDeployed {
+	} else if releaseStatus != release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() { // When helm release is not deployed or uninstalled, cleanup the secret
 		cleanupLatestSecret(context, h, false)
 	}
 	return nil
