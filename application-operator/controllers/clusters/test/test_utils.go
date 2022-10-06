@@ -7,7 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
@@ -43,7 +43,7 @@ func NewRequest(namespace string, name string) ctrl.Request {
 // ReadYaml2Json reads the testdata YAML file at the given path, converts it to JSON and returns
 // a byte slice containing the JSON
 func ReadYaml2Json(filename string) ([]byte, error) {
-	yamlBytes, err := ioutil.ReadFile(filename)
+	yamlBytes, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read test data file %s: %s", filename, err.Error())
 	}

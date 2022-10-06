@@ -3,8 +3,8 @@
 package spi
 
 import (
-	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/equality"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -168,7 +168,7 @@ func TestContextProfilesMerge(t *testing.T) {
 }
 
 func loadExpectedMergeResult(expectedYamlFile string) (*v1alpha1.Verrazzano, error) {
-	bYaml, err := ioutil.ReadFile(filepath.Join(expectedYamlFile))
+	bYaml, err := os.ReadFile(filepath.Join(expectedYamlFile))
 	if err != nil {
 		return nil, err
 	}

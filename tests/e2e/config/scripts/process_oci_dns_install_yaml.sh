@@ -7,9 +7,19 @@ INSTALL_CONFIG_TO_EDIT=$1
 CERT_MGR=${2:-"acme"}
 ACME_ENV=${3:-"staging"}
 DNS_SCOPE=${4:-"GLOBAL"}
+NGINX_LB_SCOPE=${5:-"GLOBAL"}
+ISTIO_LB_SCOPE=${6:-"GLOBAL"}
 if [ "${DNS_SCOPE}" != "PRIVATE" ] && [ "${DNS_SCOPE}" != "GLOBAL" ]; then
   # setting scope to global even for invalid values. This should not happen in jenkins flow
   DNS_SCOPE="GLOBAL"
+fi
+if [ "${NGINX_LB_SCOPE}" != "PRIVATE" ] && [ "${NGINX_LB_SCOPE}" != "GLOBAL" ]; then
+  # setting scope to global even for invalid values. This should not happen in jenkins flow
+  NGINX_LB_SCOPE="GLOBAL"
+fi
+if [ "${ISTIO_LB_SCOPE}" != "PRIVATE" ] && [ "${ISTIO_LB_SCOPE}" != "GLOBAL" ]; then
+  # setting scope to global even for invalid values. This should not happen in jenkins flow
+  ISTIO_LB_SCOPE="GLOBAL"
 fi
 echo "Editing install config file for OCI DNS ${INSTALL_CONFIG_TO_EDIT}"
 yq -i eval ".spec.environmentName = \"${VZ_ENVIRONMENT_NAME}\"" ${INSTALL_CONFIG_TO_EDIT}
@@ -29,4 +39,16 @@ if [ $INSTALL_PROFILE == "dev" ] && [ $CRD_API_VERSION == "v1alpha1" ]; then
 elif [ $INSTALL_PROFILE == "dev" ] && [ $CRD_API_VERSION == "v1beta1" ]; then
   yq -i eval ".spec.components.keycloak.overrides.[0].values.persistence.enabled = false" ${INSTALL_CONFIG_TO_EDIT}
 fi
+
+if [ ${NGINX_LB_SCOPE} == "PRIVATE" ] && [ $CRD_API_VERSION == "v1beta1" ]; then
+  yq -i eval ".spec.components.ingressNGINX.overrides[0].values.controller.service.annotations.\"service.beta.kubernetes.io/oci-load-balancer-internal\" = \"true\"" ${INSTALL_CONFIG_TO_EDIT}
+fi
+if [ ${ISTIO_LB_SCOPE} == "PRIVATE" ] && [ $CRD_API_VERSION == "v1beta1" ]; then
+  yq -i eval ".spec.components.istio.overrides[0].values.apiVersion = \"install.istio.io/v1alpha1\"" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.istio.overrides[0].values.kind = \"IstioOperator\"" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.istio.overrides[0].values.spec.components.ingressGateways[0].enabled = true" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.istio.overrides[0].values.spec.components.ingressGateways[0].name = \"istio-ingressgateway\"" ${INSTALL_CONFIG_TO_EDIT}
+  yq -i eval ".spec.components.istio.overrides[0].values.spec.components.ingressGateways[0].k8s.serviceAnnotations.\"service.beta.kubernetes.io/oci-load-balancer-internal\" = \"true\"" ${INSTALL_CONFIG_TO_EDIT}
+fi
+
 cat ${INSTALL_CONFIG_TO_EDIT}
