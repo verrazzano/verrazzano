@@ -252,8 +252,7 @@ func TestUpgradeCmdLesserStatusVersion(t *testing.T) {
 }
 
 // TestUpgradeCmdEqualStatusVersion
-// GIVEN a CLI upgrade command specifying a version equal to the status version
-//   and the spec version is empty
+// GIVEN a CLI upgrade command specifying a version equal to the status version and the spec version is empty
 //
 //	WHEN I call cmd.Execute for upgrade
 //	THEN the CLI upgrade command is successful with an informational message
