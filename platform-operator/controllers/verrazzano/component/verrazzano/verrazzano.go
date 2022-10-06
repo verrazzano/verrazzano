@@ -9,8 +9,8 @@ import (
 	"fmt"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"io/ioutil"
 	"k8s.io/apimachinery/pkg/runtime"
+	"os"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -45,11 +45,11 @@ const (
 
 var (
 	// For Unit test purposes
-	writeFileFunc = ioutil.WriteFile
+	writeFileFunc = os.WriteFile
 )
 
 func resetWriteFileFunc() {
-	writeFileFunc = ioutil.WriteFile
+	writeFileFunc = os.WriteFile
 }
 
 // resolveVerrazzanoNamespace will return the default Verrazzano system namespace unless the namespace is specified

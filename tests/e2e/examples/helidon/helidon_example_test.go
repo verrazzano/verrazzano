@@ -5,7 +5,7 @@ package helidon
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -249,7 +249,7 @@ func appEndpointAccessible(url string, hostname string) bool {
 	if err != nil {
 		t.Logs.Errorf("Unexpected error while making http request=%v", err)
 		if resp != nil && resp.Body != nil {
-			bodyRaw, err := ioutil.ReadAll(resp.Body)
+			bodyRaw, err := io.ReadAll(resp.Body)
 			if err != nil {
 				t.Logs.Errorf("Unexpected error while marshallling error response=%v", err)
 				return false
@@ -261,7 +261,7 @@ func appEndpointAccessible(url string, hostname string) bool {
 		return false
 	}
 
-	bodyRaw, err := ioutil.ReadAll(resp.Body)
+	bodyRaw, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
 		t.Logs.Errorf("Unexpected error marshallling response=%v", err)

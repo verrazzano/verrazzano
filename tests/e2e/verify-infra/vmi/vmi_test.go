@@ -7,7 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -497,7 +497,7 @@ func assertDashboard(url string) {
 		}
 		// assert that there is a single item in response
 		defer resp.Body.Close()
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			t.Logs.Errorf("Unable to read body from response: %v", err)
 			return false
@@ -540,7 +540,7 @@ func assertAdminRole() bool {
 	}
 	// assert that there is a single item in response
 	defer resp.Body.Close()
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Logs.Errorf("Unable to read body from response: %v", err)
 		return false

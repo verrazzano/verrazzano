@@ -5,7 +5,7 @@ package helidonsvc
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -311,7 +311,7 @@ func appEndpointAccess(url string, hostname string, token string, requestShouldS
 		t.Logs.Errorf("Unexpected error=%v", err)
 		return false
 	}
-	bodyRaw, err := ioutil.ReadAll(resp.Body)
+	bodyRaw, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
 		t.Logs.Errorf("Unexpected error=%v", err)

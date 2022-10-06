@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"regexp"
 	"strconv"
@@ -69,7 +69,7 @@ func GetJSONDataFromFile(log *zap.SugaredLogger, path string) (jsonData interfac
 	}
 	defer file.Close()
 
-	fileBytes, err := ioutil.ReadAll(file)
+	fileBytes, err := io.ReadAll(file)
 	if err != nil {
 		log.Debugf("Failed reading Json file %s", path)
 		return nil, err

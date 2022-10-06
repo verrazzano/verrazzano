@@ -6,7 +6,6 @@ package mysql
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -159,7 +158,7 @@ func createMySQLInitFile(ctx spi.ComponentContext) (string, error) {
 
 // removeMySQLInitFile removes any files from the OS temp dir that match the pattern of the MySQL init file
 func removeMySQLInitFile(ctx spi.ComponentContext) {
-	files, err := ioutil.ReadDir(os.TempDir())
+	files, err := os.ReadDir(os.TempDir())
 	if err != nil {
 		ctx.Log().Errorf("Failed reading temp directory: %v", err)
 	}

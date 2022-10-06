@@ -25,6 +25,7 @@ const (
 	vmiName         = "testing"
 	timeout         = 15 * time.Minute
 	pollInterval    = 15 * time.Second
+	requestMemory   = "1Gi"
 )
 
 var (
@@ -115,7 +116,7 @@ var _ = t.Describe("OpenSearch Cluster Topology", func() {
 						vmov1.IngestRole,
 					},
 					Resources: vmov1.Resources{
-						RequestMemory: "48Mi",
+						RequestMemory: requestMemory,
 					},
 					Storage: &vmov1.Storage{
 						Size: "5Gi",
@@ -128,7 +129,7 @@ var _ = t.Describe("OpenSearch Cluster Topology", func() {
 						vmov1.MasterRole,
 					},
 					Resources: vmov1.Resources{
-						RequestMemory: "48Mi",
+						RequestMemory: requestMemory,
 					},
 					Storage: &vmov1.Storage{
 						Size: "5Gi",
@@ -250,7 +251,7 @@ func createSingleNodeVMI() (*vmov1.VerrazzanoMonitoringInstance, error) {
 						Size: "5Gi",
 					},
 					Resources: vmov1.Resources{
-						RequestMemory: "48Mi",
+						RequestMemory: requestMemory,
 					},
 				},
 			},

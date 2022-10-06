@@ -8,12 +8,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // HelmManagedResource provides an object type and name for a resource managed within a helm chart
 type HelmManagedResource struct {
-	Obj            controllerutil.Object
+	Obj            clipkg.Object
 	NamespacedName types.NamespacedName
 }
 

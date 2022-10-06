@@ -7,8 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -55,7 +55,7 @@ var _ = t.BeforeSuite(func() {
 		pkg.Log(pkg.Error, fmt.Sprintf("failed to find test data file: %v", err))
 		Fail(err.Error())
 	}
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("failed to read test data file: %v", err))
 		Fail(err.Error())

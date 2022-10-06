@@ -5,7 +5,7 @@ package helidonworkload
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -724,11 +724,11 @@ func newRequest(namespace string, name string) ctrl.Request {
 // template - The filename of a template
 // params - a vararg of param maps
 func readTemplate(template string, params ...map[string]string) (string, error) {
-	bytes, err := ioutil.ReadFile("../../" + template)
+	bytes, err := os.ReadFile("../../" + template)
 	if err != nil {
-		bytes, err = ioutil.ReadFile("../" + template)
+		bytes, err = os.ReadFile("../" + template)
 		if err != nil {
-			bytes, err = ioutil.ReadFile(template)
+			bytes, err = os.ReadFile(template)
 			if err != nil {
 				return "", err
 			}

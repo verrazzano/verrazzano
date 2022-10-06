@@ -6,7 +6,7 @@ package containerizedworkload
 import (
 	"context"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -186,11 +186,11 @@ func updateUnstructuredFromYAMLTemplate(uns *unstructured.Unstructured, template
 // template - The filename of a template
 // params - a vararg of param maps
 func readTemplate(template string, params ...map[string]string) (string, error) {
-	bytes, err := ioutil.ReadFile("../../" + template)
+	bytes, err := os.ReadFile("../../" + template)
 	if err != nil {
-		bytes, err = ioutil.ReadFile("../" + template)
+		bytes, err = os.ReadFile("../" + template)
 		if err != nil {
-			bytes, err = ioutil.ReadFile(template)
+			bytes, err = os.ReadFile(template)
 			if err != nil {
 				return "", err
 			}
