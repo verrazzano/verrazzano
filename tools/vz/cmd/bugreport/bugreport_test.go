@@ -178,7 +178,7 @@ func TestBugReportSuccess(t *testing.T) {
 	}
 
 	assert.NoError(t, err)
-	assert.Contains(t, buf.String(), "Capturing  resources from the cluster", "Capturing Verrazzano resource",
+	assert.Contains(t, buf.String(), "Capturing resources from the cluster", "Capturing Verrazzano resource",
 		"Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace",
 		"Successfully created the bug report",
 		"WARNING: Please examine the contents of the bug report for sensitive data", "Namespace dummy not found in the cluster")
@@ -198,7 +198,7 @@ func TestBugReportSuccess(t *testing.T) {
 	}
 
 	assert.NoError(t, err)
-	assert.Contains(t, buf.String(), "Capturing  resources from the cluster",
+	assert.Contains(t, buf.String(), "Capturing resources from the cluster",
 		"Successfully created the bug report",
 		"WARNING: Please examine the contents of the bug report for sensitive data")
 	assert.NotContains(t, buf.String(), "Capturing Verrazzano resource",
