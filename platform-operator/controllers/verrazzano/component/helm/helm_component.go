@@ -352,13 +352,17 @@ func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent, isInstal
 		context.Log().Infof("Deleting secret %s", filteredHelmSecrets[0])
 		if err := context.Client().Delete(ctx.TODO(), &filteredHelmSecrets[0]); err != nil {
 			context.Log().Errorf("Error deleting secret %s", filteredHelmSecrets[0])
+		} else {
+			context.Log().Infof("Deleted secret completed")
 		}
-		context.Log().Infof("Deleted secret completed")
 	} else if len(filteredHelmSecrets) > 1 { // When there are more than one secret, delete the latest one to keep the helm installation going
 		latestSecret := filteredHelmSecrets[0]
 		context.Log().Infof("Deleting secret %s", latestSecret)
-		context.Client().Delete(ctx.TODO(), &latestSecret)
-		context.Log().Infof("Deleted secret completed")
+		if err := context.Client().Delete(ctx.TODO(), &latestSecret); err != nil {
+			context.Log().Errorf("Error deleting secret %s", filteredHelmSecrets[0])
+		} else {
+			context.Log().Infof("Deleted secret completed")
+		}
 	}
 }
 
