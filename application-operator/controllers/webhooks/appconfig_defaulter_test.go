@@ -6,8 +6,8 @@ package webhooks
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -204,7 +204,7 @@ func testAppConfigWebhookHandleDelete(t *testing.T, certFound, secretFound, dryR
 
 func readYaml2Json(t *testing.T, path string) []byte {
 	filename, _ := filepath.Abs(fmt.Sprintf("testdata/%s", path))
-	yamlBytes, err := ioutil.ReadFile(filename)
+	yamlBytes, err := os.ReadFile(filename)
 	if err != nil {
 		t.Fatalf("Error reading %v: %v", path, err)
 	}

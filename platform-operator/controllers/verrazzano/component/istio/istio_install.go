@@ -6,7 +6,6 @@ package istio
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -375,7 +374,7 @@ func createPeerAuthentication(compContext spi.ComponentContext) error {
 
 // createTempFile creates an Istio temp file and returns the name
 func createTempFile(log vzlog.VerrazzanoLogger, data string) (string, error) {
-	file, err := ioutil.TempFile(os.TempDir(), istioTmpFileCreatePattern)
+	file, err := os.CreateTemp(os.TempDir(), istioTmpFileCreatePattern)
 	if err != nil {
 		return "", log.ErrorfNewErr("Failed to create temporary file for Istio install: %v", err)
 	}
