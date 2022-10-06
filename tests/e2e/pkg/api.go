@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/onsi/gomega"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -154,7 +153,7 @@ func (api *APIEndpoint) Request(method, path string, body io.Reader) (*HTTPRespo
 func ProcessHTTPResponse(resp *http.Response) (*HTTPResponse, error) {
 	// Must read entire body and close it.  See http.Response.Body doc
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}

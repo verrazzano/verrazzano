@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"text/template"
 
@@ -42,7 +41,7 @@ import (
 
 var (
 	// For Unit test purposes
-	writeFileFunc              = ioutil.WriteFile
+	writeFileFunc              = os.WriteFile
 	getControllerRuntimeClient = getClient
 	disallowedOverrides        = []string{
 		"nameOverride",
@@ -54,7 +53,7 @@ var (
 )
 
 func resetWriteFileFunc() {
-	writeFileFunc = ioutil.WriteFile
+	writeFileFunc = os.WriteFile
 }
 
 const (
