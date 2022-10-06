@@ -93,8 +93,10 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 	for tracker.vzState != reconcileEnd {
 		switch tracker.vzState {
 		case reconcileWatchedComponents:
-			if err := r.reconcileWatchedComponents(spiCtx); err != nil {
-				return ctrl.Result{Requeue: true}, err
+			if spiCtx.ActualCR().Status.State != vzapi.VzStateUpgrading {
+				if err := r.reconcileWatchedComponents(spiCtx); err != nil {
+					return ctrl.Result{Requeue: true}, err
+				}
 			}
 			tracker.vzState = reconcileVZState
 
