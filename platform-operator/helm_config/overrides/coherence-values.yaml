@@ -6,3 +6,16 @@
 defaultCoherenceImage: ghcr.io/oracle/coherence-ce:22.06.1
 
 replicas: 1
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - podAffinityTerm:
+          topologyKey: "kubernetes.io/hostname"
+          labelSelector:
+            matchLabels:
+              control-plane: coherence
+              app.kubernetes.io/name: coherence-operator
+              app.kubernetes.io/instance: coherence-operator-manager
+              app.kubernetes.io/version: "3.2.8"
+        weight: 100
