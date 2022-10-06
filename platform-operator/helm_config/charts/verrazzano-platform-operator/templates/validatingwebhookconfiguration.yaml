@@ -13,7 +13,7 @@ webhooks:
         - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
-        name: {{ .Values.name }}
+        name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
         path: /validate-install-verrazzano-io-v1alpha1-verrazzano
     rules:
@@ -39,7 +39,7 @@ webhooks:
         - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
-        name: {{ .Values.name }}
+        name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
         path: /validate-install-verrazzano-io-v1beta1-verrazzano
     rules:
