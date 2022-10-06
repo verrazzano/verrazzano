@@ -12,10 +12,10 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 GOLANGCI_LINT_VERSION=1.49.0
 
 .PHONY: check
-check: lint-go word-linter url-linter ## run all linters
+check: golangci-lint word-linter url-linter ## run all linters
 
-.PHONY: lint-go
-lint-go: check-golangci-lint
+.PHONY: golangci-lint
+golangci-lint: check-golangci-lint
 	golangci-lint --color never run --max-same-issues 25 --timeout 300s
 
 .PHONY: check-golangci-lint
