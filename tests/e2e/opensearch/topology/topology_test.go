@@ -349,4 +349,3 @@ func verifyHeapSettings(pod corev1.Pod) error {
 
 	return nil
 }
-
