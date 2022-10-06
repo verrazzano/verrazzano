@@ -19,6 +19,7 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"time"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 )
 
 const (
@@ -237,6 +238,6 @@ func waitForPodsWithReadyContainer(client clipkg.Client, retryDelay time.Duratio
 		if time.Since(start) >= timeout {
 			return pods, err
 		}
-		time.Sleep(retryDelay)
+		return pods, ctrlerrors.RetryableError{}
 	}
 }
