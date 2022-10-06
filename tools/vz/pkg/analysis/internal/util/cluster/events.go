@@ -8,7 +8,7 @@ import (
 	encjson "encoding/json"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"go.uber.org/zap"
-	"io/ioutil"
+	"io"
 	corev1 "k8s.io/api/core/v1"
 	"os"
 	"sync"
@@ -34,7 +34,7 @@ func GetEventList(log *zap.SugaredLogger, path string) (eventList *corev1.EventL
 	}
 	defer file.Close()
 
-	fileBytes, err := ioutil.ReadAll(file)
+	fileBytes, err := io.ReadAll(file)
 	if err != nil {
 		log.Debugf("Failed reading Json file %s", path)
 		return nil, err

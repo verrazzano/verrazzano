@@ -9,7 +9,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -71,7 +71,7 @@ func CreateOrUpdateResourceFromFileInCluster(file string, kubeconfigPath string)
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
 	}
-	bytes, err := ioutil.ReadFile(found)
+	bytes, err := os.ReadFile(found)
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
@@ -155,7 +155,7 @@ func CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file string, ku
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
 	}
-	bytes, err := ioutil.ReadFile(found)
+	bytes, err := os.ReadFile(found)
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
@@ -270,7 +270,7 @@ func DeleteResourceFromFileInCluster(file string, kubeconfigPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
 	}
-	bytes, err := ioutil.ReadFile(found)
+	bytes, err := os.ReadFile(found)
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
@@ -336,7 +336,7 @@ func DeleteResourceFromFileInClusterInGeneratedNamespace(file string, kubeconfig
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
 	}
-	bytes, err := ioutil.ReadFile(found)
+	bytes, err := os.ReadFile(found)
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
@@ -391,7 +391,7 @@ func PatchResourceFromFileInCluster(gvr schema.GroupVersionResource, namespace s
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
 	}
-	patchBytes, err := ioutil.ReadFile(found)
+	patchBytes, err := os.ReadFile(found)
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}

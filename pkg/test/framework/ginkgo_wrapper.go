@@ -215,7 +215,7 @@ func (t *TestFramework) SynchronizedAfterSuite(allProcessBody func(), process1Bo
 	return ginkgo.SynchronizedAfterSuite(allProcessBody, process1Body)
 }
 
-//	JustBeforeEach - wrapper function for Ginkgo JustBeforeEach
+// JustBeforeEach - wrapper function for Ginkgo JustBeforeEach
 func (t *TestFramework) JustBeforeEach(args ...interface{}) bool {
 	return ginkgo.JustBeforeEach(args...)
 }

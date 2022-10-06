@@ -22,8 +22,9 @@ const profilesRelativePath = "../../../../manifests/profiles"
 
 // TestIsEnabled tests the AuthProxy IsEnabled call
 // GIVEN a AuthProxy component
-//  WHEN I call IsEnabled when all requirements are met
-//  THEN true or false is returned
+//
+//	WHEN I call IsEnabled when all requirements are met
+//	THEN true or false is returned
 func TestIsEnabled(t *testing.T) {
 	falseValue := false
 	tests := []struct {
@@ -64,8 +65,9 @@ func TestIsEnabled(t *testing.T) {
 
 // TestGetIngressNames tests the AuthProxy GetIngressNames call
 // GIVEN a AuthProxy component
-//  WHEN I call GetIngressNames
-//  THEN the correct list of names is returned
+//
+//	WHEN I call GetIngressNames
+//	THEN the correct list of names is returned
 func TestGetIngressNames(t *testing.T) {
 	ingressNames := NewComponent().GetIngressNames(nil)
 	assert.True(t, len(ingressNames) == 1)
@@ -201,8 +203,9 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 
 // TestUninstallHelmChartInstalled tests the Fluentd Uninstall call
 // GIVEN a Fluentd component
-//  WHEN I call Uninstall with the Fluentd helm chart installed
-//  THEN no error is returned
+//
+//	WHEN I call Uninstall with the Fluentd helm chart installed
+//	THEN no error is returned
 func TestUninstallHelmChartInstalled(t *testing.T) {
 	helmcli.SetCmdRunner(os.GenericTestRunner{
 		StdOut: []byte(""),
@@ -217,8 +220,9 @@ func TestUninstallHelmChartInstalled(t *testing.T) {
 
 // TestUninstallHelmChartNotInstalled tests the Fluentd Uninstall call
 // GIVEN a Fluentd component
-//  WHEN I call Uninstall with the Fluentd helm chart not installed
-//  THEN no error is returned
+//
+//	WHEN I call Uninstall with the Fluentd helm chart not installed
+//	THEN no error is returned
 func TestUninstallHelmChartNotInstalled(t *testing.T) {
 	helmcli.SetCmdRunner(os.GenericTestRunner{
 		StdOut: []byte(""),

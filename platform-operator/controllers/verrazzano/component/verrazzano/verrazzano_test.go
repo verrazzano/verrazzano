@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -64,8 +63,9 @@ func init() {
 
 // TestVzResolveNamespace tests the Verrazzano component name
 // GIVEN a Verrazzano component
-//  WHEN I call resolveNamespace
-//  THEN the Verrazzano namespace name is correctly resolved
+//
+//	WHEN I call resolveNamespace
+//	THEN the Verrazzano namespace name is correctly resolved
 func TestVzResolveNamespace(t *testing.T) {
 	const defNs = vpoconst.VerrazzanoSystemNamespace
 	a := assert.New(t)
@@ -79,8 +79,9 @@ func TestVzResolveNamespace(t *testing.T) {
 
 // Test_appendVerrazzanoValues tests the appendVerrazzanoValues function
 // GIVEN a call to appendVerrazzanoValues
-//  WHEN I call with a ComponentContext with different profiles and overrides
-//  THEN the correct KeyValue objects and overrides file snippets are generated
+//
+//	WHEN I call with a ComponentContext with different profiles and overrides
+//	THEN the correct KeyValue objects and overrides file snippets are generated
 func Test_appendVerrazzanoValues(t *testing.T) {
 	falseValue := false
 	trueValue := true
@@ -190,7 +191,7 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 			// assert.NoError(err)
 			// ioutil.WriteFile(fmt.Sprintf("%s/%s.yaml", os.TempDir(), test.name), outdata, fs.FileMode(0664))
 
-			data, err := ioutil.ReadFile(test.expectedYAML)
+			data, err := os.ReadFile(test.expectedYAML)
 			a.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
 			expectedValues := verrazzanoValues{}
 			err = yaml.Unmarshal(data, &expectedValues)
@@ -202,8 +203,9 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 
 // Test_appendVMIValues tests the appendVMIValues function
 // GIVEN a call to appendVMIValues
-//  WHEN I call with a ComponentContext with different profiles and overrides
-//  THEN the correct KeyValue objects and overrides file snippets are generated
+//
+//	WHEN I call with a ComponentContext with different profiles and overrides
+//	THEN the correct KeyValue objects and overrides file snippets are generated
 func Test_appendVMIValues(t *testing.T) {
 	falseValue := false
 	tests := []struct {
@@ -347,7 +349,7 @@ func Test_appendVMIValues(t *testing.T) {
 			a.NoError(err)
 			a.Equal(test.expectedHelmOverrides, keyValues, "Install args did not match")
 
-			data, err := ioutil.ReadFile(test.expectedYAML)
+			data, err := os.ReadFile(test.expectedYAML)
 			a.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
 			expectedValues := verrazzanoValues{}
 			err = yaml.Unmarshal(data, &expectedValues)
@@ -359,8 +361,9 @@ func Test_appendVMIValues(t *testing.T) {
 
 // Test_appendVerrazzanoOverrides tests the appendVerrazzanoOverrides function
 // GIVEN a call to appendVerrazzanoOverrides
-//  WHEN I call with a ComponentContext with different profiles and overrides
-//  THEN the correct KeyValue objects and overrides file snippets are generated
+//
+//	WHEN I call with a ComponentContext with different profiles and overrides
+//	THEN the correct KeyValue objects and overrides file snippets are generated
 func Test_appendVerrazzanoOverrides(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	defer func() {
@@ -527,7 +530,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 				if test.expectedErr != nil {
 					return test.expectedErr
 				}
-				if err := ioutil.WriteFile(filename, data, perm); err != nil {
+				if err := os.WriteFile(filename, data, perm); err != nil {
 					a.Failf("Failure writing file %s: %s", filename, err)
 					return err
 				}
@@ -542,7 +545,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 				a.NoError(err)
 
 				// read in the expected results data from a file and unmarshal it into a values object
-				expectedData, err := ioutil.ReadFile(test.expectedYAML)
+				expectedData, err := os.ReadFile(test.expectedYAML)
 				a.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
 				expectedValues := verrazzanoValues{}
 				err = yaml.Unmarshal(expectedData, &expectedValues)
@@ -579,7 +582,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 		})
 	}
 	// Verify temp files are deleted
-	files, err := ioutil.ReadDir(os.TempDir())
+	files, err := os.ReadDir(os.TempDir())
 	assert.NoError(t, err, "Error reading temp dir to verify file cleanup")
 	for _, file := range files {
 		assert.False(t,
@@ -635,8 +638,9 @@ func TestFakeExecHandler(t *testing.T) {
 
 // TestAssociateHelmObjectToThisRelease tests labelling/annotating objects that will be imported to a helm chart
 // GIVEN an unmanaged object
-//  WHEN I call associateHelmObjectToThisRelease
-//  THEN the object is managed by helm
+//
+//	WHEN I call associateHelmObjectToThisRelease
+//	THEN the object is managed by helm
 func TestAssociateHelmObjectToThisRelease(t *testing.T) {
 	namespacedName := types.NamespacedName{
 		Name:      ComponentName,
@@ -659,8 +663,9 @@ func TestAssociateHelmObjectToThisRelease(t *testing.T) {
 
 // TestAssociateHelmObjectAndKeep tests labelling/annotating objects that will be associated to a helm chart
 // GIVEN an unmanaged object
-//  WHEN I call associateHelmObject with keep set to true
-//  THEN the object is managed by helm and is labeled with a resource policy of "keep"
+//
+//	WHEN I call associateHelmObject with keep set to true
+//	THEN the object is managed by helm and is labeled with a resource policy of "keep"
 func TestAssociateHelmObjectAndKeep(t *testing.T) {
 	namespacedName := types.NamespacedName{
 		Name:      ComponentName,
@@ -684,8 +689,9 @@ func TestAssociateHelmObjectAndKeep(t *testing.T) {
 
 // TestIsReadyNotReady tests the Verrazzano isVerrazzanoReady call
 // GIVEN a Verrazzano component
-//  WHEN I call isVerrazzanoReady when it is installed but the secret is not found
-//  THEN false is returned
+//
+//	WHEN I call isVerrazzanoReady when it is installed but the secret is not found
+//	THEN false is returned
 func TestIsReadyNotReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
@@ -694,8 +700,9 @@ func TestIsReadyNotReady(t *testing.T) {
 
 // TestIsReady tests the Verrazzano isVerrazzanoReady call
 // GIVEN Verrazzano components that are all enabled by default
-//  WHEN I call isVerrazzanoReady when all requirements are met
-//  THEN false is returned
+//
+//	WHEN I call isVerrazzanoReady when all requirements are met
+//	THEN false is returned
 func TestIsReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
@@ -710,8 +717,9 @@ func TestIsReady(t *testing.T) {
 
 // TestIsReadyDeploymentVMIDisabled tests the Verrazzano isVerrazzanoReady call
 // GIVEN a Verrazzano component with all VMI components disabled
-//  WHEN I call isVerrazzanoReady
-//  THEN true is returned
+//
+//	WHEN I call isVerrazzanoReady
+//	THEN true is returned
 func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil

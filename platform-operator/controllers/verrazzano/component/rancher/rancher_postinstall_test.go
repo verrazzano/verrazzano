@@ -21,8 +21,9 @@ var validStdOut = "W1122 18:11:20.905585\nNew password for default admin user (u
 
 // TestCreateAdminSecretIfNotExists verifies creation of the rancher-admin-secret Secret
 // GIVEN a cluster with Rancher running
-//  WHEN createAdminSecretIfNotExists is called
-//  THEN createAdminSecretIfNotExists should ensure the rancher-admin-secret exists and contains a valid Rancher admin password
+//
+//	WHEN createAdminSecretIfNotExists is called
+//	THEN createAdminSecretIfNotExists should ensure the rancher-admin-secret exists and contains a valid Rancher admin password
 func TestCreateAdminSecretIfNotExists(t *testing.T) {
 	log := getTestLogger(t)
 	clientConfigFunction := func() (*rest.Config, rest.Interface, error) {
@@ -113,8 +114,9 @@ func TestCreateAdminSecretIfNotExists(t *testing.T) {
 
 // TestParsePasswordStdout verifies parsing the Rancher password from reset STDOUT
 // GIVEN STDOUT from the reset-password command
-//  WHEN parsePasswordStdout is called
-//  THEN parsePasswordStdout should return the password from STDOUT
+//
+//	WHEN parsePasswordStdout is called
+//	THEN parsePasswordStdout should return the password from STDOUT
 func TestParsePasswordStdout(t *testing.T) {
 	var tests = []struct {
 		in  string

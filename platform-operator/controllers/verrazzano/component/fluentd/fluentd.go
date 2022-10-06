@@ -30,7 +30,7 @@ const (
 	fluentdEsConfig = "fluentd-es-config"
 )
 
-//checkSecretExists whether verrazzano-es-internal secret exists. Return error if secret does not exist.
+// checkSecretExists whether verrazzano-es-internal secret exists. Return error if secret does not exist.
 func checkSecretExists(ctx spi.ComponentContext) error {
 	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		// Check verrazzano-es-internal Secret. return error which will cause requeue

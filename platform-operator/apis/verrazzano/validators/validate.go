@@ -166,7 +166,7 @@ func ValidateNewVersion(currStatusVerString string, currSpecVerString string, ne
 	return nil
 }
 
-//checkUpgradeRequired Returns an error if the current installed version is < the BOM version; if we're validating an
+// checkUpgradeRequired Returns an error if the current installed version is < the BOM version; if we're validating an
 // update, this is an error condition, as we don't want to allow any updates without an upgrade
 func CheckUpgradeRequired(statusVersion string, bomVersion *semver.SemVersion) error {
 	installedVerString := strings.TrimSpace(statusVersion)
@@ -215,7 +215,7 @@ func ValidatePrivateKey(secretName string, pemData []byte) error {
 	return nil
 }
 
-//validateFluentdConfigData - Validate the OCI config contents in the Fluentd secret
+// validateFluentdConfigData - Validate the OCI config contents in the Fluentd secret
 func ValidateFluentdConfigData(secret *corev1.Secret) error {
 	secretName := secret.Name
 	configData, ok := secret.Data[FluentdOCISecretConfigEntry]
@@ -316,7 +316,7 @@ func ValidateUpgradeRequest(newSpecVerString string, currStatusVerString string,
 	return nil
 }
 
-//ValidateVersionHigherOrEqual checks that currentVersion matches requestedVersion or is a higher version
+// ValidateVersionHigherOrEqual checks that currentVersion matches requestedVersion or is a higher version
 func ValidateVersionHigherOrEqual(currentVersion string, requestedVersion string) bool {
 	log := zap.S().With("validate", "version")
 	log.Info("Validate version")
@@ -399,7 +399,7 @@ func IsKubernetesVersionSupported() bool {
 	return false
 }
 
-//getKubernetesVersion returns the version of Kubernetes cluster in which operator is deployed
+// getKubernetesVersion returns the version of Kubernetes cluster in which operator is deployed
 func getKubernetesVersion() (string, error) {
 	config, err := ctrl.GetConfig()
 	if err != nil {
@@ -419,7 +419,7 @@ func getKubernetesVersion() (string, error) {
 	return versionInfo.String(), nil
 }
 
-//getSupportedKubernetesVersions returns the Kubernetes versions supported by operator
+// getSupportedKubernetesVersions returns the Kubernetes versions supported by operator
 func getSupportedKubernetesVersions() ([]string, error) {
 	bom, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {

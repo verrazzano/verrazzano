@@ -22,16 +22,18 @@ import (
 )
 
 // GIVEN a network policies helm component
-//  WHEN the IsEnabled function is called
-//  THEN the call always returns true
+//
+//	WHEN the IsEnabled function is called
+//	THEN the call always returns true
 func TestIsEnabled(t *testing.T) {
 	comp := NewComponent()
 	assert.True(t, comp.IsEnabled(nil))
 }
 
 // GIVEN a network policies helm component
-//  WHEN the PreInstall function is called
-//  THEN the expected namespaces have been created
+//
+//	WHEN the PreInstall function is called
+//	THEN the expected namespaces have been created
 func TestPreInstall(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 	ctx := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
@@ -43,8 +45,9 @@ func TestPreInstall(t *testing.T) {
 }
 
 // GIVEN a network policies helm component
-//  WHEN the PostInstall function is called
-//  THEN the call returns no error
+//
+//	WHEN the PostInstall function is called
+//	THEN the call returns no error
 func TestPostInstall(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 	ctx := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
@@ -55,9 +58,10 @@ func TestPostInstall(t *testing.T) {
 }
 
 // GIVEN a network policies helm component
-//  WHEN the PreUpgrade function is called
-//   AND there is an existing network policy associated with the verrazzano helm release
-//  THEN the network policy association is changed so that it is associated with the network policies helm release
+//
+//	WHEN the PreUpgrade function is called
+//	 AND there is an existing network policy associated with the verrazzano helm release
+//	THEN the network policy association is changed so that it is associated with the network policies helm release
 func TestPreUpgrade(t *testing.T) {
 	const netPolName = "istiod-access"
 	fakeClient := fake.NewClientBuilder().WithObjects(
@@ -85,8 +89,9 @@ func TestPreUpgrade(t *testing.T) {
 }
 
 // GIVEN a network policies helm component
-//  WHEN the PostUpgrade function is called
-//  THEN the call returns no error
+//
+//	WHEN the PostUpgrade function is called
+//	THEN the call returns no error
 func TestPostUpgrade(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 	ctx := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
@@ -97,8 +102,9 @@ func TestPostUpgrade(t *testing.T) {
 }
 
 // GIVEN a network policies helm component
-//  WHEN the PreUninstall function is called
-//  THEN the expected namespaces have been created
+//
+//	WHEN the PreUninstall function is called
+//	THEN the expected namespaces have been created
 func TestPreUninstall(t *testing.T) {
 	const netPolName = "istiod-access"
 	fakeClient := fake.NewClientBuilder().WithObjects(

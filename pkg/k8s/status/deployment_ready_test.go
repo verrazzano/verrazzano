@@ -119,12 +119,12 @@ func TestDeploymentsReady(t *testing.T) {
 			Namespace: "bar",
 		},
 	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		testReadyDeployment,
 		testReadyPod,
 		testReadyReplicaSet,
-	)
-	assert.True(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
+	).Build()
+	assert.True(t, DeploymentsAreReady(vzlog.DefaultLogger(), fakeClient, namespacedName, 1, ""))
 }
 
 // TestDeploymentsContainerNotReady tests a deployment ready status check
@@ -143,7 +143,7 @@ func TestDeploymentsContainerNotReady(t *testing.T) {
 			Namespace: "bar",
 		},
 	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "bar",
@@ -182,8 +182,8 @@ func TestDeploymentsContainerNotReady(t *testing.T) {
 				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
-	)
-	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
+	).Build()
+	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), fakeClient, namespacedName, 1, ""))
 }
 
 // TestDeploymentsInitContainerNotReady tests a deployment ready status check
@@ -202,7 +202,7 @@ func TestDeploymentsInitContainerNotReady(t *testing.T) {
 			Namespace: "bar",
 		},
 	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "bar",
@@ -241,8 +241,8 @@ func TestDeploymentsInitContainerNotReady(t *testing.T) {
 				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
-	)
-	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
+	).Build()
+	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), fakeClient, namespacedName, 1, ""))
 }
 
 // TestMultipleReplicasReady tests a deployment ready status check
@@ -256,7 +256,7 @@ func TestMultipleReplicasReady(t *testing.T) {
 			Namespace: "bar",
 		},
 	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "bar",
@@ -315,8 +315,8 @@ func TestMultipleReplicasReady(t *testing.T) {
 				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
-	)
-	assert.True(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 2, ""))
+	).Build()
+	assert.True(t, DeploymentsAreReady(vzlog.DefaultLogger(), fakeClient, namespacedName, 2, ""))
 }
 
 // TestMultipleReplicasReadyAboveThreshold tests a deployment ready status check
@@ -330,7 +330,7 @@ func TestMultipleReplicasReadyAboveThreshold(t *testing.T) {
 			Namespace: "bar",
 		},
 	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "bar",
@@ -389,8 +389,8 @@ func TestMultipleReplicasReadyAboveThreshold(t *testing.T) {
 				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
-	)
-	assert.True(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
+	).Build()
+	assert.True(t, DeploymentsAreReady(vzlog.DefaultLogger(), fakeClient, namespacedName, 1, ""))
 }
 
 // TestDeploymentsNoneAvailable tests a deployment ready status check
@@ -404,7 +404,7 @@ func TestDeploymentsNoneAvailable(t *testing.T) {
 			Namespace: "bar",
 		},
 	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "bar",
 			Name:      "foo",
@@ -414,8 +414,8 @@ func TestDeploymentsNoneAvailable(t *testing.T) {
 			Replicas:          1,
 			UpdatedReplicas:   1,
 		},
-	})
-	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
+	}).Build()
+	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), fakeClient, namespacedName, 1, ""))
 }
 
 // TestDeploymentsNoneUpdated tests a deployment ready status check
@@ -429,7 +429,7 @@ func TestDeploymentsNoneUpdated(t *testing.T) {
 			Namespace: "bar",
 		},
 	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &appsv1.Deployment{
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "bar",
 			Name:      "foo",
@@ -439,8 +439,8 @@ func TestDeploymentsNoneUpdated(t *testing.T) {
 			Replicas:          1,
 			UpdatedReplicas:   0,
 		},
-	})
-	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
+	}).Build()
+	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), fakeClient, namespacedName, 1, ""))
 }
 
 // TestMultipleReplicasReadyBelowThreshold tests a deployment ready status check
@@ -459,7 +459,7 @@ func TestMultipleReplicasReadyBelowThreshold(t *testing.T) {
 			Namespace: "bar",
 		},
 	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "bar",
@@ -498,8 +498,8 @@ func TestMultipleReplicasReadyBelowThreshold(t *testing.T) {
 				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
-	)
-	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 3, ""))
+	).Build()
+	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), fakeClient, namespacedName, 3, ""))
 }
 
 // TestDeploymentsReadyDeploymentNotFound tests a deployment ready status check
@@ -513,8 +513,8 @@ func TestDeploymentsReadyDeploymentNotFound(t *testing.T) {
 			Namespace: "bar",
 		},
 	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), fakeClient, namespacedName, 1, ""))
 }
 
 // TestDeploymentsReadyReplicaSetNotFound tests a deployment ready status check
@@ -533,7 +533,7 @@ func TestDeploymentsReadyReplicaSetNotFound(t *testing.T) {
 			Namespace: "bar",
 		},
 	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "bar",
@@ -565,8 +565,8 @@ func TestDeploymentsReadyReplicaSetNotFound(t *testing.T) {
 				},
 			},
 		},
-	)
-	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
+	).Build()
+	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), fakeClient, namespacedName, 1, ""))
 }
 
 // TestDeploymentsReadyPodNotFound tests a deployment ready status check
@@ -585,7 +585,7 @@ func TestDeploymentsReadyPodNotFound(t *testing.T) {
 			Namespace: "bar",
 		},
 	}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "bar",
@@ -599,7 +599,7 @@ func TestDeploymentsReadyPodNotFound(t *testing.T) {
 				Replicas:          1,
 				UpdatedReplicas:   1,
 			},
-		})
+		}).Build()
 
-	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), client, namespacedName, 1, ""))
+	assert.False(t, DeploymentsAreReady(vzlog.DefaultLogger(), fakeClient, namespacedName, 1, ""))
 }

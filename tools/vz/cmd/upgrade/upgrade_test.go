@@ -23,8 +23,9 @@ import (
 
 // TestUpgradeCmdDefaultNoWait
 // GIVEN a CLI upgrade command with all defaults and --wait==false
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command is successful
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command is successful
 func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
@@ -49,8 +50,9 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 
 // TestUpgradeCmdDefaultTimeout
 // GIVEN a CLI upgrade command with all defaults and --timeout=2s
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command times out
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command times out
 func TestUpgradeCmdDefaultTimeout(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
@@ -76,8 +78,9 @@ func TestUpgradeCmdDefaultTimeout(t *testing.T) {
 
 // TestUpgradeCmdDefaultNoVPO
 // GIVEN a CLI upgrade command with all defaults and no VPO found
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command fails
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command fails
 func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateVerrazzanoObjectWithVersion()).Build()
 
@@ -101,8 +104,9 @@ func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 
 // TestUpgradeCmdDefaultMultipleVPO
 // GIVEN a CLI upgrade command with all defaults and multiple VPOs found
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command fails
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command fails
 func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	vpo2 := testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator + "-2")
@@ -129,8 +133,9 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 
 // TestUpgradeCmdJsonLogFormat
 // GIVEN a CLI upgrade command with defaults and --log-format=json and --wait==false
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command is successful
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command is successful
 func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
@@ -156,8 +161,9 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 
 // TestUpgradeCmdOperatorFile
 // GIVEN a CLI upgrade command with defaults and --wait=false and --operator-file specified
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command is successful
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command is successful
 func TestUpgradeCmdOperatorFile(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion().(*v1beta1.Verrazzano)
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
@@ -202,8 +208,9 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 
 // TestUpgradeCmdNoVerrazzano
 // GIVEN a CLI upgrade command with no verrazzano install resource found
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command fails
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command fails
 func TestUpgradeCmdNoVerrazzano(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects().Build()
 
@@ -223,8 +230,9 @@ func TestUpgradeCmdNoVerrazzano(t *testing.T) {
 
 // TestUpgradeCmdLesserStatusVersion
 // GIVEN a CLI upgrade command specifying a version less than the status version
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command fails
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command fails
 func TestUpgradeCmdLesserStatusVersion(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateVerrazzanoObjectWithVersion()).Build()
 
@@ -245,8 +253,9 @@ func TestUpgradeCmdLesserStatusVersion(t *testing.T) {
 
 // TestUpgradeCmdLesserSpecVersion
 // GIVEN a CLI upgrade command specifying a version less than the spec version
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command fails
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command fails
 func TestUpgradeCmdLesserSpecVersion(t *testing.T) {
 	vz := &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},
@@ -281,8 +290,9 @@ func TestUpgradeCmdLesserSpecVersion(t *testing.T) {
 
 // TestUpgradeCmdInProgress
 // GIVEN a CLI upgrade command an upgrade was in progress
-//  WHEN I call cmd.Execute for upgrade
-//  THEN the CLI upgrade command is successful
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command is successful
 func TestUpgradeCmdInProgress(t *testing.T) {
 	vz := &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},

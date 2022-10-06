@@ -60,8 +60,9 @@ func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string,
 
 // TestPreUpgrade tests the Verrazzano PreUpgrade call
 // GIVEN a Verrazzano component
-//  WHEN I call PreUpgrade with defaults
-//  THEN no error is returned
+//
+//	WHEN I call PreUpgrade with defaults
+//	THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
@@ -72,8 +73,9 @@ func TestPreUpgrade(t *testing.T) {
 
 // TestPreInstall tests the Verrazzano PreInstall call
 // GIVEN a Verrazzano component
-//  WHEN I call PreInstall when dependencies are met
-//  THEN no error is returned
+//
+//	WHEN I call PreInstall when dependencies are met
+//	THEN no error is returned
 func TestPreInstall(t *testing.T) {
 	c := createPreInstallTestClient()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
@@ -83,8 +85,9 @@ func TestPreInstall(t *testing.T) {
 
 // TestInstall tests the Verrazzano Install call
 // GIVEN a Verrazzano component
-//  WHEN I call Install when dependencies are met
-//  THEN no error is returned
+//
+//	WHEN I call Install when dependencies are met
+//	THEN no error is returned
 func TestInstall(t *testing.T) {
 	c := createPreInstallTestClient()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
@@ -105,8 +108,9 @@ func TestInstall(t *testing.T) {
 
 // TestPostInstall tests the Verrazzano PostInstall call
 // GIVEN a Verrazzano component
-//  WHEN I call PostInstall
-//  THEN no error is returned
+//
+//	WHEN I call PostInstall
+//	THEN no error is returned
 func TestPostInstall(t *testing.T) {
 	time := metav1.Now()
 	ctx, vzComp := fakeComponent(t, []certv1.CertificateCondition{
@@ -118,8 +122,9 @@ func TestPostInstall(t *testing.T) {
 
 // TestUpgrade tests the Verrazzano Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
 // GIVEN a Verrazzano component upgrading from 1.1.0 to 1.2.0
-//  WHEN I call Upgrade
-//  THEN no error is returned
+//
+//	WHEN I call Upgrade
+//	THEN no error is returned
 func TestUpgrade(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
@@ -144,8 +149,9 @@ func TestUpgrade(t *testing.T) {
 
 // TestPostUpgrade tests the Verrazzano PostUpgrade call; simple wrapper exercise, more detailed testing is done elsewhere
 // GIVEN a Verrazzano component upgrading from 1.1.0 to 1.2.0
-//  WHEN I call PostUpgrade
-//  THEN no error is returned
+//
+//	WHEN I call PostUpgrade
+//	THEN no error is returned
 func TestPostUpgrade(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
@@ -168,8 +174,9 @@ func createPreInstallTestClient(extraObjs ...client.Object) client.Client {
 
 // TestIsEnabledNilVerrazzano tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component is nil
-//  THEN true is returned
+//
+//	WHEN The Verrazzano component is nil
+//	THEN true is returned
 func TestIsEnabledNilVerrazzano(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Verrazzano = nil
@@ -178,16 +185,18 @@ func TestIsEnabledNilVerrazzano(t *testing.T) {
 
 // TestIsEnabledNilComponent tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component is nil
-//  THEN true is returned
+//
+//	WHEN The Verrazzano component is nil
+//	THEN true is returned
 func TestIsEnabledNilComponent(t *testing.T) {
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component enabled is nil
-//  THEN true is returned
+//
+//	WHEN The Verrazzano component enabled is nil
+//	THEN true is returned
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Verrazzano.Enabled = nil
@@ -196,8 +205,9 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 
 // TestIsEnabledExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component is explicitly enabled
-//  THEN true is returned
+//
+//	WHEN The Verrazzano component is explicitly enabled
+//	THEN true is returned
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Verrazzano.Enabled = getBoolPtr(true)
@@ -206,8 +216,9 @@ func TestIsEnabledExplicit(t *testing.T) {
 
 // TestIsDisableExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component is explicitly disabled
-//  THEN false is returned
+//
+//	WHEN The Verrazzano component is explicitly disabled
+//	THEN false is returned
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Verrazzano.Enabled = getBoolPtr(false)

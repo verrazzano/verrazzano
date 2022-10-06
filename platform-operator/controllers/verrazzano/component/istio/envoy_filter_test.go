@@ -23,8 +23,9 @@ import (
 
 // TestCreateEnvoyFilter tests creating the Envoy filter
 // GIVEN a client
-//  WHEN I call createEnvoyFilter when the filter doesn't exist
-//  THEN the bash function is called to create the filter
+//
+//	WHEN I call createEnvoyFilter when the filter doesn't exist
+//	THEN the bash function is called to create the filter
 func TestCreateEnvoyFilter(t *testing.T) {
 	a := assert.New(t)
 	a.Equal("istio", comp.Name(), "Wrong component name")
@@ -56,8 +57,9 @@ func getIstioFilterMockCreate(t *testing.T) *mocks.MockClient {
 
 // TestUpdateEnvoyFilter tests updating the Envoy filter
 // GIVEN a client
-//  WHEN I call createEnvoyFilter when the filter exists
-//  THEN the bash function is called to update the filter
+//
+//	WHEN I call createEnvoyFilter when the filter exists
+//	THEN the bash function is called to update the filter
 func TestUpdateEnvoyFilter(t *testing.T) {
 	a := assert.New(t)
 	a.Equal("istio", comp.Name(), "Wrong component name")

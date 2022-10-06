@@ -6,17 +6,17 @@ package helpers
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-	"io/ioutil"
 	"os"
 	"testing"
 )
 
 // TestCreateReportArchive
 // GIVEN a directory containing some files
-//  WHEN I call function CreateReportArchive with a report file
-//  THEN expect it to create the report file
+//
+//	WHEN I call function CreateReportArchive with a report file
+//	THEN expect it to create the report file
 func TestCreateReportArchive(t *testing.T) {
-	tmpDir, _ := ioutil.TempDir("", "bug-report")
+	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer os.RemoveAll(tmpDir)
 
 	captureDir := tmpDir + string(os.PathSeparator) + "test-report"
@@ -55,8 +55,9 @@ func TestCreateReportArchive(t *testing.T) {
 
 // TestRemoveDuplicates
 // GIVEN a string slice containing duplicates
-//  WHEN I call function RemoveDuplicate
-//  THEN expect it to remove the duplicate elements
+//
+//	WHEN I call function RemoveDuplicate
+//	THEN expect it to remove the duplicate elements
 func TestRemoveDuplicates(t *testing.T) {
 	testSlice := []string{"abc", "def", "abc"}
 	result := RemoveDuplicate(testSlice)
@@ -64,8 +65,9 @@ func TestRemoveDuplicates(t *testing.T) {
 }
 
 // TestGroupVersionResource
-//  WHEN I call functions to get the config schemes
-//  THEN expect it to return the expected resource
+//
+//	WHEN I call functions to get the config schemes
+//	THEN expect it to return the expected resource
 func TestGroupVersionResource(t *testing.T) {
 	assert.True(t, true, GetAppConfigScheme().Resource == constants.OAMAppConfigurations)
 	assert.True(t, true, GetComponentConfigScheme().Resource == constants.OAMComponents)

@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-//SearchWriter writes to a search endpoint, as an io.Writer and zapcore.WriteSyncer S
+// SearchWriter writes to a search endpoint, as an io.Writer and zapcore.WriteSyncer S
 type SearchWriter struct {
 	hc    *retryablehttp.Client
 	url   string
@@ -23,7 +23,7 @@ type SearchWriter struct {
 	auth  string
 }
 
-//SearchWriterFromEnv creates a SearchWriter using environment variables
+// SearchWriterFromEnv creates a SearchWriter using environment variables
 func SearchWriterFromEnv(index string) (SearchWriter, error) {
 	uri := os.Getenv(searchURL)
 	if uri == "" {
@@ -44,17 +44,17 @@ func SearchWriterFromEnv(index string) (SearchWriter, error) {
 	}, nil
 }
 
-//Close implement as needed
+// Close implement as needed
 func (s SearchWriter) Close() error {
 	return nil
 }
 
-//Sync implement as needed
+// Sync implement as needed
 func (s SearchWriter) Sync() error {
 	return nil
 }
 
-//postRecord sends the reader record to the search data store via HTTP Post
+// postRecord sends the reader record to the search data store via HTTP Post
 // Basic Authorization is used, if encoded auth is provided for basicAuth
 func postRecord(hc *retryablehttp.Client, basicAuth, uri string, reader io.Reader) error {
 	req, err := retryablehttp.NewRequest("POST", uri, reader)
@@ -76,7 +76,7 @@ func postRecord(hc *retryablehttp.Client, basicAuth, uri string, reader io.Reade
 	return nil
 }
 
-//Write out the record to the search data store
+// Write out the record to the search data store
 func (s SearchWriter) Write(data []byte) (int, error) {
 	index := s.timeStampIndex()
 
@@ -94,7 +94,7 @@ func (s SearchWriter) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
-//timeStampIndex formats the current index in %s-YYYY.mm.dd format
+// timeStampIndex formats the current index in %s-YYYY.mm.dd format
 func (s SearchWriter) timeStampIndex() string {
 	return fmt.Sprintf("%s-%s", s.index, time.Now().Format(timeFormatString))
 }
