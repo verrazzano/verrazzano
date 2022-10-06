@@ -127,7 +127,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 		}
 	}
 
-	deleteInstallTracker(spiCtx.ActualCR())
+	tracker.vzState = reconcileWatchedComponents
 
 	return ctrl.Result{}, nil
 }

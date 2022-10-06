@@ -182,7 +182,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 			installContext.state = compStateInstallWaitReady
 
 		case compStateInstallWaitReady:
-			if !comp.IsReady(compContext) {
+			if !comp.IsReady(compContext) || componentStatus.State != vzapi.CompStateReady {
 				compLog.Progressf("Component %s has been installed. Waiting for the component to be ready", compName)
 				return newRequeueWithDelay(), nil
 			}
