@@ -15,7 +15,8 @@ TEST_PKGS=$(go list ./... | \
   grep -Ev github.com/verrazzano/verrazzano/tests | \
   grep -Ev github.com/verrazzano/verrazzano/pkg/test/framework)
 #go test -coverpkg=$(echo ${TEST_PKGS}|tr ' ' ',') -coverprofile ./coverage.raw.cov ${TEST_PKGS}
-go test -coverprofile ./coverage.raw.cov $(go list ./... | grep -v /tests/e2e)
+#go test -coverprofile ./coverage.raw.cov $(go list ./... | grep -v /tests/e2e)
+go test $(go list ./... | grep -v /tests/e2e)
 
 TEST_STATUS=$?
 

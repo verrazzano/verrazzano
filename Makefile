@@ -70,10 +70,14 @@ test-platform-operator-install-logs:
 	kubectl logs -f -n default $(shell kubectl get pods -n default --no-headers | grep "^verrazzano-install-" | cut -d ' ' -f 1)
 
 .PHONY: precommit
-precommit: precommit-check unit-test
+precommit: precommit-check precommit-build unit-test
 
 .PHONY: precommit-check
 precommit-check: check check-tests copyright-check
+
+.PHONY: precommit-build
+precommit-build:
+	go build ./...
 
 #
 #  Compliance check targets
