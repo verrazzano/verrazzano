@@ -6,7 +6,12 @@ package opensearch
 import (
 	"context"
 	"fmt"
+	"os/exec"
+	"strings"
+	"time"
+
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -15,11 +20,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"os/exec"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-	"time"
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 )
 
 const (
