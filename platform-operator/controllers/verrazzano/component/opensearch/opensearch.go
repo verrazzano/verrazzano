@@ -230,15 +230,15 @@ func getPodsWithReadyContainer(client clipkg.Client, containerName string, podSe
 }
 
 func waitForPodsWithReadyContainer(client clipkg.Client, retryDelay time.Duration, timeout time.Duration, containerName string, podSelectors ...clipkg.ListOption) ([]corev1.Pod, error) {
-	start := time.Now()
-	for {
-		pods, err := getPodsWithReadyContainer(client, containerName, podSelectors...)
-		if err == nil && len(pods) > 0 {
-			return pods, err
-		}
-		if time.Since(start) >= timeout {
-			return pods, err
-		}
-		return pods, ctrlerrors.RetryableError{}
+	pods, err := getPodsWithReadyContainer(client, containerName, podSelectors...)
+	// If there is an error, then return a RetryableError
+	if err != nil {
+		return nil, ctrlerrors.RetryableError{}
 	}
+	// When there is no error, and positive number of pods which have containers in Ready state
+	if len(pods) > 0 {
+		return pods, nil
+	}
+	// Default condition. This will probably not be hit.
+	return nil, nil
 }
