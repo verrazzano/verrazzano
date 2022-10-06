@@ -6,6 +6,7 @@ package helm
 import (
 	ctx "context"
 	"fmt"
+	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
 	"os"
 	"sort"
@@ -311,12 +312,12 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
-	isDeployed, err := helm.IsReleaseDeployed(h.ReleaseName, h.ChartNamespace)
+	releaseStatus, err := helm.GetReleaseStatus(h.ReleaseName, h.ChartNamespace)
 	if err != nil {
 		context.Log().Infof("Error getting release status for %s", h.ReleaseName)
 	}
-	if !isDeployed {
-		cleanupLatestSecret(context, h)
+	if releaseStatus != release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() {
+		cleanupLatestSecret(context, h, true)
 	}
 
 	if h.PreInstallFunc != nil {
@@ -328,19 +329,36 @@ func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 	return nil
 }
 
-func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent) {
+func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent, isInstall bool) {
 	secretList := &v1.SecretList{}
 	context.Client().List(ctx.TODO(), secretList, &clipkg.ListOptions{
 		Namespace: h.ChartNamespace,
 	})
 
-	secretListItems := secretList.Items
-	sort.Slice(secretListItems, func(i, j int) bool {
-		return (secretListItems[i].CreationTimestamp.Time).After(secretListItems[j].CreationTimestamp.Time)
+	filteredHelmSecrets := []v1.Secret{}
+	for _, eachSecret := range secretList.Items {
+		if eachSecret.Type == "helm.sh/release.v1" { // Filter only helm release type secrets
+			filteredHelmSecrets = append(filteredHelmSecrets, eachSecret)
+		}
+	}
+	// Sort the secrets based on CreationTimeStamp; latest ones first
+	sort.Slice(filteredHelmSecrets, func(i, j int) bool {
+		return (filteredHelmSecrets[i].CreationTimestamp.Time).After(filteredHelmSecrets[j].CreationTimestamp.Time)
 	})
 
-	latestSecret := secretListItems[0] //Delete the latest created secret sorted based on creationTimeStamp
-	context.Client().Delete(ctx.TODO(), &latestSecret)
+	// When there is only one secret AND if it's preInstall we delete the secret
+	if len(filteredHelmSecrets) == 1 && isInstall {
+		context.Log().Infof("Deleting secret %s", filteredHelmSecrets[0])
+		if err := context.Client().Delete(ctx.TODO(), &filteredHelmSecrets[0]); err != nil {
+			context.Log().Errorf("Error deleting secret %s", filteredHelmSecrets[0])
+		}
+		context.Log().Infof("Deleted secret completed")
+	} else if len(filteredHelmSecrets) > 1 { // When there are more than one secret, delete the latest one to keep the helm installation going
+		latestSecret := filteredHelmSecrets[0]
+		context.Log().Infof("Deleting secret %s", latestSecret)
+		context.Client().Delete(ctx.TODO(), &latestSecret)
+		context.Log().Infof("Deleted secret completed")
+	}
 }
 
 func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
@@ -376,7 +394,7 @@ func (h HelmComponent) PreUninstall(context spi.ComponentContext) error {
 		context.Log().Infof("Error getting release status for %s", h.ReleaseName)
 	}
 	if !isDeployed {
-		cleanupLatestSecret(context, h)
+		cleanupLatestSecret(context, h, false)
 	}
 	return nil
 }
@@ -471,7 +489,7 @@ func (h HelmComponent) PreUpgrade(context spi.ComponentContext) error {
 		context.Log().Infof("Error getting release status for %s", h.ReleaseName)
 	}
 	if !isDeployed {
-		cleanupLatestSecret(context, h)
+		cleanupLatestSecret(context, h, false)
 	}
 	return nil
 }
