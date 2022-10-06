@@ -70,7 +70,10 @@ test-platform-operator-install-logs:
 	kubectl logs -f -n default $(shell kubectl get pods -n default --no-headers | grep "^verrazzano-install-" | cut -d ' ' -f 1)
 
 .PHONY: precommit
-precommit: precommit-check precommit-build unit-test
+precommit: precommit-check precommit-build unit-test-coverage
+
+.PHONY: precommit-nocover
+precommit-nocover: precommit-check precommit-build unit-test
 
 .PHONY: precommit-check
 precommit-check: check check-tests copyright-check
@@ -78,6 +81,14 @@ precommit-check: check check-tests copyright-check
 .PHONY: precommit-build
 precommit-build:
 	go build ./...
+
+.PHONY: unit-test-coverage
+unit-test-coverage:
+	${SCRIPT_DIR}/coverage.sh html
+
+.PHONY: unit-test
+unit-test:
+	go test $$(go list ./... | grep -Ev /tests/e2e)
 
 #
 #  Compliance check targets
@@ -121,7 +132,3 @@ check-eventually: check-eventually-test ## check for correct use of Gomega Event
 .PHONY: check-eventually-test
 check-eventually-test: ## run tests for Gomega Eventually checker
 	(cd tools/eventually-checker; go test .)
-
-.PHONY: unit-tests
-unit-test:
-	go test $$(go list ./... | grep -v /tests/e2e) 
