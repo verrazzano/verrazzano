@@ -208,7 +208,7 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-//Install
+// Install
 /* Installs the Helm chart, and patches the resulting objects
 - ensure Helm chart is installed
 - Patch Rancher deployment with MKNOD capability
@@ -315,6 +315,11 @@ func (r rancherComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	log := ctx.Log()
+
+	// Rancher upgrade workaround for rancher-charts versions in config map not being updated (VZ-7053)
+	if err := chartsNotUpdatedWorkaround(c, log); err != nil {
+		return err
+	}
 	err := activateDrivers(log, c)
 	if err != nil {
 		return err

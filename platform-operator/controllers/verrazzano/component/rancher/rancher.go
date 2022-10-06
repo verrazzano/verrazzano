@@ -7,9 +7,13 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
+
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	"strings"
+	appsv1 "k8s.io/api/apps/v1"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -235,13 +239,6 @@ func isRancherReady(ctx spi.ComponentContext) bool {
 	log := ctx.Log()
 	c := ctx.Client()
 
-	// Temporary work around for Rancher issue 36914
-	err := checkRancherUpgradeFailureFunc(c, log)
-	if err != nil {
-		log.ErrorfThrottled("Error checking Rancher pod logs: %s", err.Error())
-		return false
-	}
-
 	deployments := []types.NamespacedName{
 		{
 			Name:      ComponentName,
@@ -267,6 +264,36 @@ func isRancherReady(ctx spi.ComponentContext) bool {
 
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return ready.DeploymentsAreReady(log, c, deployments, 1, prefix)
+}
+
+// chartsNotUpdatedWorkaround - workaround for VZ-7053, where some of the Helm charts are not
+// getting updated after Rancher upgrade. This workaround will delete the clusterrepo resources and
+// rollout the Rancher deployment. NOTE - it will only work if this is called after the upgraded
+// Rancher pods are ready e.g. in PostUpgrade
+func chartsNotUpdatedWorkaround(c client.Client, log vzlog.VerrazzanoLogger) error {
+	err := deleteClusterRepos(log)
+	if err != nil {
+		return err
+	}
+	return restartRancherDeployment(c, log)
+}
+
+// restartRancherDeployment restarts the Rancher deployment by updating an annotation value
+func restartRancherDeployment(c client.Client, log vzlog.VerrazzanoLogger) error {
+	deployment := appsv1.Deployment{}
+	namespacedName := types.NamespacedName{Name: common.RancherName, Namespace: common.CattleSystem}
+	if err := c.Get(context.TODO(), namespacedName, &deployment); err != nil {
+		return err
+	}
+	if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+		deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+	}
+	deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = strconv.Itoa(int(deployment.Generation))
+	if err := c.Update(context.TODO(), &deployment); err != nil {
+		return log.ErrorfNewErr("Rancher restart deployment: Failed, error updating deployment %s annotation to force a pod restart", deployment.Name)
+	}
+	log.Oncef("Rancher restart deployment: Finished restarting Rancher deployment to work around upgrade not updating helm chart versions")
+	return nil
 }
 
 // checkRancherUpgradeFailure - temporary work around for Rancher issue 36914. During an upgrade, the Rancher pods
@@ -364,12 +391,12 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 
 	config, err := ctrl.GetConfig()
 	if err != nil {
-		log.Debugf("Rancher IsReady: Failed getting config: %v", err)
+		log.Debugf("Rancher deleteClusterRepos: Failed getting config: %v", err)
 		return err
 	}
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
-		log.Debugf("Rancher IsReady: Failed creating dynamic client: %v", err)
+		log.Debugf("Rancher deleteClusterRepos: Failed creating dynamic client: %v", err)
 		return err
 	}
 
@@ -387,26 +414,26 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 		return nil
 	}
 	if err != nil {
-		log.Debugf("Rancher IsReady: Failed getting settings.management.cattle.io %s: %v", name, err)
+		log.Debugf("Rancher deleteClusterRepos: Failed getting settings.management.cattle.io %s: %v", name, err)
 		return err
 	}
 
 	// Obtain the name of the default branch from the custom resource
 	defaultBranch, _, err := unstructured.NestedString(chartDefaultBranch.Object, "default")
 	if err != nil {
-		log.Debugf("Rancher IsReady: Failed to find default branch value in settings.management.cattle.io %s: %v", name, err)
+		log.Debugf("Rancher deleteClusterRepos: Failed to find default branch value in settings.management.cattle.io %s: %v", name, err)
 		return err
 	}
 
-	log.Infof("Rancher IsReady: The default release branch is currently set to %s", defaultBranch)
+	log.Infof("Rancher deleteClusterRepos: The default release branch is currently set to %s", defaultBranch)
 
 	// Delete settings.management.cattle.io chart-default-branch
 	err = dynamicClient.Resource(gvr).Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		log.Debugf("Rancher IsReady: Failed deleting settings.management.cattle.io %s: %v", name, err)
+		log.Debugf("Rancher deleteClusterRepos: Failed deleting settings.management.cattle.io %s: %v", name, err)
 		return err
 	}
-	log.Infof("Rancher IsReady: Deleted settings.management.cattle.io %s", name)
+	log.Infof("Rancher deleteClusterRepos: Deleted settings.management.cattle.io %s", name)
 
 	// Reconfigure the GVR
 	gvr = schema.GroupVersionResource{
@@ -420,10 +447,10 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 	for _, name := range names {
 		err = dynamicClient.Resource(gvr).Delete(context.TODO(), name, metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(err) {
-			log.Debugf("Rancher IsReady: Failed deleting clusterrepos.catalog.cattle.io %s: %v", name, err)
+			log.Debugf("Rancher deleteClusterRepos: Failed deleting clusterrepos.catalog.cattle.io %s: %v", name, err)
 			return err
 		}
-		log.Infof("Rancher IsReady: Deleted clusterrepos.catalog.cattle.io %s", name)
+		log.Infof("Rancher deleteClusterRepos: Deleted clusterrepos.catalog.cattle.io %s", name)
 	}
 
 	return nil
