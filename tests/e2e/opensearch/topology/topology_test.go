@@ -297,7 +297,7 @@ func copySecret(secretName, src, dest string) error {
 	return err
 }
 
-//Verify that heap max and min settings in config/jvm.options file are same as OPENSEARCH_JAVA_OPTS env variable
+// Verify that heap max and min settings in config/jvm.options file are same as OPENSEARCH_JAVA_OPTS env variable
 func verifyHeapSettings(pod corev1.Pod) error {
 	containerName := ""
 	validContainerNames := []string{vmoConfig.ElasticsearchMaster.Name, vmoConfig.ElasticsearchData.Name, vmoConfig.ElasticsearchIngest.Name}
