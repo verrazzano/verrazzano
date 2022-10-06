@@ -113,7 +113,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			tracker.vzState = reconcileInstallComponents
 
 		case reconcileStartInstall:
-			if err := r.updateComponentStatus(spiCtx, "Install started", vzapi.CondInstallStarted); err != nil {
+			if err := r.setInstallingState(vzctx.Log, spiCtx.ActualCR()); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
 			tracker.vzState = reconcileInstallComponents
