@@ -4,7 +4,6 @@
 package rancher
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"strconv"
@@ -28,7 +27,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
-	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,29 +34,51 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // checkRancherUpgradeFailureSig is a function needed for unit test override
-type checkRancherUpgradeFailureSig func(c client.Client, log vzlog.VerrazzanoLogger) (err error)
+// type checkRancherUpgradeFailureSig func(c client.Client, log vzlog.VerrazzanoLogger) (err error)
+
+// chartsNotUpdatedWorkaroundSig is a function needed for unit test override
+type chartsNotUpdatedWorkaroundSig func(c client.Client, log vzlog.VerrazzanoLogger) (err error)
 
 // checkRancherUpgradeFailureFunc is the default checkRancherUpgradeFailure function
-var checkRancherUpgradeFailureFunc checkRancherUpgradeFailureSig = checkRancherUpgradeFailure
+// var checkRancherUpgradeFailureFunc checkRancherUpgradeFailureSig = checkRancherUpgradeFailure
+
+// checkRancherUpgradeFailureFunc is the default checkRancherUpgradeFailure function
+var chartsNotUpdatedWorkaroundFunc chartsNotUpdatedWorkaroundSig = chartsNotUpdatedWorkaround
 
 // fakeCheckRancherUpgradeFailure is the fake checkRancherUpgradeFailure function needed for unit testing
-func fakeCheckRancherUpgradeFailure(_ client.Client, _ vzlog.VerrazzanoLogger) (err error) {
+/*func fakeCheckRancherUpgradeFailure(_ client.Client, _ vzlog.VerrazzanoLogger) (err error) {
+	return nil
+}*/
+
+// fakeChartsNotUpdatedWorkaround is the fake chartsNotUpdatedWorkaround function needed for unit testing
+func fakeChartsNotUpdatedWorkaround(_ client.Client, _ vzlog.VerrazzanoLogger) (err error) {
 	return nil
 }
 
+/*
 func SetFakeCheckRancherUpgradeFailureFunc() {
 	checkRancherUpgradeFailureFunc = fakeCheckRancherUpgradeFailure
 }
+*/
 
+/*
 func SetDefaultCheckRancherUpgradeFailureFunc() {
 	checkRancherUpgradeFailureFunc = checkRancherUpgradeFailure
+}
+*/
+
+func SetFakeChartsNotUpdatedWorkaroundFunc() {
+	chartsNotUpdatedWorkaroundFunc = fakeChartsNotUpdatedWorkaround
+}
+
+func SetDefaultChartsNotUpdatedWorkaroundFunc() {
+	chartsNotUpdatedWorkaroundFunc = chartsNotUpdatedWorkaround
 }
 
 // Constants for Kubernetes resource names
@@ -301,7 +321,7 @@ func restartRancherDeployment(c client.Client, log vzlog.VerrazzanoLogger) error
 // acquire leader and recreate the downloaded helm charts it requires.
 //
 // If one of the Rancher pods is failing to find the rancher-webhook, recycle that pod.
-func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) error {
+/*func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) error {
 	ctx := context.TODO()
 
 	// Get the Rancher pods
@@ -381,7 +401,7 @@ func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) err
 	}
 
 	return nil
-}
+}*/
 
 // deleteClusterRepos - temporary work around for Rancher issue 36914. On upgrade of Rancher
 // the setting of useBundledSystemChart does not appear to be honored, and the downloaded

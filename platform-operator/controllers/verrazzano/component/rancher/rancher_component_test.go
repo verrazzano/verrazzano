@@ -219,8 +219,8 @@ func TestIsReady(t *testing.T) {
 		},
 	).Build()
 
-	SetFakeCheckRancherUpgradeFailureFunc()
-	defer SetDefaultCheckRancherUpgradeFailureFunc()
+	// SetFakeCheckRancherUpgradeFailureFunc()
+	// defer SetDefaultCheckRancherUpgradeFailureFunc()
 	var tests = []struct {
 		testName string
 		ctx      spi.ComponentContext
@@ -265,7 +265,9 @@ func TestPostInstall(t *testing.T) {
 func TestPostUpgrade(t *testing.T) {
 	component := NewComponent()
 	ctxWithoutIngress, ctxWithIngress := prepareContexts()
-	assert.Error(t, component.PostUpgrade(ctxWithoutIngress))
+	SetFakeChartsNotUpdatedWorkaroundFunc()
+	defer SetDefaultChartsNotUpdatedWorkaroundFunc()
+	assert.Nil(t, component.PostUpgrade(ctxWithoutIngress))
 	assert.Nil(t, component.PostUpgrade(ctxWithIngress))
 }
 
