@@ -30,17 +30,6 @@ spec:
             - containerPort: 9100
               name: http-metric
               protocol: TCP
-          startupProbe:
-            httpGet:
-              path: /validate-install-verrazzano-io-v1alpha1-verrazzano
-              port: 9443
-              scheme: HTTPS
-              httpHeaders:
-                - name: Content-Type
-                  value: application/json
-            periodSeconds: 5
-            timeoutSeconds: 3
-            failureThreshold: 15
           args:
             - --zap-log-level=info
             - --enable-webhook-validation=true
