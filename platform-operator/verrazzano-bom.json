@@ -244,7 +244,7 @@
             },
             {
               "image": "prometheus",
-              "tag": "v2.34.0-1",
+              "tag": "v2.34.0-20221006134013-1af10466",
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
@@ -458,7 +458,7 @@
     },
     {
       "name": "prometheus-operator",
-      "version": "0.55.0",
+      "version": "0.55.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -466,7 +466,7 @@
           "images": [
             {
               "image": "prometheus-operator",
-              "tag": "v0.55.1-20220809181134-615042e9",
+              "tag": "v0.55.1-20221006133233-f9453d30",
               "helmFullImageKey": "prometheusOperator.image.repository",
               "helmTagKey": "prometheusOperator.image.tag"
             },
@@ -484,7 +484,7 @@
           "images": [
             {
               "image": "prometheus-config-reloader",
-              "tag": "v0.55.1-20220809181134-615042e9",
+              "tag": "v0.55.1-20221006133233-f9453d30",
               "helmFullImageKey": "prometheusOperator.prometheusConfigReloader.image.repository",
               "helmTagKey": "prometheusOperator.prometheusConfigReloader.image.tag"
             }
@@ -508,7 +508,7 @@
           "images": [
             {
               "image": "prometheus",
-              "tag": "v2.34.0-20220809191930-6df068d2",
+              "tag": "v2.34.0-20221006134013-1af10466",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
             }
@@ -576,7 +576,7 @@
           "images": [
             {
               "image": "node-exporter",
-              "tag": "v1.3.1-20220809160001-ed1baa61",
+              "tag": "v1.3.1-20221006133310-12cfdc66",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
