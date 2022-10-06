@@ -6,7 +6,6 @@ package helm
 import (
 	"encoding/json"
 	"fmt"
-	"helm.sh/helm/v3/pkg/release"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -26,7 +25,6 @@ var runner vzos.CmdRunner = vzos.DefaultRunner{}
 // Helm chart status values: unknown, deployed, uninstalled, superseded, failed, uninstalling, pending-install, pending-upgrade or pending-rollback
 const ChartNotFound = "NotFound"
 const ChartStatusDeployed = "deployed"
-const ChartStatusUninstalled = "uninstalled"
 const ChartStatusPendingInstall = "pending-install"
 const ChartStatusFailed = "failed"
 
@@ -296,29 +294,10 @@ func GetReleaseStatus(releaseName string, namespace string) (status string, err 
 		log.Errorf("Getting status for chart %s/%s failed with stderr: %v\n", namespace, releaseName, err)
 		return "", err
 	}
-	switch releaseStatus {
-	case ChartNotFound:
+	if releaseStatus == ChartNotFound {
 		log.Debugf("Chart %s/%s not found", namespace, releaseName)
-	case release.StatusSuperseded.String():
-		return release.StatusSuperseded.String(), nil
-	case release.StatusDeployed.String():
-		return release.StatusDeployed.String(), nil
-	case release.StatusFailed.String():
-		return release.StatusFailed.String(), nil
-	case release.StatusPendingInstall.String():
-		return release.StatusPendingInstall.String(), nil
-	case release.StatusPendingRollback.String():
-		return release.StatusPendingRollback.String(), nil
-	case release.StatusPendingUpgrade.String():
-		return release.StatusPendingUpgrade.String(), nil
-	case release.StatusUninstalled.String():
-		return release.StatusUninstalled.String(), nil
-	case release.StatusUninstalling.String():
-		return release.StatusUninstalling.String(), nil
-	case release.StatusUnknown.String():
-		return release.StatusUnknown.String(), nil
 	}
-	return "", nil
+	return releaseStatus, nil
 }
 
 // IsReleaseInstalled returns true if the release is installed
