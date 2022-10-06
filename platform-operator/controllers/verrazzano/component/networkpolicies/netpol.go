@@ -7,7 +7,6 @@ import (
 	"context"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"io/fs"
-	"io/ioutil"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -66,7 +65,7 @@ var netpolNamespaceNames []types.NamespacedName = []types.NamespacedName{
 
 var (
 	// For Unit test purposes
-	writeFileFunc = ioutil.WriteFile
+	writeFileFunc = os.WriteFile
 )
 
 //func resetWriteFileFunc() {

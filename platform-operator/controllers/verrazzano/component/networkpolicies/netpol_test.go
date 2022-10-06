@@ -14,8 +14,9 @@ import (
 )
 
 // GIVEN a ComponentContext and empty KeyValue array
-//  WHEN the appendOverrides function is called
-//  THEN we expect a single KeyValue item is added to the KeyValue array
+//
+//	WHEN the appendOverrides function is called
+//	THEN we expect a single KeyValue item is added to the KeyValue array
 func TestAppendOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false)
 	kvs := []bom.KeyValue{}

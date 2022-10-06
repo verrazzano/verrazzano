@@ -4,7 +4,7 @@
 package profiles
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -74,7 +74,7 @@ func TestMergeSpec(t *testing.T) {
 			err = yaml.Unmarshal([]byte(merged), &vzMerged)
 			assert.NoError(t, err, "Error marshalling merged results into VZ struct")
 
-			expected, err := ioutil.ReadFile(filepath.Join(test.expected))
+			expected, err := os.ReadFile(filepath.Join(test.expected))
 			assert.NoError(t, err, "error reading mergedCR results file")
 			vzExpected := v1alpha1.Verrazzano{}
 			err = yaml.Unmarshal(expected, &vzExpected)
@@ -167,7 +167,7 @@ func TestAppendComponentOverridesForV1beta1(t *testing.T) {
 
 // Create VerrazzanoSpec from profile
 func readProfile(filename string) (*v1alpha1.Verrazzano, error) {
-	specYaml, err := ioutil.ReadFile(filepath.Join(filename))
+	specYaml, err := os.ReadFile(filepath.Join(filename))
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +181,7 @@ func readProfile(filename string) (*v1alpha1.Verrazzano, error) {
 
 // Create VerrazzanoSpec from profile
 func readProfileForV1beta1(filename string) (*v1beta1.Verrazzano, error) {
-	specYaml, err := ioutil.ReadFile(filepath.Join(filename))
+	specYaml, err := os.ReadFile(filepath.Join(filename))
 	if err != nil {
 		return nil, err
 	}

@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"k8s.io/client-go/dynamic"
 	"net/http"
 	"strings"
@@ -105,13 +104,13 @@ func (rc *FakeRootCmdContext) GetHTTPClient() *http.Client {
 			if strings.Contains(req.URL.Path, "/releases/download") {
 				return &http.Response{
 					StatusCode: http.StatusOK,
-					Body:       ioutil.NopCloser(bytes.NewBuffer(jsonOperResp)),
+					Body:       io.NopCloser(bytes.NewBuffer(jsonOperResp)),
 					Header:     http.Header{"Content-Type": {"application/json"}},
 				}
 			}
 			return &http.Response{
 				StatusCode: http.StatusOK,
-				Body:       ioutil.NopCloser(bytes.NewBuffer(jsonResp)),
+				Body:       io.NopCloser(bytes.NewBuffer(jsonResp)),
 				Header:     http.Header{"Content-Type": {"application/json"}},
 			}
 		}),

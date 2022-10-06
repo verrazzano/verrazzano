@@ -3,10 +3,10 @@
 
 linters-settings:
   staticcheck:
-    go: "1.17"
-    checks: ["SA1012"]
+    go: "1.19"
+    checks: ["SA1012","SA1019"]
   stylecheck:
-    go: "1.17"
+    go: "1.19"
     checks: ["ST1019"]
 
 linters:

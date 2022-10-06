@@ -231,7 +231,8 @@ func TestLogFormat(t *testing.T) {
 // TestMultipleContexts tests the EnsureContext and DeleteLogContext
 // WHEN EnsureContext is called multiple times
 // THEN ensure that the context map has an entry for each context and that
-//   the context map is empty when they the contexts are deleted
+//
+//	the context map is empty when they the contexts are deleted
 func TestMultipleContexts(t *testing.T) {
 	const rKey1 = "k1"
 	const rKey2 = "k2"

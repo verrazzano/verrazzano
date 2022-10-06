@@ -12,7 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
-	"io/ioutil"
+	"io"
 	corev1 "k8s.io/api/core/v1"
 	"os"
 	"regexp"
@@ -317,7 +317,7 @@ func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string
 		return compsNotReady, err
 	}
 	defer file.Close()
-	fileBytes, err := ioutil.ReadAll(file)
+	fileBytes, err := io.ReadAll(file)
 	if err != nil {
 		log.Infof("Failed reading Json file %s", vzResourcesPath)
 		return compsNotReady, err

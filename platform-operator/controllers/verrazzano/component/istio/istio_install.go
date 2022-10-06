@@ -6,7 +6,6 @@ package istio
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -83,7 +82,7 @@ type installRoutineParams struct {
 	log           vzlog.VerrazzanoLogger
 }
 
-//installMonitor - Represents a monitor object used by the component to monitor a background goroutine used for running
+// installMonitor - Represents a monitor object used by the component to monitor a background goroutine used for running
 // istioctl install operations asynchronously.
 type installMonitor interface {
 	// checkResult - Checks for a result from the install goroutine; returns either the result of the operation, or an error indicating
@@ -97,7 +96,7 @@ type installMonitor interface {
 	run(args installRoutineParams)
 }
 
-//checkResult - checks for a result from the goroutine
+// checkResult - checks for a result from the goroutine
 // - returns false and a retry error if it's still running, or the result from the channel and nil if an answer was received
 func (m *installMonitorType) checkResult() (bool, error) {
 	select {
@@ -108,19 +107,19 @@ func (m *installMonitorType) checkResult() (bool, error) {
 	}
 }
 
-//reset - reset the monitor and close the channel
+// reset - reset the monitor and close the channel
 func (m *installMonitorType) reset() {
 	m.running = false
 	close(m.resultCh)
 	close(m.inputCh)
 }
 
-//isRunning - returns true of the monitor/goroutine are active
+// isRunning - returns true of the monitor/goroutine are active
 func (m *installMonitorType) isRunning() bool {
 	return m.running
 }
 
-//run - Run the install in a goroutine
+// run - Run the install in a goroutine
 func (m *installMonitorType) run(args installRoutineParams) {
 	m.running = true
 	m.resultCh = make(chan bool, 2)
@@ -173,7 +172,7 @@ func (i istioComponent) IsInstalled(compContext spi.ComponentContext) (bool, err
 	return true, nil
 }
 
-//Install - istioComponent install
+// Install - istioComponent install
 //
 // This utilizes the istioctl utility for install, which blocks during the entire installation process.  This can
 // take up to several minutes and block the controller.  For now, we launch the install operation in a goroutine
@@ -218,7 +217,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 	return forkInstallFunc(compContext, i.monitor, overrideStrings, istioTempFiles)
 }
 
-//forkInstall - istioctl install blocks, fork it into the background
+// forkInstall - istioctl install blocks, fork it into the background
 func forkInstall(compContext spi.ComponentContext, monitor installMonitor, overrideStrings string, files []string) error {
 	log := compContext.Log()
 	log.Debugf("Creating background install goroutine for Istio")
@@ -375,7 +374,7 @@ func createPeerAuthentication(compContext spi.ComponentContext) error {
 
 // createTempFile creates an Istio temp file and returns the name
 func createTempFile(log vzlog.VerrazzanoLogger, data string) (string, error) {
-	file, err := ioutil.TempFile(os.TempDir(), istioTmpFileCreatePattern)
+	file, err := os.CreateTemp(os.TempDir(), istioTmpFileCreatePattern)
 	if err != nil {
 		return "", log.ErrorfNewErr("Failed to create temporary file for Istio install: %v", err)
 	}

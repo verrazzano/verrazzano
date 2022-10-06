@@ -61,8 +61,9 @@ func createKeycloakAuthConfig() unstructured.Unstructured {
 
 // TestGetAdminSecret tests retrieving the Rancher admin secret value
 // GIVEN a client
-//  WHEN GetAdminSecret is called with a client that has an admin secret in cluster
-//  THEN GetAdminSecret should return the value of the Rancher admin secret
+//
+//	WHEN GetAdminSecret is called with a client that has an admin secret in cluster
+//	THEN GetAdminSecret should return the value of the Rancher admin secret
 func TestGetAdminSecret(t *testing.T) {
 	secret := createAdminSecret()
 	var tests = []struct {
@@ -96,8 +97,9 @@ func TestGetAdminSecret(t *testing.T) {
 
 // TestGetRancherTLSRootCA tests retrieving the Rancher CA certificate
 // GIVEN a client
-//  WHEN GetRootCA is called with a client that has an CA secret in cluster
-//  THEN GetRootCA should return the value of the Rancher CA secret
+//
+//	WHEN GetRootCA is called with a client that has an CA secret in cluster
+//	THEN GetRootCA should return the value of the Rancher CA secret
 func TestGetRancherTLSRootCA(t *testing.T) {
 	secret := createRootCASecret()
 	var tests = []struct {

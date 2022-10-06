@@ -318,8 +318,9 @@ func TestAppendMySQLOverridesUpgrade(t *testing.T) {
 
 // TestIsMySQLReady tests the isMySQLReady function
 // GIVEN a call to isMySQLReady
-//  WHEN the deployment object has enough replicas available
-//  THEN true is returned
+//
+//	WHEN the deployment object has enough replicas available
+//	THEN true is returned
 func TestIsMySQLReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
@@ -362,8 +363,9 @@ func TestIsMySQLReady(t *testing.T) {
 
 // TestIsMySQLNotReady tests the isMySQLReady function
 // GIVEN a call to isMySQLReady
-//  WHEN the deployment object does NOT have enough replicas available
-//  THEN false is returned
+//
+//	WHEN the deployment object does NOT have enough replicas available
+//	THEN false is returned
 func TestIsMySQLNotReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -395,16 +397,18 @@ func TestSQLFileCreatedAndRemoved(t *testing.T) {
 
 // TestIsEnabledNilComponent tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is nil
-//  THEN false is returned
+//
+//	WHEN The Keycloak component is nil
+//	THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesDir).EffectiveCR()))
 }
 
 // TestIsEnabledNilKeycloak tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is nil
-//  THEN true is returned
+//
+//	WHEN The Keycloak component is nil
+//	THEN true is returned
 func TestIsEnabledNilKeycloak(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -413,8 +417,9 @@ func TestIsEnabledNilKeycloak(t *testing.T) {
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component enabled is nil
-//  THEN true is returned
+//
+//	WHEN The Keycloak component enabled is nil
+//	THEN true is returned
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = nil
@@ -423,8 +428,9 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 
 // TestIsEnabledExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is explicitly enabled
-//  THEN true is returned
+//
+//	WHEN The Keycloak component is explicitly enabled
+//	THEN true is returned
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(true)
@@ -433,8 +439,9 @@ func TestIsEnabledExplicit(t *testing.T) {
 
 // TestIsDisableExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is explicitly disabled
-//  THEN false is returned
+//
+//	WHEN The Keycloak component is explicitly disabled
+//	THEN false is returned
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(false)
@@ -443,8 +450,9 @@ func TestIsDisableExplicit(t *testing.T) {
 
 // TestIsEnabledManagedClusterProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and managed cluster profile
-//  THEN false is returned
+//
+//	WHEN The Keycloak enabled flag is nil and managed cluster profile
+//	THEN false is returned
 func TestIsEnabledManagedClusterProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -454,8 +462,9 @@ func TestIsEnabledManagedClusterProfile(t *testing.T) {
 
 // TestIsEnabledProdProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and prod profile
-//  THEN false is returned
+//
+//	WHEN The Keycloak enabled flag is nil and prod profile
+//	THEN false is returned
 func TestIsEnabledProdProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -465,8 +474,9 @@ func TestIsEnabledProdProfile(t *testing.T) {
 
 // TestIsEnabledDevProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and dev profile
-//  THEN false is returned
+//
+//	WHEN The Keycloak enabled flag is nil and dev profile
+//	THEN false is returned
 func TestIsEnabledDevProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
