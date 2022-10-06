@@ -6,7 +6,6 @@ package helpers
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-	"io/ioutil"
 	"os"
 	"testing"
 )
@@ -17,7 +16,7 @@ import (
 //	WHEN I call function CreateReportArchive with a report file
 //	THEN expect it to create the report file
 func TestCreateReportArchive(t *testing.T) {
-	tmpDir, _ := ioutil.TempDir("", "bug-report")
+	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer os.RemoveAll(tmpDir)
 
 	captureDir := tmpDir + string(os.PathSeparator) + "test-report"

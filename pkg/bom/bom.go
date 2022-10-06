@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -130,7 +129,7 @@ type KeyValue struct {
 
 // Create a new BOM instance from a JSON file
 func NewBom(bomPath string) (Bom, error) {
-	jsonBom, err := ioutil.ReadFile(bomPath)
+	jsonBom, err := os.ReadFile(bomPath)
 	if err != nil {
 		return Bom{}, err
 	}

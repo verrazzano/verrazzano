@@ -6,7 +6,7 @@ package pkg
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -68,7 +68,7 @@ func GetRancherAdminToken(log *zap.SugaredLogger, httpClient *retryablehttp.Clie
 	defer response.Body.Close()
 
 	// extract the response body
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Errorf("Failed to read Rancher token response: %v", err)
 		return ""
