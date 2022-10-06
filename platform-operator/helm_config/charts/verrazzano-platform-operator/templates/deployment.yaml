@@ -33,7 +33,7 @@ spec:
           startupProbe:
             httpGet:
               path: /validate-install-verrazzano-io-v1alpha1-verrazzano
-              port: webhook
+              port: 9443
               scheme: HTTPS
               httpHeaders:
                 - name: Content-Type
