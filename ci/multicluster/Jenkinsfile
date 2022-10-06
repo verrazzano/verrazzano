@@ -35,7 +35,6 @@ pipeline {
 
     parameters {
         booleanParam (description: 'Whether to use External Elasticsearch', name: 'EXTERNAL_ELASTICSEARCH', defaultValue: false)
-        booleanParam (description: 'Whether to upgrade Verrazzano', name: 'UPGRADE_VERRAZZANO', defaultValue: false)
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
         choice (description: 'Verrazzano Test Environment', name: 'TEST_ENV',
                 choices: ["KIND", "magicdns_oke", "ocidns_oke"])
@@ -54,11 +53,7 @@ pipeline {
         choice (name: 'KIND_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KIND Cluster',
                 // 1st choice is the default value
-                choices: [ "1.20", "1.21", "1.22", "1.23", "1.24" ])
-        string (name: 'VERSION_FOR_INSTALL',
-                defaultValue: 'v1.1.2',
-                description: 'This is the Verrazzano version for install before doing an upgrade.  By default, the v1.0.2 release will be installed',
-                trim: true)
+                choices: [ "1.21", "1.22", "1.23", "1.24" ])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -154,6 +149,8 @@ pipeline {
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
         OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
+
+        OPERATOR_YAML_FILE = "${WORKSPACE}/acceptance-test-operator.yaml"
 
         INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-vz-prod-kind-upgrade.yaml"
         INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-ocidns.yaml"
@@ -295,7 +292,7 @@ pipeline {
                         echo "Downloading VZ CLI from object storage"
                         oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
                         tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
-                        ${GO_REPO_PATH}/vz version
+                        ${VZ_COMMAND} version
                     """
                 }
             }
@@ -438,40 +435,11 @@ pipeline {
                         runGinkgoRandomize('metrics/syscomponents')
                     }
                 }
-                stage("upgrade-platform-operator") {
-                    when { expression { return params.UPGRADE_VERRAZZANO == true } }
-                    steps {
-                        upgradePlatformOperator()
-                    }
-                }
-                stage("upgrade-verrazzano") {
-                    when { expression { return params.UPGRADE_VERRAZZANO == true } }
-                    steps {
-                        upgradeVerrazzano()
-                    }
-                }
             }
             post {
                 failure {
                     script {
                         dumpK8sCluster("${WORKSPACE}/multicluster-install-cluster-snapshot")
-                    }
-                }
-            }
-        }
-
-        stage('Verify Upgrade') {
-            when { expression { return params.UPGRADE_VERRAZZANO == true } }
-            // Rerun some stages to verify the upgrade
-            steps {
-                script {
-                    parallel verifyUpgrade()
-                }
-            }
-            post {
-                failure {
-                    script {
-                        dumpK8sCluster("${WORKSPACE}/multicluster-verify-upgrade-cluster-snapshot")
                     }
                 }
             }
@@ -793,23 +761,15 @@ def installKindCluster(count, metallbAddressRange, cleanupKindContainers, connec
 // using the specific operator image provided by the user.
 def getVerrazzanoOperatorYaml() {
     script {
-        OPERATOR_YAML_FILE=sh(returnStdout: true, script: "ci/scripts/derive_operator_yaml.sh ${params.VERSION_FOR_INSTALL}").trim()
         sh """
             echo "Platform Operator Configuration"
             cd ${GO_REPO_PATH}/verrazzano
             if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
-                if [ "false" == "${params.UPGRADE_VERRAZZANO}" ] ; then
-                    echo "Using the latest branch operator.yaml from object storage because upgrade is disabled for this job"
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-                    cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-                else
-                    echo "Downloading ${OPERATOR_YAML_FILE} for release ${params.VERSION_FOR_INSTALL}"
-                    wget "${OPERATOR_YAML_FILE}" -O ${WORKSPACE}/downloaded-release-operator.yaml
-                    cp ${WORKSPACE}/downloaded-release-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-                fi
+                echo "Downloading operator.yaml from branch ${env.BRANCH_NAME} for commit ${SHORT_COMMIT_HASH}"
+                oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${OPERATOR_YAML_FILE}
             else
                 echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
-                env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${params.VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
+                env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${params.VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${OPERATOR_YAML_FILE}
             fi
         """
     }
@@ -848,106 +808,26 @@ def installVerrazzanoOnCluster(count, verrazzanoConfig) {
 
                 # Display the kubectl and cluster versions
                 kubectl version
+                # Display the VZ CLI version
+                ${VZ_COMMAND} version
 
                 echo "Create Image Pull Secrets"
                 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
                 ./tests/e2e/config/scripts/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
                 ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
 
-                echo "Installing the Verrazzano Platform Operator"
-                kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
-
-                # make sure ns exists
+                # make sure ns exists and create secret in verrazzano-install ns
+                kubectl create namespace verrazzano-install || true
                 ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
-
-                # create secret in verrazzano-install ns
                 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
-
-                echo "Wait for Operator to be ready"
-                cd ${GO_REPO_PATH}/verrazzano
-                kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
 
                 ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/cluster${count}/pre-install-resources
 
-                if [ "false" == "${params.UPGRADE_VERRAZZANO}" ] ; then
-                    # Update VZ CR to enable required components
-                  ./tests/e2e/config/scripts/multicluster_edit_vz.sh ${count} ${verrazzanoConfig}
-                fi
-
-                kubectl apply -f ${verrazzanoConfig}
-
-                # wait for Verrazzano install to complete
-                ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-            """
-        }
-    }
-}
-
-// Upgrade the verrazzano-platform-operator
-def upgradePlatformOperator() {
-    script {
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        for (int count = 1; count <= clusterCount; count++) {
-            def upgradeOperatorFile="${KUBECONFIG_DIR}/${count}/upgrade-operator.yaml"
-            sh """
-                export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
-
-                echo "Upgrading the Verrazzano platform operator"
-                # Download the operator.yaml for the target version that we are upgrading to
-                oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${upgradeOperatorFile}
-                kubectl apply -f ${upgradeOperatorFile}
-
-                # need to sleep since the old operator needs to transition to terminating state
-                sleep 15
-
-                # ensure operator pod is up
-                kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-            """
-        }
-    }
-}
-
-// Upgrade Verrazzano
-def upgradeVerrazzano() {
-    script {
-        // Download the bom for the target version that we are upgrading to, then extract the version
-        // Note, this version will have a semver suffix which is generated for each build, e.g. 1.0.1-33+d592fed6
-        VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "curl https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds-by-commit/o/ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json | jq -r '.version'").trim()
-
-        int clusterCount = params.TOTAL_CLUSTERS.toInteger()
-        for(int count=1; count<=clusterCount; count++) {
-            def v8oInstallFile="${KUBECONFIG_DIR}/${count}/${installerFileName}"
-            def v8oUpgradeFile="${KUBECONFIG_DIR}/${count}/verrazzano-upgrade-cr.yaml"
-            sh """
-                export KUBECONFIG=${KUBECONFIG_DIR}/${count}/kube_config
-
-                # Get the install job in verrazzano-install namespace
-                kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out
-
-                echo "Upgrading the Verrazzano installation to version" $VERRAZZANO_DEV_VERSION
-                # Modify the version field in the Verrazzano CR file to be this new Verrazzano version
-                cd ${GO_REPO_PATH}/verrazzano
-                cp ${v8oInstallFile} ${v8oUpgradeFile}
-                ${TEST_SCRIPTS_DIR}/process_upgrade_yaml.sh  ${VERRAZZANO_DEV_VERSION}  ${v8oUpgradeFile}
-
                 # Update VZ CR to enable required components
-                ./tests/e2e/config/scripts/multicluster_edit_vz.sh ${count} ${v8oUpgradeFile}
+              ./tests/e2e/config/scripts/multicluster_edit_vz.sh ${count} ${verrazzanoConfig}
 
-                # Do the upgrade
-                kubectl apply -f ${v8oUpgradeFile}
-                # wait for the upgrade to complete
-                kubectl wait --timeout=45m --for=condition=UpgradeComplete verrazzano/my-verrazzano
-
-                # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
-                kubectl -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
-
-                echo "Ensuring that the install job(s) in verrazzzano-system are identical pre and post install"
-                cmp -s ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-pre-upgrade-job.out ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/verrazzano-post-upgrade-job.out
-
-                # ideally we don't need to wait here
-                sleep 15
-                echo "helm list : releases across all namespaces, after upgrading Verrazzano installation ..."
-                helm list -A
+                echo "Installing the Verrazzano Platform Operator"
+                time ${VZ_COMMAND} install --operator-file ${OPERATOR_YAML_FILE} -f ${verrazzanoConfig}
             """
         }
     }
@@ -982,7 +862,7 @@ def uninstallVerrazzanoOnCluster(count, verrazzanoConfig) {
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 echo "Deleting \\$verrazzanoConfig"
-                time kubectl delete -f ${verrazzanoConfig}
+                time ${VZ_COMMAND} uninstall
             """
         }
     }
@@ -1390,9 +1270,6 @@ def dumpInstallLogs() {
 
             // This function may run on older versions of Verrazzano that have the logs stored in the default namespace
             def namespace = "verrazzano-install"
-            if (params.VERSION_FOR_INSTALL.startsWith("v1.0.0") || params.VERSION_FOR_INSTALL.startsWith("v1.0.1")) {
-                namespace = "default"
-            }
             sh """
                 ## dump Verrazzano install logs
                 export KUBECONFIG=${KUBECONFIG_DIR}/$count/kube_config
