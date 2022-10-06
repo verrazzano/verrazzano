@@ -108,6 +108,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 				} else {
 					tracker.vzState = reconcileEnd
 				}
+				continue
 			}
 			tracker.vzState = reconcileInstallComponents
 
