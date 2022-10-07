@@ -201,7 +201,8 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 	repo := subcomponent.Repository
 	images := subcomponent.Images
 
-	var envVarYaml string
+	// Start at 1 to avoid overriding the existing extraEnv var
+	envPos := 1
 	for _, image := range images {
 		imEnvVar, ok := imageEnvVars[image.ImageName]
 		// skip the images that are not included in the override map
@@ -211,14 +212,22 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 		fullImageName := fmt.Sprintf("%s/%s", repo, image.ImageName)
 		// For the shell image, we need to combine to one env var
 		if image.ImageName == cattleShellImageName {
-			envVarYaml += fmt.Sprintf("- name: %s\n  value: %s:%s\n", imEnvVar, fullImageName, image.ImageTag)
+			kvs, envPos = createImageEnvVar(kvs, imEnvVar, fmt.Sprintf("%s:%s", fullImageName, image.ImageTag), envPos)
 			continue
 		}
 		tagEnvVar := imEnvVar + "_TAG"
-		envVarYaml += fmt.Sprintf("- name: %s\n  value: %s\n- name: %s\n  value: %s\n", imEnvVar, fullImageName, tagEnvVar, image.ImageTag)
+		kvs, envPos = createImageEnvVar(kvs, imEnvVar, fullImageName, envPos)
+		kvs, envPos = createImageEnvVar(kvs, tagEnvVar, image.ImageTag, envPos)
 	}
+	return kvs, nil
+}
 
-	return append(kvs, bom.KeyValue{Key: "extraEnv", Value: envVarYaml}), nil
+// createImageEnvVar creates and environment override for an image value
+func createImageEnvVar(kvs []bom.KeyValue, name, value string, envPos int) ([]bom.KeyValue, int) {
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].name", envPos), Value: name})
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].value", envPos), Value: value})
+	envPos++
+	return kvs, envPos
 }
 
 // IsEnabled Rancher is always enabled on admin clusters,

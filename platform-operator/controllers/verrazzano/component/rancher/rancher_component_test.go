@@ -53,17 +53,17 @@ func TestAppendRegistryOverrides(t *testing.T) {
 	registry := "foobar"
 	imageRepo := "barfoo"
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 10, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart Overrides
+	assert.Equal(t, 27, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart Overrides
 	_ = os.Setenv(constants.RegistryOverrideEnvVar, registry)
 	kvs, _ = AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 10, len(kvs))
+	assert.Equal(t, 27, len(kvs))
 	v, ok := getValue(kvs, systemDefaultRegistryKey)
 	assert.True(t, ok)
 	assert.Equal(t, registry, v)
 
 	_ = os.Setenv(constants.ImageRepoOverrideEnvVar, imageRepo)
 	kvs, _ = AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 10, len(kvs))
+	assert.Equal(t, 27, len(kvs))
 	v, ok = getValue(kvs, systemDefaultRegistryKey)
 	assert.True(t, ok)
 	assert.Equal(t, fmt.Sprintf("%s/%s", registry, imageRepo), v)
@@ -80,10 +80,10 @@ func TestAppendImageOverrides(t *testing.T) {
 	_ = os.Unsetenv(constants.RegistryOverrideEnvVar)
 	kvs, err := appendImageOverrides(ctx, []bom.KeyValue{})
 	a.Nil(err)
-	a.Equal(len(kvs), 2)
+	a.Equal(19, len(kvs))
 	a.Equal("ghcr.io", kvs[0].Value)
-	a.Equal(kvs[1].Key, "extraEnv")
-	a.Equal(19, len(strings.Split(kvs[1].Value, "\n")))
+	a.Equal("extraEnv[1].name", kvs[1].Key)
+	a.Equal("extraEnv[9].value", kvs[len(kvs)-1].Key)
 }
 
 // TestAppendCAOverrides verifies that CA overrides are added as appropriate for private CAs
