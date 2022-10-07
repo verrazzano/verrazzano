@@ -271,7 +271,7 @@ func TestUpgradeCmdEqualStatusVersion(t *testing.T) {
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "Verrazzano is already at the specified upgrade version of v1.3.4\n", buf.String())
+	assert.Equal(t, "Verrazzano has already been upgraded to version v1.3.4\n", buf.String())
 }
 
 // TestUpgradeCmdLesserSpecVersion

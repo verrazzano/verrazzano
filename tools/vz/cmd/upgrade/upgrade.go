@@ -20,9 +20,10 @@ import (
 )
 
 const (
-	CommandName = "upgrade"
-	helpShort   = "Upgrade Verrazzano"
-	helpLong    = `Upgrade the Verrazzano Platform Operator to the specified version and update all of the currently installed components`
+	CommandName     = "upgrade"
+	helpShort       = "Upgrade Verrazzano"
+	helpLong        = `Upgrade the Verrazzano Platform Operator to the specified version and update all of the currently installed components`
+	alreadyUpgraded = "Verrazzano has already been upgraded to version %s\n"
 )
 
 var helpExample = fmt.Sprintf(`
@@ -104,7 +105,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	} else {
 		// Installed version is already at the upgrade version specified
 		if upgradeVersion.IsEqualTo(vzStatusVersion) {
-			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Verrazzano is already at the specified upgrade version of %s\n", version))
+			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf(alreadyUpgraded, version))
 			return nil
 		}
 	}
@@ -187,7 +188,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return waitForUpgradeToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat)
 	}
 
-	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Verrazzano has already been upgraded to version %s\n", vz.Status.Version))
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf(alreadyUpgraded, vz.Status.Version))
 
 	return nil
 }
