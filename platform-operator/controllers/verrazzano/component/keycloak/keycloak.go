@@ -55,6 +55,9 @@ const (
 	keycloakPodName         = "keycloak-0"
 	realmManagement         = "realm-management"
 	viewUsersRole           = "view-users"
+	noRouterAddr            = "mysql-instances"
+	routerAddr              = "mysql"
+	dbHostKey               = "mysql.dbHost"
 )
 
 // Define the Keycloak Key:Value pair for init container.
@@ -547,7 +550,23 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 		Value: vzconfig.GetIngressClassName(compContext.EffectiveCR()),
 	})
 
+	// set the appropriate host address for DB based on the availability of the MySQL router
+	mysqlAddr := noRouterAddr
+	if isMySQLRouterDeployed(compContext, err) {
+		mysqlAddr = routerAddr
+	}
+	kvs = append(kvs, bom.KeyValue{
+		Key:   dbHostKey,
+		Value: mysqlAddr,
+	})
+
 	return kvs, nil
+}
+
+func isMySQLRouterDeployed(compContext spi.ComponentContext, err error) bool {
+	deployment := appv1.Deployment{}
+	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: "mysql-router"}, &deployment)
+	return err == nil
 }
 
 // getEnvironmentName returns the name of the Verrazzano install environment
@@ -821,7 +840,7 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 	ctx.Log().Debugf("loginKeycloak: Login Cmd = %s", maskPw(loginCmd))
 	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(loginCmd))
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed logging into Keycloak: stdout = %s: stderr = %s", stdOut, stdErr)
+		ctx.Log().Errorf("Component Keycloak failed logging into Keycloak: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, maskPw(err.Error()))
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Once("Component Keycloak successfully logged into Keycloak")
