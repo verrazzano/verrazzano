@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"net/url"
 	"os"
 	"strings"
@@ -47,23 +48,39 @@ func getValue(kvs []bom.KeyValue, key string) (string, bool) {
 //  THEN AppendOverrides should add registry overrides
 func TestAppendRegistryOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzAcmeDev, nil, false)
+	config.SetDefaultBomFilePath("../../testdata/test_bom.json")
 	registry := "foobar"
 	imageRepo := "barfoo"
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 8, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart Overrides
+	assert.Equal(t, 9, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart Overrides
 	_ = os.Setenv(constants.RegistryOverrideEnvVar, registry)
 	kvs, _ = AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 9, len(kvs))
+	assert.Equal(t, 10, len(kvs))
 	v, ok := getValue(kvs, systemDefaultRegistryKey)
 	assert.True(t, ok)
 	assert.Equal(t, registry, v)
 
 	_ = os.Setenv(constants.ImageRepoOverrideEnvVar, imageRepo)
 	kvs, _ = AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 9, len(kvs))
+	assert.Equal(t, 10, len(kvs))
 	v, ok = getValue(kvs, systemDefaultRegistryKey)
 	assert.True(t, ok)
 	assert.Equal(t, fmt.Sprintf("%s/%s", registry, imageRepo), v)
+}
+
+// TestAppendImageOverrides verifies that Rancher image overrides are added
+// GIVEN a Verrazzano CR
+// WHEN appendImageOverrides is called
+// THEN appendImageOverrides should add the image overrides
+func TestAppendImageOverrides(t *testing.T) {
+	a := assert.New(t)
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzapi.Verrazzano{}, nil, false)
+	config.SetDefaultBomFilePath("../../testdata/test_bom.json")
+	kvs, err := appendImageOverrides(ctx, []bom.KeyValue{})
+	a.Nil(err)
+	a.NotEmpty(kvs)
+	a.Equal(kvs[0].Key, "extraEnv")
+	a.Equal(len(strings.Split(kvs[0].Value, "-")), 14)
 }
 
 // TestAppendCAOverrides verifies that CA overrides are added as appropriate for private CAs
@@ -72,6 +89,7 @@ func TestAppendRegistryOverrides(t *testing.T) {
 //  THEN AppendOverrides should add private CA overrides
 func TestAppendCAOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzDefaultCA, nil, false)
+	config.SetDefaultBomFilePath("../../testdata/test_bom.json")
 	kvs, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.Nil(t, err)
 	v, ok := getValue(kvs, ingressTLSSourceKey)

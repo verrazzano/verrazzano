@@ -142,8 +142,7 @@
           ]
         },
         {
-          "registry": "docker.io",
-          "repository": "rancher",
+          "repository": "verrazzano/rancher",
           "name": "additional-rancher",
           "images": [
             {

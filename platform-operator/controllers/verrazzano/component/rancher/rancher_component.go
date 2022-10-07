@@ -41,6 +41,22 @@ const ComponentJSONName = "rancher"
 
 const rancherIngressClassNameKey = "ingress.ingressClassName"
 
+// rancherImageSubcomponent is the name of the subcomponent for the additional Rancher images
+const rancherImageSubcomponent = "additional-rancher"
+
+// cattleShellImageName is the name of the shell image used for
+const cattleShellImageName = "shell"
+
+// Subcomponents for the Rancher images
+// format: imageName: baseEnvVar
+var imageEnvVars = map[string]string{
+	"fleet":           "FLEET_IMAGE",
+	"fleet-agent":     "FLEET_AGENT_IMAGE",
+	"shell":           "CATTLE_SHELL_IMAGE",
+	"rancher-webhook": "RANCHER_WEBHOOK_IMAGE",
+	"gitjob":          "GITJOB_IMAGE",
+}
+
 type rancherComponent struct {
 	helm.HelmComponent
 }
@@ -96,6 +112,10 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Key:   rancherIngressClassNameKey,
 		Value: vzconfig.GetIngressClassName(ctx.EffectiveCR()),
 	})
+	kvs, err = appendImageOverrides(ctx, kvs)
+	if err != nil {
+		return kvs, err
+	}
 	return appendCAOverrides(log, kvs, ctx)
 }
 
@@ -159,6 +179,40 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 	}
 
 	return kvs, nil
+}
+
+// appendImageOverrides creates overrides to set the pod environment variables for the image overrides
+func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to get the bom file for the Rancher image overrides: %v", err)
+	}
+
+	subcomponent, err := bomFile.GetSubcomponent(rancherImageSubcomponent)
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to get the subcomponent %s from the bom: %v", rancherImageSubcomponent, err)
+	}
+	repo := subcomponent.Repository
+	images := subcomponent.Images
+
+	var envVarYaml string
+	for _, image := range images {
+		imEnvVar, ok := imageEnvVars[image.ImageName]
+		// skip the images that are not included in the override map
+		if !ok {
+			continue
+		}
+		fullImageName := fmt.Sprintf("%s/%s", repo, image.ImageName)
+		// For the shell image, we need to combine to one env var
+		if image.ImageName == "shell" {
+			envVarYaml += fmt.Sprintf("- name: %s\n  value: %s:%s\n", imEnvVar, fullImageName, image.ImageTag)
+			continue
+		}
+		tagEnvVar := imEnvVar + "_TAG"
+		envVarYaml += fmt.Sprintf("- name: %s\n  value: %s\n- name: %s\n  value: %s\n", imEnvVar, fullImageName, tagEnvVar, image.ImageTag)
+	}
+
+	return append(kvs, bom.KeyValue{Key: "extraEnv", Value: envVarYaml}), nil
 }
 
 // IsEnabled Rancher is always enabled on admin clusters,
