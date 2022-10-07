@@ -37,8 +37,29 @@ spec:
               autoscaling:
                 enabled: true
                 minReplicas: 2
+              service:
+                externalIPs:
+                  - 1.2.3.4
+                externalTrafficPolicy: Local
             defaultBackend:
               replicaCount: 2
+      ports:
+        - name: http
+          nodePort: 30080
+          port: 80
+          protocol: TCP
+          targetPort: 0
+        - name: https
+          nodePort: 30443
+          port: 443
+          protocol: TCP
+          targetPort: 0
+        - name: healthz
+          nodePort: 30254
+          port: 30254
+          protocol: TCP
+          targetPort: 10254
+      type: LoadBalancer
     istio:
       overrides:
         - values:
@@ -56,13 +77,14 @@ spec:
                     k8s:
                       replicaCount: 2
                       service:
+                        externalIPs:
+                          - 5.6.7.8
                         type: LoadBalancer
                     name: istio-ingressgateway
                 pilot:
                   k8s:
                     replicaCount: 2
     keycloak:
-      mysql: {}
       overrides:
         - values:
             replicas: 2
@@ -78,9 +100,6 @@ spec:
               replicas: 2
     opensearch:
       nodes:
-        - name: es-master
-          roles:
-            - master
         - name: es-data
           roles:
             - data
@@ -88,6 +107,9 @@ spec:
           replicas: 2
           roles:
             - ingest
+        - name: es-master
+          roles:
+            - master
     opensearchDashboards:
       replicas: 2
     prometheusOperator:

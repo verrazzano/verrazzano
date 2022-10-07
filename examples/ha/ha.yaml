@@ -83,6 +83,11 @@ spec:
       overrides:
         - values:
             replicas: 2
+      mysql:
+        overrides:
+          - values:
+              serverInstances: 3
+              routerInstances: 2
     opensearchDashboards:
       replicas: 2
     kiali:

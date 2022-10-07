@@ -137,6 +137,21 @@ spec:
 {{- end }}
 {{- if .Values.keycloak.enabled }}
 ---
+# Allow any pod in the keycloak namespace to have network ingress to any other pod
+# in the keycloak namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: keycloak
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+---
 # Network policy for Keycloak
 # Ingress: allow nginx ingress and ingress from pods in the verrazzano-system namespace
 #          allow connect from Prometheus to scrape Envoy stats on port 15090
@@ -200,7 +215,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: mysql
+      tier: mysql
   policyTypes:
     - Ingress
   ingress:
@@ -212,14 +227,57 @@ spec:
         - protocol: TCP
           port: 3306
         - protocol: TCP
+          port: 33060
+        - protocol: TCP
+          port: 6446
+        - protocol: TCP
+          port: 6447
+        - protocol: TCP
+          port: 6448
+        - protocol: TCP
+          port: 6449
+        - protocol: TCP
           port: 7600
     - from:
       - namespaceSelector:
           matchLabels:
             verrazzano.io/namespace: mysql-operator
-        podSelector:
+      ports:
+        - protocol: TCP
+          port: 3306
+        - protocol: TCP
+          port: 33060
+        - protocol: TCP
+          port: 33061
+    - from:
+      - podSelector:
           matchLabels:
-            name: mysql-operator
+            job-name: load-dump
+      ports:
+        - protocol: TCP
+          port: 3306
+        - protocol: TCP
+          port: 33060
+        - protocol: TCP
+          port: 6446
+        - protocol: TCP
+          port: 6447
+        - protocol: TCP
+          port: 6448
+        - protocol: TCP
+          port: 6449
+    - from:
+      - podSelector:
+          matchLabels:
+            component: mysqlrouter
+      ports:
+        - protocol: TCP
+          port: 3306
+        - protocol: TCP
+          port: 33060
+        - protocol: TCP
+          port: 33061
+    - from:
       - namespaceSelector:
           matchLabels:
             verrazzano.io/namespace: verrazzano-monitoring
@@ -535,7 +593,19 @@ spec:
               verrazzano.io/namespace: keycloak
           podSelector:
             matchLabels:
-              app: mysql
+              tier: mysql
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: keycloak
+          podSelector:
+            matchLabels:
+              job-name: load-dump
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: mysql-operator
+          podSelector:
+            matchLabels:
+              name: mysql-operator
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: ingress-nginx

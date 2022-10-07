@@ -37,8 +37,14 @@ spec:
               autoscaling:
                 enabled: true
                 minReplicas: 2
+              service:
+                annotations:
+                  service.beta.kubernetes.io/oci-load-balancer-shape : "10Mbps"
+                  service.beta.kubernetes.io/oci-load-balancer-internal: true
+                  service.beta.kubernetes.io/oci-load-balancer-subnet1: <your-subnet-ocid>
             defaultBackend:
               replicaCount: 2
+      type: LoadBalancer
     istio:
       overrides:
         - values:
@@ -61,8 +67,14 @@ spec:
                 pilot:
                   k8s:
                     replicaCount: 2
+              values:
+                gateways:
+                  istio-ingressgateway:
+                    serviceAnnotations:
+                      service.beta.kubernetes.io/oci-load-balancer-shape: "10Mbps"
+                      service.beta.kubernetes.io/oci-load-balancer-internal: true
+                      service.beta.kubernetes.io/oci-load-balancer-subnet1: <your-subnet-ocid>
     keycloak:
-      mysql: {}
       overrides:
         - values:
             replicas: 2
@@ -78,9 +90,6 @@ spec:
               replicas: 2
     opensearch:
       nodes:
-        - name: es-master
-          roles:
-            - master
         - name: es-data
           roles:
             - data
@@ -88,6 +97,9 @@ spec:
           replicas: 2
           roles:
             - ingest
+        - name: es-master
+          roles:
+            - master
     opensearchDashboards:
       replicas: 2
     prometheusOperator:
