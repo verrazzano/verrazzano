@@ -82,8 +82,8 @@ func TestAppendImageOverrides(t *testing.T) {
 	a.Nil(err)
 	a.Equal(19, len(kvs))
 	a.Equal("ghcr.io", kvs[0].Value)
-	a.Equal("extraEnv[1].name", kvs[1].Key)
-	a.Equal("extraEnv[9].value", kvs[len(kvs)-1].Key)
+	a.Equal("extraEnv[0].name", kvs[1].Key)
+	a.Equal("extraEnv[8].value", kvs[len(kvs)-1].Key)
 }
 
 // TestAppendCAOverrides verifies that CA overrides are added as appropriate for private CAs
