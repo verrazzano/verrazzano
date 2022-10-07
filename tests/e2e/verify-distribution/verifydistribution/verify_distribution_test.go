@@ -9,7 +9,7 @@ import (
 	"github.com/onsi/gomega"
 	. "github.com/verrazzano/verrazzano/pkg/files"
 	. "github.com/verrazzano/verrazzano/pkg/string"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"os"
 	"path/filepath"

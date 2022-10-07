@@ -1,0 +1,28 @@
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: oam.verrazzano.io/v1alpha1
+kind: IngressTrait
+metadata:
+  labels:
+    app.oam.dev/name: {{.APPCONF_NAME}}
+    app.oam.dev/component: {{.COMPONENT_NAME}}
+    app.oam.dev/resourceType: TRAIT
+    app.oam.dev/revision: test-revision-1
+  name: {{.TRAIT_NAME}}
+  namespace: {{.TRAIT_NAMESPACE}}
+  ownerReferences:
+    - apiVersion: core.oam.dev/v1alpha2
+      blockOwnerDeletion: true
+      controller: true
+      kind: ApplicationConfiguration
+      name: {{.APPCONF_NAME}}
+      uid: 0afe12fb-ea1a-41ab-8566-e2febf05cd89
+spec:
+  rules:
+    - paths:
+        - path: /bobbys-front-end
+          pathType: Prefix
+  workloadRef:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: {{.WORKLOAD_KIND}}
+    name: {{.WORKLOAD_NAME}}
