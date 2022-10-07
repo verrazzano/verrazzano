@@ -202,7 +202,7 @@ func (h HelmComponent) GetMinVerrazzanoVersion() string {
 	return h.MinVerrazzanoVersion
 }
 
-// IsInstalled Indicates whether or not the component is installed
+// IsInstalled Indicates whether the component is installed
 func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 	if context.IsDryRun() {
 		context.Log().Debugf("IsInstalled() dry run for %s", h.ReleaseName)
@@ -210,6 +210,17 @@ func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 	}
 	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, h.resolveNamespace(context))
 	return installed, nil
+}
+
+// IsAvailable Indicates whether a component is available for end users
+// Components should implement comprehensive availability checks, supplying an appropriate reason
+// if the check fails.
+func (h HelmComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = h.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", h.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", h.Name()), false
 }
 
 // IsReady Indicates whether a component is available and ready

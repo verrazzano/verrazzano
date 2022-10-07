@@ -5,8 +5,10 @@ package main
 
 import (
 	"flag"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/availability"
 	"os"
 	"sync"
+	"time"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -268,6 +270,10 @@ func main() {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoConfigMaps")
 		os.Exit(1)
 	}
+
+	// Setup availability controller
+	availabilityController := availability.New(mgr.GetClient(), 15*time.Second)
+	availabilityController.Start()
 
 	// +kubebuilder:scaffold:builder
 

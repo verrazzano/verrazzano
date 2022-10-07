@@ -21,6 +21,10 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - description: Available/Enabled Verrazzano Components.
+      jsonPath: .status.availabilityColumn
+      name: Available
+      type: string
     - description: The current status of the install/uninstall.
       jsonPath: .status.conditions[-1:].type
       name: Status
@@ -3854,9 +3858,13 @@ spec:
             type: object
           status:
             properties:
+              availabilityColumn:
+                type: string
               components:
                 additionalProperties:
                   properties:
+                    available:
+                      type: boolean
                     conditions:
                       items:
                         properties:
@@ -3885,6 +3893,8 @@ spec:
                       type: string
                     version:
                       type: string
+                  required:
+                  - available
                   type: object
                 type: object
               conditions:
@@ -3935,6 +3945,10 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
+    - description: Available/Enabled Verrazzano Components.
+      jsonPath: .status.availabilityColumn
+      name: Available
+      type: string
     - description: The current status of the install/uninstall.
       jsonPath: .status.conditions[-1:].type
       name: Status
@@ -6550,9 +6564,13 @@ spec:
             type: object
           status:
             properties:
+              availabilityColumn:
+                type: string
               components:
                 additionalProperties:
                   properties:
+                    available:
+                      type: boolean
                     conditions:
                       items:
                         properties:
@@ -6581,6 +6599,8 @@ spec:
                       type: string
                     version:
                       type: string
+                  required:
+                  - available
                   type: object
                 type: object
               conditions:
