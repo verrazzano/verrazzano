@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"go.uber.org/zap"
-	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	"os"
 	"path/filepath"
@@ -81,7 +80,7 @@ func GetMatchingDirectories(log *zap.SugaredLogger, rootDirectory string, fileMa
 // determine the namespaces that were found in the dump. It will return the
 // namespace only here and not the entire path.
 func FindNamespaces(log *zap.SugaredLogger, clusterRoot string) (namespaces []string, err error) {
-	fileInfos, err := ioutil.ReadDir(clusterRoot)
+	fileInfos, err := os.ReadDir(clusterRoot)
 	if err != nil {
 		log.Debugf("FindNamespaces failed to read directory %s", clusterRoot, err)
 		return nil, err

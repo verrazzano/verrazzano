@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -164,7 +163,7 @@ func CheckStatusAndResponseHeaderAbsent(httpClient *retryablehttp.Client, req *r
 	if err != nil {
 		return err
 	}
-	ioutil.ReadAll(resp.Body)
+	io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if statusCode > 0 {
 		if resp.StatusCode != statusCode {

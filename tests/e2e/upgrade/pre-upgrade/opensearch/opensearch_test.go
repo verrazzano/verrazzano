@@ -6,7 +6,7 @@ package opensearch
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"io/ioutil"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -45,7 +45,7 @@ var _ = t.Describe("Pre Upgrade OpenSearch", Label("f:observability.logging.es")
 					pkg.Log(pkg.Error, fmt.Sprintf("failed to find test data file: %v", err))
 					return false
 				}
-				data, err := ioutil.ReadFile(file)
+				data, err := os.ReadFile(file)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("failed to read test data file: %v", err))
 					return false

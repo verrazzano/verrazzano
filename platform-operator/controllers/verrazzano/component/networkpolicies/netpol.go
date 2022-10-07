@@ -6,7 +6,6 @@ package networkpolicies
 import (
 	"context"
 	"io/fs"
-	"io/ioutil"
 	"os"
 
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -70,11 +69,11 @@ var netpolNamespaceNames = []types.NamespacedName{
 
 var (
 	// For Unit test purposes
-	writeFileFunc = ioutil.WriteFile
+	writeFileFunc = os.WriteFile
 )
 
 //func resetWriteFileFunc() {
-//	writeFileFunc = ioutil.WriteFile
+//	writeFileFunc = os.WriteFile
 //}
 
 // appendOverrides appends the overrides for this component

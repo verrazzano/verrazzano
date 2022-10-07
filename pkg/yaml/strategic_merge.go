@@ -5,8 +5,8 @@ package yaml
 
 import (
 	"errors"
-	"io/ioutil"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
+	"os"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
 	"strings"
@@ -24,7 +24,7 @@ type yamlMap struct {
 func StrategicMergeFiles(strategy PatchStrategy, yamlFiles ...string) (string, error) {
 	var yamls []string
 	for _, f := range yamlFiles {
-		yam, err := ioutil.ReadFile(filepath.Join(f))
+		yam, err := os.ReadFile(filepath.Join(f))
 		if err != nil {
 			return "", err
 		}

@@ -8,7 +8,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -456,15 +456,15 @@ func doRequest(req *http.Request, rc *rancherConfig, log vzlog.VerrazzanoLogger)
 
 	// resp.Body is consumed by the first try, and then no longer available (empty)
 	// so we need to read the body and save it so we can use it in each retry
-	buffer, _ := ioutil.ReadAll(req.Body)
+	buffer, _ := io.ReadAll(req.Body)
 
 	retry(defaultRetry, log, func() (bool, error) {
 		// update the body with the saved data to prevent the "zero length body" error
-		req.Body = ioutil.NopCloser(bytes.NewBuffer(buffer))
+		req.Body = io.NopCloser(bytes.NewBuffer(buffer))
 		resp, err = rancherHTTPClient.Do(client, req)
 
 		// check for a network error and retry
-		if nerr, ok := err.(net.Error); ok && nerr.Temporary() {
+		if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
 			log.Infof("Temporary error executing HTTP request %v : %v, retrying", req, nerr)
 			return false, err
 		}
@@ -498,7 +498,7 @@ func doRequest(req *http.Request, rc *rancherConfig, log vzlog.VerrazzanoLogger)
 	defer resp.Body.Close()
 
 	// extract the response body
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, "", err
 	}
