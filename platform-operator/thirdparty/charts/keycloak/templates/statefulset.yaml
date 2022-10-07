@@ -99,6 +99,10 @@ spec:
                   name: {{ include "keycloak.postgresql.fullname" . }}
                   key: postgresql-password
             {{- end }}
+            {{- if .Values.mysql.enabled }}
+            - name: DB_ADDR
+              value: {{ .Values.mysql.dbHost }}
+            {{- end }}
             {{- with .Values.extraEnv }}
             {{- tpl . $ | nindent 12 }}
             {{- end }}

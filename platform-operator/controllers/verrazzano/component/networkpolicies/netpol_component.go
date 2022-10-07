@@ -25,12 +25,12 @@
 package networkpolicies
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -110,6 +110,12 @@ func (c networkPoliciesComponent) PreUpgrade(ctx spi.ComponentContext) error {
 // PostUpgrade performs post-upgrade actions
 func (c networkPoliciesComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
+
+	// remove the old podSelector label matcher from the keycloak-mysql network policy
+	if err := fixKeycloakMySQLNetPolicy(ctx); err != nil {
+		return err
+	}
+
 	return c.HelmComponent.PostUpgrade(ctx)
 }
 

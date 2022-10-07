@@ -1,8 +1,9 @@
 {{- if .Values.configurationFiles }}
+{{- $cluster_name :=  default "mysql" .Release.Name }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ template "mysql.fullname" . }}-configuration
+  name: {{ $cluster_name }}-configuration
   namespace: {{ .Release.Namespace }}
 data:
 {{- range $key, $val := .Values.configurationFiles }}
