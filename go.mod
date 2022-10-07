@@ -8,7 +8,7 @@ go 1.19
 require (
 	github.com/Jeffail/gabs/v2 v2.2.0
 	github.com/crossplane/crossplane-runtime v0.10.0
-	github.com/crossplane/oam-kubernetes-runtime v0.3.2
+	github.com/crossplane/oam-kubernetes-runtime v0.3.3
 	github.com/gertd/go-pluralize v0.1.7
 	github.com/go-logr/logr v1.2.3
 	github.com/gogo/protobuf v1.3.2
