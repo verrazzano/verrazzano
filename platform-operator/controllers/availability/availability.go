@@ -53,9 +53,11 @@ func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi
 
 func (c *Controller) getComponentAvailability(log vzlog.VerrazzanoLogger, ch chan componentAvailability, vz *vzapi.Verrazzano, component spi.Component) {
 	ctx, err := spi.NewContext(log, c.client, vz, nil, false)
+	name := component.Name()
+	enabled := component.IsEnabled(vz)
 	a := componentAvailability{
-		name:    component.Name(),
-		enabled: component.IsEnabled(vz),
+		name:    name,
+		enabled: enabled,
 		err:     err,
 	}
 	if a.err == nil && a.enabled {

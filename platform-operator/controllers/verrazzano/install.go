@@ -32,7 +32,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 	spiCtx.Log().Progress("Reconciling components for Verrazzano installation")
 
 	var requeue bool
-	// Loop through all of the Verrazzano components and upgrade each one sequentially for now; will parallelize later
+	// Loop through all the Verrazzano components and upgrade each one sequentially for now; will parallelize later
 	for _, comp := range registry.GetComponents() {
 		compName := comp.Name()
 		compContext := spiCtx.Init(compName).Operation(vzconst.InstallOperation)
@@ -187,6 +187,11 @@ func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.Compone
 	// if CR.Generation > ReconcilingGeneration then re-enter install flow
 	if componentStatus.ReconcilingGeneration > 0 {
 		return ctx.ActualCR().Generation > componentStatus.ReconcilingGeneration
+	}
+
+	// If in Ready state but unavailable, component needs reconcile
+	if componentStatus.State == vzapi.CompStateReady && !componentStatus.Available {
+		return true
 	}
 	// The component has been reconciled/installed with LastReconciledGeneration of the CR
 	// if CR.Generation > LastReconciledGeneration then re-enter install flow
