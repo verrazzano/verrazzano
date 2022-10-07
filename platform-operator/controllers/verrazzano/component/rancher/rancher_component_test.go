@@ -53,7 +53,7 @@ func TestAppendRegistryOverrides(t *testing.T) {
 	registry := "foobar"
 	imageRepo := "barfoo"
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 9, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart Overrides
+	assert.Equal(t, 10, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart Overrides
 	_ = os.Setenv(constants.RegistryOverrideEnvVar, registry)
 	kvs, _ = AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.Equal(t, 10, len(kvs))
@@ -77,11 +77,13 @@ func TestAppendImageOverrides(t *testing.T) {
 	a := assert.New(t)
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzapi.Verrazzano{}, nil, false)
 	config.SetDefaultBomFilePath("../../testdata/test_bom.json")
+	_ = os.Unsetenv(constants.RegistryOverrideEnvVar)
 	kvs, err := appendImageOverrides(ctx, []bom.KeyValue{})
 	a.Nil(err)
-	a.NotEmpty(kvs)
-	a.Equal(kvs[0].Key, "extraEnv")
-	a.Equal(19, len(strings.Split(kvs[0].Value, "\n")))
+	a.Equal(len(kvs), 2)
+	a.Equal("ghcr.io", kvs[0].Value)
+	a.Equal(kvs[1].Key, "extraEnv")
+	a.Equal(19, len(strings.Split(kvs[1].Value, "\n")))
 }
 
 // TestAppendCAOverrides verifies that CA overrides are added as appropriate for private CAs

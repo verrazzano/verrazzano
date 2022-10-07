@@ -107,15 +107,15 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Key:   useBundledSystemChartKey,
 		Value: useBundledSystemChartValue,
 	})
+	kvs, err = appendImageOverrides(ctx, kvs)
+	if err != nil {
+		return kvs, err
+	}
 	kvs = appendRegistryOverrides(kvs)
 	kvs = append(kvs, bom.KeyValue{
 		Key:   rancherIngressClassNameKey,
 		Value: vzconfig.GetIngressClassName(ctx.EffectiveCR()),
 	})
-	kvs, err = appendImageOverrides(ctx, kvs)
-	if err != nil {
-		return kvs, err
-	}
 	return appendCAOverrides(log, kvs, ctx)
 }
 
@@ -186,6 +186,12 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed to get the bom file for the Rancher image overrides: %v", err)
+	}
+
+	// Set the Rancher default registry, if registry overrides are not present
+	registry := os.Getenv(constants.RegistryOverrideEnvVar)
+	if registry == "" {
+		kvs = append(kvs, bom.KeyValue{Key: systemDefaultRegistryKey, Value: bomFile.GetRegistry()})
 	}
 
 	subcomponent, err := bomFile.GetSubcomponent(rancherImageSubcomponent)
