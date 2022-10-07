@@ -290,6 +290,7 @@ func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dyna
 
 // verifySettingValue verifies the value of a rancher setting
 // GIVEN a Verrazzano installation with setting specified by settingName populated
+//
 //  WHEN value field of the setting CR specified by settingName is extracted
 //  AND compared with input expectedValue
 //  THEN both the values are expected to be equal, otherwise the test scenario is deemed to have failed.
