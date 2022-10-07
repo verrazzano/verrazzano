@@ -141,31 +141,27 @@
           "images": [
             {
               "image": "shell",
-              "tag": "v0.1.18"
+              "tag": "v0.1.18-20221005202314-33ac76c"
             },
             {
               "image": "kubectl",
-              "tag": "v1.20.2"
+              "tag": "v1.20.2-20220930193658-a830250"
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.2.6"
+              "tag": "v0.2.6-20221005161115-fee4a23"
             },
             {
               "image": "fleet-agent",
-              "tag": "v0.3.11"
+              "tag": "v0.3.11-20221005160548-f5e4fc9"
             },
             {
               "image": "fleet",
-              "tag": "v0.3.11"
+              "tag": "v0.3.11-20221005160548-f5e4fc9"
             },
             {
               "image": "gitjob",
-              "tag": "v0.1.30"
-            },
-            {
-              "image": "local-path-provisioner",
-              "tag": "v0.0.14"
+              "tag": "v0.1.30-20221005155218-6e7ba2d"
             }
           ]
         }

@@ -5,7 +5,6 @@ package rancher
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"net/url"
 	"os"
 	"strings"
@@ -22,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
@@ -80,7 +80,7 @@ func TestAppendImageOverrides(t *testing.T) {
 	a.Nil(err)
 	a.NotEmpty(kvs)
 	a.Equal(kvs[0].Key, "extraEnv")
-	a.Equal(len(strings.Split(kvs[0].Value, "-")), 14)
+	a.Equal(19, len(strings.Split(kvs[0].Value, "\n")))
 }
 
 // TestAppendCAOverrides verifies that CA overrides are added as appropriate for private CAs
