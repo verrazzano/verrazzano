@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -27,7 +26,7 @@ import (
 func TestSetupCertificates(t *testing.T) {
 	a := assert.New(t)
 
-	dir, err := ioutil.TempDir("", "certs")
+	dir, err := os.MkdirTemp("", "certs")
 	if err != nil {
 		a.Nil(err, "error should not be returned creating temporary directory")
 	}
@@ -40,7 +39,7 @@ func TestSetupCertificates(t *testing.T) {
 	a.FileExists(crtFile, dir, "tls.crt", "expected tls.crt file not found")
 	a.FileExists(keyFile, dir, "tls.key", "expected tls.key file not found")
 
-	crtBytes, err := ioutil.ReadFile(crtFile)
+	crtBytes, err := os.ReadFile(crtFile)
 	if a.NoError(err) {
 		block, _ := pem.Decode(crtBytes)
 		a.NotEmptyf(block, "failed to decode PEM block containing public key")

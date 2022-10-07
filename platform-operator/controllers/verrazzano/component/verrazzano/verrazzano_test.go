@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -192,7 +191,7 @@ func Test_appendVerrazzanoValues(t *testing.T) {
 			// assert.NoError(err)
 			// ioutil.WriteFile(fmt.Sprintf("%s/%s.yaml", os.TempDir(), test.name), outdata, fs.FileMode(0664))
 
-			data, err := ioutil.ReadFile(test.expectedYAML)
+			data, err := os.ReadFile(test.expectedYAML)
 			a.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
 			expectedValues := verrazzanoValues{}
 			err = yaml.Unmarshal(data, &expectedValues)
@@ -350,7 +349,7 @@ func Test_appendVMIValues(t *testing.T) {
 			a.NoError(err)
 			a.Equal(test.expectedHelmOverrides, keyValues, "Install args did not match")
 
-			data, err := ioutil.ReadFile(test.expectedYAML)
+			data, err := os.ReadFile(test.expectedYAML)
 			a.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
 			expectedValues := verrazzanoValues{}
 			err = yaml.Unmarshal(data, &expectedValues)
@@ -531,7 +530,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 				if test.expectedErr != nil {
 					return test.expectedErr
 				}
-				if err := ioutil.WriteFile(filename, data, perm); err != nil {
+				if err := os.WriteFile(filename, data, perm); err != nil {
 					a.Failf("Failure writing file %s: %s", filename, err)
 					return err
 				}
@@ -546,7 +545,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 				a.NoError(err)
 
 				// read in the expected results data from a file and unmarshal it into a values object
-				expectedData, err := ioutil.ReadFile(test.expectedYAML)
+				expectedData, err := os.ReadFile(test.expectedYAML)
 				a.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
 				expectedValues := verrazzanoValues{}
 				err = yaml.Unmarshal(expectedData, &expectedValues)
@@ -583,7 +582,7 @@ func Test_appendVerrazzanoOverrides(t *testing.T) {
 		})
 	}
 	// Verify temp files are deleted
-	files, err := ioutil.ReadDir(os.TempDir())
+	files, err := os.ReadDir(os.TempDir())
 	assert.NoError(t, err, "Error reading temp dir to verify file cleanup")
 	for _, file := range files {
 		assert.False(t,
