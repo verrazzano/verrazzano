@@ -26,7 +26,7 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "1.21", "1.22", "1.23", "1.24" ])
         string (name: 'VERSION_FOR_INSTALL',
-                defaultValue: 'v1.1.2',
+                defaultValue: 'v1.2.2',
                 description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
