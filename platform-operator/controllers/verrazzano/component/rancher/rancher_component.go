@@ -204,7 +204,7 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 		}
 		fullImageName := fmt.Sprintf("%s/%s", repo, image.ImageName)
 		// For the shell image, we need to combine to one env var
-		if image.ImageName == "shell" {
+		if image.ImageName == cattleShellImageName {
 			envVarYaml += fmt.Sprintf("- name: %s\n  value: %s:%s\n", imEnvVar, fullImageName, image.ImageTag)
 			continue
 		}
