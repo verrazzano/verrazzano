@@ -44,10 +44,13 @@ const rancherIngressClassNameKey = "ingress.ingressClassName"
 // rancherImageSubcomponent is the name of the subcomponent for the additional Rancher images
 const rancherImageSubcomponent = "additional-rancher"
 
-// cattleShellImageName is the name of the shell image used for
+// cattleShellImageName is the name of the shell image used for the shell override special case
 const cattleShellImageName = "shell"
 
-// Subcomponents for the Rancher images
+// cattleUIEnvName is the environment variable name to set for the Rancher dashboard
+const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
+
+// Environment variables for the Rancher images
 // format: imageName: baseEnvVar
 var imageEnvVars = map[string]string{
 	"fleet":           "FLEET_IMAGE",
@@ -218,10 +221,14 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 		kvs, envPos = createImageEnvVar(kvs, imEnvVar, fullImageName, envPos)
 		kvs, envPos = createImageEnvVar(kvs, tagEnvVar, image.ImageTag, envPos)
 	}
+
+	// For the Rancher UI, we need to update this final env var
+	kvs, _ = createImageEnvVar(kvs, cattleUIEnvName, "true", envPos)
+
 	return kvs, nil
 }
 
-// createImageEnvVar creates and environment override for an image value
+// createImageEnvVar creates an environment override for an image value
 func createImageEnvVar(kvs []bom.KeyValue, name, value string, envPos int) ([]bom.KeyValue, int) {
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].name", envPos), Value: name})
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].value", envPos), Value: value})
