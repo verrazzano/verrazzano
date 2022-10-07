@@ -4,6 +4,7 @@
 package helidonmetrics
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
@@ -42,11 +43,11 @@ var _ = t.BeforeSuite(func() {
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(
+			return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(
 				"examples/hello-helidon/hello-helidon-comp.yaml", namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(
+			return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(
 				"examples/hello-helidon/hello-helidon-app.yaml", namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
@@ -73,13 +74,13 @@ var _ = t.AfterSuite(func() {
 		// undeploy the application here
 		pkg.Log(pkg.Info, "Delete application")
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFileInGeneratedNamespace(
+			return resource.DeleteResourceFromFileInGeneratedNamespace(
 				"tests/e2e/examples/helidonmetrics/testdata/hello-helidon-app-metrics-disabled.yaml", namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		pkg.Log(pkg.Info, "Delete components")
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFileInGeneratedNamespace(
+			return resource.DeleteResourceFromFileInGeneratedNamespace(
 				"examples/hello-helidon/hello-helidon-comp.yaml", namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
@@ -149,7 +150,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			)
 			pkg.Log(pkg.Info, "Disabling metrics trait")
 			Eventually(func() error {
-				return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(
+				return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(
 					"tests/e2e/examples/helidonmetrics/testdata/hello-helidon-app-metrics-disabled.yaml", namespace)
 			}, shortWaitTimeout, shortPollingInterval, "Failed to disable metrics").ShouldNot(HaveOccurred())
 			pkg.Concurrently(

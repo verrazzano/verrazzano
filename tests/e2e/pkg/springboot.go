@@ -5,6 +5,7 @@ package pkg
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"time"
 
 	"github.com/onsi/gomega"
@@ -37,12 +38,12 @@ func DeploySpringBootApplication(namespace string, istioInjection string) {
 
 	Log(Info, "Create Spring Boot component resource")
 	gomega.Eventually(func() error {
-		return CreateOrUpdateResourceFromFileInGeneratedNamespace(springbootComponentYaml, namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(springbootComponentYaml, namespace)
 	}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	Log(Info, "Create Spring Boot application resource")
 	gomega.Eventually(func() error {
-		return CreateOrUpdateResourceFromFileInGeneratedNamespace(springbootAppYaml, namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(springbootAppYaml, namespace)
 	}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 }
 
@@ -52,12 +53,12 @@ func UndeploySpringBootApplication(namespace string) {
 	if exists, _ := DoesNamespaceExist(namespace); exists {
 		Log(Info, "Delete Spring Boot application")
 		gomega.Eventually(func() error {
-			return DeleteResourceFromFileInGeneratedNamespace(springbootAppYaml, namespace)
+			return resource.DeleteResourceFromFileInGeneratedNamespace(springbootAppYaml, namespace)
 		}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 		Log(Info, "Delete Spring Boot components")
 		gomega.Eventually(func() error {
-			return DeleteResourceFromFileInGeneratedNamespace(springbootComponentYaml, namespace)
+			return resource.DeleteResourceFromFileInGeneratedNamespace(springbootComponentYaml, namespace)
 		}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 		Log(Info, "Wait for application pods to terminate")

@@ -5,6 +5,7 @@ package pkg
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
@@ -47,12 +48,12 @@ func DeployHelloHelidonApplication(namespace string, ociLogID string, istioInjec
 
 	Log(Info, "Create Hello Helidon component resource")
 	gomega.Eventually(func() error {
-		return CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
 	}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon component resource")
 
 	Log(Info, "Create Hello Helidon application resource")
 	gomega.Eventually(func() error {
-		return CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
 	}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon application resource")
 }
 
@@ -66,12 +67,12 @@ func UndeployHelloHelidonApplication(namespace string, customAppConfig string) {
 	if exists, _ := DoesNamespaceExist(namespace); exists {
 		Log(Info, "Delete Hello Helidon application")
 		gomega.Eventually(func() error {
-			return DeleteResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
+			return resource.DeleteResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
 		}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon application resource")
 
 		Log(Info, "Delete Hello Helidon components")
 		gomega.Eventually(func() error {
-			return DeleteResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
+			return resource.DeleteResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
 		}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon component resource")
 
 		Log(Info, "Wait for application pods to terminate")

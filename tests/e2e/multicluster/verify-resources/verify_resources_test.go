@@ -5,6 +5,7 @@ package resources_test
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"os"
 	"strings"
@@ -33,7 +34,7 @@ var _ = t.Describe("Multi Cluster Verify Resources", Label("f:multicluster.regis
 
 		t.It("Create VerrazzanoProject with invalid content", func() {
 			Eventually(func() bool {
-				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-placement-clusters-invalid.yaml")
+				err := resource.CreateOrUpdateResourceFromFile("testdata/multicluster/verrazzanoproject-placement-clusters-invalid.yaml")
 				if err == nil {
 					pkg.Log(pkg.Error, "Expected an error creating invalid VerrazzanoProject")
 					return false
@@ -48,7 +49,7 @@ var _ = t.Describe("Multi Cluster Verify Resources", Label("f:multicluster.regis
 
 		t.It("Create MultiClusterSecret with invalid content", func() {
 			Eventually(func() bool {
-				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_placement_clusters_invalid.yaml")
+				err := resource.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_placement_clusters_invalid.yaml")
 				if err == nil {
 					pkg.Log(pkg.Error, "Expected an error creating invalid resource")
 					return false
@@ -63,7 +64,7 @@ var _ = t.Describe("Multi Cluster Verify Resources", Label("f:multicluster.regis
 
 		t.It("Create MultiClusterConfigmap with invalid content", func() {
 			Eventually(func() bool {
-				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_placement_clusters_invalid.yaml")
+				err := resource.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_placement_clusters_invalid.yaml")
 				if err == nil {
 					pkg.Log(pkg.Error, "Expected an error creating invalid resource")
 					return false
@@ -78,7 +79,7 @@ var _ = t.Describe("Multi Cluster Verify Resources", Label("f:multicluster.regis
 
 		t.It("Create MultiClusterComponent with invalid content", func() {
 			Eventually(func() bool {
-				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_component_placement_clusters_invalid.yaml")
+				err := resource.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_component_placement_clusters_invalid.yaml")
 				if err == nil {
 					pkg.Log(pkg.Error, "Expected an error creating invalid resource")
 					return false
@@ -93,7 +94,7 @@ var _ = t.Describe("Multi Cluster Verify Resources", Label("f:multicluster.regis
 
 		t.It("Create MultiClusterApplicationConfiguration with invalid content", func() {
 			Eventually(func() bool {
-				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_appconf_placement_clusters_invalid.yaml")
+				err := resource.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_appconf_placement_clusters_invalid.yaml")
 				if err == nil {
 					pkg.Log(pkg.Error, "Expected an error creating invalid resource")
 					return false

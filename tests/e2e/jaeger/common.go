@@ -4,6 +4,7 @@
 package jaeger
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -50,11 +51,11 @@ func DeployApplication(namespace, testAppComponentFilePath, testAppConfiguration
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(gomega.BeNil())
 
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(testAppComponentFilePath, namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(testAppComponentFilePath, namespace)
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(gomega.HaveOccurred())
 
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(testAppConfigurationFilePath, namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(testAppConfigurationFilePath, namespace)
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(gomega.HaveOccurred())
 
 	gomega.Eventually(func() bool {
@@ -78,11 +79,11 @@ func UndeployApplication(namespace, testAppComponentFilePath, testAppConfigurati
 	}
 
 	gomega.Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(testAppComponentFilePath, namespace)
+		return resource.DeleteResourceFromFileInGeneratedNamespace(testAppComponentFilePath, namespace)
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(gomega.HaveOccurred())
 
 	gomega.Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(testAppConfigurationFilePath, namespace)
+		return resource.DeleteResourceFromFileInGeneratedNamespace(testAppConfigurationFilePath, namespace)
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(gomega.HaveOccurred())
 
 	gomega.Eventually(func() bool {

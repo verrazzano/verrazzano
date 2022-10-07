@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"strings"
@@ -82,7 +83,7 @@ var _ = clusterDump.BeforeSuite(func() {
 		return pkg.CreateNamespace(testNamespace, nsLabels)
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
+		return resource.CreateOrUpdateResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
@@ -114,7 +115,7 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	// undeploy the applications here
 	start := time.Now()
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
+		return resource.DeleteResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	Eventually(func() error {
 		return pkg.DeleteNamespace(testNamespace)

@@ -5,6 +5,7 @@ package weblogic
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"net/http"
@@ -120,12 +121,12 @@ func deployWebLogicApp(namespace string) {
 	// Note: creating the app config first to verify that default metrics traits are created properly if the app config exists before the components
 	t.Logs.Info("Create application resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(appConfiguration, namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(appConfiguration, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create component resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(compConfiguration, namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(compConfiguration, namespace)
 	}, shortWaitTimeout, shortPollingInterval, "Failed to create component resources for WebLogic application").ShouldNot(HaveOccurred())
 }
 
@@ -134,12 +135,12 @@ func undeployWebLogicApp() {
 	t.Logs.Info("Delete application")
 	start := time.Now()
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(appConfiguration, namespace)
+		return resource.DeleteResourceFromFileInGeneratedNamespace(appConfiguration, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete component")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(compConfiguration, namespace)
+		return resource.DeleteResourceFromFileInGeneratedNamespace(compConfiguration, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for pod to terminate")

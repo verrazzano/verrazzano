@@ -4,6 +4,7 @@
 package oam
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -94,12 +95,12 @@ func deployOAMApp() {
 
 	t.Logs.Info("Create component resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(compConfiguration, namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(compConfiguration, namespace)
 	}, shortWaitTimeout, shortPollingInterval, "Failed to create component resources for Coherence application").ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create application resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(appConfiguration, namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(appConfiguration, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 }
 
@@ -108,12 +109,12 @@ func undeployOAMApp() {
 	t.Logs.Info("Undeploy OAM application")
 	start := time.Now()
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(appConfiguration, namespace)
+		return resource.DeleteResourceFromFileInGeneratedNamespace(appConfiguration, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(compConfiguration, namespace)
+		return resource.DeleteResourceFromFileInGeneratedNamespace(compConfiguration, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for persistent volume claim to terminate")

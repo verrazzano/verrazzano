@@ -5,6 +5,7 @@ package metricsbinding
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	v1 "k8s.io/api/core/v1"
 	"time"
 
@@ -50,7 +51,7 @@ func createNamespace(namespace, istioInjection string, t framework.TestFramework
 func deployApplication(namespace, yamlPath, podPrefix string, t framework.TestFramework) {
 	t.Logs.Info("Create application from yaml path")
 	gomega.Eventually(func() error {
-		err := pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(yamlPath, namespace)
+		err := resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(yamlPath, namespace)
 		if err != nil {
 			t.Logs.Errorf("Failed to apply the Application from file: %v", err)
 		}
@@ -71,7 +72,7 @@ func deployApplication(namespace, yamlPath, podPrefix string, t framework.TestFr
 func deployConfigMap(namespace, configMapYamlPath string, t framework.TestFramework) {
 	t.Logs.Info("Create ConfigMap resource")
 	gomega.Eventually(func() error {
-		err := pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(configMapYamlPath, namespace)
+		err := resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(configMapYamlPath, namespace)
 		if err != nil {
 			t.Logs.Errorf("Failed to apply the ConfigMap from file: %v", err)
 		}
@@ -83,7 +84,7 @@ func deployConfigMap(namespace, configMapYamlPath string, t framework.TestFramew
 func deployTemplate(namespace, templateYamlPath string, t framework.TestFramework) {
 	t.Logs.Info("Create template resource")
 	gomega.Eventually(func() error {
-		err := pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(templateYamlPath, namespace)
+		err := resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(templateYamlPath, namespace)
 		if err != nil {
 			t.Logs.Errorf("Failed to apply the Metrics Template from file: %v", err)
 		}

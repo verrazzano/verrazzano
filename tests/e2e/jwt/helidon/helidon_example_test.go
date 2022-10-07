@@ -5,6 +5,7 @@ package helidon
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"io"
 	"net/http"
 	"strings"
@@ -227,12 +228,12 @@ func deployHelloHelidonApplication(namespace string, ociLogID string, istioInjec
 
 	pkg.Log(pkg.Info, "Create Hello Helidon component resource")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon component resource")
 
 	pkg.Log(pkg.Info, "Create Hello Helidon application resource")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
 }
 

@@ -6,6 +6,7 @@ package deploymetrics
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"os"
 	"time"
 
@@ -110,12 +111,12 @@ func deployMetricsApplication() {
 
 	t.Logs.Info("Create component resource")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(deploymetricsCompYaml, namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(deploymetricsCompYaml, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create application resource")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(deploymetricsAppYaml, namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(deploymetricsAppYaml, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create DeployMetrics application resource")
 
 	Eventually(func() bool {
@@ -139,12 +140,12 @@ func undeployMetricsApplication() {
 	t.Logs.Info("Delete application")
 	start := time.Now()
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(deploymetricsCompYaml, namespace)
+		return resource.DeleteResourceFromFileInGeneratedNamespace(deploymetricsCompYaml, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(deploymetricsAppYaml, namespace)
+		return resource.DeleteResourceFromFileInGeneratedNamespace(deploymetricsAppYaml, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for pods to terminate")

@@ -6,6 +6,7 @@ package metricsbinding
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"time"
 
@@ -33,7 +34,7 @@ func undeployApplication(namespace string, yamlPath string, t framework.TestFram
 	}
 	t.Logs.Info("Delete application")
 	Eventually(func() error {
-		err := pkg.DeleteResourceFromFileInGeneratedNamespace(yamlPath, namespace)
+		err := resource.DeleteResourceFromFileInGeneratedNamespace(yamlPath, namespace)
 		if err != nil {
 			t.Logs.Errorf("Failed to delete the Application from file: %v", err)
 		}

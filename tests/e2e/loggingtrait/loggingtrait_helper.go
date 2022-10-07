@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -36,12 +37,12 @@ func DeployApplication(namespace, istionInjection, componentsPath, applicationPa
 
 	t.Logs.Info("Create component resources")
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(componentsPath, namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(componentsPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	t.Logs.Info("Create application resources")
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(applicationPath, namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(applicationPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	t.Logs.Infof("Check pod %v is running", podName)
@@ -60,12 +61,12 @@ func UndeployApplication(namespace string, componentsPath string, applicationPat
 	t.Logs.Info("Delete application")
 	start := time.Now()
 	gomega.Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(applicationPath, namespace)
+		return resource.DeleteResourceFromFileInGeneratedNamespace(applicationPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	gomega.Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(componentsPath, namespace)
+		return resource.DeleteResourceFromFileInGeneratedNamespace(componentsPath, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	t.Logs.Info("Verify ConfigMap is Deleted")

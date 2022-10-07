@@ -7,6 +7,7 @@ import (
 	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
@@ -393,15 +394,15 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 
 func cleanUp(kubeconfigPath string) error {
 	start := time.Now()
-	if err := pkg.DeleteResourceFromFileInClusterInGeneratedNamespace(appConfiguration, kubeconfigPath, appNamespace); err != nil {
+	if err := resource.DeleteResourceFromFileInClusterInGeneratedNamespace(appConfiguration, kubeconfigPath, appNamespace); err != nil {
 		return fmt.Errorf("failed to delete application resource: %v", err)
 	}
 
-	if err := pkg.DeleteResourceFromFileInClusterInGeneratedNamespace(compConfiguration, kubeconfigPath, appNamespace); err != nil {
+	if err := resource.DeleteResourceFromFileInClusterInGeneratedNamespace(compConfiguration, kubeconfigPath, appNamespace); err != nil {
 		return fmt.Errorf("failed to delete component resource: %v", err)
 	}
 
-	if err := pkg.DeleteResourceFromFileInCluster(projectConfiguration, kubeconfigPath); err != nil {
+	if err := resource.DeleteResourceFromFileInCluster(projectConfiguration, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete project resource: %v", err)
 	}
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))

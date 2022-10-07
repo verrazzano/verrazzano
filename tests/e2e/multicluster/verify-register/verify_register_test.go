@@ -6,6 +6,7 @@ package register_test
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"os"
 	"time"
 
@@ -59,7 +60,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			}
 			// create a project
 			Eventually(func() error {
-				return pkg.CreateOrUpdateResourceFromFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
+				return resource.CreateOrUpdateResourceFromFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 			Eventually(func() (bool, error) {

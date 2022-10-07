@@ -5,6 +5,7 @@ package weblogic
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -72,17 +73,17 @@ var _ = t.BeforeSuite(func() {
 
 	t.Logs.Info("Create persistent volume claim")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/pvc.yaml", namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/pvc.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create component resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/weblogic-logging-comp.yaml", namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/weblogic-logging-comp.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create application resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/weblogic-logging-app.yaml", namespace)
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/weblogic-logging-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for image pulls")
@@ -112,12 +113,12 @@ var _ = t.AfterSuite(func() {
 
 	t.Logs.Info("Delete component resources")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/weblogic-logging-app.yaml", namespace)
+		return resource.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/weblogic-logging-app.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete application resources")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/weblogic-logging-comp.yaml", namespace)
+		return resource.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/weblogic-logging-comp.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for application pods to terminate")
@@ -128,7 +129,7 @@ var _ = t.AfterSuite(func() {
 
 	t.Logs.Info("Delete persistent volume claim")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/pvc.yaml", namespace)
+		return resource.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/pvc.yaml", namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete namespace")

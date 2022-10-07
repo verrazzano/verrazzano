@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"reflect"
 	"strings"
 	"text/template"
@@ -555,7 +556,7 @@ func applyResource(resourceFile string, templateData *externalLBsTemplateData) {
 		Fail(err.Error())
 	}
 
-	err = pkg.CreateOrUpdateResourceFromBytes(buff.Bytes())
+	err = resource.CreateOrUpdateResourceFromBytes(buff.Bytes())
 	if err != nil {
 		Fail(err.Error())
 	}
