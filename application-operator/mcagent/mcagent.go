@@ -6,7 +6,6 @@ package mcagent
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -225,12 +224,12 @@ func validateAgentSecret(secret *corev1.Secret) error {
 // Get the clientset for accessing the admin cluster
 func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	// Create a temp file that contains the kubeconfig
-	tmpFile, err := ioutil.TempFile("", "kubeconfig")
+	tmpFile, err := os.CreateTemp("", "kubeconfig")
 	if err != nil {
 		return nil, err
 	}
 
-	err = ioutil.WriteFile(tmpFile.Name(), secret.Data[mcconstants.KubeconfigKey], 0600)
+	err = os.WriteFile(tmpFile.Name(), secret.Data[mcconstants.KubeconfigKey], 0600)
 	defer os.Remove(tmpFile.Name())
 	if err != nil {
 		return nil, err

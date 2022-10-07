@@ -25,8 +25,9 @@ var enabledCR = vzapi.Verrazzano{
 
 // TestNewVMIResources tests that new VMI resources can be created from a CR
 // GIVEN a Verrazzano CR
-//  WHEN I create new VMI resources
-//  THEN the configuration in the CR is respected
+//
+//	WHEN I create new VMI resources
+//	THEN the configuration in the CR is respected
 func TestNewVMIResources(t *testing.T) {
 	opensearchDashboards := newOpenSearchDashboards(enabledCR.DeepCopy())
 	assert.Equal(t, "192Mi", opensearchDashboards.Resources.RequestMemory)
@@ -34,8 +35,9 @@ func TestNewVMIResources(t *testing.T) {
 
 // TestNewVMIResourcesWithReplicas tests that new VMI resources can be created from a CR with replicas configured
 // GIVEN a Verrazzano CR
-//  WHEN I create new VMI resources
-//  THEN the configuration in the CR is respected with replicas configured
+//
+//	WHEN I create new VMI resources
+//	THEN the configuration in the CR is respected with replicas configured
 func TestNewVMIResourcesWithReplicas(t *testing.T) {
 	cr := enabledCR.DeepCopy()
 	var replicas int32 = 2

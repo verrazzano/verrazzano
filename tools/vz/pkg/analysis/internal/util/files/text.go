@@ -18,9 +18,10 @@ import (
 
 // TimeRange is used when searching requires time bounded matches
 // Handling of a TimeRange:
-//     if not specified, match is included
-//     if StartTime is supplied (not zero) matches at/after that time are included
-//     if EndTime is supplied (not zero) matches at/before that time are included
+//
+//	if not specified, match is included
+//	if StartTime is supplied (not zero) matches at/after that time are included
+//	if EndTime is supplied (not zero) matches at/before that time are included
 type TimeRange struct {
 	StartTime metav1.Time
 	EndTime   metav1.Time
@@ -174,11 +175,12 @@ func ExtractTimeIfPresent(inputText string) metav1.Time {
 
 // IsInTimeRange will check if a specified time is within the specified range
 // It will return true if:
-//      - there is no time range specified
-//      - a time range is specified and the time specified is in that range (see TimeRange type)
+//   - there is no time range specified
+//   - a time range is specified and the time specified is in that range (see TimeRange type)
+//
 // Otherwise it will return false:
-//      - if the time is zero and there is a range specified, it can't determine it
-//      - if the time is not within the range specified
+//   - if the time is zero and there is a range specified, it can't determine it
+//   - if the time is not within the range specified
 func IsInTimeRange(timeToCheck metav1.Time, timeRange *TimeRange) bool {
 	// If there is no time range, then all times would match it
 	if timeRange == nil || (timeRange.StartTime.IsZero() && timeRange.EndTime.IsZero()) {

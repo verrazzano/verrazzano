@@ -21,7 +21,7 @@ func ValidatePods(deployName string, labelName string, nameSpace string, expecte
 			return err
 		}
 		// Compare the number of running/pending pods to the expected numbers
-		var runningPods uint32 = 0
+		var runningPods uint32
 		var pendingPods = false
 		for _, pod := range pods {
 			if pod.Status.Phase == v12.PodRunning {

@@ -1,1 +1,0 @@
-Verrazzano Image Patch Operator Helm chart has been installed!

@@ -5,6 +5,8 @@ package common
 
 import (
 	"context"
+	"fmt"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
@@ -18,19 +20,8 @@ import (
 
 // RetainPersistentVolume locates the persistent volume associated with the provided pvc
 // and sets the reclaim policy to "retain" so that it can be migrated to the new deployment/statefulset.
-func RetainPersistentVolume(ctx spi.ComponentContext, pvcName types.NamespacedName, componentName string) error {
-	pvc := &v1.PersistentVolumeClaim{}
-
-	if err := ctx.Client().Get(context.TODO(), pvcName, pvc); err != nil {
-		// no pvc so just log it and there's nothing left to do
-		if errors.IsNotFound(err) {
-			ctx.Log().Debugf("Did not find pvc %s", pvcName)
-			return nil
-		}
-		return err
-	}
-
-	ctx.Log().Infof("Updating persistent volume associated with pvc %s so that the volume can be migrated", pvcName)
+func RetainPersistentVolume(ctx spi.ComponentContext, pvc *v1.PersistentVolumeClaim, componentName string) error {
+	ctx.Log().Infof("Updating persistent volume associated with pvc %s so that the volume can be migrated", pvc.Name)
 
 	pvName := pvc.Spec.VolumeName
 	pv := &v1.PersistentVolume{
@@ -58,7 +49,7 @@ func RetainPersistentVolume(ctx spi.ComponentContext, pvcName types.NamespacedNa
 	return err
 }
 
-// UpdateExistingVolumeClaim removes a persistent volume claim from the volume if the
+// UpdateExistingVolumeClaims removes a persistent volume claim from the volume if the
 // status is "released". This allows the new deployment to bind to the existing volume.
 func UpdateExistingVolumeClaims(ctx spi.ComponentContext, pvcName types.NamespacedName, newClaimName string, componentName string) error {
 	ctx.Log().Debugf("Removing old claim from persistent volume if a volume exists")
@@ -74,11 +65,13 @@ func UpdateExistingVolumeClaims(ctx spi.ComponentContext, pvcName types.Namespac
 		pv := pvs[i] // avoids "Implicit memory aliasing in for loop" linter complaint
 		ctx.Log().Debugf("Update PV %s.  Current status: %s", pv.Name, pv.Status.Phase)
 		if pv.Status.Phase == v1.VolumeBound {
-			return ctx.Log().ErrorfNewErr("PV %s is still bound", pv.Namespace)
+			ctx.Log().Progressf("Waiting for PV %s to be released", pv.Name)
+			return ctrlerrors.RetryableError{Source: componentName, Cause: fmt.Errorf("PV %s is still bound", pv.Name)}
 		}
 
+		ctx.Log().Infof("Attempting to clear PV claim ref and create new PVC %s.  PV ClaimRef: %v, PVC: %v", newClaimName, pv.Spec.ClaimRef, pvcName)
 		if pv.Spec.ClaimRef != nil && pv.Spec.ClaimRef.Namespace == pvcName.Namespace && pv.Spec.ClaimRef.Name == pvcName.Name {
-			ctx.Log().Infof("Removing old claim from persistent volume %s", pv.Name)
+			ctx.Log().Debugf("Removing old claim from persistent volume %s", pv.Name)
 			pv.Spec.ClaimRef = nil
 			if err := ctx.Client().Update(context.TODO(), &pv); err != nil {
 				return ctx.Log().ErrorfNewErr("Failed removing claim from persistent volume %s: %v", pv.Name, err)
@@ -93,7 +86,7 @@ func UpdateExistingVolumeClaims(ctx spi.ComponentContext, pvcName types.Namespac
 	return nil
 }
 
-// DeleteExistingVolumeClaims removes a persistent volume claim in order to allow the pv to be reclaimed by a new PVC.
+// DeleteExistingVolumeClaim removes a persistent volume claim in order to allow the pv to be reclaimed by a new PVC.
 func DeleteExistingVolumeClaim(ctx spi.ComponentContext, pvcName types.NamespacedName) error {
 	ctx.Log().Debugf("Removing PVC %v", pvcName)
 
@@ -164,7 +157,7 @@ func GetPersistentVolumes(ctx spi.ComponentContext, componentName string) (*v1.P
 	return pvList, nil
 }
 
-//createPVCFromPV creates a PVC from a PV definition, and sets the PVC to reference the PV by name
+// createPVCFromPV creates a PVC from a PV definition, and sets the PVC to reference the PV by name
 func createPVCFromPV(ctx spi.ComponentContext, volume v1.PersistentVolume, newClaimName types.NamespacedName) error {
 	pvc := &v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{

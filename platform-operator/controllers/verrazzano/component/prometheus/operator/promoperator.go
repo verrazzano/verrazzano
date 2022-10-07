@@ -195,7 +195,7 @@ func updateExistingVolumeClaims(ctx spi.ComponentContext) error {
 	return nil
 }
 
-//createPVCFromPV creates a PVC from a PV definition, and sets the PVC to reference the PV by name
+// createPVCFromPV creates a PVC from a PV definition, and sets the PVC to reference the PV by name
 func createPVCFromPV(ctx spi.ComponentContext, volume corev1.PersistentVolume) error {
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{

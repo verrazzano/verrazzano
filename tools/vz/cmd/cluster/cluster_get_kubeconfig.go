@@ -5,7 +5,6 @@ package cluster
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"time"
@@ -84,7 +83,7 @@ func runCmdClusterGetKubeconfig(helper helpers.VZHelper, cmd *cobra.Command, arg
 	if exists {
 		fmt.Fprintf(helper.GetOutputStream(), "The file %s already exists - the kubeconfig for cluster %s will be merged into it\n", filePath, clusterName)
 		existingKubeconfig = true
-		newKubeconfigFile, err := ioutil.TempFile(os.TempDir(), generateTempKubeconfigFilename())
+		newKubeconfigFile, err := os.CreateTemp(os.TempDir(), generateTempKubeconfigFilename())
 		if err != nil {
 			return err
 		}

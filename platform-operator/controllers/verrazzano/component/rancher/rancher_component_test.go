@@ -44,8 +44,9 @@ func getValue(kvs []bom.KeyValue, key string) (string, bool) {
 
 // TestAppendRegistryOverrides verifies that registry overrides are added as appropriate
 // GIVEN a Verrazzano CR
-//  WHEN AppendOverrides is called
-//  THEN AppendOverrides should add registry overrides
+//
+//	WHEN AppendOverrides is called
+//	THEN AppendOverrides should add registry overrides
 func TestAppendRegistryOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzAcmeDev, nil, false)
 	config.SetDefaultBomFilePath("../../testdata/test_bom.json")
@@ -85,8 +86,9 @@ func TestAppendImageOverrides(t *testing.T) {
 
 // TestAppendCAOverrides verifies that CA overrides are added as appropriate for private CAs
 // GIVEN a Verrzzano CR
-//  WHEN AppendOverrides is called
-//  THEN AppendOverrides should add private CA overrides
+//
+//	WHEN AppendOverrides is called
+//	THEN AppendOverrides should add private CA overrides
 func TestAppendCAOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzDefaultCA, nil, false)
 	config.SetDefaultBomFilePath("../../testdata/test_bom.json")
@@ -102,8 +104,9 @@ func TestAppendCAOverrides(t *testing.T) {
 
 // TestIsReady verifies Rancher is enabled or disabled as expected
 // GIVEN a Verrzzano CR
-//  WHEN IsEnabled is called
-//  THEN IsEnabled should return true/false depending on the enabled state of the CR
+//
+//	WHEN IsEnabled is called
+//	THEN IsEnabled should return true/false depending on the enabled state of the CR
 func TestIsEnabled(t *testing.T) {
 	enabled := true
 	disabled := false
@@ -160,8 +163,9 @@ func TestPreInstall(t *testing.T) {
 
 // TestIsReady verifies that a ready-state Rancher shows as ready
 // GIVEN a ready Rancher install
-//  WHEN IsReady is called
-//  THEN IsReady should return true
+//
+//	WHEN IsReady is called
+//	THEN IsReady should return true
 func TestIsReady(t *testing.T) {
 	readyClient := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(
 		newReadyDeployment(ComponentNamespace, ComponentName),
@@ -261,8 +265,9 @@ func TestIsReady(t *testing.T) {
 
 // TestPostInstall tests a happy path post install run
 // GIVEN a Rancher install state where all components are ready
-//  WHEN PostInstall is called
-//  THEN PostInstall should return nil
+//
+//	WHEN PostInstall is called
+//	THEN PostInstall should return nil
 func TestPostInstall(t *testing.T) {
 	component := NewComponent()
 	ctxWithoutIngress, ctxWithIngress := prepareContexts()
@@ -272,8 +277,9 @@ func TestPostInstall(t *testing.T) {
 
 // TestPostUpgrade tests a happy path post upgrade run
 // GIVEN a Rancher install state where all components are ready
-//  WHEN PostUpgrade is called
-//  THEN PostUpgrade should return nil
+//
+//	WHEN PostUpgrade is called
+//	THEN PostUpgrade should return nil
 func TestPostUpgrade(t *testing.T) {
 	component := NewComponent()
 	ctxWithoutIngress, ctxWithIngress := prepareContexts()

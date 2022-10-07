@@ -1,0 +1,110 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: install.verrazzano.io/v1beta1
+kind: Verrazzano
+metadata:
+  name: verrazzano
+spec:
+  profile: prod
+  components:
+    authProxy:
+      overrides:
+        - values:
+            replicas: 2
+    certManager:
+      certificate:
+        acme:
+          provider: ""
+        ca:
+          clusterResourceNamespace: ""
+          secretName: ""
+      overrides:
+        - values:
+            cainjector:
+              replicaCount: 2
+            replicaCount: 2
+            webhook:
+              replicaCount: 2
+    console:
+      overrides:
+        - values:
+            replicas: 2
+    ingressNGINX:
+      overrides:
+        - values:
+            controller:
+              autoscaling:
+                enabled: true
+                minReplicas: 2
+              service:
+                annotations:
+                  service.beta.kubernetes.io/oci-load-balancer-shape : "10Mbps"
+                  service.beta.kubernetes.io/oci-load-balancer-internal: true
+                  service.beta.kubernetes.io/oci-load-balancer-subnet1: <your-subnet-ocid>
+            defaultBackend:
+              replicaCount: 2
+      type: LoadBalancer
+    istio:
+      overrides:
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                egressGateways:
+                  - enabled: true
+                    k8s:
+                      replicaCount: 2
+                    name: istio-egressgateway
+                ingressGateways:
+                  - enabled: true
+                    k8s:
+                      replicaCount: 2
+                      service:
+                        type: LoadBalancer
+                    name: istio-ingressgateway
+                pilot:
+                  k8s:
+                    replicaCount: 2
+              values:
+                gateways:
+                  istio-ingressgateway:
+                    serviceAnnotations:
+                      service.beta.kubernetes.io/oci-load-balancer-shape: "10Mbps"
+                      service.beta.kubernetes.io/oci-load-balancer-internal: true
+                      service.beta.kubernetes.io/oci-load-balancer-subnet1: <your-subnet-ocid>
+    keycloak:
+      overrides:
+        - values:
+            replicas: 2
+      mysql:
+        overrides:
+          - values:
+              serverInstances: 3
+              routerInstances: 2
+    kiali:
+      overrides:
+        - values:
+            deployment:
+              replicas: 2
+    opensearch:
+      nodes:
+        - name: es-data
+          roles:
+            - data
+        - name: es-ingest
+          replicas: 2
+          roles:
+            - ingest
+        - name: es-master
+          roles:
+            - master
+    opensearchDashboards:
+      replicas: 2
+    prometheusOperator:
+      overrides:
+        - values:
+            prometheus:
+              prometheusSpec:
+                replicas: 2
