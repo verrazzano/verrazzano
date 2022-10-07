@@ -15,8 +15,9 @@ import (
 
 // TestCertBuilder verifies downloading certs from the web
 // GIVEN a cert URI
-//  WHEN appendCertWithHTTP is called
-//  THEN appendCertWithHTTP should download the cert if it exists
+//
+//	WHEN appendCertWithHTTP is called
+//	THEN appendCertWithHTTP should download the cert if it exists
 func TestCertBuilder(t *testing.T) {
 	var tests = []struct {
 		testName string
@@ -68,8 +69,9 @@ func TestCertBuilder(t *testing.T) {
 
 // TestBuildLetsEncryptChain verifies building the LetsEncrypt staging certificate chain
 // GIVEN a certBuilder
-//  WHEN buildLetsEncryptStagingChain is called
-//  THEN buildLetsEncryptStagingChain should build the cert chain for LetsEncrypt
+//
+//	WHEN buildLetsEncryptStagingChain is called
+//	THEN buildLetsEncryptStagingChain should build the cert chain for LetsEncrypt
 func TestBuildLetsEncryptChain(t *testing.T) {
 	HTTPDo = func(hc *http.Client, req *http.Request) (*http.Response, error) {
 		return &http.Response{

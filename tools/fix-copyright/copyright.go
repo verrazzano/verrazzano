@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -360,7 +360,7 @@ func fixHeaders(args []string) error {
 				UpdatedYear: gfi.UpdatedYear,
 			}
 
-			fileContents, err := ioutil.ReadFile(path)
+			fileContents, err := os.ReadFile(path)
 			if err != nil {
 				return err
 			}
@@ -422,7 +422,7 @@ func fixHeaders(args []string) error {
 				if err != nil {
 					return err
 				}
-				err = ioutil.WriteFile(path, replacement, st.Mode())
+				err = os.WriteFile(path, replacement, st.Mode())
 				if err != nil {
 					return err
 				}
@@ -464,7 +464,7 @@ func main() {
 	flag.Parse()
 
 	if !verbose {
-		log.SetOutput(ioutil.Discard)
+		log.SetOutput(io.Discard)
 	}
 
 	if help {

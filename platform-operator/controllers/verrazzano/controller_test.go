@@ -99,7 +99,8 @@ func TestGetUninstallJobName(t *testing.T) {
 // GIVEN a request to reconcile a Verrazzano resource
 // WHEN a Verrazzano resource has been applied
 // THEN ensure all the objects are already created and
-//      ensure a finalizer is added if it doesn't exist
+//
+//	ensure a finalizer is added if it doesn't exist
 func TestInstall(t *testing.T) {
 	tests := []struct {
 		namespace string

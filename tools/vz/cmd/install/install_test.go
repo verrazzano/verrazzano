@@ -28,8 +28,9 @@ import (
 
 // TestInstallCmdDefaultNoWait
 // GIVEN a CLI install command with all defaults and --wait==false
-//  WHEN I call cmd.Execute for install
-//  THEN the CLI install command is successful
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command is successful
 func TestInstallCmdDefaultNoWait(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
@@ -50,8 +51,9 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 
 // TestInstallCmdDefaultTimeout
 // GIVEN a CLI install command with all defaults and --timeout=2s
-//  WHEN I call cmd.Execute for install
-//  THEN the CLI install command times out
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command times out
 func TestInstallCmdDefaultTimeout(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
@@ -68,8 +70,9 @@ func TestInstallCmdDefaultTimeout(t *testing.T) {
 
 // TestInstallCmdDefaultNoVPO
 // GIVEN a CLI install command with all defaults and no VPO found
-//  WHEN I call cmd.Execute for install
-//  THEN the CLI install command fails
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command fails
 func TestInstallCmdDefaultNoVPO(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
@@ -87,8 +90,9 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 
 // TestInstallCmdDefaultMultipleVPO
 // GIVEN a CLI install command with all defaults and multiple VPOs found
-//  WHEN I call cmd.Execute for install
-//  THEN the CLI install command fails
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command fails
 func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator+"-2"))...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
@@ -106,8 +110,9 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 
 // TestInstallCmdJsonLogFormat
 // GIVEN a CLI install command with defaults and --log-format=json and --wait==false
-//  WHEN I call cmd.Execute for install
-//  THEN the CLI install command is successful
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command is successful
 func TestInstallCmdJsonLogFormat(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
@@ -129,8 +134,9 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 
 // TestInstallCmdMultipleGroupVersions
 // GIVEN a CLI install command with defaults and --wait=false and --filename specified and multiple group versions in the filenames
-//  WHEN I call cmd.Execute for install
-//  THEN the CLI install command is unsuccessful
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command is unsuccessful
 func TestInstallCmdMultipleGroupVersions(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
@@ -170,8 +176,9 @@ func TestInstallCmdFilenamesV1Beta1(t *testing.T) {
 
 // TestInstallCmdFilenames
 // GIVEN a CLI install command with defaults and --wait=false and --filename specified
-//  WHEN I call cmd.Execute for install
-//  THEN the CLI install command is successful
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command is successful
 func TestInstallCmdFilenames(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
@@ -194,8 +201,9 @@ func TestInstallCmdFilenames(t *testing.T) {
 
 // TestInstallCmdFilenamesCsv
 // GIVEN a CLI install command with defaults and --wait=false and --filename specified as a comma separated list
-//  WHEN I call cmd.Execute for install
-//  THEN the CLI install command is successful
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command is successful
 func TestInstallCmdFilenamesCsv(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
@@ -219,8 +227,9 @@ func TestInstallCmdFilenamesCsv(t *testing.T) {
 
 // TestInstallCmdSets
 // GIVEN a CLI install command with defaults and --wait=false and --set specified
-//  WHEN I call cmd.Execute for install
-//  THEN the CLI install command is successful
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command is successful
 func TestInstallCmdSets(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
@@ -245,8 +254,9 @@ func TestInstallCmdSets(t *testing.T) {
 
 // TestInstallCmdFilenamesAndSets
 // GIVEN a CLI install command with defaults and --wait=false and --filename and --set specified
-//  WHEN I call cmd.Execute for install
-//  THEN the CLI install command is successful
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command is successful
 func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
@@ -286,8 +296,9 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 
 // TestInstallCmdOperatorFile
 // GIVEN a CLI install command with defaults and --wait=false and --operator-file specified
-//  WHEN I call cmd.Execute for install
-//  THEN the CLI install command is successful
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command is successful
 func TestInstallCmdOperatorFile(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
@@ -323,8 +334,9 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 
 // TestInstallValidations
 // GIVEN an install command
-//  WHEN invalid command options exist
-//  THEN expect an error
+//
+//	WHEN invalid command options exist
+//	THEN expect an error
 func TestInstallValidations(t *testing.T) {
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, nil)
 	cmd.PersistentFlags().Set(constants.OperatorFileFlag, "test")
@@ -336,8 +348,9 @@ func TestInstallValidations(t *testing.T) {
 
 // TestGetWaitTimeoutDefault
 // GIVEN no wait and timeout arguments specified
-//  WHEN I call GetWaitTimeout
-//  THEN the default timeout duration is returned
+//
+//	WHEN I call GetWaitTimeout
+//	THEN the default timeout duration is returned
 func TestGetWaitTimeoutDefault(t *testing.T) {
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, nil)
 	duration, err := cmdHelpers.GetWaitTimeout(cmd)
@@ -347,8 +360,9 @@ func TestGetWaitTimeoutDefault(t *testing.T) {
 
 // TestGetWaitTimeoutNoWait
 // GIVEN wait is specified as false
-//  WHEN I call GetWaitTimeout
-//  THEN the duration returned is zero
+//
+//	WHEN I call GetWaitTimeout
+//	THEN the duration returned is zero
 func TestGetWaitTimeoutNoWait(t *testing.T) {
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, nil)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -359,8 +373,9 @@ func TestGetWaitTimeoutNoWait(t *testing.T) {
 
 // TestGetWaitTimeoutSpecified
 // GIVEN wait the timeout is specified as 10m
-//  WHEN I call GetWaitTimeout
-//  THEN the duration returned is 10m0s
+//
+//	WHEN I call GetWaitTimeout
+//	THEN the duration returned is 10m0s
 func TestGetWaitTimeoutSpecified(t *testing.T) {
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, nil)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "10m")
@@ -371,8 +386,9 @@ func TestGetWaitTimeoutSpecified(t *testing.T) {
 
 // TestGetLogFormatSimple
 // GIVEN simple log format argument specified
-//  WHEN I call GetLogFormat
-//  THEN the simple log format is returned
+//
+//	WHEN I call GetLogFormat
+//	THEN the simple log format is returned
 func TestGetLogFormatSimple(t *testing.T) {
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, nil)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "simple")
@@ -383,8 +399,9 @@ func TestGetLogFormatSimple(t *testing.T) {
 
 // TestGetLogFormatJson
 // GIVEN json log format is specified
-//  WHEN I call GetLogFormat
-//  THEN json log format is returned
+//
+//	WHEN I call GetLogFormat
+//	THEN json log format is returned
 func TestGetLogFormatJson(t *testing.T) {
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, nil)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "json")
@@ -395,8 +412,9 @@ func TestGetLogFormatJson(t *testing.T) {
 
 // TestSetCommandInvalidFormat
 // GIVEN a set command is specified with the invalid format
-//  WHEN I call getSetArguments
-//  THEN an error is returned
+//
+//	WHEN I call getSetArguments
+//	THEN an error is returned
 func TestSetCommandInvalidFormat(t *testing.T) {
 	cmd, _, errBuf, rc := createNewTestCommandAndBuffers(t, nil)
 	cmd.PersistentFlags().Set(constants.SetFlag, "badflag")
@@ -409,8 +427,9 @@ func TestSetCommandInvalidFormat(t *testing.T) {
 
 // TestSetCommandSingle
 // GIVEN a single set command
-//  WHEN I call getSetArguments
-//  THEN the expected property value is returned
+//
+//	WHEN I call getSetArguments
+//	THEN the expected property value is returned
 func TestSetCommandSingle(t *testing.T) {
 	cmd, _, _, rc := createNewTestCommandAndBuffers(t, nil)
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
@@ -422,8 +441,9 @@ func TestSetCommandSingle(t *testing.T) {
 
 // TestSetCommandMultiple
 // GIVEN multiple set commands
-//  WHEN I call getSetArguments
-//  THEN the expected property values are returned
+//
+//	WHEN I call getSetArguments
+//	THEN the expected property values are returned
 func TestSetCommandMultiple(t *testing.T) {
 	cmd, _, _, rc := createNewTestCommandAndBuffers(t, nil)
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
@@ -437,8 +457,9 @@ func TestSetCommandMultiple(t *testing.T) {
 
 // TestSetCommandOverride
 // GIVEN multiple set commands overriding the same property
-//  WHEN I call getSetArguments
-//  THEN the expected property values are returned
+//
+//	WHEN I call getSetArguments
+//	THEN the expected property values are returned
 func TestSetCommandOverride(t *testing.T) {
 	cmd, _, _, rc := createNewTestCommandAndBuffers(t, nil)
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
@@ -451,8 +472,9 @@ func TestSetCommandOverride(t *testing.T) {
 
 // TestInstallCmdInProgress
 // GIVEN a CLI install command when an install was in progress
-//  WHEN I call cmd.Execute for install
-//  THEN the CLI install command is successful
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command is successful
 func TestInstallCmdInProgress(t *testing.T) {
 	vz := &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},
@@ -479,8 +501,9 @@ func TestInstallCmdInProgress(t *testing.T) {
 
 // TestInstallCmdAlreadyInstalled
 // GIVEN a CLI install command when an install already happened
-//  WHEN I call cmd.Execute for install
-//  THEN the CLI install command is unsuccessful
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command is unsuccessful
 func TestInstallCmdAlreadyInstalled(t *testing.T) {
 	vz := &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},
@@ -507,8 +530,9 @@ func TestInstallCmdAlreadyInstalled(t *testing.T) {
 
 // TestInstallCmdDifferentVersion
 // GIVEN a CLI install command when an install is in progress for a different version
-//  WHEN I call cmd.Execute for install
-//  THEN the CLI install command is unsuccessful
+//
+//	WHEN I call cmd.Execute for install
+//	THEN the CLI install command is unsuccessful
 func TestInstallCmdDifferentVersion(t *testing.T) {
 	vz := &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},

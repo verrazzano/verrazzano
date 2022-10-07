@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -164,7 +163,7 @@ func CheckStatusAndResponseHeaderAbsent(httpClient *retryablehttp.Client, req *r
 	if err != nil {
 		return err
 	}
-	ioutil.ReadAll(resp.Body)
+	io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if statusCode > 0 {
 		if resp.StatusCode != statusCode {
@@ -377,8 +376,8 @@ func doGetCACertFromSecret(secretName string, namespace string, kubeconfigPath s
 func newRetryableHTTPClient(client *http.Client) *retryablehttp.Client {
 	retryableClient := retryablehttp.NewClient()
 	retryableClient.RetryMax = NumRetries
-	retryableClient.RetryWaitMin = RetryWaitMin
-	retryableClient.RetryWaitMax = RetryWaitMax
+	retryableClient.RetryWaitMin = RetryWaitMinimum
+	retryableClient.RetryWaitMax = RetryWaitMaximum
 	retryableClient.HTTPClient = client
 	retryableClient.CheckRetry = GetRetryPolicy()
 	return retryableClient
@@ -386,7 +385,7 @@ func newRetryableHTTPClient(client *http.Client) *retryablehttp.Client {
 
 // rootCertPoolInCluster returns the root cert pool
 func rootCertPoolInCluster(caData []byte, kubeconfigPath string) (*x509.CertPool, error) {
-	var certPool *x509.CertPool = nil
+	var certPool *x509.CertPool
 
 	if len(caData) != 0 {
 		// if we have caData, use it

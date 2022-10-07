@@ -102,7 +102,7 @@ func TestIsEnabled(t *testing.T) {
 	}
 }
 
-//TestIsInstalled verifies component IsInstalled checks presence of the
+// TestIsInstalled verifies component IsInstalled checks presence of the
 // Velero operator deployment
 func TestIsInstalled(t *testing.T) {
 	var tests = []struct {
@@ -174,8 +174,9 @@ func TestGetName(t *testing.T) {
 
 // TestPostUninstall tests the PostUninstall function
 // GIVEN a call to PostUninstall
-//  WHEN the velero namespace exists with a finalizer
-//  THEN true is returned and velero namespace is deleted
+//
+//	WHEN the velero namespace exists with a finalizer
+//	THEN true is returned and velero namespace is deleted
 func TestPostUninstall(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&corev1.Namespace{

@@ -14,11 +14,10 @@ import (
 // the JSON serialization code from writing out empty values.
 //
 // There are a few cases where this is not true
-// - "enabled" flags should always be written; if the user or profile specifies false it
-//   needs to be recorded in the overrides and not omitted
-// - "vmi.ResourceRequestValues.storage" should be allowed to record empty values, as it is a valid
-//   value to the VMO to indicate ephemeral storage is to be used
-//
+//   - "enabled" flags should always be written; if the user or profile specifies false it
+//     needs to be recorded in the overrides and not omitted
+//   - "vmi.ResourceRequestValues.storage" should be allowed to record empty values, as it is a valid
+//     value to the VMO to indicate ephemeral storage is to be used
 type verrazzanoValues struct {
 	Name                   string                        `json:"name,omitempty"`
 	Global                 *globalValues                 `json:"global,omitempty"`

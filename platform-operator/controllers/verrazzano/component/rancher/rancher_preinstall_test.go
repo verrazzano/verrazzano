@@ -21,8 +21,9 @@ import (
 
 // TestCreateCattleNamespace verifies creation of the cattle-system namespace
 // GIVEN a CertManager component
-//  WHEN createCattleSystemNamespace is called
-//  THEN createCattleSystemNamespace the cattle-system namespace should be created
+//
+//	WHEN createCattleSystemNamespace is called
+//	THEN createCattleSystemNamespace the cattle-system namespace should be created
 func TestCreateCattleNamespace(t *testing.T) {
 	log := getTestLogger(t)
 
@@ -53,8 +54,9 @@ func TestCreateCattleNamespace(t *testing.T) {
 
 // TestIsUsingDefaultCACertificate verifies whether the CerManager component specifies to use the default CA certificate or not
 // GIVEN a CertManager component
-//  WHEN isUsingDefaultCACertificate is called
-//  THEN isUsingDefaultCACertificate should return true or false if the default CA certificate is required
+//
+//	WHEN isUsingDefaultCACertificate is called
+//	THEN isUsingDefaultCACertificate should return true or false if the default CA certificate is required
 func TestCopyDefaultCACertificate(t *testing.T) {
 	log := getTestLogger(t)
 	secret := createCASecret()
@@ -98,8 +100,9 @@ func TestCopyDefaultCACertificate(t *testing.T) {
 
 // TestIsUsingDefaultCACertificate verifies whether the CerManager component specifies to use the default CA certificate or not
 // GIVEN a CertManager component
-//  WHEN isUsingDefaultCACertificate is called
-//  THEN isUsingDefaultCACertificate should return true or false if the default CA certificate is required
+//
+//	WHEN isUsingDefaultCACertificate is called
+//	THEN isUsingDefaultCACertificate should return true or false if the default CA certificate is required
 func TestIsUsingDefaultCACertificate(t *testing.T) {
 	var tests = []struct {
 		testName string
@@ -132,8 +135,9 @@ func TestIsUsingDefaultCACertificate(t *testing.T) {
 
 // TestCreateAdditionalCertificates verifies creation of additional certificates when they are necessary
 // GIVEN a Verrazzano CR
-//  WHEN createAdditionalCertificates is called
-//  THEN createAdditionalCertificates should create additional certificates as necessary from the Verrazzano CR information
+//
+//	WHEN createAdditionalCertificates is called
+//	THEN createAdditionalCertificates should create additional certificates as necessary from the Verrazzano CR information
 func TestCreateAdditionalCertificates(t *testing.T) {
 	log := getTestLogger(t)
 	c := fake.NewClientBuilder().WithScheme(getScheme()).Build()

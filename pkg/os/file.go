@@ -4,7 +4,6 @@ package os
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -15,7 +14,7 @@ import (
 // CreateTempFile creates a temp file from a filename pattern and data
 func CreateTempFile(filenamePattern string, data []byte) (*os.File, error) {
 	var tmpFile *os.File
-	tmpFile, err := ioutil.TempFile(os.TempDir(), filenamePattern)
+	tmpFile, err := os.CreateTemp(os.TempDir(), filenamePattern)
 	if err != nil {
 		return tmpFile, fmt.Errorf("Failed to create temporary file: %v", err)
 	}
@@ -32,7 +31,7 @@ func CreateTempFile(filenamePattern string, data []byte) (*os.File, error) {
 }
 
 func RemoveTempFiles(log *zap.SugaredLogger, regexPattern string) error {
-	files, err := ioutil.ReadDir(os.TempDir())
+	files, err := os.ReadDir(os.TempDir())
 	if err != nil {
 		log.Errorf("Unable to read temp directory: %v", err)
 		return err

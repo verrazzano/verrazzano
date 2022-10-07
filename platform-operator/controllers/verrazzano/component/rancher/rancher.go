@@ -7,6 +7,8 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"strings"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -604,8 +606,9 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
 
 	data := map[string]interface{}{}
 	data[UserAttributeUserName] = vzUser.Username
-	data[UserAttributeDisplayName] = strings.Title(vzUser.Username)
-	data[UserAttributeDescription] = strings.Title(UserVerrazzanoDescription)
+	caser := cases.Title(language.English)
+	data[UserAttributeDisplayName] = caser.String(vzUser.Username)
+	data[UserAttributeDescription] = caser.String(UserVerrazzanoDescription)
 	data[UserAttributePrincipalIDs] = []interface{}{UserPrincipalKeycloakPrefix + vzUser.ID, UserPrincipalLocalPrefix + UserVerrazzano}
 
 	return createOrUpdateResource(ctx, nsn, GVKUser, data)
@@ -638,7 +641,8 @@ func createOrUpdateRoleTemplate(ctx spi.ComponentContext, role string) error {
 	data := map[string]interface{}{}
 	data[RoleTemplateAttributeBuiltin] = false
 	data[RoleTemplateAttributeContext] = "cluster"
-	data[RoleTemplateAttributeDisplayName] = strings.Title(strings.Replace(role, "-", " ", 1))
+	caser := cases.Title(language.English)
+	data[RoleTemplateAttributeDisplayName] = caser.String(strings.Replace(role, "-", " ", 1))
 	data[RoleTemplateAttributeExternal] = true
 	data[RoleTemplateAttributeHidden] = true
 	if clusterRole.Rules != nil && len(clusterRole.Rules) > 0 {
