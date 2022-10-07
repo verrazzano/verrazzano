@@ -251,6 +251,29 @@ func TestUpgradeCmdLesserStatusVersion(t *testing.T) {
 	assert.Equal(t, "Error: Upgrade to a lesser version of Verrazzano is not allowed. Upgrade version specified was v1.3.3 and current Verrazzano version is v1.3.4\n", errBuf.String())
 }
 
+// TestUpgradeCmdEqualStatusVersion
+// GIVEN a CLI upgrade command specifying a version equal to the status version and the spec version is empty
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command is successful with an informational message
+func TestUpgradeCmdEqualStatusVersion(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateVerrazzanoObjectWithVersion()).Build()
+
+	// Send stdout stderr to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdUpgrade(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.3.4")
+
+	// Run upgrade command
+	err := cmd.Execute()
+	assert.NoError(t, err)
+	assert.Equal(t, "Verrazzano is already at the specified upgrade version of v1.3.4\n", buf.String())
+}
+
 // TestUpgradeCmdLesserSpecVersion
 // GIVEN a CLI upgrade command specifying a version less than the spec version
 //

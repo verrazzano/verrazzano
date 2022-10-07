@@ -7,8 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-
-	"io/ioutil"
+	"os"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
@@ -229,7 +228,7 @@ func getB64CAData(config *rest.Config) (string, error) {
 	if len(config.CAData) > 0 {
 		return base64.StdEncoding.EncodeToString(config.CAData), nil
 	}
-	s, err := ioutil.ReadFile(config.CAFile)
+	s, err := os.ReadFile(config.CAFile)
 	if err != nil {
 		return "", fmt.Errorf("Error %v reading CAData file %s", err, config.CAFile)
 	}

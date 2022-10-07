@@ -4,7 +4,7 @@
 package coherenceworkload
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"time"

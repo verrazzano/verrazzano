@@ -12,10 +12,10 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 GOLANGCI_LINT_VERSION=1.49.0
 
 .PHONY: check
-check: lint-go word-linter url-linter ## run all linters
+check: golangci-lint word-linter url-linter ## run all linters
 
-.PHONY: lint-go
-lint-go: check-golangci-lint
+.PHONY: golangci-lint
+golangci-lint: check-golangci-lint
 	golangci-lint --color never run --max-same-issues 25 --timeout 300s
 
 .PHONY: check-golangci-lint
@@ -25,6 +25,7 @@ check-golangci-lint: install-golangci-lint ## run Go linters
 		ACTUAL_GOLANGCI_LINT_VERSION=$$(golangci-lint version --format short | sed -e 's%^v%%') ; \
 		if [ "$${ACTUAL_GOLANGCI_LINT_VERSION}" != "${GOLANGCI_LINT_VERSION}" ] ; then \
 			echo "Bad golangci-lint version $${ACTUAL_GOLANGCI_LINT_VERSION}, please install ${GOLANGCI_LINT_VERSION}" ; \
+			exit 1 ; \
 		fi ; \
 	}
 

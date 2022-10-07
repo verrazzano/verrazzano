@@ -7,13 +7,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"io/ioutil"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
 const (
@@ -107,7 +107,7 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 					pkg.Log(pkg.Error, fmt.Sprintf("failed to find test data file: %v", err))
 					return false
 				}
-				data, err := ioutil.ReadFile(file)
+				data, err := os.ReadFile(file)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("failed to read test data file: %v", err))
 					return false

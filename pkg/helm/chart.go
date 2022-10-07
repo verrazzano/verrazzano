@@ -4,7 +4,7 @@
 package helm
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"sigs.k8s.io/yaml"
@@ -41,7 +41,7 @@ func GetChartInfo(chartDir string) (ChartInfo, error) {
 
 // getChartInfo loads the Chart.yaml from the specified chart dir into a ChartInfo struct
 func getChartInfo(chartDir string) (ChartInfo, error) {
-	chartBytes, err := ioutil.ReadFile(filepath.Join(chartDir + "/Chart.yaml"))
+	chartBytes, err := os.ReadFile(filepath.Join(chartDir + "/Chart.yaml"))
 	if err != nil {
 		return ChartInfo{}, err
 	}
