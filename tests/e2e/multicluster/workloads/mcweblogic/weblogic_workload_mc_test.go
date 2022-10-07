@@ -6,8 +6,8 @@ package mcweblogic
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/weblogic"
 	m1 "k8s.io/api/core/v1"
 	"net/http"

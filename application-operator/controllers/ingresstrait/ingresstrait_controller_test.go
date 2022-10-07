@@ -2367,7 +2367,7 @@ func TestExtractServicesMultipleServices(t *testing.T) {
 	assert := asserts.New(t)
 
 	workload := &unstructured.Unstructured{}
-	_ = updateUnstructuredFromYAMLTemplate(workload, "test/templates/wls_domain_instance.yaml", nil)
+	_ = updateUnstructuredFromYAMLTemplate(workload, "testdata/templates/wls_domain_instance.yaml", nil)
 
 	var service1ID types.UID = "test-service-1"
 	u1, err := newUnstructuredService(service1ID, clusterIPNone, 8001)
@@ -2419,23 +2419,23 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 	}
 
 	// Create namespace
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/managed_namespace.yaml", params))
 	// Create Verrazzano ingress
 	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress("verrazzano-ingress."+testLoadBalancerIP)))
 	// Create Istio ingress service
 	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService(testClusterIP, testLoadBalancerIP)))
 	// Create application configuration
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/appconf_with_ingress.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/appconf_with_ingress.yaml", params))
 	// Create application component
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_component.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/wls_component.yaml", params))
 	// Create WebLogic workload definition
 	assert.NoError(createResourceFromTemplate(cli, "deploy/workloaddefinition_wls.yaml", params))
 	// Create trait
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/ingress_trait_instance.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/ingress_trait_instance.yaml", params))
 	// Create workload
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_workload_instance.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/wls_workload_instance.yaml", params))
 	// Create domain
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_domain_instance.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/wls_domain_instance.yaml", params))
 	// Create a service
 	service := k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -2520,23 +2520,23 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 	}
 
 	// Create namespace
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/managed_namespace.yaml", params))
 	// Create Verrazzano ingress
 	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress(testLoadBalancerIP)))
 	// Create Istio ingress service
 	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService(testClusterIP, testLoadBalancerIP)))
 	// Create application configuration
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/appconf_with_ingress.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/appconf_with_ingress.yaml", params))
 	// Create application component
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_component.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/wls_component.yaml", params))
 	// Create WebLogic workload definition
 	assert.NoError(createResourceFromTemplate(cli, "deploy/workloaddefinition_wls.yaml", params))
 	// Create trait
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/ingress_trait_instance_with_dest.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/ingress_trait_instance_with_dest.yaml", params))
 	// Create workload
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_workload_instance.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/wls_workload_instance.yaml", params))
 	// Create domain
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_domain_instance.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/wls_domain_instance.yaml", params))
 	// Create a service. This service should be ignored as an explicit destination is provided.
 	service := k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -2622,23 +2622,23 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 	}
 
 	// Create namespace
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/managed_namespace.yaml", params))
 	// Create Verrazzano ingress
 	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress(testLoadBalancerIP)))
 	// Create Istio ingress service
 	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService(testClusterIP, testLoadBalancerIP)))
 	// Create application configuration
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/appconf_with_ingress.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/appconf_with_ingress.yaml", params))
 	// Create application component
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_component.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/wls_component.yaml", params))
 	// Create WebLogic workload definition
 	assert.NoError(createResourceFromTemplate(cli, "deploy/workloaddefinition_wls.yaml", params))
 	// Create trait. This trait has no destination.
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/ingress_trait_instance.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/ingress_trait_instance.yaml", params))
 	// Create workload
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_workload_instance.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/wls_workload_instance.yaml", params))
 	// Create domain
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_domain_instance.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/wls_domain_instance.yaml", params))
 	// Create a service. This service has two ports and one with "http" prefix.
 	service := k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -2734,21 +2734,21 @@ func TestMultipleServicesForNonWebLogicWorkloadWithoutExplicitIngressDestination
 	}
 
 	// Create namespace
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/managed_namespace.yaml", params))
 	// Create Verrazzano ingress
 	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress(testLoadBalancerIP)))
 	// Create Istio ingress service
 	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService(testClusterIP, testLoadBalancerIP)))
 	// Create application configuration
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/appconf_with_ingress.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/appconf_with_ingress.yaml", params))
 	// Create application component
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/helidon_component.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/helidon_component.yaml", params))
 	// Create WebLogic workload definition
 	assert.NoError(createResourceFromTemplate(cli, "deploy/workloaddefinition_vzhelidon.yaml", params))
 	// Create workload
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/helidon_workload_instance.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/helidon_workload_instance.yaml", params))
 	// Create trait. This trait has no destination.
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/ingress_trait_instance.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/ingress_trait_instance.yaml", params))
 	// Create a first service.
 	service1 := k8score.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -2860,23 +2860,23 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 	}
 
 	// Create namespace
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/managed_namespace.yaml", params))
 	// Create Verrazzano ingress
 	assert.NoError(cli.Create(context.Background(), newVerrazzanoIngress(testLoadBalancerIP)))
 	// Create Istio ingress service
 	assert.NoError(cli.Create(context.Background(), newIstioLoadBalancerService(testClusterIP, testLoadBalancerIP)))
 	// Create application configuration
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/appconf_with_ingress.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/appconf_with_ingress.yaml", params))
 	// Create application component
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_component.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/wls_component.yaml", params))
 	// Create WebLogic workload definition
 	assert.NoError(createResourceFromTemplate(cli, "deploy/workloaddefinition_wls.yaml", params))
 	// Create trait
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/ingress_trait_instance.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/ingress_trait_instance.yaml", params))
 	// Create workload
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_workload_instance.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/wls_workload_instance.yaml", params))
 	// Create domain
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/wls_domain_instance.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/wls_domain_instance.yaml", params))
 
 	// Perform Reconcile
 	request := newRequest(params["TRAIT_NAMESPACE"], params["TRAIT_NAME"])
@@ -4134,9 +4134,9 @@ func TestIngressTraitIsDeleted(t *testing.T) {
 	}
 	assert.NoError(cli.Create(context.TODO(), istioNs))
 	// Create Namespace
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/managed_namespace.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/managed_namespace.yaml", params))
 	// Create trait
-	assert.NoError(createResourceFromTemplate(cli, "test/templates/ingress_trait_instance.yaml", params))
+	assert.NoError(createResourceFromTemplate(cli, "testdata/templates/ingress_trait_instance.yaml", params))
 	trait := &vzapi.IngressTrait{}
 	assert.NoError(cli.Get(context.TODO(), types.NamespacedName{Namespace: params["TRAIT_NAMESPACE"], Name: params["TRAIT_NAME"]}, trait))
 	trait.Finalizers = []string{finalizerName}
