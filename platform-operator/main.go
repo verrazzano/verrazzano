@@ -4,8 +4,12 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"flag"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sync"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -134,9 +138,12 @@ func main() {
 
 	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
 	// validatingWebhookConfiguration resource before the operator container runs.
+	var kubeClient *kubernetes.Clientset
+	var caCert *bytes.Buffer
+
 	if config.InitWebhooks {
 		log.Debug("Creating certificates used by webhooks")
-		caCert, err := certificate.CreateWebhookCertificates(config.CertDir)
+		caCert, err = certificate.CreateWebhookCertificates(config.CertDir)
 		if err != nil {
 			log.Errorf("Failed to create certificates used by webhooks: %v", err)
 			os.Exit(1)
@@ -148,7 +155,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		kubeClient, err := kubernetes.NewForConfig(config)
+		kubeClient, err = kubernetes.NewForConfig(config)
 		if err != nil {
 			log.Errorf("Failed to get clientset: %v", err)
 			os.Exit(1)
@@ -230,6 +237,20 @@ func main() {
 			os.Exit(1)
 		}
 		mgr.GetWebhookServer().CertDir = config.CertDir
+
+		// Mysql install overrides validating webhook
+		validatingWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), "v1beta1-verrazzano-platform-mysqlinstalloverrides", metav1.GetOptions{})
+		if err != nil {
+			log.Errorf("Failed to setup v1beta1 MySQL install overrides webhook with manager: %v", err)
+			os.Exit(1)
+		}
+		validatingWebhook.Webhooks[0].ClientConfig.CABundle = caCert.Bytes()
+		_, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
+		if err != nil {
+			log.Errorf("Failed to update v1beta1 MySQL install overrides webhook configuration: %v", err)
+			os.Exit(1)
+		}
+		mgr.GetWebhookServer().Register("/v1beta1-validate-mysql-install-override-values", &webhook.Admission{Handler: &installv1beta1.MysqlValuesValidator{}})
 	}
 
 	// Setup the reconciler for VerrazzanoManagedCluster objects
