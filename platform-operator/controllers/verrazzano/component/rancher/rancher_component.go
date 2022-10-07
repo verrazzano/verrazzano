@@ -201,8 +201,7 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 	repo := subcomponent.Repository
 	images := subcomponent.Images
 
-	// Start at 1 to avoid overriding the existing extraEnv var
-	envPos := 1
+	envPos := 0
 	for _, image := range images {
 		imEnvVar, ok := imageEnvVars[image.ImageName]
 		// skip the images that are not included in the override map
