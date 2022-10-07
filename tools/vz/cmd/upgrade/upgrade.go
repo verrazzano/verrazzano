@@ -101,6 +101,12 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		if upgradeVersion.IsLessThan(vzSpecVersion) {
 			return fmt.Errorf("Upgrade to a lesser version of Verrazzano is not allowed. Upgrade version specified was %s and the upgrade in progress is %s", version, vz.Spec.Version)
 		}
+	} else {
+		// Installed version is already at the upgrade version specified
+		if upgradeVersion.IsEqualTo(vzStatusVersion) {
+			fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Verrazzano is already at the specified upgrade version of %s\n", version))
+			return nil
+		}
 	}
 
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Upgrading Verrazzano to version %s\n", version))
