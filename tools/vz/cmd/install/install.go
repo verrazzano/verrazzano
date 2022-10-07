@@ -133,7 +133,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	if existingvz != nil {
 		// Allow install command to continue if an install is in progress and the same version is specified.
 		// For example, control-C was entered and the install command is run again.
-		// Note: "Installing" is a state that was used in pre 1.4.0 installs and replaced wih "Reconciling".
+		// Note: "Installing" is a state that was used in pre 1.4.0 installs and replaced with "Reconciling".
 		if existingvz.Status.State != v1beta1.VzStateReconciling && existingvz.Status.State != "Installing" {
 			return fmt.Errorf("Only one install of Verrazzano is allowed")
 		}

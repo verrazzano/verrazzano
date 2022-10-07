@@ -20,7 +20,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -105,7 +104,7 @@ type Action struct {
 	} `json:"delete,omitempty"`
 }
 
-// Transistion defined in ISM policy
+// Transition defined in ISM policy
 type Transition struct {
 	StateName  string            `json:"state_name"`
 	Conditions map[string]string `json:"conditions"`
