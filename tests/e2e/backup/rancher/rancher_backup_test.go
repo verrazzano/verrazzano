@@ -20,8 +20,6 @@ import (
 	"text/template"
 	"time"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -185,7 +183,7 @@ func PopulateRancherUsers(rancherURL string, n int) error {
 			return err
 		}
 		common.RancherUserNameList = append(common.RancherUserNameList, userName)
-		t.Logs.Infof("Sucessfully created rancher user %v", userName)
+		t.Logs.Infof("Successfully created rancher user %v", userName)
 	}
 
 	return nil
@@ -206,7 +204,7 @@ func DeleteRancherUsers(rancherURL string) bool {
 			t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
 			return false
 		}
-		t.Logs.Infof("Sucessfully deleted rancher user '%v' with id '%v' ", common.RancherUserNameList[i], common.RancherUserIDList[i])
+		t.Logs.Infof("Successfully deleted rancher user '%v' with id '%v' ", common.RancherUserNameList[i], common.RancherUserIDList[i])
 	}
 	return true
 }
