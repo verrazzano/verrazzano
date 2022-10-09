@@ -10,7 +10,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 
-	"github.com/verrazzano/verrazzano/pkg/constants"
+	. "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -398,7 +398,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		t.It("has expected deployment", func() {
 			if isMinVersion110 && !pkg.IsManagedClusterProfile() {
 				Eventually(func() (bool, error) {
-					return pkg.DoesDeploymentExist(constants.VerrazzanoSystemNamespace, "verrazzano-console")
+					return pkg.DoesDeploymentExist(VerrazzanoSystemNamespace, "verrazzano-console")
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
@@ -407,7 +407,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has affinity configured as expected", func() {
 			if isMinVersion140 && !pkg.IsManagedClusterProfile() {
-				assertPodAntiAffinity(map[string]string{"app": "verrazzano-console"}, constants.VerrazzanoSystemNamespace)
+				assertPodAntiAffinity(map[string]string{"app": "verrazzano-console"}, VerrazzanoSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
 			}
@@ -418,7 +418,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		t.It("has expected deployment", func() {
 			if isMinVersion110 {
 				Eventually(func() (bool, error) {
-					return pkg.DoesDeploymentExist(constants.VerrazzanoSystemNamespace, "verrazzano-authproxy")
+					return pkg.DoesDeploymentExist(VerrazzanoSystemNamespace, "verrazzano-authproxy")
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
@@ -427,7 +427,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has correct number of pods running", func() {
 			if isMinVersion110 {
-				validateCorrectNumberOfPodsRunning("verrazzano-authproxy", constants.VerrazzanoSystemNamespace)
+				validateCorrectNumberOfPodsRunning("verrazzano-authproxy", VerrazzanoSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
@@ -435,7 +435,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has affinity configured as expected", func() {
 			if isMinVersion120 {
-				assertPodAntiAffinity(map[string]string{"app": "verrazzano-authproxy"}, constants.VerrazzanoSystemNamespace)
+				assertPodAntiAffinity(map[string]string{"app": "verrazzano-authproxy"}, VerrazzanoSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.2.0")
 			}
@@ -446,7 +446,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		t.It("has expected deployment", func() {
 			if isMinVersion110 {
 				Eventually(func() (bool, error) {
-					return pkg.DoesDeploymentExist(constants.CertManagerNamespace, "cert-manager")
+					return pkg.DoesDeploymentExist(CertManagerNamespace, "cert-manager")
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
@@ -455,7 +455,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has affinity configured as expected", func() {
 			if isMinVersion140 {
-				assertPodAntiAffinity(map[string]string{"app": "cert-manager"}, constants.CertManagerNamespace)
+				assertPodAntiAffinity(map[string]string{"app": "cert-manager"}, CertManagerNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
 			}
@@ -466,7 +466,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		t.It("has expected controller deployment", func() {
 			if isMinVersion110 {
 				Eventually(func() (bool, error) {
-					return pkg.DoesDeploymentExist(constants.IngressNamespace, constants.IngressController)
+					return pkg.DoesDeploymentExist(IngressNamespace, IngressController)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
@@ -475,7 +475,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		t.It("has expected defaultBackend deployment", func() {
 			if isMinVersion110 {
 				Eventually(func() (bool, error) {
-					return pkg.DoesDeploymentExist(constants.IngressNamespace, constants.IngressDefaultBackend)
+					return pkg.DoesDeploymentExist(IngressNamespace, IngressDefaultBackend)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
@@ -492,7 +492,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has affinity configured as expected", func() {
 			if isMinVersion140 {
-				assertPodAntiAffinity(map[string]string{"app": "ingress-nginx"}, constants.IngressNamespace)
+				assertPodAntiAffinity(map[string]string{"app": "ingress-nginx"}, IngressNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
 			}
@@ -503,7 +503,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		t.It("has expected deployment", func() {
 			if isMinVersion110 {
 				Eventually(func() (bool, error) {
-					return pkg.DoesDeploymentExist(constants.IstioSystemNamespace, "istio-ingressgateway")
+					return pkg.DoesDeploymentExist(IstioSystemNamespace, "istio-ingressgateway")
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
@@ -512,7 +512,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has correct number of pods running", func() {
 			if isMinVersion110 {
-				validateCorrectNumberOfPodsRunning("istio-ingressgateway", constants.IstioSystemNamespace)
+				validateCorrectNumberOfPodsRunning("istio-ingressgateway", IstioSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
@@ -520,7 +520,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has affinity configured as expected", func() {
 			if isMinVersion120 {
-				validateIstioGatewayAffinity("istio-ingressgateway", constants.IstioSystemNamespace)
+				validateIstioGatewayAffinity("istio-ingressgateway", IstioSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.2.0")
 			}
@@ -531,7 +531,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		t.It("has expected deployment", func() {
 			if isMinVersion110 {
 				Eventually(func() (bool, error) {
-					return pkg.DoesDeploymentExist(constants.IstioSystemNamespace, "istio-egressgateway")
+					return pkg.DoesDeploymentExist(IstioSystemNamespace, "istio-egressgateway")
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
@@ -540,7 +540,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has correct number of pods running", func() {
 			if isMinVersion110 {
-				validateCorrectNumberOfPodsRunning("istio-egressgateway", constants.IstioSystemNamespace)
+				validateCorrectNumberOfPodsRunning("istio-egressgateway", IstioSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
 			}
@@ -548,7 +548,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has affinity configured as expected", func() {
 			if isMinVersion120 {
-				validateIstioGatewayAffinity("istio-egressgateway", constants.IstioSystemNamespace)
+				validateIstioGatewayAffinity("istio-egressgateway", IstioSystemNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.2.0")
 			}
@@ -560,7 +560,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			t.It("has expected statefulset", func() {
 				if isMinVersion110 {
 					Eventually(func() (bool, error) {
-						return pkg.DoesStatefulSetExist(constants.KeycloakNamespace, constants.Keycloak)
+						return pkg.DoesStatefulSetExist(KeycloakNamespace, Keycloak)
 					}, waitTimeout, pollingInterval).Should(BeTrue())
 				} else {
 					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
@@ -569,7 +569,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 			t.It("has correct number of pods running", func() {
 				if isMinVersion110 {
-					err := validateCorrectNumberOfPodsRunningSts(constants.Keycloak, constants.KeycloakNamespace, "app.kubernetes.io/name", constants.Keycloak)
+					err := validateCorrectNumberOfPodsRunningSts(Keycloak, KeycloakNamespace, "app.kubernetes.io/name", Keycloak)
 					Expect(err).To(BeNil())
 				} else {
 					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
@@ -578,7 +578,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 			t.It("has affinity configured as expected", func() {
 				if isMinVersion140 {
-					assertPodAntiAffinity(map[string]string{"app.kubernetes.io/name": constants.Keycloak}, constants.KeycloakNamespace)
+					assertPodAntiAffinity(map[string]string{"app.kubernetes.io/name": Keycloak}, KeycloakNamespace)
 				} else {
 					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
 				}
@@ -588,7 +588,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			t.It("has expected mysql statefulset", func() {
 				if isMinVersion150 {
 					Eventually(func() (bool, error) {
-						return pkg.DoesStatefulSetExist(constants.KeycloakNamespace, "mysql")
+						return pkg.DoesStatefulSetExist(KeycloakNamespace, "mysql")
 					}, waitTimeout, pollingInterval).Should(BeTrue())
 				} else {
 					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.5.0")
@@ -597,7 +597,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 			t.It("has correct number of mysql server pods running", func() {
 				if isMinVersion150 {
-					err := validateCorrectNumberOfPodsRunningSts("mysql", constants.KeycloakNamespace, "app.kubernetes.io/name", "mysql-innodbcluster-mysql-server")
+					err := validateCorrectNumberOfPodsRunningSts("mysql", KeycloakNamespace, "app.kubernetes.io/name", "mysql-innodbcluster-mysql-server")
 					Expect(err).To(BeNil())
 				} else {
 					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.5.0")
@@ -607,7 +607,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			t.It("has expected mysql router deployment", func() {
 				if isMinVersion150 {
 					Eventually(func() (bool, error) {
-						return pkg.DoesDeploymentExist(constants.KeycloakNamespace, "mysql-router")
+						return pkg.DoesDeploymentExist(KeycloakNamespace, "mysql-router")
 					}, waitTimeout, pollingInterval).Should(BeTrue())
 				} else {
 					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.5.0")
@@ -616,7 +616,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 			t.It("has correct number of mysql router pods running", func() {
 				if isMinVersion150 {
-					validateCorrectNumberOfPodsRunning("mysql-router", constants.KeycloakNamespace)
+					validateCorrectNumberOfPodsRunning("mysql-router", KeycloakNamespace)
 				} else {
 					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.5.0")
 				}
@@ -624,7 +624,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 			t.It("has affinity configured for mysql statefulset as expected", func() {
 				if isMinVersion150 {
-					assertPodAntiAffinity(map[string]string{"app.kubernetes.io/name": "mysql-innodbcluster-mysql-server"}, constants.KeycloakNamespace)
+					assertPodAntiAffinity(map[string]string{"app.kubernetes.io/name": "mysql-innodbcluster-mysql-server"}, KeycloakNamespace)
 				} else {
 					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.5.0")
 				}
@@ -632,7 +632,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 			t.It("has affinity configured for mysql router deployment as expected", func() {
 				if isMinVersion150 {
-					assertPodAntiAffinity(map[string]string{"app.kubernetes.io/name": "mysql-router"}, constants.KeycloakNamespace)
+					assertPodAntiAffinity(map[string]string{"app.kubernetes.io/name": "mysql-router"}, KeycloakNamespace)
 				} else {
 					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.5.0")
 				}
@@ -647,7 +647,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 		t.It("has expected deployment", func() {
 			if isMinVersion150 {
 				Eventually(func() (bool, error) {
-					return pkg.DoesDeploymentExist(constants.MySQLOperatorNamespace, mysqloperator.ComponentName)
+					return pkg.DoesDeploymentExist(MySQLOperatorNamespace, mysqloperator.ComponentName)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.5.0")
@@ -656,7 +656,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 		t.It("has correct number of pods running", func() {
 			if isMinVersion150 {
-				validateCorrectNumberOfPodsRunning(mysqloperator.ComponentName, constants.MySQLOperatorNamespace)
+				validateCorrectNumberOfPodsRunning(mysqloperator.ComponentName, MySQLOperatorNamespace)
 			} else {
 				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.5.0")
 			}
@@ -727,21 +727,21 @@ func validateCorrectNumberOfIngressNGINXPodsRunning() {
 	var controllerDeployment *appsv1.Deployment
 	Eventually(func() (*appsv1.Deployment, error) {
 		var err error
-		controllerDeployment, err = pkg.GetDeployment(constants.IngressNamespace, "ingress-controller-ingress-nginx-controller")
+		controllerDeployment, err = pkg.GetDeployment(IngressNamespace, "ingress-controller-ingress-nginx-controller")
 		return controllerDeployment, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	var defaultBackendDeployment *appsv1.Deployment
 	Eventually(func() (*appsv1.Deployment, error) {
 		var err error
-		defaultBackendDeployment, err = pkg.GetDeployment(constants.IngressNamespace, constants.IngressDefaultBackend)
+		defaultBackendDeployment, err = pkg.GetDeployment(IngressNamespace, IngressDefaultBackend)
 		return defaultBackendDeployment, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	var pods []corev1.Pod
 	Eventually(func() bool {
 		var err error
-		pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/name": "ingress-nginx"}}, constants.IngressNamespace)
+		pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app.kubernetes.io/name": "ingress-nginx"}}, IngressNamespace)
 		if err != nil {
 			return false
 		}
@@ -793,7 +793,7 @@ func validateVerrazzanoSystemServicePorts() {
 	var services *corev1.ServiceList
 	Eventually(func() (*corev1.ServiceList, error) {
 		var err error
-		services, err = pkg.ListServices(constants.VerrazzanoSystemNamespace)
+		services, err = pkg.ListServices(VerrazzanoSystemNamespace)
 		return services, err
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
