@@ -331,7 +331,7 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed helm component post upgrade: %s", err.Error())
 	}
 
-	return nil
+	return patchRancherIngress(c, ctx.EffectiveCR())
 }
 
 // activateDrivers activates the nodeDriver oci and oraclecontainerengine kontainerDriver

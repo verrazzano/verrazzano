@@ -20,7 +20,7 @@ jobs:
         run: |
           echo 'PR_URL<<EOF' >> $GITHUB_ENV
           gh pr create \
-            -B "main" \
+            -B "master" \
             -t "CI: Update Rancher image in BOM" \
             -b "*Automated Pull Request*  Updating Rancher image in BOM for ${{ github.ref }}" \
             -r "ddsharpe,robertpatrick"
@@ -29,6 +29,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Enable Automatic Merge
-        run: gh pr merge --auto --merge "${{ env.PR_URL }}"
+        run: gh pr merge --auto --squash "${{ env.PR_URL }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

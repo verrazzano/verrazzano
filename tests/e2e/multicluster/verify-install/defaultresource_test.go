@@ -5,7 +5,7 @@ package defaultresource_test
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"os"
 	"time"
 

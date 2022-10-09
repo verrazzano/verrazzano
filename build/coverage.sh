@@ -4,17 +4,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Code coverage generation
-# Excludes test utility packages and the test directory
-TEST_PKGS=$(go list ./... | \
-  grep -Ev github.com/verrazzano/verrazzano/application-operator/mocks | \
-  grep -Ev github.com/verrazzano/verrazzano/application-operator/clients | \
-  grep -Ev github.com/verrazzano/verrazzano/platform-operator/mocks | \
-  grep -Ev github.com/verrazzano/verrazzano/platform-operator/clients | \
-  grep -Ev github.com/verrazzano/verrazzano/tools/eventually-checker | \
-  grep -Ev github.com/verrazzano/verrazzano/tools/fix-copyright | \
-  grep -Ev github.com/verrazzano/verrazzano/tests | \
-  grep -Ev github.com/verrazzano/verrazzano/pkg/test/framework)
-go test -coverpkg=$(echo ${TEST_PKGS}|tr ' ' ',') -coverprofile ./coverage.raw.cov ${TEST_PKGS}
+go test -coverprofile ./coverage.raw.cov $(go list ./... | grep -Ev /tests/e2e)
 
 TEST_STATUS=$?
 
