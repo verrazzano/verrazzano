@@ -6,8 +6,10 @@ package certmanager
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
@@ -99,6 +101,9 @@ func (c certManagerComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 
 // ValidateInstall checks if the specified new Verrazzano CR is valid for this component to be installed
 func (c certManagerComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
+	if err := checkExistingCertManager(vz); err != nil {
+		return err
+	}
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(vz) {
 		if _, err := validateConfiguration(vz.Spec.Components.CertManager); err != nil {
@@ -233,4 +238,36 @@ func (c certManagerComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return false
+}
+
+func checkExistingCertManager(vz runtime.Object) error {
+	if !vzconfig.IsCertManagerEnabled(vz) {
+		return nil
+	}
+	client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return err
+	}
+	ns, err := client.Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil && !kerrs.IsNotFound(err) {
+		return err
+	}
+	if err = checkNS(ns.Items); err != nil {
+		return err
+	}
+	return nil
+}
+
+func checkNS(ns []v1.Namespace) error {
+	for _, n := range ns {
+		if n.Namespace == ComponentNamespace || n.Name == ComponentNamespace {
+			for l := range n.Labels {
+				if l == vzNsLabel {
+					return nil
+				}
+			}
+			return fmt.Errorf("found existing Cert Manager namespace %s not created by Verrazzano", ComponentNamespace)
+		}
+	}
+	return nil
 }
