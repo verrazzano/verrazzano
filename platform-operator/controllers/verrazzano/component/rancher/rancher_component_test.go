@@ -54,7 +54,7 @@ func TestAppendRegistryOverrides(t *testing.T) {
 	registry := "foobar"
 	imageRepo := "barfoo"
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 29, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart Overrides
+	assert.Equal(t, 29, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart + RancherImage Overrides
 	_ = os.Setenv(constants.RegistryOverrideEnvVar, registry)
 	kvs, _ = AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.Equal(t, 29, len(kvs))
@@ -82,7 +82,7 @@ func TestAppendImageOverrides(t *testing.T) {
 
 	// construct an expected image list
 	expectedImages := map[string]bool{}
-	for key, _ := range imageEnvVars {
+	for key := range imageEnvVars {
 		expectedImages[key] = false
 	}
 
