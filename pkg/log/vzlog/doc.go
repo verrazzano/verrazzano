@@ -21,8 +21,8 @@ package vzlog
 // then we delete the logging context. So, if you changed the resource foo an hour later,
 // and the same code path is executed, then the message will be displayed once, for the new reconcile session.
 //
-// The main purpose of this package is to provide logging during Kubernetes resource reconcilation.  For that
-// use case, use the EnsureResourceLogger method as follows.  See the function descrition for more details.
+// The main purpose of this package is to provide logging during Kubernetes resource reconciliation.  For that
+// use case, use the EnsureResourceLogger method as follows.  See the function description for more details.
 //
 //   	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
 //		Name:           vz.Name,
@@ -36,7 +36,7 @@ package vzlog
 // as described here. The logger is initialized with the zap.SugaredLogger and then used instead of the zap logger directly.
 // The same SugaredLogger calls can be made: Debug, Debugf, Info, Infof, Error, and Errorf.  The
 // two new calls are Progress and Progressf. The S() method will return the underlying SugaredLogger.
-// The following psuedo-code shows how this should be used:
+// The following pseudo-code shows how this should be used:
 //
 //   log := vzlog.EnsureContext(key).EnsureLogger("default", zaplog, zaplog)
 //
