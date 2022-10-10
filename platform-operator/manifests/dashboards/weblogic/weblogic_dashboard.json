@@ -97,7 +97,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "count(count (wls_jvm_uptime{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\", instance=\"$instance\"}) by (name,verrazzano_cluster))",
+          "expr": "count(count (wls_jvm_uptime{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\"}) by (name,verrazzano_cluster))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -387,7 +387,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "wls_server_state_val{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\", instance=\"$instance\"}",
+          "expr": "wls_server_state_val{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\"}",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -483,7 +483,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "100 - wls_jvm_heap_free_percent{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\", instance=\"$instance\"}",
+          "expr": "100 - wls_jvm_heap_free_percent{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\"}",
           "format": "time_series",
           "hide": false,
           "instant": true,
@@ -579,7 +579,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "wls_jvm_uptime{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\", instance=\"$instance\"}",
+          "expr": "wls_jvm_uptime{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\"}",
           "format": "time_series",
           "hide": false,
           "instant": true,
@@ -667,7 +667,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "wls_server_open_sockets_current_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\", instance=\"$instance\"}",
+          "expr": "wls_server_open_sockets_current_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\"}",
           "format": "time_series",
           "hide": false,
           "instant": true,
@@ -738,7 +738,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "wls_jvm_heap_free_current{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\", instance=\"$instance\"}",
+          "expr": "wls_jvm_heap_free_current{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\"}",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -747,7 +747,7 @@
         },
         {
           "exemplar": true,
-          "expr": "wls_jvm_heap_size_current{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\", instance=\"$instance\"}",
+          "expr": "wls_jvm_heap_size_current{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\"}",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -757,7 +757,7 @@
         },
         {
           "exemplar": true,
-          "expr": "wls_jvm_heap_size_max{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\", instance=\"$instance\"}",
+          "expr": "wls_jvm_heap_size_max{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\"}",
           "format": "time_series",
           "hide": true,
           "interval": "",
@@ -863,7 +863,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "wls_jvm_process_cpu_load{weblogic_domainUID=~\"$domainName\", weblogic_clusterName=~\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\", instance=\"$instance\"} * 100",
+          "expr": "wls_jvm_process_cpu_load{weblogic_domainUID=~\"$domainName\", weblogic_clusterName=~\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\"} * 100",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -972,7 +972,7 @@
         },
         {
           "exemplar": true,
-          "expr": "wls_threadpool_stuck_thread_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\", instance=\"$instance\"}",
+          "expr": "wls_threadpool_stuck_thread_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\"}",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -981,7 +981,7 @@
         },
         {
           "exemplar": true,
-          "expr": "wls_threadpool_queue_length{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\", instance=\"$instance\"}",
+          "expr": "wls_threadpool_queue_length{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\"}",
           "format": "time_series",
           "hide": true,
           "interval": "",
@@ -991,7 +991,7 @@
         },
         {
           "exemplar": true,
-          "expr": "wls_threadpool_hogging_thread_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\", instance=\"$instance\"}",
+          "expr": "wls_threadpool_hogging_thread_count{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=~\"${serverName:regex}\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\"}",
           "format": "time_series",
           "hide": true,
           "interval": "",
@@ -3798,33 +3798,6 @@
         "query": {
           "query": "label_values(wls_jvm_uptime{verrazzano_cluster=~\"$vzcluster\", weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\"},weblogic_serverName)",
           "refId": "Prometheus-serverName-Variable-Query"
-        },
-        "refresh": 2,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tags": [],
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
-      },
-      {
-        "allValue": null,
-        "current": {},
-        "datasource": "Prometheus",
-        "definition": "label_values(wls_jvm_uptime{verrazzano_cluster=~\"$vzcluster\", weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\"}, instance)",
-        "description": null,
-        "error": null,
-        "hide": 0,
-        "includeAll": false,
-        "label": "Instance",
-        "multi": true,
-        "name": "instance",
-        "options": [],
-        "query": {
-          "query": "label_values(wls_jvm_uptime{verrazzano_cluster=~\"$vzcluster\", weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\"},weblogic_serverName)",
-          "refId": "Prometheus-instance-Variable-Query"
         },
         "refresh": 2,
         "regex": "",
