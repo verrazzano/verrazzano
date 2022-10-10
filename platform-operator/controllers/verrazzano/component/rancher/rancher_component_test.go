@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -78,13 +79,40 @@ func TestAppendImageOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzapi.Verrazzano{}, nil, false)
 	config.SetDefaultBomFilePath("../../testdata/test_bom.json")
 	_ = os.Unsetenv(constants.RegistryOverrideEnvVar)
+
+	// construct an expected image list
+	expectedImages := map[string]bool{}
+	for key, _ := range imageEnvVars {
+		expectedImages[key] = false
+	}
+
 	kvs, err := appendImageOverrides(ctx, []bom.KeyValue{})
 	a.Nil(err)
 	a.Equal(21, len(kvs))
-	a.Equal("ghcr.io", kvs[0].Value)
-	a.Equal("extraEnv[0].name", kvs[1].Key)
-	a.Contains(kvs[2].Value, "verrazzano/rancher")
-	a.Equal("extraEnv[9].value", kvs[len(kvs)-1].Key)
+	for _, kv := range kvs {
+		// special exception for the extra arguments
+		if kv.Value == "true" || kv.Value == "ghcr.io" {
+			continue
+		}
+		if regexp.MustCompile(`extraEnv\[\d+]\.name`).Match([]byte(kv.Key)) {
+			a.NotEmpty(kv.Value)
+			continue
+		}
+		// catch image tags and ignore them
+		if regexp.MustCompile(`^v\d+.\d+.\d+-\d+-\w+`).Match([]byte(kv.Value)) {
+			continue
+		}
+		if strings.Contains(kv.Value, cattleShellImageName) {
+			expectedImages[cattleShellImageName] = true
+			continue
+		}
+		splitImage := strings.Split(kv.Value, "/")
+		expectedImages[splitImage[len(splitImage)-1]] = true
+	}
+
+	for key, val := range expectedImages {
+		a.True(val, fmt.Sprintf("Image %s was not found in the key value arguments:\n%v", key, expectedImages))
+	}
 }
 
 // TestAppendCAOverrides verifies that CA overrides are added as appropriate for private CAs
