@@ -31,14 +31,9 @@ spec:
               name: http-metric
               protocol: TCP
           startupProbe:
-            httpGet:
-              host: {{ .Values.name }}-webhook
-              path: /validate-install-verrazzano-io-v1alpha1-verrazzano
-              port: 443
-              scheme: HTTPS
-              httpHeaders:
-                - name: Content-Type
-                  value: application/json
+            exec:
+              command:
+                - /verrazzano/platform-operator/scripts/wait4webhook.sh
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 15
