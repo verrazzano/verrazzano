@@ -223,7 +223,7 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 	}
 
 	// For the Rancher UI, we need to update this final env var
-	kvs, _ = addExtraEnvVar(kvs, cattleUIEnvName, "true", envPos)
+	kvs, _ = addExtraEnvVar(kvs, cattleUIEnvName, "\"true\"", envPos)
 
 	return kvs, nil
 }
