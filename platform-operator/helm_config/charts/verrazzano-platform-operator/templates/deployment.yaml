@@ -34,8 +34,8 @@ spec:
             exec:
               command:
                 - /verrazzano/platform-operator/scripts/wait4webhook.sh
-            periodSeconds: 5
-            timeoutSeconds: 7
+            periodSeconds: 10
+            timeoutSeconds: 30
             failureThreshold: 15
           args:
             - --zap-log-level=info
