@@ -313,7 +313,9 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
+	context.Log().Infof("Entered preinstall step")
 	releaseStatus, err := helm.GetReleaseStatus(h.ReleaseName, h.ChartNamespace)
+	context.Log().Infof("Called get release status for release: %s, chart: %s; and the Status is: %s", h.ReleaseName, h.ChartNamespace, releaseStatus)
 	if err != nil {
 		context.Log().Infof("Error getting release status for %s", h.ReleaseName)
 	} else if releaseStatus != release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() { // When helm release is not deployed or uninstalled, cleanup the secret
@@ -330,7 +332,9 @@ func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 }
 
 func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent, isInstall bool) {
+	context.Log().Infof("Entered cleanupLatestSecret")
 	secretList := &v1.SecretList{}
+	context.Log().Infof("List of secrets %s", secretList)
 	context.Client().List(ctx.TODO(), secretList, &clipkg.ListOptions{
 		Namespace: h.ChartNamespace,
 	})
@@ -341,13 +345,18 @@ func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent, isInstal
 			filteredHelmSecrets = append(filteredHelmSecrets, eachSecret)
 		}
 	}
+	context.Log().Infof("List of filtered secrets %s", filteredHelmSecrets)
+
 	// Sort the secrets based on CreationTimeStamp; latest ones first
 	sort.Slice(filteredHelmSecrets, func(i, j int) bool {
 		return (filteredHelmSecrets[i].CreationTimestamp.Time).After(filteredHelmSecrets[j].CreationTimestamp.Time)
 	})
+	context.Log().Infof("sorted the List of filtered secrets %s", filteredHelmSecrets)
 
+	context.Log().Infof("length of filtered secrets is %s, and isInstall is %s", len(filteredHelmSecrets), isInstall)
 	// When there is only one secret AND if it's preInstall we delete the secret
 	if len(filteredHelmSecrets) == 1 && isInstall {
+		context.Log().Infof("Found only one secret, But it's for install so deleting the latest")
 		context.Log().Infof("Deleting secret %s", filteredHelmSecrets[0])
 		if err := context.Client().Delete(ctx.TODO(), &filteredHelmSecrets[0]); err != nil {
 			context.Log().Errorf("Error deleting secret %s", filteredHelmSecrets[0])
@@ -355,6 +364,7 @@ func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent, isInstal
 			context.Log().Infof("Deleted secret completed")
 		}
 	} else if len(filteredHelmSecrets) > 1 { // When there are more than one secret, delete the latest one to keep the helm installation going
+		context.Log().Infof("Found more than one secret, so deleting the latest one")
 		latestSecret := filteredHelmSecrets[0]
 		context.Log().Infof("Deleting secret %s", latestSecret)
 		if err := context.Client().Delete(ctx.TODO(), &latestSecret); err != nil {
@@ -393,7 +403,9 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreUninstall(context spi.ComponentContext) error {
+	context.Log().Infof("Entered preuninstall step")
 	releaseStatus, err := helm.GetReleaseStatus(h.ReleaseName, h.ChartNamespace)
+	context.Log().Infof("Called get release status for release: %s, chart: %s; and the Status is: %s", h.ReleaseName, h.ChartNamespace, releaseStatus)
 	if err != nil {
 		context.Log().Infof("Error getting release status for %s", h.ReleaseName)
 	} else if releaseStatus != release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() { // When helm release is not deployed or uninstalled, cleanup the secret
@@ -487,7 +499,9 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreUpgrade(context spi.ComponentContext) error {
+	context.Log().Infof("Entered preupgrade step")
 	releaseStatus, err := helm.GetReleaseStatus(h.ReleaseName, h.ChartNamespace)
+	context.Log().Infof("Called get release status for release: %s, chart: %s; and the Status is: %s", h.ReleaseName, h.ChartNamespace, releaseStatus)
 	if err != nil {
 		context.Log().Infof("Error getting release status for %s", h.ReleaseName)
 	} else if releaseStatus != release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() { // When helm release is not deployed or uninstalled, cleanup the secret
