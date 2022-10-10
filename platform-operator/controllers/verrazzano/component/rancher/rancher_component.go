@@ -60,6 +60,12 @@ var imageEnvVars = map[string]string{
 	"gitjob":          "GITJOB_IMAGE",
 }
 
+type envVar struct {
+	Name      string
+	Value     string
+	SetString bool
+}
+
 type rancherComponent struct {
 	helm.HelmComponent
 }
@@ -204,7 +210,7 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 	repo := subcomponent.Repository
 	images := subcomponent.Images
 
-	envPos := 0
+	var envList []envVar
 	for _, image := range images {
 		imEnvVar, ok := imageEnvVars[image.ImageName]
 		// skip the images that are not included in the override map
@@ -214,26 +220,29 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 		fullImageName := fmt.Sprintf("%s/%s", repo, image.ImageName)
 		// For the shell image, we need to combine to one env var
 		if image.ImageName == cattleShellImageName {
-			kvs, envPos = addExtraEnvVar(kvs, imEnvVar, fmt.Sprintf("%s:%s", fullImageName, image.ImageTag), envPos, false)
+			envList = append(envList, envVar{Name: imEnvVar, Value: fmt.Sprintf("%s:%s", fullImageName, image.ImageTag), SetString: false})
 			continue
 		}
 		tagEnvVar := imEnvVar + "_TAG"
-		kvs, envPos = addExtraEnvVar(kvs, imEnvVar, fullImageName, envPos, false)
-		kvs, envPos = addExtraEnvVar(kvs, tagEnvVar, image.ImageTag, envPos, false)
+		envList = append(envList, envVar{Name: imEnvVar, Value: fullImageName, SetString: false})
+		envList = append(envList, envVar{Name: tagEnvVar, Value: image.ImageTag, SetString: false})
 	}
 
 	// For the Rancher UI, we need to update this final env var
-	kvs, _ = addExtraEnvVar(kvs, cattleUIEnvName, "true", envPos, true)
+	envList = append(envList, envVar{Name: cattleUIEnvName, Value: "true", SetString: true})
 
-	return kvs, nil
+	return createEnvVars(kvs, envList), nil
 }
 
-// addExtraEnvVar creates an environment override for an image value
-func addExtraEnvVar(kvs []bom.KeyValue, name, value string, envPos int, setString bool) ([]bom.KeyValue, int) {
-	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].name", envPos), Value: name})
-	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].value", envPos), Value: value, SetString: setString})
-	envPos++
-	return kvs, envPos
+// createEnvVars takes in a list of env arguments and creates the extraEnv override arguments
+func createEnvVars(kvs []bom.KeyValue, envList []envVar) []bom.KeyValue {
+	envPos := 0
+	for _, env := range envList {
+		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].name", envPos), Value: env.Name})
+		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].value", envPos), Value: env.Value, SetString: env.SetString})
+		envPos++
+	}
+	return kvs
 }
 
 // IsEnabled Rancher is always enabled on admin clusters,
