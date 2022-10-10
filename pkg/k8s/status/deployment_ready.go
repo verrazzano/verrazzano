@@ -82,6 +82,9 @@ func DoDeploymentsExist(log vzlog.VerrazzanoLogger, client clipkg.Client, namesp
 }
 
 func deploymentFullyReady(log vzlog.VerrazzanoLogger, client clipkg.Client, deployment *appsv1.Deployment, namespacedName types.NamespacedName, expectedReplicas int32, prefix string) bool {
+	if namespacedName.Namespace == constants.VerrazzanoSystemNamespace && namespacedName.Name == constants.GrafanaIngress && *deployment.Spec.Replicas == 0 {
+		return true
+	}
 	if deployment.Status.UpdatedReplicas < expectedReplicas {
 		logProgressf(log, "%s is waiting for deployment %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
 			expectedReplicas, deployment.Status.UpdatedReplicas)
@@ -92,7 +95,6 @@ func deploymentFullyReady(log vzlog.VerrazzanoLogger, client clipkg.Client, depl
 			expectedReplicas, deployment.Status.AvailableReplicas)
 		return false
 	}
-
 	// Velero install deploys a daemonset and deployment with common labels. The labels need to be adjusted so the pod fetch logic works
 	// as expected
 	podSelector := deployment.Spec.Selector
