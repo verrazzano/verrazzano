@@ -12,7 +12,8 @@ COPY . .
 COPY out/linux_amd64/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
 
 RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
-    && chmod +x scripts/install/*.sh
+    && chmod +x scripts/install/*.sh \
+    && chmod +x scripts/*.sh
 
 # Create the verrazzano-platform-operator image
 FROM ghcr.io/oracle/oraclelinux:7-slim
