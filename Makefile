@@ -67,7 +67,7 @@ test-platform-operator-remove:
 
 .PHONY: test-platform-operator-install-logs
 test-platform-operator-install-logs:
-	kubectl logs -f -n default $(shell kubectl get pods -n default --no-headers | grep "^verrazzano-install-" | cut -d ' ' -f 1)
+	kubectl logs -f -n verrazzano-install $(shell kubectl get pods -n verrazzano-install --no-headers | grep "^verrazzano-platform-operator-" | cut -d ' ' -f 1)
 
 .PHONY: precommit
 precommit: precommit-check precommit-build unit-test-coverage
