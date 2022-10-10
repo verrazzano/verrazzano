@@ -214,24 +214,24 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 		fullImageName := fmt.Sprintf("%s/%s", repo, image.ImageName)
 		// For the shell image, we need to combine to one env var
 		if image.ImageName == cattleShellImageName {
-			kvs, envPos = addExtraEnvVar(kvs, imEnvVar, fmt.Sprintf("%s:%s", fullImageName, image.ImageTag), envPos)
+			kvs, envPos = addExtraEnvVar(kvs, imEnvVar, fmt.Sprintf("%s:%s", fullImageName, image.ImageTag), envPos, false)
 			continue
 		}
 		tagEnvVar := imEnvVar + "_TAG"
-		kvs, envPos = addExtraEnvVar(kvs, imEnvVar, fullImageName, envPos)
-		kvs, envPos = addExtraEnvVar(kvs, tagEnvVar, image.ImageTag, envPos)
+		kvs, envPos = addExtraEnvVar(kvs, imEnvVar, fullImageName, envPos, false)
+		kvs, envPos = addExtraEnvVar(kvs, tagEnvVar, image.ImageTag, envPos, false)
 	}
 
 	// For the Rancher UI, we need to update this final env var
-	kvs, _ = addExtraEnvVar(kvs, cattleUIEnvName, "\"true\"", envPos)
+	kvs, _ = addExtraEnvVar(kvs, cattleUIEnvName, "true", envPos, true)
 
 	return kvs, nil
 }
 
 // addExtraEnvVar creates an environment override for an image value
-func addExtraEnvVar(kvs []bom.KeyValue, name, value string, envPos int) ([]bom.KeyValue, int) {
+func addExtraEnvVar(kvs []bom.KeyValue, name, value string, envPos int, setString bool) ([]bom.KeyValue, int) {
 	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].name", envPos), Value: name})
-	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].value", envPos), Value: value})
+	kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].value", envPos), Value: value, SetString: setString})
 	envPos++
 	return kvs, envPos
 }
