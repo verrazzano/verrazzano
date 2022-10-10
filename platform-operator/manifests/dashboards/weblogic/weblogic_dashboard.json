@@ -387,7 +387,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "wls_server_state_val{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\"}",
+          "expr": "sum(wls_server_state_val{weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\", weblogic_serverName=\"$serverName\",verrazzano_cluster=~\"$vzcluster\",container=\"weblogic-server\",service=\"$domainName-cluster-$clusterName\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
