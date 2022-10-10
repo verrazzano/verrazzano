@@ -9,6 +9,8 @@ import (
 	"os"
 	"time"
 
+    . "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
