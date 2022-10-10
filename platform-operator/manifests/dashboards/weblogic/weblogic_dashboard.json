@@ -372,7 +372,7 @@
           "values": false
         },
         "text": {},
-        "textMode": "auto"
+        "textMode": "value"
       },
       "pluginVersion": "7.5.11",
       "repeat": "serverName",
@@ -456,17 +456,19 @@
       "links": [],
       "maxDataPoints": 100,
       "options": {
-        "orientation": "horizontal",
         "reduceOptions": {
+          "values": false,
           "calcs": [
             "lastNotNull"
           ],
-          "fields": "",
-          "values": false
+          "fields": ""
         },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true,
-        "text": {}
+        "orientation": "horizontal",
+        "text": {},
+        "textMode": "value",
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
       },
       "pluginVersion": "7.5.11",
       "repeat": "serverName",
@@ -494,7 +496,7 @@
       "timeFrom": null,
       "timeShift": null,
       "title": "Heap Usage",
-      "type": "gauge"
+      "type": "stat"
     },
     {
       "cacheTimeout": null,
@@ -562,7 +564,7 @@
           "values": false
         },
         "text": {},
-        "textMode": "auto"
+        "textMode": "value"
       },
       "pluginVersion": "7.5.11",
       "repeat": "serverName",
@@ -650,7 +652,7 @@
           "values": false
         },
         "text": {},
-        "textMode": "auto"
+        "textMode": "value"
       },
       "pluginVersion": "7.5.11",
       "repeat": "serverName",
