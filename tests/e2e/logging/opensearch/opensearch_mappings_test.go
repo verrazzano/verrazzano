@@ -5,17 +5,19 @@ package opensearch
 
 import (
 	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"time"
 )
 
 const (
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 1 * time.Minute
+	longWaitTimeout      = 15 * time.Minute
 	indexDocumentURL     = "%s/_doc"
 )
 
@@ -105,7 +107,7 @@ var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.e
 				}
 			}
 			return true
-		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue(), "Expected to write data successfully to OpenSearch with different data types")
+		}).WithPolling(shortPollingInterval).WithTimeout(longWaitTimeout).Should(BeTrue(), "Expected to write data successfully to OpenSearch with different data types")
 	})
 
 	MinimumVerrazzanoIt("Documents with object fields get stored as objects", func() {
@@ -140,6 +142,6 @@ var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.e
 				return false
 			}
 			return true
-		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to fail writing data with concrete value for object field in OpenSearch")
+		}, longWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to fail writing data with concrete value for object field in OpenSearch")
 	})
 })
