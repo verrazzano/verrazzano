@@ -1,0 +1,215 @@
+# Copyright (C) 2021, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  creationTimestamp: "2021-01-12T02:18:25Z"
+  generation: 4
+  labels:
+    coherenceCluster: example-cluster
+    coherenceComponent: coherence
+    coherenceDeployment: example-cluster-storage
+    coherenceRole: example-cluster-storage
+  name: ##STATEFULSET_NAME##
+  namespace: ##STATEFULSET_NAMESPACE##
+  ownerReferences:
+    - apiVersion: coherence.oracle.com/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Coherence
+      name: ##WORKLOAD_NAME##
+      uid: 1cc7e3c4-d4c1-4fa0-97f7-09c14030160c
+  resourceVersion: "1137442"
+  selfLink: /apis/apps/v1/namespaces/coherence-example/statefulsets/example-cluster-storage
+  uid: b4951a88-b89a-480b-9413-38320a729fb4
+spec:
+  podManagementPolicy: Parallel
+  replicas: 3
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      coherenceCluster: example-cluster
+      coherenceComponent: coherencePod
+      coherenceDeployment: example-cluster-storage
+      coherenceRole: example-cluster-storage
+  serviceName: example-cluster-storage-sts
+  template:
+    metadata:
+      annotations:
+        verrazzano.io/metricsEnabled: "true"
+        verrazzano.io/metricsPath: /metrics
+        verrazzano.io/metricsPort: "9612"
+      creationTimestamp: null
+      labels:
+        app.oam.dev/component: ##OAM_COMP_NAME##
+        app.oam.dev/name: ##OAM_APP_NAME##
+        coherenceCluster: example-cluster
+        coherenceComponent: coherencePod
+        coherenceDeployment: example-cluster-storage
+        coherenceRole: example-cluster-storage
+        coherenceWKAMember: "true"
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: coherenceCluster
+                      operator: In
+                      values:
+                        - example-cluster
+                    - key: coherenceDeployment
+                      operator: In
+                      values:
+                        - example-cluster-storage
+                topologyKey: topology.kubernetes.io/zone
+              weight: 1
+      containers:
+        - command:
+            - /coherence-operator/utils/runner
+            - server
+          env:
+            - name: COH_MACHINE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+            - name: COH_MEMBER_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: COH_POD_UID
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.uid
+            - name: COH_CLUSTER_NAME
+              value: example-cluster
+            - name: COH_ROLE
+              value: example-cluster-storage
+            - name: COH_WKA
+              value: example-cluster-storage-wka.coherence-example.svc.cluster.local
+            - name: OPERATOR_HOST
+              valueFrom:
+                secretKeyRef:
+                  key: operatorhost
+                  name: coherence-operator-config
+                  optional: true
+            - name: COH_SITE_INFO_LOCATION
+              value: http://$(OPERATOR_HOST)/site/$(COH_MACHINE_NAME)
+            - name: COH_RACK_INFO_LOCATION
+              value: http://$(OPERATOR_HOST)/rack/$(COH_MACHINE_NAME)
+            - name: COH_UTIL_DIR
+              value: /coherence-operator/utils
+            - name: OPERATOR_REQUEST_TIMEOUT
+              value: "120"
+            - name: COH_HEALTH_PORT
+              value: "6676"
+            - name: COH_IDENTITY
+              value: example-cluster-storage@coherence-example
+            - name: JVM_ARGS
+              value: -Dcoherence.metrics.legacy.names=false
+            - name: JVM_HEAP_SIZE
+              value: 512m
+            - name: JVM_GC_LOGGING
+              value: "false"
+            - name: JVM_USE_CONTAINER_LIMITS
+              value: "true"
+            - name: COH_CACHE_CONFIG
+              value: storage-cache-config.xml
+            - name: COH_MGMT_ENABLED
+              value: "false"
+            - name: COH_METRICS_ENABLED
+              value: "true"
+            - name: COH_METRICS_PORT
+              value: "9612"
+          image: fixme-deployment-example:3.1.5
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 5
+            httpGet:
+              path: /healthz
+              port: 6676
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 60
+            successThreshold: 1
+            timeoutSeconds: 30
+          name: coherence
+          ports:
+            - containerPort: 7
+              name: coherence
+              protocol: TCP
+            - containerPort: 6676
+              name: health
+              protocol: TCP
+            - containerPort: 9612
+              name: metrics
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 50
+            httpGet:
+              path: /ready
+              port: 6676
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 60
+            successThreshold: 1
+            timeoutSeconds: 30
+          resources:
+            limits:
+              cpu: "32"
+            requests:
+              cpu: "0"
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /coherence-operator/utils
+              name: coh-utils
+            - mountPath: /coherence-operator/jvm
+              name: jvm
+      dnsPolicy: ClusterFirst
+      imagePullSecrets:
+        - name: ocir
+      initContainers:
+        - command:
+            - /files/runner
+            - init
+          env:
+            - name: COH_UTIL_DIR
+              value: /coherence-operator/utils
+            - name: COH_CLUSTER_NAME
+              value: example-cluster
+          image: ghcr.io/oracle/coherence-operator:3.1.5-utils
+          imagePullPolicy: IfNotPresent
+          name: coherence-k8s-utils
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /coherence-operator/utils
+              name: coh-utils
+            - mountPath: /coherence-operator/jvm
+              name: jvm
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - emptyDir: {}
+          name: coh-utils
+        - emptyDir: {}
+          name: jvm
+  updateStrategy:
+    type: RollingUpdate
+status:
+  collisionCount: 0
+  currentReplicas: 3
+  currentRevision: example-cluster-storage-7d6c8556b4
+  observedGeneration: 4
+  readyReplicas: 3
+  replicas: 3
+  updateRevision: example-cluster-storage-7d6c8556b4
+  updatedReplicas: 3

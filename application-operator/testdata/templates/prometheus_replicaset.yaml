@@ -1,0 +1,141 @@
+# Copyright (C) 2020, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  annotations:
+    deployment.kubernetes.io/desired-replicas: "1"
+    deployment.kubernetes.io/max-replicas: "2"
+    deployment.kubernetes.io/revision: "1"
+  creationTimestamp: "2020-11-23T15:12:08Z"
+  generation: 1
+  labels:
+    app: prometheus
+    chart: prometheus
+    heritage: Helm
+    pod-template-hash: 85959bb46
+    release: istio
+  name: ##PROMETHEUS_NAME##
+  namespace: ##PROMETHEUS_NAMESPACE##
+  ownerReferences:
+    - apiVersion: apps/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Deployment
+      name: prometheus
+      uid: 4f18af46-0d81-47fc-a4a7-4c1b61bd002a
+  resourceVersion: "6798664"
+  selfLink: /apis/apps/v1/namespaces/istio-system/replicasets/prometheus-85959bb46
+  uid: dc7a2905-e257-4a8e-99d2-438019688268
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+      pod-template-hash: 85959bb46
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      creationTimestamp: null
+      labels:
+        app: prometheus
+        chart: prometheus
+        heritage: Helm
+        pod-template-hash: 85959bb46
+        release: istio
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - preference:
+                matchExpressions:
+                  - key: beta.kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+              weight: 2
+            - preference:
+                matchExpressions:
+                  - key: beta.kubernetes.io/arch
+                    operator: In
+                    values:
+                      - ppc64le
+              weight: 2
+            - preference:
+                matchExpressions:
+                  - key: beta.kubernetes.io/arch
+                    operator: In
+                    values:
+                      - s390x
+              weight: 2
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: beta.kubernetes.io/arch
+                    operator: In
+                    values:
+                      - amd64
+                      - ppc64le
+                      - s390x
+      containers:
+        - args:
+            - --storage.tsdb.retention=6h
+            - --config.file=/etc/prometheus/prometheus.yml
+          image: fake-image
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /-/healthy
+              port: 9090
+              scheme: HTTP
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          name: prometheus
+          ports:
+            - containerPort: 9090
+              name: http
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /-/ready
+              port: 9090
+              scheme: HTTP
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources:
+            requests:
+              cpu: 10m
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /etc/prometheus
+              name: config-volume
+            - mountPath: /etc/istio-certs
+              name: istio-certs
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: prometheus
+      serviceAccountName: prometheus
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - configMap:
+            defaultMode: 420
+            name: prometheus
+          name: config-volume
+        - name: istio-certs
+          secret:
+            defaultMode: 420
+            secretName: istio.default
+status:
+  availableReplicas: 1
+  fullyLabeledReplicas: 1
+  observedGeneration: 1
+  readyReplicas: 1
+  replicas: 1

@@ -63,7 +63,12 @@ func patchRancherIngress(c client.Client, vz *vzapi.Verrazzano) error {
 		return err
 	}
 	ingressMerge := client.MergeFrom(ingress.DeepCopy())
+	if ingress.Annotations == nil {
+		ingress.Annotations = map[string]string{}
+	}
 	ingress.Annotations["kubernetes.io/tls-acme"] = "true"
+	ingress.Annotations["nginx.ingress.kubernetes.io/backend-protocol"] = "HTTPS"
+	ingress.Annotations["nginx.ingress.kubernetes.io/force-ssl-redirect"] = "true"
 	if (cm.Certificate.Acme != vzapi.Acme{}) {
 		addAcmeIngressAnnotations(vz.Spec.EnvironmentName, dnsSuffix, ingress)
 	} else {

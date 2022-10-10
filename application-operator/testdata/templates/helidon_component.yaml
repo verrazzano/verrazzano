@@ -1,0 +1,20 @@
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: {{.COMPONENT_NAME}}
+  namespace: {{.COMPONENT_NAMESPACE}}
+spec:
+  workload:
+    apiVersion: oam.verrazzano.io/v1alpha1
+    kind: VerrazzanoHelidonWorkload
+    metadata:
+      name: {{.WORKLOAD_NAME}}
+    spec:
+      containers:
+        - image: {{if .CONTAINER_IMAGE}}{{.CONTAINER_IMAGE}}{{else}}test-container-image{{end}}
+          name: {{if .CONTAINER_NAME}}{{.CONTAINER_NAME}}{{else}}test-container-name{{end}}
+          ports:
+            - containerPort: {{if .CONTAINER_PORT_NUMBER}}{{.CONTAINER_PORT_NUMBER}}{{else}}777{{end}}
+              name: {{if .CONTAINER_PORT_NAME}}{{.CONTAINER_PORT_NAME}}{{else}}test-container-port-name{{end}}
