@@ -7,8 +7,8 @@ platform-manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=$(CRD_PATH)
 	# Add copyright headers to the kubebuilder generated CRDs
 	./hack/add-crd-header.sh
-	./hack/update-codegen.sh "verrazzano:v1beta1,v1alpha1" "verrazzano" "boilerplate.go.txt"
-	./hack/update-codegen.sh "clusters:v1alpha1" "clusters" "boilerplate-clusters.go.txt"
+	./hack/update-codegen.sh "verrazzano:v1beta1,v1alpha1 clusters:v1alpha1"  "boilerplate.go.txt"
+#	./hack/update-codegen.sh "clusters:v1alpha1" "clusters" "boilerplate-clusters.go.txt"
 
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: application-manifests
@@ -18,9 +18,9 @@ application-manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./apis/app/..." output:crd:artifacts:config=$(CRD_PATH)
 	# Add copyright headers to the kubebuilder generated CRDs
 	./hack/add-crd-header.sh
-	./hack/update-codegen.sh "clusters:v1alpha1" "clusters" "boilerplate.go.txt"
-	./hack/update-codegen.sh "oam:v1alpha1" "oam" "boilerplate.go.txt"
-	./hack/update-codegen.sh "app:v1alpha1" "app" "boilerplate.go.txt"
+	./hack/update-codegen.sh "clusters:v1alpha1 oam:v1alpha1 app:v1alpha1" "boilerplate.go.txt"
+#	./hack/update-codegen.sh "oam:v1alpha1" "oam" "boilerplate.go.txt"
+#	./hack/update-codegen.sh "app:v1alpha1" "app" "boilerplate.go.txt"
 	# Add copyright headers to the kubebuilder generated manifests
 	./hack/add-yml-header.sh PROJECT
 
