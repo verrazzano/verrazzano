@@ -14,8 +14,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
@@ -156,16 +156,28 @@ var _ = t.Describe("Test Keycloak configuration.", Label("f:platform-lcm.install
 
 var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 	var _ = t.Context("MySQL Persistent Volumes in namespace keycloak based on", func() {
+		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
 
 		size := "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
-		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
+		if ok, _ := pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath); ok {
+			size = "2Gi"
+		}
 		override, _ := pkg.GetEffectiveKeyCloakPersistenceOverride(kubeconfigPath)
 		if override != nil {
 			size = override.Spec.Resources.Requests.Storage().String()
 		}
 
+		claimName := "mysql"
+		if ok, _ := pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath); ok {
+			claimName = "datadir-mysql-0"
+		}
+
 		if pkg.IsDevProfile() {
 			expectedKeyCloakPVCs := 0
+			is15, _ := pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
+			if is15 {
+				expectedKeyCloakPVCs = 1
+			}
 			if override != nil {
 				expectedKeyCloakPVCs = 1
 			}
@@ -173,7 +185,7 @@ var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 				// There is no Persistent Volume for MySQL in a dev install
 				Expect(len(volumeClaims)).To(Equal(expectedKeyCloakPVCs))
 				if expectedKeyCloakPVCs > 0 {
-					assertPersistentVolume("mysql", size)
+					assertPersistentVolume(claimName, size)
 				}
 			})
 		} else if pkg.IsManagedClusterProfile() {
@@ -186,9 +198,12 @@ var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 			})
 		} else if pkg.IsProdProfile() {
 			t.It("Prod install profile", func() {
-				// 50 GB Persistent Volume create for MySQL in a prod install
-				Expect(len(volumeClaims)).To(Equal(1))
-				assertPersistentVolume("mysql", size)
+				// Expect the number of claims to be equal to the number of MySQL replicas
+				mysqlStatefulSet, err := pkg.GetStatefulSet("keycloak", "mysql")
+				Expect(err).ShouldNot(HaveOccurred(), "Unexpected error obtaining MySQL statefulset")
+				expectedClaims := int(mysqlStatefulSet.Status.Replicas)
+				Expect(len(volumeClaims)).To(Equal(expectedClaims))
+				assertPersistentVolume(claimName, size)
 			})
 		}
 	})

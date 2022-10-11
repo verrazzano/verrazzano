@@ -173,7 +173,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		client, err := client.New(conf, client.Options{})
+		c, err := client.New(conf, client.Options{})
 		if err != nil {
 			log.Errorf("Failed to get controller-runtime client: %v", err)
 			os.Exit(1)
@@ -181,7 +181,7 @@ func main() {
 
 		log.Debug("Creating or updating network policies")
 		var errors []error
-		_, errors = netpolicy.CreateOrUpdateNetworkPolicies(kubeClient, client)
+		_, errors = netpolicy.CreateOrUpdateNetworkPolicies(kubeClient, c)
 		if len(errors) < 0 {
 			log.Errorf("Failed to create or update network policies: %v", err)
 			os.Exit(1)
@@ -214,7 +214,7 @@ func main() {
 			}
 			mgr.GetWebhookServer().CertDir = config.CertDir
 		}
-		// Setup the validation webhook
+		// Set up the validation webhook for VMC
 		if config.WebhooksEnabled {
 			log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
 			if err = (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
@@ -248,7 +248,7 @@ func main() {
 
 	metricsexporter.StartMetricsServer(log)
 
-	// Setup the reconciler
+	// Set up the reconciler
 	reconciler := vzcontroller.Reconciler{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
@@ -261,7 +261,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup the reconciler for VerrazzanoManagedCluster objects
+	// Set up the reconciler for VerrazzanoManagedCluster objects
 	if err = (&clusterscontroller.VerrazzanoManagedClusterReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),

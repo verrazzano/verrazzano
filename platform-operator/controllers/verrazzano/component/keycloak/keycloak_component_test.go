@@ -10,7 +10,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -91,34 +90,14 @@ func TestPreinstall(t *testing.T) {
 		},
 	}
 
-	mysqlSecret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      mysql.ComponentName,
-			Namespace: ComponentNamespace,
-		},
-		Data: map[string][]byte{
-			"password": []byte("password"),
-		},
-	}
-
 	var tests = []struct {
 		name   string
 		client client.Client
 		isErr  bool
 	}{
 		{
-			"should fail when verrazzano secret is not present",
-			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(mysqlSecret).Build(),
-			true,
-		},
-		{
-			"should fail when mysql secret is not present",
+			"should pass when vz secret secret is present",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vzSecret).Build(),
-			true,
-		},
-		{
-			"should pass when both secrets are present",
-			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(vzSecret, mysqlSecret).Build(),
 			false,
 		},
 	}

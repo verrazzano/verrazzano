@@ -4,7 +4,7 @@
 package oam
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
