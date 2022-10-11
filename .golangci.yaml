@@ -20,6 +20,7 @@ linters:
     - unused
     - staticcheck
     - stylecheck
+    - misspell
   disable-all: true
   fast: true
 
