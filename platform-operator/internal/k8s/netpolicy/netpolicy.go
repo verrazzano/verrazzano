@@ -192,7 +192,7 @@ func newNetworkPolicies(apiServerIP string, apiServerPort int32) []*netv1.Networ
 							},
 							PodSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{
-									appInstanceLabel: networkPolicyPodName2,
+									appNameLabel: networkPolicyPodName2,
 								},
 							},
 						},
