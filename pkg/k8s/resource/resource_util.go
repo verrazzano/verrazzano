@@ -8,9 +8,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -35,6 +36,8 @@ var nsGvr = schema.GroupVersionResource{
 	Resource: "namespaces",
 }
 
+var logger = vzlog.DefaultLogger()
+
 // CreateOrUpdateResourceFromFile creates or updates a Kubernetes resources from a YAML test data file.
 // The test data file is found using the FindTestDataFile function.
 // This is intended to be equivalent to `kubectl apply`
@@ -42,7 +45,7 @@ var nsGvr = schema.GroupVersionResource{
 func CreateOrUpdateResourceFromFile(file string) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		logger.Errorf("Error getting kubeconfig, error: %v", err)
 		return err
 	}
 
@@ -54,7 +57,7 @@ func CreateOrUpdateResourceFromFile(file string) error {
 func CreateOrUpdateResourceFromBytes(data []byte) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		logger.Errorf("Error getting kubeconfig, error: %v", err)
 		return err
 	}
 
@@ -68,7 +71,7 @@ func CreateOrUpdateResourceFromBytes(data []byte) error {
 // CreateOrUpdateResourceFromFileInCluster is identical to CreateOrUpdateResourceFromFile, except that
 // it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
 func CreateOrUpdateResourceFromFileInCluster(file string, kubeconfigPath string) error {
-	found, err := pkg.FindTestDataFile(file)
+	found, err := FindTestDataFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
 	}
@@ -76,7 +79,7 @@ func CreateOrUpdateResourceFromFileInCluster(file string, kubeconfigPath string)
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
-	pkg.Log(pkg.Info, fmt.Sprintf("Found resource: %s", found))
+	logger.Infof("Found resource: %s", found)
 
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
@@ -142,7 +145,7 @@ func createOrUpdateResourceFromBytes(data []byte, config *rest.Config) error {
 func CreateOrUpdateResourceFromFileInGeneratedNamespace(file string, namespace string) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		logger.Errorf("Error getting kubeconfig, error: %v", err)
 		return err
 	}
 
@@ -152,7 +155,7 @@ func CreateOrUpdateResourceFromFileInGeneratedNamespace(file string, namespace s
 // CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace is identical to CreateOrUpdateResourceFromFileInGeneratedNamespace, except that
 // it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
 func CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file string, kubeconfigPath string, namespace string) error {
-	found, err := pkg.FindTestDataFile(file)
+	found, err := FindTestDataFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
 	}
@@ -160,7 +163,7 @@ func CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file string, ku
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
-	pkg.Log(pkg.Info, fmt.Sprintf("Found resource: %s", found))
+	logger.Infof("Found resource: %s", found)
 
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
@@ -258,7 +261,7 @@ func readNextResourceFromBytes(reader *utilyaml.YAMLReader, mapper *restmapper.D
 func DeleteResourceFromFile(file string) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		logger.Errorf("Error getting kubeconfig, error: %v", err)
 		return err
 	}
 	return DeleteResourceFromFileInCluster(file, kubeconfigPath)
@@ -267,7 +270,7 @@ func DeleteResourceFromFile(file string) error {
 // DeleteResourceFromFileInCluster is identical to DeleteResourceFromFile, except that
 // // it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
 func DeleteResourceFromFileInCluster(file string, kubeconfigPath string) error {
-	found, err := pkg.FindTestDataFile(file)
+	found, err := FindTestDataFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
 	}
@@ -324,7 +327,7 @@ func deleteResourceFromBytes(data []byte, kubeconfigPath string) error {
 func DeleteResourceFromFileInGeneratedNamespace(file string, namespace string) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		logger.Errorf("Error getting kubeconfig, error: %v", err)
 		return err
 	}
 	return DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeconfigPath, namespace)
@@ -333,7 +336,7 @@ func DeleteResourceFromFileInGeneratedNamespace(file string, namespace string) e
 // DeleteResourceFromFileInCluster is identical to DeleteResourceFromFile, except that
 // it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
 func DeleteResourceFromFileInClusterInGeneratedNamespace(file string, kubeconfigPath string, namespace string) error {
-	found, err := pkg.FindTestDataFile(file)
+	found, err := FindTestDataFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
 	}
@@ -388,7 +391,7 @@ func deleteResourceFromBytesInGeneratedNamespace(data []byte, kubeconfigPath str
 // If the given patch file has a ".yaml" extension, the contents will be converted to JSON
 // This is intended to be equivalent to `kubectl patch`
 func PatchResourceFromFileInCluster(gvr schema.GroupVersionResource, namespace string, name string, patchFile string, kubeconfigPath string) error {
-	found, err := pkg.FindTestDataFile(patchFile)
+	found, err := FindTestDataFile(patchFile)
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
 	}
@@ -396,7 +399,7 @@ func PatchResourceFromFileInCluster(gvr schema.GroupVersionResource, namespace s
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
-	pkg.Log(pkg.Info, fmt.Sprintf("Found resource: %s", found))
+	logger.Infof("Found resource: %s", found)
 
 	if strings.HasSuffix(patchFile, ".yaml") {
 		patchBytes, err = utilyaml.ToJSON(patchBytes)
@@ -426,4 +429,25 @@ func patchResourceFromBytes(gvr schema.GroupVersionResource, namespace string, n
 		return fmt.Errorf("failed to patch %s/%v: %w", namespace, gvr, err)
 	}
 	return nil
+}
+
+func FindTestDataFile(file string) (string, error) {
+	find := file
+	_, err := os.Stat(file)
+	if err != nil {
+		dir, err := os.Getwd()
+		if err != nil {
+			return find, err
+		}
+		for dir != "/" {
+			dir = filepath.Dir(dir)
+			find = filepath.Join(dir, file)
+			_, err = os.Stat(find)
+			if err == nil {
+				return find, nil
+			}
+		}
+		return find, fmt.Errorf("failed to find test data file: %s", file)
+	}
+	return file, nil
 }
