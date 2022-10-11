@@ -147,7 +147,7 @@
           "images": [
             {
               "image": "shell",
-              "tag": "v0.1.18-20221005202314-33ac76c"
+              "tag": "v0.1.18-20221011201404-0c5784f"
             },
             {
               "image": "rancher-webhook",
