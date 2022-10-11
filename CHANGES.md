@@ -1,3 +1,8 @@
+### v1.5.0
+Component version updates:
+
+- Coherence Operator v3.2.8
+
 ### v1.4.0
 Features:
 
@@ -18,7 +23,7 @@ Features:
 
 Component version updates:
 
-- Coherence Operator v3.2.8
+- Coherence Operator v3.2.6
 - Istio v1.14.3
 - Jaeger v1.34.1
 - Rancher v2.6.8
