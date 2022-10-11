@@ -117,8 +117,7 @@ var _ = t.Describe("Image Registry Verification", Label("f:platform-lcm.private-
 
 				// If we found at least one Rancher Helm Operation pod, then make sure at least one of the Shell images has the correct prefix
 				if foundHelmOperationPod {
-					Expect(shellImageHasCorrectPrefix).To(BeTrue(),
-						fmt.Sprintf("FAIL: Found at least one Rancher Helm Operation pod but none of the shell images has the expected registry prefix"))
+					Expect(shellImageHasCorrectPrefix).To(BeTrue(), "FAIL: Found at least one Rancher Helm Operation pod but none of the shell images has the expected registry prefix")
 				}
 			})
 	})
