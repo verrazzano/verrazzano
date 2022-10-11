@@ -163,6 +163,7 @@ func testUpdate(t *testing.T,
 	for _, status := range compStatusMap {
 		status.ReconcilingGeneration = reconcilingGen
 		status.LastReconciledGeneration = lastReconciledGeneration
+		status.Available = true
 	}
 	var vz *vzapi.Verrazzano
 	// Expect a call to get the verrazzano resource.  Return resource with version

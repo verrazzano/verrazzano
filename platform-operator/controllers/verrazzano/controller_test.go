@@ -367,7 +367,8 @@ func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
 						Status: corev1.ConditionTrue,
 					},
 				},
-				State: vzapi.CompStateReady,
+				State:     vzapi.CompStateReady,
+				Available: true,
 			}
 		}
 	}
