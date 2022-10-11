@@ -56,7 +56,9 @@ func CreateOrUpdateNetworkPolicies(clientset kubernetes.Interface, client client
 			return nil
 		})
 		opResults = append(opResults, opResult)
-		errors = append(errors, err)
+		if err != nil {
+			errors = append(errors, err)
+		}
 
 	}
 
