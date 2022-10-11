@@ -13,23 +13,23 @@ import (
 )
 
 const (
-	// reconcileVZState
-	reconcileVZState reconcileState = "vzState"
+	// reconcileWatchedComponents is the state where watched components are reconciled
+	reconcileWatchedComponents reconcileState = "watchedComponents"
 
-	// reconcileStartInstall is the state where the components are being installd
+	// reconcileVZState is the state where we examine the VZ State and the component generation values and determine what to do
+	reconcileVZState reconcileState = "reconcileVZState"
+
+	// reconcileStartInstall is the state where the VZ Install Started status is written
 	reconcileStartInstall reconcileState = "startInstall"
 
-	// reconcileInstallComponents is the state where the components are being installd
+	// reconcileInstallComponents is the state where the components are being installed
 	reconcileInstallComponents reconcileState = "installComponents"
-
-	// reconcileWatchedComponents is the state when the apps are being restarted
-	reconcileWatchedComponents reconcileState = "watchedComponents"
 
 	// reconcileEnd is the terminal state
 	reconcileEnd reconcileState = "reconcileEnd"
 )
 
-// reconcileState identifies the state of a Verrazzano install operation
+// reconcileState identifies the state of a VZ reconcile
 type reconcileState string
 
 // installTracker has the Install context for the Verrazzano Install
@@ -74,13 +74,12 @@ func deleteInstallTracker(cr *vzapi.Verrazzano) {
 	}
 }
 
-// reconcileComponents reconciles each component using the following rules:
-//  1. Always requeue until all enabled components have completed installation
-//  2. Don't update the component state until all the work in that state is done, since
-//     that update will cause a state transition
-//  3. Loop through all components before returning, except for the case
-//     where update status fails, in which case we exit the function and requeue
-//     immediately.
+// reconcileComponents reconciles the components and the VZ State and determines what to do
+// from this function, the possible outcomes are
+// - global install is started
+// - individual components are installed if a global install has already been started
+// - a watched component is reconciled
+// - this function completes and nothing happens
 func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preUpgrade bool) (ctrl.Result, error) {
 	spiCtx, err := spi.NewContext(vzctx.Log, r.Client, vzctx.ActualCR, nil, r.DryRun)
 	if err != nil {
@@ -92,6 +91,8 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 
 	for tracker.vzState != reconcileEnd {
 		switch tracker.vzState {
+
+		// reconcileWatchedComponents reconciles first to fix up any broken components
 		case reconcileWatchedComponents:
 			if spiCtx.ActualCR().Status.State != vzapi.VzStateUpgrading {
 				if err := r.reconcileWatchedComponents(spiCtx); err != nil {
@@ -133,6 +134,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 	return ctrl.Result{}, nil
 }
 
+// checkGenerationUpdated loops through the components and calls checkConfigUpdated on each
 func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 	for _, comp := range registry.GetComponents() {
 		componentStatus, ok := spiCtx.ActualCR().Status.Components[comp.Name()]
@@ -153,6 +155,8 @@ func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 	return false
 }
 
+// reconcileWatchedComponents loops through the components and calls the component Reconcile function
+// if it a watched component
 func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) error {
 	for _, comp := range registry.GetComponents() {
 		if r.IsWatchedComponent(comp.GetJSONName()) {

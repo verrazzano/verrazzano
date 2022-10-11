@@ -23,6 +23,7 @@ import (
 )
 
 const testBomFile = "../../verrazzano-bom.json"
+const fakeCompReleaseName = "verrazzano-authproxy"
 
 // TestUpdate tests the reconcile func with updated generation
 // GIVEN a request to reconcile an verrazzano resource after install is completed
@@ -41,7 +42,10 @@ func TestUpdate(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
 	asserts.True(*fakeCompUpdated)
-	asserts.True(result.Requeue)
+	asserts.Equal(vz.Generation, vz.Status.Components[fakeCompReleaseName].LastReconciledGeneration)
+	asserts.Equal(vzapi.CondInstallStarted, vz.Status.Components[fakeCompReleaseName].Conditions[0].Type)
+	asserts.Equal(vzapi.CondInstallComplete, vz.Status.Components[fakeCompReleaseName].Conditions[1].Type)
+	asserts.False(result.Requeue)
 }
 
 // TestNoUpdateSameGeneration tests the reconcile func with same generation
@@ -99,7 +103,10 @@ func TestUpdateOnUpdate(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(vzapi.VzStateReconciling, vz.Status.State)
 	asserts.True(*fakeCompUpdated)
-	asserts.True(result.Requeue)
+	asserts.Equal(vz.Generation, vz.Status.Components[fakeCompReleaseName].LastReconciledGeneration)
+	asserts.Equal(vzapi.CondInstallStarted, vz.Status.Components[fakeCompReleaseName].Conditions[0].Type)
+	asserts.Equal(vzapi.CondInstallComplete, vz.Status.Components[fakeCompReleaseName].Conditions[1].Type)
+	asserts.False(result.Requeue)
 }
 
 // TestUpdateFalseMonitorChanges tests the reconcile func with updated generation
@@ -145,7 +152,7 @@ func testUpdate(t *testing.T,
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	fakeComp := fakeComponent{}
-	fakeComp.ReleaseName = "verrazzano-authproxy"
+	fakeComp.ReleaseName = fakeCompReleaseName
 	fakeComp.SupportsOperatorInstall = true
 	fakeComp.monitorChanges = monitorChanges
 	var fakeCompUpdated *bool

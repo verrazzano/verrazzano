@@ -17,16 +17,16 @@ import (
 type componentInstallState string
 
 const (
-	// compStateInstallDisabled is the state when a component is initialized
+	// compStateInstallInit is the state when a component is initialized
 	compStateInstallInit componentInstallState = "componentStateInit"
 
-	// compStateInstallDisabled is the state when a component is ready
+	// compStateInstallReady is the state when a component is ready
 	compStateInstallReady componentInstallState = "componentStateReady"
 
 	// compStateInstallDisabled is the state when a component is disabled
 	compStateInstallDisabled componentInstallState = "componentStateDisabled"
 
-	// compStateInstallStarted is the state when a component writes the Install Started Condition
+	// compStateInstallStarted is the state when a component writes the Install Started status condition
 	compStateInstallStarted componentInstallState = "componentStateInstallStarted"
 
 	// compStatePreInstall is the state when a component does a pre-install
@@ -59,8 +59,7 @@ func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *ins
 
 	var requeue bool
 
-	// Loop through all of the Verrazzano components and install each one.
-	// Don't move to the next component until the current one has been succcessfully installed
+	// Loop through all of the Verrazzano components and install each one
 	for _, comp := range registry.GetComponents() {
 		installContext := tracker.getComponentInstallContext(comp.Name())
 		result, err := r.installSingleComponent(spiCtx, installContext, comp, preUpgrade)
@@ -107,6 +106,7 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 				continue
 			}
 
+			// Determine the state of the component to know what to do with it
 			switch componentStatus.State {
 			case vzapi.CompStateDisabled:
 				installContext.state = compStateInstallDisabled
@@ -208,8 +208,8 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 	return ctrl.Result{}, nil
 }
 
-// checkConfigUpdated checks if the component config in the VZ CR has been updated and the component needs to
-// reset the state back to pre-install to re-enter install flow
+// checkConfigUpdated checks if the component config in the VZ CR has been updated
+// back looking at the VZ Generation, component ReconcilingGeneration, and component LastReconciledGeneration values
 func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails, name string) bool {
 	// The component is being reconciled/installed with ReconcilingGeneration of the CR
 	// if CR.Generation > ReconcilingGeneration then re-enter install flow

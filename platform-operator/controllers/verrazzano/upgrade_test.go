@@ -1928,7 +1928,7 @@ func postUpgradeCleanupExpectations(mock *mocks.MockClient) *gomock.Call {
 
 // initStartingStates inits the starting state for verrazzano and component upgrade
 func initStartingStates(cr *vzapi.Verrazzano, compName string) {
-	initStates(cr, vzStateStart, compName, compStateInit)
+	initStates(cr, vzStateStart, compName, compStateUpgradeInit)
 }
 
 // initStates inits the specified state for verrazzano and component upgrade

@@ -19,8 +19,8 @@ import (
 type componentUpgradeState string
 
 const (
-	// compStateUpgradeStart is the state when a component is starting the upgrade flow
-	compStateUpgradeStart componentUpgradeState = "componentStateUpgradeStart"
+	// compStateUpgradeInit is the state when a component is starting the upgrade flow
+	compStateUpgradeInit componentUpgradeState = "componentStateUpgradeInit"
 
 	// compStatePreUpgrade is the state when a component does a pre-upgrade
 	compStatePreUpgrade componentUpgradeState = "compStatePreUpgrade"
@@ -75,7 +75,7 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 
 	for upgradeContext.state != compStateUpgradeEnd {
 		switch upgradeContext.state {
-		case compStateUpgradeStart:
+		case compStateUpgradeInit:
 			// Check if component is installed, if not continue
 			installed, err := comp.IsInstalled(compContext)
 			if err != nil {
@@ -144,7 +144,7 @@ func (vuc *upgradeTracker) getComponentUpgradeContext(compName string) *componen
 	context, ok := vuc.compMap[compName]
 	if !ok {
 		context = &componentUpgradeContext{
-			state: compStateUpgradeStart,
+			state: compStateUpgradeInit,
 		}
 		vuc.compMap[compName] = context
 	}
