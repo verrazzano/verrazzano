@@ -22,7 +22,7 @@ spec:
   versions:
   - additionalPrinterColumns:
     - description: Available/Enabled Verrazzano Components.
-      jsonPath: .status.availabilityColumn
+      jsonPath: .status.available
       name: Available
       type: string
     - description: The current status of the install/uninstall.
@@ -3858,7 +3858,7 @@ spec:
             type: object
           status:
             properties:
-              availabilityColumn:
+              available:
                 type: string
               components:
                 additionalProperties:
@@ -3946,7 +3946,7 @@ spec:
       status: {}
   - additionalPrinterColumns:
     - description: Available/Enabled Verrazzano Components.
-      jsonPath: .status.availabilityColumn
+      jsonPath: .status.available
       name: Available
       type: string
     - description: The current status of the install/uninstall.
@@ -6564,7 +6564,7 @@ spec:
             type: object
           status:
             properties:
-              availabilityColumn:
+              available:
                 type: string
               components:
                 additionalProperties:

@@ -34,7 +34,7 @@ const (
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 // +kubebuilder:resource:shortName=vz;vzs
-// +kubebuilder:printcolumn:name="Available",type="string",JSONPath=".status.availabilityColumn",description="Available/Enabled Verrazzano Components."
+// +kubebuilder:printcolumn:name="Available",type="string",JSONPath=".status.available",description="Available/Enabled Verrazzano Components."
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[-1:].type",description="The current status of the install/uninstall."
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano installation."
 // +genclient
@@ -145,7 +145,7 @@ type VerrazzanoStatus struct {
 	State VzStateType `json:"state,omitempty"`
 	// States of the individual installed components
 	Components ComponentStatusMap `json:"components,omitempty"`
-	Available  *string            `json:"availabilityColumn,omitempty"`
+	Available  *string            `json:"available,omitempty"`
 }
 
 type ComponentStatusMap map[string]*ComponentStatusDetails
