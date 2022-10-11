@@ -969,6 +969,8 @@ func TestUpgradeComponent(t *testing.T) {
 	mockComp.EXPECT().Name().Return(componentName).AnyTimes()
 	mockComp.EXPECT().IsReady(gomock.Any()).Return(true).AnyTimes()
 
+	postUpgradeCleanupExpectations(mock)
+
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *oamapi.ApplicationConfigurationList, opts ...client.ListOption) error {
@@ -1169,6 +1171,8 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	mockDisabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(0)
 	mockDisabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(0)
 	mockDisabledComp.EXPECT().IsEnabled(gomock.Any()).Return(false).AnyTimes()
+
+	postUpgradeCleanupExpectations(mock)
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
@@ -1914,6 +1918,12 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 	assert.Equal(t, "https://"+kialiURL, *instanceInfo.KialiURL)
 	assert.Equal(t, "https://"+kibanaURL, *instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
+}
+
+func postUpgradeCleanupExpectations(mock *mocks.MockClient) *gomock.Call {
+	return mock.EXPECT().Delete(gomock.Any(), &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "keycloak", Name: "dump-claim"},
+	}).Return(nil).AnyTimes()
 }
 
 // initStartingStates inits the starting state for verrazzano and component upgrade

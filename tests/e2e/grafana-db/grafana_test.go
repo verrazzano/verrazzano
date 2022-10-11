@@ -9,21 +9,21 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"io/ioutil"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
 const (
-	threeMinutes         = 3 * time.Minute
+	waitTimeout          = 3 * time.Minute
 	pollingInterval      = 10 * time.Second
 	documentFile         = "testdata/upgrade/grafana/dashboard.json"
 	grafanaErrMsgFmt     = "Failed to GET Grafana testDashboard: status=%d: body=%s"
@@ -60,7 +60,7 @@ var _ = t.BeforeSuite(func() {
 		pkg.Log(pkg.Error, fmt.Sprintf("failed to find test data file: %v", err))
 		Fail(err.Error())
 	}
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("failed to read test data file: %v", err))
 		Fail(err.Error())
@@ -77,7 +77,7 @@ var _ = t.BeforeSuite(func() {
 		}
 		json.Unmarshal(resp.Body, &testDashboard)
 		return true
-	}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(),
+	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue(),
 		"It should be possible to create a Grafana dashboard and persist it.")
 })
 
@@ -105,7 +105,7 @@ var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.
 			body := make(map[string]map[string]string)
 			json.Unmarshal(resp.Body, &body)
 			return strings.Contains(body["dashboard"]["title"], testDashboardTitle)
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue())
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
 
 	// GIVEN a running Grafana instance,
@@ -131,7 +131,7 @@ var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.
 			}
 			return false
 
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue())
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
 
 	// GIVEN a running grafana instance,
@@ -153,7 +153,7 @@ var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.
 			body := make(map[string]map[string]string)
 			json.Unmarshal(resp.Body, &body)
 			return strings.Contains(body["dashboard"]["title"], systemDashboardTitle)
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue())
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
 
 	// GIVEN a running grafana instance,
@@ -189,7 +189,7 @@ var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.
 				}
 			}
 			return true
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue())
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
 
 	// GIVEN a running Grafana instance,
@@ -216,7 +216,7 @@ var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.
 				}
 				return false
 
-			}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue())
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 		})
 	*/
 
@@ -239,7 +239,7 @@ var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.
 			body := make(map[string]map[string]string)
 			json.Unmarshal(resp.Body, &body)
 			return strings.Contains(body["dashboard"]["title"], systemDashboardTitle)
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue())
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
 })
 

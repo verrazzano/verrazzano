@@ -15,7 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
-	"io/ioutil"
+	"io"
 	corev1 "k8s.io/api/core/v1"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -331,7 +331,7 @@ func HTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, tokenT
 	}
 
 	// extract the response body
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Errorf("Failed to read response body: %v", zap.Error(err))
 		return nil, err

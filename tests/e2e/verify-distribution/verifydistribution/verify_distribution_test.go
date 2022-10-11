@@ -9,9 +9,8 @@ import (
 	"github.com/onsi/gomega"
 	. "github.com/verrazzano/verrazzano/pkg/files"
 	. "github.com/verrazzano/verrazzano/pkg/string"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -75,7 +74,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 			}
 			t.It("Verify lite bundle zip contents", func() {
 				filesList := []string{}
-				filesInfo, err := ioutil.ReadDir(tarballRootDir)
+				filesInfo, err := os.ReadDir(tarballRootDir)
 				if err != nil {
 					println(err.Error())
 				}
@@ -137,7 +136,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				componentsList = helpers.RemoveDuplicate(componentsList)
 
 				imagesList := []string{}
-				imagesInfo, err2 := ioutil.ReadDir(generatedPath + allPaths["images"])
+				imagesInfo, err2 := os.ReadDir(generatedPath + allPaths["images"])
 				if err2 != nil {
 					println(err2.Error())
 				}
@@ -181,7 +180,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 func verifyDistributionByDirectory(inputDir string, key string, variant string) {
 	fmt.Printf("Input DIR provided is: %s, key provided: %s, Variant provided: %s", inputDir, key, variant)
 	filesList := []string{}
-	filesInfo, err := ioutil.ReadDir(inputDir)
+	filesInfo, err := os.ReadDir(inputDir)
 	if err != nil {
 		println(err.Error())
 	}

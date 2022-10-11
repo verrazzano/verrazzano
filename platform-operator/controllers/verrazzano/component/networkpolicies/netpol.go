@@ -5,22 +5,21 @@ package networkpolicies
 
 import (
 	"context"
-	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"io/fs"
-	"io/ioutil"
-	netv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"os"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -28,10 +27,13 @@ const (
 	tmpSuffix            = "yaml"
 	tmpFileCreatePattern = tmpFilePrefix + "*." + tmpSuffix
 	tmpFileCleanPattern  = tmpFilePrefix + ".*\\." + tmpSuffix
+
+	keycloakMySQLNetPolicyName = "keycloak-mysql"
+	podSelectorAppLabelName    = "app"
 )
 
 // netpolNamespaceNames specifies the NSNs that have network policies
-var netpolNamespaceNames []types.NamespacedName = []types.NamespacedName{
+var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: vzconst.CertManagerNamespace, Name: "cert-manager"},
 	{Namespace: vzconst.CertManagerNamespace, Name: "external-dns"},
 	{Namespace: constants.IngressNginxNamespace, Name: "ingress-nginx-controller"},
@@ -42,7 +44,7 @@ var netpolNamespaceNames []types.NamespacedName = []types.NamespacedName{
 	{Namespace: vzconst.IstioSystemNamespace, Name: "istiocoredns"},
 	{Namespace: vzconst.IstioSystemNamespace, Name: "istiod-access"},
 	{Namespace: vzconst.KeycloakNamespace, Name: "keycloak"},
-	{Namespace: vzconst.KeycloakNamespace, Name: "keycloak-mysql"},
+	{Namespace: vzconst.KeycloakNamespace, Name: keycloakMySQLNetPolicyName},
 	{Namespace: vzconst.MySQLOperatorNamespace, Name: "mysql-operator"},
 	{Namespace: vzconst.RancherSystemNamespace, Name: "cattle-cluster-agent"},
 	{Namespace: vzconst.RancherSystemNamespace, Name: "rancher"},
@@ -66,11 +68,11 @@ var netpolNamespaceNames []types.NamespacedName = []types.NamespacedName{
 
 var (
 	// For Unit test purposes
-	writeFileFunc = ioutil.WriteFile
+	writeFileFunc = os.WriteFile
 )
 
 //func resetWriteFileFunc() {
-//	writeFileFunc = ioutil.WriteFile
+//	writeFileFunc = os.WriteFile
 //}
 
 // appendOverrides appends the overrides for this component
@@ -207,4 +209,35 @@ func cleanTempFiles(ctx spi.ComponentContext) {
 	if err := vzos.RemoveTempFiles(ctx.Log().GetZapLogger(), tmpFileCleanPattern); err != nil {
 		ctx.Log().Errorf("Failed deleting temp files: %v", err)
 	}
+}
+
+// fixKeycloakMySQLNetPolicy fixes the keycloak-mysql network policy after an upgrade. When we apply the new version
+// of the network policy, the podSelector match labels are merged with the existing policy match labels, but the
+// old label no longer exists on the new MySQL pod. This function removes that label matcher if it exists.
+func fixKeycloakMySQLNetPolicy(ctx spi.ComponentContext) error {
+	netpol := &netv1.NetworkPolicy{}
+	nsn := types.NamespacedName{Namespace: constants.KeycloakNamespace, Name: keycloakMySQLNetPolicyName}
+	if err := ctx.Client().Get(context.TODO(), nsn, netpol); err != nil {
+		// policy might not exist, e.g. MC managed cluster
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return ctx.Log().ErrorfThrottledNewErr("Error getting NetworkPolicy %v: %v", nsn, err)
+	}
+
+	// If there aren't any label matchers, we're done
+	if netpol.Spec.PodSelector.MatchLabels == nil {
+		return nil
+	}
+
+	// If the podSelector has an "app" label matcher, remove it
+	if _, exists := netpol.Spec.PodSelector.MatchLabels[podSelectorAppLabelName]; exists {
+		delete(netpol.Spec.PodSelector.MatchLabels, podSelectorAppLabelName)
+		if err := ctx.Client().Update(context.TODO(), netpol, &clipkg.UpdateOptions{}); err != nil {
+			ctx.Log().Errorf("Error updating network policy %s/%s: %v", constants.KeycloakNamespace, keycloakMySQLNetPolicyName, err)
+			return err
+		}
+	}
+
+	return nil
 }

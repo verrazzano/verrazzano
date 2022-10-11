@@ -44,7 +44,7 @@ type expandInfo struct {
 	key        string
 }
 
-//ConvertTo converts a v1alpha1.Verrazzano to a v1beta1.Verrazzano
+// ConvertTo converts a v1alpha1.Verrazzano to a v1beta1.Verrazzano
 func (in *Verrazzano) ConvertTo(dstRaw conversion.Hub) error {
 	out := dstRaw.(*v1beta1.Verrazzano)
 	if out == nil || in == nil {

@@ -13,9 +13,9 @@ import (
 	. "github.com/onsi/gomega"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -79,7 +79,9 @@ var _ = clusterDump.BeforeSuite(func() {
 			}
 			serviceName := promJobName
 			err = createService(serviceName)
-			if err != nil {
+			// if this is running post upgrade, we may have already run this test pre-upgrade and
+			// created the service. It is not an error if the service already exists.
+			if err != nil && !errors.IsAlreadyExists(err) {
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to create the Service for the Service Monitor: %v", err))
 				return err
 			}

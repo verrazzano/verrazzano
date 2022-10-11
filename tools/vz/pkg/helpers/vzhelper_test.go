@@ -21,8 +21,9 @@ import (
 
 // TestNewVerrazzanoForVersion
 // GIVEN a schema.GroupVersion
-//  WHEN I call this function
-//  THEN expect it to return a function that returns a new Verrazzano of the appropriate version
+//
+//	WHEN I call this function
+//	THEN expect it to return a function that returns a new Verrazzano of the appropriate version
 func TestNewVerrazzanoForVersion(t *testing.T) {
 	var tests = []struct {
 		name string
@@ -50,8 +51,9 @@ func TestNewVerrazzanoForVersion(t *testing.T) {
 
 // TestGetLatestReleaseVersion
 // GIVEN a list of release versions
-//  WHEN I call this function
-//  THEN expect it to return the latest version string
+//
+//	WHEN I call this function
+//	THEN expect it to return the latest version string
 func TestGetLatestReleaseVersion(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -63,8 +65,9 @@ func TestGetLatestReleaseVersion(t *testing.T) {
 
 // TestGetVerrazzanoResource
 // GIVEN the namespace and name of a verrazzano resource
-//  WHEN I call GetVerrazzanoResource
-//  THEN expect it to return a verrazzano resource
+//
+//	WHEN I call GetVerrazzanoResource
+//	THEN expect it to return a verrazzano resource
 func TestGetVerrazzanoResource(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(NewScheme()).WithObjects(
 		&v1beta1.Verrazzano{
@@ -82,8 +85,9 @@ func TestGetVerrazzanoResource(t *testing.T) {
 
 // TestGetVerrazzanoResourceNotFound
 // GIVEN the namespace and name of a verrazzano resource
-//  WHEN I call GetVerrazzanoResource
-//  THEN expect it to return an error
+//
+//	WHEN I call GetVerrazzanoResource
+//	THEN expect it to return an error
 func TestGetVerrazzanoResourceNotFound(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(NewScheme()).Build()
 
@@ -93,8 +97,9 @@ func TestGetVerrazzanoResourceNotFound(t *testing.T) {
 
 // TestFindVerrazzanoResource
 // GIVEN a list of a verrazzano resources
-//  WHEN I call FindVerrazzanoResource
-//  THEN expect to find a single verrazzano rsource
+//
+//	WHEN I call FindVerrazzanoResource
+//	THEN expect to find a single verrazzano rsource
 func TestFindVerrazzanoResource(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(NewScheme()).WithObjects(
 		&v1beta1.Verrazzano{
@@ -112,8 +117,9 @@ func TestFindVerrazzanoResource(t *testing.T) {
 
 // TestFindVerrazzanoResourceMultiple
 // GIVEN a list of a verrazzano resources
-//  WHEN I call FindVerrazzanoResource
-//  THEN return an error when multiple verrazzano resources found
+//
+//	WHEN I call FindVerrazzanoResource
+//	THEN return an error when multiple verrazzano resources found
 func TestFindVerrazzanoResourceMultiple(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(NewScheme()).WithObjects(
 		&v1beta1.Verrazzano{
@@ -135,8 +141,9 @@ func TestFindVerrazzanoResourceMultiple(t *testing.T) {
 
 // TestFindVerrazzanoResourceNone
 // GIVEN a list of a verrazzano resources
-//  WHEN I call FindVerrazzanoResource
-//  THEN return an error when no verrazzano resources are found
+//
+//	WHEN I call FindVerrazzanoResource
+//	THEN return an error when no verrazzano resources are found
 func TestFindVerrazzanoResourceNone(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(NewScheme()).Build()
 

@@ -29,8 +29,9 @@ import (
 
 // TestUninstallCmd
 // GIVEN a CLI uninstall command with all defaults
-//  WHEN I call cmd.Execute for uninstall
-//  THEN the CLI uninstall command is successful
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command is successful
 func TestUninstallCmd(t *testing.T) {
 	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vpo := createVpoPod()
@@ -61,8 +62,9 @@ func TestUninstallCmd(t *testing.T) {
 
 // TestUninstallCmdUninstallJob
 // GIVEN a CLI uninstall command with all defaults and a 1.3.1 version install
-//  WHEN I call cmd.Execute for uninstall
-//  THEN the CLI uninstall command is successful
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command is successful
 func TestUninstallCmdUninstallJob(t *testing.T) {
 	deployment := createVpoDeployment(nil)
 	job := &corev1.Pod{
@@ -108,8 +110,9 @@ func TestUninstallCmdUninstallJob(t *testing.T) {
 
 // TestUninstallCmdDefaultTimeout
 // GIVEN a CLI uninstall command with all defaults and --timeout=2ms
-//  WHEN I call cmd.Execute for uninstall
-//  THEN the CLI uninstall command times out
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command times out
 func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vpo := createVpoPod()
@@ -142,8 +145,9 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 
 // TestUninstallCmdDefaultNoWait
 // GIVEN a CLI uninstall command with all defaults and --wait==false
-//  WHEN I call cmd.Execute for uninstall
-//  THEN the CLI uninstall command is successful
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command is successful
 func TestUninstallCmdDefaultNoWait(t *testing.T) {
 	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vpo := createVpoPod()
@@ -173,8 +177,9 @@ func TestUninstallCmdDefaultNoWait(t *testing.T) {
 
 // TestUninstallCmdJsonLogFormat
 // GIVEN a CLI uninstall command with defaults and --log-format=json and --wait==false
-//  WHEN I call cmd.Execute for uninstall
-//  THEN the CLI uninstall command is successful
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command is successful
 func TestUninstallCmdJsonLogFormat(t *testing.T) {
 	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vz := createVz()
@@ -199,8 +204,9 @@ func TestUninstallCmdJsonLogFormat(t *testing.T) {
 
 // TestUninstallCmdDefaultNoVPO
 // GIVEN a CLI uninstall command with all defaults and no VPO found
-//  WHEN I call cmd.Execute for uninstall
-//  THEN the CLI uninstall command fails
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command fails
 func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vz := createVz()
@@ -223,8 +229,9 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 
 // TestUninstallCmdDefaultNoUninstallJob
 // GIVEN a CLI uninstall command with all defaults and no uninstall job pod
-//  WHEN I call cmd.Execute for uninstall
-//  THEN the CLI uninstall command fails
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command fails
 func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.3.0"})
 	vz := createVz()
@@ -251,8 +258,9 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 
 // TestUninstallCmdDefaultNoVzResource
 // GIVEN a CLI uninstall command with all defaults and no vz resource found
-//  WHEN I call cmd.Execute for uninstall
-//  THEN the CLI uninstall command fails
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command fails
 func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).Build()
 

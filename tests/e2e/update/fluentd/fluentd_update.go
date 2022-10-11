@@ -28,8 +28,8 @@ import (
 const (
 	fluentdName     = "fluentd"
 	cacerts         = "cacerts"
-	oneMinute       = 1 * time.Minute
-	tenMinutes      = 10 * time.Minute
+	shortWait       = 1 * time.Minute
+	longWait        = 10 * time.Minute
 	pollingInterval = 5 * time.Second
 )
 

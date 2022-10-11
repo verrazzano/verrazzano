@@ -10,15 +10,15 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const waitTimeout = 15 * time.Minute
 const pollingInterval = 30 * time.Second
-const timeout5Min = 5 * time.Minute
+const shortTimeout = 5 * time.Minute
 
 var t = framework.NewTestFramework("kubernetes")
 
@@ -55,7 +55,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			Eventually(func() (bool, error) {
 				nodes, err := pkg.ListNodes()
 				return nodes != nil && len(nodes.Items) >= 1, err
-			}, timeout5Min, pollingInterval).Should(BeTrue())
+			}, shortTimeout, pollingInterval).Should(BeTrue())
 		})
 
 		t.DescribeTable("the expected namespaces exist",
@@ -68,7 +68,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 						return false, err
 					}
 					return nsListContains(namespaces.Items, namespace) == expected, nil
-				}, timeout5Min, pollingInterval).Should(BeTrue())
+				}, shortTimeout, pollingInterval).Should(BeTrue())
 			},
 			t.Entry("cattle-global-data", "cattle-global-data", !isManagedClusterProfile),
 			t.Entry("cattle-global-nt", "cattle-global-nt", !isManagedClusterProfile),

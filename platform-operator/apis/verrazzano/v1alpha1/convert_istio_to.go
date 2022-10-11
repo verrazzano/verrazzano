@@ -21,20 +21,27 @@ import (
 //
 // NOTE: The go template rendering doesn't properly indent the multi-line YAML value
 // For example, the template fragment only indents the fist line of values
-//    global:
-//      {{.Values}}
+//
+//	global:
+//	  {{.Values}}
+//
 // so the result is
-//    global:
-//      line1:
+//
+//	global:
+//	  line1:
+//
 // line2:
-//   line3:
+//
+//	line3:
+//
 // etc...
 //
 // A solution is to pre-indent each line of the values then insert it at column 0 as follows:
-//    global:
+//
+//	global:
+//
 // {{.Values}}
 // See the leftMargin usage in the code
-//
 const istioGatewayTemplate = `
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
@@ -163,14 +170,14 @@ func addYAML(name string, values, expandedYamls []string) ([]string, error) {
 }
 
 // Change the YAML from
-//       externalIPs
-//       - 1.2.3.4
-//       - 1.3.4.6
 //
-//  to
-//       - 1.2.3.4
-//       - 1.3.4.6
+//	     externalIPs
+//	     - 1.2.3.4
+//	     - 1.3.4.6
 //
+//	to
+//	     - 1.2.3.4
+//	     - 1.3.4.6
 func fixExternalIPYaml(yaml string) string {
 	segs := strings.SplitN(yaml, "\n", 2)
 	if len(segs) == 2 {

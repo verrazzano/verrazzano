@@ -4,7 +4,7 @@
 package yaml
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -311,7 +311,7 @@ func TestMergeFiles(t *testing.T) {
 			assert := assert.New(t)
 			merged, err := StrategicMergeFiles(nested2{}, test.files...)
 			assert.NoError(err, merged, "error merging profiles")
-			expected, err := ioutil.ReadFile(filepath.Join(test.expected))
+			expected, err := os.ReadFile(filepath.Join(test.expected))
 			assert.NoError(err, merged, "error reading profiles")
 			assert.YAMLEq(merged, string(expected), "merged profile is incorrect ")
 		})
