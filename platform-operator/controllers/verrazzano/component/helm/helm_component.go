@@ -349,10 +349,10 @@ func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent, isInstal
 		return (filteredHelmSecrets[i].CreationTimestamp.Time).After(filteredHelmSecrets[j].CreationTimestamp.Time)
 	})
 
+	// When there is only one secret AND if it's not preinstall then skip
 	if len(filteredHelmSecrets) == 1 && !isInstall {
 		return
 	}
-	// When there is only one secret AND if it's preInstall we delete the secret
 	context.Log().Progressf("Deleting secret %s", filteredHelmSecrets[0])
 	if err := context.Client().Delete(ctx.TODO(), &filteredHelmSecrets[0]); err != nil {
 		context.Log().Errorf("Error deleting secret %s", filteredHelmSecrets[0])
