@@ -41,6 +41,7 @@ const (
 	helmUserName          = "credentials.user.name"     //nolint:gosec //#gosec G101
 	mysqlUpgradeSubComp   = "mysql-upgrade"
 	mySQLRootKey          = "rootPassword"
+	mySQLUserKey          = "userPassword"
 	secretName            = "mysql"
 	secretKey             = "mysql-password"
 	mySQLUsername         = "keycloak"
@@ -249,7 +250,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	}
 
 	if compContext.Init(ComponentName).GetOperation() == vzconst.InstallOperation {
-		userPwd, err := createKeycloakDBSecret()
+		userPwd, err := createKeycloakDBUserPasswordIfNeeded(compContext)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
@@ -581,13 +582,22 @@ func createMySQLInitFile(ctx spi.ComponentContext, userPwd []byte) (string, erro
 	return file.Name(), nil
 }
 
-// createKeycloakDBSecret creates or updates a secret containing the password used by keycloak to access the DB
-func createKeycloakDBSecret() (string, error) {
-	password, err := vzpassword.GeneratePassword(12)
-	if err != nil {
-		return "", err
+// createKeycloakDBUserPasswordIfNeeded creates or updates a secret containing the password used by keycloak to access the DB
+func createKeycloakDBUserPasswordIfNeeded(compContext spi.ComponentContext) (string, error) {
+	secretName := types.NamespacedName{
+		Namespace: ComponentNamespace,
+		Name:      rootSec,
 	}
-	return password, nil
+	dbSecret := &v1.Secret{}
+	err := compContext.Client().Get(context.TODO(), secretName, dbSecret)
+	if err != nil && errors.IsNotFound(err) {
+		password, err := vzpassword.GeneratePassword(12)
+		if err != nil {
+			return "", err
+		}
+		return password, nil
+	}
+	return string(dbSecret.Data[mySQLUserKey]), nil
 }
 
 func appendDatabaseInitializationValues(compContext spi.ComponentContext, userPwd []byte, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
