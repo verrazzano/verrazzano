@@ -346,7 +346,7 @@
     },
     {
       "name": "coherence-operator",
-      "version": "3.2.6",
+      "version": "3.2.8",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -354,7 +354,7 @@
           "images": [
             {
               "image": "coherence-operator",
-              "tag": "3.2.6",
+              "tag": "3.2.8",
               "helmFullImageKey": "image"
             }
           ]
@@ -442,7 +442,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v15.0.2-20220808193821-3c526fbe0f",
+              "tag": "v15.0.2-20221010100849-3c526fbe0f",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
