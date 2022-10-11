@@ -94,7 +94,7 @@ const expanded11 = `aa:
     val_11`
 
 // TestExpand tests the Expand function
-// GIVEN a set of dot seperated names
+// GIVEN a set of dot separated names
 // WHEN Expand is called
 // THEN ensure that the expanded result is correct.
 func TestExpand(t *testing.T) {
@@ -201,7 +201,7 @@ const lmExpanded4 = `    aa:
         - val_4c`
 
 // TestLeftMargin tests the Expand function
-// GIVEN a set of dot seperated names
+// GIVEN a set of dot separated names
 // WHEN Expand is called with a non-zero left margin
 // THEN ensure that the expanded result is correct.
 func TestLeftMargin(t *testing.T) {
