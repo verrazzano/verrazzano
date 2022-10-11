@@ -48,7 +48,7 @@ func TestCreateWebhookCertificates(t *testing.T) {
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if assert.NoError(err) {
 			assert.NotEmpty(cert.DNSNames, "Certificate DNSNames SAN field should not be empty")
-			assert.Equal("verrazzano-platform-operator.verrazzano-install.svc", cert.DNSNames[0])
+			assert.Equal("verrazzano-platform-operator-webhook.verrazzano-install.svc", cert.DNSNames[0])
 		}
 	}
 }
