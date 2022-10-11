@@ -279,7 +279,7 @@ func IsReleaseDeployed(releaseName string, namespace string) (found bool, err er
 	}
 	switch releaseStatus {
 	case ChartNotFound:
-		log.Debugf("Chart %s/%s not found", namespace, releaseName)
+		log.Debugf("releasename=%s/%s; status= %s", namespace, releaseName, releaseStatus)
 	case ChartStatusDeployed:
 		return true, nil
 	}
@@ -287,8 +287,7 @@ func IsReleaseDeployed(releaseName string, namespace string) (found bool, err er
 }
 
 // GetReleaseStatus returns the release status
-func GetReleaseStatus(releaseName string, namespace string) (status string, err error) {
-	log := zap.S()
+func GetReleaseStatus(log vzlog.VerrazzanoLogger, releaseName string, namespace string) (status string, err error) {
 	releaseStatus, err := chartStatusFn(releaseName, namespace)
 	if err != nil {
 		log.Errorf("Getting status for chart %s/%s failed with stderr: %v\n", namespace, releaseName, err)

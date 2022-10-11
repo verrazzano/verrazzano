@@ -313,7 +313,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
-	releaseStatus, err := helm.GetReleaseStatus(h.ReleaseName, h.ChartNamespace)
+	releaseStatus, err := helm.GetReleaseStatus(context.Log(), h.ReleaseName, h.ChartNamespace)
 	if err != nil {
 		context.Log().Infof("Error getting release status for %s", h.ReleaseName)
 	} else if releaseStatus != release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() { // When helm release is not deployed or uninstalled, cleanup the secret
@@ -329,6 +329,9 @@ func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 	return nil
 }
 
+// cleanupLatestSecret is to cleanup the secrets to get helm installation going
+// This deletes the latest secret that matches the release if the helm release status is not deployed or uninstalled
+// If this is not vz install, do not delete the secret revision 1
 func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent, isInstall bool) {
 	secretList := &v1.SecretList{}
 	context.Client().List(ctx.TODO(), secretList, &clipkg.ListOptions{
@@ -348,19 +351,16 @@ func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent, isInstal
 
 	// When there is only one secret AND if it's preInstall we delete the secret
 	if len(filteredHelmSecrets) == 1 && isInstall {
-		context.Log().Infof("Deleting secret %s", filteredHelmSecrets[0])
+		context.Log().Progressf("Deleting secret %s", filteredHelmSecrets[0])
 		if err := context.Client().Delete(ctx.TODO(), &filteredHelmSecrets[0]); err != nil {
 			context.Log().Errorf("Error deleting secret %s", filteredHelmSecrets[0])
-		} else {
-			context.Log().Infof("Deleted secret completed")
 		}
-	} else if len(filteredHelmSecrets) > 1 { // When there are more than one secret, delete the latest one to keep the helm installation going
+	}
+	if len(filteredHelmSecrets) > 1 { // When there are more than one secret, delete the latest one to keep the helm installation going
 		latestSecret := filteredHelmSecrets[0]
-		context.Log().Infof("Deleting secret %s", latestSecret)
+		context.Log().Progressf("Deleting secret %s", latestSecret)
 		if err := context.Client().Delete(ctx.TODO(), &latestSecret); err != nil {
 			context.Log().Errorf("Error deleting secret %s", filteredHelmSecrets[0])
-		} else {
-			context.Log().Infof("Deleted secret completed")
 		}
 	}
 }
@@ -393,7 +393,7 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreUninstall(context spi.ComponentContext) error {
-	releaseStatus, err := helm.GetReleaseStatus(h.ReleaseName, h.ChartNamespace)
+	releaseStatus, err := helm.GetReleaseStatus(context.Log(), h.ReleaseName, h.ChartNamespace)
 	if err != nil {
 		context.Log().Infof("Error getting release status for %s", h.ReleaseName)
 	} else if releaseStatus != release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() { // When helm release is not deployed or uninstalled, cleanup the secret
@@ -487,12 +487,15 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreUpgrade(context spi.ComponentContext) error {
-	releaseStatus, err := helm.GetReleaseStatus(h.ReleaseName, h.ChartNamespace)
+	releaseStatus, err := helm.GetReleaseStatus(context.Log(), h.ReleaseName, h.ChartNamespace)
 	if err != nil {
-		context.Log().Infof("Error getting release status for %s", h.ReleaseName)
-	} else if releaseStatus != release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() { // When helm release is not deployed or uninstalled, cleanup the secret
-		cleanupLatestSecret(context, h, false)
+		context.Log().Errorf("Error getting release status for %s", h.ReleaseName)
+		return err
 	}
+	if releaseStatus == release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() { // When helm release is deployed or not uninstalled, skip
+		return nil
+	}
+	cleanupLatestSecret(context, h, false)
 	return nil
 }
 
