@@ -2,6 +2,8 @@
 Component version updates:
 
 - Coherence Operator v3.2.8
+- MySQL 8.0.30
+- MySQL Operator 8.0.30-2.0.6
 
 ### v1.4.0
 Features:
