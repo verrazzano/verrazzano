@@ -39,8 +39,8 @@ const (
 // limit network ingress and egress.
 func CreateOrUpdateNetworkPolicies(clientset kubernetes.Interface, client client.Client) ([]controllerutil.OperationResult, []error) {
 	ip, port, err := getAPIServerIPAndPort(clientset)
-	var opResults = make([]controllerutil.OperationResult, 0, 0)
-	var errors = make([]error, 0, 0)
+	var opResults []controllerutil.OperationResult
+	var errors []error
 	if err != nil {
 		opResults = append(opResults, controllerutil.OperationResultNone)
 		errors = append(errors, err)
