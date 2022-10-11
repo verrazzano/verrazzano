@@ -3893,8 +3893,6 @@ spec:
                       type: string
                     version:
                       type: string
-                  required:
-                  - available
                   type: object
                 type: object
               conditions:
@@ -6599,8 +6597,6 @@ spec:
                       type: string
                     version:
                       type: string
-                  required:
-                  - available
                   type: object
                 type: object
               conditions:

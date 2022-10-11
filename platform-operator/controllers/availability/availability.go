@@ -23,7 +23,10 @@ func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi
 	ch := make(chan componentAvailability)
 	components := registry.GetComponents()
 	for _, component := range components {
-		go c.getComponentAvailability(log, ch, vz, component)
+		comp := component
+		go func() {
+			ch <- c.getComponentAvailability(log, vz, comp)
+		}()
 	}
 	countEnabled := 0
 	countAvailable := 0
@@ -51,7 +54,7 @@ func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi
 	return nil
 }
 
-func (c *Controller) getComponentAvailability(log vzlog.VerrazzanoLogger, ch chan componentAvailability, vz *vzapi.Verrazzano, component spi.Component) {
+func (c *Controller) getComponentAvailability(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazzano, component spi.Component) componentAvailability {
 	ctx, err := spi.NewContext(log, c.client, vz, nil, false)
 	name := component.Name()
 	enabled := component.IsEnabled(vz)
@@ -65,5 +68,5 @@ func (c *Controller) getComponentAvailability(log vzlog.VerrazzanoLogger, ch cha
 		a.reason = reason
 		a.available = available
 	}
-	ch <- a
+	return a
 }
