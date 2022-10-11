@@ -396,9 +396,11 @@ func (h HelmComponent) PreUninstall(context spi.ComponentContext) error {
 	releaseStatus, err := helm.GetReleaseStatus(context.Log(), h.ReleaseName, h.ChartNamespace)
 	if err != nil {
 		context.Log().Infof("Error getting release status for %s", h.ReleaseName)
-	} else if releaseStatus != release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() { // When helm release is not deployed or uninstalled, cleanup the secret
-		cleanupLatestSecret(context, h, false)
 	}
+	if releaseStatus == release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() { // When helm release is not deployed or uninstalled, cleanup the secret
+		return nil
+	}
+	cleanupLatestSecret(context, h, false)
 	return nil
 }
 
