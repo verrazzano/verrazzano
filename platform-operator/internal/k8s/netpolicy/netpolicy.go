@@ -337,17 +337,12 @@ func newNetworkPolicies(apiServerIP string, apiServerPort int32) []*netv1.Networ
 								},
 							},
 						},
+					},
+					// ingress from Prometheus server for scraping metrics
+					Ports: []netv1.NetworkPolicyPort{
 						{
-							NamespaceSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									verrazzanoNamespaceLabel: constants.VerrazzanoInstallNamespace,
-								},
-							},
-							PodSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{
-									appNameLabel: networkPolicyPodName,
-								},
-							},
+							Protocol: &tcpProtocol,
+							Port:     &metricsPort,
 						},
 					},
 				},
