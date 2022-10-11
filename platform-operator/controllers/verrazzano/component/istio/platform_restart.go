@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -179,6 +180,32 @@ func DoesPodContainOldIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodLi
 				// doesn't match the Istio proxy in the BOM
 				if 0 != strings.Compare(container.Image, istioProxyImageName) {
 					log.Oncef("Restarting %s %s which has a pod with an old Istio proxy %s", workloadType, workloadName, container.Image)
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func DoesPodContainOldIstioSidecarSkew2MinorVersion(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string, istioProxyImageName string) bool {
+	istoiProxyImageSplitArray := strings.SplitN(istioProxyImageName, ":", 2)
+	istioProxyImageVersionArray := strings.Split(istoiProxyImageSplitArray[1], ".")
+	fmt.Println("ISTIO PROXY IMAGE ARRAY:", istioProxyImageVersionArray)
+	for _, pod := range podList.Items {
+		for _, container := range pod.Spec.Containers {
+			if strings.Contains(container.Image, "proxyv2") {
+				// Container contains the proxy2 image (Envoy Proxy).  Return true if it
+				// doesn't match the Istio proxy in the BOM
+				containerImageSplit := strings.SplitN(container.Image, ":", 2)
+				containerImageVersionArray := strings.Split(containerImageSplit[1], ".")
+				fmt.Println("CONTAINER IMAGE ARRAY:", containerImageVersionArray)
+
+				if strings.Compare(istioProxyImageVersionArray[0], containerImageVersionArray[0]) == 1 {
+					log.Oncef("Restarting %s %s which has a pod with an old Istio proxy with skew of more than 2 minor versions%s", workloadType, workloadName, container.Image)
+					return true
+				} else if strings.Compare(istioProxyImageVersionArray[1], containerImageVersionArray[1]) >= 0 {
+					log.Oncef("Restarting %s %s which has a pod with an old Istio proxy with skew of more than 2 minor versions%s", workloadType, workloadName, container.Image)
 					return true
 				}
 			}

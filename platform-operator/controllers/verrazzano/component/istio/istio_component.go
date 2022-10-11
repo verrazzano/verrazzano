@@ -436,8 +436,8 @@ func (i istioComponent) GetDependencies() []string {
 
 func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
 	if vzconfig.IsApplicationOperatorEnabled(context.ActualCR()) {
-		context.Log().Infof("Stopping WebLogic domains that have the old Envoy sidecar")
-		if err := RestartDomainsUsingOldEnvoy(context.Log(), context.Client()); err != nil {
+		context.Log().Infof("Restarting WebLogic domains that have the old Envoy sidecar that skew is 2 or more minor versions")
+		if err := RestartDomainsUsingOldEnvoy(context.Log(), context.Client(), context.ActualCR().GetGeneration()); err != nil {
 			return err
 		}
 	}
