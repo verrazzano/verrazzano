@@ -590,12 +590,15 @@ func getOrCreateDBUserPassword(compContext spi.ComponentContext) (string, error)
 	}
 	dbSecret := &v1.Secret{}
 	err := compContext.Client().Get(context.TODO(), secretName, dbSecret)
-	if err != nil && errors.IsNotFound(err) {
-		password, err := vzpassword.GeneratePassword(12)
-		if err != nil {
-			return "", err
+	if err != nil {
+		if errors.IsNotFound(err) {
+			password, err := vzpassword.GeneratePassword(12)
+			if err != nil {
+				return "", err
+			}
+			return password, nil
 		}
-		return password, nil
+		return "", err
 	}
 	return string(dbSecret.Data[mySQLUserKey]), nil
 }
