@@ -6,7 +6,9 @@ package v1beta1
 import (
 	"context"
 	"github.com/Jeffail/gabs/v2"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/semver"
+	"go.uber.org/zap"
 	k8sadmission "k8s.io/api/admission/v1"
 	"net/http"
 	"reflect"
@@ -15,7 +17,10 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const MIN_VERSION = "1.5.0"
+const (
+	MIN_VERSION = "1.5.0"
+	WebhookName = "v1beta1-verrazzano-platform-mysqlinstalloverrides"
+)
 
 // MysqlValuesValidator is a struct holding objects used during validation.
 type MysqlValuesValidator struct {
@@ -38,31 +43,40 @@ func (v *MysqlValuesValidator) InjectDecoder(d *admission.Decoder) error {
 // Handle performs validation of created or updated Verrazzano resources.
 func (v *MysqlValuesValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
 
+	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, WebhookName)
+
+	log.Infof("Processing MySQL install override values")
 	vz := &Verrazzano{}
 	err := v.decoder.Decode(req, vz)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
+	log.Infof("new VZ: %v", vz)
 
 	oldVz := &Verrazzano{}
 	err = v.decoder.DecodeRaw(req.OldObject, oldVz)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
+	log.Infof("old VZ: %v", vz)
 
+	log.Infof ("Request operation: %v", req.Operation)
 	if vz.ObjectMeta.DeletionTimestamp.IsZero() {
 		switch req.Operation {
 		case k8sadmission.Update:
-			return validateMysqlValues(vz, oldVz)
+			return validateMysqlValues(vz, oldVz, log)
 		}
 	}
 	return admission.Allowed("")
 }
 
 // validateMysqlValues presents the user with a warning if there are podSpecs specified as overrides.
-func validateMysqlValues(vz *Verrazzano, oldVz *Verrazzano) admission.Response {
+func validateMysqlValues(vz *Verrazzano, oldVz *Verrazzano, log *zap.SugaredLogger) admission.Response {
 	response := admission.Allowed(MIN_VERSION)
-	if isMinVersion(vz.Spec.Version, ) && isSameVersion(vz.Spec.Version, oldVz.Spec.Version) {
+	log.Infof("old version: %s", oldVz.Spec.Version)
+	log.Infof("new version: %s", vz.Spec.Version)
+	if isMinVersion(vz.Spec.Version, MIN_VERSION) && isSameVersion(vz.Spec.Version, oldVz.Spec.Version) {
+		log.Info("Proceeding with override validation")
 		if vz.Spec.Components.Keycloak != nil {
 			// compare overrides from current and previous VZ
 			overrides, err := yaml.Marshal(vz.Spec.Components.Keycloak.MySQL.ValueOverrides)
@@ -70,11 +84,13 @@ func validateMysqlValues(vz *Verrazzano, oldVz *Verrazzano) admission.Response {
 				return admission.Errored(http.StatusBadRequest, err)
 			}
 			currentOverrides := string(overrides)
+			log.Infof("Current Overrides: %s", currentOverrides)
 			overrides, err = yaml.Marshal(oldVz.Spec.Components.Keycloak.MySQL.ValueOverrides)
 			if err != nil {
 				return admission.Errored(http.StatusBadRequest, err)
 			}
 			previousOverrides := string(overrides)
+			log.Infof("Previous Overrides: %s", previousOverrides)
 
 			response := compareOverride(previousOverrides, currentOverrides, "0.values.podSpec")
 			if !response.Allowed || len(response.Warnings) > 0 {

@@ -4,7 +4,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"flag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -136,28 +135,26 @@ func main() {
 		log.Errorf("Failed to get the Verrazzano version from the BOM: %v", err)
 	}
 
+	kubeConfig, err := ctrl.GetConfig()
+	if err != nil {
+		log.Errorf("Failed to get kubeconfig: %v", err)
+		os.Exit(1)
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
+	if err != nil {
+		log.Errorf("Failed to get clientset: %v", err)
+		os.Exit(1)
+	}
+
 	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
 	// validatingWebhookConfiguration resource before the operator container runs.
-	var kubeClient *kubernetes.Clientset
-	var caCert *bytes.Buffer
-
 	if config.InitWebhooks {
+
 		log.Debug("Creating certificates used by webhooks")
-		caCert, err = certificate.CreateWebhookCertificates(config.CertDir)
+		caCert, err := certificate.CreateWebhookCertificates(config.CertDir)
 		if err != nil {
 			log.Errorf("Failed to create certificates used by webhooks: %v", err)
-			os.Exit(1)
-		}
-
-		config, err := ctrl.GetConfig()
-		if err != nil {
-			log.Errorf("Failed to get kubeconfig: %v", err)
-			os.Exit(1)
-		}
-
-		kubeClient, err = kubernetes.NewForConfig(config)
-		if err != nil {
-			log.Errorf("Failed to get clientset: %v", err)
 			os.Exit(1)
 		}
 
@@ -169,7 +166,7 @@ func main() {
 		}
 
 		log.Debug("Updating conversion webhook")
-		apixClient, err := apiextensionsv1client.NewForConfig(config)
+		apixClient, err := apiextensionsv1client.NewForConfig(kubeConfig)
 		if err != nil {
 			log.Errorf("Failed to get apix clientset: %v", err)
 			os.Exit(1)
@@ -180,7 +177,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		client, err := client.New(config, client.Options{})
+		client, err := client.New(kubeConfig, client.Options{})
 		if err != nil {
 			log.Errorf("Failed to get controller-runtime client: %v", err)
 			os.Exit(1)
@@ -238,18 +235,28 @@ func main() {
 		}
 		mgr.GetWebhookServer().CertDir = config.CertDir
 
-		// Mysql install overrides validating webhook
-		validatingWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), "v1beta1-verrazzano-platform-mysqlinstalloverrides", metav1.GetOptions{})
+		// Configure the mysql install values webhook with the required certificate
+		validatingWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), certificate.OperatorName, metav1.GetOptions{})
 		if err != nil {
-			log.Errorf("Failed to setup v1beta1 MySQL install overrides webhook with manager: %v", err)
+			log.Errorf("Failed to get VPO webhook configuration: %v", err)
 			os.Exit(1)
 		}
-		validatingWebhook.Webhooks[0].ClientConfig.CABundle = caCert.Bytes()
+		caCert := validatingWebhook.Webhooks[0].ClientConfig.CABundle
+
+		validatingWebhook, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), installv1beta1.WebhookName, metav1.GetOptions{})
+		if err != nil {
+			log.Errorf("Failed to get MySQL install values webhook configuration: %v", err)
+			os.Exit(1)
+		}
+		for i := range validatingWebhook.Webhooks {
+			validatingWebhook.Webhooks[i].ClientConfig.CABundle = caCert
+		}
 		_, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
 		if err != nil {
-			log.Errorf("Failed to update v1beta1 MySQL install overrides webhook configuration: %v", err)
+			log.Errorf("Failed to update MySQL install values webhooks configuration with certificate: %v", err)
 			os.Exit(1)
 		}
+
 		mgr.GetWebhookServer().Register("/v1beta1-validate-mysql-install-override-values", &webhook.Admission{Handler: &installv1beta1.MysqlValuesValidator{}})
 	}
 
