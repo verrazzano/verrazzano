@@ -1304,8 +1304,8 @@ func (in *VerrazzanoStatus) DeepCopyInto(out *VerrazzanoStatus) {
 			(*out)[key] = outVal
 		}
 	}
-	if in.AvailabilityColumn != nil {
-		in, out := &in.AvailabilityColumn, &out.AvailabilityColumn
+	if in.Available != nil {
+		in, out := &in.Available, &out.Available
 		*out = new(string)
 		**out = **in
 	}

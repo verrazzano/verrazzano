@@ -72,7 +72,7 @@ func (in *Verrazzano) ConvertTo(dstRaw conversion.Hub) error {
 	out.Status.Conditions = convertConditionsTo(in.Status.Conditions)
 	out.Status.Components = convertComponentStatusMapTo(in.Status.Components)
 	out.Status.VerrazzanoInstance = convertVerrazzanoInstanceTo(in.Status.VerrazzanoInstance)
-	out.Status.AvailabilityColumn = in.Status.AvailabilityColumn
+	out.Status.Available = in.Status.Available
 	return nil
 }
 

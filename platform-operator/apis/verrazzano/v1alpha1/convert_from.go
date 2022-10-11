@@ -31,7 +31,7 @@ func (in *Verrazzano) ConvertFrom(srcRaw conversion.Hub) error {
 	in.Status.Conditions = convertConditionsFromV1Beta1(src.Status.Conditions)
 	in.Status.Components = convertComponentStatusMapFromV1Beta1(src.Status.Components)
 	in.Status.VerrazzanoInstance = convertVerrazzanoInstanceFromV1Beta1(src.Status.VerrazzanoInstance)
-	in.Status.AvailabilityColumn = src.Status.AvailabilityColumn
+	in.Status.Available = src.Status.Available
 	return nil
 }
 

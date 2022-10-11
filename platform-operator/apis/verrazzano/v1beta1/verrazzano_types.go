@@ -144,8 +144,8 @@ type VerrazzanoStatus struct {
 	// State of the Verrazzano custom resource
 	State VzStateType `json:"state,omitempty"`
 	// States of the individual installed components
-	Components         ComponentStatusMap `json:"components,omitempty"`
-	AvailabilityColumn *string            `json:"availabilityColumn,omitempty"`
+	Components ComponentStatusMap `json:"components,omitempty"`
+	Available  *string            `json:"availabilityColumn,omitempty"`
 }
 
 type ComponentStatusMap map[string]*ComponentStatusDetails
@@ -204,6 +204,9 @@ const (
 
 	// CondUpgradeComplete means the upgrade has completed successfully
 	CondUpgradeComplete ConditionType = "UpgradeComplete"
+
+	// CondAvailable means Verrazzano has all components available
+	CondAvailable ConditionType = "Available"
 )
 
 // Condition describes current state of an install.

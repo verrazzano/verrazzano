@@ -29,6 +29,9 @@ func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi
 	countAvailable := 0
 	for i := 0; i < len(components); i++ {
 		a := <-ch
+		if a.enabled {
+			countEnabled++
+		}
 		if a.err != nil {
 			// short-circuit on error, error is related to component context
 			return fmt.Errorf("failed to get component availability: %v", a.err)
@@ -37,9 +40,6 @@ func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi
 			// component hasn't been reconciled by Verrazzano yet, skip
 			continue
 		}
-		if a.enabled {
-			countEnabled++
-		}
 		if a.available {
 			countAvailable++
 		}
@@ -47,7 +47,7 @@ func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi
 	}
 	// format the printer column with both values
 	availabilityColumn := fmt.Sprintf("%d/%d", countAvailable, countEnabled)
-	vz.Status.AvailabilityColumn = &availabilityColumn
+	vz.Status.Available = &availabilityColumn
 	return nil
 }
 
