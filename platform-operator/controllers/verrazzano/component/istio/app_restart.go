@@ -72,6 +72,7 @@ func StopDomainsUsingOldEnvoy(log vzlog.VerrazzanoLogger, client clipkg.Client) 
 
 // RestartDomainsUsingOldEnvoy restarts all the WebLogic domains using Envoy 1.7.3
 func RestartDomainsUsingOldEnvoy(log vzlog.VerrazzanoLogger, client clipkg.Client, generation int64) error {
+	log.Infof("RestartDomainsUsingOldEnvoy -------")
 	// Generate a restart version that will not change for this Verrazzano version
 	restartVersion := "upgrade-" + strconv.Itoa(int(generation))
 
@@ -92,6 +93,7 @@ func RestartDomainsUsingOldEnvoy(log vzlog.VerrazzanoLogger, client clipkg.Clien
 		log.Debugf("RestartWebLogicApps: found appConfig %s", appConfig.Name)
 		for _, wl := range appConfig.Status.Workloads {
 			if wl.Reference.Kind == vzconst.VerrazzanoWebLogicWorkloadKind {
+				log.Infof("Before restartDomainIfNeeded -------")
 				if err := restartDomainIfNeeded(log, client, appConfig, wl.Reference.Name, istioProxyImage, restartVersion); err != nil {
 					return err
 				}
@@ -136,6 +138,7 @@ func stopDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appCon
 // Determine if the WebLogic domain needs to be restarted
 func restartDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appConfig oam.ApplicationConfiguration, wlName string, istioProxyImage string, restartVersion string) error {
 	log.Progressf("RestartWebLogicApps: checking if domain for workload %s needs to be restarted", wlName)
+	log.Infof("restartDomainIfNeeded -------")
 
 	// Get the go client so we can bypass the cache and get directly from etcd
 	goClient, err := k8sutil.GetGoClient(log)
@@ -162,7 +165,7 @@ func restartDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, app
 		return nil
 	}
 
-	return restartDomain(client, appConfig.Namespace, wlName, restartVersion)
+	return restartDomain(log, client, appConfig.Namespace, wlName, restartVersion)
 }
 
 // Stop the WebLogic domain
@@ -182,7 +185,8 @@ func stopDomain(client clipkg.Client, wlNamespace string, wlName string) error {
 }
 
 // Restart the WebLogic domain
-func restartDomain(client clipkg.Client, wlNamespace string, wlName string, restartVersion string) error {
+func restartDomain(log vzlog.VerrazzanoLogger, client clipkg.Client, wlNamespace string, wlName string, restartVersion string) error {
+	log.Infof("restartDomain -------")
 	var wl vzapp.VerrazzanoWebLogicWorkload
 	wl.Namespace = wlNamespace
 	wl.Name = wlName
@@ -190,6 +194,7 @@ func restartDomain(client clipkg.Client, wlNamespace string, wlName string, rest
 		if wl.ObjectMeta.Annotations == nil {
 			wl.ObjectMeta.Annotations = make(map[string]string)
 		}
+		log.Infof("restartDomain--------Update restart Version  -------")
 		wl.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
 		return nil
 	})
