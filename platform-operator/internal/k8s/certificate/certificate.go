@@ -25,7 +25,7 @@ import (
 
 const (
 	// OperatorName is the resource name for the Verrazzano platform operator
-	OperatorName = "verrazzano-platform-operator"
+	OperatorName = "verrazzano-platform-operator-webhook"
 	// OperatorNamespace is the resource namespace for the Verrazzano platform operator
 	OperatorNamespace = "verrazzano-install"
 	CRDName           = "verrazzanos.install.verrazzano.io"

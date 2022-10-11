@@ -3,9 +3,9 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: {{ .Values.name }}
+  name: {{ .Values.name }}-webhook
   labels:
-    app: {{ .Values.name }}
+    app: {{ .Values.name }}-webhook
 webhooks:
   - name: install.verrazzano.io
     namespaceSelector:

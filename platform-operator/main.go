@@ -180,8 +180,9 @@ func main() {
 		}
 
 		log.Debug("Creating or updating network policies")
-		_, err = netpolicy.CreateOrUpdateNetworkPolicies(kubeClient, client)
-		if err != nil {
+		var errors []error
+		_, errors = netpolicy.CreateOrUpdateNetworkPolicies(kubeClient, client)
+		if len(errors) < 0 {
 			log.Errorf("Failed to create or update network policies: %v", err)
 			os.Exit(1)
 		}
