@@ -250,7 +250,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	}
 
 	if compContext.Init(ComponentName).GetOperation() == vzconst.InstallOperation {
-		userPwd, err := createKeycloakDBUserPasswordIfNeeded(compContext)
+		userPwd, err := getOrCreateDBUserPassword(compContext)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
@@ -582,8 +582,8 @@ func createMySQLInitFile(ctx spi.ComponentContext, userPwd []byte) (string, erro
 	return file.Name(), nil
 }
 
-// createKeycloakDBUserPasswordIfNeeded creates or updates a secret containing the password used by keycloak to access the DB
-func createKeycloakDBUserPasswordIfNeeded(compContext spi.ComponentContext) (string, error) {
+// getOrCreateDBUserPassword creates or updates a secret containing the password used by keycloak to access the DB
+func getOrCreateDBUserPassword(compContext spi.ComponentContext) (string, error) {
 	secretName := types.NamespacedName{
 		Namespace: ComponentNamespace,
 		Name:      rootSec,
