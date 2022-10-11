@@ -323,8 +323,6 @@ func DoesAppPodNeedRestart(log vzlog.VerrazzanoLogger, podList *v1.PodList, work
 	return false, nil
 }
 
-func
-
 // restartOAMApp sets the restart version for appconfig to recycle the pod
 func restartOAMApp(log vzlog.VerrazzanoLogger, appConfig oam.ApplicationConfiguration, client clipkg.Client, restartVersion string) error {
 
