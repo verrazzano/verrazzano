@@ -317,7 +317,7 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 
 	// Rancher upgrade workaround for rancher-charts versions in config map not being updated (VZ-7053)
-	if err := chartsNotUpdatedWorkaroundFunc(c, log); err != nil {
+	if err := chartsNotUpdatedWorkaroundFunc(ctx); err != nil {
 		return err
 	}
 	err := activateDrivers(log, c)

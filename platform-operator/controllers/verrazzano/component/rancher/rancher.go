@@ -17,7 +17,9 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -43,7 +45,7 @@ import (
 // type checkRancherUpgradeFailureSig func(c client.Client, log vzlog.VerrazzanoLogger) (err error)
 
 // chartsNotUpdatedWorkaroundSig is a function needed for unit test override
-type chartsNotUpdatedWorkaroundSig func(c client.Client, log vzlog.VerrazzanoLogger) (err error)
+type chartsNotUpdatedWorkaroundSig func(ctx spi.ComponentContext) (err error)
 
 // checkRancherUpgradeFailureFunc is the default checkRancherUpgradeFailure function
 // var checkRancherUpgradeFailureFunc checkRancherUpgradeFailureSig = checkRancherUpgradeFailure
@@ -57,7 +59,7 @@ var chartsNotUpdatedWorkaroundFunc chartsNotUpdatedWorkaroundSig = chartsNotUpda
 }*/
 
 // fakeChartsNotUpdatedWorkaround is the fake chartsNotUpdatedWorkaround function needed for unit testing
-func fakeChartsNotUpdatedWorkaround(_ client.Client, _ vzlog.VerrazzanoLogger) (err error) {
+func fakeChartsNotUpdatedWorkaround(_ spi.ComponentContext) (err error) {
 	return nil
 }
 
@@ -286,16 +288,39 @@ func isRancherReady(ctx spi.ComponentContext) bool {
 	return ready.DeploymentsAreReady(log, c, deployments, 1, prefix)
 }
 
+// areAllReplicasReady returns true if all of the expected replicas specified in the Rancher deployment are ready
+func areAllReplicasReady(ctx spi.ComponentContext) bool {
+	deployment := appsv1.Deployment{}
+	namespacedName := types.NamespacedName{Name: common.RancherName, Namespace: common.CattleSystem}
+	if err := ctx.Client().Get(context.TODO(), namespacedName, &deployment); err != nil {
+		ctx.Log().ErrorfThrottled("Unable to get deployment %v: %v", namespacedName, err)
+		return false
+	}
+
+	replicas := int32(1)
+	if deployment.Spec.Replicas != nil {
+		replicas = *deployment.Spec.Replicas
+	}
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{namespacedName}, replicas, prefix)
+}
+
 // chartsNotUpdatedWorkaround - workaround for VZ-7053, where some of the Helm charts are not
 // getting updated after Rancher upgrade. This workaround will delete the clusterrepo resources and
 // rollout the Rancher deployment. NOTE - it will only work if this is called after the upgraded
 // Rancher pods are ready e.g. in PostUpgrade
-func chartsNotUpdatedWorkaround(c client.Client, log vzlog.VerrazzanoLogger) error {
-	err := deleteClusterRepos(log)
+func chartsNotUpdatedWorkaround(ctx spi.ComponentContext) error {
+	// wait for all Rancher pods to be upgraded before proceeding, otherwise an old Rancher pod can assume leadership
+	// and recreate the ClusterRepo resources with old bundled system chart data
+	if !areAllReplicasReady(ctx) {
+		ctx.Log().Progressf("Waiting for all Rancher replicas to be ready before deleting ClusterRepo resources")
+		return ctrlerrors.RetryableError{Source: ComponentName}
+	}
+	err := deleteClusterRepos(ctx.Log())
 	if err != nil {
 		return err
 	}
-	return restartRancherDeployment(c, log)
+	return restartRancherDeployment(ctx.Client(), ctx.Log())
 }
 
 // restartRancherDeployment restarts the Rancher deployment by updating an annotation value
