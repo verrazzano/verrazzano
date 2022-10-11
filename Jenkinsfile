@@ -252,27 +252,12 @@ pipeline {
                     }
                 }
 
-                stage('Quality and Compliance Checks') {
-                    when { not { buildingTag() } }
-                    steps {
-                        qualityCheck()
-                        thirdpartyCheck()
-                    }
-                    post {
-                        failure {
-                            script {
-                                SKIP_TRIGGERED_TESTS = true
-                            }
-                        }
-                    }
-                }
-
-                stage('Unit Tests') {
+                stage('Quality, Compliance Checks, and Unit Tests') {
                     when { not { buildingTag() } }
                     steps {
                         sh """
                     cd ${GO_REPO_PATH}/verrazzano
-                    make -B coverage
+                    make precommit
                 """
                     }
                     post {
@@ -612,22 +597,6 @@ def generateOperatorYaml(dockerImageTag) {
                 export IMAGE_PULL_SECRETS=verrazzano-container-registry
         esac
         DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} OPERATOR_YAML=$WORKSPACE/generated-operator.yaml make generate-operator-yaml
-    """
-}
-
-// Called in Stage Quality and Compliance Checks steps
-// Makes target check to run all linters
-def qualityCheck() {
-    sh """
-        echo "run all linters"
-        cd ${GO_REPO_PATH}/verrazzano
-        make check check-tests
-
-        echo "copyright scan"
-        time make copyright-check
-        ./ci/scripts/check_if_clean_after_generate.sh
-
-        echo "Third party license check"
     """
 }
 
