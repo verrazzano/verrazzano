@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20220922182558-46df1b595",
-              "dashboard": "v2.6.8-20220922181459-f9a6c76e",
+              "tag": "v2.6.8-20221006171647-46df1b595",
+              "dashboard": "v2.6.8-20221006170612-d84a9cbf",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20220922182558-46df1b595"
+              "tag": "v2.6.8-20221006171647-46df1b595"
             }
           ]
         },
@@ -254,7 +254,7 @@
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "1.2.0-20220810140901-c206c8b25f",
+              "tag": "1.2.0-20221011085109-c206c8b25f",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
@@ -346,7 +346,7 @@
     },
     {
       "name": "coherence-operator",
-      "version": "3.2.6",
+      "version": "3.2.8",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -354,7 +354,7 @@
           "images": [
             {
               "image": "coherence-operator",
-              "tag": "3.2.6",
+              "tag": "3.2.8",
               "helmFullImageKey": "image"
             }
           ]
@@ -442,7 +442,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v15.0.2-20220808193821-3c526fbe0f",
+              "tag": "v15.0.2-20221010100849-3c526fbe0f",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

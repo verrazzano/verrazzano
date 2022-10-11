@@ -20,6 +20,10 @@ spec:
               replicaCount: 2
             webhook:
               replicaCount: 2
+    coherenceOperator:
+      overrides:
+        - values:
+            replicas: 3
     console:
       overrides:
         - values:

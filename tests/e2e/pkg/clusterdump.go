@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/verrazzano/verrazzano/pkg/test"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test"
 )
 
 const (

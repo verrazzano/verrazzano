@@ -1,3 +1,8 @@
+### v1.5.0
+Component version updates:
+
+- Coherence Operator v3.2.8
+
 ### v1.4.0
 Features:
 
