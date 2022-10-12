@@ -6,9 +6,6 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	v12 "k8s.io/api/admissionregistration/v1"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -224,15 +221,6 @@ func postVerrazzanoUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, cr 
 	log.Oncef("Checking if any pods with Istio sidecars need to be restarted to pick up the new version of the Istio proxy")
 	if err := istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), cr.Generation, istio.DoesPodContainOldIstioSidecar); err != nil {
 		return err
-	}
-	log.Oncef("Checking if webhook configuration for Verrazzano Platform Operator exists with old name and remove it")
-	var validatingWebhook *v12.ValidatingWebhookConfiguration
-	err := client.Get(context.TODO(), clipkg.ObjectKey{Namespace: constants.VerrazzanoInstallNamespace, Name: "verrazzano-platform-operator"}, validatingWebhook)
-	if err == nil {
-		err = client.Delete(context.TODO(), validatingWebhook, nil)
-		if err != nil {
-			return err
-		}
 	}
 	log.Oncef("MySQL post-upgrade cleanup")
 	return mysql.PostUpgradeCleanup(log, client)

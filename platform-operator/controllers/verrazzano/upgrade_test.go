@@ -1172,10 +1172,6 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	mockDisabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).AnyTimes()
 	mockDisabledComp.EXPECT().IsEnabled(gomock.Any()).Return(false).AnyTimes()
 
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace,
-		Name: "verrazzano-platform-operator"},
-		nil).Return(nil).AnyTimes()
-	mock.EXPECT().Delete(gomock.Any(), nil, nil).Return(nil).AnyTimes()
 	mock.EXPECT().Delete(gomock.Any(), &v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "keycloak", Name: "dump-claim"}}).Return(nil).AnyTimes()
 
