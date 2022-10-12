@@ -44,7 +44,7 @@ type installTracker struct {
 // installTrackerMap has a map of InstallTrackers, one entry per Verrazzano CR resource generation
 var installTrackerMap = make(map[string]*installTracker)
 
-// getUpgradeTrackerKey gets the tracker key for the Verrazzano resource
+// getInstallTrackerKey gets the tracker key for the Verrazzano resource
 func getInstallTrackerKey(cr *vzapi.Verrazzano) string {
 	return fmt.Sprintf("%s-%s-%s", cr.Namespace, cr.Name, string(cr.UID))
 }
@@ -137,19 +137,18 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 // checkGenerationUpdated loops through the components and calls checkConfigUpdated on each
 func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 	for _, comp := range registry.GetComponents() {
-		componentStatus, ok := spiCtx.ActualCR().Status.Components[comp.Name()]
-		if !ok {
-			spiCtx.Log().Debugf("Did not find status details in map for component %s", comp.Name())
-			// if we can't find the component status, enter install loop to try to fix it
-			return true
-		}
-		if checkConfigUpdated(spiCtx, componentStatus, comp.Name()) &&
-			comp.IsEnabled(spiCtx.EffectiveCR()) &&
-			comp.MonitorOverrides(spiCtx) {
-
-			spiCtx.Log().Oncef("Verrazzano CR generation change detected, generation: %v, component: %s, component reconciling generation: %v, component lastreconciling generation %v",
-				spiCtx.ActualCR().Generation, comp.Name(), componentStatus.ReconcilingGeneration, componentStatus.LastReconciledGeneration)
-			return true
+		if comp.IsEnabled(spiCtx.EffectiveCR()) {
+			componentStatus, ok := spiCtx.ActualCR().Status.Components[comp.Name()]
+			if !ok {
+				spiCtx.Log().Debugf("Did not find status details in map for component %s", comp.Name())
+				// if we can't find the component status, enter install loop to try to fix it
+				return true
+			}
+			if checkConfigUpdated(spiCtx, componentStatus, comp.Name()) && comp.MonitorOverrides(spiCtx) {
+				spiCtx.Log().Oncef("Verrazzano CR generation change detected, generation: %v, component: %s, component reconciling generation: %v, component lastreconciling generation %v",
+					spiCtx.ActualCR().Generation, comp.Name(), componentStatus.ReconcilingGeneration, componentStatus.LastReconciledGeneration)
+				return true
+			}
 		}
 	}
 	return false
