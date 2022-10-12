@@ -1,6 +1,21 @@
-# Copyright (c) 2021, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 # The coherence-operator image now comes from the bill of materials file (verrazzano-bom.json).
 # This file only specifies the defaultCoherenceImage
-defaultCoherenceImage: ghcr.io/oracle/coherence-ce:21.06.2
+defaultCoherenceImage: ghcr.io/oracle/coherence-ce:22.06.1
+
+replicas: 1
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - podAffinityTerm:
+          topologyKey: "kubernetes.io/hostname"
+          labelSelector:
+            matchLabels:
+              control-plane: coherence
+              app.kubernetes.io/name: coherence-operator
+              app.kubernetes.io/instance: coherence-operator-manager
+              app.kubernetes.io/version: "3.2.8"
+        weight: 100

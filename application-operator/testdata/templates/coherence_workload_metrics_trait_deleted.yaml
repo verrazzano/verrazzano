@@ -1,0 +1,45 @@
+# Copyright (C) 2021, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: oam.verrazzano.io/v1alpha1
+kind: MetricsTrait
+metadata:
+  deletionTimestamp: "2020-11-23T15:12:08Z"
+  finalizers:
+    - metricstrait.finalizers.verrazzano.io
+  labels:
+    app.oam.dev/component: ##OAM_COMP_NAME##
+    app.oam.dev/name: ##OAM_APP_NAME##
+    app.oam.dev/resourceType: TRAIT
+    app.oam.dev/revision: todo-wls-v1
+  name: ##TRAIT_NAME##
+  namespace: ##TRAIT_NAMESPACE##
+  ownerReferences:
+    - apiVersion: core.oam.dev/v1alpha2
+      blockOwnerDeletion: true
+      controller: true
+      kind: ApplicationConfiguration
+      name: ##OAM_APP_NAME##
+      uid: a7c14699-15aa-4ae6-bddc-2013c98748e6
+spec:
+  scraper: ##PROMETHEUS_NAMESPACE##/##PROMETHEUS_NAME##
+  workloadRef:
+    apiVersion: ##WORKLOAD_APIVER##
+    kind: ##WORKLOAD_KIND##
+    name: ##WORKLOAD_NAME##
+status:
+  conditions:
+    - lastTransitionTime: "2020-12-04T18:53:18Z"
+      reason: ReconcileSuccess
+      status: "True"
+      type: Synced
+  resources:
+    - apiversion: v1
+      kind: StatefulSet
+      name: ##STATEFULSET_NAME##
+      namespace: ##STATEFULSET_NAMESPACE##
+      role: source
+    - apiversion: apps/v1
+      kind: Deployment
+      name: ##PROMETHEUS_NAME##
+      namespace: ##PROMETHEUS_NAMESPACE##
+      role: scraper

@@ -87,7 +87,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "up{job=\"$serviceID\", instance=\"$instance\",verrazzano_cluster=~\"$vzcluster\"}",
+          "expr": "up{job=\"$serviceID\", instance=\"$instance\",verrazzano_cluster=~\"$vzcluster\",container!~\"istio-proxy|jaeger-agent|fluentd-stdout-sidecar\"}",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -183,7 +183,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "base_jvm_uptime_seconds{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "expr": "base_jvm_uptime_seconds{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\",container!~\"istio-proxy|jaeger-agent|fluentd-stdout-sidecar\"}",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -794,7 +794,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "base_classloader_loadedClasses_count{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "expr": "base_classloader_loadedClasses_count{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\",container!~\"istio-proxy|jaeger-agent|fluentd-stdout-sidecar\"}",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -885,7 +885,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "base_classloader_loadedClasses_total_total{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "expr": "base_classloader_loadedClasses_total_total{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\",container!~\"istio-proxy|jaeger-agent|fluentd-stdout-sidecar\"}",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -976,7 +976,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "base_classloader_unloadedClasses_total_total{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\"}",
+          "expr": "base_classloader_unloadedClasses_total_total{instance=\"$instance\", job=\"$serviceID\", verrazzano_cluster=~\"$vzcluster\",container!~\"istio-proxy|jaeger-agent|fluentd-stdout-sidecar\"}",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
