@@ -965,7 +965,7 @@ func TestUpgradeComponent(t *testing.T) {
 	mockComp.EXPECT().IsEnabled(gomock.Any()).Return(true).AnyTimes()
 	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
-	mockComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
+	mockComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).AnyTimes()
 	mockComp.EXPECT().Name().Return(componentName).AnyTimes()
 	mockComp.EXPECT().IsReady(gomock.Any()).Return(true).AnyTimes()
 
@@ -1157,10 +1157,10 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	// Set enabled mock component expectations
 	mockEnabledComp.EXPECT().IsEnabled(gomock.Any()).Return(true).AnyTimes()
 	mockEnabledComp.EXPECT().Name().Return("EnabledComponent").AnyTimes()
-	mockEnabledComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).Times(2)
+	mockEnabledComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).AnyTimes()
 	mockEnabledComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockEnabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
-	mockEnabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
+	mockEnabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).AnyTimes()
 	mockEnabledComp.EXPECT().IsReady(gomock.Any()).Return(true).AnyTimes()
 	mockEnabledComp.EXPECT().IsEnabled(gomock.Any()).Return(true).AnyTimes()
 
@@ -1169,10 +1169,15 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	mockDisabledComp.EXPECT().IsInstalled(gomock.Any()).Return(false, nil).AnyTimes()
 	mockDisabledComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(0)
 	mockDisabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(0)
-	mockDisabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(0)
+	mockDisabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).AnyTimes()
 	mockDisabledComp.EXPECT().IsEnabled(gomock.Any()).Return(false).AnyTimes()
 
-	postUpgradeCleanupExpectations(mock)
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace,
+		Name: "verrazzano-platform-operator"},
+		nil).Return(nil).AnyTimes()
+	mock.EXPECT().Delete(gomock.Any(), nil, nil).Return(nil).AnyTimes()
+	mock.EXPECT().Delete(gomock.Any(), &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "keycloak", Name: "dump-claim"}}).Return(nil).AnyTimes()
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
