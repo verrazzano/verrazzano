@@ -109,6 +109,9 @@ spec:
             requests:
               memory: 72Mi
           ports:
+            - containerPort: 9100
+              name: http-metric
+              protocol: TCP
             - containerPort: 9443
               name: webhook
               protocol: TCP
