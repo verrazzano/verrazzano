@@ -29,7 +29,7 @@ func RestartApps(log vzlog.VerrazzanoLogger, client clipkg.Client, generation in
 	restartVersion := "upgrade-" + strconv.Itoa(int(generation))
 
 	// Start WebLogic domains that were shutdown
-	log.Infof("Starting WebLogic domains that were stopped pre-upgrade")
+	//log.Infof("Starting WebLogic domains that were stopped pre-upgrade")
 	if err := RestartDomainsUsingOldEnvoy(log, client, generation); err != nil {
 		return err
 	}
@@ -303,15 +303,21 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 func DoesAppPodNeedRestart(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string, istioProxyImageName string) (bool, error) {
 	// Return true if the pod has an old Istio proxy container
 	for _, pod := range podList.Items {
+		doesProxyExists := false
 		for _, container := range pod.Spec.Containers {
 			if strings.Contains(container.Image, "proxyv2") {
+				doesProxyExists = true
 				// Container contains the proxy2 image (Envoy Proxy).  Return true if it
 				// doesn't match the Istio proxy in the BOM
 				if 0 != strings.Compare(container.Image, istioProxyImageName) {
 					log.Oncef("Restarting %s %s which has a pod with an old Istio proxy %s", workloadType, workloadName, container.Image)
 					return true, nil
 				}
+				break
 			}
+		}
+		if doesProxyExists {
+			return false, nil
 		}
 		goClient, err := k8sutil.GetGoClient(log)
 		if err != nil {
