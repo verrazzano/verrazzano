@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package v1beta1
+package v1alpha1
 
 import (
 	"context"
@@ -30,6 +30,7 @@ func (v *MysqlValuesValidator) InjectDecoder(d *admission.Decoder) error {
 	return nil
 }
 
+// Handle performs validation of created or updated Verrazzano resources.
 // Handle performs validation of created or updated Verrazzano resources.
 func (v *MysqlValuesValidator) Handle(ctx context.Context, req admission.Request) admission.Response {
 

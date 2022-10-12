@@ -53,6 +53,8 @@ import (
 
 var scheme = runtime.NewScheme()
 
+const MysqlInstallValuesWebhook = "verrazzano-platform-mysqlinstalloverrides"
+
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = vmov1.AddToScheme(scheme)
@@ -235,29 +237,31 @@ func main() {
 		}
 		mgr.GetWebhookServer().CertDir = config.CertDir
 
-		// Configure the mysql install values webhook with the required certificate
-		validatingWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), certificate.OperatorName, metav1.GetOptions{})
+		// Configure the mysql install values webhook with the required certificate.  Since the webhook is hosted by the
+		// same webhook server, configure its hooks with the same certificate
+		vzWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), certificate.OperatorName, metav1.GetOptions{})
 		if err != nil {
 			log.Errorf("Failed to get VPO webhook configuration: %v", err)
 			os.Exit(1)
 		}
-		caCert := validatingWebhook.Webhooks[0].ClientConfig.CABundle
+		caCert := vzWebhook.Webhooks[0].ClientConfig.CABundle
 
-		validatingWebhook, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), installv1beta1.WebhookName, metav1.GetOptions{})
+		mysqlWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), MysqlInstallValuesWebhook, metav1.GetOptions{})
 		if err != nil {
 			log.Errorf("Failed to get MySQL install values webhook configuration: %v", err)
 			os.Exit(1)
 		}
-		for i := range validatingWebhook.Webhooks {
-			validatingWebhook.Webhooks[i].ClientConfig.CABundle = caCert
+		for i := range mysqlWebhook.Webhooks {
+			mysqlWebhook.Webhooks[i].ClientConfig.CABundle = caCert
 		}
-		_, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
+		_, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.TODO(), mysqlWebhook, metav1.UpdateOptions{})
 		if err != nil {
 			log.Errorf("Failed to update MySQL install values webhooks configuration with certificate: %v", err)
 			os.Exit(1)
 		}
 
 		mgr.GetWebhookServer().Register("/v1beta1-validate-mysql-install-override-values", &webhook.Admission{Handler: &installv1beta1.MysqlValuesValidator{}})
+		mgr.GetWebhookServer().Register("/v1alpha1-validate-mysql-install-override-values", &webhook.Admission{Handler: &installv1alpha1.MysqlValuesValidator{}})
 	}
 
 	// Setup the reconciler for VerrazzanoManagedCluster objects

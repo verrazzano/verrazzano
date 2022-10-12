@@ -89,7 +89,7 @@ webhooks:
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  name: v1beta1-verrazzano-platform-mysqlinstalloverrides
+  name: verrazzano-platform-mysqlinstalloverrides
   namespace: {{ .Values.namespace }}
   labels:
     app: {{ .Values.name }}
@@ -108,6 +108,31 @@ webhooks:
           - install.verrazzano.io
         apiVersions:
           - v1beta1
+        operations:
+          - UPDATE
+        resources:
+          - verrazzanos
+    sideEffects: None
+    failurePolicy: Fail
+    matchPolicy: Exact
+    timeoutSeconds: 30
+    admissionReviewVersions:
+      - v1beta1
+      - v1
+  - name: v1alpha1-platform-mysqlinstalloverrides.verrazzano.io.v1alpha1
+    namespaceSelector:
+      matchExpressions:
+        - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
+    clientConfig:
+      service:
+        name: {{ .Values.name }}
+        namespace: {{ .Values.namespace }}
+        path: /v1alpha1-validate-mysql-install-override-values
+    rules:
+      - apiGroups:
+          - install.verrazzano.io
+        apiVersions:
+          - v1alpha1
         operations:
           - UPDATE
         resources:
