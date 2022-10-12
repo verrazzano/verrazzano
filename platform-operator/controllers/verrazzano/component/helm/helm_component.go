@@ -401,7 +401,7 @@ func (h HelmComponent) PreUninstall(context spi.ComponentContext) error {
 		context.Log().ErrorfThrottledNewErr("Error getting release status for %s", h.ReleaseName)
 	}
 	if releaseStatus == release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() {
-		// When Helm release is deployed or uninstalled, return
+		// Return when Helm release status is in [deployed,uninstalled]
 		return nil
 	}
 	cleanupLatestSecret(context, h, false)
@@ -499,7 +499,7 @@ func (h HelmComponent) PreUpgrade(context spi.ComponentContext) error {
 		return err
 	}
 	if releaseStatus == release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() {
-		// When Helm release is deployed or uninstalled, return
+		// Return when Helm release status is in [deployed,uninstalled]
 		return nil
 	}
 	cleanupLatestSecret(context, h, false)
