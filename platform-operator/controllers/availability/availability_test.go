@@ -62,11 +62,11 @@ func TestGetComponentAvailability(t *testing.T) {
 	}
 
 	c := newTestController()
-	log := vzlog.DefaultLogger()
+	vz := &vzapi.Verrazzano{}
+	ctx := spi.NewFakeContext(c.client, vz, nil, false)
 	for _, tt := range tests {
 		t.Run(tt.f.name, func(t *testing.T) {
-			a := c.getComponentAvailability(log, &vzapi.Verrazzano{}, tt.f)
-			assert.NoError(t, a.err)
+			a := c.getComponentAvailability(vz, tt.f, ctx)
 			assert.Equal(t, tt.f.enabled, a.enabled)
 			if a.enabled {
 				assert.Equal(t, tt.f.available, a.available)
