@@ -35,16 +35,23 @@ deployment:
     node: {}
     pod: {}
     pod_anti: {}
+  configmap_annotations: {}
+  custom_secrets: []
   host_aliases: []
   hpa:
-    api_version: "autoscaling/v2beta2"
+    api_version: "autoscaling/v2"
     spec: {}
   image_digest: "" # use "sha256" if image_version is a sha256 hash (do NOT prefix this value with a "@")
   image_name: quay.io/kiali/kiali
   image_pull_policy: "Always"
   image_pull_secrets: []
-  image_version: ${HELM_IMAGE_TAG} # version like "v1.39" (see: https://quay.io/repository/kiali/kiali?tab=tags) or a digest hash
-  ingress_enabled: true
+  image_version: v1.57.1 # version like "v1.39" (see: https://quay.io/repository/kiali/kiali?tab=tags) or a digest hash
+  ingress:
+    additional_labels: {}
+    class_name: "nginx"
+    #enabled:
+    override_yaml:
+      metadata: {}
   instance_name: "kiali"
   logger:
     log_format: "text"
@@ -52,23 +59,29 @@ deployment:
     time_field_format: "2006-01-02T15:04:05Z07:00"
     sampler_rate: "1"
   node_selector: {}
-  override_ingress_yaml:
-    metadata: {}
   pod_annotations: {}
   pod_labels: {}
   priority_class_name: ""
   replicas: 1
-  resources: {}
+  resources:
+    requests:
+      cpu: "10m"
+      memory: "64Mi"
+    limits:
+      memory: "1Gi"
   secret_name: "kiali"
+  security_context: {}
   service_annotations: {}
   service_type: ""
   tolerations: []
-  version_label: ${HELM_IMAGE_TAG} # v1.39 # v1.39.0 # see: https://quay.io/repository/kiali/kiali?tab=tags
+  version_label: v1.57.1 # v1.39 # v1.39.0 # see: https://quay.io/repository/kiali/kiali?tab=tags
   view_only_mode: false
 
 external_services:
   custom_dashboards:
     enabled: true
+  istio:
+    root_namespace: ""
 
 identity: {}
   #cert_file:
@@ -76,12 +89,16 @@ identity: {}
 
 kiali_feature_flags:
   certificates_information_indicators:
-   enabled: true
-   secrets:
-   - cacerts
-   - istio-ca-secret
+    enabled: true
+    secrets:
+    - cacerts
+    - istio-ca-secret
   clustering:
     enabled: true
+  disabled_features: []
+  validations:
+    ignore: ["KIA1201"]
+
 login_token:
   signing_key: ""
 
