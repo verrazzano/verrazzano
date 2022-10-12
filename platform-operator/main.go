@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -260,8 +261,8 @@ func main() {
 			os.Exit(1)
 		}
 
-		mgr.GetWebhookServer().Register("/v1beta1-validate-mysql-install-override-values", &webhook.Admission{Handler: &installv1beta1.MysqlValuesValidator{}})
-		mgr.GetWebhookServer().Register("/v1alpha1-validate-mysql-install-override-values", &webhook.Admission{Handler: &installv1alpha1.MysqlValuesValidator{}})
+		mgr.GetWebhookServer().Register("/v1beta1-validate-mysql-install-override-values", &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1beta1{}})
+		mgr.GetWebhookServer().Register("/v1alpha1-validate-mysql-install-override-values", &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1alpha1{}})
 	}
 
 	// Setup the reconciler for VerrazzanoManagedCluster objects
