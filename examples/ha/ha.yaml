@@ -86,7 +86,7 @@ spec:
     keycloak:
       overrides:
         - values:
-            replicas: 2
+            replicas: 3
       mysql:
         overrides:
           - values:
