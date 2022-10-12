@@ -237,7 +237,7 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		} else if vzctrl.ShouldRequeue(result) {
 			return result, nil
 		}
-
+		r.HealthCheck.Start()
 		return ctrl.Result{}, nil
 	}
 

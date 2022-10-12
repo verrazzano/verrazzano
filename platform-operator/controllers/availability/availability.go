@@ -15,17 +15,20 @@ type componentAvailability struct {
 	enabled   bool
 	reason    string
 	available bool
-	err       error
 }
 
 // setAvailabilityFields loops through the provided components sets their availability set.
 // The top level Verrazzano status.available field is set to (available components)/(enabled components).
 func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazzano, components []spi.Component) error {
 	ch := make(chan componentAvailability)
+	ctx, err := spi.NewContext(log, c.client, vz, nil, false)
+	if err != nil {
+		return err
+	}
 	for _, component := range components {
 		comp := component
 		go func() {
-			ch <- c.getComponentAvailability(log, vz, comp)
+			ch <- c.getComponentAvailability(vz, comp, ctx)
 		}()
 	}
 	countEnabled := 0
@@ -34,10 +37,6 @@ func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi
 		a := <-ch
 		if a.enabled {
 			countEnabled++
-		}
-		if a.err != nil {
-			// short-circuit on error, error is related to component context
-			return fmt.Errorf("failed to get component availability: %v", a.err)
 		}
 		if vz.Status.Components[a.name] == nil {
 			// component hasn't been reconciled by Verrazzano yet, skip
@@ -56,17 +55,15 @@ func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi
 }
 
 // getComponentAvailability calculates componentAvailability for a given Verrazzano component
-func (c *Controller) getComponentAvailability(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazzano, component spi.Component) componentAvailability {
+func (c *Controller) getComponentAvailability(vz *vzapi.Verrazzano, component spi.Component, ctx spi.ComponentContext) componentAvailability {
 	name := component.Name()
-	log.Debugf("Checking availability for component %s", name)
-	ctx, err := spi.NewContext(log, c.client, vz, nil, false)
+	ctx.Init(name)
 	enabled := component.IsEnabled(vz)
 	a := componentAvailability{
 		name:    name,
 		enabled: enabled,
-		err:     err,
 	}
-	if a.err == nil && a.enabled {
+	if a.enabled {
 		reason, available := component.IsAvailable(ctx)
 		a.reason = reason
 		a.available = available

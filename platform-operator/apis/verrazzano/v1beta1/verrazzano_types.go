@@ -204,9 +204,6 @@ const (
 
 	// CondUpgradeComplete means the upgrade has completed successfully
 	CondUpgradeComplete ConditionType = "UpgradeComplete"
-
-	// CondAvailable means Verrazzano has all components available
-	CondAvailable ConditionType = "Available"
 )
 
 // Condition describes current state of an install.
