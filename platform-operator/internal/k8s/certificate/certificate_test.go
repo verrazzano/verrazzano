@@ -90,6 +90,7 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 		Namespace: OperatorNamespace,
 		Path:      &pathClusters,
 	}
+
 	webhook := adminv1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{

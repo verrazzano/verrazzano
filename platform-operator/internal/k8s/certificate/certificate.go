@@ -25,7 +25,8 @@ import (
 
 const (
 	// OperatorName is the resource name for the Verrazzano platform operator
-	OperatorName = "verrazzano-platform-operator-webhook"
+	OperatorName    = "verrazzano-platform-operator-webhook"
+	OldOperatorName = "verrazzano-platform-operator"
 	// OperatorNamespace is the resource namespace for the Verrazzano platform operator
 	OperatorNamespace = "verrazzano-install"
 	CRDName           = "verrazzanos.install.verrazzano.io"
@@ -162,8 +163,16 @@ func writeFile(filepath string, pem *bytes.Buffer) error {
 
 // UpdateValidatingnWebhookConfiguration sets the CABundle
 func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer) error {
+	var oldValidatingWebhook *adminv1.ValidatingWebhookConfiguration
+	oldValidatingWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), OldOperatorName, metav1.GetOptions{})
+	if oldValidatingWebhook != nil {
+		err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(context.TODO(), OldOperatorName, metav1.DeleteOptions{})
+		if err != nil {
+			return err
+		}
+	}
 	var validatingWebhook *adminv1.ValidatingWebhookConfiguration
-	validatingWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), OperatorName, metav1.GetOptions{})
+	validatingWebhook, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), OperatorName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
