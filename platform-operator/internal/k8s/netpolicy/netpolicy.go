@@ -126,7 +126,7 @@ func newNetworkPolicies(apiServerIP string, apiServerPort int32) []*netv1.Networ
 						{
 							NamespaceSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{
-									verrazzanoNamespaceLabel: kubeSystemNamespace,
+									kubernetesNamespaceLabel: kubeSystemNamespace,
 								},
 							},
 							PodSelector: &metav1.LabelSelector{
@@ -193,7 +193,7 @@ func newNetworkPolicies(apiServerIP string, apiServerPort int32) []*netv1.Networ
 							},
 							PodSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{
-									appNameLabel: networkPolicyPodName2,
+									podAppLabel: networkPolicyPodName2,
 								},
 							},
 						},
