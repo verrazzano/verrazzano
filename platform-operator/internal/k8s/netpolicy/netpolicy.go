@@ -33,7 +33,7 @@ const (
 	appInstanceLabel         = "app.kubernetes.io/instance"
 	appNameLabel             = "app.kubernetes.io/name"
 	apiServerEndpointName    = "kubernetes"
-	kubernetesNamespace      = "kubernetes.io/metadata.name"
+	kubernetesNamespaceLabel = "kubernetes.io/metadata.name"
 )
 
 // CreateOrUpdateNetworkPolicies creates or updates network policies for the platform operator to
@@ -188,7 +188,7 @@ func newNetworkPolicies(apiServerIP string, apiServerPort int32) []*netv1.Networ
 						{
 							NamespaceSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{
-									kubernetesNamespace: constants.VerrazzanoInstallNamespace,
+									kubernetesNamespaceLabel: constants.VerrazzanoInstallNamespace,
 								},
 							},
 							PodSelector: &metav1.LabelSelector{
@@ -263,7 +263,7 @@ func newNetworkPolicies(apiServerIP string, apiServerPort int32) []*netv1.Networ
 						{
 							NamespaceSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{
-									verrazzanoNamespaceLabel: kubeSystemNamespace,
+									kubernetesNamespaceLabel: kubeSystemNamespace,
 								},
 							},
 							PodSelector: &metav1.LabelSelector{
@@ -329,7 +329,7 @@ func newNetworkPolicies(apiServerIP string, apiServerPort int32) []*netv1.Networ
 						{
 							NamespaceSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{
-									kubernetesNamespace: constants.VerrazzanoInstallNamespace,
+									verrazzanoNamespaceLabel: constants.VerrazzanoMonitoringNamespace,
 								},
 							},
 							PodSelector: &metav1.LabelSelector{
