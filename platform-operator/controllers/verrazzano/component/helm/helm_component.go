@@ -317,7 +317,7 @@ func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 	if err != nil {
 		context.Log().ErrorfThrottledNewErr("Error getting release status for %s", h.ReleaseName)
 	} else if releaseStatus != release.StatusDeployed.String() && releaseStatus != release.StatusUninstalled.String() {
-		// When Helm release is not deployed or not uninstalled, cleanup the secret
+		// When Helm release status not in [deployed, uninstalled], cleanup the secret
 		cleanupLatestSecret(context, h, true)
 	}
 
