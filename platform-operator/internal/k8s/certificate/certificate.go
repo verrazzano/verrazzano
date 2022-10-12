@@ -165,10 +165,12 @@ func writeFile(filepath string, pem *bytes.Buffer) error {
 func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer) error {
 	var oldValidatingWebhook *adminv1.ValidatingWebhookConfiguration
 	oldValidatingWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), OldOperatorName, metav1.GetOptions{})
-	if oldValidatingWebhook != nil {
-		err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(context.TODO(), OldOperatorName, metav1.DeleteOptions{})
-		if err != nil {
-			return err
+	if err == nil {
+		if oldValidatingWebhook != nil {
+			err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(context.TODO(), OldOperatorName, metav1.DeleteOptions{})
+			if err != nil {
+				return err
+			}
 		}
 	}
 	var validatingWebhook *adminv1.ValidatingWebhookConfiguration
