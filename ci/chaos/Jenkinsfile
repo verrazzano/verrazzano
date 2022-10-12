@@ -170,8 +170,8 @@ pipeline {
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                         // If the commit we were handed is not what the SCM says we are using, fail
-                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
-                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                        if (!env.GIT_COMMIT.equals(params.COMMIT_FOR_UPGRADE)) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.COMMIT_FOR_UPGRADE}, Found: ${scmInfo.GIT_COMMIT}"
                             exit 1
                         }
                     }
