@@ -214,6 +214,7 @@ func main() {
 		DryRun:            config.DryRun,
 		WatchedComponents: map[string]bool{},
 		WatchMutex:        &sync.RWMutex{},
+		HealthCheck:       availability.New(mgr.GetClient(), 15*time.Second),
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "Verrazzano")
@@ -270,10 +271,6 @@ func main() {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoConfigMaps")
 		os.Exit(1)
 	}
-
-	// Setup availability controller
-	availabilityController := availability.New(mgr.GetClient(), 15*time.Second)
-	availabilityController.Start()
 
 	// +kubebuilder:scaffold:builder
 

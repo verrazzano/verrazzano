@@ -8,6 +8,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"go.uber.org/zap"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -16,41 +18,51 @@ import (
 
 type Controller struct {
 	client   clipkg.Client
-	ticker   *time.Ticker
+	tickTime time.Duration
 	shutdown chan int
 	logger   *zap.SugaredLogger
 }
 
 func New(c clipkg.Client, tick time.Duration) *Controller {
 	return &Controller{
-		client: c,
-		ticker: time.NewTicker(tick),
-		logger: zap.S().With(log.FieldController, "availability"),
+		client:   c,
+		tickTime: tick,
+		logger:   zap.S().With(log.FieldController, "availability"),
 	}
 }
 
+// Start starts the Controller if it is not already running.
+// It is safe to call Start multiple times, additional goroutines will not be created
 func (c *Controller) Start() {
+	if c.shutdown != nil {
+		// already running, so nothing to do
+		return
+	}
 	c.shutdown = make(chan int)
 	go func() {
+		ticker := time.NewTicker(c.tickTime)
 		for {
 			select {
-			case <-c.ticker.C:
-				c.updateStatusAvailability()
+			case <-ticker.C:
+				c.updateStatusAvailability(registry.GetComponents())
 			case <-c.shutdown:
-				c.ticker.Stop()
+				ticker.Stop()
 				return
 			}
 		}
 	}()
 }
 
-func (c *Controller) Stop() {
+// Pause pauses the Controller if it was running.
+// It is safe to call Pause multiple times
+func (c *Controller) Pause() {
 	if c.shutdown != nil {
 		close(c.shutdown)
 	}
 }
 
-func (c *Controller) updateStatusAvailability() {
+func (c *Controller) updateStatusAvailability(components []spi.Component) {
+	// Get the Verrazzano resource
 	vz, err := c.getVerrazzanoResource()
 	if err != nil {
 		c.logger.Errorf("Failed to get Verrazzano resource: %v", err)
@@ -64,14 +76,17 @@ func (c *Controller) updateStatusAvailability() {
 		c.logger.Errorf("Failed to get Verrazzano resource logger: %v", err)
 		return
 	}
-	if err := c.setAvailabilityFields(vzlogger, vz); err != nil {
+	// Set availability fields in the provided Verrazzano CR
+	if err := c.setAvailabilityFields(vzlogger, vz, components); err != nil {
 		vzlogger.Errorf("Failed to get new Verrazzano availability: %v", err)
 	}
+	// Persist the updated Verrazzano CR
 	if err := c.updateStatus(vz); err != nil {
 		vzlogger.Errorf("Failed to update Verrazzano availability: %v", err)
 	}
 }
 
+// getVerrazzanoResource fetches a Verrazzano resource, if one exists
 func (c *Controller) getVerrazzanoResource() (*vzapi.Verrazzano, error) {
 	vzList := &vzapi.VerrazzanoList{}
 	if err := c.client.List(context.TODO(), vzList); err != nil {

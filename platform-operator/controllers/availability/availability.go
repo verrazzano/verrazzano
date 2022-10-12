@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
@@ -19,9 +18,10 @@ type componentAvailability struct {
 	err       error
 }
 
-func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazzano) error {
+// setAvailabilityFields loops through the provided components sets their availability set.
+// The top level Verrazzano status.available field is set to (available components)/(enabled components).
+func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazzano, components []spi.Component) error {
 	ch := make(chan componentAvailability)
-	components := registry.GetComponents()
 	for _, component := range components {
 		comp := component
 		go func() {
@@ -51,12 +51,15 @@ func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi
 	// format the printer column with both values
 	availabilityColumn := fmt.Sprintf("%d/%d", countAvailable, countEnabled)
 	vz.Status.Available = &availabilityColumn
+	log.Debugf("Set component availability: %s", availabilityColumn)
 	return nil
 }
 
+// getComponentAvailability calculates componentAvailability for a given Verrazzano component
 func (c *Controller) getComponentAvailability(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazzano, component spi.Component) componentAvailability {
-	ctx, err := spi.NewContext(log, c.client, vz, nil, false)
 	name := component.Name()
+	log.Debugf("Checking availability for component %s", name)
+	ctx, err := spi.NewContext(log, c.client, vz, nil, false)
 	enabled := component.IsEnabled(vz)
 	a := componentAvailability{
 		name:    name,

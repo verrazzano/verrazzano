@@ -7,6 +7,7 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/availability"
 	"strings"
 	"sync"
 	"time"
@@ -58,6 +59,7 @@ type Reconciler struct {
 	WatchedComponents map[string]bool
 	WatchMutex        *sync.RWMutex
 	Bom               *bom.Bom
+	HealthCheck       *availability.Controller
 }
 
 // Name of finalizer
@@ -277,11 +279,13 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 
 	// Change the state to installing
 	err = r.setInstallingState(log, actualCR)
+	r.HealthCheck.Start()
 	return newRequeueWithDelay(), err
 }
 
 // ProcInstallingState processes the CR while in the installing state
 func (r *Reconciler) ProcInstallingState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
+	r.HealthCheck.Start()
 	log := vzctx.Log
 	log.Debug("Entering ProcInstallingState")
 
@@ -302,6 +306,7 @@ func (r *Reconciler) ProcInstallingState(vzctx vzcontext.VerrazzanoContext) (ctr
 
 // ProcUpgradingState processes the CR while in the upgrading state
 func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
+	r.HealthCheck.Pause()
 	actualCR := vzctx.ActualCR
 	log := vzctx.Log
 	log.Debug("Entering ProcUpgradingState")
@@ -348,6 +353,7 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 	// Upgrade done along with any post-upgrade installations of new components that are enabled by default.
 	msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", actualCR.Spec.Version)
 	log.Once(msg)
+	r.HealthCheck.Start()
 	return ctrl.Result{}, nil
 }
 
@@ -823,6 +829,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 			compContext := newContext.Init(comp.Name()).Operation(vzconst.InitializeOperation)
 			lastReconciled := int64(0)
 			state := installv1alpha1.CompStateDisabled
+			available := false
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
 				if err != nil {
@@ -832,12 +839,14 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 				if installed {
 					state = installv1alpha1.CompStateReady
 					lastReconciled = compContext.ActualCR().Generation
+					available = true
 				}
 			}
 			cr.Status.Components[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
 				Name:                     comp.Name(),
 				State:                    state,
 				LastReconciledGeneration: lastReconciled,
+				Available:                available,
 			}
 			statusUpdated = true
 		}
