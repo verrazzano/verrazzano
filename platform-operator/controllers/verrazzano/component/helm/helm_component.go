@@ -344,6 +344,12 @@ func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent, isInstal
 			filteredHelmSecrets = append(filteredHelmSecrets, eachSecret)
 		}
 	}
+
+	// No secrets matches found, so return
+	if len(filteredHelmSecrets) == 0 {
+		return
+	}
+
 	// Sort the secrets based on CreationTimeStamp; latest ones first
 	sort.Slice(filteredHelmSecrets, func(i, j int) bool {
 		return (filteredHelmSecrets[i].CreationTimestamp.Time).After(filteredHelmSecrets[j].CreationTimestamp.Time)
@@ -353,6 +359,7 @@ func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent, isInstal
 	if len(filteredHelmSecrets) == 1 && !isInstall {
 		return
 	}
+
 	context.Log().Progressf("Deleting secret %s", filteredHelmSecrets[0])
 	if err := context.Client().Delete(ctx.TODO(), &filteredHelmSecrets[0]); err != nil {
 		context.Log().Errorf("Error deleting secret %s", filteredHelmSecrets[0])
