@@ -25,7 +25,7 @@ func isGrafanaInstalled(ctx spi.ComponentContext) bool {
 // that the admin secret is ready
 func isGrafanaReady(ctx spi.ComponentContext) bool {
 	var expectedReplicas int32 = 1
-	if ctx.EffectiveCR().Spec.Components.Grafana.Replicas != nil {
+	if ctx.EffectiveCR().Spec.Components.Grafana != nil && ctx.EffectiveCR().Spec.Components.Grafana.Replicas != nil {
 		if *ctx.EffectiveCR().Spec.Components.Grafana.Replicas < 1 {
 			return true
 		}
