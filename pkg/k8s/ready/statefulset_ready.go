@@ -1,12 +1,11 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package status
+package ready
 
 import (
 	"context"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -70,7 +69,7 @@ func DoStatefulSetsExist(log vzlog.VerrazzanoLogger, client client.Client, names
 // running and ready
 func podsReadyStatefulSet(log vzlog.VerrazzanoLogger, client client.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector, expectedReplicas int32, prefix string) bool {
 	// Get a list of pods for a given namespace and labels selector
-	pods := status.GetPodsList(log, client, namespacedName, selector)
+	pods := GetPodsList(log, client, namespacedName, selector)
 	if pods == nil {
 		return false
 	}
@@ -114,7 +113,7 @@ func podsReadyStatefulSet(log vzlog.VerrazzanoLogger, client client.Client, name
 	}
 
 	// Make sure pods using the latest controllerRevision resource are ready.
-	podsReady, success := status.EnsurePodsAreReady(log, savedPods, expectedReplicas, prefix)
+	podsReady, success := EnsurePodsAreReady(log, savedPods, expectedReplicas, prefix)
 	if !success {
 		return false
 	}
