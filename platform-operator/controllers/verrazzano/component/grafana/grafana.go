@@ -24,12 +24,17 @@ func isGrafanaInstalled(ctx spi.ComponentContext) bool {
 // isGrafanaReady checks that the deployment has the minimum number of replicas available and
 // that the admin secret is ready
 func isGrafanaReady(ctx spi.ComponentContext) bool {
-	if *ctx.EffectiveCR().Spec.Components.Grafana.Replicas == 0 {
-		return true
+	var expectedReplicas int32 = 1
+	if ctx.EffectiveCR().Spec.Components.Grafana.Replicas != nil {
+		if *ctx.EffectiveCR().Spec.Components.Grafana.Replicas < 1 {
+			return true
+		}
+		expectedReplicas = *ctx.EffectiveCR().Spec.Components.Grafana.Replicas
 	}
+
 	prefix := newPrefix(ctx.GetComponent())
 	deployments := newDeployments()
-	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) && common.IsGrafanaAdminSecretReady(ctx)
+	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, expectedReplicas, prefix) && common.IsGrafanaAdminSecretReady(ctx)
 }
 
 // newPrefix creates a component prefix string
