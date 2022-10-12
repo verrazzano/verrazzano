@@ -3,6 +3,11 @@ Component version updates:
 
 - Coherence Operator v3.2.8
 
+Fixes:
+
+- Updated base and other images to resolve CVEs.
+
+
 ### v1.4.0
 Features:
 
@@ -46,7 +51,7 @@ Fixes:
 - Resolved an issue with Verrazzano resource status conditions being appended as duplicates instead of updated.
 - Resolved an issue where Verrazzano Monitoring Operator was querying OpenSearch before it was ready.
 - Resolved an issue where Verrazzano Platform Operator transitioned to a ready condition before all webhook context paths were ready.
-- Updated base and other images to resolves CVEs.
+- Updated base and other images to resolve CVEs.
 
 
 ### v1.3.5
