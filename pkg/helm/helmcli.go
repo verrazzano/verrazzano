@@ -290,7 +290,7 @@ func IsReleaseDeployed(releaseName string, namespace string) (found bool, err er
 func GetReleaseStatus(log vzlog.VerrazzanoLogger, releaseName string, namespace string) (status string, err error) {
 	releaseStatus, err := chartStatusFn(releaseName, namespace)
 	if err != nil {
-		log.Errorf("Getting status for chart %s/%s failed with stderr: %v\n", namespace, releaseName, err)
+		log.ErrorfNewErr("Failed getting status for chart %s/%s with stderr: %v\n", namespace, releaseName, err)
 		return "", err
 	}
 	if releaseStatus == ChartNotFound {

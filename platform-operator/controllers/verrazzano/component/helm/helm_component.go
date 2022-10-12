@@ -316,7 +316,8 @@ func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 	releaseStatus, err := helm.GetReleaseStatus(context.Log(), h.ReleaseName, h.ChartNamespace)
 	if err != nil {
 		context.Log().ErrorfThrottledNewErr("Error getting release status for %s", h.ReleaseName)
-	} else if releaseStatus != release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() { // When helm release is not deployed or uninstalled, cleanup the secret
+	} else if releaseStatus != release.StatusDeployed.String() && releaseStatus != release.StatusUninstalled.String() {
+		// When Helm release is not deployed or uninstalled, cleanup the secret
 		cleanupLatestSecret(context, h, true)
 	}
 
@@ -329,7 +330,7 @@ func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 	return nil
 }
 
-// cleanupLatestSecret is to cleanup the secrets to get helm installation going
+// cleanupLatestSecret cleans up any Helm secrets that are left over from a previous operation which was interrupted by a VPO restart
 // This deletes the latest secret that matches the release if the helm release status is not deployed or uninstalled
 // If this is not vz install, do not delete the secret revision 1
 func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent, isInstall bool) {
@@ -340,22 +341,23 @@ func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent, isInstal
 
 	filteredHelmSecrets := []v1.Secret{}
 	for _, eachSecret := range secretList.Items {
-		if eachSecret.Type == "helm.sh/release.v1" && strings.Contains(eachSecret.Name, "sh.helm.release.v1."+h.ReleaseName+".") { // Filter only helm release type secrets and matching releaseName
+		if eachSecret.Type == "helm.sh/release.v1" && strings.Contains(eachSecret.Name, "sh.helm.release.v1."+h.ReleaseName+".") {
+			// Filter only helm release type secrets with matching releaseName
 			filteredHelmSecrets = append(filteredHelmSecrets, eachSecret)
 		}
 	}
 
-	// No secrets matches found, so return
+	// Return when no secrets match found
 	if len(filteredHelmSecrets) == 0 {
 		return
 	}
 
-	// Sort the secrets based on CreationTimeStamp; latest ones first
+	// Sort the secrets based on CreationTimeStamp, latest ones first
 	sort.Slice(filteredHelmSecrets, func(i, j int) bool {
 		return (filteredHelmSecrets[i].CreationTimestamp.Time).After(filteredHelmSecrets[j].CreationTimestamp.Time)
 	})
 
-	// When there is only one secret AND if it's not preinstall then skip
+	// Return when there is only one secret AND it's not preinstall
 	if len(filteredHelmSecrets) == 1 && !isInstall {
 		return
 	}
@@ -398,7 +400,8 @@ func (h HelmComponent) PreUninstall(context spi.ComponentContext) error {
 	if err != nil {
 		context.Log().ErrorfThrottledNewErr("Error getting release status for %s", h.ReleaseName)
 	}
-	if releaseStatus == release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() { // When helm release is not deployed or uninstalled, cleanup the secret
+	if releaseStatus == release.StatusDeployed.String() || releaseStatus != release.StatusUninstalled.String() {
+		// When Helm release is not deployed or uninstalled, cleanup the secret
 		return nil
 	}
 	cleanupLatestSecret(context, h, false)
@@ -495,7 +498,8 @@ func (h HelmComponent) PreUpgrade(context spi.ComponentContext) error {
 		context.Log().ErrorfThrottledNewErr("Error getting release status for %s", h.ReleaseName)
 		return err
 	}
-	if releaseStatus == release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() { // When helm release is deployed or not uninstalled, skip
+	if releaseStatus == release.StatusDeployed.String() || releaseStatus != release.StatusUninstalled.String() {
+		// When Helm release is deployed or not uninstalled, skip
 		return nil
 	}
 	cleanupLatestSecret(context, h, false)
