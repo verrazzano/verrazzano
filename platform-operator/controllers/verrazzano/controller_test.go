@@ -360,6 +360,7 @@ func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
 	statusMap := make(vzapi.ComponentStatusMap)
 	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
+			available := true
 			statusMap[comp.Name()] = &vzapi.ComponentStatusDetails{
 				Name: comp.Name(),
 				Conditions: []vzapi.Condition{
@@ -369,7 +370,7 @@ func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
 					},
 				},
 				State:     vzapi.CompStateReady,
-				Available: true,
+				Available: &available,
 			}
 		}
 	}

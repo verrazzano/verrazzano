@@ -160,10 +160,11 @@ func testUpdate(t *testing.T,
 		}
 	})
 	compStatusMap := makeVerrazzanoComponentStatusMap()
+	available := true
 	for _, status := range compStatusMap {
 		status.ReconcilingGeneration = reconcilingGen
 		status.LastReconciledGeneration = lastReconciledGeneration
-		status.Available = true
+		status.Available = &available
 	}
 	var vz *vzapi.Verrazzano
 	// Expect a call to get the verrazzano resource.  Return resource with version
