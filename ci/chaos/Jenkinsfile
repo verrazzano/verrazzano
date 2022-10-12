@@ -142,40 +142,40 @@ pipeline {
                 OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
                 CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
-                STABLE_COMMIT_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-stable-commit.txt"
-                STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
             }
             steps {
-                sh """
-                    echo "${NODE_LABELS}"
-                    echo "Downloading latest stable commit info from object storage"
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${STABLE_COMMIT_OS_LOCATION} --file ${STABLE_COMMIT_LOCATION}
-                """
-
                 script {
                     EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
-                    COMMIT_FOR_UPGRADE = params.GIT_COMMIT_FOR_UPGRADE
-                    if (COMMIT_FOR_UPGRADE == "NONE") {
-                        echo "Specific GIT commit was not specified, using last stable commit"
-                        def stableCommitProps = readProperties file: "${STABLE_COMMIT_LOCATION}"
-                        COMMIT_FOR_UPGRADE = stableCommitProps['git-commit']
+                    if (params.GIT_COMMIT_FOR_UPGRADE == "NONE") {
+                        echo "Specific GIT commit was not specified, use current head"
+                        def scmInfo = checkout([
+                                $class: 'GitSCM',
+                                branches: [[name: env.BRANCH_NAME]],
+                                doGenerateSubmoduleConfigurations: false,
+                                extensions: [],
+                                submoduleCfg: [],
+                                userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    } else {
+                        COMMIT_FOR_UPGRADE = params.GIT_COMMIT_FOR_UPGRADE
+                        echo "SCM checkout of ${COMMIT_FOR_UPGRADE}"
+                        def scmInfo = checkout([
+                                $class: 'GitSCM',
+                                branches: [[name: COMMIT_FOR_UPGRADE]],
+                                doGenerateSubmoduleConfigurations: false,
+                                extensions: [],
+                                submoduleCfg: [],
+                                userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                        // If the commit we were handed is not what the SCM says we are using, fail
+                        if (!env.GIT_COMMIT.equals(params.GIT_COMMIT_TO_USE)) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.GIT_COMMIT_TO_USE}, Found: ${scmInfo.GIT_COMMIT}"
+                            exit 1
+                        }
                     }
-                    echo "Checking out commit ${COMMIT_FOR_UPGRADE}"
-                    def scmInfo = checkout([
-                            $class: 'GitSCM',
-                            branches: [[name: COMMIT_FOR_UPGRADE]],
-                            doGenerateSubmoduleConfigurations: false,
-                            extensions: [],
-                            submoduleCfg: [],
-                            userRemoteConfigs: [[refspec: '+refs/heads/*:refs/remotes/origin/*', url: env.SCM_VERRAZZANO_GIT_URL]]])
-                    env.GIT_COMMIT = scmInfo.GIT_COMMIT
-                    env.GIT_BRANCH = scmInfo.GIT_BRANCH
 
-                    // If the commit we were handed is not what the SCM says we are using, fail
-                    if (!env.GIT_COMMIT.equals(COMMIT_FOR_UPGRADE)) {
-                        echo "SCM didn't checkout the commit we expected. Expected: ${COMMIT_FOR_UPGRADE}, Found: ${scmInfo.GIT_COMMIT}"
-                        exit 1
-                    }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
 
                 }
