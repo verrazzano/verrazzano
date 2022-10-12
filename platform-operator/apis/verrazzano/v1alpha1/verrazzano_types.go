@@ -169,7 +169,7 @@ type ComponentStatusDetails struct {
 	// The version of Verrazzano that is installed
 	State CompStateType `json:"state,omitempty"`
 	// If a component is available for use
-	Available bool `json:"available,omitempty"`
+	Available *bool `json:"available,omitempty"`
 	// The version of Verrazzano that is installed
 	Version string `json:"version,omitempty"`
 	// The generation of the last VZ resource the Component was successfully reconciled against

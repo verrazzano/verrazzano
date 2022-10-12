@@ -46,7 +46,7 @@ func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi
 		if a.available {
 			countAvailable++
 		}
-		vz.Status.Components[a.name].Available = a.available
+		vz.Status.Components[a.name].Available = &a.available
 	}
 	// format the printer column with both values
 	availabilityColumn := fmt.Sprintf("%d/%d", countAvailable, countEnabled)

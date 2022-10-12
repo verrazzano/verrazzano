@@ -190,7 +190,7 @@ func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.Compone
 	}
 
 	// If in Ready state but unavailable, component needs reconcile
-	if componentStatus.State == vzapi.CompStateReady && !componentStatus.Available {
+	if componentStatus.State == vzapi.CompStateReady && componentStatus.Available != nil && !*componentStatus.Available {
 		return true
 	}
 	// The component has been reconciled/installed with LastReconciledGeneration of the CR

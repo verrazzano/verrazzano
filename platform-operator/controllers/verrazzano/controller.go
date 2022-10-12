@@ -829,7 +829,6 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 			compContext := newContext.Init(comp.Name()).Operation(vzconst.InitializeOperation)
 			lastReconciled := int64(0)
 			state := installv1alpha1.CompStateDisabled
-			available := false
 			if !unitTesting {
 				installed, err := comp.IsInstalled(compContext)
 				if err != nil {
@@ -839,14 +838,12 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 				if installed {
 					state = installv1alpha1.CompStateReady
 					lastReconciled = compContext.ActualCR().Generation
-					available = true
 				}
 			}
 			cr.Status.Components[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
 				Name:                     comp.Name(),
 				State:                    state,
 				LastReconciledGeneration: lastReconciled,
-				Available:                available,
 			}
 			statusUpdated = true
 		}
