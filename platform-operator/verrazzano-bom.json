@@ -363,15 +363,15 @@
     },
     {
       "name": "kiali-server",
-      "version": "0.0.1",
+      "version": "1.57.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "kiali-server",
           "images": [
             {
-              "image": "kiali",
-              "tag": "v1.42.0-20220809183027-16c3e409",
+              "image": "kiali-jenkins",
+              "tag": "v1.57.1-20221012092700-34d2445b",
               "helmFullImageKey": "deployment.image_name",
               "helmTagKey": "deployment.image_version"
             }
