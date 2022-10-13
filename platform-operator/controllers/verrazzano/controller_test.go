@@ -154,6 +154,9 @@ func TestInstall(t *testing.T) {
 			})
 			defer registry.ResetGetComponentsFn()
 
+			// Expect a call to get the availability secret
+			expectGETAvailabilitySecret(mock, fmt.Sprintf("verrazzano-%s-availability", name), namespace)
+
 			// Expect a call to get the Verrazzano resource.
 			expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
 
@@ -246,6 +249,8 @@ func TestInstallInitComponents(t *testing.T) {
 		return helm.ChartStatusDeployed, nil
 	})
 	defer helm.SetDefaultChartStatusFunction()
+	// Expect a call to get the availability secret
+	expectGETAvailabilitySecret(mock, fmt.Sprintf("verrazzano-%s-availability", name), namespace)
 
 	// Expect a call to get the Verrazzano resource.
 	expectGetVerrazzanoExists(mock, verrazzanoToUse, namespace, name, labels)
@@ -447,7 +452,8 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 			secret.Type = corev1.SecretTypeOpaque
 			return nil
 		})
-
+	// Expect a call to get the availability secret
+	expectGETAvailabilitySecret(mock, fmt.Sprintf("verrazzano-%s-availability", name), namespace)
 	// Expect a call to get the Verrazzano system namespace (return exists)
 	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
 
@@ -524,6 +530,8 @@ func TestUninstallComplete(t *testing.T) {
 			}
 			return nil
 		})
+	// Expect a call to get the availability secret
+	expectGETAvailabilitySecret(mock, fmt.Sprintf("verrazzano-%s-availability", name), namespace)
 
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, labels)
@@ -619,6 +627,8 @@ func TestUninstallStarted(t *testing.T) {
 			}
 			return nil
 		})
+	// Expect a call to get the availability secret
+	expectGETAvailabilitySecret(mock, fmt.Sprintf("verrazzano-%s-availability", name), namespace)
 
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, labels)
@@ -716,6 +726,8 @@ func TestUninstallSucceeded(t *testing.T) {
 				State: vzapi.VzStateReady}
 			return nil
 		})
+	// Expect a call to get the availability secret
+	expectGETAvailabilitySecret(mock, fmt.Sprintf("verrazzano-%s-availability", name), namespace)
 
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, labels)
@@ -1155,6 +1167,18 @@ func expectClusterRoleBindingExists(mock *mocks.MockClient, verrazzanoToUse vzap
 		}).AnyTimes()
 }
 
+func expectGETAvailabilitySecret(mock *mocks.MockClient, name, namespace string) {
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, serviceAccount *corev1.Secret) error {
+			serviceAccount.ObjectMeta = metav1.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
+			}
+			return nil
+		}).AnyTimes()
+}
+
 // expectGetServiceAccountExists expects a call to get the service account for the Verrazzano with the given
 // namespace and name, and returns that it exists
 func expectGetServiceAccountExists(mock *mocks.MockClient, name string, labels map[string]string) {
@@ -1211,7 +1235,7 @@ func expectIstioCertRemoval(mock *mocks.MockClient, numList int) {
 
 // expectNodeExporterCleanup creates the expects for the node-exporter cleanup
 func expectNodeExporterCleanup(mock *mocks.MockClient) {
-	mock.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+	mock.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil).Times(3)
 }
 
 func expectMCCleanup(mock *mocks.MockClient) {

@@ -736,6 +736,9 @@ func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
 			return nil
 		}).AnyTimes()
 
+	// Expect a call to get the availability secret
+	expectGETAvailabilitySecret(mock, fmt.Sprintf("verrazzano-%s-availability", name), namespace)
+
 	// Expect a call to get the service account
 	expectGetServiceAccountExists(mock, name, nil)
 
@@ -970,6 +973,8 @@ func TestUpgradeComponent(t *testing.T) {
 	mockComp.EXPECT().IsReady(gomock.Any()).Return(true).AnyTimes()
 
 	postUpgradeCleanupExpectations(mock)
+	// Expect a call to get the availability secret
+	expectGETAvailabilitySecret(mock, fmt.Sprintf("verrazzano-%s-availability", name), namespace)
 
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
@@ -1088,7 +1093,8 @@ func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			return nil
 		}).AnyTimes()
-
+	// Expect a call to get the availability secret
+	expectGETAvailabilitySecret(mock, fmt.Sprintf("verrazzano-%s-availability", name), namespace)
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
 	result, err := reconcileUpgradeLoop(reconciler, &vz)
@@ -1173,6 +1179,8 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	mockDisabledComp.EXPECT().IsEnabled(gomock.Any()).Return(false).AnyTimes()
 
 	postUpgradeCleanupExpectations(mock)
+	// Expect a call to get the availability secret
+	expectGETAvailabilitySecret(mock, fmt.Sprintf("verrazzano-%s-availability", name), namespace)
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
