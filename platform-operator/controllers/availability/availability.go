@@ -43,6 +43,7 @@ func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi
 		}
 	}
 
+	updated := false
 	// count available components and set component availability
 	for _, component := range components {
 		if isEnabled(vz, component) {
@@ -50,14 +51,17 @@ func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi
 			if a.available {
 				countAvailable++
 			}
-			vz.Status.Components[a.name].Available = &a.available
+			if vz.Status.Components[a.name].Available != &a.available {
+				vz.Status.Components[a.name].Available = &a.available
+				updated = true
+			}
 		}
 	}
 	// format the printer column with both values
 	availabilityColumn := fmt.Sprintf("%d/%d", countAvailable, countEnabled)
 	vz.Status.Available = &availabilityColumn
 	log.Debugf("Set component availability: %s", availabilityColumn)
-	return true, nil
+	return updated, nil
 }
 
 func isEnabled(vz *vzapi.Verrazzano, component spi.Component) bool {
