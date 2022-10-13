@@ -48,7 +48,7 @@ func (v *MysqlValuesValidatorV1alpha1) Handle(ctx context.Context, req admission
 // validateMysqlValuesV1alpha1 presents the user with a warning if there are podSpecs specified as overrides.
 func validateMysqlValuesV1alpha1(vz *v1alpha1.Verrazzano) admission.Response {
 	response := admission.Allowed("")
-	if isMinVersion(vz.Spec.Version, MIN_VERSION) {
+	if isMinVersion(vz.Spec.Version, MinVersion) {
 		if vz.Spec.Components.Keycloak != nil {
 			// compare overrides from current and previous VZ
 			var overrides []byte

@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	MIN_VERSION = "1.5.0"
+	MinVersion = "1.5.0"
 )
 
 // MysqlValuesValidatorV1beta1 is a struct holding objects used during validation.
@@ -52,7 +52,7 @@ func (v *MysqlValuesValidatorV1beta1) Handle(ctx context.Context, req admission.
 // validateMysqlValuesV1alpha1 presents the user with a warning if there are podSpecs specified as overrides.
 func validateMysqlValuesV1beta1(vz *v1beta1.Verrazzano) admission.Response {
 	response := admission.Allowed("")
-	if isMinVersion(vz.Spec.Version, MIN_VERSION) {
+	if isMinVersion(vz.Spec.Version, MinVersion) {
 		if vz.Spec.Components.Keycloak != nil {
 			// compare overrides from current and previous VZ
 			var overrides []byte

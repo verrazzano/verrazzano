@@ -41,7 +41,7 @@ func TestValidationWarningForServerPodSpecV1alpha1(t *testing.T) {
 
 	newVz := v1alpha1.Verrazzano{
 		Spec: v1alpha1.VerrazzanoSpec{
-			Version: MIN_VERSION,
+			Version: MinVersion,
 			Components: v1alpha1.ComponentSpec{
 				Keycloak: &v1alpha1.KeycloakComponent{
 					MySQL: v1alpha1.MySQLComponent{
@@ -74,7 +74,7 @@ func TestNoValidationWarningForRouterPodSpecV1alpha1(t *testing.T) {
 	m := newMysqlValuesValidatorV1alpha1()
 	newVz := v1alpha1.Verrazzano{
 		Spec: v1alpha1.VerrazzanoSpec{
-			Version: MIN_VERSION,
+			Version: MinVersion,
 			Components: v1alpha1.ComponentSpec{
 				Keycloak: &v1alpha1.KeycloakComponent{
 					MySQL: v1alpha1.MySQLComponent{
@@ -106,7 +106,7 @@ func TestNoValidationWarningWithoutServerPodSpecV1alpha1(t *testing.T) {
 	m := newMysqlValuesValidatorV1alpha1()
 	newVz := v1alpha1.Verrazzano{
 		Spec: v1alpha1.VerrazzanoSpec{
-			Version: MIN_VERSION,
+			Version: MinVersion,
 			Components: v1alpha1.ComponentSpec{
 				Keycloak: &v1alpha1.KeycloakComponent{
 					MySQL: v1alpha1.MySQLComponent{
