@@ -57,7 +57,7 @@ func TestWebLogicStopStart(t *testing.T) {
 		{
 			name:                   "StopWebLogic",
 			expectGetAndUpdate:     true,
-			image:                  "proxyv2:1.12.5",
+			image:                  "proxyv2:1.11.5",
 			initialLifeCycleAction: "",
 			updatedLifeCycleAction: vzconst.LifecycleActionStop,
 			f: func(mock *mocks.MockClient) error {
