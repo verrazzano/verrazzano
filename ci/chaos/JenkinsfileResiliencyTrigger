@@ -66,10 +66,6 @@ pipeline {
     stages {
         stage('Clean workspace and checkout') {
             steps {
-
-                // This job is triggered based on a cron schedule but it works the same way as the PERIODIC tests
-                // It will get the COMMIT to use based on the last stable commit for this branch, and use that. If that doesn't exist you need to set that up
-                // in the same way that you would if you were running a PERIODIC test in a branch (push triggered job needs to be clean or you need to force a stable commit there)
                 script {
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
