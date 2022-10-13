@@ -281,8 +281,9 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 
 		// Get the pods for this appconfig
 		appConfNameReq, _ := labels.NewRequirement("app.oam.dev/name", selection.Equals, []string{appConfig.Name})
+		weblogicReq, _ := labels.NewRequirement("verrazzano.io/workload-type", selection.NotEquals, []string{"weblogic"})
 		selector := labels.NewSelector()
-		selector = selector.Add(*appConfNameReq)
+		selector = selector.Add(*appConfNameReq).Add(*weblogicReq)
 
 		// Get the pods using the label selector
 		podList, err := goClient.CoreV1().Pods(appConfig.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
