@@ -36,6 +36,28 @@ var nsGvr = schema.GroupVersionResource{
 	Resource: "namespaces",
 }
 
+// K8SClient interface is an interface for
+// getting the Dynamic Client and Discovery Client
+// which is used to create, delete and patch the resources
+type K8SClient interface {
+	GetDynamicClient() (dynamic.Interface, error)
+	GetDiscoveryClient() (*discovery.DiscoveryClient, error)
+}
+
+// DynamicClient is a struct that implements
+// the K8SClient interface
+type DynamicClient struct {
+	config *rest.Config
+}
+
+func (d *DynamicClient) GetDynamicClient() (dynamic.Interface, error) {
+	return dynamic.NewForConfig(d.config)
+}
+
+func (d *DynamicClient) GetDiscoveryClient() (*discovery.DiscoveryClient, error) {
+	return discovery.NewDiscoveryClientForConfig(d.config)
+}
+
 var logger = vzlog.DefaultLogger()
 
 // CreateOrUpdateResourceFromFile creates or updates a Kubernetes resources from a YAML test data file.
@@ -65,7 +87,8 @@ func CreateOrUpdateResourceFromBytes(data []byte) error {
 	if err != nil {
 		return fmt.Errorf("failed to get kube config: %w", err)
 	}
-	return createOrUpdateResourceFromBytes(data, config)
+	dc := &DynamicClient{config: config}
+	return createOrUpdateResourceFromBytes(data, dc)
 }
 
 // CreateOrUpdateResourceFromFileInCluster is identical to CreateOrUpdateResourceFromFile, except that
@@ -85,17 +108,18 @@ func CreateOrUpdateResourceFromFileInCluster(file string, kubeconfigPath string)
 	if err != nil {
 		return fmt.Errorf("failed to get kube config: %w", err)
 	}
-	return createOrUpdateResourceFromBytes(bytes, config)
+	dc := &DynamicClient{config: config}
+	return createOrUpdateResourceFromBytes(bytes, dc)
 }
 
 // createOrUpdateResourceFromBytes creates or updates a Kubernetes resource from bytes.
 // This is intended to be equivalent to `kubectl apply`
-func createOrUpdateResourceFromBytes(data []byte, config *rest.Config) error {
-	client, err := dynamic.NewForConfig(config)
+func createOrUpdateResourceFromBytes(data []byte, dc K8SClient) error {
+	client, err := dc.GetDynamicClient()
 	if err != nil {
 		return fmt.Errorf("failed to create dynamic client: %w", err)
 	}
-	disco, err := discovery.NewDiscoveryClientForConfig(config)
+	disco, err := dc.GetDiscoveryClient()
 	if err != nil {
 		return fmt.Errorf("failed to create discovery client: %w", err)
 	}
@@ -169,17 +193,18 @@ func CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file string, ku
 	if err != nil {
 		return fmt.Errorf("failed to get kube config: %w", err)
 	}
-	return createOrUpdateResourceFromBytesInGeneratedNamespace(bytes, config, namespace)
+	dc := &DynamicClient{config: config}
+	return createOrUpdateResourceFromBytesInGeneratedNamespace(bytes, dc, namespace)
 }
 
 // createOrUpdateResourceFromBytes creates or updates a Kubernetes resource from bytes.
 // This is intended to be equivalent to `kubectl apply`
-func createOrUpdateResourceFromBytesInGeneratedNamespace(data []byte, config *rest.Config, namespace string) error {
-	client, err := dynamic.NewForConfig(config)
+func createOrUpdateResourceFromBytesInGeneratedNamespace(data []byte, dc K8SClient, namespace string) error {
+	client, err := dc.GetDynamicClient()
 	if err != nil {
 		return fmt.Errorf("failed to create dynamic client: %w", err)
 	}
-	disco, err := discovery.NewDiscoveryClientForConfig(config)
+	disco, err := dc.GetDiscoveryClient()
 	if err != nil {
 		return fmt.Errorf("failed to create discovery client: %w", err)
 	}
@@ -278,21 +303,22 @@ func DeleteResourceFromFileInCluster(file string, kubeconfigPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
-	return deleteResourceFromBytes(bytes, kubeconfigPath)
-}
-
-// deleteResourceFromBytes deletes Kubernetes resources using names found in YAML bytes.
-// This is intended to be equivalent to `kubectl delete`
-func deleteResourceFromBytes(data []byte, kubeconfigPath string) error {
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return fmt.Errorf("failed to get kube config: %w", err)
 	}
-	client, err := dynamic.NewForConfig(config)
+	dc := &DynamicClient{config: config}
+	return deleteResourceFromBytes(bytes, dc)
+}
+
+// deleteResourceFromBytes deletes Kubernetes resources using names found in YAML bytes.
+// This is intended to be equivalent to `kubectl delete`
+func deleteResourceFromBytes(data []byte, dc K8SClient) error {
+	client, err := dc.GetDynamicClient()
 	if err != nil {
 		return fmt.Errorf("failed to create dynamic client: %w", err)
 	}
-	disco, err := discovery.NewDiscoveryClientForConfig(config)
+	disco, err := dc.GetDiscoveryClient()
 	if err != nil {
 		return fmt.Errorf("failed to create discovery client: %w", err)
 	}
@@ -344,21 +370,23 @@ func DeleteResourceFromFileInClusterInGeneratedNamespace(file string, kubeconfig
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
-	return deleteResourceFromBytesInGeneratedNamespace(bytes, kubeconfigPath, namespace)
-}
-
-// deleteResourceFromBytes deletes Kubernetes resources using names found in YAML bytes.
-// This is intended to be equivalent to `kubectl delete`
-func deleteResourceFromBytesInGeneratedNamespace(data []byte, kubeconfigPath string, namespace string) error {
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return fmt.Errorf("failed to get kube config: %w", err)
 	}
-	client, err := dynamic.NewForConfig(config)
+
+	dc := &DynamicClient{config: config}
+	return deleteResourceFromBytesInGeneratedNamespace(bytes, dc, namespace)
+}
+
+// deleteResourceFromBytes deletes Kubernetes resources using names found in YAML bytes.
+// This is intended to be equivalent to `kubectl delete`
+func deleteResourceFromBytesInGeneratedNamespace(data []byte, dc K8SClient, namespace string) error {
+	client, err := dc.GetDynamicClient()
 	if err != nil {
 		return fmt.Errorf("failed to create dynamic client: %w", err)
 	}
-	disco, err := discovery.NewDiscoveryClientForConfig(config)
+	disco, err := dc.GetDiscoveryClient()
 	if err != nil {
 		return fmt.Errorf("failed to create discovery client: %w", err)
 	}
@@ -412,13 +440,14 @@ func PatchResourceFromFileInCluster(gvr schema.GroupVersionResource, namespace s
 	if err != nil {
 		return fmt.Errorf("failed to get kube config: %w", err)
 	}
-	return patchResourceFromBytes(gvr, namespace, name, patchBytes, config)
+	dc := &DynamicClient{config: config}
+	return patchResourceFromBytes(gvr, namespace, name, patchBytes, dc)
 }
 
 // patchResourceFromBytes patches a Kubernetes resource from bytes. The contents of the byte slice must be in
 // JSON format. This is intended to be equivalent to `kubectl patch`.
-func patchResourceFromBytes(gvr schema.GroupVersionResource, namespace string, name string, patchDataJSON []byte, config *rest.Config) error {
-	client, err := dynamic.NewForConfig(config)
+func patchResourceFromBytes(gvr schema.GroupVersionResource, namespace string, name string, patchDataJSON []byte, dc K8SClient) error {
+	client, err := dc.GetDynamicClient()
 	if err != nil {
 		return fmt.Errorf("failed to create dynamic client: %w", err)
 	}
@@ -431,6 +460,8 @@ func patchResourceFromBytes(gvr schema.GroupVersionResource, namespace string, n
 	return nil
 }
 
+// FindTestDataFile finds a test data file by searching up from the working directory looking for a relative file.
+// This is done to simplify the execution of tests in both local and remote environments.
 func FindTestDataFile(file string) (string, error) {
 	find := file
 	_, err := os.Stat(file)
