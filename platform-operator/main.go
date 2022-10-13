@@ -142,8 +142,7 @@ func main() {
 }
 
 func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredLogger) {
-	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
-	// validatingWebhookConfiguration resource before the operator container runs.
+	// initWebhooks flag is set when called from an webhook deployment.  This allows separation of webhooks and operator
 
 	log.Debug("Creating certificates used by webhooks")
 	caCert, err := certificate.CreateWebhookCertificates(config.CertDir)
