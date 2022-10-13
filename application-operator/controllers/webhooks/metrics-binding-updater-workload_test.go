@@ -1003,7 +1003,7 @@ func TestHandleNamespaceAnnotation(t *testing.T) {
 // uses the legacy VMI Prometheus ConfigMap
 // GIVEN an existing metrics binding which uses the legacy VMI Prometheus ConfigMap
 // WHEN the webhook Handle is called
-// THEN the metrics binding should be modified to use the Pormetheus Operator additionalScrapeConfigs secret instead
+// THEN the metrics binding should be modified to use the Prometheus Operator additionalScrapeConfigs secret instead
 func TestExistingMetricsBindingVmiConfigMap(t *testing.T) {
 
 	v := newGeneratorWorkloadWebhook()

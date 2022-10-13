@@ -194,7 +194,7 @@ func testUpdate(t *testing.T,
 			verrazzano.Status.Components = compStatusMap
 			return nil
 		})
-	// The mocks are added to accomodate the expected calls to List instance when component is Ready
+	// The mocks are added to accommodate the expected calls to List instance when component is Ready
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList, options ...client.UpdateOption) error {

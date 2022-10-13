@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/yaml"
@@ -23,7 +24,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -337,14 +337,14 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 
 	// If the component has any ingresses associated, those should be present
 	prefix := fmt.Sprintf("Component %s", h.Name())
-	if !status.IngressesPresent(context.Log(), context.Client(), h.GetIngressNames(context), prefix) {
+	if !ready.IngressesPresent(context.Log(), context.Client(), h.GetIngressNames(context), prefix) {
 		return ctrlerrors.RetryableError{
 			Source:    h.ReleaseName,
 			Operation: "Check if Ingresses are present",
 		}
 	}
 
-	if readyStatus, certsNotReady := status.CertificatesAreReady(context.Client(), context.Log(), context.EffectiveCR(), h.Certificates); !readyStatus {
+	if readyStatus, certsNotReady := ready.CertificatesAreReady(context.Client(), context.Log(), context.EffectiveCR(), h.Certificates); !readyStatus {
 		context.Log().Progressf("Certificates not ready for component %s: %v", h.ReleaseName, certsNotReady)
 		return ctrlerrors.RetryableError{
 			Source:    h.ReleaseName,

@@ -573,7 +573,7 @@ func TestUninstallComplete(t *testing.T) {
 // TestUninstallStarted tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an Verrazzano resource
 // WHEN a Verrazzano resource has been deleted
-// THEN ensure an unisntall job is started
+// THEN ensure an uninstall job is started
 func TestUninstallStarted(t *testing.T) {
 	unitTesting = true
 	namespace := "verrazzano"

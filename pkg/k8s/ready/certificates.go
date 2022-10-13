@@ -1,6 +1,6 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-package status
+package ready
 
 import (
 	"context"
@@ -8,7 +8,6 @@ import (
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -28,9 +27,11 @@ func CertificatesAreReady(client clipkg.Client, log vzlog.VerrazzanoLogger, vz *
 		return true, []types.NamespacedName{}
 	}
 
-	if !vzconfig.IsCertManagerEnabled(vz) {
-		log.Oncef("Cert-Manager disabled, skipping certificates check")
-		return true, []types.NamespacedName{}
+	if vz != nil && vz.Spec.Components.CertManager != nil && vz.Spec.Components.CertManager.Enabled != nil {
+		if !*vz.Spec.Components.CertManager.Enabled {
+			log.Oncef("Cert-Manager disabled, skipping certificates check")
+			return true, []types.NamespacedName{}
+		}
 	}
 
 	log.Oncef("Checking certificates status for %v", certificates)
