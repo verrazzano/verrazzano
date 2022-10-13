@@ -53,22 +53,22 @@ func TestWebLogicStopStart(t *testing.T) {
 		updatedLifeCycleAction string
 		f                      func(mock *mocks.MockClient) error
 	}{
-		// Test stopping WebLogic by setting annotation on WebLogic workload because it has an old Istio image
+		// Test stopping WebLogic by setting annotation on WebLogic workload because it has an old Istio image with skew more than 2 minor versions.
 		{
 			name:                   "StopWebLogic",
 			expectGetAndUpdate:     true,
-			image:                  oldIstioImage,
+			image:                  "proxyv2:1.12.5",
 			initialLifeCycleAction: "",
 			updatedLifeCycleAction: vzconst.LifecycleActionStop,
 			f: func(mock *mocks.MockClient) error {
 				return StopDomainsUsingOldEnvoy(vzlog.DefaultLogger(), mock)
 			},
 		},
-		// Test NOT stopping WebLogic by setting annotation on WebLogic workload because it has an old Istio image
+		// Test NOT stopping WebLogic by setting annotation on WebLogic workload because it has an old Istio image with skew max 2 minor versions.
 		{
 			name:                   "DoNotStopWebLogic",
 			expectGetAndUpdate:     false,
-			image:                  "randomImage",
+			image:                  "proxyv2:1.13.5",
 			initialLifeCycleAction: "",
 			f: func(mock *mocks.MockClient) error {
 				return StopDomainsUsingOldEnvoy(vzlog.DefaultLogger(), mock)

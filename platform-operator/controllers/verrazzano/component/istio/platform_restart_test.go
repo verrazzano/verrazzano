@@ -23,7 +23,7 @@ import (
 
 const (
 	unitTestBomFile = "../../../../verrazzano-bom.json"
-	oldIstioImage   = "proxyv2.old"
+	oldIstioImage   = "proxyv2:1.7.3"
 )
 
 // TestRestartAllWorkloadTypesWithOldProxy tests the RestartComponents method for the following use case
