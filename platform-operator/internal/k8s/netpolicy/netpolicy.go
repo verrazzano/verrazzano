@@ -24,6 +24,7 @@ const (
 	networkPolicyAPIVersion  = "networking.k8s.io/v1"
 	networkPolicyKind        = "NetworkPolicy"
 	networkPolicyPodName     = "verrazzano-platform-operator"
+	networkPolicyPodName2    = "verrazzano-platform-operator-webhook"
 	podAppLabel              = "app"
 	verrazzanoNamespaceLabel = "verrazzano.io/namespace"
 	k8sAppLabel              = "k8s-app"
@@ -32,25 +33,37 @@ const (
 	appInstanceLabel         = "app.kubernetes.io/instance"
 	appNameLabel             = "app.kubernetes.io/name"
 	apiServerEndpointName    = "kubernetes"
+	kubernetesNamespaceLabel = "kubernetes.io/metadata.name"
 )
 
 // CreateOrUpdateNetworkPolicies creates or updates network policies for the platform operator to
 // limit network ingress and egress.
-func CreateOrUpdateNetworkPolicies(clientset kubernetes.Interface, client client.Client) (controllerutil.OperationResult, error) {
+func CreateOrUpdateNetworkPolicies(clientset kubernetes.Interface, client client.Client) ([]controllerutil.OperationResult, []error) {
 	ip, port, err := getAPIServerIPAndPort(clientset)
+	var opResults []controllerutil.OperationResult
+	var errors []error
 	if err != nil {
-		return controllerutil.OperationResultNone, err
+		opResults = append(opResults, controllerutil.OperationResultNone)
+		errors = append(errors, err)
+		return opResults, errors
 	}
 
-	netPolicy := newNetworkPolicy(ip, port)
-	objKey := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: netPolicy.ObjectMeta.Name, Namespace: netPolicy.ObjectMeta.Namespace}}
+	netPolicies := newNetworkPolicies(ip, port)
+	for _, netPolicy := range netPolicies {
+		objKey := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: netPolicy.ObjectMeta.Name, Namespace: netPolicy.ObjectMeta.Namespace}}
 
-	opResult, err := controllerutil.CreateOrUpdate(context.TODO(), client, objKey, func() error {
-		netPolicy.Spec.DeepCopyInto(&objKey.Spec)
-		return nil
-	})
+		opResult, err := controllerutil.CreateOrUpdate(context.TODO(), client, objKey, func() error {
+			netPolicy.Spec.DeepCopyInto(&objKey.Spec)
+			return nil
+		})
+		opResults = append(opResults, opResult)
+		if err != nil {
+			errors = append(errors, err)
+		}
 
-	return opResult, err
+	}
+
+	return opResults, errors
 }
 
 // getAPIServerIPAndPort returns the IP address and port of the Kubernetes API server.
@@ -68,7 +81,7 @@ func getAPIServerIPAndPort(clientset kubernetes.Interface) (string, int32, error
 }
 
 // newNetworkPolicy returns a populated NetworkPolicy with ingress and egress rules for this operator.
-func newNetworkPolicy(apiServerIP string, apiServerPort int32) *netv1.NetworkPolicy {
+func newNetworkPolicies(apiServerIP string, apiServerPort int32) []*netv1.NetworkPolicy {
 	tcpProtocol := corev1.ProtocolTCP
 	udpProtocol := corev1.ProtocolUDP
 	dnsPort := intstr.FromInt(53)
@@ -77,8 +90,7 @@ func newNetworkPolicy(apiServerIP string, apiServerPort int32) *netv1.NetworkPol
 	metricsPort := intstr.FromInt(9100)
 	apiPort := intstr.FromInt(int(apiServerPort))
 	apiServerCidr := apiServerIP + "/32"
-
-	return &netv1.NetworkPolicy{
+	vponetpol := &netv1.NetworkPolicy{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: networkPolicyAPIVersion,
 			Kind:       networkPolicyKind,
@@ -114,7 +126,144 @@ func newNetworkPolicy(apiServerIP string, apiServerPort int32) *netv1.NetworkPol
 						{
 							NamespaceSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{
-									verrazzanoNamespaceLabel: kubeSystemNamespace,
+									kubernetesNamespaceLabel: kubeSystemNamespace,
+								},
+							},
+							PodSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									k8sAppLabel: kubeDNSPodName,
+								},
+							},
+						},
+					},
+				},
+				{
+					// egress to the kubernetes API server
+					Ports: []netv1.NetworkPolicyPort{
+						{
+							Protocol: &tcpProtocol,
+							Port:     &apiPort,
+						},
+					},
+					To: []netv1.NetworkPolicyPeer{
+						{
+							IPBlock: &netv1.IPBlock{
+								CIDR: apiServerCidr,
+							},
+						},
+					},
+				},
+				{
+					// egress to the Nginx ingress controller (so we can register the cluster with Rancher)
+					Ports: []netv1.NetworkPolicyPort{
+						{
+							Protocol: &tcpProtocol,
+							Port:     &httpsPort,
+						},
+					},
+					To: []netv1.NetworkPolicyPeer{
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									verrazzanoNamespaceLabel: nginxIngressNamespace,
+								},
+							},
+							PodSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									appInstanceLabel: nginxControllerPodName,
+								},
+							},
+						},
+					},
+				},
+				{
+					// egress to the webhooks
+					Ports: []netv1.NetworkPolicyPort{
+						{
+							Protocol: &tcpProtocol,
+							Port:     &webhookPort,
+						},
+					},
+					To: []netv1.NetworkPolicyPeer{
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									kubernetesNamespaceLabel: constants.VerrazzanoInstallNamespace,
+								},
+							},
+							PodSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									podAppLabel: networkPolicyPodName2,
+								},
+							},
+						},
+					},
+				},
+			},
+			Ingress: []netv1.NetworkPolicyIngressRule{
+				{
+					From: []netv1.NetworkPolicyPeer{
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									verrazzanoNamespaceLabel: constants.VerrazzanoMonitoringNamespace,
+								},
+							},
+							PodSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									appNameLabel: constants.PrometheusStorageLabelValue,
+								},
+							},
+						},
+					},
+					// ingress from Prometheus server for scraping metrics
+					Ports: []netv1.NetworkPolicyPort{
+						{
+							Protocol: &tcpProtocol,
+							Port:     &metricsPort,
+						},
+					},
+				},
+			},
+		},
+	}
+	webhooknetpol := &netv1.NetworkPolicy{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: networkPolicyAPIVersion,
+			Kind:       networkPolicyKind,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoInstallNamespace,
+			Name:      networkPolicyPodName2,
+		},
+		Spec: netv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					podAppLabel: networkPolicyPodName2,
+				},
+			},
+			PolicyTypes: []netv1.PolicyType{
+				netv1.PolicyTypeEgress,
+				netv1.PolicyTypeIngress,
+			},
+			Egress: []netv1.NetworkPolicyEgressRule{
+				{
+					// egress for DNS
+					Ports: []netv1.NetworkPolicyPort{
+						{
+							Protocol: &tcpProtocol,
+							Port:     &dnsPort,
+						},
+						{
+							Protocol: &udpProtocol,
+							Port:     &dnsPort,
+						},
+					},
+					To: []netv1.NetworkPolicyPeer{
+						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									kubernetesNamespaceLabel: kubeSystemNamespace,
 								},
 							},
 							PodSelector: &metav1.LabelSelector{
@@ -201,4 +350,6 @@ func newNetworkPolicy(apiServerIP string, apiServerPort int32) *netv1.NetworkPol
 			},
 		},
 	}
+	netpols := []*netv1.NetworkPolicy{vponetpol, webhooknetpol}
+	return netpols
 }
