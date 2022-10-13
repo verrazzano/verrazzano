@@ -604,11 +604,11 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user, unable to fetch verrazzano user id from keycloak: %s", err.Error())
 	}
-	existingUser, err := checkRancherVerrazzanoUser(ctx,vzUser)
+	existingUser, err := checkRancherVerrazzanoUser(ctx, vzUser)
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed to check if verrazzano rancher user exists: %s", err.Error())
 	} else if existingUser != "" {
-		return log.ErrorfThrottledNewErr("Failed to create rancher user %s as another rancher user %s exists that " +
+		return log.ErrorfThrottledNewErr("Failed to create rancher user %s as another rancher user %s exists that "+
 			"is mapped to verrazzano user id from keycloak.", UserVerrazzano, existingUser)
 	}
 	data := map[string]interface{}{}
@@ -635,12 +635,12 @@ func checkRancherVerrazzanoUser(ctx spi.ComponentContext, vzUser *keycloak.Keycl
 			continue
 		}
 		data := user.UnstructuredContent()
-		principleIds := data[UserAttributePrincipalIDs]
-		switch reflect.TypeOf(principleIds).Kind() {
+		principleIDs := data[UserAttributePrincipalIDs]
+		switch reflect.TypeOf(principleIDs).Kind() {
 		case reflect.Slice:
-			principleId := reflect.ValueOf(principleIds)
-			for i := 0; i < principleId.Len(); i++ {
-				if strings.Contains(principleId.Index(i).String(), UserPrincipalKeycloakPrefix + vzUser.ID) {
+			principleID := reflect.ValueOf(principleIDs)
+			for i := 0; i < principleID.Len(); i++ {
+				if strings.Contains(principleID.Index(i).String(), UserPrincipalKeycloakPrefix+vzUser.ID) {
 					return user.GetName(), nil
 				}
 			}
