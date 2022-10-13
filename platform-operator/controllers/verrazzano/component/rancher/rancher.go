@@ -6,10 +6,8 @@ package rancher
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"strings"
 
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 	appsv1 "k8s.io/api/apps/v1"
@@ -306,38 +304,44 @@ func areAllReplicasReady(ctx spi.ComponentContext) bool {
 }
 
 // chartsNotUpdatedWorkaround - workaround for VZ-7053, where some of the Helm charts are not
-// getting updated after Rancher upgrade. This workaround will delete the clusterrepo resources and
-// rollout the Rancher deployment. NOTE - it will only work if this is called after the upgraded
-// Rancher pods are ready e.g. in PostUpgrade
+// getting updated after Rancher upgrade. This workaround will scale the Rancher deployment down
+// and then delete the ClusterRepo resources. This must be done in PreUpgrade. When Rancher is upgraded,
+// new Rancher pods will start and create new ClusterRepo resoures with the correct chart data.
 func chartsNotUpdatedWorkaround(ctx spi.ComponentContext) error {
-	// wait for all Rancher pods to be upgraded before proceeding, otherwise an old Rancher pod can assume leadership
-	// and recreate the ClusterRepo resources with old bundled system chart data
-	if !areAllReplicasReady(ctx) {
-		ctx.Log().Progressf("Waiting for all Rancher replicas to be ready before deleting ClusterRepo resources")
-		return ctrlerrors.RetryableError{Source: ComponentName}
-	}
-	err := deleteClusterRepos(ctx.Log())
-	if err != nil {
+	if err := scaleDownRancherDeployment(ctx.Client(), ctx.Log()); err != nil {
 		return err
 	}
-	return restartRancherDeployment(ctx.Client(), ctx.Log())
+	return deleteClusterRepos(ctx.Log())
 }
 
-// restartRancherDeployment restarts the Rancher deployment by updating an annotation value
-func restartRancherDeployment(c client.Client, log vzlog.VerrazzanoLogger) error {
+func scaleDownRancherDeployment(c client.Client, log vzlog.VerrazzanoLogger) error {
 	deployment := appsv1.Deployment{}
 	namespacedName := types.NamespacedName{Name: common.RancherName, Namespace: common.CattleSystem}
 	if err := c.Get(context.TODO(), namespacedName, &deployment); err != nil {
-		return err
+		return client.IgnoreNotFound(err)
 	}
-	if deployment.Spec.Template.ObjectMeta.Annotations == nil {
-		deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+
+	if deployment.Status.AvailableReplicas == 0 {
+		// deployment is already scaled down, nothing to do
+		return nil
 	}
-	deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = strconv.Itoa(int(deployment.Generation))
+	log.Infof("Scaling down Rancher deployment %v", namespacedName)
+	zero := int32(0)
+	deployment.Spec.Replicas = &zero
 	if err := c.Update(context.TODO(), &deployment); err != nil {
-		return log.ErrorfNewErr("Rancher restart deployment: Failed, error updating deployment %s annotation to force a pod restart", deployment.Name)
+		return log.ErrorfNewErr("Failed to scale Rancher deployment %v to zero replicas: %v", namespacedName, err)
 	}
-	log.Oncef("Rancher restart deployment: Finished restarting Rancher deployment to work around upgrade not updating helm chart versions")
+
+	// get the deployment and check the status to see if all replicas are down, if not we'll reconcile again
+	// until all replicas are down
+	if err := c.Get(context.TODO(), namespacedName, &deployment); err != nil {
+		return client.IgnoreNotFound(err)
+	}
+	if deployment.Status.AvailableReplicas > 0 {
+		log.Progressf("Waiting for Rancher deployment %v to scale down", namespacedName)
+		return ctrlerrors.RetryableError{Source: ComponentName}
+	}
+
 	return nil
 }
 

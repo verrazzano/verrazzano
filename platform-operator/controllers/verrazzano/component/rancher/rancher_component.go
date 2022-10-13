@@ -208,6 +208,11 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
+func (r rancherComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	// Rancher upgrade workaround for rancher-charts versions in config map not being updated (VZ-7053)
+	return chartsNotUpdatedWorkaroundFunc(ctx)
+}
+
 // Install
 /* Installs the Helm chart, and patches the resulting objects
 - ensure Helm chart is installed
@@ -316,10 +321,6 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	log := ctx.Log()
 
-	// Rancher upgrade workaround for rancher-charts versions in config map not being updated (VZ-7053)
-	if err := chartsNotUpdatedWorkaroundFunc(ctx); err != nil {
-		return err
-	}
 	err := activateDrivers(log, c)
 	if err != nil {
 		return err
