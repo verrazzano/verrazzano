@@ -9,7 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/status"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -23,7 +23,7 @@ func isCoherenceOperatorReady(ctx spi.ComponentContext) bool {
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 // GetOverrides gets the install overrides

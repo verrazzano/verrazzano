@@ -4,12 +4,9 @@
 package main
 
 import (
-	"context"
 	"flag"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sync"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -44,7 +41,6 @@ import (
 	configmapcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
 	secretscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
@@ -53,8 +49,6 @@ import (
 )
 
 var scheme = runtime.NewScheme()
-
-const MysqlInstallValuesWebhook = "verrazzano-platform-mysqlinstalloverrides"
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
@@ -138,26 +132,25 @@ func main() {
 		log.Errorf("Failed to get the Verrazzano version from the BOM: %v", err)
 	}
 
-	kubeConfig, err := ctrl.GetConfig()
-	if err != nil {
-		log.Errorf("Failed to get kubeconfig: %v", err)
-		os.Exit(1)
-	}
-
-	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
-	if err != nil {
-		log.Errorf("Failed to get clientset: %v", err)
-		os.Exit(1)
-	}
-
 	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
 	// validatingWebhookConfiguration resource before the operator container runs.
 	if config.InitWebhooks {
-
 		log.Debug("Creating certificates used by webhooks")
 		caCert, err := certificate.CreateWebhookCertificates(config.CertDir)
 		if err != nil {
 			log.Errorf("Failed to create certificates used by webhooks: %v", err)
+			os.Exit(1)
+		}
+
+		conf, err := ctrl.GetConfig()
+		if err != nil {
+			log.Errorf("Failed to get kubeconfig: %v", err)
+			os.Exit(1)
+		}
+
+		kubeClient, err := kubernetes.NewForConfig(conf)
+		if err != nil {
+			log.Errorf("Failed to get clientset: %v", err)
 			os.Exit(1)
 		}
 
@@ -169,7 +162,7 @@ func main() {
 		}
 
 		log.Debug("Updating conversion webhook")
-		apixClient, err := apiextensionsv1client.NewForConfig(kubeConfig)
+		apixClient, err := apiextensionsv1client.NewForConfig(conf)
 		if err != nil {
 			log.Errorf("Failed to get apix clientset: %v", err)
 			os.Exit(1)
@@ -180,19 +173,61 @@ func main() {
 			os.Exit(1)
 		}
 
-		client, err := client.New(kubeConfig, client.Options{})
+		c, err := client.New(conf, client.Options{})
 		if err != nil {
 			log.Errorf("Failed to get controller-runtime client: %v", err)
 			os.Exit(1)
 		}
 
 		log.Debug("Creating or updating network policies")
-		_, err = netpolicy.CreateOrUpdateNetworkPolicies(kubeClient, client)
-		if err != nil {
+		var errors []error
+		_, errors = netpolicy.CreateOrUpdateNetworkPolicies(kubeClient, c)
+		if len(errors) < 0 {
 			log.Errorf("Failed to create or update network policies: %v", err)
 			os.Exit(1)
 		}
-		return
+		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+			Scheme:             scheme,
+			MetricsBindAddress: "",
+			Port:               9443,
+			LeaderElection:     config.LeaderElectionEnabled,
+			LeaderElectionID:   "3ec4d295.verrazzano.io",
+		})
+		if err != nil {
+			log.Errorf("Failed to create a controller-runtime manager: %v", err)
+			os.Exit(1)
+		}
+
+		installv1alpha1.SetComponentValidator(validator.ComponentValidatorImpl{})
+		installv1beta1.SetComponentValidator(validator.ComponentValidatorImpl{})
+
+		// Setup the validation webhook
+		if config.WebhooksEnabled {
+			log.Debug("Setting up Verrazzano webhook with manager")
+			if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
+				log.Errorf("Failed to setup install.v1alpha1.Verrazzano webhook with manager: %v", err)
+				os.Exit(1)
+			}
+			if err = (&installv1beta1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
+				log.Errorf("Failed to setup install.v1beta1.Verrazzano webhook with manager: %v", err)
+				os.Exit(1)
+			}
+			log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
+			if err = (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
+				log.Errorf("Failed to setup webhook with manager: %v", err)
+				os.Exit(1)
+			}
+			mgr.GetWebhookServer().CertDir = config.CertDir
+		}
+
+		// +kubebuilder:scaffold:builder
+
+		log.Info("Starting controller-runtime manager")
+		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+			log.Errorf("Failed starting controller-runtime manager: %v", err)
+			os.Exit(1)
+		}
+
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -207,12 +242,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	installv1alpha1.SetComponentValidator(validator.ComponentValidatorImpl{})
-	installv1beta1.SetComponentValidator(validator.ComponentValidatorImpl{})
-
 	metricsexporter.StartMetricsServer(log)
 
-	// Setup the reconciler
+	// Set up the reconciler
 	reconciler := vzcontroller.Reconciler{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
@@ -225,63 +257,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup the validation webhook
-	if config.WebhooksEnabled {
-		log.Debug("Setting up Verrazzano webhook with manager")
-		if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
-			log.Errorf("Failed to setup install.v1alpha1.Verrazzano webhook with manager: %v", err)
-			os.Exit(1)
-		}
-		if err = (&installv1beta1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
-			log.Errorf("Failed to setup install.v1beta1.Verrazzano webhook with manager: %v", err)
-			os.Exit(1)
-		}
-		mgr.GetWebhookServer().CertDir = config.CertDir
-
-		// Configure the mysql install values webhook with the required certificate.  Since the webhook is hosted by the
-		// same webhook server, configure its hooks with the same certificate
-		vzWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), certificate.OperatorName, metav1.GetOptions{})
-		if err != nil {
-			log.Errorf("Failed to get VPO webhook configuration: %v", err)
-			os.Exit(1)
-		}
-		caCert := vzWebhook.Webhooks[0].ClientConfig.CABundle
-
-		mysqlWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), MysqlInstallValuesWebhook, metav1.GetOptions{})
-		if err != nil {
-			log.Errorf("Failed to get MySQL install values webhook configuration: %v", err)
-			os.Exit(1)
-		}
-		for i := range mysqlWebhook.Webhooks {
-			mysqlWebhook.Webhooks[i].ClientConfig.CABundle = caCert
-		}
-		_, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.TODO(), mysqlWebhook, metav1.UpdateOptions{})
-		if err != nil {
-			log.Errorf("Failed to update MySQL install values webhooks configuration with certificate: %v", err)
-			os.Exit(1)
-		}
-
-		mgr.GetWebhookServer().Register("/v1beta1-validate-mysql-install-override-values", &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1beta1{}})
-		mgr.GetWebhookServer().Register("/v1alpha1-validate-mysql-install-override-values", &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1alpha1{}})
-	}
-
-	// Setup the reconciler for VerrazzanoManagedCluster objects
+	// Set up the reconciler for VerrazzanoManagedCluster objects
 	if err = (&clusterscontroller.VerrazzanoManagedClusterReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoManagedCluster")
 		os.Exit(1)
-	}
-
-	// Setup the validation webhook for VMC
-	if config.WebhooksEnabled {
-		log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
-		if err = (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
-			log.Errorf("Failed to setup webhook with manager: %v", err)
-			os.Exit(1)
-		}
-		mgr.GetWebhookServer().CertDir = config.CertDir
 	}
 
 	// Setup secrets reconciler
