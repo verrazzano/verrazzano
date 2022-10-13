@@ -48,7 +48,7 @@ func TestCreateWebhookCertificates(t *testing.T) {
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if assert.NoError(err) {
 			assert.NotEmpty(cert.DNSNames, "Certificate DNSNames SAN field should not be empty")
-			assert.Equal("verrazzano-platform-operator.verrazzano-install.svc", cert.DNSNames[0])
+			assert.Equal("verrazzano-platform-operator-webhook.verrazzano-install.svc", cert.DNSNames[0])
 		}
 	}
 }
@@ -90,6 +90,7 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 		Namespace: OperatorNamespace,
 		Path:      &pathClusters,
 	}
+
 	webhook := adminv1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
@@ -123,7 +124,7 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 	err = UpdateValidatingnWebhookConfiguration(kubeClient, &caCert)
 	assert.Nil(err, "error should not be returned updating validation webhook configuration")
 
-	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), "verrazzano-platform-operator", metav1.GetOptions{})
+	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), "verrazzano-platform-operator-webhook", metav1.GetOptions{})
 	assert.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
 }
 

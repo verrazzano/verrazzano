@@ -176,7 +176,7 @@ func cleanupResources(client client.Client, vzHelper helpers.VZHelper) {
 	}
 
 	// Delete other verrazzano resources
-	err = deleteWebhookConfiguration(client, constants.VerrazzanoPlatformOperator)
+	err = deleteWebhookConfiguration(client, constants.VerrazzanoPlatformOperatorWebhook)
 	if err != nil {
 		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
 	}
