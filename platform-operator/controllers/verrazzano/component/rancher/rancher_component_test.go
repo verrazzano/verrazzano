@@ -265,9 +265,7 @@ func TestPostInstall(t *testing.T) {
 func TestPostUpgrade(t *testing.T) {
 	component := NewComponent()
 	ctxWithoutIngress, ctxWithIngress := prepareContexts()
-	SetFakeChartsNotUpdatedWorkaroundFunc()
-	defer SetDefaultChartsNotUpdatedWorkaroundFunc()
-	assert.Nil(t, component.PostUpgrade(ctxWithoutIngress))
+	assert.Error(t, component.PostUpgrade(ctxWithoutIngress))
 	assert.Nil(t, component.PostUpgrade(ctxWithIngress))
 }
 

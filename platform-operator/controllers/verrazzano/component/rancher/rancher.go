@@ -17,7 +17,6 @@ import (
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -286,23 +285,6 @@ func isRancherReady(ctx spi.ComponentContext) bool {
 	return ready.DeploymentsAreReady(log, c, deployments, 1, prefix)
 }
 
-// areAllReplicasReady returns true if all of the expected replicas specified in the Rancher deployment are ready
-func areAllReplicasReady(ctx spi.ComponentContext) bool {
-	deployment := appsv1.Deployment{}
-	namespacedName := types.NamespacedName{Name: common.RancherName, Namespace: common.CattleSystem}
-	if err := ctx.Client().Get(context.TODO(), namespacedName, &deployment); err != nil {
-		ctx.Log().ErrorfThrottled("Unable to get deployment %v: %v", namespacedName, err)
-		return false
-	}
-
-	replicas := int32(1)
-	if deployment.Spec.Replicas != nil {
-		replicas = *deployment.Spec.Replicas
-	}
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{namespacedName}, replicas, prefix)
-}
-
 // chartsNotUpdatedWorkaround - workaround for VZ-7053, where some of the Helm charts are not
 // getting updated after Rancher upgrade. This workaround will scale the Rancher deployment down
 // and then delete the ClusterRepo resources. This must be done in PreUpgrade. When Rancher is upgraded,
@@ -344,93 +326,6 @@ func scaleDownRancherDeployment(c client.Client, log vzlog.VerrazzanoLogger) err
 
 	return nil
 }
-
-// checkRancherUpgradeFailure - temporary work around for Rancher issue 36914. During an upgrade, the Rancher pods
-// are recycled.  When the leader pod is restarted, it is possible that a Rancher 2.5.9 pod could
-// acquire leader and recreate the downloaded helm charts it requires.
-//
-// If one of the Rancher pods is failing to find the rancher-webhook, recycle that pod.
-/*func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) error {
-	ctx := context.TODO()
-
-	// Get the Rancher pods
-	podList := &corev1.PodList{}
-	err := c.List(ctx, podList, client.InNamespace(ComponentNamespace), client.MatchingLabels{"app": "rancher"})
-	if err != nil {
-		return err
-	}
-	if len(podList.Items) == 0 {
-		return nil
-	}
-
-	config, err := ctrl.GetConfig()
-	if err != nil {
-		return err
-	}
-
-	clientSet, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return err
-	}
-
-	// Check the logs of each pod
-	podsRestarted := false
-	for i, pod := range podList.Items {
-		// Skip pods that are already being deleted
-		if pod.DeletionTimestamp != nil {
-			continue
-		}
-
-		// Skip pods that are not ready, they will get checked again in another call to isReady.
-		if !isPodReady(pod) {
-			continue
-		}
-
-		// Get the pod log stream
-		logStream, err := clientSet.CoreV1().Pods(ComponentNamespace).GetLogs(pod.Name, &corev1.PodLogOptions{Container: "rancher"}).Stream(ctx)
-		if err != nil {
-			return err
-		}
-		defer logStream.Close()
-
-		// Search the stream for the expected text
-		restartPod := false
-		scanner := bufio.NewScanner(logStream)
-		for scanner.Scan() {
-			token := scanner.Text()
-			if strings.Contains(token, "[ERROR] available chart version") {
-				log.Infof("Rancher IsReady: Failed to find system chart for pod %s: %s", pod.Name, token)
-				restartPod = true
-				break
-			}
-		}
-
-		// If the pod is failing to find the system chart for rancher-webhook, the wrong helm charts are
-		// being used by the Rancher pod. Restart the pod. This will cause another Rancher pod to become the leader,
-		// and, if needed, will recreate the custom resources related to the helm charts.
-		if restartPod {
-			// Delete custom resources containing helm charts to use
-			err := deleteClusterRepos(log)
-			if err != nil {
-				return err
-			}
-			log.Infof("Rancher IsReady: Restarting pod %s", pod.Name)
-			err = c.Delete(ctx, &podList.Items[i])
-			if err != nil {
-				return err
-			}
-			podsRestarted = true
-		}
-	}
-
-	// If any pods were restarted, return an error so that the IsReady check will not continue
-	// any further.  Checks will resume again after the pod is ready again.
-	if podsRestarted {
-		return fmt.Errorf("Rancher IsReady: pods were restarted, waiting for them to be ready again")
-	}
-
-	return nil
-}*/
 
 // deleteClusterRepos - temporary work around for Rancher issue 36914. On upgrade of Rancher
 // the setting of useBundledSystemChart does not appear to be honored, and the downloaded
