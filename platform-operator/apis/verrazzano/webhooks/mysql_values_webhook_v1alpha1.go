@@ -26,9 +26,7 @@ func (v *MysqlValuesValidatorV1alpha1) InjectDecoder(d *admission.Decoder) error
 }
 
 // Handle performs validation of created or updated Verrazzano resources.
-// Handle performs validation of created or updated Verrazzano resources.
 func (v *MysqlValuesValidatorV1alpha1) Handle(ctx context.Context, req admission.Request) admission.Response {
-
 	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "verrazzano-platform-mysqlinstalloverrides")
 
 	log.Infof("Processing MySQL install override values")
