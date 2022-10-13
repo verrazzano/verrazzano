@@ -195,30 +195,30 @@ var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.
 	// GIVEN a running Grafana instance,
 	// WHEN a search is made for the dashboard using its title,
 	// THEN the dashboard metadata is returned.
-	/*
-		It("Search the test Grafana Dashboard using its title", func() {
-			Eventually(func() bool {
-				resp, err := pkg.SearchGrafanaDashboard(map[string]string{"query": testDashboardTitle})
-				if err != nil {
-					pkg.Log(pkg.Error, err.Error())
-					return false
-				}
-				if resp.StatusCode != http.StatusOK {
-					pkg.Log(pkg.Error, fmt.Sprintf("Failed to GET Grafana testDashboard: status=%d: body=%s", resp.StatusCode, string(resp.Body)))
-					return false
-				}
-				var body []map[string]string
-				json.Unmarshal(resp.Body, &body)
-				for _, dashboard := range body {
-					if dashboard["title"] == testDashboardTitle {
-						return true
-					}
-				}
+	It("Search the test Grafana Dashboard using its title", func() {
+		Eventually(func() bool {
+			resp, err := pkg.SearchGrafanaDashboard(map[string]string{"query": testDashboardTitle})
+			if err != nil {
+				pkg.Log(pkg.Error, err.Error())
 				return false
+			}
+			if resp.StatusCode != http.StatusOK {
+				pkg.Log(pkg.Error, fmt.Sprintf("Failed to GET Grafana testDashboard: status=%d: body=%s", resp.StatusCode, string(resp.Body)))
+				return false
+			}
+			var body []map[string]string
+			json.Unmarshal(resp.Body, &body)
 
-			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
-		})
-	*/
+			for _, dashboard := range body {
+				pkg.Log(pkg.Info, "Debug: "+dashboard["title"])
+				if dashboard["title"] == testDashboardTitle {
+					return true
+				}
+			}
+			return false
+
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
+	})
 
 	// GIVEN a running grafana instance,
 	// WHEN a GET call is made  to Grafana with the UID of the system dashboard,
