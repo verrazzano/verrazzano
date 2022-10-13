@@ -10,12 +10,12 @@ Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 Copyright (C) 2022, Oracle and/or its affiliates.
 Copyright (C) 2021, Oracle and/or its affiliates.
 Copyright (C) 2021, 2022, Oracle and/or its affiliates.
+Copyright (C) 2022, Oracle and/or its affiliates.' | cat - generated_assets.go > tmp && mv tmp generated_assets.go
 Copyright 2020, Oracle Corporation and/or its affiliates.
 Copyright (c) 2015-2021 Bitnami
 Copyright (c) 2022, Oracle and/or its affiliates. -->
-copyright/licsense information:
 Copyright (c) 2020, Oracle and/or its affiliates.
-Copyright Fixer
+Copyright (c) 2021, Oracle and/or its affiliates.
 Copyright (c) 2022, 2022, Oracle and/or its affiliates.
 Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
 
@@ -2503,7 +2503,7 @@ Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
 Copyright The Kubernetes Authors.
 Copyright 2022 The Kubernetes Authors.
-const completionBoilerPlate = `# Copyright 2021 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 Copyright 2017 The Kubernetes Authors.
 Copyright YEAR The Kubernetes Authors.
 Copyright 2014 The Kubernetes Authors.
@@ -3261,11 +3261,11 @@ Portions Copyright © 2009 The Go Authors. All rights reserved.
 Copyright 2012 The Go Authors. All rights reserved.
 Copyright 2020 The Go Authors. All rights reserved.
 Copyright 2022 The Go Authors. All rights reserved.
-const license = `// Copyright 2013 The Go Authors. All rights reserved.
-const src = `// Copyright 2021 The Go Authors. All rights reserved.
-a := "// Copyright 2019 The Go Authors. All rights reserved.\n// Use of this source code is governed by a BSD-style\n// license that can be found in the LICENSE file.\n\npackage diff_test\n\nimport (\n\t\"fmt\"\n\t\"math/rand\"\n\t\"strings\"\n\t\"testing\"\n\n\t\"golang.org/x/tools/internal/lsp/diff\"\n\t\"golang.org/x/tools/internal/lsp/diff/difftest\"\n\t\"golang.org/x/tools/internal/span\"\n)\n"
-b := "// Copyright 2019 The Go Authors. All rights reserved.\n// Use of this source code is governed by a BSD-style\n// license that can be found in the LICENSE file.\n\npackage diff_test\n\nimport (\n\t\"fmt\"\n\t\"math/rand\"\n\t\"strings\"\n\t\"testing\"\n\n\t\"github.com/google/safehtml/template\"\n\t\"golang.org/x/tools/internal/lsp/diff\"\n\t\"golang.org/x/tools/internal/lsp/diff/difftest\"\n\t\"golang.org/x/tools/internal/span\"\n)\n"
-var tmpl = `// Copyright 2021 The Go Authors. All rights reserved.
+Copyright 2013 The Go Authors. All rights reserved.
+Copyright 2021 The Go Authors. All rights reserved.
+Copyright 2019 The Go Authors. All rights reserved.\n// Use of this source code is governed by a BSD-style\n// license that can be found in the LICENSE file.\n\npackage diff_test\n\nimport (\n\t\"fmt\"\n\t\"math/rand\"\n\t\"strings\"\n\t\"testing\"\n\n\t\"golang.org/x/tools/internal/lsp/diff\"\n\t\"golang.org/x/tools/internal/lsp/diff/difftest\"\n\t\"golang.org/x/tools/internal/span\"\n)\n"
+Copyright 2019 The Go Authors. All rights reserved.\n// Use of this source code is governed by a BSD-style\n// license that can be found in the LICENSE file.\n\npackage diff_test\n\nimport (\n\t\"fmt\"\n\t\"math/rand\"\n\t\"strings\"\n\t\"testing\"\n\n\t\"github.com/google/safehtml/template\"\n\t\"golang.org/x/tools/internal/lsp/diff\"\n\t\"golang.org/x/tools/internal/lsp/diff/difftest\"\n\t\"golang.org/x/tools/internal/span\"\n)\n"
+Copyright 2021 The Go Authors. All rights reserved.
 -------- Patents
 Additional IP Rights Grant (Patents)
 
