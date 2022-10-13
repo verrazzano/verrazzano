@@ -114,9 +114,9 @@ func TestSetAvailabilityFields(t *testing.T) {
 			for _, component := range tt.components {
 				vz.Status.Components[component.Name()] = &vzapi.ComponentStatusDetails{}
 			}
-			_, err := c.setAvailabilityFields(log, vz, tt.components)
+			status, err := c.getNewStatus(log, vz, tt.components)
 			assert.NoError(t, err)
-			assert.Equal(t, tt.available, *vz.Status.Available)
+			assert.Equal(t, tt.available, status.Available)
 		})
 	}
 }

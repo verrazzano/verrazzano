@@ -1108,6 +1108,9 @@ func initUnitTesing() {
 }
 
 func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
+	if err := r.addAvailabilityStatus(vz); err != nil {
+		return err
+	}
 	err := r.Status().Update(context.TODO(), vz)
 	if err == nil {
 		return nil
@@ -1119,6 +1122,29 @@ func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *inst
 	}
 	// Return error so that reconcile gets called again
 	return err
+}
+
+func (r *Reconciler) addAvailabilityStatus(vz *installv1alpha1.Verrazzano) error {
+	status, err := availability.GetStatus(r.Client, vz)
+	if err != nil {
+		return err
+	}
+	// Zero out availability if status unknown
+	if status == nil {
+		for _, component := range vz.Status.Components {
+			component.Available = nil
+		}
+		vz.Status.Available = nil
+		return nil
+	}
+
+	for component, available := range status.Components {
+		if comp, ok := vz.Status.Components[component]; ok {
+			comp.Available = &available
+		}
+	}
+	vz.Status.Available = &status.Available
+	return nil
 }
 
 // AddWatch adds a component to the watched set

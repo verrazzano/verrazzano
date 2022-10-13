@@ -12,6 +12,7 @@ import (
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/availability"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -83,7 +84,7 @@ var UninstallTrackerMap = make(map[string]*UninstallTracker)
 // reconcileUninstall will Uninstall a Verrazzano installation
 func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	log.Oncef("Uninstalling Verrazzano %s/%s", cr.Namespace, cr.Name)
-
+	r.HealthCheck.Pause()
 	tracker := getUninstallTracker(cr)
 	done := false
 	for !done {
@@ -284,6 +285,10 @@ func (r *Reconciler) isManagedCluster(log vzlog.VerrazzanoLogger) (bool, error) 
 // uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individual component uninstalls
 func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) (ctrl.Result, error) {
 	if err := r.deleteIstioCARootCert(ctx); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := availability.DeleteStatus(r.Client, ctx.ActualCR()); err != nil {
 		return ctrl.Result{}, err
 	}
 

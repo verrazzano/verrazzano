@@ -11,7 +11,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"go.uber.org/zap"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 )
@@ -77,16 +76,14 @@ func (c *Controller) updateStatusAvailability(components []spi.Component) {
 		return
 	}
 	// Set availability fields in the provided Verrazzano CR
-	update, err := c.setAvailabilityFields(vzlogger, vz, components)
+	status, err := c.getNewStatus(vzlogger, vz, components)
 	if err != nil {
 		vzlogger.Errorf("Failed to get new Verrazzano availability: %v", err)
 		return
 	}
 	// Persist the updated Verrazzano CR
-	if update {
-		if err := c.updateStatus(vz); err != nil {
-			vzlogger.Errorf("Failed to update Verrazzano availability: %v", err)
-		}
+	if err := c.updateStatus(status, vz); err != nil {
+		vzlogger.Errorf("Failed to update Verrazzano availability: %v", err)
 	}
 }
 
@@ -110,13 +107,4 @@ func newLogger(vz *vzapi.Verrazzano) (vzlog.VerrazzanoLogger, error) {
 		Generation:     vz.Generation,
 		ControllerName: "availability",
 	})
-}
-
-func (c *Controller) updateStatus(vz *vzapi.Verrazzano) error {
-	err := c.client.Status().Update(context.TODO(), vz)
-	// if there's a resource conflict, return nil to try again later
-	if err != nil && !apierrors.IsConflict(err) {
-		return err
-	}
-	return nil
 }
