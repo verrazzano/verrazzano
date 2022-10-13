@@ -31,33 +31,40 @@ func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi
 	for _, component := range components {
 		// If status is not fully initialized, do not check availability
 		if vz.Status.Components[component.Name()] == nil {
-			close(ch)
 			return false, nil
 		}
+	}
 
-		// determine a components availability
-		if vz.Status.Components[component.Name()].State != vzapi.CompStateDisabled {
+	// determine a components availability
+	for _, component := range components {
+		if isEnabled(vz, component) {
 			countEnabled++
 			comp := component
 			go func() {
-				ch <- c.getComponentAvailability(comp, ctx)
+				ch <- c.getComponentAvailability(comp, ctx.Copy())
 			}()
 		}
 	}
 
 	// count available components and set component availability
-	for i := 0; i < len(components); i++ {
-		a := <-ch
-		if a.available {
-			countAvailable++
+	for _, component := range components {
+		if isEnabled(vz, component) {
+			a := <-ch
+			if a.available {
+				countAvailable++
+			}
+			vz.Status.Components[a.name].Available = &a.available
 		}
-		vz.Status.Components[a.name].Available = &a.available
 	}
 	// format the printer column with both values
 	availabilityColumn := fmt.Sprintf("%d/%d", countAvailable, countEnabled)
 	vz.Status.Available = &availabilityColumn
 	log.Debugf("Set component availability: %s", availabilityColumn)
 	return true, nil
+}
+
+func isEnabled(vz *vzapi.Verrazzano, component spi.Component) bool {
+	return vz.Status.Components[component.Name()].State != vzapi.CompStateDisabled
 }
 
 // getComponentAvailability calculates componentAvailability for a given Verrazzano component
