@@ -170,3 +170,16 @@ helm repo add jaegertracing ${JAEGER_OPERATOR_CHART_REPO}
 helm repo update
 helm fetch jaegertracing/jaeger-operator --untar=true --version=${JAEGER_OPERATOR_CHART_VERSION}
 ```
+
+### Kiali Server
+
+The `kiali-server` folder was created by running the following commands:
+
+```shell
+export KIALI_SERVER_CHART_REPO=https://kiali.org/helm-charts
+export KIALI_SERVER_CHART_VERSION=1.42.0
+helm repo add kiali ${KIALI_SERVER_CHART_REPO}
+helm repo update
+rm -rf kiali-server
+helm fetch kiali/kiali-server --untar=true --version=${KIALI_SERVER_CHART_VERSION}
+```
