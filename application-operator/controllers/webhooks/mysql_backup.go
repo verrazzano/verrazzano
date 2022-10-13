@@ -26,22 +26,23 @@ import (
 )
 
 const (
-	// MySQLBackupPath specifies the path of Istio defaulter webhook
+	// MySQLBackupPath specifies the path of Istio defaulter webhook.
 	MySQLBackupPath = "/mysql-backup"
 
-	// MySQLOperatorJobLabel and MySQLOperatorJobLabelValue is the label key,value applied to the job by mysql-operator
+	// MySQLOperatorJobLabel and MySQLOperatorJobLabelValue are the label key,value pair
+	// that are applied to the job by mysql-operator.
 
 	MySQLOperatorJobLabel      = "app.kubernetes.io/created-by"
 	MySQLOperatorJobLabelValue = "mysql-operator"
 
-	// MySQLOperatorJobPodSpecAnnotationKey and MySQLOperatorJobPodSpecAnnotationValue applied to the job spec
-	// so that it can talk to the k8s api server
+	// MySQLOperatorJobPodSpecAnnotationKey and MySQLOperatorJobPodSpecAnnotationValue are
+	// applied to the job spec so that it can talk to the k8s api server.
 
 	MySQLOperatorJobPodSpecAnnotationKey   = "traffic.sidecar.istio.io/excludeOutboundPorts"
 	MySQLOperatorJobPodSpecAnnotationValue = "443"
 )
 
-// MySQLBackupJobWebhook type for istio defaulter webhook
+// MySQLBackupJobWebhook type for Verrazzano mysql backup webhook
 type MySQLBackupJobWebhook struct {
 	client.Client
 	IstioClient   istioversionedclient.Interface
@@ -54,7 +55,7 @@ type MySQLBackupJobWebhook struct {
 // This function is called for any jobs that are created in a namespace with the label istio-injection=enabled.
 func (m *MySQLBackupJobWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
 
-	counterMetricObject, errorCounterMetricObject, handleDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics("MySQlHa", metricsexporter.MysqlHaHandleCounter, metricsexporter.MysqlHaHandleError, metricsexporter.MysqlHaHandleDuration)
+	counterMetricObject, errorCounterMetricObject, handleDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics("MySQlBackup", metricsexporter.MysqlHaHandleCounter, metricsexporter.MysqlHaHandleError, metricsexporter.MysqlHaHandleDuration)
 	if err != nil {
 		return admission.Response{}
 	}
@@ -78,6 +79,7 @@ func (m *MySQLBackupJobWebhook) InjectDecoder(d *admission.Decoder) error {
 	return nil
 }
 
+// processJob processes the job request and applies the necessary annotations based on Job ownership and labels
 func (m *MySQLBackupJobWebhook) processJob(counterMetricObject, errorCounterMetricObject *metricsexporter.SimpleCounterMetric, req admission.Request, job *batchv1.Job, log, metricsLog *zap.SugaredLogger) admission.Response {
 
 	var mysqlOperatorOwnerReferencePresent, mysqlOperatorLabelPresent bool
@@ -206,7 +208,7 @@ func (m *MySQLBackupJobWebhook) isCronJobCreatedByMysqlOperator(errorCounterMetr
 	}
 
 	if mysqlOperatorOwnerReferencePresent && mysqlOperatorLabelPresent {
-		// This is a litmus test that the cronjob was created bt mysql-operator
+		// This is a litmus test that the cronjob was created by mysql-operator
 		return true, nil
 	}
 
