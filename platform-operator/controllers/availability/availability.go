@@ -33,10 +33,7 @@ func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi
 		if vz.Status.Components[component.Name()] == nil {
 			return false, nil
 		}
-	}
-
-	// determine a components availability
-	for _, component := range components {
+		// determine a component's availability
 		if isEnabled(vz, component) {
 			countEnabled++
 			comp := component
