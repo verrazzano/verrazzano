@@ -141,7 +141,7 @@ func main() {
 }
 
 func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredLogger) {
-	
+
 	log.Debug("Creating certificates used by webhooks")
 	caCert, err := certificate.CreateWebhookCertificates(config.CertDir)
 	if err != nil {
