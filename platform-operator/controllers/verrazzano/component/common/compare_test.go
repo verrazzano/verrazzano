@@ -11,7 +11,7 @@ import (
 )
 
 func TestCompareInstallArgs(t *testing.T) {
-	const exception = `test-execption`
+	const exception = `test-exception`
 	tests := []struct {
 		name    string
 		old     []vzapi.InstallArgs
