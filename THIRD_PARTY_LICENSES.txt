@@ -10,26 +10,11 @@ Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 Copyright (C) 2022, Oracle and/or its affiliates.
 Copyright (C) 2021, Oracle and/or its affiliates.
 Copyright (C) 2021, 2022, Oracle and/or its affiliates.
-echo '// Copyright (C) 2022, Oracle and/or its affiliates.' | cat - generated_assets.go > tmp && mv tmp generated_assets.go
 Copyright 2020, Oracle Corporation and/or its affiliates.
 Copyright (c) 2015-2021 Bitnami
 Copyright (c) 2022, Oracle and/or its affiliates. -->
-Copyright Scanner
-Copyright scanning target .
-Copyright scanning target platform-operator/scripts
 copyright/licsense information:
-Copyright scanning target ignore_copyright_check.txt
-Copyright scanning target tools/copyright/README.md
-Copyright scanning target .DS_Store
-Copyright scanning target platform-operator/run-vpo.sh
-Copyright scanning target Jenkinsfile
-Copyright scanning target Makefile
-Copyright scanning target tools/copyright/copyright.go
 Copyright (c) 2020, Oracle and/or its affiliates.
-fmt.Println("// Copyright (c) 2021, Oracle and/or its affiliates.")
-fmt.Println("-- Copyright (c) 2021, Oracle and/or its affiliates.")
-fmt.Println("<!-- Copyright (c) 2021, Oracle and/or its affiliates. -->")
-fmt.Println("# Copyright (c) 2021, Oracle and/or its affiliates.")
 Copyright Fixer
 Copyright (c) 2022, 2022, Oracle and/or its affiliates.
 Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
