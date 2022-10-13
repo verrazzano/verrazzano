@@ -13,20 +13,20 @@ import (
 )
 
 const (
-	// reconcileWatchedComponents is the state where watched components are reconciled
-	reconcileWatchedComponents reconcileState = "watchedComponents"
+	// vzStateReconcileWatchedComponents is the state where watched components are reconciled
+	vzStateReconcileWatchedComponents reconcileState = "vzReconcileWatchedComponents"
 
-	// reconcileVZState is the state where we examine the VZ State and the component generation values and determine what to do
-	reconcileVZState reconcileState = "reconcileVZState"
+	// vzStateDecideUpdateNeeded is the state where we examine the VZ State and the component generation values and determine what to do
+	vzStateDecideUpdateNeeded reconcileState = "vzDecideUpdateNeeded"
 
-	// reconcileStartInstall is the state where the VZ Install Started status is written
-	reconcileStartInstall reconcileState = "startInstall"
+	// vzStateSetGlobalInstallStatus is the state where the VZ Install Started status is written
+	vzStateSetGlobalInstallStatus reconcileState = "vzSetGlobalInstallStatus"
 
-	// reconcileInstallComponents is the state where the components are being installed
-	reconcileInstallComponents reconcileState = "installComponents"
+	// vzStateInstallComponents is the state where the components are being installed
+	vzStateInstallComponents reconcileState = "vzInstallComponents"
 
-	// reconcileEnd is the terminal state
-	reconcileEnd reconcileState = "reconcileEnd"
+	// vzStateReconcileEnd is the terminal state
+	vzStateReconcileEnd reconcileState = "vzReconcileEnd"
 )
 
 // reconcileState identifies the state of a VZ reconcile
@@ -41,22 +41,22 @@ type installTracker struct {
 	compMap map[string]*componentInstallContext
 }
 
-// installTrackerMap has a map of InstallTrackers, one entry per Verrazzano CR resource generation
+// installTrackerMap has a map of InstallTrackers with key from VZ name, namespace, and UID
 var installTrackerMap = make(map[string]*installTracker)
 
-// getInstallTrackerKey gets the tracker key for the Verrazzano resource
-func getInstallTrackerKey(cr *vzapi.Verrazzano) string {
+// getTrackerKey gets the tracker key for the Verrazzano resource
+func getTrackerKey(cr *vzapi.Verrazzano) string {
 	return fmt.Sprintf("%s-%s-%s", cr.Namespace, cr.Name, string(cr.UID))
 }
 
 // getInstallTracker gets the install tracker for Verrazzano
 func getInstallTracker(cr *vzapi.Verrazzano) *installTracker {
-	key := getInstallTrackerKey(cr)
+	key := getTrackerKey(cr)
 	vuc, ok := installTrackerMap[key]
 	// If the entry is missing or the generation is different create a new entry
 	if !ok || vuc.gen != cr.Generation {
 		vuc = &installTracker{
-			vzState: reconcileWatchedComponents,
+			vzState: vzStateReconcileWatchedComponents,
 			gen:     cr.Generation,
 			compMap: make(map[string]*componentInstallContext),
 		}
@@ -67,7 +67,7 @@ func getInstallTracker(cr *vzapi.Verrazzano) *installTracker {
 
 // deleteInstallTracker deletes the install tracker for the Verrazzano resource
 func deleteInstallTracker(cr *vzapi.Verrazzano) {
-	key := getInstallTrackerKey(cr)
+	key := getTrackerKey(cr)
 	_, ok := installTrackerMap[key]
 	if ok {
 		delete(installTrackerMap, key)
@@ -89,44 +89,49 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 
 	tracker := getInstallTracker(spiCtx.ActualCR())
 
-	for tracker.vzState != reconcileEnd {
+	for tracker.vzState != vzStateReconcileEnd {
 		switch tracker.vzState {
 
-		// reconcileWatchedComponents reconciles first to fix up any broken components
-		case reconcileWatchedComponents:
+		// vzStateReconcileWatchedComponents reconciles first to fix up any broken components
+		case vzStateReconcileWatchedComponents:
 			if spiCtx.ActualCR().Status.State != vzapi.VzStateUpgrading {
+				// loop through all the components and call comp.Reconcile if the component is on the watched list
 				if err := r.reconcileWatchedComponents(spiCtx); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
 			}
-			tracker.vzState = reconcileVZState
+			tracker.vzState = vzStateDecideUpdateNeeded
 
-		case reconcileVZState:
+		case vzStateDecideUpdateNeeded:
 			// reconcileComponents is called from Ready, Reconciling, and Upgrading states
 			// if the VZ state is Ready, start an install if the generation is updated and end reconciling if not
 			// if the VZ state is not Ready, proceed with installing components
 			if spiCtx.ActualCR().Status.State == vzapi.VzStateReady {
 				if checkGenerationUpdated(spiCtx) {
-					tracker.vzState = reconcileStartInstall
+					// Start global upgrade
+					tracker.vzState = vzStateSetGlobalInstallStatus
 				} else {
-					tracker.vzState = reconcileEnd
+					tracker.vzState = vzStateReconcileEnd
 				}
 				continue
 			}
-			tracker.vzState = reconcileInstallComponents
+			// if the VZ state is not Ready, it must be Reconciling or Upgrading
+			// in either case, go right to installComponents
+			tracker.vzState = vzStateInstallComponents
 
-		case reconcileStartInstall:
+		case vzStateSetGlobalInstallStatus:
 			if err := r.setInstallingState(vzctx.Log, spiCtx.ActualCR()); err != nil {
+				spiCtx.Log().ErrorfThrottled("Error writing Install Started condition to the Verrazzano status: %v", err)
 				return ctrl.Result{Requeue: true}, err
 			}
-			tracker.vzState = reconcileInstallComponents
+			tracker.vzState = vzStateInstallComponents
 
-		case reconcileInstallComponents:
+		case vzStateInstallComponents:
 			res, err := r.installComponents(spiCtx, tracker, preUpgrade)
 			if err != nil || res.Requeue {
 				return res, err
 			}
-			tracker.vzState = reconcileEnd
+			tracker.vzState = vzStateReconcileEnd
 		}
 	}
 
@@ -144,7 +149,7 @@ func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 				// if we can't find the component status, enter install loop to try to fix it
 				return true
 			}
-			if checkConfigUpdated(spiCtx, componentStatus, comp.Name()) && comp.MonitorOverrides(spiCtx) {
+			if checkConfigUpdated(spiCtx, componentStatus) && comp.MonitorOverrides(spiCtx) {
 				spiCtx.Log().Oncef("Verrazzano CR generation change detected, generation: %v, component: %s, component reconciling generation: %v, component lastreconciling generation %v",
 					spiCtx.ActualCR().Generation, comp.Name(), componentStatus.ReconcilingGeneration, componentStatus.LastReconciledGeneration)
 				return true
@@ -154,13 +159,14 @@ func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 	return false
 }
 
-// reconcileWatchedComponents loops through the components and calls the component Reconcile function
+// vzStateReconcileWatchedComponents loops through the components and calls the component Reconcile function
 // if it a watched component
 func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) error {
 	for _, comp := range registry.GetComponents() {
+		spiCtx.Log().Debugf("Reconciling watched component %", comp.Name())
 		if r.IsWatchedComponent(comp.GetJSONName()) {
 			if err := comp.Reconcile(spiCtx); err != nil {
-				spiCtx.Log().ErrorfThrottled("Error reconciling component %: %v", comp.Name(), err)
+				spiCtx.Log().ErrorfThrottled("Error reconciling watched component %: %v", comp.Name(), err)
 				return err
 			}
 			r.ClearWatch(comp.GetJSONName())

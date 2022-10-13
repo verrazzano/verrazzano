@@ -17,17 +17,17 @@ import (
 type componentInstallState string
 
 const (
-	// compStateInstallInit is the state when a component is initialized
-	compStateInstallInit componentInstallState = "componentStateInit"
+	// compStateInstallInitDetermineComponentState is the state when a component is initialized
+	compStateInstallInitDetermineComponentState componentInstallState = "componentStateInit"
 
-	// compStateInstallReady is the state when a component is ready
-	compStateInstallReady componentInstallState = "componentStateReady"
+	// compStateInstallInitReady is the state when a component is ready
+	compStateInstallInitReady componentInstallState = "componentStateReady"
 
-	// compStateInstallDisabled is the state when a component is disabled
-	compStateInstallDisabled componentInstallState = "componentStateDisabled"
+	// compStateInstallInitDisabled is the state when a component is disabled
+	compStateInstallInitDisabled componentInstallState = "componentStateDisabled"
 
-	// compStateInstallStarted is the state when a component writes the Install Started status condition
-	compStateInstallStarted componentInstallState = "componentStateInstallStarted"
+	// compStateWriteInstallStartedStatus is the state when a component writes the Install Started status condition
+	compStateWriteInstallStartedStatus componentInstallState = "componentStateInstallStarted"
 
 	// compStatePreInstall is the state when a component does a pre-install
 	compStatePreInstall componentInstallState = "compStatePreInstall"
@@ -62,8 +62,7 @@ func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *ins
 	// Loop through all of the Verrazzano components and install each one
 	for _, comp := range registry.GetComponents() {
 		installContext := tracker.getComponentInstallContext(comp.Name())
-		result, err := r.installSingleComponent(spiCtx, installContext, comp, preUpgrade)
-		if err != nil || result.Requeue {
+		if result := r.installSingleComponent(spiCtx, installContext, comp, preUpgrade); result.Requeue {
 			requeue = true
 		}
 
@@ -77,7 +76,7 @@ func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *ins
 }
 
 // installSingleComponent installs a single component
-func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, installContext *componentInstallContext, comp spi.Component, preUpgrade bool) (ctrl.Result, error) {
+func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, installContext *componentInstallContext, comp spi.Component, preUpgrade bool) ctrl.Result {
 	compName := comp.Name()
 	compContext := spiCtx.Init(compName).Operation(vzconst.InstallOperation)
 	compLog := compContext.Log()
@@ -90,15 +89,9 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 
 	for installContext.state != compStateInstallEnd {
 		switch installContext.state {
-		case compStateInstallInit:
+		case compStateInstallInitDetermineComponentState:
 
 			compLog.Debugf("Component %s is being reconciled", compName)
-
-			if !comp.IsOperatorInstallSupported() {
-				compLog.Debugf("Component based install not supported for %s", compName)
-				installContext.state = compStateInstallEnd
-				continue
-			}
 
 			// Some components, like MySQL Operator, need to be installed before upgrade
 			if preUpgrade && !comp.ShouldInstallBeforeUpgrade() {
@@ -109,15 +102,15 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 			// Determine the state of the component to know what to do with it
 			switch componentStatus.State {
 			case vzapi.CompStateDisabled:
-				installContext.state = compStateInstallDisabled
+				installContext.state = compStateInstallInitDisabled
 			case vzapi.CompStatePreInstalling:
-				installContext.state = compStateInstallStarted
+				installContext.state = compStateWriteInstallStartedStatus
 			case vzapi.CompStateInstalling:
-				installContext.state = compStateInstallStarted
+				installContext.state = compStateWriteInstallStartedStatus
 			default:
-				installContext.state = compStateInstallReady
+				installContext.state = compStateInstallInitReady
 			}
-		case compStateInstallDisabled:
+		case compStateInstallInitDisabled:
 			if !comp.IsEnabled(compContext.EffectiveCR()) {
 				compLog.Oncef("Component %s is disabled, skipping install", compName)
 				// User has disabled component in Verrazzano CR, don't install
@@ -132,31 +125,32 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 				installContext.state = compStateInstallEnd
 				continue
 			}
-			installContext.state = compStateInstallStarted
+			installContext.state = compStateWriteInstallStartedStatus
 
-		case compStateInstallReady:
+		case compStateInstallInitReady:
 			// Don't reconcile (updates) during install
 			if !isInstalled(spiCtx.ActualCR().Status) {
 				installContext.state = compStateInstallEnd
 				continue
 			}
 
-			if checkConfigUpdated(spiCtx, componentStatus, compName) && comp.IsEnabled(compContext.EffectiveCR()) {
+			if checkConfigUpdated(spiCtx, componentStatus) && comp.IsEnabled(compContext.EffectiveCR()) {
 				if !comp.MonitorOverrides(compContext) && comp.IsEnabled(spiCtx.EffectiveCR()) {
 					compLog.Oncef("Skipping update for component %s, monitorChanges set to false", comp.Name())
 				} else {
-					installContext.state = compStateInstallStarted
+					installContext.state = compStateWriteInstallStartedStatus
 					continue
 				}
 			}
 			installContext.state = compStateInstallEnd
 
-		case compStateInstallStarted:
+		case compStateWriteInstallStartedStatus:
 			oldState := componentStatus.State
 			oldGen := componentStatus.ReconcilingGeneration
 			componentStatus.ReconcilingGeneration = 0
 			if err := r.updateComponentStatus(compContext, "Install started", vzapi.CondInstallStarted); err != nil {
-				return ctrl.Result{Requeue: true}, err
+				compLog.ErrorfThrottled("Error writing component Installing state to the status: %v", err)
+				return ctrl.Result{Requeue: true}
 			}
 			compLog.Oncef("CR.generation: %v reset component %s state: %v generation: %v to state: %v generation: %v ",
 				spiCtx.ActualCR().Generation, compName, oldState, oldGen, componentStatus.State, componentStatus.ReconcilingGeneration)
@@ -165,11 +159,12 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 		case compStatePreInstall:
 			if !registry.ComponentDependenciesMet(comp, compContext) {
 				compLog.Progressf("Component %s waiting for dependencies %v to be ready", comp.Name(), comp.GetDependencies())
-				return newRequeueWithDelay(), nil
+				return ctrl.Result{Requeue: true}
 			}
 			compLog.Progressf("Component %s pre-install is running ", compName)
 			if err := comp.PreInstall(compContext); err != nil {
-				return ctrl.Result{Requeue: true}, err
+				compLog.ErrorfThrottled("Error running PreInstall for component %s: %v", compName, err)
+				return ctrl.Result{Requeue: true}
 			}
 			installContext.state = compStateInstall
 
@@ -177,14 +172,15 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 			// If component is not installed,install it
 			compLog.Oncef("Component %s install started ", compName)
 			if err := comp.Install(compContext); err != nil {
-				return ctrl.Result{Requeue: true}, nil
+				compLog.ErrorfThrottled("Error running Install for component %s: %v", compName, err)
+				return ctrl.Result{Requeue: true}
 			}
 			installContext.state = compStateInstallWaitReady
 
 		case compStateInstallWaitReady:
 			if !comp.IsReady(compContext) {
 				compLog.Progressf("Component %s has been installed. Waiting for the component to be ready", compName)
-				return newRequeueWithDelay(), nil
+				return ctrl.Result{Requeue: true}
 			}
 			compLog.Oncef("Component %s successfully installed", comp.Name())
 			installContext.state = compStatePostInstall
@@ -192,25 +188,27 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 		case compStatePostInstall:
 			compLog.Oncef("Component %s post-install running", compName)
 			if err := comp.PostInstall(compContext); err != nil {
-				return ctrl.Result{}, err
+				compLog.ErrorfThrottled("Error running PostInstall for component %s: %v", compName, err)
+				return ctrl.Result{Requeue: true}
 			}
 			installContext.state = compStateInstallComplete
 
 		case compStateInstallComplete:
 			if err := r.updateComponentStatus(compContext, "Install complete", vzapi.CondInstallComplete); err != nil {
-				return ctrl.Result{Requeue: true}, err
+				compLog.ErrorfThrottled("Error writing component Ready state to the status: %v", err)
+				return ctrl.Result{Requeue: true}
 			}
 			installContext.state = compStateInstallEnd
 		}
 
 	}
 	// Component has been installed
-	return ctrl.Result{}, nil
+	return ctrl.Result{}
 }
 
 // checkConfigUpdated checks if the component config in the VZ CR has been updated
 // back looking at the VZ Generation, component ReconcilingGeneration, and component LastReconciledGeneration values
-func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails, name string) bool {
+func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails) bool {
 	// The component is being reconciled/installed with ReconcilingGeneration of the CR
 	// if CR.Generation > ReconcilingGeneration then re-enter install flow
 	if componentStatus.ReconcilingGeneration > 0 {
@@ -248,7 +246,7 @@ func (vuc *installTracker) getComponentInstallContext(compName string) *componen
 	context, ok := vuc.compMap[compName]
 	if !ok {
 		context = &componentInstallContext{
-			state: compStateInstallInit,
+			state: compStateInstallInitDetermineComponentState,
 		}
 		vuc.compMap[compName] = context
 	}

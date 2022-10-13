@@ -227,14 +227,9 @@ func postVerrazzanoUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, cr 
 	return mysql.PostUpgradeCleanup(log, client)
 }
 
-// getUpgradeTrackerKey gets the tracker key for the Verrazzano resource
-func getUpgradeTrackerKey(cr *installv1alpha1.Verrazzano) string {
-	return fmt.Sprintf("%s-%s-%s", cr.Namespace, cr.Name, string(cr.UID))
-}
-
 // getUpgradeTracker gets the upgrade tracker for Verrazzano
 func getUpgradeTracker(cr *installv1alpha1.Verrazzano) *upgradeTracker {
-	key := getUpgradeTrackerKey(cr)
+	key := getTrackerKey(cr)
 	vuc, ok := upgradeTrackerMap[key]
 	// If the entry is missing or the generation is different create a new entry
 	if !ok || vuc.gen != cr.Generation {
@@ -250,7 +245,7 @@ func getUpgradeTracker(cr *installv1alpha1.Verrazzano) *upgradeTracker {
 
 // deleteUpgradeTracker deletes the upgrade tracker for the Verrazzano resource
 func deleteUpgradeTracker(cr *installv1alpha1.Verrazzano) {
-	key := getUpgradeTrackerKey(cr)
+	key := getTrackerKey(cr)
 	_, ok := upgradeTrackerMap[key]
 	if ok {
 		delete(upgradeTrackerMap, key)
