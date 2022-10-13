@@ -59,9 +59,9 @@ const (
 	VzProjHandleCounter                    metricName = "VzProj handle counter"
 	VzProjHandleError                      metricName = "VzProj handle error"
 	VzProjHandleDuration                   metricName = "VzProj hanlde duration"
-	MysqlHaHandleCounter                   metricName = "mysqlha handle counter"
-	MysqlHaHandleError                     metricName = "mysqlha handle error"
-	MysqlHaHandleDuration                  metricName = "mysqlha handle duration"
+	MysqlHaHandleCounter                   metricName = "mysql backup handle counter"
+	MysqlHaHandleError                     metricName = "mysql backup handle error"
+	MysqlHaHandleDuration                  metricName = "mysql backup handle duration"
 )
 
 func init() {
