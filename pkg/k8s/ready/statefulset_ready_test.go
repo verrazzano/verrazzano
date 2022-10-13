@@ -1,7 +1,7 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package status
+package ready
 
 import (
 	"testing"
@@ -17,63 +17,63 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func TestDaemonSetsReady(t *testing.T) {
+func TestStatefulsetReady(t *testing.T) {
 
 	selector := &metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			"app": "foo",
 		},
 	}
-	enoughReplicas := &appsv1.DaemonSet{
+	enoughReplicas := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "bar",
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.StatefulSetSpec{
 			Selector: selector,
 		},
-		Status: appsv1.DaemonSetStatus{
-			NumberAvailable:        1,
-			UpdatedNumberScheduled: 1,
+		Status: appsv1.StatefulSetStatus{
+			ReadyReplicas:   1,
+			UpdatedReplicas: 1,
 		},
 	}
-	enoughReplicasMultiple := &appsv1.DaemonSet{
+	enoughReplicasMultiple := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "bar",
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.StatefulSetSpec{
 			Selector: selector,
 		},
-		Status: appsv1.DaemonSetStatus{
-			NumberAvailable:        2,
-			UpdatedNumberScheduled: 2,
+		Status: appsv1.StatefulSetStatus{
+			ReadyReplicas:   2,
+			UpdatedReplicas: 2,
 		},
 	}
-	notEnoughReadyReplicas := &appsv1.DaemonSet{
+	notEnoughReadyReplicas := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "bar",
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.StatefulSetSpec{
 			Selector: selector,
 		},
-		Status: appsv1.DaemonSetStatus{
-			NumberAvailable:        0,
-			UpdatedNumberScheduled: 1,
+		Status: appsv1.StatefulSetStatus{
+			ReadyReplicas:   0,
+			UpdatedReplicas: 1,
 		},
 	}
-	notEnoughUpdatedReplicas := &appsv1.DaemonSet{
+	notEnoughUpdatedReplicas := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "bar",
 		},
-		Spec: appsv1.DaemonSetSpec{
+		Spec: appsv1.StatefulSetSpec{
 			Selector: selector,
 		},
-		Status: appsv1.DaemonSetStatus{
-			NumberAvailable:        1,
-			UpdatedNumberScheduled: 0,
+		Status: appsv1.StatefulSetStatus{
+			ReadyReplicas:   1,
+			UpdatedReplicas: 0,
 		},
 	}
 
@@ -82,7 +82,7 @@ func TestDaemonSetsReady(t *testing.T) {
 			Name:      "foo-95d8c5d96-m6mbr",
 			Namespace: "bar",
 			Labels: map[string]string{
-				controllerRevisionHashLabel: "95d8c5d96",
+				controllerRevisionHashLabel: "foo-95d8c5d96",
 				"app":                       "foo",
 			},
 		},
@@ -99,7 +99,7 @@ func TestDaemonSetsReady(t *testing.T) {
 			Name:      "foo-95d8c5d96-m6y76",
 			Namespace: "bar",
 			Labels: map[string]string{
-				controllerRevisionHashLabel: "95d8c5d96",
+				controllerRevisionHashLabel: "foo-95d8c5d96",
 				"app":                       "foo",
 			},
 		},
@@ -116,7 +116,7 @@ func TestDaemonSetsReady(t *testing.T) {
 			Name:      "foo-95d8c5d96-m6mbr",
 			Namespace: "bar",
 			Labels: map[string]string{
-				controllerRevisionHashLabel: "95d8c5d96",
+				controllerRevisionHashLabel: "foo-95d8c5d96",
 				"app":                       "foo",
 			},
 		},
@@ -168,14 +168,14 @@ func TestDaemonSetsReady(t *testing.T) {
 		expected int32
 	}{
 		{
-			"should be ready when daemonset has enough replicas and pod is ready",
+			"should be ready when statefulset has enough replicas and pod is ready",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(enoughReplicas, readyPod, controllerRevision).Build(),
 			namespacedName,
 			true,
 			1,
 		},
 		{
-			"should be ready when daemonset has enough replicas and one pod of two pods is ready",
+			"should be ready when statefulset has enough replicas and one pod of two pods is ready",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(enoughReplicasMultiple, notReadyContainerPod, readyPod, controllerRevision).Build(),
 			namespacedName,
 			true,
@@ -189,28 +189,28 @@ func TestDaemonSetsReady(t *testing.T) {
 			2,
 		},
 		{
-			"should be not ready when daemonset has enough replicas but pod init container pods is not ready",
+			"should be not ready when statefulset has enough replicas but pod init container pods is not ready",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(enoughReplicas, notReadyInitContainerPod, controllerRevision).Build(),
 			namespacedName,
 			false,
 			1,
 		},
 		{
-			"should be not ready when daemonset has enough replicas but pod container pods is not ready",
+			"should be not ready when statefulset has enough replicas but pod container pods is not ready",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(enoughReplicas, notReadyContainerPod, controllerRevision).Build(),
 			namespacedName,
 			false,
 			1,
 		},
 		{
-			"should be not ready when pod not found for daemonset",
+			"should be not ready when pod not found for statefulset",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(enoughReplicas).Build(),
 			namespacedName,
 			false,
 			1,
 		},
 		{
-			"should be not ready when daemonset not found",
+			"should be not ready when statefulset not found",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build(),
 			namespacedName,
 			false,
@@ -231,14 +231,14 @@ func TestDaemonSetsReady(t *testing.T) {
 			1,
 		},
 		{
-			"should be not ready when daemonset doesn't have enough ready replicas",
+			"should be not ready when statefulset doesn't have enough ready replicas",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(notEnoughReadyReplicas).Build(),
 			namespacedName,
 			false,
 			1,
 		},
 		{
-			"should be not ready when daemonset doesn't have enough updated replicas",
+			"should be not ready when statefulset doesn't have enough updated replicas",
 			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(notEnoughUpdatedReplicas).Build(),
 			namespacedName,
 			false,
@@ -255,7 +255,7 @@ func TestDaemonSetsReady(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.ready, DaemonSetsAreReady(vzlog.DefaultLogger(), tt.c, tt.n, tt.expected, ""))
+			assert.Equal(t, tt.ready, StatefulSetsAreReady(vzlog.DefaultLogger(), tt.c, tt.n, tt.expected, ""))
 		})
 	}
 }
