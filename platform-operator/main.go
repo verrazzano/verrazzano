@@ -88,8 +88,6 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&config.CertDir, "cert-dir", config.CertDir, "The directory containing tls.crt and tls.key.")
-	flag.BoolVar(&config.WebhooksEnabled, "enable-webhooks", config.WebhooksEnabled,
-		"Enable webhooks for the operator")
 	flag.BoolVar(&config.DryRun, "dry-run", config.DryRun, "Run operator in dry run mode.")
 	flag.BoolVar(&config.WebhookValidationEnabled, "enable-webhook-validation", config.WebhookValidationEnabled,
 		"Enable webhooks validation for the operator")
@@ -140,8 +138,8 @@ func main() {
 	}
 }
 
+// startWebhookServers uses the same image as operator, but configured only to run Webhooks for the platform.
 func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredLogger) {
-
 	log.Debug("Creating certificates used by webhooks")
 	caCert, err := certificate.CreateWebhookCertificates(config.CertDir)
 	if err != nil {
@@ -236,6 +234,7 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 
 }
 
+// reconcilePlatformOperator runs the Verrazzano Platform Operator without running webhooks servers
 func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.SugaredLogger) {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
