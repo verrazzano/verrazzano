@@ -382,7 +382,7 @@ spec:
       containers:
         - name: {{ .Values.name }}
           image: {{ .Values.image }}
-          imagePullPolicy: Always
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
           ports:
             - containerPort: 9443
               name: https-webhook
