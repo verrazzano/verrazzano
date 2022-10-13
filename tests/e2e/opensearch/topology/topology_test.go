@@ -27,7 +27,7 @@ const (
 	systemNamespace = "verrazzano-system"
 	verrazzanoName  = "verrazzano"
 	vmiName         = "testing"
-	timeout         = 15 * time.Minute
+	timeout         = 20 * time.Minute
 	pollInterval    = 15 * time.Second
 )
 

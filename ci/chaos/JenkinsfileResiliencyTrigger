@@ -61,22 +61,11 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
-        STABLE_COMMIT_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-stable-commit.txt"
-        STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
     }
 
     stages {
         stage('Clean workspace and checkout') {
             steps {
-                sh """
-                    echo "${NODE_LABELS}"
-                    echo "Downloading latest stable commit info from object storage"
-                    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${STABLE_COMMIT_OS_LOCATION} --file ${STABLE_COMMIT_LOCATION}
-                """
-
-                // This job is triggered based on a cron schedule but it works the same way as the PERIODIC tests
-                // It will get the COMMIT to use based on the last stable commit for this branch, and use that. If that doesn't exist you need to set that up
-                // in the same way that you would if you were running a PERIODIC test in a branch (push triggered job needs to be clean or you need to force a stable commit there)
                 script {
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"

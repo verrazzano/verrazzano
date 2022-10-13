@@ -11,7 +11,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	k8sstatus "github.com/verrazzano/verrazzano/pkg/k8s/status"
+	k8sready "github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -21,7 +21,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -41,6 +40,7 @@ const (
 	helmUserName          = "credentials.user.name"     //nolint:gosec //#gosec G101
 	mysqlUpgradeSubComp   = "mysql-upgrade"
 	mySQLRootKey          = "rootPassword"
+	mySQLUserKey          = "userPassword"
 	secretName            = "mysql"
 	secretKey             = "mysql-password"
 	mySQLUsername         = "keycloak"
@@ -174,9 +174,9 @@ func isMySQLReady(ctx spi.ComponentContext) bool {
 			routerReplicas = int(value.(float64))
 		}
 	}
-	ready := status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, int32(serverReplicas), prefix)
+	ready := k8sready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, int32(serverReplicas), prefix)
 	if ready && routerReplicas > 0 {
-		ready = k8sstatus.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployment, int32(routerReplicas), prefix)
+		ready = k8sready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployment, int32(routerReplicas), prefix)
 	}
 
 	return ready && checkDbMigrationJobCompletion(ctx) && isInnoDBClusterOnline(ctx)
@@ -249,7 +249,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	}
 
 	if compContext.Init(ComponentName).GetOperation() == vzconst.InstallOperation {
-		userPwd, err := createKeycloakDBSecret()
+		userPwd, err := getOrCreateDBUserPassword(compContext)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
@@ -581,13 +581,25 @@ func createMySQLInitFile(ctx spi.ComponentContext, userPwd []byte) (string, erro
 	return file.Name(), nil
 }
 
-// createKeycloakDBSecret creates or updates a secret containing the password used by keycloak to access the DB
-func createKeycloakDBSecret() (string, error) {
-	password, err := vzpassword.GeneratePassword(12)
+// getOrCreateDBUserPassword creates or updates a secret containing the password used by keycloak to access the DB
+func getOrCreateDBUserPassword(compContext spi.ComponentContext) (string, error) {
+	secretName := types.NamespacedName{
+		Namespace: ComponentNamespace,
+		Name:      rootSec,
+	}
+	dbSecret := &v1.Secret{}
+	err := compContext.Client().Get(context.TODO(), secretName, dbSecret)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			password, err := vzpassword.GeneratePassword(12)
+			if err != nil {
+				return "", err
+			}
+			return password, nil
+		}
 		return "", err
 	}
-	return password, nil
+	return string(dbSecret.Data[mySQLUserKey]), nil
 }
 
 func appendDatabaseInitializationValues(compContext spi.ComponentContext, userPwd []byte, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
