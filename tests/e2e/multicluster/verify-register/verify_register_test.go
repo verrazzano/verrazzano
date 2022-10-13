@@ -15,10 +15,10 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -70,7 +70,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		// This test is part of the minimal verification.
 		t.It("has the expected VerrazzanoManagedCluster", func() {
 			var client *vmcClient.Clientset
-			// If registration happend in VZ versions 1.4 and above on admin cluster, check the ManagedCARetrieved condition as well
+			// If registration happened in VZ versions 1.4 and above on admin cluster, check the ManagedCARetrieved condition as well
 			adminVersionAtRegistration := os.Getenv("ADMIN_VZ_VERSION_AT_REGISTRATION")
 			pkg.Log(pkg.Info, fmt.Sprintf("Admin cluster VZ version at registration is '%s'", adminVersionAtRegistration))
 			regVersion14 := false

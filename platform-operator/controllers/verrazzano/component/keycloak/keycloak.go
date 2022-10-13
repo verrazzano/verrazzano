@@ -14,6 +14,7 @@ import (
 	"text/template"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -22,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -55,6 +55,9 @@ const (
 	keycloakPodName         = "keycloak-0"
 	realmManagement         = "realm-management"
 	viewUsersRole           = "view-users"
+	noRouterAddr            = "mysql-instances"
+	routerAddr              = "mysql"
+	dbHostKey               = "mysql.dbHost"
 )
 
 // Define the Keycloak Key:Value pair for init container.
@@ -547,7 +550,23 @@ func AppendKeycloakOverrides(compContext spi.ComponentContext, _ string, _ strin
 		Value: vzconfig.GetIngressClassName(compContext.EffectiveCR()),
 	})
 
+	// set the appropriate host address for DB based on the availability of the MySQL router
+	mysqlAddr := noRouterAddr
+	if isMySQLRouterDeployed(compContext, err) {
+		mysqlAddr = routerAddr
+	}
+	kvs = append(kvs, bom.KeyValue{
+		Key:   dbHostKey,
+		Value: mysqlAddr,
+	})
+
 	return kvs, nil
+}
+
+func isMySQLRouterDeployed(compContext spi.ComponentContext, err error) bool {
+	deployment := appv1.Deployment{}
+	err = compContext.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: "mysql-router"}, &deployment)
+	return err == nil
 }
 
 // getEnvironmentName returns the name of the Verrazzano install environment
@@ -821,7 +840,7 @@ func loginKeycloak(ctx spi.ComponentContext, cfg *restclient.Config, cli kuberne
 	ctx.Log().Debugf("loginKeycloak: Login Cmd = %s", maskPw(loginCmd))
 	stdOut, stdErr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(loginCmd))
 	if err != nil {
-		ctx.Log().Errorf("Component Keycloak failed logging into Keycloak: stdout = %s: stderr = %s", stdOut, stdErr)
+		ctx.Log().Errorf("Component Keycloak failed logging into Keycloak: stdout = %s: stderr = %s, err = %v", stdOut, stdErr, maskPw(err.Error()))
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Once("Component Keycloak successfully logged into Keycloak")
@@ -1304,7 +1323,7 @@ func isKeycloakReady(ctx spi.ComponentContext) bool {
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, 1, prefix)
+	return ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, 1, prefix)
 }
 
 // isPodReady determines if the pod is running by checking for a Ready condition with Status equal True

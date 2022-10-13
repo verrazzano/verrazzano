@@ -1,0 +1,58 @@
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: weblogic.oracle/v8
+kind: Domain
+metadata:
+  labels:
+    app.oam.dev/component: {{.COMPONENT_NAME}}
+    app.oam.dev/name: {{.APPCONF_NAME}}
+    app.oam.dev/resourceType: WORKLOAD
+    app.oam.dev/revision: {{.DOMAIN_NAME}}-v1
+    weblogic.domainUID: {{.DOMAIN_NAME}}-uid
+    weblogic.resourceVersion: domain-v8
+  name: {{.DOMAIN_NAME}}
+  namespace: {{.DOMAIN_NAMESPACE}}
+  uid: {{if .DOMAIN_UID}}{{.DOMAIN_UID}}{{else}}test-domain-uid{{end}}
+  ownerReferences:
+    - apiVersion: core.oam.dev/v1alpha2
+      blockOwnerDeletion: true
+      controller: true
+      kind: ApplicationConfiguration
+      name: todo
+      uid: e0fa6696-7709-40ee-b91f-8fd4dc918bd6
+spec:
+  clusters:
+    - clusterName: cluster-1
+  configuration:
+    introspectorJobActiveDeadlineSeconds: 600
+    model:
+      domainType: WLS
+      runtimeEncryptionSecret: {{.DOMAIN_NAME}}domain-runtime-encrypt-secret
+    secrets:
+      - tododomain-jdbc-tododb
+  domainHome: /u01/oracle/user_projects/domains/tododomain
+  domainHomeSourceType: FromModel
+  domainUID: tododomain
+  image: fake-image
+  imagePullSecrets:
+    - name: ocir
+  includeServerOutInPodLog: true
+  logHome: /scratch/logs/tododomain
+  logHomeEnabled: false
+  replicas: 1
+  serverPod:
+    annotations:
+      verrazzano.io_metricsTraitAnno: test-trait-anno-1
+    env:
+      - name: JAVA_OPTIONS
+        value: -Dweblogic.StdoutDebugEnabled=false
+      - name: USER_MEM_ARGS
+        value: '-Djava.security.egd=file:/dev/./urandom -Xms64m -Xmx256m '
+      - name: WL_HOME
+        value: /u01/oracle/wlserver
+      - name: MW_HOME
+        value: /u01/oracle
+    labels:
+      verrazzano.io_metricsTraitLabel: test-trait-label-1
+  webLogicCredentialsSecret:
+    name: tododomain-weblogic-credentials

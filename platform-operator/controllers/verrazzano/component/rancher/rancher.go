@@ -14,7 +14,7 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/status"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -116,6 +116,10 @@ const (
 	SettingUILogoDark              = "ui-logo-dark"
 	SettingUILogoDarkLogoFilePath  = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-dark.svg"
 	SettingUILogoValueprefix       = "data:image/svg+xml;base64,"
+	SettingUIPrimaryColor          = "ui-primary-color"
+	SettingUIPrimaryColorValue     = "rgb(48, 99, 142)"
+	SettingUILinkColor             = "ui-link-color"
+	SettingUILinkColorValue        = "rgb(49, 118, 217)"
 )
 
 // auth config
@@ -262,7 +266,7 @@ func isRancherReady(ctx spi.ComponentContext) bool {
 	}
 
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsAreReady(log, c, deployments, 1, prefix)
+	return ready.DeploymentsAreReady(log, c, deployments, 1, prefix)
 }
 
 // checkRancherUpgradeFailure - temporary work around for Rancher issue 36914. During an upgrade, the Rancher pods
@@ -712,4 +716,14 @@ func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, l
 	}
 
 	return createOrUpdateResource(ctx, types.NamespacedName{Name: settingName}, GVKSetting, map[string]interface{}{"value": fmt.Sprintf("%s%s", SettingUILogoValueprefix, stdout)})
+}
+
+// createOrUpdateUIColorSettings creates/updates the ui-primary-color and ui-link-color settings
+func createOrUpdateUIColorSettings(ctx spi.ComponentContext) error {
+	err := createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUIPrimaryColor}, GVKSetting, map[string]interface{}{"value": SettingUIPrimaryColorValue})
+	if err != nil {
+		return err
+	}
+
+	return createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUILinkColor}, GVKSetting, map[string]interface{}{"value": SettingUILinkColorValue})
 }

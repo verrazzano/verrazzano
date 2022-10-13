@@ -265,7 +265,7 @@ func TestPostInstall(t *testing.T) {
 func TestPostUpgrade(t *testing.T) {
 	component := NewComponent()
 	ctxWithoutIngress, ctxWithIngress := prepareContexts()
-	assert.Nil(t, component.PostUpgrade(ctxWithoutIngress))
+	assert.Error(t, component.PostUpgrade(ctxWithoutIngress))
 	assert.Nil(t, component.PostUpgrade(ctxWithIngress))
 }
 
@@ -386,8 +386,9 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 
 	ingress := v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: common.CattleSystem,
-			Name:      constants.RancherIngress,
+			Namespace:   common.CattleSystem,
+			Name:        constants.RancherIngress,
+			Annotations: map[string]string{},
 		},
 		Spec: v1.IngressSpec{
 			Rules: []v1.IngressRule{

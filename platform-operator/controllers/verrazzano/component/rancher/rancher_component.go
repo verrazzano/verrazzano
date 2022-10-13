@@ -360,7 +360,7 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed helm component post upgrade: %s", err.Error())
 	}
 
-	return nil
+	return patchRancherIngress(c, ctx.EffectiveCR())
 }
 
 // activateDrivers activates the nodeDriver oci and oraclecontainerengine kontainerDriver
@@ -451,7 +451,7 @@ func isKeycloakAuthEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
-// configureUISettings configures Rancher setting ui-pl, ui-logo-light and ui-logo-dark.
+// configureUISettings configures Rancher setting ui-pl, ui-logo-light, ui-logo-dark, ui-primary-color and ui-link-color.
 func configureUISettings(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 	if err := createOrUpdateUIPlSetting(ctx); err != nil {
@@ -464,6 +464,10 @@ func configureUISettings(ctx spi.ComponentContext) error {
 
 	if err := createOrUpdateUILogoSetting(ctx, SettingUILogoDark, SettingUILogoDarkLogoFilePath); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo path %s: %s", SettingUILogoDark, SettingUILogoDarkLogoFilePath, err.Error())
+	}
+
+	if err := createOrUpdateUIColorSettings(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring ui color settings: %s", err.Error())
 	}
 
 	return nil
