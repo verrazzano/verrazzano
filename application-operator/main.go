@@ -169,6 +169,12 @@ func main() {
 			os.Exit(1)
 		}
 
+		err = certificates.UpdateMutatingWebhookConfiguration(kubeClient, caCert, certificates.MysqlMutatingWebhookName)
+		if err != nil {
+			log.Errorf("Failed to update pod mutating webhook configuration: %v", err)
+			os.Exit(1)
+		}
+
 		// IngressTrait validating webhook
 		err = certificates.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificates.IngressTraitValidatingWebhookName)
 		if err != nil {
@@ -233,6 +239,18 @@ func main() {
 				Handler: &webhooks.LabelerPodWebhook{
 					Client:        mgr.GetClient(),
 					DynamicClient: dynamicClient,
+				},
+			},
+		)
+
+		mgr.GetWebhookServer().Register(
+			webhooks.MySQLBackupPath,
+			&webhook.Admission{
+				Handler: &webhooks.MySQLBackupJobWebhook{
+					Client:        mgr.GetClient(),
+					KubeClient:    kubeClient,
+					DynamicClient: dynamicClient,
+					IstioClient:   istioClientSet,
 				},
 			},
 		)

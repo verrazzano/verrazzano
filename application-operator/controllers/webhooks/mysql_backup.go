@@ -1,0 +1,214 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+package webhooks
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"github.com/gertd/go-pluralize"
+	"github.com/verrazzano/verrazzano/application-operator/controllers"
+	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	"go.uber.org/zap"
+	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
+	batchv1 "k8s.io/api/batch/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"net/http"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	"strings"
+)
+
+const (
+	// MySQLBackupPath specifies the path of Istio defaulter webhook
+	MySQLBackupPath = "/mysql-backup"
+
+	// MySQLOperatorJobLabel and MySQLOperatorJobLabelValue is the label key,value applied to the job by mysql-operator
+
+	MySQLOperatorJobLabel      = "app.kubernetes.io/created-by"
+	MySQLOperatorJobLabelValue = "mysql-operator"
+
+	// MySQLOperatorJobPodSpecAnnotationKey and MySQLOperatorJobPodSpecAnnotationValue applied to the job spec
+	// so that it can talk to the k8s api server
+
+	MySQLOperatorJobPodSpecAnnotationKey   = "traffic.sidecar.istio.io/excludeOutboundPorts"
+	MySQLOperatorJobPodSpecAnnotationValue = "443"
+)
+
+// MySQLBackupJobWebhook type for istio defaulter webhook
+type MySQLBackupJobWebhook struct {
+	client.Client
+	IstioClient   istioversionedclient.Interface
+	Decoder       *admission.Decoder
+	KubeClient    kubernetes.Interface
+	DynamicClient dynamic.Interface
+}
+
+// Handle is the entry point for the mutating webhook.
+// This function is called for any jobs that are created in a namespace with the label istio-injection=enabled.
+func (m *MySQLBackupJobWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
+
+	counterMetricObject, errorCounterMetricObject, handleDurationMetricObject, zapLogForMetrics, err := metricsexporter.ExposeControllerMetrics("MySQlHa", metricsexporter.MysqlHaHandleCounter, metricsexporter.MysqlHaHandleError, metricsexporter.MysqlHaHandleDuration)
+	if err != nil {
+		return admission.Response{}
+	}
+	handleDurationMetricObject.TimerStart()
+	defer handleDurationMetricObject.TimerStop()
+
+	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "mysql-backup")
+
+	job := &batchv1.Job{}
+	err = m.Decoder.Decode(req, job)
+	if err != nil {
+		errorCounterMetricObject.Inc(zapLogForMetrics, err)
+		return admission.Errored(http.StatusBadRequest, err)
+	}
+	return m.processJob(counterMetricObject, errorCounterMetricObject, req, job, log, zapLogForMetrics)
+}
+
+// InjectDecoder injects the decoder.
+func (m *MySQLBackupJobWebhook) InjectDecoder(d *admission.Decoder) error {
+	m.Decoder = d
+	return nil
+}
+
+func (m *MySQLBackupJobWebhook) processJob(counterMetricObject, errorCounterMetricObject *metricsexporter.SimpleCounterMetric, req admission.Request, job *batchv1.Job, log, metricsLog *zap.SugaredLogger) admission.Response {
+
+	var mysqlOperatorOwnerReferencePresent, mysqlOperatorLabelPresent bool
+
+	// Check for the annotation "sidecar.istio.io/inject: false".  No action required if annotation is set to false.
+	for key, value := range job.Annotations {
+		if key == "sidecar.istio.io/inject" && value == "false" {
+			log.Debugf("Job labeled with sidecar.istio.io/inject: false: %s:%s:%s", job.Namespace, job.Name, job.GenerateName)
+			return admission.Allowed("No action required, job labeled with sidecar.istio.io/inject: false")
+		}
+	}
+
+	// Job spec annotation is only done for jobs launched by mysql operator
+	for key, value := range job.Labels {
+		if key == MySQLOperatorJobLabel && value == MySQLOperatorJobLabelValue {
+			mysqlOperatorLabelPresent = true
+			break
+		}
+	}
+
+	// Get all owner references for this job
+	ownerRefList, err := m.getSimplifiedOwnerReferences(nil, req.Namespace, job.OwnerReferences, log)
+	if err != nil {
+		fmt.Println(err)
+		errorCounterMetricObject.Inc(metricsLog, err)
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+
+	// Check if the Job was created from an CronJob or MySQLBackup resource.
+	// We do this by checking for the existence of an ApplicationConfiguration ownerReference resource.
+	for _, ownerRef := range ownerRefList {
+		// This condition is satisfied by any Job for backup created from mysql-operator
+		if ownerRef.Kind == "MySQLBackup" {
+			mysqlOperatorOwnerReferencePresent = true
+			break
+		}
+		// This condition is satisfied by a Job that is created from a cron-job (backup schedule) that is created from mysql-operator
+		if ownerRef.Kind == "CronJob" {
+			ok, err := m.isCronJobCreatedByMysqlOperator(errorCounterMetricObject, req, ownerRef, log, metricsLog)
+			if err != nil {
+				return admission.Errored(http.StatusInternalServerError, err)
+			}
+			// ok = true when the job is triggered from a cronjob that was created by mysql operator
+			if ok {
+				mysqlOperatorOwnerReferencePresent = true
+				break
+			}
+		}
+	}
+
+	if !mysqlOperatorOwnerReferencePresent && !mysqlOperatorLabelPresent {
+		log.Debugf("No annotation is required for this job: %s:%s:%s", req.Namespace, job.Name, job.GenerateName)
+		return admission.Allowed("No action required, job not labelled with app.kubernetes.io/created-by: mysql-operator")
+	}
+	istioAnnotation := make(map[string]string)
+	istioAnnotation[MySQLOperatorJobPodSpecAnnotationKey] = MySQLOperatorJobPodSpecAnnotationValue
+	job.Spec.Template.SetAnnotations(istioAnnotation)
+
+	// Marshal the mutated pod to send back in the admission review response.
+	marshaledJobData, err := json.Marshal(job)
+	if err != nil {
+		errorCounterMetricObject.Inc(metricsLog, err)
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+	counterMetricObject.Inc(metricsLog, err)
+	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledJobData)
+
+}
+
+// getSimplifiedOwnerReferences traverses a nested array of owner references and returns a single array of owner references.
+func (m *MySQLBackupJobWebhook) getSimplifiedOwnerReferences(list []metav1.OwnerReference, namespace string, ownerRefs []metav1.OwnerReference, log *zap.SugaredLogger) ([]metav1.OwnerReference, error) {
+	for _, ownerRef := range ownerRefs {
+		list = append(list, ownerRef)
+
+		group, version := controllers.ConvertAPIVersionToGroupAndVersion(ownerRef.APIVersion)
+		resource := schema.GroupVersionResource{
+			Group:    group,
+			Version:  version,
+			Resource: pluralize.NewClient().Plural(strings.ToLower(ownerRef.Kind)),
+		}
+
+		unst, err := m.DynamicClient.Resource(resource).Namespace(namespace).Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
+		if err != nil {
+			if !errors.IsNotFound(err) {
+				log.Errorf("Failed getting the Dynamic API: %v", err)
+			}
+			return nil, err
+		}
+
+		if len(unst.GetOwnerReferences()) != 0 {
+			list, err = m.getSimplifiedOwnerReferences(list, namespace, unst.GetOwnerReferences(), log)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return list, nil
+}
+
+func (m *MySQLBackupJobWebhook) isCronJobCreatedByMysqlOperator(errorCounterMetricObject *metricsexporter.SimpleCounterMetric, req admission.Request, ownerRef metav1.OwnerReference, log, metricsLog *zap.SugaredLogger) (bool, error) {
+	var mysqlOperatorOwnerReferencePresent, mysqlOperatorLabelPresent bool
+
+	cjob, err := m.KubeClient.BatchV1().CronJobs(req.Namespace).Get(context.TODO(), ownerRef.Name, metav1.GetOptions{})
+	if err != nil {
+		log.Debugf("Unable to fetch cronJob : %s:%s", cjob.Namespace, cjob.Name)
+		return false, err
+	}
+	cjOwnerRefList, err := m.getSimplifiedOwnerReferences(nil, req.Namespace, cjob.OwnerReferences, log)
+	if err != nil {
+		errorCounterMetricObject.Inc(metricsLog, err)
+		return false, err
+	}
+	for _, cjOwnerRef := range cjOwnerRefList {
+		if cjOwnerRef.Kind == "InnoDBCluster" {
+			mysqlOperatorOwnerReferencePresent = true
+			break
+		}
+	}
+
+	// CronJob spec annotation is only done for jobs launched by mysql operator
+	for key, value := range cjob.Labels {
+		if key == MySQLOperatorJobLabel && value == MySQLOperatorJobLabelValue {
+			mysqlOperatorLabelPresent = true
+			break
+		}
+	}
+
+	if mysqlOperatorOwnerReferencePresent && mysqlOperatorLabelPresent {
+		// This is a litmus test that the cronjob was created bt mysql-operator
+		return true, nil
+	}
+
+	return false, fmt.Errorf("Cronjob was not created by MySQL operator")
+}

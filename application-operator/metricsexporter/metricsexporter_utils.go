@@ -59,6 +59,9 @@ const (
 	VzProjHandleCounter                    metricName = "VzProj handle counter"
 	VzProjHandleError                      metricName = "VzProj handle error"
 	VzProjHandleDuration                   metricName = "VzProj hanlde duration"
+	MysqlHaHandleCounter                   metricName = "mysqlha handle counter"
+	MysqlHaHandleError                     metricName = "mysqlha handle error"
+	MysqlHaHandleDuration                  metricName = "mysqlha handle duration"
 )
 
 func init() {
@@ -230,6 +233,16 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 				Name: "vao_vzproj_error_handle_total",
 				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
 		},
+		MysqlHaHandleCounter: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_mysql_ha_handle_total",
+				Help: "Tracks how many times the mysql ha jobs reconcile process has been successful"}),
+		},
+		MysqlHaHandleError: {
+			metric: prometheus.NewCounter(prometheus.CounterOpts{
+				Name: "vao_mysql_ha_error_handle_total",
+				Help: "Tracks how many times the mysql ha jobs reconcile process has failed"}),
+		},
 	}
 }
 
@@ -312,6 +325,12 @@ func initDurationMetricMap() map[metricName]*DurationMetrics {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
 				Name: "vao_bindingupdater_handle_duration",
 				Help: "The duration in seconds of vao Ingresstrait reconcile process",
+			}),
+		},
+		MysqlHaHandleDuration: {
+			metric: prometheus.NewSummary(prometheus.SummaryOpts{
+				Name: "vao_mysql_ha_handle_duration",
+				Help: "The duration in seconds of mysql ha jobs handle process",
 			}),
 		},
 	}

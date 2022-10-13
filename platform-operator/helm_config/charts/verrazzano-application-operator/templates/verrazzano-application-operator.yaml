@@ -65,6 +65,7 @@ rules:
       - batch
     resources:
       - jobs
+      - cronjobs
     verbs:
       - get
       - list
@@ -307,6 +308,27 @@ rules:
       - get
       - list
       - update
+  - apiGroups:
+      - mysql.oracle.com
+    resources:
+      - mysqlbackups
+    verbs:
+      - create
+      - get
+      - list
+      - patch
+      - update
+      - watch
+      - delete
+  - apiGroups:
+      - mysql.oracle.com
+    resources:
+      - mysqlbackups/status
+    verbs:
+      - get
+      - patch
+      - update
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -360,7 +382,7 @@ spec:
       containers:
         - name: {{ .Values.name }}
           image: {{ .Values.image }}
-          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          imagePullPolicy: Always
           ports:
             - containerPort: 9443
               name: https-webhook
@@ -496,6 +518,42 @@ webhooks:
           - CREATE
         resources:
           - pods
+    sideEffects: None
+    failurePolicy: Fail
+    matchPolicy: Exact
+    timeoutSeconds: 30
+    admissionReviewVersions:
+      - v1beta1
+      - v1
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: verrazzano-mysql-backup
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}
+webhooks:
+  - name: verrazzano-mysql-backup.verrazzano.io
+    namespaceSelector:
+      matchExpressions:
+        - {key: istio-injection, operator: In, values: [enabled]}
+        - {key: verrazzano.io/namespace, operator: NotIn, values: [verrazzano-system, kube-system, verrazzano-monitoring]}
+    clientConfig:
+      service:
+        name: {{ .Values.name }}
+        namespace: {{ .Values.namespace }}
+        path: "/mysql-backup"
+    rules:
+      - apiGroups:
+          - batch
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - jobs
     sideEffects: None
     failurePolicy: Fail
     matchPolicy: Exact

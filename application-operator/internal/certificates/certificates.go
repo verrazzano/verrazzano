@@ -44,6 +44,8 @@ const (
 	MultiClusterConfigMapName = "verrazzano-application-multiclusterconfigmap"
 	// MultiClusterSecretName is the resource name for the MultiClusterSecret ValidatingWebhook
 	MultiClusterSecretName = "verrazzano-application-multiclustersecret" //nolint:gosec //#gosec G101
+	// MysqlMutatingWebhookName is the resource name for the Verrazzano MutatingWebhook for Istio pods
+	MysqlMutatingWebhookName = "verrazzano-mysql-backup"
 )
 
 // SetupCertificates creates the needed certificates for the validating webhook
