@@ -77,12 +77,16 @@ func (c *Controller) updateStatusAvailability(components []spi.Component) {
 		return
 	}
 	// Set availability fields in the provided Verrazzano CR
-	if err := c.setAvailabilityFields(vzlogger, vz, components); err != nil {
+	update, err := c.setAvailabilityFields(vzlogger, vz, components)
+	if err != nil {
 		vzlogger.Errorf("Failed to get new Verrazzano availability: %v", err)
+		return
 	}
 	// Persist the updated Verrazzano CR
-	if err := c.updateStatus(vz); err != nil {
-		vzlogger.Errorf("Failed to update Verrazzano availability: %v", err)
+	if update {
+		if err := c.updateStatus(vz); err != nil {
+			vzlogger.Errorf("Failed to update Verrazzano availability: %v", err)
+		}
 	}
 }
 

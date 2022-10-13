@@ -12,36 +12,42 @@ import (
 
 type componentAvailability struct {
 	name      string
-	enabled   bool
 	reason    string
 	available bool
 }
 
 // setAvailabilityFields loops through the provided components sets their availability set.
 // The top level Verrazzano status.available field is set to (available components)/(enabled components).
-func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazzano, components []spi.Component) error {
+func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazzano, components []spi.Component) (bool, error) {
 	ch := make(chan componentAvailability)
 	ctx, err := spi.NewContext(log, c.client, vz, nil, false)
 	if err != nil {
-		return err
+		return false, err
 	}
-	for _, component := range components {
-		comp := component
-		go func() {
-			ch <- c.getComponentAvailability(vz, comp, ctx)
-		}()
-	}
+
 	countEnabled := 0
 	countAvailable := 0
+
+	for _, component := range components {
+		// If status is not fully initialized, do not check availability
+		if vz.Status.Components[component.Name()] == nil {
+			close(ch)
+			return false, nil
+		}
+
+		// determine a components availability
+		if vz.Status.Components[component.Name()].State != vzapi.CompStateDisabled {
+			countEnabled++
+			comp := component
+			go func() {
+				ch <- c.getComponentAvailability(comp, ctx)
+			}()
+		}
+	}
+
+	// count available components and set component availability
 	for i := 0; i < len(components); i++ {
 		a := <-ch
-		if a.enabled {
-			countEnabled++
-		}
-		if vz.Status.Components[a.name] == nil {
-			// component hasn't been reconciled by Verrazzano yet, skip
-			continue
-		}
 		if a.available {
 			countAvailable++
 		}
@@ -51,22 +57,17 @@ func (c *Controller) setAvailabilityFields(log vzlog.VerrazzanoLogger, vz *vzapi
 	availabilityColumn := fmt.Sprintf("%d/%d", countAvailable, countEnabled)
 	vz.Status.Available = &availabilityColumn
 	log.Debugf("Set component availability: %s", availabilityColumn)
-	return nil
+	return true, nil
 }
 
 // getComponentAvailability calculates componentAvailability for a given Verrazzano component
-func (c *Controller) getComponentAvailability(vz *vzapi.Verrazzano, component spi.Component, ctx spi.ComponentContext) componentAvailability {
+func (c *Controller) getComponentAvailability(component spi.Component, ctx spi.ComponentContext) componentAvailability {
 	name := component.Name()
 	ctx.Init(name)
-	enabled := component.IsEnabled(vz)
-	a := componentAvailability{
-		name:    name,
-		enabled: enabled,
+	reason, available := component.IsAvailable(ctx)
+	return componentAvailability{
+		name:      name,
+		reason:    reason,
+		available: available,
 	}
-	if a.enabled {
-		reason, available := component.IsAvailable(ctx)
-		a.reason = reason
-		a.available = available
-	}
-	return a
 }

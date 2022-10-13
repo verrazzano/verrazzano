@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -20,12 +19,7 @@ import (
 type fakeComponent struct {
 	name      string
 	available bool
-	enabled   bool
 	helm.HelmComponent
-}
-
-func (f fakeComponent) IsEnabled(_ runtime.Object) bool {
-	return f.enabled
 }
 
 func (f fakeComponent) IsAvailable(_ spi.ComponentContext) (string, bool) {
@@ -36,8 +30,8 @@ func (f fakeComponent) Name() string {
 	return f.name
 }
 
-func newFakeComponent(name string, available, enabled bool) fakeComponent {
-	return fakeComponent{name: name, available: available, enabled: enabled}
+func newFakeComponent(name string, available bool) fakeComponent {
+	return fakeComponent{name: name, available: available}
 }
 
 func newTestController(objs ...client.Object) *Controller {
@@ -51,13 +45,10 @@ func TestGetComponentAvailability(t *testing.T) {
 		f fakeComponent
 	}{
 		{
-			newFakeComponent("availableComponent", true, true),
+			newFakeComponent("availableComponent", true),
 		},
 		{
-			newFakeComponent("unavailableComponent", false, true),
-		},
-		{
-			newFakeComponent("disabledComponent", true, false),
+			newFakeComponent("unavailableComponent", false),
 		},
 	}
 
@@ -66,13 +57,8 @@ func TestGetComponentAvailability(t *testing.T) {
 	ctx := spi.NewFakeContext(c.client, vz, nil, false)
 	for _, tt := range tests {
 		t.Run(tt.f.name, func(t *testing.T) {
-			a := c.getComponentAvailability(vz, tt.f, ctx)
-			assert.Equal(t, tt.f.enabled, a.enabled)
-			if a.enabled {
-				assert.Equal(t, tt.f.available, a.available)
-			} else {
-				assert.False(t, a.available)
-			}
+			a := c.getComponentAvailability(tt.f, ctx)
+			assert.Equal(t, tt.f.available, a.available)
 		})
 	}
 }
@@ -96,26 +82,21 @@ func TestSetAvailabilityFields(t *testing.T) {
 			zeroOfZero,
 		},
 		{
-			"no enabled components, no availability",
-			[]spi.Component{newFakeComponent(rancher, false, false)},
-			zeroOfZero,
-		},
-		{
 			"enabled but not available",
-			[]spi.Component{newFakeComponent(rancher, false, true)},
+			[]spi.Component{newFakeComponent(rancher, false)},
 			"0/1",
 		},
 		{
 			"enabled and available",
-			[]spi.Component{newFakeComponent(rancher, true, true)},
+			[]spi.Component{newFakeComponent(rancher, true)},
 			"1/1",
 		},
 		{
 			"multiple components",
 			[]spi.Component{
-				newFakeComponent(rancher, true, true),
-				newFakeComponent(opensearch, true, true),
-				newFakeComponent(grafana, false, true),
+				newFakeComponent(rancher, true),
+				newFakeComponent(opensearch, true),
+				newFakeComponent(grafana, false),
 			},
 			"2/3",
 		},
@@ -133,7 +114,7 @@ func TestSetAvailabilityFields(t *testing.T) {
 			for _, component := range tt.components {
 				vz.Status.Components[component.Name()] = &vzapi.ComponentStatusDetails{}
 			}
-			err := c.setAvailabilityFields(log, vz, tt.components)
+			_, err := c.setAvailabilityFields(log, vz, tt.components)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.available, *vz.Status.Available)
 		})
