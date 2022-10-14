@@ -5,14 +5,9 @@ package worker
 
 import (
 	"github.com/verrazzano/verrazzano/tools/psr/worker/config"
-	"os"
 )
 
 type Worker interface {
 	GetConfigItems() []config.ConfigItem
 	Work(config map[string]string)
-}
-
-func getWorkerType() string {
-	return os.Getenv(config.PsrWorkerType)
 }

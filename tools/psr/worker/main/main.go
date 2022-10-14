@@ -1,10 +1,11 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package worker
+package main
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/psr/worker"
 	"github.com/verrazzano/verrazzano/tools/psr/worker/config"
 	"github.com/verrazzano/verrazzano/tools/psr/worker/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/worker/opensearch"
@@ -21,7 +22,7 @@ func main() {
 	}
 
 	// Configure the worker
-	wt := getWorkerType()
+	wt := config.GetWorkerType()
 	if len(wt) == 0 {
 		log.Errorf("Failed, missing Env var PSR_WORKER_TYPE")
 		os.Exit(1)
@@ -47,7 +48,7 @@ func main() {
 
 }
 
-func getWorker(wt string) (Worker, error) {
+func getWorker(wt string) (worker.Worker, error) {
 	switch config.PsrWorkerType {
 	case config.WorkerTypeLogGen:
 		return opensearch.LogGenerator{}, nil

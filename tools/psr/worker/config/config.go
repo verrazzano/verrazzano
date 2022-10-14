@@ -53,6 +53,10 @@ func LoadCommonConfig() error {
 	return nil
 }
 
+func GetWorkerType() string {
+	return Config[PsrWorkerType]
+}
+
 // AddConfigItems adds items to the config
 func AddConfigItems(cc []ConfigItem) error {
 	for _, c := range cc {
