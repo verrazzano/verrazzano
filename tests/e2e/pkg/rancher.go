@@ -114,16 +114,17 @@ func VerifyRancherKeycloakAuthConfig(log *zap.SugaredLogger) error {
 	}
 
 	log.Info("Verify Keycloak AuthConfig")
-	api := EventuallyGetAPIEndpoint(kubeconfigPath)
-	keycloakURL := EventuallyGetURLForIngress(log, api, "keycloak", "keycloak", "https")
-	rancherURL := EventuallyGetURLForIngress(log, api, "cattle-system", "rancher", "https")
-	k8sClient, err := GetDynamicClientInCluster(kubeconfigPath)
-	if err != nil {
-		log.Error(fmt.Sprintf("Error getting dynamic client: %v", err))
-		return err
-	}
 
 	gomega.Eventually(func() (bool, error) {
+		api := EventuallyGetAPIEndpoint(kubeconfigPath)
+		keycloakURL := EventuallyGetURLForIngress(log, api, "keycloak", "keycloak", "https")
+		rancherURL := EventuallyGetURLForIngress(log, api, "cattle-system", "rancher", "https")
+		k8sClient, err := GetDynamicClientInCluster(kubeconfigPath)
+		if err != nil {
+			log.Error(fmt.Sprintf("Error getting dynamic client: %v", err))
+			return false, err
+		}
+
 		authConfigData, err := k8sClient.Resource(GvkToGvr(common.GVKAuthConfig)).Get(context.Background(), common.AuthConfigKeycloak, v1.GetOptions{})
 		if err != nil {
 			log.Error(fmt.Sprintf("error getting keycloak oidc authConfig: %v", err))

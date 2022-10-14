@@ -55,7 +55,7 @@ type componentInstallContext struct {
 
 // installComponents will install the components as required
 func (r *Reconciler) installComponents(spiCtx spi.ComponentContext, tracker *installTracker, preUpgrade bool) (ctrl.Result, error) {
-	spiCtx.Log().Progress("Reconciling components for Verrazzano installation")
+	spiCtx.Log().Progress("Installing components")
 
 	var requeue bool
 

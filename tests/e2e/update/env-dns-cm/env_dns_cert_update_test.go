@@ -87,8 +87,8 @@ var _ = t.AfterSuite(func() {
 var _ = t.Describe("Test updates to environment name, dns domain and cert-manager CA certificates", func() {
 	t.It("Verify the current environment name", func() {
 		cr := update.GetCR()
-		currentEnvironmentName = cr.Spec.EnvironmentName
-		currentDNSDomain = cr.Spec.Components.DNS.Wildcard.Domain
+		currentEnvironmentName = pkg.GetEnvironmentName(cr)
+		currentDNSDomain = pkg.GetDNS(cr)
 		validateIngressList(currentEnvironmentName, currentDNSDomain)
 		validateVirtualServiceList(currentDNSDomain)
 	})

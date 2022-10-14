@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
@@ -24,6 +25,9 @@ const (
 
 	// vzStateInstallComponents is the state where the components are being installed
 	vzStateInstallComponents reconcileState = "vzInstallComponents"
+
+	// vzStatePostInstall is the global PostInstall state
+	vzStatePostInstall reconcileState = "vzPostInstall"
 
 	// vzStateReconcileEnd is the terminal state
 	vzStateReconcileEnd reconcileState = "vzReconcileEnd"
@@ -120,6 +124,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			tracker.vzState = vzStateInstallComponents
 
 		case vzStateSetGlobalInstallStatus:
+			spiCtx.Log().Oncef("Writing Install Started condition to the Verrazzano status for generation: %d", spiCtx.ActualCR().Generation)
 			if err := r.setInstallingState(vzctx.Log, spiCtx.ActualCR()); err != nil {
 				spiCtx.Log().ErrorfThrottled("Error writing Install Started condition to the Verrazzano status: %v", err)
 				return ctrl.Result{Requeue: true}, err
@@ -131,7 +136,12 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			if err != nil || res.Requeue {
 				return res, err
 			}
-			tracker.vzState = vzStateReconcileEnd
+			tracker.vzState = vzStatePostInstall
+
+		case vzStatePostInstall:
+			if err := rancher.ConfigureAuthProviders(spiCtx); err != nil {
+				return ctrl.Result{Requeue: true}, err
+			}
 		}
 	}
 

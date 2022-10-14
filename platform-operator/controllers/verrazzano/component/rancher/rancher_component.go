@@ -277,10 +277,6 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed removing Rancher bootstrap secret: %s", err.Error())
 	}
 
-	if err := configureAuthProviders(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring rancher auth providers: %s", err.Error())
-	}
-
 	if err := configureUISettings(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring rancher UI settings: %s", err.Error())
 	}
@@ -320,10 +316,6 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if err := configureAuthProviders(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring rancher auth providers: %s", err.Error())
-	}
-
 	if err := configureUISettings(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring rancher UI settings: %s", err.Error())
 	}
@@ -350,17 +342,20 @@ func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
 	return nil
 }
 
-// configureAuthProviders
+// ConfigureAuthProviders
 // +configures Keycloak as OIDC provider for Rancher.
 // +creates or updates default user verrazzano.
 // +creates or updates admin clusterRole binding for  user verrazzano.
 // +disables first login setting to disable prompting for password on first login.
 // +enables or disables Keycloak Auth provider.
-func configureAuthProviders(ctx spi.ComponentContext) error {
-	log := ctx.Log()
-	if vzconfig.IsKeycloakEnabled(ctx.ActualCR()) && isKeycloakAuthEnabled(ctx.ActualCR()) {
+func ConfigureAuthProviders(ctx spi.ComponentContext) error {
+	if vzconfig.IsKeycloakEnabled(ctx.ActualCR()) &&
+		isKeycloakAuthEnabled(ctx.ActualCR()) &&
+		vzconfig.IsRancherEnabled(ctx.ActualCR()) {
+
+		ctx.Log().Oncef("Configuring Keycloak as a Rancher authentication provider")
 		if err := configureKeycloakOIDC(ctx); err != nil {
-			return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
+			return err
 		}
 
 		if err := createOrUpdateRancherVerrazzanoUser(ctx); err != nil {
@@ -380,10 +375,9 @@ func configureAuthProviders(ctx spi.ComponentContext) error {
 		}
 
 		if err := disableFirstLogin(ctx); err != nil {
-			return log.ErrorfThrottledNewErr("failed disabling first login setting: %s", err.Error())
+			return err
 		}
 	}
-
 	return nil
 }
 

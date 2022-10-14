@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -67,6 +68,11 @@ var upgradeTrackerMap = make(map[string]*upgradeTracker)
 func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	log.Oncef("Upgrading Verrazzano to version %s", cr.Spec.Version)
 
+	spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
+
 	// Upgrade version was validated in webhook, see ValidateVersion
 	targetVersion := cr.Spec.Version
 
@@ -96,7 +102,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 		case vzStatePostUpgrade:
 			// Invoke the global post upgrade function after all components are upgraded.
 			log.Once("Doing Verrazzano post-upgrade processing")
-			err := postVerrazzanoUpgrade(log, r.Client, cr)
+			err := postVerrazzanoUpgrade(spiCtx)
 			if err != nil {
 				log.Errorf("Error running Verrazzano system-level post-upgrade")
 				return newRequeueWithDelay(), err
@@ -105,10 +111,6 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 
 		case vzStateWaitPostUpgradeDone:
 			log.Progress("Post-upgrade is waiting for all components to be ready")
-			spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
-			if err != nil {
-				return newRequeueWithDelay(), err
-			}
 			// Check installed enabled component and make sure it is ready
 			for _, comp := range registry.GetComponents() {
 				compName := comp.Name()
@@ -218,13 +220,17 @@ func isLastCondition(st installv1alpha1.VerrazzanoStatus, conditionType installv
 }
 
 // postVerrazzanoUpgrade restarts pods with old Istio sidecar proxies
-func postVerrazzanoUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, cr *installv1alpha1.Verrazzano) error {
+func postVerrazzanoUpgrade(spiCtx spi.ComponentContext) error {
+	log := spiCtx.Log()
+	if err := rancher.ConfigureAuthProviders(spiCtx); err != nil {
+		return err
+	}
 	log.Oncef("Checking if any pods with Istio sidecars need to be restarted to pick up the new version of the Istio proxy")
-	if err := istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), cr.Generation, istio.DoesPodContainOldIstioSidecar); err != nil {
+	if err := istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), spiCtx.ActualCR().Generation, istio.DoesPodContainOldIstioSidecar); err != nil {
 		return err
 	}
 	log.Oncef("MySQL post-upgrade cleanup")
-	return mysql.PostUpgradeCleanup(log, client)
+	return mysql.PostUpgradeCleanup(log, spiCtx.Client())
 }
 
 // getUpgradeTracker gets the upgrade tracker for Verrazzano
