@@ -328,7 +328,7 @@ pipeline {
                 # Download the operator.yaml for the target version that we are upgrading to
                 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                 cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/upgrade-test-operator.yaml
-                kubectl apply -f ${WORKSPACE}/upgrade-test-operator.yaml
+                vz upgrade --operator-file ${WORKSPACE}/upgrade-test-operator.yaml
 
                 # ensure operator pod is up
                 kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
