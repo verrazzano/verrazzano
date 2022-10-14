@@ -8,7 +8,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sync"
 	"time"
 )
 
@@ -18,12 +17,12 @@ import (
 // The secret containing status is used for synchronization - multiple goroutines writing to the same object
 // will cause performance degrading write conflicts.
 type PlatformHealth struct {
-	client     clipkg.Client
-	tickTime   time.Duration
-	shutdown   chan int
-	logger     *zap.SugaredLogger
-	statusLock *sync.RWMutex
-	status     *Status
+	client   clipkg.Client
+	tickTime time.Duration
+	shutdown chan int
+	logger   *zap.SugaredLogger
+	status   *Status      // Last known Status
+	C        chan *Status // The channel on which Status is delivered
 }
 
 type Status struct {
@@ -33,33 +32,33 @@ type Status struct {
 
 func New(c clipkg.Client, tick time.Duration) *PlatformHealth {
 	return &PlatformHealth{
-		client:     c,
-		tickTime:   tick,
-		logger:     zap.S().With(log.FieldController, "availability"),
-		statusLock: &sync.RWMutex{},
+		client:   c,
+		tickTime: tick,
+		logger:   zap.S().With(log.FieldController, "availability"),
+		C:        make(chan *Status),
 	}
 }
 
 // Start starts the PlatformHealth if it is not already running.
 // It is safe to call Start multiple times, additional goroutines will not be created
-func (c *PlatformHealth) Start() {
-	if c.shutdown != nil {
+func (p *PlatformHealth) Start() {
+	if p.shutdown != nil {
 		// already running, so nothing to do
 		return
 	}
-	c.shutdown = make(chan int)
+	p.shutdown = make(chan int)
 
-	// goroutine updates availability every c.tickTime. If a shutdown signal is received (or channel is closed),
+	// goroutine updates availability every p.tickTime. If a shutdown signal is received (or channel is closed),
 	// the goroutine returns.
 	go func() {
-		ticker := time.NewTicker(c.tickTime)
+		ticker := time.NewTicker(p.tickTime)
 		for {
 			select {
 			case <-ticker.C:
 				// timer event causes availability update
-				c.updateAvailability(registry.GetComponents())
+				p.updateAvailability(registry.GetComponents())
 
-			case <-c.shutdown:
+			case <-p.shutdown:
 				// shutdown event causes termination
 				ticker.Stop()
 				return
@@ -70,18 +69,8 @@ func (c *PlatformHealth) Start() {
 
 // Pause pauses the PlatformHealth if it was running.
 // It is safe to call Pause multiple times
-func (c *PlatformHealth) Pause() {
-	if c.shutdown != nil {
-		close(c.shutdown)
+func (p *PlatformHealth) Pause() {
+	if p.shutdown != nil {
+		close(p.shutdown)
 	}
-}
-
-func (c *PlatformHealth) Get() *Status {
-	c.statusLock.RLock()
-	defer c.statusLock.RUnlock()
-	return c.status
-}
-
-func (c *PlatformHealth) Clear() {
-	c.update(nil)
 }

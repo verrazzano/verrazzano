@@ -297,7 +297,6 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) (ctrl.Result, er
 	if err := r.runRancherPostInstall(ctx); err != nil {
 		return ctrl.Result{}, err
 	}
-	r.HealthCheck.Clear()
 	return r.deleteNamespaces(ctx.Log())
 }
 

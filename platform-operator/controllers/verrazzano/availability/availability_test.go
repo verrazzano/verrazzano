@@ -104,7 +104,7 @@ func TestSetAvailabilityFields(t *testing.T) {
 		},
 	}
 
-	c := newTestController()
+	p := newTestController()
 	log := vzlog.DefaultLogger()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -116,8 +116,9 @@ func TestSetAvailabilityFields(t *testing.T) {
 			for _, component := range tt.components {
 				vz.Status.Components[component.Name()] = &vzapi.ComponentStatusDetails{}
 			}
-			err := c.newStatus(log, vz, tt.components)
+			status, err := p.newStatus(log, vz, tt.components)
 			assert.NoError(t, err)
+			assert.NotNil(t, status)
 		})
 	}
 }

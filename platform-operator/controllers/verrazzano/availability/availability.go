@@ -17,18 +17,12 @@ type componentAvailability struct {
 	available bool
 }
 
-func (c *PlatformHealth) update(status *Status) {
-	c.statusLock.Lock()
-	defer c.statusLock.Unlock()
-	c.status = status
-}
-
 // newStatus creates a new availability status based on the current state of the component set.
-func (c *PlatformHealth) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazzano, components []spi.Component) error {
+func (p *PlatformHealth) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazzano, components []spi.Component) (*Status, error) {
 	ch := make(chan componentAvailability)
-	ctx, err := spi.NewContext(log, c.client, vz, nil, false)
+	ctx, err := spi.NewContext(log, p.client, vz, nil, false)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	countEnabled := 0
@@ -37,15 +31,14 @@ func (c *PlatformHealth) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazz
 	for _, component := range components {
 		// If status is not fully initialized, do not check availability
 		if vz.Status.Components[component.Name()] == nil {
-			c.Clear()
-			return nil
+			return nil, nil
 		}
 		// determine a component's availability
 		if isEnabled(vz, component) {
 			countEnabled++
 			comp := component
 			go func() {
-				ch <- c.getComponentAvailability(comp, ctx.Copy())
+				ch <- p.getComponentAvailability(comp, ctx.Copy())
 			}()
 		}
 	}
@@ -67,8 +60,7 @@ func (c *PlatformHealth) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazz
 	availabilityColumn := fmt.Sprintf("%d/%d", countAvailable, countEnabled)
 	status.Available = availabilityColumn
 	log.Debugf("Set component availability: %s", availabilityColumn)
-	c.update(status)
-	return nil
+	return status, nil
 }
 
 func isEnabled(vz *vzapi.Verrazzano, component spi.Component) bool {
@@ -76,7 +68,7 @@ func isEnabled(vz *vzapi.Verrazzano, component spi.Component) bool {
 }
 
 // getComponentAvailability calculates componentAvailability for a given Verrazzano component
-func (c *PlatformHealth) getComponentAvailability(component spi.Component, ctx spi.ComponentContext) componentAvailability {
+func (p *PlatformHealth) getComponentAvailability(component spi.Component, ctx spi.ComponentContext) componentAvailability {
 	name := component.Name()
 	ctx.Init(name)
 	reason, available := component.IsAvailable(ctx)
@@ -88,11 +80,11 @@ func (c *PlatformHealth) getComponentAvailability(component spi.Component, ctx s
 }
 
 // updateAvailability updates the availability for a given set of components
-func (c *PlatformHealth) updateAvailability(components []spi.Component) {
+func (p *PlatformHealth) updateAvailability(components []spi.Component) {
 	// Get the Verrazzano resource
-	vz, err := c.getVerrazzanoResource()
+	vz, err := p.getVerrazzanoResource()
 	if err != nil {
-		c.logger.Errorf("Failed to get Verrazzano resource: %v", err)
+		p.logger.Errorf("Failed to get Verrazzano resource: %v", err)
 		return
 	}
 	if vz == nil {
@@ -100,21 +92,26 @@ func (c *PlatformHealth) updateAvailability(components []spi.Component) {
 	}
 	vzlogger, err := newLogger(vz)
 	if err != nil {
-		c.logger.Errorf("Failed to get Verrazzano resource logger: %v", err)
+		p.logger.Errorf("Failed to get Verrazzano resource logger: %v", err)
 		return
 	}
 	// calculate a new availability status
-	err = c.newStatus(vzlogger, vz, components)
+	status, err := p.newStatus(vzlogger, vz, components)
 	if err != nil {
 		vzlogger.Errorf("Failed to get new Verrazzano availability: %v", err)
 		return
 	}
+	// only send an update if status has changed
+	if p.status != status {
+		p.status = status
+		p.C <- p.status
+	}
 }
 
 // getVerrazzanoResource fetches a Verrazzano resource, if one exists
-func (c *PlatformHealth) getVerrazzanoResource() (*vzapi.Verrazzano, error) {
+func (p *PlatformHealth) getVerrazzanoResource() (*vzapi.Verrazzano, error) {
 	vzList := &vzapi.VerrazzanoList{}
-	if err := c.client.List(context.TODO(), vzList); err != nil {
+	if err := p.client.List(context.TODO(), vzList); err != nil {
 		return nil, err
 	}
 	if len(vzList.Items) != 1 {

@@ -1124,23 +1124,21 @@ func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *inst
 }
 
 func (r *Reconciler) addAvailabilityStatus(vz *installv1alpha1.Verrazzano) {
-	status := r.HealthCheck.Get()
-	// Zero out availability if status unknown
-	if status == nil {
-		for _, component := range vz.Status.Components {
-			component.Available = nil
+	select {
+	case status := <-r.HealthCheck.C:
+		if status == nil {
+			return
 		}
-		vz.Status.Available = nil
+		for component := range status.Components {
+			if comp, ok := vz.Status.Components[component]; ok {
+				available := status.Components[component]
+				comp.Available = &available
+			}
+		}
+		vz.Status.Available = &status.Available
+	default:
 		return
 	}
-
-	for component := range status.Components {
-		if comp, ok := vz.Status.Components[component]; ok {
-			available := status.Components[component]
-			comp.Available = &available
-		}
-	}
-	vz.Status.Available = &status.Available
 }
 
 // AddWatch adds a component to the watched set
