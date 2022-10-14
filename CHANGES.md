@@ -5,6 +5,11 @@ Fixes:
 - Fixed the WebLogic and Helidon Grafana dashboards so that they display data properly
 - Updated base and other images to resolve CVEs.
 
+Component version updates:
+
+- Velero v1.9.1
+- Velero Plugin For AWS v1.5.0
+
 ### v1.4.0
 Features:
 
