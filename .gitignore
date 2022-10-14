@@ -43,3 +43,4 @@ tests/e2e/**/*.test
 **/.vscode
 ATTRIBUTION-HELPER-DEPS
 **/.terraform
+tools/vz/cmd/bugreport/bug-report.tar.gz

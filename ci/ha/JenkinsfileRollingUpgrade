@@ -32,8 +32,8 @@ pipeline {
     parameters {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
-                // 1st choice is the default value
-                choices: [ "v1.24.1", "v1.23.4", "v1.22.5", "v1.21.5"])
+                // 1st choice is the default value, use older version as default to ensure cluster will perform upgrade
+                choices: [ "v1.23.4", "v1.22.5", "v1.21.5", "v1.24.1" ])
         choice (name: 'OKE_NODE_POOL',
                 description: 'OKE node pool configuration',
                 // 1st choice is the default value
@@ -302,7 +302,7 @@ pipeline {
                             fi
 
                             echo "Installing Verrazzano"
-                            ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/platform-operator.yaml
+                            ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/platform-operator.yaml --timeout 45m
                        """
                     }
                     post {

@@ -14,18 +14,19 @@ import (
 	"fmt"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"math/big"
 	"os"
 	"time"
 
-	adminv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
 const (
 	// OperatorName is the resource name for the Verrazzano platform operator
-	OperatorName = "verrazzano-platform-operator"
+	OperatorName    = "verrazzano-platform-operator-webhook"
+	OldOperatorName = "verrazzano-platform-operator"
 	// OperatorNamespace is the resource namespace for the Verrazzano platform operator
 	OperatorNamespace = "verrazzano-install"
 	CRDName           = "verrazzanos.install.verrazzano.io"
@@ -160,15 +161,28 @@ func writeFile(filepath string, pem *bytes.Buffer) error {
 	return nil
 }
 
-// UpdateValidatingnWebhookConfiguration sets the CABundle
-func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer) error {
-	var validatingWebhook *adminv1.ValidatingWebhookConfiguration
-	validatingWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), OperatorName, metav1.GetOptions{})
+// DeleteValidatingWebhookConfiguration deletes a validating webhook configuration
+func DeleteValidatingWebhookConfiguration(kubeClient kubernetes.Interface, name string) error {
+	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), OldOperatorName, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(context.TODO(), OldOperatorName, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
-	if len(validatingWebhook.Webhooks) != 3 {
-		return fmt.Errorf("Expected 3 webhooks in %s ValidatingWebhookConfiguration, but found %v", OperatorName, len(validatingWebhook.Webhooks))
+
+	return nil
+}
+
+// UpdateValidatingnWebhookConfiguration sets the CABundle
+func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer, name string) error {
+	validatingWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return err
 	}
 
 	for i := range validatingWebhook.Webhooks {

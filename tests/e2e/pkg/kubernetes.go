@@ -17,13 +17,11 @@ import (
 	"github.com/google/uuid"
 	certmanagerv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/onsi/gomega"
-	vaoClient "github.com/verrazzano/verrazzano/application-operator/clients/app/clientset/versioned"
-	vpClient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
+	vaoClient "github.com/verrazzano/verrazzano/application-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
-	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
+	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	istionetv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/authorization/v1"
@@ -459,12 +457,12 @@ func createClientset(config *restclient.Config) (*kubernetes.Clientset, error) {
 }
 
 // GetVerrazzanoManagedClusterClientset returns the Kubernetes clientset for the VerrazzanoManagedCluster
-func GetVerrazzanoManagedClusterClientset() (*vmcClient.Clientset, error) {
+func GetVerrazzanoManagedClusterClientset() (*vpoClient.Clientset, error) {
 	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
 		return nil, err
 	}
-	return vmcClient.NewForConfig(config)
+	return vpoClient.NewForConfig(config)
 }
 
 // GetVerrazzanoClientset returns the Kubernetes clientset for the Verrazzano CRD
@@ -477,12 +475,12 @@ func GetVerrazzanoClientset() (*vpoClient.Clientset, error) {
 }
 
 // GetVerrazzanoProjectClientsetInCluster returns the Kubernetes clientset for the VerrazzanoProject
-func GetVerrazzanoProjectClientsetInCluster(kubeconfigPath string) (*vpClient.Clientset, error) {
+func GetVerrazzanoProjectClientsetInCluster(kubeconfigPath string) (*vaoClient.Clientset, error) {
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
-	return vpClient.NewForConfig(config)
+	return vaoClient.NewForConfig(config)
 }
 
 // GetVerrazzanoApplicationOperatorClientSet returns the Kubernetes clientset for the Verrazzano Application Operator
