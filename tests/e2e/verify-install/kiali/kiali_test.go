@@ -62,15 +62,6 @@ var _ = t.AfterEach(func() {})
 var _ = t.Describe("Kiali", Label("f:platform-lcm.install"), func() {
 
 	t.Context("after successful installation", func() {
-		WhenKialiInstalledIt("should have a monitoring crd", func() {
-			Eventually(func() bool {
-				exists, err := pkg.DoesCRDExist("monitoringdashboards.monitoring.kiali.io")
-				if err != nil {
-					return false
-				}
-				return exists
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-		})
 
 		WhenKialiInstalledIt("should have a running pod", func() {
 			kialiPodsRunning := func() bool {

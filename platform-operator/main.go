@@ -5,9 +5,11 @@ package main
 
 import (
 	"flag"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sync"
 	"time"
 
@@ -161,8 +163,15 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 		os.Exit(1)
 	}
 
-	log.Debug("Updating webhook configuration")
-	err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, caCert)
+	log.Debug("Delete old VPO webhook configuration")
+	err = certificate.DeleteValidatingWebhookConfiguration(kubeClient, certificate.OperatorName)
+	if err != nil {
+		log.Errorf("Failed to delete old webhook configuration: %v", err)
+		os.Exit(1)
+	}
+
+	log.Debug("Updating VPO webhook configuration")
+	err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, caCert, certificate.OperatorName)
 	if err != nil {
 		log.Errorf("Failed to update validation webhook configuration: %v", err)
 		os.Exit(1)
@@ -177,6 +186,13 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 	err = certificate.UpdateConversionWebhookConfiguration(apixClient, caCert)
 	if err != nil {
 		log.Errorf("Failed to update conversion webhook: %v", err)
+		os.Exit(1)
+	}
+
+	log.Debug("Updating MySQL install values webhook configuration")
+	err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, caCert, webhooks.MysqlInstallValuesWebhook)
+	if err != nil {
+		log.Errorf("Failed to update validation webhook configuration: %v", err)
 		os.Exit(1)
 	}
 
@@ -218,6 +234,10 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 		log.Errorf("Failed to setup install.v1beta1.Verrazzano webhook with manager: %v", err)
 		os.Exit(1)
 	}
+
+	// register MySQL install values webhooks
+	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1beta1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1beta1{}})
+	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1alpha1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1alpha1{}})
 
 	// Set up the validation webhook for VMC
 	log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
