@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package availability
+package health
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -45,7 +45,7 @@ func newFakeComponent(name string, available, enabled bool) fakeComponent {
 func newTestHealthCheck(objs ...client.Object) *PlatformHealth {
 	testScheme := runtime.NewScheme()
 	_ = vzapi.AddToScheme(testScheme)
-	return New(fake.NewClientBuilder().WithObjects(objs...).WithScheme(testScheme).Build(), 2*time.Second)
+	return New(fake.NewClientBuilder().WithObjects(objs...).WithScheme(testScheme).Build(), 1*time.Second)
 }
 
 func TestGetComponentAvailability(t *testing.T) {

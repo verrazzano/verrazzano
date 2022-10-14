@@ -5,7 +5,7 @@ package main
 
 import (
 	"flag"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/availability"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 	"os"
 	"sync"
@@ -259,7 +259,7 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 		DryRun:            config.DryRun,
 		WatchedComponents: map[string]bool{},
 		WatchMutex:        &sync.RWMutex{},
-		HealthCheck:       availability.New(mgr.GetClient(), 15*time.Second),
+		HealthCheck:       health.New(mgr.GetClient(), 15*time.Second),
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "Verrazzano")

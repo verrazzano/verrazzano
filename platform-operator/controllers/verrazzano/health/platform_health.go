@@ -1,10 +1,11 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package availability
+package health
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/log"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -80,5 +81,24 @@ func (p *PlatformHealth) Start() {
 func (p *PlatformHealth) Pause() {
 	if p.shutdown != nil {
 		close(p.shutdown)
+	}
+}
+
+// AddStatus adds health check status to a Verrazzano resource, if it is available
+func (p *PlatformHealth) AddStatus(vz *vzapi.Verrazzano) {
+	select {
+	case status := <-p.C:
+		if status == nil {
+			return
+		}
+		for component := range status.Components {
+			if comp, ok := vz.Status.Components[component]; ok {
+				available := status.Components[component]
+				comp.Available = &available
+			}
+		}
+		vz.Status.Available = &status.Available
+	default:
+		return
 	}
 }
