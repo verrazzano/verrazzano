@@ -609,7 +609,7 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed to check if verrazzano rancher user exists: %s", err.Error())
 	} else if existingUser != "" {
 		return log.ErrorfThrottledNewErr("Failed to create rancher user %s as another rancher user %s exists that "+
-			"is mapped to verrazzano user id from keycloak.", UserVerrazzano, existingUser)
+			"is mapped to verrazzano user id from keycloak. Please delete the %s user to proceed further.", UserVerrazzano, existingUser, existingUser)
 	}
 	data := map[string]interface{}{}
 	data[UserAttributeUserName] = vzUser.Username
