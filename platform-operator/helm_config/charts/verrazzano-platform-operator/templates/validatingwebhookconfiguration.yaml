@@ -100,7 +100,7 @@ webhooks:
         - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
-        name: {{ .Values.name }}
+        name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
         path: /v1beta1-validate-mysql-install-override-values
     rules:
@@ -125,7 +125,7 @@ webhooks:
         - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
-        name: {{ .Values.name }}
+        name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
         path: /v1alpha1-validate-mysql-install-override-values
     rules:

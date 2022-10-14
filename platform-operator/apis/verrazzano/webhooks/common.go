@@ -9,6 +9,12 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const (
+	MysqlInstallValuesWebhook      = "verrazzano-platform-mysqlinstalloverrides"
+	MysqlInstallValuesV1beta1path  = "/v1beta1-validate-mysql-install-override-values"
+	MysqlInstallValuesV1alpha1path = "/v1alpha1-validate-mysql-install-override-values"
+)
+
 // isMinVersion indicates whether the provide version is greater than the min version provided
 func isMinVersion(vzVersion, minVersion string) bool {
 	vzSemver, err := semver.NewSemVersion(vzVersion)
