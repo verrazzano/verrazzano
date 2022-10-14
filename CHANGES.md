@@ -1,14 +1,17 @@
-### v1.4.1
-Fixes:
-
-- Updated OpenSearch heap memory settings
-- Fixed the WebLogic and Helidon Grafana dashboards so that they display data properly
-- Updated base and other images to resolve CVEs.
+### v1.4.2
 
 Component version updates:
 
 - Velero v1.9.1
 - Velero Plugin For AWS v1.5.0
+
+### v1.4.1
+Fixes:
+
+- Updated OpenSearch heap memory settings
+- Fixed the WebLogic and Helidon Grafana dashboards so that they display data properly
+- Updated base and other images to resolve CVEs
+- Performance enhancements to the Verrazzano CLI
 
 ### v1.4.0
 Features:
