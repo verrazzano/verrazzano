@@ -28,8 +28,9 @@ const (
 	OperatorName    = "verrazzano-platform-operator-webhook"
 	OldOperatorName = "verrazzano-platform-operator"
 	// OperatorNamespace is the resource namespace for the Verrazzano platform operator
-	OperatorNamespace = "verrazzano-install"
-	CRDName           = "verrazzanos.install.verrazzano.io"
+	OperatorNamespace        = "verrazzano-install"
+	CRDName                  = "verrazzanos.install.verrazzano.io"
+	MysqlMutatingWebhookName = "verrazzano-mysql-backup"
 )
 
 // CreateWebhookCertificates creates the needed certificates for the validating webhook
@@ -215,4 +216,21 @@ func UpdateConversionWebhookConfiguration(apiextClient *apiextensionsv1client.Ap
 	}
 	_, err = apiextClient.CustomResourceDefinitions().Update(context.TODO(), crd, metav1.UpdateOptions{})
 	return err
+}
+
+// UpdateMutatingWebhookConfiguration sets the CABundle
+func UpdateMutatingWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer, name string) error {
+	var webhook *adminv1.MutatingWebhookConfiguration
+	webhook, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	for i := range webhook.Webhooks {
+		webhook.Webhooks[i].ClientConfig.CABundle = caCert.Bytes()
+	}
+	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Update(context.TODO(), webhook, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
 }
