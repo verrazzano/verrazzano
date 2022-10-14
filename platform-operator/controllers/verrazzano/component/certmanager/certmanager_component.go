@@ -6,12 +6,13 @@ package certmanager
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"path/filepath"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -252,22 +253,13 @@ func checkExistingCertManager(vz runtime.Object) error {
 	if err != nil && !kerrs.IsNotFound(err) {
 		return err
 	}
-	if err = checkNS(ns.Items); err != nil {
-		return err
-	}
-	return nil
-}
-
-func checkNS(ns []v1.Namespace) error {
-	for _, n := range ns {
-		if n.Namespace == ComponentNamespace || n.Name == ComponentNamespace {
-			for l := range n.Labels {
-				if l == vzNsLabel {
-					return nil
-				}
-			}
-			return fmt.Errorf("found existing Cert Manager namespace %s not created by Verrazzano", ComponentNamespace)
+	if err = common.CheckExistingNamespace(ns.Items, func(namespace *v1.Namespace) bool {
+		if namespace.Name == ComponentNamespace || namespace.Namespace == ComponentNamespace {
+			return true
 		}
+		return false
+	}); err != nil {
+		return err
 	}
 	return nil
 }

@@ -6,14 +6,14 @@ package rancher
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	v1 "k8s.io/api/core/v1"
-	kerrs "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -486,23 +486,9 @@ func checkExistingRancher(vz runtime.Object) error {
 	if err != nil && !kerrs.IsNotFound(err) {
 		return err
 	}
-	if err = checkNS(ns.Items); err != nil {
+	if err = common.CheckExistingNamespace(ns.Items, isRancherNamespace); err != nil {
 		return err
 	}
 	return nil
 }
 
-// checkNS checks if there is already an existing Rancher namespace that is not created by Verrazzano
-func checkNS(ns []v1.Namespace) error {
-	for i := range ns {
-		if isRancherNamespace(&ns[i]) {
-			for l := range ns[i].Labels {
-				if l == namespaceLabelKey {
-					return nil
-				}
-			}
-			return fmt.Errorf("found existing Rancher namespace %s not created by Verrazzano", ns[i].Name)
-		}
-	}
-	return nil
-}

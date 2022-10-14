@@ -5,6 +5,7 @@ package common
 
 import (
 	"context"
+	"fmt"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -81,10 +82,26 @@ func LabelKubeSystemNamespace(client clipkg.Client) error {
 		if ns.Labels == nil {
 			ns.Labels = make(map[string]string)
 		}
-		ns.Labels["verrazzano.io/namespace"] = KubeSystemNamespace
+		ns.Labels[globalconst.LabelVerrazzanoNamespace] = KubeSystemNamespace
 		return nil
 	}); err != nil {
 		return err
+	}
+	return nil
+}
+
+// CheckExistingNamespace checks namespaces if there is an existing namespace that is not created by Verrazzano
+// It compares the label of the namespace with the Verrazzano namespace label i.e verrazzano.io/namespace
+func CheckExistingNamespace(ns []corev1.Namespace, includeNamespace func(*corev1.Namespace) bool) error {
+	for _, n := range ns {
+		if includeNamespace(&n) {
+			for l := range n.Labels {
+				if l == globalconst.LabelVerrazzanoNamespace {
+					return nil
+				}
+			}
+			return fmt.Errorf("found existing namespace %s not created by Verrazzano", n.Name)
+		}
 	}
 	return nil
 }
