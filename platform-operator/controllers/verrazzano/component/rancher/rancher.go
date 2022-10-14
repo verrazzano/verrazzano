@@ -291,28 +291,23 @@ func scaleDownRancherDeployment(c client.Client, log vzlog.VerrazzanoLogger) err
 	}
 
 	if deployment.Status.AvailableReplicas == 0 {
-		// deployment is already scaled down, nothing to do
+		// deployment is scaled down, we're done
 		return nil
 	}
 
-	log.Infof("Scaling down Rancher deployment %v", namespacedName)
-	zero := int32(0)
-	deployment.Spec.Replicas = &zero
-	if err := c.Update(context.TODO(), &deployment); err != nil {
-		return log.ErrorfNewErr("Failed to scale Rancher deployment %v to zero replicas: %v", namespacedName, err)
+	if deployment.Spec.Replicas == nil || *deployment.Spec.Replicas > 0 {
+		log.Infof("Scaling down Rancher deployment %v", namespacedName)
+		zero := int32(0)
+		deployment.Spec.Replicas = &zero
+		if err := c.Update(context.TODO(), &deployment); err != nil {
+			return log.ErrorfNewErr("Failed to scale Rancher deployment %v to zero replicas: %v", namespacedName, err)
+		}
 	}
 
-	// get the deployment and check the status to see if all replicas are down, if not we'll reconcile again
-	// until all replicas are down
-	if err := c.Get(context.TODO(), namespacedName, &deployment); err != nil {
-		return client.IgnoreNotFound(err)
-	}
-	if deployment.Status.AvailableReplicas > 0 {
-		log.Progressf("Waiting for Rancher deployment %v to scale down", namespacedName)
-		return ctrlerrors.RetryableError{Source: ComponentName}
-	}
-
-	return nil
+	// return RetryableError so we come back through this function again and check the replicas - repeat
+	// until there are no available replicas
+	log.Progressf("Waiting for Rancher deployment %v to scale down", namespacedName)
+	return ctrlerrors.RetryableError{Source: ComponentName}
 }
 
 // getDynamicClient returns a dynamic k8s client
