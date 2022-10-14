@@ -184,7 +184,7 @@ func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.Compone
 	}
 
 	// If in Ready state but unavailable, component needs reconcile
-	if componentStatus.State == vzapi.CompStateReady && componentStatus.Available != nil && !*componentStatus.Available {
+	if isUnavailable(ctx.ActualCR(), componentStatus) {
 		return true
 	}
 
@@ -198,6 +198,12 @@ func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.Compone
 	// if CR.Generation > LastReconciledGeneration then re-enter install flow
 	return (componentStatus.State == vzapi.CompStateReady) &&
 		(ctx.ActualCR().Generation > componentStatus.LastReconciledGeneration)
+}
+
+func isUnavailable(vz *vzapi.Verrazzano, componentStatus *vzapi.ComponentStatusDetails) bool {
+	return vz.Status.State == vzapi.VzStateReady &&
+		componentStatus.Available != nil &&
+		!*componentStatus.Available
 }
 
 // Check if the component can be installed in this Verrazzano installation based on version

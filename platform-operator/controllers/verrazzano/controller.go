@@ -1138,8 +1138,9 @@ func (r *Reconciler) addAvailabilityStatus(vz *installv1alpha1.Verrazzano) error
 		return nil
 	}
 
-	for component, available := range status.Components {
+	for component := range status.Components {
 		if comp, ok := vz.Status.Components[component]; ok {
+			available := status.Components[component]
 			comp.Available = &available
 		}
 	}
