@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -120,7 +120,7 @@ func isExternalDNSReady(compContext spi.ComponentContext) bool {
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", compContext.GetComponent())
-	return status.DeploymentsAreReady(compContext.Log(), compContext.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(compContext.Log(), compContext.Client(), deployments, 1, prefix)
 }
 
 // AppendOverrides builds the set of external-dns overrides for the helm install

@@ -22,37 +22,20 @@ spec:
         app.kubernetes.io/version: {{ .Chart.Version }}
     spec:
       terminationGracePeriodSeconds: 0
-      initContainers:
-        - name: webhook-init
-          image: {{ .Values.image }}
-          imagePullPolicy: {{ .Values.imagePullPolicy }}
-          args:
-            - --zap-log-level=info
-            - --init-webhooks=true
-          volumeMounts:
-            - name: webhook-certs
-              mountPath: /etc/webhook/certs
       containers:
         - name: {{ .Values.name }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           image: {{ .Values.image }}
           ports:
-            - containerPort: 9443
-              name: webhook
-              protocol: TCP
             - containerPort: 9100
               name: http-metric
               protocol: TCP
           startupProbe:
-            httpGet:
-              path: /validate-install-verrazzano-io-v1alpha1-verrazzano
-              port: webhook
-              scheme: HTTPS
-              httpHeaders:
-                - name: Content-Type
-                  value: application/json
-            periodSeconds: 5
-            timeoutSeconds: 3
+            exec:
+              command:
+                - /verrazzano/platform-operator/scripts/wait4webhook.sh
+            periodSeconds: 10
+            timeoutSeconds: 30
             failureThreshold: 15
           args:
             - --zap-log-level=info
@@ -77,9 +60,6 @@ spec:
               value: {{ join "," .Values.global.imagePullSecrets }}
             {{- end }}
           volumeMounts:
-            - name: webhook-certs
-              mountPath: /etc/webhook/certs
-              readOnly: true
             - name: varlog
               mountPath: /var/log
               readOnly: true
@@ -87,10 +67,55 @@ spec:
             requests:
               memory: 72Mi
       volumes:
-        - name: webhook-certs
-          emptyDir: {}
         - name: varlog
           hostPath:
             path: /var/log
             type: ""
+      serviceAccountName: {{ .Values.name }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}-webhook
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}-webhook
+    app.kubernetes.io/version: {{ .Chart.Version }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}-webhook
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}-webhook
+        app.kubernetes.io/version: {{ .Chart.Version }}
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+        - name: webhook-run
+          image: {{ .Values.image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          args:
+            - --zap-log-level=info
+            - --init-webhooks=true
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
+          resources:
+            requests:
+              memory: 72Mi
+          ports:
+            - containerPort: 9100
+              name: http-metric
+              protocol: TCP
+            - containerPort: 9443
+              name: webhook
+              protocol: TCP
+      volumes:
+        - name: webhook-certs
+          emptyDir: {}
       serviceAccountName: {{ .Values.name }}

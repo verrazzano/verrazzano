@@ -392,7 +392,8 @@ pipeline {
 
         stage("Verify Uninstall") {
             steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                retry(6) {
+                    sleep time: 300, unit: 'SECONDS'
                     sh """
                         ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources false
                         ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources

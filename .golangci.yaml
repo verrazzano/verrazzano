@@ -9,6 +9,7 @@ linters-settings:
     go: "1.19"
     checks: ["ST1019"]
 
+
 linters:
   enable:
     - govet
@@ -20,6 +21,7 @@ linters:
     - unused
     - staticcheck
     - stylecheck
+    - misspell
   disable-all: true
   fast: true
 

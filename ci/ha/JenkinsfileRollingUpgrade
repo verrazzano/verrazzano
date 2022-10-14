@@ -302,7 +302,7 @@ pipeline {
                             fi
 
                             echo "Installing Verrazzano"
-                            ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/platform-operator.yaml
+                            ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/platform-operator.yaml --timeout 45m
                        """
                     }
                     post {
