@@ -4,10 +4,11 @@
 package spi
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/workers/config"
 )
 
 type Worker interface {
 	GetConfigItems() []config.ConfigItem
-	Work(config map[string]string)
+	Work(config map[string]string, log vzlog.VerrazzanoLogger)
 }

@@ -5,16 +5,20 @@ package main
 
 import (
 	"fmt"
+	vzlog2 "github.com/verrazzano/verrazzano/pkg/log"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/workers/config"
 	"github.com/verrazzano/verrazzano/tools/psr/workers/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/workers/opensearch"
 	"github.com/verrazzano/verrazzano/tools/psr/workers/spi"
-	"go.uber.org/zap"
 	"os"
+	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func main() {
-	log := zap.S()
+	vzlog2.InitLogs(kzap.Options{})
+	log := vzlog.DefaultLogger()
+	log.Info("Starting PSR worker")
 
 	if err := config.LoadCommonConfig(); err != nil {
 		log.Error(err)
@@ -28,7 +32,7 @@ func main() {
 		os.Exit(1)
 	}
 	worker, err := getWorker(wt)
-	if err == nil {
+	if err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
@@ -43,16 +47,17 @@ func main() {
 	go metrics.StartMetricsServerOrDie()
 
 	// Run the worker to completion (usually forever)
-	log.Info("Starting worker %s", wt)
-	worker.Work(config.Config)
+	log.Infof("Running worker %s", wt)
+	worker.Work(config.Config, log)
 
+	log.Info("Stopping worker")
 }
 
 func getWorker(wt string) (spi.Worker, error) {
-	switch config.PsrWorkerType {
+	switch wt {
 	case config.WorkerTypeLogGen:
 		return opensearch.LogGenerator{}, nil
 	default:
-		return nil, fmt.Errorf("Failed, invalid worker type %s", wt)
+		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}
 }

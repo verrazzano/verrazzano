@@ -4,8 +4,10 @@
 package opensearch
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/workers/config"
 	"github.com/verrazzano/verrazzano/tools/psr/workers/spi"
+	"time"
 )
 
 const (
@@ -21,5 +23,10 @@ func (w LogGenerator) GetConfigItems() []config.ConfigItem {
 		{msgSize, "20", false}}
 }
 
-func (w LogGenerator) Work(config map[string]string) {
+func (w LogGenerator) Work(config map[string]string, log vzlog.VerrazzanoLogger) {
+	for {
+		log.Infof("Log Generator Doing Work")
+		time.Sleep(10 * time.Second)
+	}
+
 }
