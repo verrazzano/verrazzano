@@ -5,8 +5,11 @@ package main
 
 import (
 	"flag"
+	mysql_webhook "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/mysql-webhook"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
+	"k8s.io/client-go/dynamic"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sync"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -154,6 +157,12 @@ func main() {
 			os.Exit(1)
 		}
 
+		dynamicClient, err := dynamic.NewForConfig(conf)
+		if err != nil {
+			log.Errorf("Failed to create Kubernetes dynamic client: %v", err)
+			os.Exit(1)
+		}
+
 		log.Debug("Updating webhook configuration")
 		err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, caCert)
 		if err != nil {
@@ -170,6 +179,12 @@ func main() {
 		err = certificate.UpdateConversionWebhookConfiguration(apixClient, caCert)
 		if err != nil {
 			log.Errorf("Failed to update conversion webhook: %v", err)
+			os.Exit(1)
+		}
+
+		err = certificate.UpdateMutatingWebhookConfiguration(kubeClient, caCert, certificate.MysqlMutatingWebhookName)
+		if err != nil {
+			log.Errorf("Failed to update pod mutating webhook configuration: %v", err)
 			os.Exit(1)
 		}
 
@@ -212,7 +227,21 @@ func main() {
 				log.Errorf("Failed to setup install.v1beta1.Verrazzano webhook with manager: %v", err)
 				os.Exit(1)
 			}
+
+			mgr.GetWebhookServer().Register(
+				mysql_webhook.MySQLBackupPath,
+				&webhook.Admission{
+					Handler: &mysql_webhook.MySQLBackupJobWebhook{
+						Client:        mgr.GetClient(),
+						KubeClient:    kubeClient,
+						DynamicClient: dynamicClient,
+						Defaulters:    []mysql_webhook.MySQLDefaulter{},
+					},
+				},
+			)
+
 			mgr.GetWebhookServer().CertDir = config.CertDir
+
 		}
 		// Set up the validation webhook for VMC
 		if config.WebhooksEnabled {
