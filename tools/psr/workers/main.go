@@ -5,10 +5,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/psr/worker"
-	"github.com/verrazzano/verrazzano/tools/psr/worker/config"
-	"github.com/verrazzano/verrazzano/tools/psr/worker/metrics"
-	"github.com/verrazzano/verrazzano/tools/psr/worker/opensearch"
+	"github.com/verrazzano/verrazzano/tools/psr/workers/config"
+	"github.com/verrazzano/verrazzano/tools/psr/workers/metrics"
+	"github.com/verrazzano/verrazzano/tools/psr/workers/opensearch"
+	"github.com/verrazzano/verrazzano/tools/psr/workers/spi"
 	"go.uber.org/zap"
 	"os"
 )
@@ -48,7 +48,7 @@ func main() {
 
 }
 
-func getWorker(wt string) (worker.Worker, error) {
+func getWorker(wt string) (spi.Worker, error) {
 	switch config.PsrWorkerType {
 	case config.WorkerTypeLogGen:
 		return opensearch.LogGenerator{}, nil

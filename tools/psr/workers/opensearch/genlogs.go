@@ -4,8 +4,8 @@
 package opensearch
 
 import (
-	"github.com/verrazzano/verrazzano/tools/psr/worker"
-	"github.com/verrazzano/verrazzano/tools/psr/worker/config"
+	"github.com/verrazzano/verrazzano/tools/psr/workers/config"
+	"github.com/verrazzano/verrazzano/tools/psr/workers/spi"
 )
 
 const (
@@ -14,7 +14,7 @@ const (
 
 type LogGenerator struct{}
 
-var _ worker.Worker = LogGenerator{}
+var _ spi.Worker = LogGenerator{}
 
 func (w LogGenerator) GetConfigItems() []config.ConfigItem {
 	return []config.ConfigItem{
