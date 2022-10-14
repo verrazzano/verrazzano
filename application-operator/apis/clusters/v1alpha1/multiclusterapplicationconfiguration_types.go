@@ -35,9 +35,8 @@ type ApplicationConfigurationTemplate struct {
 // +kubebuilder:resource:shortName=mcappconf;mcappconfs
 // +kubebuilder:subresource:status
 
-// MultiClusterApplicationConfiguration is the Schema for the multiclusterapplicationconfigurations API
-// in which the API acts as a wrapper for ApplicationsConfigurations, allowing for customization of their
-// deployment to multiple clusters
+// MultiClusterApplicationConfiguration enables customization of ApplicationConfigurations
+// for deployment to multiple clusters.
 type MultiClusterApplicationConfiguration struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
