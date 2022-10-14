@@ -5,7 +5,6 @@ package main
 
 import (
 	"flag"
-	mysql_webhook "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/mysql-webhook"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 	"k8s.io/client-go/dynamic"
@@ -249,13 +248,13 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 
 	// register MySQL backup job mutating webhook
 	mgr.GetWebhookServer().Register(
-		mysql_webhook.MySQLBackupPath,
+		webhooks.MySQLBackupPath,
 		&webhook.Admission{
-			Handler: &mysql_webhook.MySQLBackupJobWebhook{
+			Handler: &webhooks.MySQLBackupJobWebhook{
 				Client:        mgr.GetClient(),
 				KubeClient:    kubeClient,
 				DynamicClient: dynamicClient,
-				Defaulters:    []mysql_webhook.MySQLDefaulter{},
+				Defaulters:    []webhooks.MySQLDefaulter{},
 			},
 		},
 	)

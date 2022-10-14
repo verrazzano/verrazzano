@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package mysql_webhook
+package webhooks
 
 import (
 	"context"
@@ -67,7 +67,7 @@ func ConvertAPIVersionToGroupAndVersion(apiVersion string) (string, string) {
 // Handle is the entry point for the mutating webhook.
 // This function is called for any jobs that are created in a namespace with the label istio-injection=enabled.
 func (m *MySQLBackupJobWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
-	
+
 	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "mysql-backup")
 
 	job := &batchv1.Job{}
