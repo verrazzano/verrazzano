@@ -15,6 +15,11 @@ import (
 	"time"
 )
 
+// Controller polls Verrazzano component availability every tickTime, and writes status updates to a secret
+// It is the job of the Verrazzano controller to read availability status from the secret when updating
+// Verrazzano status.
+// The secret containing status is used for synchronization - multiple goroutines writing to the same object
+// will cause performance degrading write conflicts.
 type Controller struct {
 	client   clipkg.Client
 	tickTime time.Duration
@@ -38,13 +43,19 @@ func (c *Controller) Start() {
 		return
 	}
 	c.shutdown = make(chan int)
+
+	// goroutine updates availability every c.tickTime. If a shutdown signal is received (or channel is closed),
+	// the goroutine returns.
 	go func() {
 		ticker := time.NewTicker(c.tickTime)
 		for {
 			select {
 			case <-ticker.C:
-				c.updateStatusAvailability(registry.GetComponents())
+				// timer event causes availability update
+				c.updateAvailability(registry.GetComponents())
+
 			case <-c.shutdown:
+				// shutdown event causes termination
 				ticker.Stop()
 				return
 			}
@@ -60,7 +71,8 @@ func (c *Controller) Pause() {
 	}
 }
 
-func (c *Controller) updateStatusAvailability(components []spi.Component) {
+// updateAvailability updates the availability for a given set of components
+func (c *Controller) updateAvailability(components []spi.Component) {
 	// Get the Verrazzano resource
 	vz, err := c.getVerrazzanoResource()
 	if err != nil {
@@ -75,7 +87,7 @@ func (c *Controller) updateStatusAvailability(components []spi.Component) {
 		c.logger.Errorf("Failed to get Verrazzano resource logger: %v", err)
 		return
 	}
-	// Set availability fields in the provided Verrazzano CR
+	// calculate a new availability status
 	status, err := c.getNewStatus(vzlogger, vz, components)
 	if err != nil {
 		vzlogger.Errorf("Failed to get new Verrazzano availability: %v", err)

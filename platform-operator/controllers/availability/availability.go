@@ -73,8 +73,7 @@ func getStatusObjectName(vz *vzapi.Verrazzano) string {
 	return fmt.Sprintf(statusObjectName, vz.Name)
 }
 
-// getNewStatus loops through the provided components sets their availability set.
-// The top level Verrazzano status.available field is set to (available components)/(enabled components).
+// getNewStatus creates a new availability status based on the current state of the component set.
 func (c *Controller) getNewStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazzano, components []spi.Component) (*Status, error) {
 	ch := make(chan componentAvailability)
 	ctx, err := spi.NewContext(log, c.client, vz, nil, false)
@@ -120,6 +119,7 @@ func (c *Controller) getNewStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazza
 	return status, nil
 }
 
+// updateStatus writes availability status to the server (as a secret)
 func (c *Controller) updateStatus(status *Status, vz *vzapi.Verrazzano) error {
 	statusObject := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -127,6 +127,7 @@ func (c *Controller) updateStatus(status *Status, vz *vzapi.Verrazzano) error {
 			Name:      getStatusObjectName(vz),
 		},
 	}
+	// create or update the availability secret, marshalling Status to bytes
 	_, err := controllerruntime.CreateOrUpdate(context.TODO(), c.client, statusObject, func() error {
 		if status == nil {
 			statusObject.Data = nil
