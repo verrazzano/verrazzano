@@ -4,6 +4,7 @@
 package registry
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -70,7 +71,7 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	var i int
-	a.Len(comps, 30, "Wrong number of components")
+	a.Len(comps, 31, "Wrong number of components")
 	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), oam.ComponentName)
@@ -130,6 +131,8 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), velero.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), rancherbackup.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), argocd.ComponentName)
 }
 
 // TestFindComponent tests FindComponent

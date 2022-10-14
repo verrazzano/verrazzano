@@ -16,3 +16,5 @@ spec:
       enabled: false
     kiali:
       enabled: false
+    argocd:
+      enabled: false

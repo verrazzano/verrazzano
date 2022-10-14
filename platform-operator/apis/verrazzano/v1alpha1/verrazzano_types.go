@@ -140,6 +140,8 @@ type InstanceInfo struct {
 	KialiURL *string `json:"kialiUrl,omitempty"`
 	// JaegerURL The Jaeger UI URL for this Verrazzano installation
 	JaegerURL *string `json:"jaegerUrl,omitempty"`
+	// ArgoCDURL The Argo CD UI URL for this Verrazzano installation
+	ArgoCDURL *string `json:"argoCDUrl,omitempty"`
 }
 
 // VerrazzanoStatus defines the observed state of Verrazzano
@@ -395,6 +397,10 @@ type ComponentSpec struct {
 	// Verrazzano configuration
 	// +optional
 	Verrazzano *VerrazzanoComponent `json:"verrazzano,omitempty"`
+
+	// ArgoCD configuration
+	// +optional
+	ArgoCD *ArgoCDComponent `json:"argocd,omitempty"`
 }
 
 // ElasticsearchComponent specifies the Elasticsearch configuration.
@@ -737,6 +743,13 @@ type WebLogicOperatorComponent struct {
 
 // VeleroComponent  specifies the Velero configuration
 type VeleroComponent struct {
+	// +optional
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
+}
+
+// ArgoCDComponent specifies the ArgoCD configuration
+type ArgoCDComponent struct {
 	// +optional
 	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`

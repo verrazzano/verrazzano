@@ -410,6 +410,7 @@ var managedClusterEnableAllOverride = v1alpha1.Verrazzano{
 			Kibana:        &v1alpha1.KibanaComponent{Enabled: &trueValue},
 			Prometheus:    &v1alpha1.PrometheusComponent{Enabled: &trueValue},
 			Rancher:       &v1alpha1.RancherComponent{Enabled: &trueValue},
+			ArgoCD:        &v1alpha1.ArgoCDComponent{Enabled: &trueValue},
 		},
 	},
 }

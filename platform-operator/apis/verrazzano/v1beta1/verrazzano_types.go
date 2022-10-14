@@ -130,6 +130,8 @@ type InstanceInfo struct {
 	KialiURL *string `json:"kialiUrl,omitempty"`
 	// JaegerURL The Jaeger UI URL for this Verrazzano installation
 	JaegerURL *string `json:"jaegerUrl,omitempty"`
+	// ArgoCDURL The Argo CD UI URL for this Verrazzano installation
+	ArgoCDURL *string `json:"argoCDUrl,omitempty"`
 }
 
 // VerrazzanoStatus defines the observed state of Verrazzano
@@ -385,6 +387,10 @@ type ComponentSpec struct {
 	// Verrazzano configuration
 	// +optional
 	Verrazzano *VerrazzanoComponent `json:"verrazzano,omitempty"`
+
+	// ArgoCD configuration
+	// +optional
+	ArgoCD *ArgoCDComponent `json:"argocd,omitempty"`
 }
 
 // OpenSearchComponent specifies the OpenSearch configuration.
@@ -624,6 +630,13 @@ type RancherComponent struct {
 	// KeycloakAuthEnabled specifies whether the Keycloak Auth provider is enabled.  Default is false.
 	// +optional
 	KeycloakAuthEnabled *bool `json:"keycloakAuthEnabled,omitempty"`
+}
+
+// ArgoCDComponent specifies the ArgoCD configuration
+type ArgoCDComponent struct {
+	// +optional
+	Enabled          *bool `json:"enabled,omitempty"`
+	InstallOverrides `json:",inline"`
 }
 
 // RancherBackupComponent specifies the Rancher Backup configuration
