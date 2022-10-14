@@ -21,7 +21,7 @@ import (
 )
 
 var testScheme = runtime.NewScheme()
-var replicas int32 = 0
+var replicas int32
 
 func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)
