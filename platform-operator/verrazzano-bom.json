@@ -357,6 +357,7 @@
     },
     {
       "name": "kiali-server",
+      "version": "1.42.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
