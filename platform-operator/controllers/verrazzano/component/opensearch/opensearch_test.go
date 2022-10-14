@@ -9,13 +9,11 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
 	"text/template"
-	"time"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
@@ -23,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -204,7 +203,7 @@ func Test_waitForPodsWithReadyContainer(t *testing.T) {
 	ctx, err := createFakeComponentContext()
 	createPod(ctx.Client())
 	a.NoError(err, "Failed to create fake component context.")
-	pods, err := waitForPodsWithReadyContainer(ctx.Client(), 1*time.Nanosecond, 5*time.Nanosecond, "test-ready-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
+	pods, err := waitForPodsWithReadyContainer(ctx.Client(), "test-ready-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
 	a.NoError(err, "Unexpected error finding pods with ready container")
 	a.Len(pods, 1, "Expected to find one pod with a ready container")
 
@@ -213,7 +212,7 @@ func Test_waitForPodsWithReadyContainer(t *testing.T) {
 	//  THEN expect no pods to eventually be returned
 	ctx, err = createFakeComponentContext()
 	a.NoError(err, "Failed to create fake component context.")
-	pods, err = waitForPodsWithReadyContainer(ctx.Client(), 1*time.Nanosecond, 2*time.Nanosecond, "test-unready-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
+	pods, err = waitForPodsWithReadyContainer(ctx.Client(), "test-unready-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
 	a.NoError(err, "Unexpected error finding pods with ready container")
 	a.Len(pods, 0, "Expected to find no pods with a ready container")
 }
