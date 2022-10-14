@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -66,6 +67,11 @@ func TestPreUpgrade(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithObjects(
 		&netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: constants.IstioSystemNamespace, Name: netPolName}},
 	).Build()
+
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
 
 	// associate the network policy with the verrazzano helm release
 	obj := &netv1.NetworkPolicy{}
