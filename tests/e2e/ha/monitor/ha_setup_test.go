@@ -4,6 +4,9 @@
 package monitor
 
 import (
+	"context"
+	"net/http"
+
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -30,7 +33,20 @@ var _ = clusterDump.BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred())
 	web.api = pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 	web.httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	web.httpClient.CheckRetry = haCheckRetryRetryPolicy(web.httpClient.CheckRetry)
 	web.users.verrazzano = pkg.EventuallyGetSystemVMICredentials()
 	web.hosts.rancher = pkg.EventuallyGetURLForIngress(t.Logs, web.api, "cattle-system", "rancher", "https")
 	web.hosts.kiali = pkg.EventuallyGetKialiHost(clientset)
 })
+
+// haCheckRetryRetryPolicy - wrap the default retry policy to retry on 401s in this case only
+// - workaround for case where we've had issues with Keycloak availability during cluster upgrade, even with HA configurations
+func haCheckRetryRetryPolicy(retry retryablehttp.CheckRetry) retryablehttp.CheckRetry {
+	return func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+		currentRetry := retry
+		if resp.StatusCode == 401 {
+			return true, nil
+		}
+		return currentRetry(ctx, resp, err)
+	}
+}
