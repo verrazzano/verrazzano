@@ -139,9 +139,12 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			tracker.vzState = vzStatePostInstall
 
 		case vzStatePostInstall:
-			if err := rancher.ConfigureAuthProviders(spiCtx); err != nil {
-				return ctrl.Result{Requeue: true}, err
+			if !preUpgrade {
+				if err := rancher.ConfigureAuthProviders(spiCtx); err != nil {
+					return ctrl.Result{Requeue: true}, err
+				}
 			}
+			tracker.vzState = vzStateReconcileEnd
 		}
 	}
 
