@@ -29,9 +29,7 @@ func isGrafanaReady(ctx spi.ComponentContext) bool {
 		if *ctx.EffectiveCR().Spec.Components.Grafana.Replicas < 1 {
 			return true
 		}
-		expectedReplicas = *ctx.EffectiveCR().Spec.Components.Grafana.Replicas
 	}
-
 	prefix := newPrefix(ctx.GetComponent())
 	deployments := newDeployments()
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, expectedReplicas, prefix) && common.IsGrafanaAdminSecretReady(ctx)
