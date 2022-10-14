@@ -323,7 +323,6 @@ func (r rancherComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	log := ctx.Log()
-
 	err := activateDrivers(log, c)
 	if err != nil {
 		return err
