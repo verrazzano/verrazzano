@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -21,6 +22,7 @@ const reldir = "../../../manifests/profiles"
 type fakeComponent struct {
 	name      string
 	available bool
+	enabled   bool
 	helm.HelmComponent
 }
 
@@ -28,16 +30,22 @@ func (f fakeComponent) IsAvailable(_ spi.ComponentContext) (string, bool) {
 	return "", f.available
 }
 
+func (f fakeComponent) IsEnabled(_ runtime.Object) bool {
+	return f.enabled
+}
+
 func (f fakeComponent) Name() string {
 	return f.name
 }
 
-func newFakeComponent(name string, available bool) fakeComponent {
-	return fakeComponent{name: name, available: available}
+func newFakeComponent(name string, available, enabled bool) fakeComponent {
+	return fakeComponent{name: name, available: available, enabled: enabled}
 }
 
-func newTestController(objs ...client.Object) *PlatformHealth {
-	return New(fake.NewClientBuilder().WithObjects(objs...).Build(), 2*time.Second)
+func newTestHealthCheck(objs ...client.Object) *PlatformHealth {
+	testScheme := runtime.NewScheme()
+	_ = vzapi.AddToScheme(testScheme)
+	return New(fake.NewClientBuilder().WithObjects(objs...).WithScheme(testScheme).Build(), 2*time.Second)
 }
 
 func TestGetComponentAvailability(t *testing.T) {
@@ -47,14 +55,14 @@ func TestGetComponentAvailability(t *testing.T) {
 		f fakeComponent
 	}{
 		{
-			newFakeComponent("availableComponent", true),
+			newFakeComponent("availableComponent", true, true),
 		},
 		{
-			newFakeComponent("unavailableComponent", false),
+			newFakeComponent("unavailableComponent", false, true),
 		},
 	}
 
-	c := newTestController()
+	c := newTestHealthCheck()
 	vz := &vzapi.Verrazzano{}
 	ctx := spi.NewFakeContext(c.client, vz, nil, false)
 	for _, tt := range tests {
@@ -85,26 +93,26 @@ func TestSetAvailabilityFields(t *testing.T) {
 		},
 		{
 			"enabled but not available",
-			[]spi.Component{newFakeComponent(rancher, false)},
+			[]spi.Component{newFakeComponent(rancher, false, true)},
 			"0/1",
 		},
 		{
 			"enabled and available",
-			[]spi.Component{newFakeComponent(rancher, true)},
+			[]spi.Component{newFakeComponent(rancher, true, true)},
 			"1/1",
 		},
 		{
 			"multiple components",
 			[]spi.Component{
-				newFakeComponent(rancher, true),
-				newFakeComponent(opensearch, true),
-				newFakeComponent(grafana, false),
+				newFakeComponent(rancher, true, true),
+				newFakeComponent(opensearch, true, true),
+				newFakeComponent(grafana, false, true),
 			},
 			"2/3",
 		},
 	}
 
-	p := newTestController()
+	p := newTestHealthCheck()
 	log := vzlog.DefaultLogger()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -114,11 +122,46 @@ func TestSetAvailabilityFields(t *testing.T) {
 				},
 			}
 			for _, component := range tt.components {
-				vz.Status.Components[component.Name()] = &vzapi.ComponentStatusDetails{}
+				if component.IsEnabled(nil) {
+					vz.Status.Components[component.Name()] = &vzapi.ComponentStatusDetails{}
+				}
 			}
 			status, err := p.newStatus(log, vz, tt.components)
 			assert.NoError(t, err)
 			assert.NotNil(t, status)
+		})
+	}
+}
+
+func TestUpdateAvailability(t *testing.T) {
+	config.TestProfilesDir = reldir
+	defer func() { config.TestProfilesDir = "" }()
+	var tests = []struct {
+		name string
+		vz   *vzapi.Verrazzano
+	}{
+		{
+			"no verrazzano",
+			nil,
+		},
+		{
+			"verrazzano",
+			&vzapi.Verrazzano{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var p *PlatformHealth
+			if tt.vz != nil {
+				p = newTestHealthCheck(tt.vz)
+			} else {
+				p = newTestHealthCheck()
+			}
+
+			status, err := p.updateAvailability([]spi.Component{})
+			assert.NoError(t, err)
+			assert.Equal(t, status == nil, tt.vz == nil)
 		})
 	}
 }

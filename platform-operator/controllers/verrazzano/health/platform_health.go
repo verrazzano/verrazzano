@@ -56,8 +56,16 @@ func (p *PlatformHealth) Start() {
 			select {
 			case <-ticker.C:
 				// timer event causes availability update
-				p.updateAvailability(registry.GetComponents())
-
+				status, err := p.updateAvailability(registry.GetComponents())
+				if err != nil {
+					p.logger.Errorf("%v", err)
+				} else {
+					// only send an update if status has changed
+					if p.status != status {
+						p.status = status
+						p.C <- p.status
+					}
+				}
 			case <-p.shutdown:
 				// shutdown event causes termination
 				ticker.Stop()

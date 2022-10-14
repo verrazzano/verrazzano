@@ -17,6 +17,28 @@ type componentAvailability struct {
 	available bool
 }
 
+// updateAvailability updates the availability for a given set of components
+func (p *PlatformHealth) updateAvailability(components []spi.Component) (*Status, error) {
+	// Get the Verrazzano resource
+	vz, err := p.getVerrazzanoResource()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get Verrazzano resource: %v", err)
+	}
+	if vz == nil {
+		return nil, nil
+	}
+	vzlogger, err := newLogger(vz)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get Verrazzano resource logger: %v", err)
+	}
+	// calculate a new availability status
+	status, err := p.newStatus(vzlogger, vz, components)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get new Verrazzano availability: %v", err)
+	}
+	return status, nil
+}
+
 // newStatus creates a new availability status based on the current state of the component set.
 func (p *PlatformHealth) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazzano, components []spi.Component) (*Status, error) {
 	ch := make(chan componentAvailability)
@@ -76,35 +98,6 @@ func (p *PlatformHealth) getComponentAvailability(component spi.Component, ctx s
 		name:      name,
 		reason:    reason,
 		available: available,
-	}
-}
-
-// updateAvailability updates the availability for a given set of components
-func (p *PlatformHealth) updateAvailability(components []spi.Component) {
-	// Get the Verrazzano resource
-	vz, err := p.getVerrazzanoResource()
-	if err != nil {
-		p.logger.Errorf("Failed to get Verrazzano resource: %v", err)
-		return
-	}
-	if vz == nil {
-		return
-	}
-	vzlogger, err := newLogger(vz)
-	if err != nil {
-		p.logger.Errorf("Failed to get Verrazzano resource logger: %v", err)
-		return
-	}
-	// calculate a new availability status
-	status, err := p.newStatus(vzlogger, vz, components)
-	if err != nil {
-		vzlogger.Errorf("Failed to get new Verrazzano availability: %v", err)
-		return
-	}
-	// only send an update if status has changed
-	if p.status != status {
-		p.status = status
-		p.C <- p.status
 	}
 }
 
