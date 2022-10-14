@@ -12,7 +12,6 @@ import (
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/availability"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -288,10 +287,6 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) (ctrl.Result, er
 		return ctrl.Result{}, err
 	}
 
-	if err := availability.DeleteStatus(r.Client, ctx.ActualCR()); err != nil {
-		return ctrl.Result{}, err
-	}
-
 	if err := r.nodeExporterCleanup(ctx.Log()); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -302,7 +297,7 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) (ctrl.Result, er
 	if err := r.runRancherPostInstall(ctx); err != nil {
 		return ctrl.Result{}, err
 	}
-
+	r.HealthCheck.Clear()
 	return r.deleteNamespaces(ctx.Log())
 }
 

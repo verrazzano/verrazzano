@@ -16,6 +16,8 @@ import (
 	"time"
 )
 
+const reldir = "../../../manifests/profiles"
+
 type fakeComponent struct {
 	name      string
 	available bool
@@ -34,12 +36,12 @@ func newFakeComponent(name string, available bool) fakeComponent {
 	return fakeComponent{name: name, available: available}
 }
 
-func newTestController(objs ...client.Object) *Controller {
+func newTestController(objs ...client.Object) *PlatformHealth {
 	return New(fake.NewClientBuilder().WithObjects(objs...).Build(), 2*time.Second)
 }
 
 func TestGetComponentAvailability(t *testing.T) {
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = reldir
 	defer func() { config.TestProfilesDir = "" }()
 	var tests = []struct {
 		f fakeComponent
@@ -64,7 +66,7 @@ func TestGetComponentAvailability(t *testing.T) {
 }
 
 func TestSetAvailabilityFields(t *testing.T) {
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = reldir
 	defer func() { config.TestProfilesDir = "" }()
 	zeroOfZero := "0/0"
 	rancher := "rancher"
@@ -114,9 +116,8 @@ func TestSetAvailabilityFields(t *testing.T) {
 			for _, component := range tt.components {
 				vz.Status.Components[component.Name()] = &vzapi.ComponentStatusDetails{}
 			}
-			status, err := c.getNewStatus(log, vz, tt.components)
+			err := c.newStatus(log, vz, tt.components)
 			assert.NoError(t, err)
-			assert.Equal(t, tt.available, status.Available)
 		})
 	}
 }

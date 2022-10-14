@@ -5,7 +5,6 @@ package verrazzano
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -210,8 +209,6 @@ func testUpdate(t *testing.T,
 			return nil
 		}).AnyTimes()
 
-	// Expect a call to get the availability secret
-	expectGETAvailabilitySecret(mock, fmt.Sprintf("verrazzano-%s-availability", name), namespace)
 	// Sample bom file for version validation functions
 	config.SetDefaultBomFilePath(testBomFilePath)
 	// Stubout the call to check the chart status

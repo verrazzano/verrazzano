@@ -7,7 +7,8 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/availability"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/availability"
+
 	"strings"
 	"sync"
 	"time"
@@ -59,7 +60,7 @@ type Reconciler struct {
 	WatchedComponents map[string]bool
 	WatchMutex        *sync.RWMutex
 	Bom               *bom.Bom
-	HealthCheck       *availability.Controller
+	HealthCheck       *availability.PlatformHealth
 }
 
 // Name of finalizer
@@ -1108,9 +1109,7 @@ func initUnitTesing() {
 }
 
 func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
-	if err := r.addAvailabilityStatus(vz); err != nil {
-		return err
-	}
+	r.addAvailabilityStatus(vz)
 	err := r.Status().Update(context.TODO(), vz)
 	if err == nil {
 		return nil
@@ -1124,18 +1123,15 @@ func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *inst
 	return err
 }
 
-func (r *Reconciler) addAvailabilityStatus(vz *installv1alpha1.Verrazzano) error {
-	status, err := availability.GetStatus(r.Client, vz)
-	if err != nil {
-		return err
-	}
+func (r *Reconciler) addAvailabilityStatus(vz *installv1alpha1.Verrazzano) {
+	status := r.HealthCheck.Get()
 	// Zero out availability if status unknown
 	if status == nil {
 		for _, component := range vz.Status.Components {
 			component.Available = nil
 		}
 		vz.Status.Available = nil
-		return nil
+		return
 	}
 
 	for component := range status.Components {
@@ -1145,7 +1141,6 @@ func (r *Reconciler) addAvailabilityStatus(vz *installv1alpha1.Verrazzano) error
 		}
 	}
 	vz.Status.Available = &status.Available
-	return nil
 }
 
 // AddWatch adds a component to the watched set
