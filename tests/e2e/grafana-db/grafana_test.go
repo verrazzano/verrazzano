@@ -210,7 +210,6 @@ var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.
 			json.Unmarshal(resp.Body, &body)
 
 			for _, dashboard := range body {
-				pkg.Log(pkg.Info, "Debug: "+dashboard["title"])
 				if dashboard["title"] == testDashboardTitle {
 					return true
 				}
