@@ -44,9 +44,12 @@ var _ = clusterDump.BeforeSuite(func() {
 func haCheckRetryRetryPolicy(retry retryablehttp.CheckRetry) retryablehttp.CheckRetry {
 	return func(ctx context.Context, resp *http.Response, err error) (bool, error) {
 		currentRetry := retry
-		if resp.StatusCode == 401 {
+		if resp != nil && resp.StatusCode == 401 {
 			return true, nil
 		}
-		return currentRetry(ctx, resp, err)
+		if currentRetry != nil {
+			return currentRetry(ctx, resp, err)
+		}
+		return false, nil
 	}
 }
