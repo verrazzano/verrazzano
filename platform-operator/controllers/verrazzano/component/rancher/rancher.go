@@ -38,47 +38,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// checkRancherUpgradeFailureSig is a function needed for unit test override
-// type checkRancherUpgradeFailureSig func(c client.Client, log vzlog.VerrazzanoLogger) (err error)
+// getDynamicClientFuncSig defines the signature for a function that returns a k8s dynamic client
+type getDynamicClientFuncSig func() (dynamic.Interface, error)
 
-// chartsNotUpdatedWorkaroundSig is a function needed for unit test override
-type chartsNotUpdatedWorkaroundSig func(ctx spi.ComponentContext) (err error)
-
-// checkRancherUpgradeFailureFunc is the default checkRancherUpgradeFailure function
-// var checkRancherUpgradeFailureFunc checkRancherUpgradeFailureSig = checkRancherUpgradeFailure
-
-// checkRancherUpgradeFailureFunc is the default checkRancherUpgradeFailure function
-var chartsNotUpdatedWorkaroundFunc chartsNotUpdatedWorkaroundSig = chartsNotUpdatedWorkaround
-
-// fakeCheckRancherUpgradeFailure is the fake checkRancherUpgradeFailure function needed for unit testing
-/*func fakeCheckRancherUpgradeFailure(_ client.Client, _ vzlog.VerrazzanoLogger) (err error) {
-	return nil
-}*/
-
-// fakeChartsNotUpdatedWorkaround is the fake chartsNotUpdatedWorkaround function needed for unit testing
-func fakeChartsNotUpdatedWorkaround(_ spi.ComponentContext) (err error) {
-	return nil
-}
-
-/*
-func SetFakeCheckRancherUpgradeFailureFunc() {
-	checkRancherUpgradeFailureFunc = fakeCheckRancherUpgradeFailure
-}
-*/
-
-/*
-func SetDefaultCheckRancherUpgradeFailureFunc() {
-	checkRancherUpgradeFailureFunc = checkRancherUpgradeFailure
-}
-*/
-
-func SetFakeChartsNotUpdatedWorkaroundFunc() {
-	chartsNotUpdatedWorkaroundFunc = fakeChartsNotUpdatedWorkaround
-}
-
-func SetDefaultChartsNotUpdatedWorkaroundFunc() {
-	chartsNotUpdatedWorkaroundFunc = chartsNotUpdatedWorkaround
-}
+// getDynamicClientFunc is the function for getting a k8s dynamic client - this allows us to override
+// the function for unit testing
+var getDynamicClientFunc getDynamicClientFuncSig = getDynamicClient
 
 // Constants for Kubernetes resource names
 const (
@@ -200,6 +165,14 @@ const (
 	UserPrincipalLocalPrefix     = "local://"
 )
 
+const (
+	rancherChartsClusterRepoName        = "rancher-charts"
+	rancherPartnerChartsClusterRepoName = "rancher-partner-charts"
+	rancherRke2ChartsClusterRepoName    = "rancher-rke2-charts"
+
+	chartDefaultBranchName = "chart-default-branch"
+)
+
 var GVKSetting = common.GetRancherMgmtAPIGVKForKind("Setting")
 var GVKCluster = common.GetRancherMgmtAPIGVKForKind("Cluster")
 var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
@@ -233,6 +206,18 @@ var GroupRolePairs = []map[string]string{
 		GroupKey:       VerrazzanoMonitorsGroupName,
 		ClusterRoleKey: ClusterMemberRoleName,
 	},
+}
+
+var cattleSettingsGVR = schema.GroupVersionResource{
+	Group:    "management.cattle.io",
+	Version:  "v3",
+	Resource: "settings",
+}
+
+var cattleClusterReposGVR = schema.GroupVersionResource{
+	Group:    "catalog.cattle.io",
+	Version:  "v1",
+	Resource: "clusterrepos",
 }
 
 func useAdditionalCAs(acme vzapi.Acme) bool {
@@ -287,8 +272,10 @@ func isRancherReady(ctx spi.ComponentContext) bool {
 
 // chartsNotUpdatedWorkaround - workaround for VZ-7053, where some of the Helm charts are not
 // getting updated after Rancher upgrade. This workaround will scale the Rancher deployment down
-// and then delete the ClusterRepo resources. This must be done in PreUpgrade. When Rancher is upgraded,
-// new Rancher pods will start and create new ClusterRepo resoures with the correct chart data.
+// and then delete the ClusterRepo resources. This must be done in PreUpgrade. Scaling down is
+// necessary to prevent an old pod from updating the ClusterRepo with an old commit. When Rancher
+// is upgraded, new Rancher pods will start and create new ClusterRepo resources with the correct
+// chart data.
 func chartsNotUpdatedWorkaround(ctx spi.ComponentContext) error {
 	if err := scaleDownRancherDeployment(ctx.Client(), ctx.Log()); err != nil {
 		return err
@@ -296,6 +283,7 @@ func chartsNotUpdatedWorkaround(ctx spi.ComponentContext) error {
 	return deleteClusterRepos(ctx.Log())
 }
 
+// scaleDownRancherDeployment scales the Rancher deployment down to zero replicas
 func scaleDownRancherDeployment(c client.Client, log vzlog.VerrazzanoLogger) error {
 	deployment := appsv1.Deployment{}
 	namespacedName := types.NamespacedName{Name: common.RancherName, Namespace: common.CattleSystem}
@@ -307,6 +295,7 @@ func scaleDownRancherDeployment(c client.Client, log vzlog.VerrazzanoLogger) err
 		// deployment is already scaled down, nothing to do
 		return nil
 	}
+
 	log.Infof("Scaling down Rancher deployment %v", namespacedName)
 	zero := int32(0)
 	deployment.Spec.Replicas = &zero
@@ -327,71 +316,63 @@ func scaleDownRancherDeployment(c client.Client, log vzlog.VerrazzanoLogger) err
 	return nil
 }
 
+// getDynamicClient returns a dynamic k8s client
+func getDynamicClient() (dynamic.Interface, error) {
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	dynamicClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return dynamicClient, nil
+}
+
 // deleteClusterRepos - temporary work around for Rancher issue 36914. On upgrade of Rancher
 // the setting of useBundledSystemChart does not appear to be honored, and the downloaded
 // helm charts for the previous release of Rancher are used (instead of the charts on the Rancher
 // container image).
 func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
-
-	config, err := ctrl.GetConfig()
+	dynamicClient, err := getDynamicClientFunc()
 	if err != nil {
-		log.Debugf("Rancher deleteClusterRepos: Failed getting config: %v", err)
+		log.Errorf("Rancher deleteClusterRepos: Failed creating dynamic client: %v", err)
 		return err
-	}
-	dynamicClient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		log.Debugf("Rancher deleteClusterRepos: Failed creating dynamic client: %v", err)
-		return err
-	}
-
-	// Configure the GVR
-	gvr := schema.GroupVersionResource{
-		Group:    "management.cattle.io",
-		Version:  "v3",
-		Resource: "settings",
 	}
 
 	// Get the name of the default branch for the helm charts
-	name := "chart-default-branch"
-	chartDefaultBranch, err := dynamicClient.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
+	chartDefaultBranch, err := dynamicClient.Resource(cattleSettingsGVR).Get(context.TODO(), chartDefaultBranchName, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return nil
 	}
 	if err != nil {
-		log.Debugf("Rancher deleteClusterRepos: Failed getting settings.management.cattle.io %s: %v", name, err)
+		log.Errorf("Rancher deleteClusterRepos: Failed getting settings.management.cattle.io %s: %v", chartDefaultBranchName, err)
 		return err
 	}
 
 	// Obtain the name of the default branch from the custom resource
 	defaultBranch, _, err := unstructured.NestedString(chartDefaultBranch.Object, "default")
 	if err != nil {
-		log.Debugf("Rancher deleteClusterRepos: Failed to find default branch value in settings.management.cattle.io %s: %v", name, err)
+		log.Errorf("Rancher deleteClusterRepos: Failed to find default branch value in settings.management.cattle.io %s: %v", chartDefaultBranchName, err)
 		return err
 	}
 
 	log.Infof("Rancher deleteClusterRepos: The default release branch is currently set to %s", defaultBranch)
 
 	// Delete settings.management.cattle.io chart-default-branch
-	err = dynamicClient.Resource(gvr).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	err = dynamicClient.Resource(cattleSettingsGVR).Delete(context.TODO(), chartDefaultBranchName, metav1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		log.Debugf("Rancher deleteClusterRepos: Failed deleting settings.management.cattle.io %s: %v", name, err)
+		log.Errorf("Rancher deleteClusterRepos: Failed deleting settings.management.cattle.io %s: %v", chartDefaultBranchName, err)
 		return err
 	}
-	log.Infof("Rancher deleteClusterRepos: Deleted settings.management.cattle.io %s", name)
-
-	// Reconfigure the GVR
-	gvr = schema.GroupVersionResource{
-		Group:    "catalog.cattle.io",
-		Version:  "v1",
-		Resource: "clusterrepos",
-	}
+	log.Infof("Rancher deleteClusterRepos: Deleted settings.management.cattle.io %s", chartDefaultBranchName)
 
 	// List of clusterrepos to delete
-	names := []string{"rancher-charts", "rancher-rke2-charts", "rancher-partner-charts"}
+	names := []string{rancherChartsClusterRepoName, rancherPartnerChartsClusterRepoName, rancherRke2ChartsClusterRepoName}
 	for _, name := range names {
-		err = dynamicClient.Resource(gvr).Delete(context.TODO(), name, metav1.DeleteOptions{})
+		err = dynamicClient.Resource(cattleClusterReposGVR).Delete(context.TODO(), name, metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(err) {
-			log.Debugf("Rancher deleteClusterRepos: Failed deleting clusterrepos.catalog.cattle.io %s: %v", name, err)
+			log.Errorf("Rancher deleteClusterRepos: Failed deleting clusterrepos.catalog.cattle.io %s: %v", name, err)
 			return err
 		}
 		log.Infof("Rancher deleteClusterRepos: Deleted clusterrepos.catalog.cattle.io %s", name)

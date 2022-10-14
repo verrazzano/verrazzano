@@ -208,9 +208,12 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
+// PreUpgrade
+/* Runs pre-upgrade steps
+- Scales down Rancher pods and deletes the ClusterRepo resources to work around Rancher upgrade issues (VZ-7053)
+*/
 func (r rancherComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	// Rancher upgrade workaround for rancher-charts versions in config map not being updated (VZ-7053)
-	return chartsNotUpdatedWorkaroundFunc(ctx)
+	return chartsNotUpdatedWorkaround(ctx)
 }
 
 // Install
