@@ -491,4 +491,3 @@ func checkExistingRancher(vz runtime.Object) error {
 	}
 	return nil
 }
-

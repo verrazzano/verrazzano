@@ -93,14 +93,14 @@ func LabelKubeSystemNamespace(client clipkg.Client) error {
 // CheckExistingNamespace checks namespaces if there is an existing namespace that is not created by Verrazzano
 // It compares the label of the namespace with the Verrazzano namespace label i.e verrazzano.io/namespace
 func CheckExistingNamespace(ns []corev1.Namespace, includeNamespace func(*corev1.Namespace) bool) error {
-	for _, n := range ns {
-		if includeNamespace(&n) {
-			for l := range n.Labels {
+	for i := range ns {
+		if includeNamespace(&ns[i]) {
+			for l := range ns[i].Labels {
 				if l == globalconst.LabelVerrazzanoNamespace {
 					return nil
 				}
 			}
-			return fmt.Errorf("found existing namespace %s not created by Verrazzano", n.Name)
+			return fmt.Errorf("found existing namespace %s not created by Verrazzano", ns[i].Name)
 		}
 	}
 	return nil
