@@ -160,8 +160,11 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 					node.Name,
 				}
 				out, err := exec.Command("kubectl", kubectlArgs...).Output() //nolint:gosec //#nosec G204
-				Expect(err).ShouldNot(HaveOccurred())
 				t.Logs.Infof("Output from kubectl drain command: %s", out)
+				if err != nil {
+					t.Logs.Infof("Error occurred running kubectl drain command: %s", err.Error())
+				}
+				Expect(err).ShouldNot(HaveOccurred())
 
 				// Handle the case where MySQL pods can be left dangling waiting for finalizers to be cleaned up
 				// - this is a workaround until we can perhaps get a fix from the MySQL team
