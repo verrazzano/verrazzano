@@ -82,7 +82,7 @@ metadata:
     app: {{ .Values.name }}-webhook
     app.kubernetes.io/version: {{ .Chart.Version }}
 spec:
-  replicas: 1
+  replicas: 2
   strategy:
     type: Recreate
   selector:
