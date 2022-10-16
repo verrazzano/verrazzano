@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 	"k8s.io/client-go/dynamic"
@@ -194,7 +195,7 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 		os.Exit(1)
 	}
 
-	err = certificate.UpdateMutatingWebhookConfiguration(kubeClient, caCert, certificate.MysqlMutatingWebhookName)
+	err = certificate.UpdateMutatingWebhookConfiguration(kubeClient, caCert, constants.MysqlBackupMutatingWebhookName)
 	if err != nil {
 		log.Errorf("Failed to update pod mutating webhook configuration: %v", err)
 		os.Exit(1)
@@ -248,7 +249,7 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 
 	// register MySQL backup job mutating webhook
 	mgr.GetWebhookServer().Register(
-		webhooks.MySQLBackupPath,
+		constants.MysqlBackupMutatingWebhookPath,
 		&webhook.Admission{
 			Handler: &webhooks.MySQLBackupJobWebhook{
 				Client:        mgr.GetClient(),

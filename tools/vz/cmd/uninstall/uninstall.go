@@ -181,6 +181,11 @@ func cleanupResources(client client.Client, vzHelper helpers.VZHelper) {
 		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
 	}
 
+	err = deleteMutatingWebhookConfiguration(client, constants.MysqlBackupMutatingWebhookName)
+	if err != nil {
+		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+	}
+
 	err = deleteClusterRoleBinding(client, constants.VerrazzanoPlatformOperator)
 	if err != nil {
 		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
@@ -389,6 +394,21 @@ func deleteWebhookConfiguration(client client.Client, name string) error {
 	err := client.Delete(context.TODO(), vwc, deleteOptions)
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("Failed to delete ValidatingWebhookConfiguration resource %s: %s", name, err.Error())
+	}
+	return nil
+}
+
+// deleteMutatingWebhookConfiguration deletes a given MutatingWebhookConfiguration
+func deleteMutatingWebhookConfiguration(client client.Client, name string) error {
+	mwc := &adminv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+
+	err := client.Delete(context.TODO(), mwc, deleteOptions)
+	if err != nil && !errors.IsNotFound(err) {
+		return fmt.Errorf("Failed to delete MutatingWebhookConfiguration resource %s: %s", name, err.Error())
 	}
 	return nil
 }

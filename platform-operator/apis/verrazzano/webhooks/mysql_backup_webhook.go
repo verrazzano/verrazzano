@@ -23,8 +23,6 @@ import (
 )
 
 const (
-	// MySQLBackupPath specifies the path of Istio defaulter webhook.
-	MySQLBackupPath = "/mysql-backup"
 
 	// MySQLOperatorJobLabel and MySQLOperatorJobLabelValue are the label key,value pair
 	// that are applied to the job by mysql-operator.

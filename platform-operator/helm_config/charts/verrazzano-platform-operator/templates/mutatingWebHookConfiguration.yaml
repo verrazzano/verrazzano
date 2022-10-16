@@ -17,7 +17,7 @@ webhooks:
       service:
         name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
-        path: "/mysql-backup"
+        path: "/mysql-backup-job-annotate"
     rules:
       - apiGroups:
           - batch

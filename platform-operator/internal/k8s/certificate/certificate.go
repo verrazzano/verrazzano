@@ -29,9 +29,8 @@ const (
 	OperatorName    = "verrazzano-platform-operator-webhook"
 	OldOperatorName = "verrazzano-platform-operator"
 	// OperatorNamespace is the resource namespace for the Verrazzano platform operator
-	OperatorNamespace        = "verrazzano-install"
-	CRDName                  = "verrazzanos.install.verrazzano.io"
-	MysqlMutatingWebhookName = "verrazzano-mysql-backup"
+	OperatorNamespace = "verrazzano-install"
+	CRDName           = "verrazzanos.install.verrazzano.io"
 )
 
 // CreateWebhookCertificates creates the needed certificates for the validating webhook
