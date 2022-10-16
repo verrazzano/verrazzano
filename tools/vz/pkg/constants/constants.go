@@ -63,6 +63,8 @@ const VerrazzanoPlatformOperator = "verrazzano-platform-operator"
 
 const VerrazzanoPlatformOperatorWebhook = "verrazzano-platform-operator-webhook"
 
+const VerrazzanoMysqlInstallValuesWebhook = "verrazzano-platform-mysqlinstalloverrides"
+
 const VerrazzanoApplicationOperator = "verrazzano-application-operator"
 
 const VerrazzanoMonitoringOperator = "verrazzano-monitoring-operator"
