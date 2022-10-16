@@ -61,8 +61,7 @@ func TestBugReportExistingReportFile(t *testing.T) {
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
-	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer cleanupTempDir(t, tmpDir)
+	tmpDir := t.TempDir()
 
 	// Define and create the bug report file
 	reportFile := "bug-report.tgz"
@@ -90,8 +89,7 @@ func TestBugReportExistingDir(t *testing.T) {
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
-	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer cleanupTempDir(t, tmpDir)
+	tmpDir := t.TempDir()
 
 	reportDir := tmpDir + string(os.PathSeparator) + "test-report"
 	if err := os.Mkdir(reportDir, os.ModePerm); err != nil {
@@ -116,8 +114,7 @@ func TestBugReportNonExistingFileDir(t *testing.T) {
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
-	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer cleanupTempDir(t, tmpDir)
+	tmpDir := t.TempDir()
 
 	reportDir := tmpDir + string(os.PathSeparator) + "test-report"
 	reportFile := reportDir + string(os.PathSeparator) + string(os.PathSeparator) + "bug-report.tgz"
@@ -140,8 +137,7 @@ func TestBugReportFileNoPermission(t *testing.T) {
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
-	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer cleanupTempDir(t, tmpDir)
+	tmpDir := t.TempDir()
 
 	reportDir := tmpDir + string(os.PathSeparator) + "test-report"
 	// Create a directory with only read permission
@@ -175,8 +171,7 @@ func TestBugReportSuccess(t *testing.T) {
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
-	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer cleanupTempDir(t, tmpDir)
+	tmpDir := t.TempDir()
 
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
 	assert.NoError(t, err)
@@ -272,8 +267,7 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
-	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer cleanupTempDir(t, tmpDir)
+	tmpDir := t.TempDir()
 
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
 	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
@@ -300,8 +294,7 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
-	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer cleanupTempDir(t, tmpDir)
+	tmpDir := t.TempDir()
 
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
 	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
@@ -399,13 +392,6 @@ func getInvalidClient() client.WithWatch {
 		},
 	}
 	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(testObj, deployment).Build()
-}
-
-// cleanupTempDir cleans up the given temp directory after the test run
-func cleanupTempDir(t *testing.T, dirName string) {
-	if err := os.RemoveAll(dirName); err != nil {
-		t.Fatalf("Remove directory failed: %v", err)
-	}
 }
 
 // cleanupTempDir cleans up the given temp file after the test run

@@ -26,11 +26,7 @@ import (
 func TestSetupCertificates(t *testing.T) {
 	a := assert.New(t)
 
-	dir, err := os.MkdirTemp("", "certs")
-	if err != nil {
-		a.Nil(err, "error should not be returned creating temporary directory")
-	}
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 	caBundle, err := SetupCertificates(dir)
 	a.Nil(err, "error should not be returned setting up certificates")
 	a.NotNil(caBundle, "CA bundle should be returned")

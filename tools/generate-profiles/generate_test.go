@@ -4,12 +4,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"os"
-	"sigs.k8s.io/yaml"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"sigs.k8s.io/yaml"
 )
 
 var vzDir = "../.."
@@ -21,10 +22,8 @@ var vzDir = "../.."
 func TestRun(t *testing.T) {
 	assert := assert.New(t)
 	os.Setenv(VzRootDir, vzDir)
-	dir, err := os.MkdirTemp("", "temp")
-	assert.NoError(err)
-	defer os.RemoveAll(dir)
-	err = run("prod", dir)
+	dir := t.TempDir()
+	err := run("prod", dir)
 	assert.NoError(err)
 	_, err = os.Stat(dir + "/" + "prod.yaml")
 	assert.NoError(err)

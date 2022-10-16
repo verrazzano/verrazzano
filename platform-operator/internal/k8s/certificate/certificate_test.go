@@ -31,17 +31,9 @@ func TestCreateWebhookCertificates(t *testing.T) {
 	client := fake.NewSimpleClientset()
 
 	// create temp dir for certs
-	tempDir, err := os.MkdirTemp("", "certs")
-	t.Logf("Using temp dir %s", tempDir)
-	defer func() {
-		err := os.RemoveAll(tempDir)
-		if err != nil {
-			t.Logf("Error removing tempdir %s", tempDir)
-		}
-	}()
-	asserts.Nil(err)
+	tempDir := t.TempDir()
 
-	err = CreateWebhookCertificates(zap.S(), client, tempDir)
+	err := CreateWebhookCertificates(zap.S(), client, tempDir)
 	asserts.Nil(err)
 
 	// Verify generated certs
@@ -57,15 +49,7 @@ func TestCreateWebhookCertificates(t *testing.T) {
 	asserts.NotEmpty(string(secret.Data[CertKey]))
 
 	// create temp dir for certs
-	tempDir2, err := os.MkdirTemp("", "certs")
-	t.Logf("Using temp dir %s", tempDir2)
-	defer func() {
-		err := os.RemoveAll(tempDir2)
-		if err != nil {
-			t.Logf("Error removing tempdir %s", tempDir2)
-		}
-	}()
-	asserts.Nil(err)
+	tempDir2 := t.TempDir()
 
 	// Call it again, should create new certs in location with identical contents
 	err = CreateWebhookCertificates(zap.S(), client, tempDir2)
@@ -110,15 +94,7 @@ func TestCreateWebhookCertificatesRaceCondition(t *testing.T) {
 	asserts.Nil(err)
 
 	// create temp dir for certs
-	tempDir, err := os.MkdirTemp("", "certs")
-	t.Logf("Using temp dir %s", tempDir)
-	defer func() {
-		err := os.RemoveAll(tempDir)
-		if err != nil {
-			t.Logf("Error removing tempdir %s", tempDir)
-		}
-	}()
-	asserts.Nil(err)
+	tempDir := t.TempDir()
 
 	// Simulate the race condition where the secrets do not exist when CreateWebhookCertificates is called
 	// but do exist when it attempts to create them later in the routine.

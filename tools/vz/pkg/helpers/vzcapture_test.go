@@ -32,8 +32,7 @@ import (
 //	WHEN I call function CreateReportArchive with a report file
 //	THEN expect it to create the report file
 func TestCreateReportArchive(t *testing.T) {
-	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer cleanupTempDir(t, tmpDir)
+	tmpDir := t.TempDir()
 
 	captureDir := tmpDir + string(os.PathSeparator) + "test-report"
 	if err := os.Mkdir(captureDir, os.ModePerm); err != nil {
@@ -101,13 +100,11 @@ func TestGroupVersionResource(t *testing.T) {
 //	THEN expect it to not throw any error
 func TestCaptureK8SResources(t *testing.T) {
 	k8sClient := k8sfake.NewSimpleClientset()
-	captureDir, err := os.MkdirTemp("", "testcapture")
-	defer cleanupTempDir(t, captureDir)
-	assert.NoError(t, err)
+	captureDir := t.TempDir()
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	err = CaptureK8SResources(k8sClient, constants.VerrazzanoInstall, captureDir, rc)
+	err := CaptureK8SResources(k8sClient, constants.VerrazzanoInstall, captureDir, rc)
 	assert.NoError(t, err)
 }
 
@@ -122,9 +119,7 @@ func TestCaptureMultiClusterResources(t *testing.T) {
 	_ = appclusterv1alpha1.AddToScheme(scheme)
 
 	dynamicClient := fakedynamic.NewSimpleDynamicClient(scheme)
-	captureDir, err := os.MkdirTemp("", "testcapture")
-	defer cleanupTempDir(t, captureDir)
-	assert.NoError(t, err)
+	captureDir := t.TempDir()
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
@@ -145,9 +140,7 @@ func TestCaptureOAMResources(t *testing.T) {
 	_ = core.AddToScheme(scheme)
 
 	dynamicClient := fakedynamic.NewSimpleDynamicClient(scheme)
-	captureDir, err := os.MkdirTemp("", "testcapture")
-	defer cleanupTempDir(t, captureDir)
-	assert.NoError(t, err)
+	captureDir := t.TempDir()
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
@@ -157,13 +150,11 @@ func TestCaptureOAMResources(t *testing.T) {
 // TestCapturePodLog tests the functionality to capture the logs of a given pod.
 func TestCapturePodLog(t *testing.T) {
 	k8sClient := k8sfake.NewSimpleClientset()
-	captureDir, err := os.MkdirTemp("", "testcapture")
-	defer cleanupTempDir(t, captureDir)
-	assert.NoError(t, err)
+	captureDir := t.TempDir()
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	err = CapturePodLog(k8sClient, corev1.Pod{}, constants.VerrazzanoInstall, captureDir, rc)
+	err := CapturePodLog(k8sClient, corev1.Pod{}, constants.VerrazzanoInstall, captureDir, rc)
 	assert.NoError(t, err)
 
 	//  GIVENT and empty k8s cluster,
@@ -228,9 +219,7 @@ func TestGetPodList(t *testing.T) {
 
 // TestCaptureVZResource tests the functionality to capture the Verrazzano resource.
 func TestCaptureVZResource(t *testing.T) {
-	captureDir, err := os.MkdirTemp("", "testcapture")
-	defer cleanupTempDir(t, captureDir)
-	assert.NoError(t, err)
+	captureDir := t.TempDir()
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
@@ -329,25 +318,15 @@ func TestCreateFile(t *testing.T) {
 	//  GIVEN a k8s cluster with a VPO pod,
 	//	WHEN I call functions to create a JSON file for the pod,
 	//	THEN expect it to write to the provided resource file, the JSON contents of the pod and no error should be returned.
-	captureDir, err := os.MkdirTemp("", "testcapture")
-	defer cleanupTempDir(t, captureDir)
-	assert.NoError(t, err)
-	defer cleanupTempDir(t, captureDir)
+	captureDir := t.TempDir()
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	err = createFile(corev1.Pod{ObjectMeta: metav1.ObjectMeta{
+	err := createFile(corev1.Pod{ObjectMeta: metav1.ObjectMeta{
 		Name:      constants.VerrazzanoPlatformOperator,
 		Namespace: constants.VerrazzanoInstall,
 	}}, constants.VerrazzanoInstall, "test-file", captureDir, rc)
 	assert.NoError(t, err)
-}
-
-// cleanupTempDir cleans up the given temp directory after the test run
-func cleanupTempDir(t *testing.T, dirName string) {
-	if err := os.RemoveAll(dirName); err != nil {
-		t.Fatalf("RemoveAll failed: %v", err)
-	}
 }
 
 // cleanupTempDir cleans up the given temp file after the test run
