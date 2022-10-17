@@ -230,7 +230,7 @@
             },
             {
               "image": "grafana",
-              "tag": "v7.5.15-20220809163103-24d2f584",
+              "tag": "v7.5.15-20221017201035-24d2f584",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
