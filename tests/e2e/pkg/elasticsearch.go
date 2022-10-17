@@ -30,13 +30,13 @@ const (
 	ISO8601Layout = "2006-01-02T15:04:05.999999999-07:00"
 )
 
-//GetOpenSearchSystemIndex in Verrazzano 1.3.0, indices in the verrazzano-system namespace have been migrated
+// GetOpenSearchSystemIndex in Verrazzano 1.3.0, indices in the verrazzano-system namespace have been migrated
 // to the verrazzano-system data stream
 func GetOpenSearchSystemIndex(name string) (string, error) {
 	return GetOpenSearchSystemIndexWithKC(name, "")
 }
 
-//GetOpenSearchSystemIndexWithKC is the same as GetOpenSearchSystemIndex but the kubeconfig may be specified for MC tests
+// GetOpenSearchSystemIndexWithKC is the same as GetOpenSearchSystemIndex but the kubeconfig may be specified for MC tests
 func GetOpenSearchSystemIndexWithKC(name, kubeconfigPath string) (string, error) {
 	usingDataStreams, err := isUsingDataStreams(kubeconfigPath)
 	if err != nil {
@@ -105,7 +105,7 @@ type Action struct {
 	} `json:"delete,omitempty"`
 }
 
-// Transistion defined in ISM policy
+// Transition defined in ISM policy
 type Transition struct {
 	StateName  string            `json:"state_name"`
 	Conditions map[string]string `json:"conditions"`
@@ -160,7 +160,7 @@ type DataStream struct {
 	Template   string `json:"template"`
 }
 
-//SearchResult represents the result of an Opensearch search query
+// SearchResult represents the result of an Opensearch search query
 type SearchResult struct {
 	Took     int  `json:"took"`
 	TimedOut bool `json:"timed_out"`
@@ -226,13 +226,13 @@ func (u ElasticSearchISMPolicyRemoveModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 }
 
-//GetOpenSearchAppIndex in Verrazzano 1.3.0, application indices have been migrated to data streams
+// GetOpenSearchAppIndex in Verrazzano 1.3.0, application indices have been migrated to data streams
 // following the pattern 'verrazzano-application-<application name>'
 func GetOpenSearchAppIndex(namespace string) (string, error) {
 	return GetOpenSearchAppIndexWithKC(namespace, "")
 }
 
-//GetOpenSearchAppIndexWithKC is the same as GetOpenSearchAppIndex but kubeconfig may be specified for MC tests
+// GetOpenSearchAppIndexWithKC is the same as GetOpenSearchAppIndex but kubeconfig may be specified for MC tests
 func GetOpenSearchAppIndexWithKC(namespace, kubeconfigPath string) (string, error) {
 	usingDataStreams, err := isUsingDataStreams(kubeconfigPath)
 	if err != nil {
@@ -584,7 +584,7 @@ func IsDataStreamSupported() bool {
 	return false
 }
 
-//WaitForISMPolicyUpdate waits for the VMO reconcile to complete and the ISM policies are created
+// WaitForISMPolicyUpdate waits for the VMO reconcile to complete and the ISM policies are created
 func WaitForISMPolicyUpdate(pollingInterval time.Duration, timeout time.Duration) {
 	gomega.Eventually(func() bool {
 		ismPolicyExists, err := ISMPolicyExists(ApplicationLogIsmPolicyName)

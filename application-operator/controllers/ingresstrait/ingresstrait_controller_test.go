@@ -1242,7 +1242,7 @@ func TestFailureToGetWorkloadDefinition(t *testing.T) {
 	assert.GreaterOrEqual(result.RequeueAfter.Milliseconds(), time.Duration(0).Milliseconds())
 }
 
-// TestFailureToUpdateStatus tests tje Reconcile method for the following use case
+// TestFailureToUpdateStatus tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an ingress trait resource
 // WHEN the request to update the trait status fails
 // THEN ensure an error is returned
@@ -1789,7 +1789,7 @@ func TestBuildAppHostNameNodePortExternalIP(t *testing.T) {
 	assert.Equal(testExternalDomainName, domainName)
 }
 
-// TestGetTraitFailurePropagated tests tje Reconcile method for the following use case
+// TestGetTraitFailurePropagated tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an ingress trait resource
 // WHEN a failure occurs getting the ingress trait resource
 // THEN the error is propagated
@@ -3541,7 +3541,7 @@ func TestUpdateGatewayServersList(t *testing.T) {
 // IngressTrait definitions.  Post-1.3, we replace this with a 1:1 mapping of Server objects to IngressTrait.
 // Each Server object will define port settings for all hosts in the IngressTrait and be recomputed on each reconcile.
 //
-// On startup, the operator will reconcile all existing IngressTraits which will create the new mappings
+// # On startup, the operator will reconcile all existing IngressTraits which will create the new mappings
 //
 // GIVEN a request to update the gateway servers list for an ingress trait resource
 // WHEN we are upgrading from a release before 1.3 where the Gateway maintains a single Server object for all hosts for an application

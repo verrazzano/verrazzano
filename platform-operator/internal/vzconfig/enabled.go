@@ -66,7 +66,7 @@ func IsIstioEnabled(cr runtime.Object) bool {
 	return true
 }
 
-// IsCertManagerEnabled - Returns false only if CertManager is explictly disabled by the user
+// IsCertManagerEnabled - Returns false only if CertManager is explicitly disabled by the user
 func IsCertManagerEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.CertManager != nil && vzv1alpha1.Spec.Components.CertManager.Enabled != nil {
@@ -321,7 +321,7 @@ func IsVeleroEnabled(cr runtime.Object) bool {
 	return false
 }
 
-//IsOAMEnabled returns false if OAM is explicitly disabled in the CR
+// IsOAMEnabled returns false if OAM is explicitly disabled in the CR
 func IsOAMEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.OAM != nil && vzv1alpha1.Spec.Components.OAM.Enabled != nil {
@@ -335,7 +335,7 @@ func IsOAMEnabled(cr runtime.Object) bool {
 	return true
 }
 
-//IsVerrazzanoComponentEnabled returns false if Verrazzano is explicitly disabled in the CR
+// IsVerrazzanoComponentEnabled returns false if Verrazzano is explicitly disabled in the CR
 func IsVerrazzanoComponentEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.Verrazzano != nil && vzv1alpha1.Spec.Components.Verrazzano.Enabled != nil {
@@ -349,7 +349,7 @@ func IsVerrazzanoComponentEnabled(cr runtime.Object) bool {
 	return true
 }
 
-//IsWebLogicOperatorEnabled returns false if WebLogicOperator is explicitly disabled in the CR
+// IsWebLogicOperatorEnabled returns false if WebLogicOperator is explicitly disabled in the CR
 func IsWebLogicOperatorEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.WebLogicOperator != nil && vzv1alpha1.Spec.Components.WebLogicOperator.Enabled != nil {
@@ -363,7 +363,7 @@ func IsWebLogicOperatorEnabled(cr runtime.Object) bool {
 	return true
 }
 
-//IsCoherenceOperatorEnabled returns false if CoherenceOperator is explicitly disabled in the CR
+// IsCoherenceOperatorEnabled returns false if CoherenceOperator is explicitly disabled in the CR
 func IsCoherenceOperatorEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.CoherenceOperator != nil && vzv1alpha1.Spec.Components.CoherenceOperator.Enabled != nil {
@@ -377,7 +377,7 @@ func IsCoherenceOperatorEnabled(cr runtime.Object) bool {
 	return true
 }
 
-//IsNodeExporterEnabled returns false if NodeExporter is explicitly disabled in the CR, or Prometheus is disabled in the CR
+// IsNodeExporterEnabled returns false if NodeExporter is explicitly disabled in the CR, or Prometheus is disabled in the CR
 func IsNodeExporterEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.PrometheusNodeExporter != nil && vzv1alpha1.Spec.Components.PrometheusNodeExporter.Enabled != nil {
@@ -391,7 +391,7 @@ func IsNodeExporterEnabled(cr runtime.Object) bool {
 	return IsPrometheusEnabled(cr)
 }
 
-//IsRancherBackupEnabled returns false unless RancherBackup is explicitly enabled in the CR
+// IsRancherBackupEnabled returns false unless RancherBackup is explicitly enabled in the CR
 func IsRancherBackupEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.RancherBackup != nil && vzv1alpha1.Spec.Components.RancherBackup.Enabled != nil {
