@@ -82,6 +82,8 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
+var healthCheckPeriodSeconds int64
+
 func main() {
 
 	// config will hold the entire operator config
@@ -102,6 +104,7 @@ func main() {
 		"Specify the root directory of Verrazzano (used for development)")
 	flag.StringVar(&bomOverride, "bom-path", "", "BOM file location")
 	flag.BoolVar(&helm.Debug, "helm-debug", helm.Debug, "Add the --debug flag to helm commands")
+	flag.Int64Var(&healthCheckPeriodSeconds, "health-check-period", 30, "Health check period seconds")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
@@ -275,7 +278,7 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 	metricsexporter.StartMetricsServer(log)
 
 	// Set up the reconciler
-	healthCheck := health.New(mgr.GetClient(), 15*time.Second)
+	healthCheck := health.New(mgr.GetClient(), time.Duration(healthCheckPeriodSeconds)*time.Second)
 	reconciler := vzcontroller.Reconciler{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
