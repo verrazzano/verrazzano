@@ -14,6 +14,7 @@ import (
 	"fmt"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"math/big"
 	"os"
 	"time"
@@ -161,25 +162,28 @@ func writeFile(filepath string, pem *bytes.Buffer) error {
 	return nil
 }
 
-// UpdateValidatingnWebhookConfiguration sets the CABundle
-func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer) error {
-	var oldValidatingWebhook *adminv1.ValidatingWebhookConfiguration
-	oldValidatingWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), OldOperatorName, metav1.GetOptions{})
-	if err == nil {
-		if oldValidatingWebhook != nil {
-			err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(context.TODO(), OldOperatorName, metav1.DeleteOptions{})
-			if err != nil {
-				return err
-			}
+// DeleteValidatingWebhookConfiguration deletes a validating webhook configuration
+func DeleteValidatingWebhookConfiguration(kubeClient kubernetes.Interface, name string) error {
+	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), OldOperatorName, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
 		}
+		return err
 	}
-	var validatingWebhook *adminv1.ValidatingWebhookConfiguration
-	validatingWebhook, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), OperatorName, metav1.GetOptions{})
+	err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(context.TODO(), OldOperatorName, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
-	if len(validatingWebhook.Webhooks) != 3 {
-		return fmt.Errorf("Expected 3 webhooks in %s ValidatingWebhookConfiguration, but found %v", OperatorName, len(validatingWebhook.Webhooks))
+
+	return nil
+}
+
+// UpdateValidatingnWebhookConfiguration sets the CABundle
+func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer, name string) error {
+	validatingWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return err
 	}
 
 	for i := range validatingWebhook.Webhooks {
@@ -215,4 +219,21 @@ func UpdateConversionWebhookConfiguration(apiextClient *apiextensionsv1client.Ap
 	}
 	_, err = apiextClient.CustomResourceDefinitions().Update(context.TODO(), crd, metav1.UpdateOptions{})
 	return err
+}
+
+// UpdateMutatingWebhookConfiguration sets the CABundle
+func UpdateMutatingWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer, name string) error {
+	var webhook *adminv1.MutatingWebhookConfiguration
+	webhook, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	for i := range webhook.Webhooks {
+		webhook.Webhooks[i].ClientConfig.CABundle = caCert.Bytes()
+	}
+	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Update(context.TODO(), webhook, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
 }
