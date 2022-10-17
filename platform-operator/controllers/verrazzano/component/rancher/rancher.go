@@ -7,10 +7,11 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"reflect"
 	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -604,10 +605,10 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user, unable to fetch verrazzano user id from keycloak: %s", err.Error())
 	}
-	existingUser, err := checkRancherVerrazzanoUser(ctx, vzUser)
+	existingUser, err := fetchRancherVerrazzanoUser(ctx, vzUser)
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed to check if verrazzano rancher user exists: %s", err.Error())
-	} else if existingUser != "" {
+	} else if existingUser != UserVerrazzano {
 		return log.ErrorfThrottledNewErr("Failed to create rancher user %s as another rancher user %s exists that "+
 			"is mapped to verrazzano user id from keycloak. Please delete the %s user to proceed further.", UserVerrazzano, existingUser, existingUser)
 	}
@@ -621,8 +622,8 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
 	return createOrUpdateResource(ctx, nsn, GVKUser, data)
 }
 
-// checkRancherVerrazzanoUser checks whether any rancher user exists other than u-verrazzano mapped to the ID of  key-clock user verrazzano
-func checkRancherVerrazzanoUser(ctx spi.ComponentContext, vzUser *keycloak.KeycloakUser) (string, error) {
+// fetchRancherVerrazzanoUser fetches rancher user that is mapped to the ID of  key-clock user verrazzano
+func fetchRancherVerrazzanoUser(ctx spi.ComponentContext, vzUser *keycloak.KeycloakUser) (string, error) {
 	c := ctx.Client()
 	resource := unstructured.UnstructuredList{}
 	resource.SetGroupVersionKind(GVKUser)
@@ -631,16 +632,14 @@ func checkRancherVerrazzanoUser(ctx spi.ComponentContext, vzUser *keycloak.Keycl
 		return "", err
 	}
 	for _, user := range resource.Items {
-		if user.GetName() == UserVerrazzano {
-			continue
-		}
 		data := user.UnstructuredContent()
 		principleIDs := data[UserAttributePrincipalIDs]
 		switch reflect.TypeOf(principleIDs).Kind() {
 		case reflect.Slice:
-			principleID := reflect.ValueOf(principleIDs)
-			for i := 0; i < principleID.Len(); i++ {
-				if strings.Contains(principleID.Index(i).String(), UserPrincipalKeycloakPrefix+vzUser.ID) {
+			listOfPrincipleIDs := reflect.ValueOf(principleIDs)
+			for i := 0; i < listOfPrincipleIDs.Len(); i++ {
+				principleID := listOfPrincipleIDs.Index(i).Interface().(string)
+				if strings.Contains(principleID, UserPrincipalKeycloakPrefix+vzUser.ID) {
 					return user.GetName(), nil
 				}
 			}
