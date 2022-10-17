@@ -203,7 +203,7 @@ func Test_waitForPodsWithReadyContainer(t *testing.T) {
 	ctx, err := createFakeComponentContext()
 	createPod(ctx.Client())
 	a.NoError(err, "Failed to create fake component context.")
-	pods, err := waitForPodsWithReadyContainer(ctx.Log(), ctx.Client(), "test-ready-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
+	pods, err := waitForPodsWithReadyContainer(ctx, ctx.Client(), "test-ready-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
 	a.NoError(err, "Unexpected error finding pods with ready container")
 	a.Len(pods, 1, "Expected to find one pod with a ready container")
 
@@ -212,7 +212,7 @@ func Test_waitForPodsWithReadyContainer(t *testing.T) {
 	//  THEN expect no pods to eventually be returned
 	ctx, err = createFakeComponentContext()
 	a.NoError(err, "Failed to create fake component context.")
-	pods, err = waitForPodsWithReadyContainer(ctx.Log(), ctx.Client(), "test-unready-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
+	pods, err = waitForPodsWithReadyContainer(ctx, ctx.Client(), "test-unready-container-name", client.InNamespace("test-namespace-name"), client.MatchingLabels{"test-label-name": "test-label-value"})
 	a.NoError(err, "Unexpected error finding pods with ready container")
 	a.Len(pods, 0, "Expected to find no pods with a ready container")
 }
