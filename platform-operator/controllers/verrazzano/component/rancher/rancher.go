@@ -608,7 +608,7 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
 	existingUser, err := fetchRancherVerrazzanoUser(ctx, vzUser)
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed to check if verrazzano rancher user exists: %s", err.Error())
-	} else if existingUser != UserVerrazzano {
+	} else if existingUser != "" && existingUser != UserVerrazzano {
 		return log.ErrorfThrottledNewErr("Failed to create rancher user %s as another rancher user %s exists that "+
 			"is mapped to verrazzano user id from keycloak. Please delete the %s user to proceed further.", UserVerrazzano, existingUser, existingUser)
 	}
