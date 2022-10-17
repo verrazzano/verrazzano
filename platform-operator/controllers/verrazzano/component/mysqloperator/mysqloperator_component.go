@@ -7,12 +7,13 @@ import (
 	"context"
 	"fmt"
 
+	"path/filepath"
+	"strconv"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
-	"path/filepath"
-	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -99,7 +100,7 @@ func (c mysqlOperatorComponent) PreInstall(compContext spi.ComponentContext) err
 	}
 	istio := compContext.EffectiveCR().Spec.Components.Istio
 	if istio != nil && istio.IsInjectionEnabled() {
-		ns.Labels[constants.LabelIstioInjection] = "enabled"
+		ns.Labels[constants.LabelIstioInjection] = "disabled"
 	}
 	ns.Labels["verrazzano.io/namespace"] = ComponentNamespace
 	if _, err := controllerutil.CreateOrUpdate(context.TODO(), cli, &ns, func() error {
