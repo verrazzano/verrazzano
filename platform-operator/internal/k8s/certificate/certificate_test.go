@@ -121,7 +121,7 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
-	err = UpdateValidatingnWebhookConfiguration(kubeClient, &caCert)
+	err = UpdateValidatingnWebhookConfiguration(kubeClient, &caCert, OperatorName)
 	assert.Nil(err, "error should not be returned updating validation webhook configuration")
 
 	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), "verrazzano-platform-operator-webhook", metav1.GetOptions{})
@@ -165,6 +165,6 @@ func TestUpdateValidatingnWebhookConfigurationFail(t *testing.T) {
 	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
-	err = UpdateValidatingnWebhookConfiguration(kubeClient, &caCert)
+	err = UpdateValidatingnWebhookConfiguration(kubeClient, &caCert, OperatorName)
 	assert.Error(err, "error should be returned updating validation webhook configuration")
 }
