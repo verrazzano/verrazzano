@@ -6,6 +6,7 @@ package main
 import (
 	"flag"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 	"os"
@@ -134,6 +135,7 @@ func main() {
 		log.Errorf("Failed to get the Verrazzano version from the BOM: %v", err)
 	}
 
+	registry.InitRegistry()
 	// initWebhooks flag is set when called from an webhook deployment.  This allows separation of webhooks and operator
 	if config.InitWebhooks {
 		startWebhookServers(config, log)
