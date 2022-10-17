@@ -4,8 +4,8 @@
 def DOCKER_IMAGE_TAG
 // Pin to PHX for now for testing; tarball is located only in PHX at present, and takes 15+ mins to download to LHR at runtime
 // - at some point, we can either enable bucket replication or have the pipeline push it to more regions
-//def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
-def agentLabel = "phxlarge"
+//def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
+def agentLabel = "phx-large"
 def ocirRegion = "phx"
 def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
