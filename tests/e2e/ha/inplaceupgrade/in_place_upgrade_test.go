@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"context"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/oracle/oci-go-sdk/v53/common"
@@ -148,8 +147,8 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 					"--ignore-daemonsets",
 					"--delete-emptydir-data",
 					"--force",
-					"--skip-wait-for-delete-timeout=1200",
-					"--timeout=30m",
+					"--skip-wait-for-delete-timeout=600",
+					"--timeout=15m",
 					node.Name,
 				}
 				out, err := exec.Command("kubectl", kubectlArgs...).Output() //nolint:gosec //#nosec G204

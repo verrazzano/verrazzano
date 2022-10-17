@@ -5,6 +5,7 @@ package common
 
 import (
 	"context"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -50,13 +51,13 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 	}
 
 	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
-		if err := namespace.CreateKeycloakNamespace(ctx.Client(), istioInject); err != nil {
+		if err := namespace.CreateKeycloakNamespace(ctx.Client(), false); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.KeycloakNamespace, err)
 		}
 	}
 
 	if vzconfig.IsMySQLOperatorEnabled(ctx.EffectiveCR()) {
-		if err := namespace.CreateMysqlOperator(ctx.Client(), istioInject); err != nil {
+		if err := namespace.CreateMysqlOperator(ctx.Client(), false); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.MySQLOperatorNamespace, err)
 		}
 	}
