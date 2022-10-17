@@ -12,7 +12,7 @@ spec:
   selector:
     matchLabels:
       run: psr-backend
-  replicas: 1
+  replicas: {{ .Values.replicas }}
   template:
     metadata:
       labels:
@@ -20,11 +20,13 @@ spec:
     spec:
       containers:
         - name: psr-backend
-          image: ghcr.io/verrazzano/psr-backend:latest
-          imagePullPolicy: Never
+          image: {{  .Values.imageName }}
+          imagePullPolicy: {{  .Values.imagePullPolicy }}
           env:
-            - name: PSR_WORKER_TYPE
-              value: "WT_LOG_GEN"
+            {{- range $key, $val := .Values.envVars }}
+            - name: {{ $key }}
+              value: {{ $val }}
+              {{- end }}
           ports:
             - containerPort: 8080
               protocol: TCP

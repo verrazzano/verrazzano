@@ -25,8 +25,9 @@ const (
 
 // Define worker types
 const (
+	WorkerTypeDefault       = "WT_EXAMPLE"
 	WorkerTypeLogGen        = "WT_LOG_GEN"
-	WorkerTypeLogGeT        = "WT_LOG_GET"
+	WorkerTypeLogGet        = "WT_LOG_GET"
 	WorkerTypePodTerminate  = "WT_POD_TERMINATE"
 	WorkerTypeWorkloadScale = "WT_WORKLOAD_SCALE"
 )
