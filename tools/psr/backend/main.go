@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/example"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch"
 	"os"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -55,6 +56,8 @@ func main() {
 
 func getWorker(wt string) (spi.Worker, error) {
 	switch wt {
+	case config.WorkerTypeExample:
+		return example.ExampleWorker{}, nil
 	case config.WorkerTypeLogGen:
 		return opensearch.LogGenerator{}, nil
 	default:
