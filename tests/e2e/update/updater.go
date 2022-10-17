@@ -110,6 +110,39 @@ func UpdateCR(m CRModifier) error {
 	return err
 }
 
+// UpdateCRV1beta1WithRetries updates the CR with the given CRModifierV1beta1.
+// First it waits for CR to be "Ready" before using the specified CRModifierV1beta1 modifies the CR.
+// Then, it updates the modified.
+// Any error during the process will cause Ginkgo Fail.
+func UpdateCRV1beta1WithRetries(m CRModifierV1beta1, pollingInterval, waitTime time.Duration) {
+	// GetCRV1beta1 gets the CR using v1beta1 client.
+	cr := GetCRV1beta1()
+
+	// Modify the CR
+	m.ModifyCRV1beta1(cr)
+
+	// Update the CR
+	gomega.Eventually(func() bool {
+		config, err := k8sutil.GetKubeConfigGivenPath(defaultKubeConfigPath())
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			return false
+		}
+		client, err := vpoClient.NewForConfig(config)
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			return false
+		}
+		vzClient := client.VerrazzanoV1beta1().Verrazzanos(cr.Namespace)
+		_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			return false
+		}
+		return true
+	}, pollingInterval, waitTimeout).Should(gomega.BeTrue())
+}
+
 // UpdateCRV1beta1 updates the CR with the given CRModifierV1beta1.
 // First it waits for CR to be "Ready" before using the specified CRModifierV1beta1 modifies the CR.
 // Then, it updates the modified.
