@@ -139,6 +139,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		RancherBackup:          convertRancherBackupToV1Beta1(src.RancherBackup),
 		WebLogicOperator:       convertWeblogicOperatorToV1Beta1(src.WebLogicOperator),
 		Velero:                 convertVeleroToV1Beta1(src.Velero),
+		ArgoCD:                 convertArgoCDToV1Beta1(src.ArgoCD),
 		Verrazzano:             verrazzanoComponent,
 	}, nil
 }
@@ -711,6 +712,16 @@ func convertVeleroToV1Beta1(src *VeleroComponent) *v1beta1.VeleroComponent {
 		return nil
 	}
 	return &v1beta1.VeleroComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
+	}
+}
+
+func convertArgoCDToV1Beta1(src *ArgoCDComponent) *v1beta1.ArgoCDComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.ArgoCDComponent{
 		Enabled:          src.Enabled,
 		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
 	}
