@@ -319,7 +319,7 @@ pipeline {
                     elif [[ "upgrade.failing.upgrade" == ${params.CHAOS_TEST_TYPE} ]]
                     then
                         echo "Upgrading VPO to interim version ${params.INTERIM_UPGRADE_VERSION}"
-                        ${GO_REPO_PATH}/vz upgrade --operator-file https://github.com/verrazzano/verrazzano/releases/download/${params.INTERIM_UPGRADE_VERSION}/operator.yaml
+                        kubectl apply -f https://github.com/verrazzano/verrazzano/releases/download/${params.INTERIM_UPGRADE_VERSION}/operator.yaml
 
                     else
                         echo "Upgrading VPO to this commit version"
