@@ -19,7 +19,7 @@ spec:
           image: "psr-backend"
           env:
             - name: PSR_WORKER_TYPE
-              value: "WT_GEN_LOAD"
+              value: "WT_LOG_GEN"
           ports:
             - containerPort: 8080
               name: backend

@@ -1,3 +1,9 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+# This manifest is used for testing without OAM using native Kubernetes resources only
+#
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -14,7 +20,7 @@ spec:
     spec:
       containers:
         - name: psr-backend
-          image: docker.io/psr-backend:latest
+          image: ghcr.io/verrazzano/psr-backend:latest
           imagePullPolicy: Never
           env:
             - name: PSR_WORKER_TYPE
