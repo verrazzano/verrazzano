@@ -6,6 +6,7 @@ package opensearch
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os/exec"
 	"strings"
 
@@ -151,7 +152,7 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 	}
 
 	// Wait for an Elasticsearch (i.e., label app=system-es-master) pod with container (i.e. es-master) to be ready.
-	pods, err := waitForPodsWithReadyContainer(ctx.Client(), containerName, clipkg.MatchingLabels{"app": workloadName}, clipkg.InNamespace(namespace))
+	pods, err := waitForPodsWithReadyContainer(ctx.Log(), ctx.Client(), containerName, clipkg.MatchingLabels{"app": workloadName}, clipkg.InNamespace(namespace))
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed getting the Elasticsearch pods during post-upgrade: %v", err)
 	}
@@ -228,16 +229,20 @@ func getPodsWithReadyContainer(client clipkg.Client, containerName string, podSe
 	return pods, err
 }
 
-func waitForPodsWithReadyContainer(client clipkg.Client, containerName string, podSelectors ...clipkg.ListOption) ([]corev1.Pod, error) {
+func waitForPodsWithReadyContainer(logger vzlog.VerrazzanoLogger, client clipkg.Client, containerName string, podSelectors ...clipkg.ListOption) ([]corev1.Pod, error) {
+	logger.Info("Marco Debug: entering waitForPodsWithReadyContainer")
 	pods, err := getPodsWithReadyContainer(client, containerName, podSelectors...)
 	// If there is an error, then return a RetryableError
 	if err != nil {
+		logger.Info("Marco Debug: returning RetryableError")
 		return nil, ctrlerrors.RetryableError{}
 	}
 	// When there is no error, and positive number of pods which have containers in Ready state
 	if len(pods) > 0 {
+		logger.Info("Marco Debug: success, ready pod(s)")
 		return pods, nil
 	}
 	// Default condition. This will probably not be hit.
+	logger.Info("Marco Debug: default")
 	return nil, nil
 }
