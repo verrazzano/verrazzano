@@ -15,11 +15,6 @@ keywords:
 maintainers:
   - name: argoproj
     url: https://argoproj.github.io/
-dependencies:
-  - name: redis-ha
-    version: 4.22.2
-    repository: https://dandydeveloper.github.io/charts/
-    condition: redis-ha.enabled
 annotations:
   artifacthub.io/changes: |
     - "[Added]: PDB for Application Set controller"

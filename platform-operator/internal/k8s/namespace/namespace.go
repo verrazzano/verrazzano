@@ -70,6 +70,11 @@ func CreateVerrazzanoMultiClusterNamespace(client client.Client) error {
 	return CreateAndLabelNamespace(client, globalconst.VerrazzanoMultiClusterNamespace, false, false)
 }
 
+// CreateArgoCDNamespace - Create/Update and label the Argo CD namespace
+func CreateArgoCDNamespace(client client.Client, istioInjectionEnabled bool) error {
+	return CreateAndLabelNamespace(client, constants.ArgoCDNamespace, true, istioInjectionEnabled)
+}
+
 // MergeMaps Merge one map into another, creating new one if necessary; returns the updated map and true if it was modified
 func MergeMaps(to map[string]string, from map[string]string) (map[string]string, bool) {
 	mergedMap := to
