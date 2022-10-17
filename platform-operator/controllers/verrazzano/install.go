@@ -191,11 +191,9 @@ func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.Compone
 
 	// The component has been reconciled/installed with LastReconciledGeneration of the CR
 	// if CR.Generation > LastReconciledGeneration
-	// OR if component is not available
 	// then re-enter install flow
 	return (componentStatus.State == vzapi.CompStateReady) &&
-		(ctx.ActualCR().Generation > componentStatus.LastReconciledGeneration ||
-			(componentStatus.Available != nil && !*componentStatus.Available))
+		(ctx.ActualCR().Generation > componentStatus.LastReconciledGeneration)
 }
 
 // Check if the component can be installed in this Verrazzano installation based on version
