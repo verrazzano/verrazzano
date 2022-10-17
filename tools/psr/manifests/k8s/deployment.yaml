@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: psr-backend
+spec:
+  selector:
+    matchLabels:
+      run: psr-backend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: psr-backend
+    spec:
+      containers:
+        - name: psr-backend
+          image: docker.io/psr-backend:latest
+          imagePullPolicy: Never
+          env:
+            - name: PSR_WORKER_TYPE
+              value: "WT_LOG_GEN"
+          ports:
+            - containerPort: 8080
+              protocol: TCP
