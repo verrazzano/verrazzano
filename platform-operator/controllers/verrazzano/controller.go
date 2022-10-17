@@ -238,7 +238,6 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		} else if vzctrl.ShouldRequeue(result) {
 			return result, nil
 		}
-		r.HealthCheck.Start()
 		return ctrl.Result{}, nil
 	}
 
@@ -280,13 +279,11 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 
 	// Change the state to installing
 	err = r.setInstallingState(log, actualCR)
-	r.HealthCheck.Start()
 	return newRequeueWithDelay(), err
 }
 
 // ProcInstallingState processes the CR while in the installing state
 func (r *Reconciler) ProcInstallingState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
-	r.HealthCheck.Start()
 	log := vzctx.Log
 	log.Debug("Entering ProcInstallingState")
 
@@ -307,7 +304,6 @@ func (r *Reconciler) ProcInstallingState(vzctx vzcontext.VerrazzanoContext) (ctr
 
 // ProcUpgradingState processes the CR while in the upgrading state
 func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
-	r.HealthCheck.Pause()
 	actualCR := vzctx.ActualCR
 	log := vzctx.Log
 	log.Debug("Entering ProcUpgradingState")
@@ -354,7 +350,6 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 	// Upgrade done along with any post-upgrade installations of new components that are enabled by default.
 	msg := fmt.Sprintf("Verrazzano successfully upgraded to version %s", actualCR.Spec.Version)
 	log.Once(msg)
-	r.HealthCheck.Start()
 	return ctrl.Result{}, nil
 }
 

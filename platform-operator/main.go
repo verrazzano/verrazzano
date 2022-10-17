@@ -273,18 +273,20 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 	metricsexporter.StartMetricsServer(log)
 
 	// Set up the reconciler
+	healthCheck := health.New(mgr.GetClient(), 15*time.Second)
 	reconciler := vzcontroller.Reconciler{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
 		DryRun:            config.DryRun,
 		WatchedComponents: map[string]bool{},
 		WatchMutex:        &sync.RWMutex{},
-		HealthCheck:       health.New(mgr.GetClient(), 15*time.Second),
+		HealthCheck:       healthCheck,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "Verrazzano")
 		os.Exit(1)
 	}
+	healthCheck.Start()
 
 	// Set up the reconciler for VerrazzanoManagedCluster objects
 	if err = (&clusterscontroller.VerrazzanoManagedClusterReconciler{

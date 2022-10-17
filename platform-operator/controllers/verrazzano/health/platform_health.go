@@ -20,10 +20,10 @@ import (
 type PlatformHealth struct {
 	client   clipkg.Client
 	tickTime time.Duration
-	shutdown chan int
+	shutdown chan int // The channel on which shutdown signals are sent/received
 	logger   *zap.SugaredLogger
 	status   *Status      // Last known Status
-	C        chan *Status // The channel on which Status is delivered
+	c        chan *Status // The channel on which Status is sent/received
 }
 
 type Status struct {
@@ -36,7 +36,7 @@ func New(c clipkg.Client, tick time.Duration) *PlatformHealth {
 		client:   c,
 		tickTime: tick,
 		logger:   zap.S().With(log.FieldController, "availability"),
-		C:        make(chan *Status),
+		c:        make(chan *Status),
 	}
 }
 
@@ -64,7 +64,7 @@ func (p *PlatformHealth) Start() {
 					// only send an update if status has changed
 					if p.status != status {
 						p.status = status
-						p.C <- p.status
+						p.c <- p.status
 					}
 				}
 			case <-p.shutdown:
@@ -87,7 +87,7 @@ func (p *PlatformHealth) Pause() {
 // AddStatus adds health check status to a Verrazzano resource, if it is available
 func (p *PlatformHealth) AddStatus(vz *vzapi.Verrazzano) {
 	select {
-	case status := <-p.C:
+	case status := <-p.c:
 		if status == nil {
 			return
 		}
