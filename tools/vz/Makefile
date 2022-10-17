@@ -15,7 +15,8 @@ ifdef RELEASE_VERSION
 	CLI_VERSION=${RELEASE_VERSION}
 endif
 ifndef BRANCH-NAME
-	BRANCH-NAME==$(shell git rev-parse --abbrev-ref HEAD)
+	BRANCH-NAME=$(shell git rev-parse --abbrev-ref HEAD)
+	SUBST-BRANCH-NAME:=$(BRANCH-NAME:release-%=release)
 endif
 
 DIST_DIR:=dist
@@ -38,7 +39,7 @@ go-build:
 		-ldflags "${CLI_GO_LDFLAGS}" \
 		-o out/linux_amd64/vz \
 		${GOPATH}/src/${VZ_DIR}/main.go
-ifeq ($(BRANCH-NAME),$(filter $(BRANCH-NAME),master release-*))
+ifeq ($(SUBST-BRANCH-NAME),$(filter $(SUBST-BRANCH-NAME),master release))
 	GOOS=darwin GOARCH=amd64 $(GO) build \
 		-ldflags "${CLI_GO_LDFLAGS}" \
 		-o out/darwin_amd64/vz \
