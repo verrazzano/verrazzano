@@ -84,8 +84,8 @@ func (p *PlatformHealth) Pause() {
 	}
 }
 
-// AddStatus adds health check status to a Verrazzano resource, if it is available
-func (p *PlatformHealth) AddStatus(vz *vzapi.Verrazzano) {
+// SetAvailabilityStatus adds health check status to a Verrazzano resource, if it is available
+func (p *PlatformHealth) SetAvailabilityStatus(vz *vzapi.Verrazzano) {
 	select {
 	case status := <-p.c:
 		if status == nil {

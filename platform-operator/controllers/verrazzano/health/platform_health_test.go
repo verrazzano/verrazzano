@@ -22,7 +22,7 @@ func TestAddStatus(t *testing.T) {
 	assert.Nil(t, p.status)
 	p.Start()
 	time.Sleep(waitTime)
-	p.AddStatus(vz)
+	p.SetAvailabilityStatus(vz)
 	// No components are ready, check fails
 	assert.Nil(t, p.status)
 	p.Pause()
@@ -34,7 +34,7 @@ func TestAddStatus(t *testing.T) {
 	p = newTestHealthCheck(vz)
 	p.Start()
 	time.Sleep(waitTime)
-	p.AddStatus(vz)
+	p.SetAvailabilityStatus(vz)
 	p.Pause()
 	assert.NotNil(t, p.status)
 }

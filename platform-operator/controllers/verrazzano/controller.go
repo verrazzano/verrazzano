@@ -1104,7 +1104,7 @@ func initUnitTesing() {
 }
 
 func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
-	r.HealthCheck.AddStatus(vz)
+	r.HealthCheck.SetAvailabilityStatus(vz)
 	err := r.Status().Update(context.TODO(), vz)
 	if err == nil {
 		return nil
