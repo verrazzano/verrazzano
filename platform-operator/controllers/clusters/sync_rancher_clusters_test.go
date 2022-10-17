@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
@@ -52,9 +51,10 @@ func init() {
 
 // TestSyncRancherClusters tests the SyncRancherClusters function.
 // GIVEN clusters that exist in Rancher that do not have VMCs
-//   AND VMCs that do not have corresponding clusters in Rancher
-//  WHEN the SyncRancherClusters function is called
-//  THEN VMCs are created and deleted appropriately so that they are in sync
+//
+//	 AND VMCs that do not have corresponding clusters in Rancher
+//	WHEN the SyncRancherClusters function is called
+//	THEN VMCs are created and deleted appropriately so that they are in sync
 func TestSyncRancherClusters(t *testing.T) {
 	asserts := assert.New(t)
 
@@ -106,9 +106,10 @@ func TestSyncRancherClusters(t *testing.T) {
 
 // TestSyncRancherClustersWithPaging tests the SyncRancherClusters function with Rancher API paging.
 // GIVEN clusters that exist in Rancher that do not have VMCs
-//  WHEN the SyncRancherClusters function is called
-//   AND the Rancher API call to retrieve clusters results in multiple pages of clusters
-//  THEN VMCs are created for clusters returned in all pages
+//
+//	WHEN the SyncRancherClusters function is called
+//	 AND the Rancher API call to retrieve clusters results in multiple pages of clusters
+//	THEN VMCs are created for clusters returned in all pages
 func TestSyncRancherClustersWithPaging(t *testing.T) {
 	asserts := assert.New(t)
 
@@ -201,7 +202,7 @@ func expectHTTPCalls(httpMock *mocks.MockRequestSender, testPaging bool) {
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(strings.Split(loginPath, "?")[0])).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
@@ -219,10 +220,10 @@ func expectHTTPCalls(httpMock *mocks.MockRequestSender, testPaging bool) {
 				// if we're testing paging, include a next page URL
 				data := `{"pagination":{"next":"https://host` + clustersPath + `?token=test"}, "data":[{"name":"` +
 					clusterName1 + `","id":"` + clusterID1 + `"},{"name":"` + clusterName2 + `","id":"` + clusterID2 + `"}]}`
-				r = ioutil.NopCloser(bytes.NewReader([]byte(data)))
+				r = io.NopCloser(bytes.NewReader([]byte(data)))
 			} else {
 				data := `{"data":[{"name":"` + clusterName1 + `","id":"` + clusterID1 + `"},{"name":"` + clusterName2 + `","id":"` + clusterID2 + `"}]}`
-				r = ioutil.NopCloser(bytes.NewReader([]byte(data)))
+				r = io.NopCloser(bytes.NewReader([]byte(data)))
 			}
 			resp := &http.Response{
 				StatusCode: http.StatusOK,
@@ -238,7 +239,7 @@ func expectHTTPCalls(httpMock *mocks.MockRequestSender, testPaging bool) {
 			Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clustersPath)).
 			DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 				data := `{"data":[{"name":"` + clusterName3 + `","id":"` + clusterID3 + `"}]}`
-				r := ioutil.NopCloser(bytes.NewReader([]byte(data)))
+				r := io.NopCloser(bytes.NewReader([]byte(data)))
 				resp := &http.Response{
 					StatusCode: http.StatusOK,
 					Body:       r,
