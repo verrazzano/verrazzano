@@ -8,51 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"io"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"strings"
 	"testing"
 )
-
-// TestCreateCattleNamespace verifies creation of the cattle-system namespace
-// GIVEN a CertManager component
-//
-//	WHEN createCattleSystemNamespace is called
-//	THEN createCattleSystemNamespace the cattle-system namespace should be created
-func TestCreateArgoCDNamespace(t *testing.T) {
-	var tests = []struct {
-		testName string
-		c        client.Client
-		ctx      spi.ComponentContext
-	}{
-		{
-			"should create the argocd namespace",
-			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build(),
-			spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false),
-		},
-		{
-			"should edit the argocd namespace if already exists",
-			fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: common.ArgoCDNamespace,
-				},
-			}).Build(),
-			spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.testName, func(t *testing.T) {
-			assert.Nil(t, createArgoCDNamespace(tt.c, tt.ctx))
-		})
-	}
-}
 
 // TestIsUsingDefaultCACertificate verifies whether the CerManager component specifies to use the default CA certificate or not
 // GIVEN a CertManager component
