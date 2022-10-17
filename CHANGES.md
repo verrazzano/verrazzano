@@ -1,4 +1,8 @@
 ### v1.5.0
+Features:
+
+- Separated Verrazzano Platform Operator and Verrazzano Platform Webhooks into separate deployments for scalability and resiliency.
+
 Component version updates:
 
 - Coherence Operator v3.2.8
@@ -9,7 +13,7 @@ Components added:
 
 Fixes:
 
-- Updated base and other images to resolve CVEs.
+- Updated base and other images for bugs and security.
 - Rancher upgrade intermittently fails with errors stating that the available chart version is less than the minimum chart version for Rancher system charts.
 
 

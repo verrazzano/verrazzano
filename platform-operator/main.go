@@ -5,8 +5,13 @@ package main
 
 import (
 	"flag"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
+	"k8s.io/client-go/dynamic"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sync"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -88,8 +93,6 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&config.CertDir, "cert-dir", config.CertDir, "The directory containing tls.crt and tls.key.")
-	flag.BoolVar(&config.WebhooksEnabled, "enable-webhooks", config.WebhooksEnabled,
-		"Enable webhooks for the operator")
 	flag.BoolVar(&config.DryRun, "dry-run", config.DryRun, "Run operator in dry run mode.")
 	flag.BoolVar(&config.WebhookValidationEnabled, "enable-webhook-validation", config.WebhookValidationEnabled,
 		"Enable webhooks validation for the operator")
@@ -132,108 +135,156 @@ func main() {
 		log.Errorf("Failed to get the Verrazzano version from the BOM: %v", err)
 	}
 
-	// initWebhooks flag is set when called from an initContainer.  This allows the certs to be setup for the
-	// validatingWebhookConfiguration resource before the operator container runs.
+	registry.InitRegistry()
+	// initWebhooks flag is set when called from an webhook deployment.  This allows separation of webhooks and operator
 	if config.InitWebhooks {
-		log.Debug("Creating certificates used by webhooks")
-		caCert, err := certificate.CreateWebhookCertificates(config.CertDir)
-		if err != nil {
-			log.Errorf("Failed to create certificates used by webhooks: %v", err)
-			os.Exit(1)
-		}
+		startWebhookServers(config, log)
+	} else {
+		reconcilePlatformOperator(config, log)
+	}
+}
 
-		conf, err := ctrl.GetConfig()
-		if err != nil {
-			log.Errorf("Failed to get kubeconfig: %v", err)
-			os.Exit(1)
-		}
-
-		kubeClient, err := kubernetes.NewForConfig(conf)
-		if err != nil {
-			log.Errorf("Failed to get clientset: %v", err)
-			os.Exit(1)
-		}
-
-		log.Debug("Updating webhook configuration")
-		err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, caCert)
-		if err != nil {
-			log.Errorf("Failed to update validation webhook configuration: %v", err)
-			os.Exit(1)
-		}
-
-		log.Debug("Updating conversion webhook")
-		apixClient, err := apiextensionsv1client.NewForConfig(conf)
-		if err != nil {
-			log.Errorf("Failed to get apix clientset: %v", err)
-			os.Exit(1)
-		}
-		err = certificate.UpdateConversionWebhookConfiguration(apixClient, caCert)
-		if err != nil {
-			log.Errorf("Failed to update conversion webhook: %v", err)
-			os.Exit(1)
-		}
-
-		c, err := client.New(conf, client.Options{})
-		if err != nil {
-			log.Errorf("Failed to get controller-runtime client: %v", err)
-			os.Exit(1)
-		}
-
-		log.Debug("Creating or updating network policies")
-		var errors []error
-		_, errors = netpolicy.CreateOrUpdateNetworkPolicies(kubeClient, c)
-		if len(errors) < 0 {
-			log.Errorf("Failed to create or update network policies: %v", err)
-			os.Exit(1)
-		}
-		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-			Scheme:             scheme,
-			MetricsBindAddress: "",
-			Port:               9443,
-			LeaderElection:     config.LeaderElectionEnabled,
-			LeaderElectionID:   "3ec4d295.verrazzano.io",
-		})
-		if err != nil {
-			log.Errorf("Failed to create a controller-runtime manager: %v", err)
-			os.Exit(1)
-		}
-
-		installv1alpha1.SetComponentValidator(validator.ComponentValidatorImpl{})
-		installv1beta1.SetComponentValidator(validator.ComponentValidatorImpl{})
-
-		// Setup the validation webhook
-		if config.WebhooksEnabled {
-			log.Debug("Setting up Verrazzano webhook with manager")
-			if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
-				log.Errorf("Failed to setup install.v1alpha1.Verrazzano webhook with manager: %v", err)
-				os.Exit(1)
-			}
-			if err = (&installv1beta1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
-				log.Errorf("Failed to setup install.v1beta1.Verrazzano webhook with manager: %v", err)
-				os.Exit(1)
-			}
-			mgr.GetWebhookServer().CertDir = config.CertDir
-		}
-		// Set up the validation webhook for VMC
-		if config.WebhooksEnabled {
-			log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
-			if err = (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
-				log.Errorf("Failed to setup webhook with manager: %v", err)
-				os.Exit(1)
-			}
-			mgr.GetWebhookServer().CertDir = config.CertDir
-		}
-
-		// +kubebuilder:scaffold:builder
-
-		log.Info("Starting controller-runtime manager")
-		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-			log.Errorf("Failed starting controller-runtime manager: %v", err)
-			os.Exit(1)
-		}
-
+// startWebhookServers uses the same image as operator, but configured only to run Webhooks for the platform.
+func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredLogger) {
+	log.Debug("Creating certificates used by webhooks")
+	caCert, err := certificate.CreateWebhookCertificates(config.CertDir)
+	if err != nil {
+		log.Errorf("Failed to create certificates used by webhooks: %v", err)
+		os.Exit(1)
 	}
 
+	conf, err := ctrl.GetConfig()
+	if err != nil {
+		log.Errorf("Failed to get kubeconfig: %v", err)
+		os.Exit(1)
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(conf)
+	if err != nil {
+		log.Errorf("Failed to get clientset: %v", err)
+		os.Exit(1)
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(conf)
+	if err != nil {
+		log.Errorf("Failed to create Kubernetes dynamic client: %v", err)
+		os.Exit(1)
+	}
+
+	log.Debug("Delete old VPO webhook configuration")
+	err = certificate.DeleteValidatingWebhookConfiguration(kubeClient, certificate.OperatorName)
+	if err != nil {
+		log.Errorf("Failed to delete old webhook configuration: %v", err)
+		os.Exit(1)
+	}
+
+	log.Debug("Updating VPO webhook configuration")
+	err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, caCert, certificate.OperatorName)
+	if err != nil {
+		log.Errorf("Failed to update validation webhook configuration: %v", err)
+		os.Exit(1)
+	}
+
+	log.Debug("Updating conversion webhook")
+	apixClient, err := apiextensionsv1client.NewForConfig(conf)
+	if err != nil {
+		log.Errorf("Failed to get apix clientset: %v", err)
+		os.Exit(1)
+	}
+	err = certificate.UpdateConversionWebhookConfiguration(apixClient, caCert)
+	if err != nil {
+		log.Errorf("Failed to update conversion webhook: %v", err)
+		os.Exit(1)
+	}
+
+	err = certificate.UpdateMutatingWebhookConfiguration(kubeClient, caCert, constants.MysqlBackupMutatingWebhookName)
+	if err != nil {
+		log.Errorf("Failed to update pod mutating webhook configuration: %v", err)
+		os.Exit(1)
+	}
+
+	log.Debug("Updating MySQL install values webhook configuration")
+	err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, caCert, webhooks.MysqlInstallValuesWebhook)
+	if err != nil {
+		log.Errorf("Failed to update validation webhook configuration: %v", err)
+		os.Exit(1)
+	}
+
+	c, err := client.New(conf, client.Options{})
+	if err != nil {
+		log.Errorf("Failed to get controller-runtime client: %v", err)
+		os.Exit(1)
+	}
+
+	log.Debug("Creating or updating network policies")
+	var errors []error
+	_, errors = netpolicy.CreateOrUpdateNetworkPolicies(kubeClient, c)
+	if len(errors) < 0 {
+		log.Errorf("Failed to create or update network policies: %v", err)
+		os.Exit(1)
+	}
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Scheme:             scheme,
+		MetricsBindAddress: config.MetricsAddr,
+		Port:               9443,
+		LeaderElection:     config.LeaderElectionEnabled,
+		LeaderElectionID:   "3ec4d295.verrazzano.io",
+	})
+	if err != nil {
+		log.Errorf("Failed to create a controller-runtime manager: %v", err)
+		os.Exit(1)
+	}
+
+	installv1alpha1.SetComponentValidator(validator.ComponentValidatorImpl{})
+	installv1beta1.SetComponentValidator(validator.ComponentValidatorImpl{})
+
+	// Setup the validation webhook
+	log.Debug("Setting up Verrazzano webhook with manager")
+	if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
+		log.Errorf("Failed to setup install.v1alpha1.Verrazzano webhook with manager: %v", err)
+		os.Exit(1)
+	}
+	if err = (&installv1beta1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
+		log.Errorf("Failed to setup install.v1beta1.Verrazzano webhook with manager: %v", err)
+		os.Exit(1)
+	}
+
+	// register MySQL backup job mutating webhook
+	mgr.GetWebhookServer().Register(
+		constants.MysqlBackupMutatingWebhookPath,
+		&webhook.Admission{
+			Handler: &webhooks.MySQLBackupJobWebhook{
+				Client:        mgr.GetClient(),
+				KubeClient:    kubeClient,
+				DynamicClient: dynamicClient,
+				Defaulters:    []webhooks.MySQLDefaulter{},
+			},
+		},
+	)
+
+	// register MySQL install values webhooks
+	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1beta1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1beta1{}})
+	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1alpha1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1alpha1{}})
+
+	// Set up the validation webhook for VMC
+	log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
+	if err = (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
+		log.Errorf("Failed to setup webhook with manager: %v", err)
+		os.Exit(1)
+	}
+	mgr.GetWebhookServer().CertDir = config.CertDir
+
+	// +kubebuilder:scaffold:builder
+	log.Info("Starting controller-runtime manager")
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		log.Errorf("Failed starting controller-runtime manager: %v", err)
+		os.Exit(1)
+	}
+
+}
+
+// reconcilePlatformOperator runs the Verrazzano Platform Operator without running webhooks servers
+func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.SugaredLogger) {
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: config.MetricsAddr,
@@ -289,7 +340,6 @@ func main() {
 	}
 
 	// +kubebuilder:scaffold:builder
-
 	log.Info("Starting controller-runtime manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		log.Errorf("Failed starting controller-runtime manager: %v", err)

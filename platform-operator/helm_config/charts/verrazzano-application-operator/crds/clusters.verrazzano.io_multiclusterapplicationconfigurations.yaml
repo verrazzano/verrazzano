@@ -23,8 +23,8 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: MultiClusterApplicationConfiguration is the Schema for the multiclusterapplicationconfigurations
-          API
+        description: MultiClusterApplicationConfiguration enables customization of
+          ApplicationConfigurations for deployment to multiple clusters.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

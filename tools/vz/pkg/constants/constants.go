@@ -63,6 +63,8 @@ const VerrazzanoPlatformOperator = "verrazzano-platform-operator"
 
 const VerrazzanoPlatformOperatorWebhook = "verrazzano-platform-operator-webhook"
 
+const VerrazzanoMysqlInstallValuesWebhook = "verrazzano-platform-mysqlinstalloverrides"
+
 const VerrazzanoApplicationOperator = "verrazzano-application-operator"
 
 const VerrazzanoMonitoringOperator = "verrazzano-monitoring-operator"
@@ -94,6 +96,9 @@ const OAMManagedClusters = "verrazzanomanagedclusters"
 const VerrazzanoManagedLabel = "verrazzano-managed=true"
 
 const LineSeparator = "-"
+
+// MysqlBackupMutatingWebhookName specifies the name of mysql webhook.
+const MysqlBackupMutatingWebhookName = "verrazzano-mysql-backup"
 
 // Analysis tool flags
 const (

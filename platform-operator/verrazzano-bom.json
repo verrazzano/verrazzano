@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20221013131607-2087c7430",
-              "dashboard": "v2.6.8-20221006170612-d84a9cbf",
+              "tag": "v2.6.8-20221014110124-2d6cd89b8",
+              "dashboard": "v2.6.8-20221014105039-bdff52de",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20221013131607-2087c7430"
+              "tag": "v2.6.8-20221014110124-2d6cd89b8"
             }
           ]
         },
@@ -228,7 +228,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.0-20221004150110-bf71c6d",
+              "tag": "v1.5.0-20221013113951-13deb9c",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -363,7 +363,7 @@
     },
     {
       "name": "kiali-server",
-      "version": "0.0.1",
+      "version": "1.42.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
