@@ -85,8 +85,6 @@ docker-clean:
 
 .PHONY: docker-build
 docker-build: go-build
-	# the TPL file needs to be copied into this dir so it is in the docker build context
-	cp ../../THIRD_PARTY_LICENSES.txt .
 	docker build --pull \
 		-t ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG} .
 
@@ -98,9 +96,9 @@ docker-push: docker-build
 load-image: docker-build
 	kind load docker-image --name kind ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 
-.PHONY: build-run-example
-build-run-example: load-image
-	helm upgrade --install psr manifests/helm/k8schart/ --set imageName=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
+.PHONY: run-example-k8s
+run-example-k8s: load-image
+	helm upgrade --install psr manifests/charts/k8s --set imageName=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: unit-test
 unit-test: cli
