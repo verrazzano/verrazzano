@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20221006171647-46df1b595",
-              "dashboard": "v2.6.8-20221006170612-d84a9cbf",
+              "tag": "v2.6.8-20221014110124-2d6cd89b8",
+              "dashboard": "v2.6.8-20221014105039-bdff52de",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20221006171647-46df1b595"
+              "tag": "v2.6.8-20221014110124-2d6cd89b8"
             }
           ]
         },
@@ -228,7 +228,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.0-20221004150110-bf71c6d",
+              "tag": "v1.5.0-20221013113951-13deb9c",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -297,7 +297,7 @@
           "images": [
             {
               "image": "oam-kubernetes-runtime",
-              "tag": "v0.3.0-20220801214414-046d772",
+              "tag": "v0.3.0-20221013061514-f30c668",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -363,7 +363,7 @@
     },
     {
       "name": "kiali-server",
-      "version": "0.0.1",
+      "version": "1.42.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -500,7 +500,7 @@
           "images": [
             {
               "image": "alertmanager",
-              "tag": "v0.24.0-20220805222028-0a54aa20",
+              "tag": "v0.24.0-20221012144548-95f13d80",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
             }
@@ -529,7 +529,7 @@
           "images": [
             {
               "image": "prometheus-adapter",
-              "tag": "v0.9.1-20220810134842-f097a569",
+              "tag": "v0.9.1-20221012144019-d73eedc6",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -546,7 +546,7 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.4.2-20220809152654-43d75718",
+              "tag": "v2.4.2-20221006181839-f38a1d97",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -562,8 +562,8 @@
           "name": "prometheus-pushgateway",
           "images": [
             {
-              "image": "prometheus-pushgateway",
-              "tag": "v1.4.2-20220810135136-71204144",
+              "image": "pushgateway",
+              "tag": "v1.4.2-20221012144616-8c52681c",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

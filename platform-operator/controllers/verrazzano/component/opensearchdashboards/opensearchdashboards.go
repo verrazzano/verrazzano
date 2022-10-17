@@ -5,7 +5,7 @@ package opensearchdashboards
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/status"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -28,7 +28,7 @@ func isOSDReady(ctx spi.ComponentContext) bool {
 			})
 	}
 
-	if !status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
+	if !ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
 		return false
 	}
 
@@ -42,5 +42,5 @@ func doesOSDExist(ctx spi.ComponentContext) bool {
 		Name:      kibanaDeployment,
 		Namespace: ComponentNamespace,
 	}}
-	return status.DoDeploymentsExist(ctx.Log(), ctx.Client(), deploy, 1, prefix)
+	return ready.DoDeploymentsExist(ctx.Log(), ctx.Client(), deploy, 1, prefix)
 }

@@ -141,7 +141,7 @@ func ValidateNewVersion(currStatusVerString string, currSpecVerString string, ne
 	// - use case is, user rolls back to an earlier version of the platform operator and requests the older BOM version
 	currentStatusVersion, err := semver.NewSemVersion(strings.TrimSpace(currStatusVerString))
 	if err != nil {
-		// for this path we should alwyas have a status version
+		// for this path we should always have a status version
 		return err
 	}
 	if newSpecVer.IsLessThan(currentStatusVersion) {

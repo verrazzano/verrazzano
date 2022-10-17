@@ -326,7 +326,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			Expect(crb.RoleRef.Name == "admin").To(BeTrue(),
 				"the roleRef.name should be admin")
 			Expect(crb.RoleRef.Kind == "ClusterRole").To(BeTrue(),
-				"the roleRef.kind shoudl be ClusterRole")
+				"the roleRef.kind should be ClusterRole")
 
 			Expect(len(crb.Subjects) == 1).To(BeTrue(),
 				"there should be one subject")
@@ -354,7 +354,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			Expect(crb.RoleRef.Name == "verrazzano-monitor").To(BeTrue(),
 				"the roleRef.name should be verrazzano-monitor")
 			Expect(crb.RoleRef.Kind == "ClusterRole").To(BeTrue(),
-				"the roleRef.kind shoudl be ClusterRole")
+				"the roleRef.kind should be ClusterRole")
 
 			Expect(len(crb.Subjects) == 1).To(BeTrue(),
 				"there should be one subject")
