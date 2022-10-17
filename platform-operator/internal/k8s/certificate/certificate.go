@@ -19,6 +19,7 @@ import (
 	"os"
 	"time"
 
+	adminv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -218,4 +219,21 @@ func UpdateConversionWebhookConfiguration(apiextClient *apiextensionsv1client.Ap
 	}
 	_, err = apiextClient.CustomResourceDefinitions().Update(context.TODO(), crd, metav1.UpdateOptions{})
 	return err
+}
+
+// UpdateMutatingWebhookConfiguration sets the CABundle
+func UpdateMutatingWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer, name string) error {
+	var webhook *adminv1.MutatingWebhookConfiguration
+	webhook, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	for i := range webhook.Webhooks {
+		webhook.Webhooks[i].ClientConfig.CABundle = caCert.Bytes()
+	}
+	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Update(context.TODO(), webhook, metav1.UpdateOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
 }
