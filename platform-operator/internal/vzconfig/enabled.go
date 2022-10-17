@@ -423,12 +423,12 @@ func IsRancherBackupEnabled(cr runtime.Object) bool {
 func IsArgoCDEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.ArgoCD != nil && vzv1alpha1.Spec.Components.ArgoCD.Enabled != nil {
-			return *vzv1alpha1.Spec.Components.PrometheusNodeExporter.Enabled
+			return *vzv1alpha1.Spec.Components.ArgoCD.Enabled
 		}
 	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
 		if vzv1beta1 != nil && vzv1beta1.Spec.Components.ArgoCD != nil && vzv1beta1.Spec.Components.ArgoCD.Enabled != nil {
-			return *vzv1beta1.Spec.Components.PrometheusNodeExporter.Enabled
+			return *vzv1beta1.Spec.Components.ArgoCD.Enabled
 		}
 	}
-	return IsPrometheusEnabled(cr)
+	return true
 }

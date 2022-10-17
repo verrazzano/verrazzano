@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	admv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -73,18 +72,6 @@ func getScheme() *runtime.Scheme {
 
 func getTestLogger(t *testing.T) vzlog.VerrazzanoLogger {
 	return vzlog.DefaultLogger()
-}
-
-func createRootCASecret() v1.Secret {
-	return v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.ArgoCDNamespace,
-			Name:      common.ArgoCDIngressCAName,
-		},
-		Data: map[string][]byte{
-			common.ArgoCDCACert: []byte("blahblah"),
-		},
-	}
 }
 
 func createCASecret() v1.Secret {
