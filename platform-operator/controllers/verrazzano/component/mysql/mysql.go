@@ -333,7 +333,7 @@ func preInstall(compContext spi.ComponentContext, namespace string) error {
 		ns.Labels["verrazzano.io/namespace"] = namespace
 		istio := compContext.EffectiveCR().Spec.Components.Istio
 		if istio != nil && istio.IsInjectionEnabled() {
-			ns.Labels["istio-injection"] = "enabled"
+			ns.Labels["istio-injection"] = "disabled"
 		}
 		return nil
 	}); err != nil {
