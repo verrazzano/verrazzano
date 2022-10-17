@@ -122,7 +122,7 @@ func newRancherConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*rancherCo
 	log.Debug("Getting Rancher TLS root CA")
 	caCert, err := common.GetRootCA(rdr)
 	if err != nil {
-		log.Errorf("Failed to get Rancher TLS root CA: %v", err)
+		log.ErrorfThrottled("Failed to get Rancher TLS root CA: %v", err)
 		return nil, err
 	}
 	rc.certificateAuthorityData = caCert
@@ -133,7 +133,7 @@ func newRancherConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*rancherCo
 	log.Once("Getting admin token from Rancher")
 	adminToken, err := getAdminTokenFromRancher(rdr, rc, log)
 	if err != nil {
-		log.Errorf("Failed to get admin token from Rancher: %v", err)
+		log.ErrorfThrottled("Failed to get admin token from Rancher: %v", err)
 		return nil, err
 	}
 	rc.apiAccessToken = adminToken

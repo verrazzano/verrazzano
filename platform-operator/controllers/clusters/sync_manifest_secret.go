@@ -60,7 +60,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 	if err != nil {
 		msg := fmt.Sprintf("Failed to create Rancher API client: %v", err)
 		r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, "", msg)
-		r.log.Infof("Unable to connect to Rancher API on admin cluster, manifest secret will not contain Rancher YAML: %v", err)
+		r.log.Progressf("Unable to connect to Rancher API on admin cluster, manifest secret will not contain Rancher YAML: %v", err)
 	} else {
 		var rancherYAML string
 		rancherYAML, clusterID, err = registerManagedClusterWithRancher(rc, vmc.Name, vmc.Status.RancherRegistration.ClusterID, r.log)
