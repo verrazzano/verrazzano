@@ -11,6 +11,7 @@ import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -18,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzsecret "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -310,14 +310,14 @@ func CompareStorageOverridesV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verraz
 // CheckIngressesAndCerts checks the Ingress and Certs for the VMI components in the Post- function
 func CheckIngressesAndCerts(ctx spi.ComponentContext, comp spi.Component) error {
 	prefix := fmt.Sprintf("Component %s", comp.Name())
-	if !status.IngressesPresent(ctx.Log(), ctx.Client(), comp.GetIngressNames(ctx), prefix) {
+	if !ready.IngressesPresent(ctx.Log(), ctx.Client(), comp.GetIngressNames(ctx), prefix) {
 		return ctrlerrors.RetryableError{
 			Source:    comp.Name(),
 			Operation: "Check if Ingresses are present",
 		}
 	}
 
-	if readyStatus, certsNotReady := status.CertificatesAreReady(ctx.Client(), ctx.Log(), ctx.EffectiveCR(), comp.GetCertificateNames(ctx)); !readyStatus {
+	if readyStatus, certsNotReady := ready.CertificatesAreReady(ctx.Client(), ctx.Log(), ctx.EffectiveCR(), comp.GetCertificateNames(ctx)); !readyStatus {
 		ctx.Log().Progressf("Certificates not ready for component %s: %v", comp.Name(), certsNotReady)
 		return ctrlerrors.RetryableError{
 			Source:    comp.Name(),

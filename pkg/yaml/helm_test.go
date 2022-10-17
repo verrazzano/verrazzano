@@ -41,7 +41,7 @@ const hyphenName = `name:
 `
 
 // TestExpand tests the Expand function
-// GIVEN a set of dot seperated names
+// GIVEN a set of dot separated names
 // WHEN Expand is called
 // THEN ensure that the expanded result is correct.
 func TestHelmValueFileConstructor(t *testing.T) {

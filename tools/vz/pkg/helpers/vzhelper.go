@@ -52,7 +52,7 @@ const v1beta1MinVersion = "1.4.0"
 
 func NewVerrazzanoForVZVersion(version string) (schema.GroupVersion, client.Object, error) {
 	if version == "" {
-		// default to a v1alpha1 compatible verison if not specified
+		// default to a v1alpha1 compatible version if not specified
 		version = "1.3.0"
 	}
 	actualVersion, err := semver.NewSemVersion(version)
