@@ -58,13 +58,12 @@ func (d *DynamicClient) GetDiscoveryClient() (*discovery.DiscoveryClient, error)
 	return discovery.NewDiscoveryClientForConfig(d.config)
 }
 
-var logger = vzlog.DefaultLogger()
-
 // CreateOrUpdateResourceFromFile creates or updates a Kubernetes resources from a YAML test data file.
 // The test data file is found using the FindTestDataFile function.
 // This is intended to be equivalent to `kubectl apply`
 // The cluster used is the one set by default in the environment
 func CreateOrUpdateResourceFromFile(file string) error {
+	var logger = vzlog.DefaultLogger()
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		logger.Errorf("Error getting kubeconfig, error: %v", err)
@@ -77,6 +76,7 @@ func CreateOrUpdateResourceFromFile(file string) error {
 // CreateOrUpdateResourceFromBytes creates or updates a Kubernetes resources from a YAML test data byte array.
 // The cluster used is the one set by default in the environment
 func CreateOrUpdateResourceFromBytes(data []byte) error {
+	var logger = vzlog.DefaultLogger()
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		logger.Errorf("Error getting kubeconfig, error: %v", err)
@@ -94,6 +94,7 @@ func CreateOrUpdateResourceFromBytes(data []byte) error {
 // CreateOrUpdateResourceFromFileInCluster is identical to CreateOrUpdateResourceFromFile, except that
 // it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
 func CreateOrUpdateResourceFromFileInCluster(file string, kubeconfigPath string) error {
+	var logger = vzlog.DefaultLogger()
 	found, err := FindTestDataFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
@@ -167,6 +168,7 @@ func createOrUpdateResourceFromBytes(data []byte, dc K8SClient) error {
 // This is intended to be equivalent to `kubectl apply`
 // The cluster used is the one set by default in the environment
 func CreateOrUpdateResourceFromFileInGeneratedNamespace(file string, namespace string) error {
+	var logger = vzlog.DefaultLogger()
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		logger.Errorf("Error getting kubeconfig, error: %v", err)
@@ -179,6 +181,7 @@ func CreateOrUpdateResourceFromFileInGeneratedNamespace(file string, namespace s
 // CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace is identical to CreateOrUpdateResourceFromFileInGeneratedNamespace, except that
 // it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
 func CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file string, kubeconfigPath string, namespace string) error {
+	var logger = vzlog.DefaultLogger()
 	found, err := FindTestDataFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
@@ -284,6 +287,7 @@ func readNextResourceFromBytes(reader *utilyaml.YAMLReader, mapper *restmapper.D
 // This is intended to be equivalent to `kubectl delete`
 // The test data file is found using the FindTestDataFile function.
 func DeleteResourceFromFile(file string) error {
+	var logger = vzlog.DefaultLogger()
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		logger.Errorf("Error getting kubeconfig, error: %v", err)
@@ -351,6 +355,7 @@ func deleteResourceFromBytes(data []byte, dc K8SClient) error {
 // This is intended to be equivalent to `kubectl delete`
 // The test data file is found using the FindTestDataFile function.
 func DeleteResourceFromFileInGeneratedNamespace(file string, namespace string) error {
+	var logger = vzlog.DefaultLogger()
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		logger.Errorf("Error getting kubeconfig, error: %v", err)
@@ -419,6 +424,7 @@ func deleteResourceFromBytesInGeneratedNamespace(data []byte, dc K8SClient, name
 // If the given patch file has a ".yaml" extension, the contents will be converted to JSON
 // This is intended to be equivalent to `kubectl patch`
 func PatchResourceFromFileInCluster(gvr schema.GroupVersionResource, namespace string, name string, patchFile string, kubeconfigPath string) error {
+	var logger = vzlog.DefaultLogger()
 	found, err := FindTestDataFile(patchFile)
 	if err != nil {
 		return fmt.Errorf("failed to find test data file: %w", err)
