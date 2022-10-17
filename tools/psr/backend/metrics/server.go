@@ -8,11 +8,17 @@ import (
 	"go.uber.org/zap"
 	"net/http"
 	"os"
+	"time"
 )
 
 func StartMetricsServerOrDie() {
 	http.Handle("/metrics", promhttp.Handler())
-	if err := http.ListenAndServe(":9090", nil); err != nil {
+	server := http.Server{
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		Addr:         "0.0.0.0:9090"}
+
+	if err := server.ListenAndServe(); err != nil {
 		zap.S().Errorf("Failed to start metrics server: %v", err)
 		os.Exit(1)
 	}

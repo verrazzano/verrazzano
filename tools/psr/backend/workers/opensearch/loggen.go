@@ -5,8 +5,8 @@ package opensearch
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/tools/psr/workers/config"
-	"github.com/verrazzano/verrazzano/tools/psr/workers/spi"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 	"time"
 )
 
@@ -20,7 +20,7 @@ var _ spi.Worker = LogGenerator{}
 
 func (w LogGenerator) GetConfigItems() []config.ConfigItem {
 	return []config.ConfigItem{
-		{msgSize, "20", false}}
+		{Key: msgSize, DefaultVal: "20", Required: false}}
 }
 
 func (w LogGenerator) Work(config map[string]string, log vzlog.VerrazzanoLogger) {

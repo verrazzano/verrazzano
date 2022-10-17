@@ -5,7 +5,7 @@ package spi
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/tools/psr/workers/config"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 )
 
 type Worker interface {

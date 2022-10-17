@@ -42,9 +42,9 @@ var Config = make(map[string]string)
 // LoadCommonConfig loads the common config from env vars
 func LoadCommonConfig() error {
 	cc := []ConfigItem{
-		{PsrWorkerType, "", true},
-		{PsrDuration, "", false},
-		{PsrIterationDelay, "1s", false},
+		{Key: PsrWorkerType, DefaultVal: "", Required: true},
+		{Key: PsrDuration, DefaultVal: "", Required: false},
+		{Key: PsrIterationDelay, DefaultVal: "1s", Required: false},
 	}
 
 	if err := AddConfigItems(cc); err != nil {
