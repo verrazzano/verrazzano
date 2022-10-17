@@ -98,9 +98,9 @@ docker-push: docker-build
 load-image: docker-build
 	kind load docker-image --name kind ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 
-.PHONY: run-example
-run-example:
-	helm install psr manifests/helm/k8schart/
+.PHONY: build-run-example
+build-run-example: load-image
+	helm upgrade --install psr manifests/helm/k8schart/ --set imageName=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: unit-test
 unit-test: cli
