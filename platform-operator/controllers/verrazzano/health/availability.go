@@ -60,6 +60,7 @@ func (p *PlatformHealth) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazz
 			countEnabled++
 			comp := component
 			go func() {
+				// gets new availability for a given component
 				ch <- p.getComponentAvailability(comp, ctx.Copy())
 			}()
 		}
@@ -69,14 +70,12 @@ func (p *PlatformHealth) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazz
 		Components: map[string]bool{},
 	}
 	// count available components and set component availability
-	for _, component := range components {
-		if isEnabled(vz, component) {
-			a := <-ch
-			if a.available {
-				countAvailable++
-			}
-			status.Components[a.name] = a.available
+	for i := 0; i < countEnabled; i++ {
+		a := <-ch
+		if a.available {
+			countAvailable++
 		}
+		status.Components[a.name] = a.available
 	}
 	// format the printer column with both values
 	availabilityColumn := fmt.Sprintf("%d/%d", countAvailable, countEnabled)
