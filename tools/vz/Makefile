@@ -14,8 +14,9 @@ BUILD_DATE:=$(shell date +"%Y-%m-%dT%H:%M:%SZ")
 ifdef RELEASE_VERSION
 	CLI_VERSION=${RELEASE_VERSION}
 endif
-ifndef RELEASE_BRANCH
-	RELEASE_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
+ifndef BRANCH-NAME
+	BRANCH-NAME=$(shell git rev-parse --abbrev-ref HEAD)
+	SUBST-BRANCH-NAME:=$(BRANCH-NAME:release-%=release)
 endif
 
 DIST_DIR:=dist
@@ -34,6 +35,11 @@ run:
 #
 .PHONY: go-build
 go-build:
+	GOOS=linux GOARCH=amd64 $(GO) build \
+		-ldflags "${CLI_GO_LDFLAGS}" \
+		-o out/linux_amd64/vz \
+		${GOPATH}/src/${VZ_DIR}/main.go
+ifeq ($(SUBST-BRANCH-NAME),$(filter $(SUBST-BRANCH-NAME),master release))
 	GOOS=darwin GOARCH=amd64 $(GO) build \
 		-ldflags "${CLI_GO_LDFLAGS}" \
 		-o out/darwin_amd64/vz \
@@ -42,14 +48,11 @@ go-build:
 		-ldflags "${CLI_GO_LDFLAGS}" \
 		-o out/darwin_arm64/vz \
 		${GOPATH}/src/${VZ_DIR}/main.go
-	GOOS=linux GOARCH=amd64 $(GO) build \
-		-ldflags "${CLI_GO_LDFLAGS}" \
-		-o out/linux_amd64/vz \
-		${GOPATH}/src/${VZ_DIR}/main.go
 	GOOS=linux GOARCH=arm64 $(GO) build \
 		-ldflags "${CLI_GO_LDFLAGS}" \
 		-o out/linux_arm64/vz \
 		${GOPATH}/src/${VZ_DIR}/main.go
+endif
 
 .PHONY: cli
 cli: ## build the CLI
