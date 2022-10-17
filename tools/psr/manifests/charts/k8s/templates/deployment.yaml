@@ -7,7 +7,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: psr-backend
+  name: {{ .Release.Name}}
+  namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:

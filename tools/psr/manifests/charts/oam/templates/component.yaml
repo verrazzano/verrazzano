@@ -4,13 +4,15 @@
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
-  name: backend-component
+  name: {{ .Release.Name}}
+  namespace: {{ .Release.Namespace }}
 spec:
   workload:
     apiVersion: core.oam.dev/v1alpha2
     kind: ContainerizedWorkload
     metadata:
-      name: backend-workload
+      name: {{ .Release.Name}}
+      namespace: {{ .Release.Namespace }}
       labels:
         app: backend
         version: v1
