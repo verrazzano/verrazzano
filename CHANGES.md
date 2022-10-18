@@ -7,6 +7,7 @@ Component version updates:
 
 - Coherence Operator v3.2.8
 - MySQL Server 8.0.30
+- oam-kubernetes-runtime 0.3.3
 
 Components added:
 - MySQL Operator 8.0.30-2.0.6

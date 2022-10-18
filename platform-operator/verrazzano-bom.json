@@ -130,49 +130,40 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20221014110124-2d6cd89b8",
+              "tag": "v2.6.8-20221017182825-4975cc8cb",
               "dashboard": "v2.6.8-20221014105039-bdff52de",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20221014110124-2d6cd89b8"
+              "tag": "v2.6.8-20221017182825-4975cc8cb"
             }
           ]
         },
         {
-          "registry": "docker.io",
-          "repository": "rancher",
+          "repository": "verrazzano/rancher",
           "name": "additional-rancher",
           "images": [
             {
               "image": "shell",
-              "tag": "v0.1.18"
-            },
-            {
-              "image": "kubectl",
-              "tag": "v1.20.2"
+              "tag": "v0.1.18-20221011201404-0c5784f"
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.2.6"
+              "tag": "v0.2.6-20221005161115-fee4a23"
             },
             {
               "image": "fleet-agent",
-              "tag": "v0.3.11"
+              "tag": "v0.3.11-20221005160548-f5e4fc9"
             },
             {
               "image": "fleet",
-              "tag": "v0.3.11"
+              "tag": "v0.3.11-20221005160548-f5e4fc9"
             },
             {
               "image": "gitjob",
-              "tag": "v0.1.30"
-            },
-            {
-              "image": "local-path-provisioner",
-              "tag": "v0.0.14"
+              "tag": "v0.1.30-20221005155218-6e7ba2d"
             }
           ]
         }
@@ -289,7 +280,7 @@
     },
     {
       "name": "oam-kubernetes-runtime",
-      "version": "0.3.0",
+      "version": "0.3.3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -297,7 +288,7 @@
           "images": [
             {
               "image": "oam-kubernetes-runtime",
-              "tag": "v0.3.0-20221013061514-f30c668",
+              "tag": "v0.3.3-20221013064824-b7e9276",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
