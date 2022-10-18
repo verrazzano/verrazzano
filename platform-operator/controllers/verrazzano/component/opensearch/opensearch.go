@@ -22,15 +22,15 @@ import (
 )
 
 const (
-	workloadName  = "system-es-master"
-	containerName = "es-master"
+	workloadName  = "system-os-master"
+	containerName = "os-master"
 	portName      = "http"
 	indexPattern  = "verrazzano-*"
 
-	esDataDeployment   = "vmi-system-es-data"
-	esIngestDeployment = "vmi-system-es-ingest"
+	esDataDeployment   = "vmi-system-os-data"
+	esIngestDeployment = "vmi-system-os-ingest"
 
-	esMasterStatefulset = "vmi-system-es-master"
+	esMasterStatefulset = "vmi-system-os-master"
 	nodeNamePrefix      = "vmi-system-%s"
 )
 
@@ -112,7 +112,7 @@ func hasRole(roles []vmov1.NodeRole, roleToHave vmov1.NodeRole) bool {
 	return false
 }
 
-// findESReplicas searches the ES install args to find the correct resources to search for in isReady
+// findESReplicas searches the OS install args to find the correct resources to search for in isReady
 func findESReplicas(ctx spi.ComponentContext, nodeType vmov1.NodeRole) int32 {
 	var replicas int32
 	if vzconfig.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
@@ -149,7 +149,7 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 		return nil
 	}
 
-	// Wait for an Elasticsearch (i.e., label app=system-es-master) pod with container (i.e. es-master) to be ready.
+	// Wait for an Elasticsearch (i.e., label app=system-os-master) pod with container (i.e. os-master) to be ready.
 	pods, err := waitForPodsWithReadyContainer(ctx.Client(), 15*time.Second, 5*time.Minute, containerName, clipkg.MatchingLabels{"app": workloadName}, clipkg.InNamespace(namespace))
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed getting the Elasticsearch pods during post-upgrade: %v", err)

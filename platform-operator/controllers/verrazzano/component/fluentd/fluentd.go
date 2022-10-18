@@ -27,13 +27,13 @@ const (
 	// Fluentd ConfigMap names
 	fluentdInit     = "fluentd-init"
 	fluentdConfig   = "fluentd-config"
-	fluentdEsConfig = "fluentd-es-config"
+	fluentdEsConfig = "fluentd-os-config"
 )
 
-// checkSecretExists whether verrazzano-es-internal secret exists. Return error if secret does not exist.
+// checkSecretExists whether verrazzano-os-internal secret exists. Return error if secret does not exist.
 func checkSecretExists(ctx spi.ComponentContext) error {
 	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
-		// Check verrazzano-es-internal Secret. return error which will cause requeue
+		// Check verrazzano-os-internal Secret. return error which will cause requeue
 		secret := &corev1.Secret{}
 		err := ctx.Client().Get(context.TODO(), clipkg.ObjectKey{
 			Namespace: constants.VerrazzanoSystemNamespace,
@@ -236,7 +236,7 @@ func getFluentdManagedResources() []common.HelmManagedResource {
 		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: ComponentName}},
 		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: ComponentName}},
 		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-config", Namespace: ComponentNamespace}},
-		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-es-config", Namespace: ComponentNamespace}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-os-config", Namespace: ComponentNamespace}},
 		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "fluentd-init", Namespace: ComponentNamespace}},
 		{Obj: &appsv1.DaemonSet{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},

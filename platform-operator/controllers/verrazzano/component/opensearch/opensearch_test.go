@@ -307,18 +307,18 @@ func newPod() *corev1.Pod {
 
 func createElasticsearchPod(cli client.Client, portName string) {
 	labels := map[string]string{
-		"app": "system-es-master",
+		"app": "system-os-master",
 	}
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "es-pod",
+			Name:      "os-pod",
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Labels:    labels,
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{
 				{
-					Name: "es-master",
+					Name: "os-master",
 					Ports: []corev1.ContainerPort{
 						{
 							ContainerPort: 42,
@@ -331,7 +331,7 @@ func createElasticsearchPod(cli client.Client, portName string) {
 		Status: corev1.PodStatus{
 			ContainerStatuses: []corev1.ContainerStatus{
 				{
-					Name:  "es-master",
+					Name:  "os-master",
 					Ready: true,
 				},
 			},
@@ -498,14 +498,14 @@ func TestIsReady(t *testing.T) {
 				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-0", esDataDeployment),
 				Labels: map[string]string{
-					"app":   "system-es-data",
+					"app":   "system-os-data",
 					"index": "0",
 				},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
-						"app":   "system-es-data",
+						"app":   "system-os-data",
 						"index": "0",
 					},
 				},
@@ -522,7 +522,7 @@ func TestIsReady(t *testing.T) {
 				Name:      fmt.Sprintf("%s-0-95d8c5d96-m6mbr", esDataDeployment),
 				Labels: map[string]string{
 					"pod-template-hash": "95d8c5d96",
-					"app":               "system-es-data",
+					"app":               "system-os-data",
 					"index":             "0",
 				},
 			},
@@ -539,14 +539,14 @@ func TestIsReady(t *testing.T) {
 				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-1", esDataDeployment),
 				Labels: map[string]string{
-					"app":   "system-es-data",
+					"app":   "system-os-data",
 					"index": "1",
 				},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
-						"app":   "system-es-data",
+						"app":   "system-os-data",
 						"index": "1",
 					},
 				},
@@ -563,7 +563,7 @@ func TestIsReady(t *testing.T) {
 				Name:      fmt.Sprintf("%s-1-95d8c5d96-m6mbr", esDataDeployment),
 				Labels: map[string]string{
 					"pod-template-hash": "95d8c5d96",
-					"app":               "system-es-data",
+					"app":               "system-os-data",
 					"index":             "1",
 				},
 			},
@@ -579,11 +579,11 @@ func TestIsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      esIngestDeployment,
-				Labels:    map[string]string{"app": "system-es-ingest"},
+				Labels:    map[string]string{"app": "system-os-ingest"},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"app": "system-es-ingest"},
+					MatchLabels: map[string]string{"app": "system-os-ingest"},
 				},
 			},
 			Status: appsv1.DeploymentStatus{
@@ -598,7 +598,7 @@ func TestIsReady(t *testing.T) {
 				Name:      esIngestDeployment + "-95d8c5d96-m6mbr",
 				Labels: map[string]string{
 					"pod-template-hash": "95d8c5d96",
-					"app":               "system-es-ingest",
+					"app":               "system-os-ingest",
 				},
 			},
 		},
@@ -608,7 +608,7 @@ func TestIsReady(t *testing.T) {
 				Name:      esIngestDeployment + "-95d8c5d96-x1v76",
 				Labels: map[string]string{
 					"pod-template-hash": "95d8c5d96",
-					"app":               "system-es-ingest",
+					"app":               "system-os-ingest",
 				},
 			},
 		},
@@ -623,11 +623,11 @@ func TestIsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      esMasterStatefulset,
-				Labels:    map[string]string{"app": "system-es-master"},
+				Labels:    map[string]string{"app": "system-os-master"},
 			},
 			Spec: appsv1.StatefulSetSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"app": "system-es-master"},
+					MatchLabels: map[string]string{"app": "system-os-master"},
 				},
 			},
 			Status: appsv1.StatefulSetStatus{
@@ -640,7 +640,7 @@ func TestIsReady(t *testing.T) {
 				Namespace: ComponentNamespace,
 				Name:      esMasterStatefulset + "-0",
 				Labels: map[string]string{
-					"app":                      "system-es-master",
+					"app":                      "system-os-master",
 					"controller-revision-hash": "test-95d8c5d96",
 				},
 			},
@@ -690,7 +690,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-0", esDataDeployment),
-				Labels:    map[string]string{"app": "system-es-data", "index": "0"},
+				Labels:    map[string]string{"app": "system-os-data", "index": "0"},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
@@ -702,7 +702,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-1", esDataDeployment),
-				Labels:    map[string]string{"app": "system-es-data", "index": "1"},
+				Labels:    map[string]string{"app": "system-os-data", "index": "1"},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
@@ -714,7 +714,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      esIngestDeployment,
-				Labels:    map[string]string{"app": "system-es-ingest"},
+				Labels:    map[string]string{"app": "system-os-ingest"},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
@@ -726,7 +726,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      esMasterStatefulset,
-				Labels:    map[string]string{"app": "system-es-master"},
+				Labels:    map[string]string{"app": "system-os-master"},
 			},
 			Status: appsv1.StatefulSetStatus{
 				ReadyReplicas:   1,
@@ -742,15 +742,15 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 		Elasticsearch: &vzapi.ElasticsearchComponent{
 			Nodes: []vzapi.OpenSearchNode{
 				{
-					Name:     "es-master",
+					Name:     "os-master",
 					Replicas: 2,
 				},
 				{
-					Name:     "es-data",
+					Name:     "os-data",
 					Replicas: 2,
 				},
 				{
-					Name:     "es-ingest",
+					Name:     "os-ingest",
 					Replicas: 2,
 				},
 			},
@@ -798,7 +798,7 @@ func TestIsinstalled(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      esMasterStatefulset,
-				Labels:    map[string]string{"app": "system-es-master"},
+				Labels:    map[string]string{"app": "system-os-master"},
 			},
 		},
 	).Build()
@@ -857,7 +857,7 @@ func TestIsOSNodeReady(t *testing.T) {
 		controllerRevision,
 	).Build()
 	masterNode := vzapi.OpenSearchNode{
-		Name:     "es-master",
+		Name:     "os-master",
 		Replicas: 1,
 		Roles: []vmov1.NodeRole{
 			vmov1.MasterRole,
@@ -865,7 +865,7 @@ func TestIsOSNodeReady(t *testing.T) {
 	}
 
 	dataNode := vzapi.OpenSearchNode{
-		Name:     "es-data",
+		Name:     "os-data",
 		Replicas: 2,
 		Roles: []vmov1.NodeRole{
 			vmov1.DataRole,
@@ -891,12 +891,12 @@ func TestIsOSNodeReady(t *testing.T) {
 	rs := &appsv1.ReplicaSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   ComponentNamespace,
-			Name:        "vmi-system-es-data-0-95d8c5d96",
+			Name:        "vmi-system-os-data-0-95d8c5d96",
 			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 		},
 	}
 	rs2 := rs.DeepCopy()
-	rs2.Name = "vmi-system-es-data-1-95d8c5d96"
+	rs2.Name = "vmi-system-os-data-1-95d8c5d96"
 	dataNodeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		dataDeployment,
 		dataDeployment2,

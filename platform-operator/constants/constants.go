@@ -66,7 +66,7 @@ const ClusterNameData = "managed-cluster-name"
 
 // ElasticsearchURLData - the field name in MCRegistrationSecret that contains the admin cluster's
 // Elasticsearch endpoint's URL
-const ElasticsearchURLData = "es-url"
+const ElasticsearchURLData = "os-url"
 
 // ClusterNameEnvVar is the environment variable used to identify the managed cluster for fluentd
 const ClusterNameEnvVar = "CLUSTER_NAME"
@@ -75,7 +75,7 @@ const ClusterNameEnvVar = "CLUSTER_NAME"
 const ElasticsearchURLEnvVar = "ELASTICSEARCH_URL"
 
 // ElasticsearchIngress is the name of the ingress for Elasticsearch
-const ElasticsearchIngress = "vmi-system-es-ingest"
+const ElasticsearchIngress = "vmi-system-os-ingest"
 
 // GrafanaIngress is the name of the ingress for Grafana
 const GrafanaIngress = "vmi-system-grafana"

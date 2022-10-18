@@ -25,7 +25,7 @@ const (
 	ComponentNamespace = constants.VerrazzanoSystemNamespace
 
 	// Certificate names
-	osdCertificateName = "system-tls-kibana"
+	osdCertificateName = "system-tls-opensearch-dashboards"
 )
 
 // ComponentJSONName is the json name of the OpenSearch-Dashboards component in CRD

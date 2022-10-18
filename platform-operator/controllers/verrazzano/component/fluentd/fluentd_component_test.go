@@ -69,7 +69,7 @@ func init() {
 
 func TestValidateUpdate(t *testing.T) {
 	disabled := false
-	sec := getFakeSecret("TestValidateUpdate-es-sec")
+	sec := getFakeSecret("TestValidateUpdate-os-sec")
 	defer func() { getControllerRuntimeClient = getClient }()
 	tests := []struct {
 		name    string
@@ -140,7 +140,7 @@ func TestValidateUpdate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "change-fluentd-es-secret",
+			name: "change-fluentd-os-secret",
 			old:  &v1alpha1.Verrazzano{},
 			new: &v1alpha1.Verrazzano{
 				Spec: v1alpha1.VerrazzanoSpec{
@@ -154,7 +154,7 @@ func TestValidateUpdate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "change-fluentd-es-url",
+			name: "change-fluentd-os-url",
 			old:  &v1alpha1.Verrazzano{},
 			new: &v1alpha1.Verrazzano{
 				Spec: v1alpha1.VerrazzanoSpec{
@@ -246,7 +246,7 @@ func TestValidateInstall(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "oci and ext-es",
+			name: "oci and ext-os",
 			vz: &v1alpha1.Verrazzano{
 				Spec: v1alpha1.VerrazzanoSpec{
 					Components: v1alpha1.ComponentSpec{
@@ -301,13 +301,13 @@ func TestPreInstall(t *testing.T) {
 		err    error
 	}{
 		{
-			"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
+			"should fail when verrazzano-os-internal secret does not exist and keycloak is enabled",
 			keycloakEnabledCR,
 			createFakeClient(),
 			ctrlerrors.RetryableError{Source: ComponentName},
 		},
 		{
-			"should pass when verrazzano-es-internal secret does exist and keycloak is enabled",
+			"should pass when verrazzano-os-internal secret does exist and keycloak is enabled",
 			keycloakEnabledCR,
 			createFakeClient(vzEsInternalSecret),
 			nil,
@@ -452,13 +452,13 @@ func TestPreUpgrade(t *testing.T) {
 		err    error
 	}{
 		{
-			"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
+			"should fail when verrazzano-os-internal secret does not exist and keycloak is enabled",
 			keycloakEnabledCR,
 			createFakeClient(),
 			ctrlerrors.RetryableError{Source: ComponentName},
 		},
 		{
-			"should pass when verrazzano-es-internal secret does exist and keycloak is enabled",
+			"should pass when verrazzano-os-internal secret does exist and keycloak is enabled",
 			keycloakEnabledCR,
 			createFakeClient(vzEsInternalSecret),
 			nil,
@@ -596,7 +596,7 @@ func TestUninstallResources(t *testing.T) {
 	clusterRole := &rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: ComponentName}}
 	clusterRoleBinding := &rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: ComponentName}}
 	configMap1 := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: "fluentd-config"}}
-	configMap2 := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: "fluentd-es-config"}}
+	configMap2 := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: "fluentd-os-config"}}
 	configMap3 := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: "fluentd-init"}}
 	daemonset := &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: ComponentName}}
 	service := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: ComponentName}}

@@ -217,10 +217,10 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 // TestLoggingPreInstall tests the Fluentd loggingPreInstall call
 func TestLoggingPreInstall(t *testing.T) {
 	// GIVEN a Fluentd component
-	//  WHEN I call loggingPreInstall with fluentd overrides for ES and a custom ES secret
+	//  WHEN I call loggingPreInstall with fluentd overrides for OS and a custom OS secret
 	//  THEN no error is returned and the secret has been copied
 	trueValue := true
-	secretName := "my-es-secret" //nolint:gosec //#gosec G101
+	secretName := "my-os-secret" //nolint:gosec //#gosec G101
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Namespace: vpoconst.VerrazzanoInstallNamespace, Name: secretName},
 	}).Build()
@@ -274,7 +274,7 @@ func TestLoggingPreInstall(t *testing.T) {
 // TestLoggingPreInstallSecretNotFound tests the Verrazzano loggingPreInstall call
 // GIVEN a Verrazzano component
 //
-//	WHEN I call loggingPreInstall with fluentd overrides for ES and a custom ES secret and the secret does not exist
+//	WHEN I call loggingPreInstall with fluentd overrides for OS and a custom OS secret and the secret does not exist
 //	THEN an error is returned
 func TestLoggingPreInstallSecretNotFound(t *testing.T) {
 	trueValue := true
@@ -285,7 +285,7 @@ func TestLoggingPreInstallSecretNotFound(t *testing.T) {
 				Fluentd: &vzapi.FluentdComponent{
 					Enabled:             &trueValue,
 					ElasticsearchURL:    "https://myes.mydomain.com:9200",
-					ElasticsearchSecret: "my-es-secret",
+					ElasticsearchSecret: "my-os-secret",
 				},
 			},
 		},
@@ -315,7 +315,7 @@ func TestLoggingPreInstallFluentdNotEnabled(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestCheckSecretExists tests the verrazzano-es-internal secret exists.
+// TestCheckSecretExists tests the verrazzano-os-internal secret exists.
 func TestCheckSecretExists(t *testing.T) {
 	var tests = []struct {
 		name   string
@@ -324,13 +324,13 @@ func TestCheckSecretExists(t *testing.T) {
 		err    error
 	}{
 		{
-			"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
+			"should fail when verrazzano-os-internal secret does not exist and keycloak is enabled",
 			keycloakEnabledCR,
 			createFakeClient(),
 			ctrlerrors.RetryableError{Source: ComponentName},
 		},
 		{
-			"should pass when verrazzano-es-internal secret does exist and keycloak is enabled",
+			"should pass when verrazzano-os-internal secret does exist and keycloak is enabled",
 			keycloakEnabledCR,
 			createFakeClient(vzEsInternalSecret),
 			nil,

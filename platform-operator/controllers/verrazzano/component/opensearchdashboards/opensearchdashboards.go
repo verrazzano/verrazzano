@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const kibanaDeployment = "vmi-system-kibana"
+const kibanaDeployment = "vmi-system-opensearch-dashboards"
 
 // isOSDReady checks if the OpenSearch-Dashboards resources are ready
 func isOSDReady(ctx spi.ComponentContext) bool {
