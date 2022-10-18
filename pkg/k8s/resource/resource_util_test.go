@@ -7,211 +7,371 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"io"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/dynamic/fake"
-	"k8s.io/client-go/rest"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 )
 
-func newUnstructured(apiVersion, kind, name string) *unstructured.Unstructured {
-	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": apiVersion,
-			"kind":       kind,
-			"metadata": map[string]interface{}{
-				"name": name,
-			},
-		},
-	}
-}
+const (
+	SECRET               = "testdata/secret.yaml"
+	SECRET_BAD_NAMESPACE = "testdata/secret_bad_namespace.yaml"
+	SECRET_INVALID       = "testdata/secret_invalid.yaml"
+	SECRET_NO_NAMESPACE  = "testdata/secret_no_namespace.yaml"
+)
 
-type FakeDynamicClient struct {
-	scheme *runtime.Scheme
-	server *httptest.Server
-}
-
-func (f *FakeDynamicClient) GetDynamicClient() (dynamic.Interface, error) {
-
-	client := fake.NewSimpleDynamicClient(f.scheme, newUnstructured("v1", "Namespace", "default"))
-	return client, nil
-}
-
-func (f *FakeDynamicClient) GetDiscoveryClient() (*discovery.DiscoveryClient, error) {
-	return discovery.NewDiscoveryClientForConfig(&rest.Config{Host: f.server.URL})
-}
-
-// TestFindTestDataFile
+// TestFindTestDataFile tests the FindTestDataFile function
 // Given a filename, it should verify that the file exists
 // and return the path to the file relative to pwd
 func TestFindTestDataFile(t *testing.T) {
 	asserts := assert.New(t)
 
 	// File doesn't exist, should return an error
-	filename := "testfile"
+	filename := "test-file"
 
 	_, err := FindTestDataFile(filename)
 	asserts.Error(err)
 	asserts.EqualError(err, fmt.Sprintf("failed to find test data file: %s", filename))
 
 	// File exists, should find the file
-	filename = "testdata/secret_create.yaml"
+	filename = SECRET
 	file, err := FindTestDataFile(filename)
 
 	asserts.NoError(err)
 	asserts.Equal(filename, file)
 }
 
+// TestCreateOrUpdateResourceFromFile tests the CreateOrUpdateResourceFromFile function
+// Given a yaml file, create the resource
 func TestCreateOrUpdateResourceFromFile(t *testing.T) {
 	asserts := assert.New(t)
-
-	filename := "testdata/secret_create.yaml"
-
-	// Find the file
-	found, err := FindTestDataFile(filename)
-	asserts.NoError(err)
-
-	// Read the file
-	bytes, err := os.ReadFile(found)
-	asserts.NoError(err)
+	file := SECRET
 
 	server := newServer()
 	defer server.Close()
 
-	dc := &FakeDynamicClient{scheme: runtime.NewScheme(), server: server}
+	err := createFakeKubeConfig(server.URL)
+	asserts.NoError(err)
 
-	// Create a secret resource from yaml
-	err = createOrUpdateResourceFromBytes(bytes, dc)
+	kubeConfigPath, err := getFakeKubeConfigPath()
+	asserts.NoError(err)
+
+	// Preserve previous env var value
+	prevEnvVar := os.Getenv(k8sutil.EnvVarTestKubeConfig)
+
+	// Test using environment variable
+	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, kubeConfigPath)
+	asserts.NoError(err)
+
+	err = CreateOrUpdateResourceFromFile(file)
+	asserts.NoError(err)
+
+	// Reset env variable
+	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, prevEnvVar)
+	asserts.NoError(err)
+
+	err = deleteFakeKubeConfig()
 	asserts.NoError(err)
 }
 
-// TestCreateOrUpdateResourceFromBytesInGeneratedNamespace
-// Given a yaml file and a namespace string it should create the resource
-// in the provided namespace
-func TestCreateOrUpdateResourceFromBytesInGeneratedNamespace(t *testing.T) {
+// TestCreateOrUpdateResourceFromBytes tests the CreateOrUpdateResourceFromBytes function
+// Given a stream of bytes, create the resource
+func TestCreateOrUpdateResourceFromBytes(t *testing.T) {
 	asserts := assert.New(t)
+	file := SECRET
 
-	filename := "testdata/secret_create.yaml"
-
-	// Find the file
-	found, err := FindTestDataFile(filename)
-	asserts.NoError(err)
-
-	// Read the file
-	bytes, err := os.ReadFile(found)
+	bytes, err := os.ReadFile(file)
 	asserts.NoError(err)
 
 	server := newServer()
 	defer server.Close()
 
-	dc := &FakeDynamicClient{scheme: runtime.NewScheme(), server: server}
+	err = createFakeKubeConfig(server.URL)
+	asserts.NoError(err)
 
-	err = createOrUpdateResourceFromBytesInGeneratedNamespace(bytes, dc, "default")
+	kubeConfigPath, err := getFakeKubeConfigPath()
+	asserts.NoError(err)
+
+	// Preserve previous env var value
+	prevEnvVar := os.Getenv(k8sutil.EnvVarTestKubeConfig)
+
+	// Test using environment variable
+	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, kubeConfigPath)
+	asserts.NoError(err)
+
+	err = CreateOrUpdateResourceFromBytes(bytes)
+	asserts.NoError(err)
+
+	// Reset env variable
+	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, prevEnvVar)
+	asserts.NoError(err)
+
+	err = deleteFakeKubeConfig()
 	asserts.NoError(err)
 }
 
-// TestDeleteResourceFromBytes
-// Given a yaml try and delete the resource
-func TestDeleteResourceFromBytes(t *testing.T) {
+// TestCreateOrUpdateResourceFromFileInCluster tests the CreateOrUpdateResourceFromFileInCluster function
+// Given a yaml file and the kubeconfig path, create the resource in the namespace
+// Given a yaml file with bad namespace and the kubeconfig path, return an error
+// Given a yaml file with invalid namespace and the kubeconfig path, return an error
+func TestCreateOrUpdateResourceFromFileInCluster(t *testing.T) {
 	asserts := assert.New(t)
-
-	filename := "testdata/secret_create.yaml"
-
-	found, err := FindTestDataFile(filename)
-	asserts.NoError(err)
-
-	bytes, err := os.ReadFile(found)
-	asserts.NoError(err)
+	file := SECRET
 
 	server := newServer()
 	defer server.Close()
 
-	dc := &FakeDynamicClient{scheme: runtime.NewScheme(), server: server}
-
-	// Try and delete the secret resource from yaml
-	// Since the resource doesn't exist
-	// This gives resource not found error
-	// But that error is not returned, so we check for no error
-	err = deleteResourceFromBytes(bytes, dc)
+	err := createFakeKubeConfig(server.URL)
 	asserts.NoError(err)
 
-	// Create the resource and then delete it
-	err = createOrUpdateResourceFromBytes(bytes, dc)
+	kubeConfigPath, err := getFakeKubeConfigPath()
 	asserts.NoError(err)
 
-	err = deleteResourceFromBytes(bytes, dc)
+	// Creating a resource with a valid yaml file
+	// and in a namespace that exists
+	// should not return an error
+	err = CreateOrUpdateResourceFromFileInCluster(file, kubeConfigPath)
+	asserts.NoError(err)
+
+	// Creating a resource in a namespace that doesn't exist
+	// should return an error
+	file = SECRET_BAD_NAMESPACE
+	err = CreateOrUpdateResourceFromFileInCluster(file, kubeConfigPath)
+	asserts.Error(err)
+
+	// Passing a yaml file with no specified namespace
+	// should return an error
+	file = SECRET_NO_NAMESPACE
+	err = CreateOrUpdateResourceFromFileInCluster(file, kubeConfigPath)
+	asserts.Error(err)
+
+	// Passing an invalid yaml file to create a resource
+	// should return an error
+	file = SECRET_INVALID
+	err = CreateOrUpdateResourceFromFileInCluster(file, kubeConfigPath)
+	asserts.Error(err)
+
+	err = deleteFakeKubeConfig()
 	asserts.NoError(err)
 }
 
-// TestDeleteResourceFromBytesInGeneratedNamespace
-// Given a yaml try and delete the resource in the provided namespace
-func TestDeleteResourceFromBytesInGeneratedNamespace(t *testing.T) {
+// TestCreateOrUpdateResourceFromFileInGeneratedNamespace tests the
+// CreateOrUpdateResourceFromFileInGeneratedNamespace
+// Given a yaml file, create the resource in the provided namespace
+func TestCreateOrUpdateResourceFromFileInGeneratedNamespace(t *testing.T) {
 	asserts := assert.New(t)
-
-	filename := "testdata/secret_create.yaml"
-
-	found, err := FindTestDataFile(filename)
-	asserts.NoError(err)
-
-	bytes, err := os.ReadFile(found)
-	asserts.NoError(err)
+	file := SECRET
 
 	server := newServer()
 	defer server.Close()
 
-	dc := &FakeDynamicClient{scheme: runtime.NewScheme(), server: server}
+	err := createFakeKubeConfig(server.URL)
+	asserts.NoError(err)
 
-	// Try and delete the secret resource from yaml
-	// Since the resource doesn't exist
-	// This gives resource not found error
-	// But that error is not returned, so we check for no error
-	err = deleteResourceFromBytesInGeneratedNamespace(bytes, dc, "default")
+	kubeConfigPath, err := getFakeKubeConfigPath()
+	asserts.NoError(err)
+
+	// Preserve previous env var value
+	prevEnvVar := os.Getenv(k8sutil.EnvVarTestKubeConfig)
+
+	// Test using environment variable
+	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, kubeConfigPath)
+	asserts.NoError(err)
+
+	err = CreateOrUpdateResourceFromFileInGeneratedNamespace(file, "default")
+	asserts.NoError(err)
+
+	// Reset env variable
+	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, prevEnvVar)
+	asserts.NoError(err)
+
+	err = deleteFakeKubeConfig()
 	asserts.NoError(err)
 }
 
-// TestPatchResourceFromBytes
-// patch the file which doesn't exist
-// should return an error
-func TestPatchResourceFromBytes(t *testing.T) {
+// TestCreateOrUpdateResourceFromFileInClusterInGeneratedNamespace tests
+// the CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace function
+// Given a yaml file with no namespace and the kubeconfig path, create the resource in the provided namespace
+// When provided with a bad namespace, return an error
+// Given an invalid yaml file and the kubeconfig path, return an error
+func TestCreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(t *testing.T) {
 	asserts := assert.New(t)
-
-	filename := "testdata/secret_create.yaml"
-
-	found, err := FindTestDataFile(filename)
-	asserts.NoError(err)
-
-	bytes, err := os.ReadFile(found)
-	asserts.NoError(err)
+	file := SECRET_NO_NAMESPACE
 
 	server := newServer()
 	defer server.Close()
 
-	dc := &FakeDynamicClient{scheme: runtime.NewScheme(), server: server}
-
-	bytes, err = utilyaml.ToJSON(bytes)
+	err := createFakeKubeConfig(server.URL)
 	asserts.NoError(err)
 
-	gvr := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"}
+	kubeConfigPath, err := getFakeKubeConfigPath()
+	asserts.NoError(err)
 
-	err = patchResourceFromBytes(gvr, "default", "test-secret", bytes, dc)
-	asserts.EqualError(err, "failed to patch default//v1, Resource=secrets: secrets \"test-secret\" not found")
+	err = CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file, kubeConfigPath, "default")
+	asserts.NoError(err)
+
+	// Namespace doesn't exist, should return an error
+	err = CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file, kubeConfigPath, "test")
+	asserts.Error(err)
+
+	file = SECRET_INVALID
+	err = CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file, kubeConfigPath, "default")
+	asserts.Error(err)
+
+	err = deleteFakeKubeConfig()
+	asserts.NoError(err)
 }
 
-// newServer return a httptest server which the
-// fake dynamic client and discovery client can connect/send requests to
-// instead of a real live cluster
+// TestDeleteResourceFromFile tests the DeleteResourceFromFile
+// Given a yaml file, delete the resource
+func TestDeleteResourceFromFile(t *testing.T) {
+	asserts := assert.New(t)
+	file := SECRET
+
+	server := newServer()
+	defer server.Close()
+
+	err := createFakeKubeConfig(server.URL)
+	asserts.NoError(err)
+
+	kubeConfigPath, err := getFakeKubeConfigPath()
+	asserts.NoError(err)
+
+	// Preserve previous env var value
+	prevEnvVar := os.Getenv(k8sutil.EnvVarTestKubeConfig)
+
+	// Test using environment variable
+	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, kubeConfigPath)
+	asserts.NoError(err)
+
+	err = DeleteResourceFromFile(file)
+	asserts.NoError(err)
+
+	// Reset env variable
+	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, prevEnvVar)
+	asserts.NoError(err)
+
+	err = deleteFakeKubeConfig()
+	asserts.NoError(err)
+}
+
+// TestDeleteResourceFromFileInCluster tests the DeleteResourceFromFileInCluster function
+// Given a yaml and the kubeconfig path, delete the resource
+// Given a yaml with bad namespace and the kubeconfig path, return an error
+// Given an invalid yaml and the kubeconfig path, return an error
+func TestDeleteResourceFromFileInCluster(t *testing.T) {
+	asserts := assert.New(t)
+	file := SECRET
+
+	server := newServer()
+	defer server.Close()
+
+	err := createFakeKubeConfig(server.URL)
+	asserts.NoError(err)
+
+	kubeConfigPath, err := getFakeKubeConfigPath()
+	asserts.NoError(err)
+
+	// Resource not found error is not returned, so
+	// check for no error
+	err = DeleteResourceFromFileInCluster(file, kubeConfigPath)
+	asserts.NoError(err)
+
+	file = SECRET_BAD_NAMESPACE
+	err = DeleteResourceFromFileInCluster(file, kubeConfigPath)
+	asserts.Error(err)
+
+	file = SECRET_INVALID
+	err = DeleteResourceFromFileInCluster(file, kubeConfigPath)
+	asserts.Error(err)
+
+	err = deleteFakeKubeConfig()
+	asserts.NoError(err)
+}
+
+// TestDeleteResourceFromFileInClusterInGeneratedNamespace tests
+// the DeleteResourceFromFileInClusterInGeneratedNamespace function
+// Given a yaml with no namespace, delete the resource in the provided namespace
+// When provided with a bad namespace, return an error
+// Given an invalid yaml file, return an error
+func TestDeleteResourceFromFileInClusterInGeneratedNamespace(t *testing.T) {
+	asserts := assert.New(t)
+	file := SECRET_NO_NAMESPACE
+
+	server := newServer()
+	defer server.Close()
+
+	err := createFakeKubeConfig(server.URL)
+	asserts.NoError(err)
+
+	kubeConfigPath, err := getFakeKubeConfigPath()
+	asserts.NoError(err)
+
+	err = DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeConfigPath, "default")
+	asserts.NoError(err)
+
+	// Namespace doesn't exist, expect an error
+	err = DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeConfigPath, "test")
+	asserts.Error(err)
+
+	file = SECRET_INVALID
+	err = DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeConfigPath, "default")
+	asserts.Error(err)
+
+	err = deleteFakeKubeConfig()
+	asserts.NoError(err)
+}
+
+// TestPatchResourceFromFileInCluster tests PatchResourceFromFileInCluster function
+// Given a yaml file, patch the resource if it exists
+// Given an invalid yaml file, return an error
+func TestPatchResourceFromFileInCluster(t *testing.T) {
+	asserts := assert.New(t)
+	file := SECRET
+
+	server := newServer()
+	defer server.Close()
+
+	err := createFakeKubeConfig(server.URL)
+	asserts.NoError(err)
+
+	kubeConfigPath, err := getFakeKubeConfigPath()
+	asserts.NoError(err)
+
+	gvr := schema.GroupVersionResource{Group: "", Version: "v1", Resource: ""}
+
+	// Patching a resource that doesn't exist should return an error
+	err = PatchResourceFromFileInCluster(gvr, "default", "test-secret", file, kubeConfigPath)
+	asserts.Error(err)
+
+	file = SECRET_INVALID
+	err = PatchResourceFromFileInCluster(gvr, "default", "test-secret", file, kubeConfigPath)
+	asserts.Error(err)
+
+	err = deleteFakeKubeConfig()
+	asserts.NoError(err)
+}
+
+// newServer returns a httptest server which the
+// dynamic client and discovery client can send
+// GET/POST/DELETE requests to instead of a real cluster
 func newServer() *httptest.Server {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		var obj interface{}
 		switch req.URL.Path {
+		case "/api/v1/namespaces/default":
+			obj = &metav1.APIVersions{
+				TypeMeta: metav1.TypeMeta{
+					Kind: "APIVersions",
+				},
+				Versions: []string{
+					"v1",
+				},
+			}
 		case "/api":
 			obj = &metav1.APIVersions{
 				Versions: []string{
@@ -225,6 +385,11 @@ func newServer() *httptest.Server {
 					{Name: "secrets", Namespaced: true, Kind: "Secret"},
 				},
 			}
+		case "/api/v1/namespaces/default/secrets":
+			// POST request, return the raw request body
+			body, _ := io.ReadAll(req.Body)
+			w.Write(body)
+			return
 		default:
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -238,4 +403,49 @@ func newServer() *httptest.Server {
 		w.Write(output)
 	}))
 	return server
+}
+
+// createFakeKubeConfig creates a fake kubeconfig
+// in the pwd with the url of the httptest server
+func createFakeKubeConfig(url string) error {
+	fakeKubeConfig, err := os.Create("dummy-kubeconfig")
+	defer fakeKubeConfig.Close()
+
+	if err != nil {
+		return err
+	}
+
+	_, err = fmt.Fprintf(fakeKubeConfig, `apiVersion: v1
+clusters:
+- cluster:
+    # This is dummy data
+    certificate-authority-data: RFVNTVkgQ0VSVElGSUNBVEU=
+    server: %s
+  name: user-test
+users:
+- name: user-test
+contexts:
+- context:
+    cluster: user-test
+    user: user-test
+  name: user-test
+current-context: user-test`, url)
+
+	return err
+}
+
+func getFakeKubeConfigPath() (string, error) {
+	pwd, err := os.Getwd()
+
+	if err != nil {
+		return pwd, err
+	}
+
+	pwd = pwd + "/dummy-kubeconfig"
+	return pwd, nil
+}
+
+func deleteFakeKubeConfig() error {
+	err := os.Remove("dummy-kubeconfig")
+	return err
 }
