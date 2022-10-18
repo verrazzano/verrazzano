@@ -305,6 +305,9 @@ pipeline {
                 sh """
                     git fetch
                 """
+                script {
+                    VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
+                }
                 sh """
                     # Download the operator.yaml for the target version that we are upgrading to
                     oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
@@ -323,8 +326,8 @@ pipeline {
 
                     else
                         echo "Upgrading VPO to this commit version"
-                        VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
-                        ${GO_REPO_PATH}/vz upgrade --operator-file ${WORKSPACE}/upgrade-test-operator.yaml --version VERRAZZANO_DEV_VERSION
+                        ${GO_REPO_PATH}/vz upgrade --operator-file ${WORKSPACE}/upgrade-test-operator.yaml --version ${VERRAZZANO_DEV_VERSION}
+                         kubectl wait --timeout=45m --for=condition=UpgradeComplete verrazzano/my-verrazzano
                     fi
 
 
