@@ -83,7 +83,7 @@ const extraEnvValueTemplate = `extraEnv:
     value: "{{.CollectorImage}}"
   - name: "JAEGER-INGESTER-IMAGE"
     value: "{{.IngesterImage}}"
-  - name: "JAEGER-EzS-INDEX-CLEANER-IMAGE"
+  - name: "JAEGER-ES-INDEX-CLEANER-IMAGE"
     value: "{{.IndexCleanerImage}}"
   - name: "JAEGER-ES-ROLLOVER-IMAGE"
     value: "{{.RolloverImage}}"
