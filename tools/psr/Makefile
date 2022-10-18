@@ -63,7 +63,7 @@ kind-load-image: docker-build
 	kind load docker-image --name kind ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: run-example-k8s
-run-example-k8s: load-image
+run-example-k8s: kind-load-image
 	helm upgrade --install psr manifests/charts/k8s --set imageName=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: unit-test
