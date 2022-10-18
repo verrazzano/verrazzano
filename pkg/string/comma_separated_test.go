@@ -1,11 +1,11 @@
-// Copyright (C) 2021, Oracle and/or its affiliates.
+// Copyright (C) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package string
 
 import "testing"
 
-//TestCommaSeparatedContainsString tests the CommaSeparatedStringContains function
+// TestCommaSeparatedContainsString tests the CommaSeparatedStringContains function
 func TestCommaSeparatedContainsString(t *testing.T) {
 	type args struct {
 		commaSeparated string

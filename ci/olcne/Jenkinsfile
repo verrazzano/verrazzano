@@ -11,12 +11,12 @@
 // -> Cleanup resources
 
 def testEnvironments=["OCNE"]
-def agentLabel=env.JOB_NAME.contains('-ocne') ? "" : env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel=env.JOB_NAME.contains('-ocne') ? "" : env.JOB_NAME.contains('master') ? "phx-large" : "large"
 // pulling "ap-*" from the test regions given discovery of image pull issues
 def availableRegions=["us-ashburn-1"]
 def availableDomains=["hXgQ:US-ASHBURN-AD-1", "hXgQ:US-ASHBURN-AD-2", "hXgQ:US-ASHBURN-AD-3"]
 Collections.shuffle(availableDomains)
-def kubernetesVersions=[ "v1.22.5", "v1.21.5", "v1.20.8" ]
+def kubernetesVersions=[ "v1.24.1", "v1.23.4", "v1.22.5", "v1.21.5" ]
 def ocneVersions=[ "1.5"]
 def osVersions=['8', '7']
 def uniquePrefix=UUID.randomUUID().toString().substring(0,4).replace('-','')

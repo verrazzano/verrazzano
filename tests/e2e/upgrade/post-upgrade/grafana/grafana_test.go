@@ -13,12 +13,12 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
 const (
-	threeMinutes         = 3 * time.Minute
+	waitTimeout          = 3 * time.Minute
 	pollingInterval      = 10 * time.Second
 	testDashboardTitle   = "E2ETestDashboard"
 	systemDashboardTitle = "Host Metrics"
@@ -63,7 +63,7 @@ var _ = t.Describe("Post Upgrade Grafana Dashboard", Label("f:observability.logg
 			}
 			return false
 
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue())
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
 
 	// GIVEN a running grafana instance,
@@ -85,6 +85,6 @@ var _ = t.Describe("Post Upgrade Grafana Dashboard", Label("f:observability.logg
 			body := make(map[string]map[string]string)
 			json.Unmarshal(resp.Body, &body)
 			return strings.Contains(body["dashboard"]["title"], systemDashboardTitle)
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue())
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
 })

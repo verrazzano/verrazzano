@@ -8,10 +8,9 @@ import (
 	"crypto/sha256"
 	"fmt"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"io/ioutil"
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"k8s.io/apimachinery/pkg/runtime"
+	"os"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -22,15 +21,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
@@ -49,11 +45,11 @@ const (
 
 var (
 	// For Unit test purposes
-	writeFileFunc = ioutil.WriteFile
+	writeFileFunc = os.WriteFile
 )
 
 func resetWriteFileFunc() {
-	writeFileFunc = ioutil.WriteFile
+	writeFileFunc = os.WriteFile
 }
 
 // resolveVerrazzanoNamespace will return the default Verrazzano system namespace unless the namespace is specified
@@ -83,45 +79,6 @@ func verrazzanoPreUpgrade(ctx spi.ComponentContext) error {
 		if err := common.EnsureVerrazzanoMonitoringNamespace(ctx); err != nil {
 			return err
 		}
-	}
-	return nil
-}
-
-func createAndLabelNamespaces(ctx spi.ComponentContext) error {
-	if err := LabelKubeSystemNamespace(ctx.Client()); err != nil {
-		return err
-	}
-	if err := common.CreateAndLabelVMINamespaces(ctx); err != nil {
-		return err
-	}
-	if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
-		return err
-	}
-	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
-		istio := ctx.EffectiveCR().Spec.Components.Istio
-		if err := namespace.CreateKeycloakNamespace(ctx.Client(), istio != nil && istio.IsInjectionEnabled()); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed creating Keycloak namespace: %v", err)
-		}
-	}
-	// cattle-system NS must be created since the rancher NetworkPolicy, which is always installed, requires it
-	if err := namespace.CreateRancherNamespace(ctx.Client()); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed creating Rancher namespace: %v", err)
-	}
-	return nil
-}
-
-// LabelKubeSystemNamespace adds the label needed by network polices to kube-system
-func LabelKubeSystemNamespace(client clipkg.Client) error {
-	const KubeSystemNamespace = "kube-system"
-	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: KubeSystemNamespace}}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), client, &ns, func() error {
-		if ns.Labels == nil {
-			ns.Labels = make(map[string]string)
-		}
-		ns.Labels["verrazzano.io/namespace"] = KubeSystemNamespace
-		return nil
-	}); err != nil {
-		return err
 	}
 	return nil
 }

@@ -9,14 +9,13 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8s/status"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"io"
-	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -130,7 +129,7 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 			return fmt.Errorf(accessErrorMsg, userVisibleFilename, resp.Status)
 		}
 		// Store response in a temporary file
-		tmpFile, err := ioutil.TempFile("", "vz")
+		tmpFile, err := os.CreateTemp("", "vz")
 		if err != nil {
 			return fmt.Errorf(applyErrorMsg, userVisibleFilename, err.Error())
 		}
@@ -244,8 +243,10 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 				// Return when the Verrazzano operation has completed
 				vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
 				if err != nil {
-					resChan <- err
-					return
+					// Retry if there is a problem getting the resource.  It is ok to keep retrying since
+					// WaitForOperationToComplete main routine will timeout.
+					time.Sleep(10 * time.Second)
+					continue
 				}
 				for _, condition := range vz.Status.Conditions {
 					// Operation condition met for install/upgrade
@@ -364,7 +365,7 @@ func vpoIsReady(client clipkg.Client) (bool, error) {
 		return false, nil
 	}
 
-	if !status.PodsReadyDeployment(nil, client, namespacedName, deployment.Spec.Selector, expectedReplicas, constants.VerrazzanoPlatformOperator) {
+	if !ready.PodsReadyDeployment(nil, client, namespacedName, deployment.Spec.Selector, expectedReplicas, constants.VerrazzanoPlatformOperator) {
 		return false, nil
 	}
 

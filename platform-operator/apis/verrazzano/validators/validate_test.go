@@ -4,13 +4,15 @@
 package validators
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
-	"os"
-	"path/filepath"
-	"testing"
 )
 
 // For unit testing
@@ -212,5 +214,82 @@ func Test_cleanTempFiles(t *testing.T) {
 		for _, tmpFile := range tmpFiles {
 			assert.NoFileExists(tmpFile.Name(), "Error, temp file %s not deleted", tmpFile.Name())
 		}
+	}
+}
+
+// TestIsKubernetesVersionSupported tests IsKubernetesVersionSupported()
+// GIVEN a request for the validating that the Kubernetes version of cluster is supported by the operator
+// WHEN the Kubernetes version and Supported versions can be determined without error
+// AND the Kubernetes version is either equal to one of the supported versions or is a patch version of a supported version
+// THEN only true is returned
+func TestIsKubernetesVersionSupported(t *testing.T) {
+	tests := []struct {
+		name                               string
+		getSupportedKubernetesVersionsFunc func() ([]string, error)
+		getKubernetesVersionFunc           func() (string, error)
+		result                             bool
+	}{
+		{
+			name:                               "testFailGettingSupportedVersions",
+			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return nil, fmt.Errorf("errored out") },
+			getKubernetesVersionFunc:           func() (string, error) { return "v0.1.5", nil },
+			result:                             false,
+		},
+		{
+			name:                               "testFailGettingKubernetesVersion",
+			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v0.1.0", "v0.2.0"}, nil },
+			getKubernetesVersionFunc:           func() (string, error) { return "", fmt.Errorf("errored out") },
+			result:                             false,
+		},
+		{
+			name:                               "testPassNoSupportedVersionsInBom",
+			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return nil, nil },
+			getKubernetesVersionFunc:           func() (string, error) { return "", fmt.Errorf("errored out") },
+			result:                             true,
+		},
+		{
+			name:                               "testFailInvalidSupportedVersionsInBom",
+			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v1.2.0", "vx.y"}, nil },
+			getKubernetesVersionFunc:           func() (string, error) { return "v1.3.9", nil },
+			result:                             false,
+		},
+		{
+			name:                               "testFailInvalidKubernetesVersions",
+			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v1.2.0", "v1.3.0"}, nil },
+			getKubernetesVersionFunc:           func() (string, error) { return "vx.y", nil },
+			result:                             false,
+		},
+		{
+			name:                               "testPassExactSupportedKubernetesVersion",
+			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v1.2.5", "v1.3.0"}, nil },
+			getKubernetesVersionFunc:           func() (string, error) { return "v1.2.5", nil },
+			result:                             true,
+		},
+		{
+			name:                               "testPassPatchSupportedKubernetesVersion",
+			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v1.2.5", "v1.3.0"}, nil },
+			getKubernetesVersionFunc:           func() (string, error) { return "v1.3.8", nil },
+			result:                             true,
+		},
+		{
+			name:                               "testPassNotSupportedKubernetesVersion",
+			getSupportedKubernetesVersionsFunc: func() ([]string, error) { return []string{"v1.2.5", "v1.3.0"}, nil },
+			getKubernetesVersionFunc:           func() (string, error) { return "v1.4.8", nil },
+			result:                             false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			getSupportedKubernetesVersionsOriginal := getSupportedKubernetesVersions
+			getKubernetesVersionOriginal := getKubernetesVersion
+			getKubernetesClusterVersion = tt.getKubernetesVersionFunc
+			getSupportedVersions = tt.getSupportedKubernetesVersionsFunc
+			defer func() {
+				getSupportedVersions = getSupportedKubernetesVersionsOriginal
+				getKubernetesClusterVersion = getKubernetesVersionOriginal
+
+			}()
+			assert.Equal(t, tt.result, IsKubernetesVersionSupported())
+		})
 	}
 }

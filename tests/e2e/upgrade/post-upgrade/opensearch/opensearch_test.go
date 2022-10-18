@@ -7,17 +7,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"io/ioutil"
+	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
 const (
-	threeMinutes    = 3 * time.Minute
+	waitTimeout     = 3 * time.Minute
 	pollingInterval = 10 * time.Second
 	documentFile    = "testdata/upgrade/opensearch/document1.json"
 	longTimeout     = 10 * time.Minute
@@ -65,7 +65,7 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 				return pkg.IndicesNotExists(oldIndicesPatterns)
 			}
 			return true
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(), "Expected not to find any old indices")
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue(), "Expected not to find any old indices")
 	})
 
 	// GIVEN the OpenSearch pod
@@ -83,7 +83,7 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 				return pkg.CheckForDataStream(pkg.VerrazzanoNamespace)
 			}
 			return true
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(), "Expected not to find any old indices")
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue(), "Expected not to find any old indices")
 	})
 
 	// GIVEN the OpenSearch pod
@@ -107,7 +107,7 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 					pkg.Log(pkg.Error, fmt.Sprintf("failed to find test data file: %v", err))
 					return false
 				}
-				data, err := ioutil.ReadFile(file)
+				data, err := os.ReadFile(file)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("failed to read test data file: %v", err))
 					return false
@@ -130,7 +130,7 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 				}
 			}
 			return true
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(), "Expected to find the old data")
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue(), "Expected to find the old data")
 	})
 
 	// GIVEN a VZ environment with

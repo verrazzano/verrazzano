@@ -47,7 +47,7 @@ pipeline {
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
-                choices: [ "v1.22.5", "v1.23.4", "v1.24.1", "v1.21.5", "v1.20.8" ])
+                choices: [ "v1.24.1", "v1.23.4", "v1.22.5", "v1.21.5" ])
         choice (name: 'CRD_API_VERSION',
                 description: 'This is the API crd version.',
                 // 1st choice is the default value
@@ -392,7 +392,8 @@ pipeline {
 
         stage("Verify Uninstall") {
             steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                retry(6) {
+                    sleep time: 300, unit: 'SECONDS'
                     sh """
                         ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/post-uninstall-resources false
                         ${LOOPING_TEST_SCRIPTS_DIR}/verify_uninstall.sh ${WORKSPACE}/verrazzano/build/resources

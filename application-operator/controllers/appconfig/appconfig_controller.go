@@ -13,7 +13,6 @@ import (
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -115,7 +114,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, appConfig *oamv1.Applicati
 	}
 
 	// get the user-specified restart version - if it's missing then there's nothing to do here
-	restartVersion, ok := appConfig.Annotations[vzconst.RestartVersionAnnotation]
+	restartVersion, ok := appConfig.Annotations[constants.RestartVersionAnnotation]
 	if !ok || len(restartVersion) == 0 {
 		log.Debug("No restart version annotation found, nothing to do")
 		return reconcile.Result{}, nil
@@ -158,25 +157,25 @@ func (r *Reconciler) restartComponent(ctx context.Context, wlNamespace string, w
 	}
 	// Set the annotation based on the workload kind
 	switch workload.GetKind() {
-	case vzconst.VerrazzanoCoherenceWorkloadKind:
+	case constants.VerrazzanoCoherenceWorkloadKind:
 		log.Debugf("Setting Coherence workload %s restart-version", wlName)
 		return updateRestartVersion(ctx, r.Client, &workload, restartVersion, log)
-	case vzconst.VerrazzanoWebLogicWorkloadKind:
+	case constants.VerrazzanoWebLogicWorkloadKind:
 		log.Debugf("Setting WebLogic workload %s restart-version", wlName)
 		return updateRestartVersion(ctx, r.Client, &workload, restartVersion, log)
-	case vzconst.VerrazzanoHelidonWorkloadKind:
+	case constants.VerrazzanoHelidonWorkloadKind:
 		log.Debugf("Setting Helidon workload %s restart-version", wlName)
 		return updateRestartVersion(ctx, r.Client, &workload, restartVersion, log)
-	case vzconst.ContainerizedWorkloadKind:
+	case constants.ContainerizedWorkloadKind:
 		log.Debugf("Setting Containerized workload %s restart-version", wlName)
 		return updateRestartVersion(ctx, r.Client, &workload, restartVersion, log)
-	case vzconst.DeploymentWorkloadKind:
+	case constants.DeploymentWorkloadKind:
 		log.Debugf("Setting Deployment workload %s restart-version", wlName)
 		return r.restartDeployment(ctx, restartVersion, wlName, wlNamespace, log)
-	case vzconst.StatefulSetWorkloadKind:
+	case constants.StatefulSetWorkloadKind:
 		log.Debugf("Setting StatefulSet workload %s restart-version", wlName)
 		return r.restartStatefulSet(ctx, restartVersion, wlName, wlNamespace, log)
-	case vzconst.DaemonSetWorkloadKind:
+	case constants.DaemonSetWorkloadKind:
 		log.Debugf("Setting DaemonSet workload %s restart-version", wlName)
 		return r.restartDaemonSet(ctx, restartVersion, wlName, wlNamespace, log)
 	default:
@@ -240,7 +239,7 @@ func DoRestartDeployment(ctx context.Context, client client.Client, restartVersi
 			if deployment.Spec.Template.ObjectMeta.Annotations == nil {
 				deployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			deployment.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
+			deployment.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = restartVersion
 		}
 		return nil
 	})
@@ -254,7 +253,7 @@ func DoRestartStatefulSet(ctx context.Context, client client.Client, restartVers
 			if statefulSet.Spec.Template.ObjectMeta.Annotations == nil {
 				statefulSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			statefulSet.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
+			statefulSet.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = restartVersion
 		}
 		return nil
 	})
@@ -268,7 +267,7 @@ func DoRestartDaemonSet(ctx context.Context, client client.Client, restartVersio
 			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
 				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 			}
-			daemonSet.Spec.Template.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
+			daemonSet.Spec.Template.ObjectMeta.Annotations[constants.RestartVersionAnnotation] = restartVersion
 		}
 		return nil
 	})
@@ -290,7 +289,7 @@ func updateRestartVersion(ctx context.Context, client client.Client, u *unstruct
 		if !found {
 			annotations = map[string]string{}
 		}
-		annotations[vzconst.RestartVersionAnnotation] = restartVersion
+		annotations[constants.RestartVersionAnnotation] = restartVersion
 		err = unstructured.SetNestedStringMap(u.Object, annotations, metaAnnotationFields...)
 		if err != nil {
 			log.Errorf("Failed setting NestedStringMap for workload %s: %v", u.GetName(), err)

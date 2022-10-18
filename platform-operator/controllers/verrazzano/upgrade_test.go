@@ -6,10 +6,8 @@ package verrazzano
 import (
 	"context"
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"math/big"
-	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -21,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -51,7 +48,7 @@ import (
 // unitTestBomFIle is used for unit test
 const unitTestBomFile = "../../verrazzano-bom.json"
 
-//ingress list constants
+// ingress list constants
 const dnsDomain = "myenv.testverrazzano.com"
 const keycloakURL = "keycloak." + dnsDomain
 const esURL = "elasticsearch." + dnsDomain
@@ -65,14 +62,6 @@ const jaegerURL = "jaeger." + dnsDomain
 
 var istioEnabled = false
 var jaegerEnabled = true
-
-// goodRunner is used to test helm success without actually running an OS exec command
-type goodRunner struct {
-}
-
-// badRunner is used to test helm failure without actually running an OS exec command
-type badRunner struct {
-}
 
 // TestUpgradeNoVersion tests the reconcileUpgrade method for the following use case
 // GIVEN a request to reconcile a verrazzano resource after install is completed
@@ -150,7 +139,7 @@ func TestUpgradeNoVersion(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -250,7 +239,7 @@ func TestUpgradeSameVersion(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -313,7 +302,7 @@ func TestUpgradeInitComponents(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -368,7 +357,7 @@ func TestUpgradeStarted(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -425,7 +414,7 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -509,7 +498,7 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -976,9 +965,11 @@ func TestUpgradeComponent(t *testing.T) {
 	mockComp.EXPECT().IsEnabled(gomock.Any()).Return(true).AnyTimes()
 	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
-	mockComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
+	mockComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).AnyTimes()
 	mockComp.EXPECT().Name().Return(componentName).AnyTimes()
 	mockComp.EXPECT().IsReady(gomock.Any()).Return(true).AnyTimes()
+
+	postUpgradeCleanupExpectations(mock)
 
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
@@ -1166,10 +1157,10 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	// Set enabled mock component expectations
 	mockEnabledComp.EXPECT().IsEnabled(gomock.Any()).Return(true).AnyTimes()
 	mockEnabledComp.EXPECT().Name().Return("EnabledComponent").AnyTimes()
-	mockEnabledComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).Times(2)
+	mockEnabledComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).AnyTimes()
 	mockEnabledComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockEnabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
-	mockEnabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
+	mockEnabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).AnyTimes()
 	mockEnabledComp.EXPECT().IsReady(gomock.Any()).Return(true).AnyTimes()
 	mockEnabledComp.EXPECT().IsEnabled(gomock.Any()).Return(true).AnyTimes()
 
@@ -1178,8 +1169,11 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	mockDisabledComp.EXPECT().IsInstalled(gomock.Any()).Return(false, nil).AnyTimes()
 	mockDisabledComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(0)
 	mockDisabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(0)
-	mockDisabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(0)
+	mockDisabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).AnyTimes()
 	mockDisabledComp.EXPECT().IsEnabled(gomock.Any()).Return(false).AnyTimes()
+
+	mock.EXPECT().Delete(gomock.Any(), &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "keycloak", Name: "dump-claim"}}).Return(nil).AnyTimes()
 
 	// Expect a call to get the status writer and return a mock.
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
@@ -1259,7 +1253,7 @@ func TestRetryUpgrade(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -1317,7 +1311,7 @@ func TestTransitionToPausedUpgradeFromFailed(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -1374,7 +1368,7 @@ func TestTransitionToPausedUpgradeFromStarted(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -1430,7 +1424,7 @@ func TestTransitionFromPausedUpgrade(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -1491,7 +1485,7 @@ func TestDontRetryUpgrade(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -1543,14 +1537,6 @@ func TestIsLastConditionTrue(t *testing.T) {
 		},
 	}
 	asserts.True(isLastCondition(st, vzapi.CondInstallFailed), "isLastCondition should have returned true")
-}
-
-func (r goodRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return []byte("success"), []byte(""), nil
-}
-
-func (r badRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return []byte(""), []byte("failure"), errors.New("Helm Error")
 }
 
 // TestInstanceRestoreWithEmptyStatus tests the reconcileUpdate method for the following use case
@@ -1705,7 +1691,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -1774,7 +1760,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 						Type: vzapi.CondInstallComplete,
 					},
 				},
-				Components: func() v1alpha1.ComponentStatusMap {
+				Components: func() vzapi.ComponentStatusMap {
 					statusMap := makeVerrazzanoComponentStatusMap()
 					statusMap[keycloak.ComponentName].State = vzapi.CompStateDisabled
 					statusMap[istio.ComponentName].State = vzapi.CompStateDisabled
@@ -1878,7 +1864,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -1935,6 +1921,12 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 	assert.Equal(t, "https://"+promURL, *instanceInfo.PrometheusURL)
 }
 
+func postUpgradeCleanupExpectations(mock *mocks.MockClient) *gomock.Call {
+	return mock.EXPECT().Delete(gomock.Any(), &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "keycloak", Name: "dump-claim"},
+	}).Return(nil).AnyTimes()
+}
+
 // initStartingStates inits the starting state for verrazzano and component upgrade
 func initStartingStates(cr *vzapi.Verrazzano, compName string) {
 	initStates(cr, vzStateStart, compName, compStateInit)
@@ -1968,7 +1960,7 @@ func reconcileLoop(reconciler Reconciler, request ctrl.Request) (ctrl.Result, er
 	var err error
 	var result ctrl.Result
 	for i := 0; i < numComponentStates; i++ {
-		result, err = reconciler.Reconcile(nil, request)
+		result, err = reconciler.Reconcile(context.TODO(), request)
 		if err != nil || !result.Requeue {
 			break
 		}

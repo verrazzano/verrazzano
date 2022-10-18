@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -213,22 +213,17 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 						return true, nil
 					}, waitTimeout, pollingInterval).Should(Equal(true), "RoleTemplate not found")
 					metrics.Emit(t.Metrics.With("get_roletemplate_elapsed_time", time.Since(start).Milliseconds()))
-
-					start = time.Now()
-					t.Logs.Info("Verify ui-pl setting")
-					Eventually(func() (bool, error) {
-						clusterData, err := k8sClient.Resource(pkg.GvkToGvr(rancher.GVKSetting)).Get(context.Background(), rancher.SettingUIPL, v1.GetOptions{})
-						if err != nil {
-							t.Logs.Error(fmt.Sprintf("Error getting ui-pl setting: %v", err))
-							return false, err
-						}
-						value := clusterData.UnstructuredContent()["value"].(string)
-						return rancher.SettingUIPLValueVerrazzano == value, nil
-					}, waitTimeout, pollingInterval).Should(Equal(true), "rancher ui-pl setting not updated")
-					metrics.Emit(t.Metrics.With("get_uipl_setting_elapsed_time", time.Since(start).Milliseconds()))
+					verifySettingValue(rancher.SettingUIPL, rancher.SettingUIPLValueVerrazzano, k8sClient)
 					verifyUILogoSetting(rancher.SettingUILogoLight, rancher.SettingUILogoLightLogoFilePath, k8sClient)
 					verifyUILogoSetting(rancher.SettingUILogoDark, rancher.SettingUILogoDarkLogoFilePath, k8sClient)
 
+				}
+
+				minVer15, err := pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
+				Expect(err).ToNot(HaveOccurred())
+				if minVer15 {
+					verifySettingValue(rancher.SettingUIPrimaryColor, rancher.SettingUIPrimaryColorValue, k8sClient)
+					verifySettingValue(rancher.SettingUILinkColor, rancher.SettingUILinkColorValue, k8sClient)
 				}
 			}
 		})
@@ -240,9 +235,10 @@ var _ = t.AfterEach(func() {})
 // verifyUILogoSetting verifies the value of ui logo related rancher setting
 // GIVEN a Verrazzano installation with ui settings (ui-logo-dark and ui-logo-light) populated
 // AND corresponding actual logo files present in specified path in a running rancher pod
-//  WHEN value of the base64 encoded logo file is extracted from the setting CR specified by settingName
-//  AND compared with base64 encoded value of corresponding actual logo file present in running rancher pod
-//  THEN both the values are expected to be equal, otherwise the test scenario is deemed to have failed.
+//
+//	WHEN value of the base64 encoded logo file is extracted from the setting CR specified by settingName
+//	AND compared with base64 encoded value of corresponding actual logo file present in running rancher pod
+//	THEN both the values are expected to be equal, otherwise the test scenario is deemed to have failed.
 func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dynamic.Interface) {
 	start := time.Now()
 	t.Logs.Infof("Verify %s setting", settingName)
@@ -290,4 +286,25 @@ func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dyna
 	}, waitTimeout, pollingInterval).Should(Equal(true), fmt.Sprintf("rancher UI setting %s value does not match logo path %s", settingName, logoPath))
 	metrics.Emit(t.Metrics.With("get_ui_setting_elapsed_time", time.Since(start).Milliseconds()))
 
+}
+
+// verifySettingValue verifies the value of a rancher setting
+// GIVEN a Verrazzano installation with setting specified by settingName populated
+//
+//	WHEN value field of the setting CR specified by settingName is extracted
+//	AND compared with input expectedValue
+//	THEN both the values are expected to be equal, otherwise the test scenario is deemed to have failed.
+func verifySettingValue(settingName string, expectedValue string, k8sClient dynamic.Interface) {
+	start := time.Now()
+	t.Logs.Infof("Verify %s setting", settingName)
+	Eventually(func() (bool, error) {
+		clusterData, err := k8sClient.Resource(pkg.GvkToGvr(rancher.GVKSetting)).Get(context.Background(), settingName, v1.GetOptions{})
+		if err != nil {
+			t.Logs.Errorf("Error getting %s setting: %v", settingName, err.Error())
+			return false, err
+		}
+		value := clusterData.UnstructuredContent()["value"].(string)
+		return expectedValue == value, nil
+	}, waitTimeout, pollingInterval).Should(Equal(true), fmt.Sprintf("rancher %s setting not updated", settingName))
+	metrics.Emit(t.Metrics.With(fmt.Sprintf("get_%s_setting_elapsed_time", strings.ReplaceAll(settingName, "-", "")), time.Since(start).Milliseconds()))
 }

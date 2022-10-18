@@ -6,7 +6,7 @@
 def DEFAULT_REPO_URL
 def testEnvironments = [ "magicdns_oke" ]
 def installProfiles = [ "dev", "prod", "managed-cluster" ]
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 
 // pulling "ap-*" from the test regions given discovery of image pull issues
 def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
@@ -41,11 +41,11 @@ pipeline {
             choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
             // 1st choice is the default value
-            choices: [ "v1.22.5", "v1.23.4", "v1.24.1", "v1.21.5", "v1.20.8" ])
+            choices: [ "v1.24.1", "v1.23.4", "v1.22.5", "v1.21.5" ])
         choice (description: 'Kubernetes Version for KinD Cluster',
             name: 'KIND_CLUSTER_VERSION',
             // 1st choice is the default value
-            choices: [ "1.22", "1.23", "1.24", "1.21", "1.20" ])
+            choices: [ "1.24", "1.23", "1.22", "1.21" ])
         choice(description: 'Verrazzano Install Profile', name: "INSTALL_PROFILE", choices: installProfiles )
         string defaultValue: 'NONE', description: 'Verrazzano platform operator image name (within ghcr.io/verrazzano repo)', name: 'VERRAZZANO_OPERATOR_IMAGE', trim: true
         choice (name: 'WILDCARD_DNS_DOMAIN',

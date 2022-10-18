@@ -5,7 +5,7 @@ package helidonsvc
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -15,9 +15,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -311,7 +311,7 @@ func appEndpointAccess(url string, hostname string, token string, requestShouldS
 		t.Logs.Errorf("Unexpected error=%v", err)
 		return false
 	}
-	bodyRaw, err := ioutil.ReadAll(resp.Body)
+	bodyRaw, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
 		t.Logs.Errorf("Unexpected error=%v", err)

@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	v1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -67,8 +66,8 @@ func TestSyncer_updatePrometheusMonitorsClusterName(t *testing.T) {
 	}
 }
 
-func assertServiceMonitorLabel(t *testing.T, client client.WithWatch, sm *v1.ServiceMonitor, newClusterName string) {
-	retrievedSM := v1.ServiceMonitor{}
+func assertServiceMonitorLabel(t *testing.T, client client.WithWatch, sm *promoperapi.ServiceMonitor, newClusterName string) {
+	retrievedSM := promoperapi.ServiceMonitor{}
 	err := client.Get(context.TODO(), types.NamespacedName{Namespace: sm.Namespace, Name: sm.Name}, &retrievedSM)
 	assert.NoError(t, err)
 	for i, ep := range retrievedSM.Spec.Endpoints {
@@ -76,8 +75,8 @@ func assertServiceMonitorLabel(t *testing.T, client client.WithWatch, sm *v1.Ser
 	}
 }
 
-func assertPodMonitorLabel(t *testing.T, client client.WithWatch, pm *v1.PodMonitor, newClusterName string) {
-	retrievedPM := v1.PodMonitor{}
+func assertPodMonitorLabel(t *testing.T, client client.WithWatch, pm *promoperapi.PodMonitor, newClusterName string) {
+	retrievedPM := promoperapi.PodMonitor{}
 	err := client.Get(context.TODO(), types.NamespacedName{Namespace: pm.Namespace, Name: pm.Name}, &retrievedPM)
 	assert.NoError(t, err)
 	assert.Equal(t, len(pm.Spec.PodMetricsEndpoints), len(retrievedPM.Spec.PodMetricsEndpoints))
@@ -86,7 +85,7 @@ func assertPodMonitorLabel(t *testing.T, client client.WithWatch, pm *v1.PodMoni
 	}
 }
 
-func assertRCLabels(t *testing.T, oldRCs []*v1.RelabelConfig, newRCs []*v1.RelabelConfig, clusterName string) {
+func assertRCLabels(t *testing.T, oldRCs []*promoperapi.RelabelConfig, newRCs []*promoperapi.RelabelConfig, clusterName string) {
 	assert.Equal(t, len(oldRCs), len(newRCs))
 	for _, rc := range newRCs {
 		if rc.TargetLabel == prometheusClusterNameLabel {
@@ -95,29 +94,29 @@ func assertRCLabels(t *testing.T, oldRCs []*v1.RelabelConfig, newRCs []*v1.Relab
 	}
 }
 
-func createTestServiceMonitor(hasClusterNameRelabelConfig bool, clusterName string, monitorName string, monitorNS string) *v1.ServiceMonitor {
-	relabelConfigs := []*v1.RelabelConfig{}
+func createTestServiceMonitor(hasClusterNameRelabelConfig bool, clusterName string, monitorName string, monitorNS string) *promoperapi.ServiceMonitor {
+	relabelConfigs := []*promoperapi.RelabelConfig{}
 	if hasClusterNameRelabelConfig {
-		relabelConfigs = append(relabelConfigs, &v1.RelabelConfig{TargetLabel: prometheusClusterNameLabel, Replacement: clusterName})
+		relabelConfigs = append(relabelConfigs, &promoperapi.RelabelConfig{TargetLabel: prometheusClusterNameLabel, Replacement: clusterName})
 	}
-	return &v1.ServiceMonitor{
+	return &promoperapi.ServiceMonitor{
 		ObjectMeta: v12.ObjectMeta{Name: monitorName, Namespace: monitorNS},
-		Spec: v1.ServiceMonitorSpec{
-			Endpoints: []v1.Endpoint{
+		Spec: promoperapi.ServiceMonitorSpec{
+			Endpoints: []promoperapi.Endpoint{
 				{RelabelConfigs: relabelConfigs},
 			},
 		}}
 }
 
-func createTestPodMonitor(hasClusterNameRelabelConfig bool, clusterName string, monitorName string, monitorNS string) *v1.PodMonitor {
-	relabelConfigs := []*v1.RelabelConfig{}
+func createTestPodMonitor(hasClusterNameRelabelConfig bool, clusterName string, monitorName string, monitorNS string) *promoperapi.PodMonitor {
+	relabelConfigs := []*promoperapi.RelabelConfig{}
 	if hasClusterNameRelabelConfig {
-		relabelConfigs = append(relabelConfigs, &v1.RelabelConfig{TargetLabel: prometheusClusterNameLabel, Replacement: clusterName})
+		relabelConfigs = append(relabelConfigs, &promoperapi.RelabelConfig{TargetLabel: prometheusClusterNameLabel, Replacement: clusterName})
 	}
-	return &v1.PodMonitor{
+	return &promoperapi.PodMonitor{
 		ObjectMeta: v12.ObjectMeta{Name: monitorName, Namespace: monitorNS},
-		Spec: v1.PodMonitorSpec{
-			PodMetricsEndpoints: []v1.PodMetricsEndpoint{
+		Spec: promoperapi.PodMonitorSpec{
+			PodMetricsEndpoints: []promoperapi.PodMetricsEndpoint{
 				{RelabelConfigs: relabelConfigs},
 			},
 		}}

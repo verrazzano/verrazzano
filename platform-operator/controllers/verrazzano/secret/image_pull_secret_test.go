@@ -29,11 +29,12 @@ import (
 // THEN true is returned
 func TestCopyPullSecret(t *testing.T) {
 	name := types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: "default"}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: name.Name, Namespace: name.Namespace},
-	},
-	)
-	copied, err := CheckImagePullSecret(client, constants.VerrazzanoSystemNamespace)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: name.Name, Namespace: name.Namespace},
+		},
+	).Build()
+	copied, err := CheckImagePullSecret(fakeClient, constants.VerrazzanoSystemNamespace)
 	assert.NoError(t, err)
 	assert.True(t, copied)
 }
@@ -43,8 +44,8 @@ func TestCopyPullSecret(t *testing.T) {
 // WHEN the source secret does not exist in the default namespace
 // THEN false is returned
 func TestCopyGlobalPullSecretDoesNotExist(t *testing.T) {
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme)
-	copied, err := CheckImagePullSecret(client, constants.VerrazzanoSystemNamespace)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	copied, err := CheckImagePullSecret(fakeClient, constants.VerrazzanoSystemNamespace)
 	assert.NoError(t, err)
 	assert.False(t, copied)
 }
@@ -55,11 +56,11 @@ func TestCopyGlobalPullSecretDoesNotExist(t *testing.T) {
 // THEN true is returned
 func TestTargetPullSecretAlreadyExists(t *testing.T) {
 	name := types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: constants.VerrazzanoSystemNamespace}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: name.Name, Namespace: "default"}},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: name.Name, Namespace: name.Namespace}},
-	)
-	copied, err := CheckImagePullSecret(client, constants.VerrazzanoSystemNamespace)
+	).Build()
+	copied, err := CheckImagePullSecret(fakeClient, constants.VerrazzanoSystemNamespace)
 	assert.NoError(t, err)
 	assert.True(t, copied)
 }
@@ -187,15 +188,15 @@ func TestAddImagePullSecretUnexpectedError(t *testing.T) {
 func TestAddImagePullSecretTargetSecretAlreadyExists(t *testing.T) {
 
 	name := types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: constants.VerrazzanoSystemNamespace}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: constants.GlobalImagePullSecName, Namespace: "default"}},
 		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: name.Name, Namespace: name.Namespace}},
-	)
+	).Build()
 	kvs := []bom.KeyValue{
 		{Key: "key1", Value: "value1"},
 		{Key: "key2", Value: "value2"},
 	}
-	retKVs, err := AddGlobalImagePullSecretHelmOverride(vzlog.DefaultLogger(), client, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
+	retKVs, err := AddGlobalImagePullSecretHelmOverride(vzlog.DefaultLogger(), fakeClient, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
 	assert.Nil(t, err)
 	assert.Lenf(t, retKVs, 3, "Unexpected number of Key/Value pairs: %s", len(retKVs))
 	for _, kv := range retKVs {
@@ -211,15 +212,16 @@ func TestAddImagePullSecretTargetSecretAlreadyExists(t *testing.T) {
 func TestAddImagePullSecretTargetSecretCopied(t *testing.T) {
 
 	name := types.NamespacedName{Name: constants.GlobalImagePullSecName, Namespace: "default"}
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme, &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: name.Name, Namespace: name.Namespace},
-	},
-	)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: name.Name, Namespace: name.Namespace},
+		},
+	).Build()
 	kvs := []bom.KeyValue{
 		{Key: "key1", Value: "value1"},
 		{Key: "key2", Value: "value2"},
 	}
-	retKVs, err := AddGlobalImagePullSecretHelmOverride(vzlog.DefaultLogger(), client, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
+	retKVs, err := AddGlobalImagePullSecretHelmOverride(vzlog.DefaultLogger(), fakeClient, constants.VerrazzanoSystemNamespace, kvs, "helmKey")
 	assert.Nil(t, err)
 	assert.Lenf(t, retKVs, 3, "Unexpected number of Key/Value pairs: %s", len(retKVs))
 	for _, kv := range retKVs {

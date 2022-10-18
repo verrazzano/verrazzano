@@ -1,0 +1,26 @@
+# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: core.oam.dev/v1alpha2
+kind: ApplicationConfiguration
+metadata:
+  name: ##APPCONF_NAME##
+  namespace: ##APPCONF_NAMESPACE##
+spec:
+  components:
+    - componentName: ##COMPONENT_NAME##
+      scopes:
+        - scopeRef:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: LoggingScope
+            name: ##LOGGING_SCOPE_NAME##
+      traits:
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: IngressTrait
+            metadata:
+              name: ##INGRESS_TRAIT_NAME##
+            spec:
+              rules:
+                  paths:
+                    - path: ##INGRESS_TRAIT_PATH##
+                      pathType: Prefix

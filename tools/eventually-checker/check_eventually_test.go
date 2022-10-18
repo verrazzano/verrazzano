@@ -21,7 +21,7 @@ func TestAnalyzePackages(t *testing.T) {
 	assert := assert.New(t)
 
 	// load the packages from the unit test data directory
-	fset, pkgs, err := loadPackages("./test")
+	fset, pkgs, err := loadPackages("./testdata")
 	if err != nil {
 		assert.NoError(err)
 	}
@@ -123,7 +123,7 @@ func TestDisplayResults(t *testing.T) {
 	funcMap = make(map[string][]funcCall)
 	eventuallyMap = make(map[token.Pos][]funcCall)
 
-	fset, pkgs, err := loadPackages("./test")
+	fset, pkgs, err := loadPackages("./testdata")
 	if err != nil {
 		assert.NoError(err)
 	}

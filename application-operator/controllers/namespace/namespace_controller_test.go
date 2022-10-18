@@ -102,7 +102,7 @@ func TestReconcileNamespaceUpdate(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
 	}
-	result, err := nc.Reconcile(nil, req)
+	result, err := nc.Reconcile(context.TODO(), req)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -148,7 +148,7 @@ func runTestReconcileGetError(t *testing.T, returnErr error, expectedResult ctrl
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
 	}
-	result, err := nc.Reconcile(nil, req)
+	result, err := nc.Reconcile(context.TODO(), req)
 
 	mocker.Finish()
 	asserts.Nil(err)
@@ -202,7 +202,7 @@ func TestReconcileNamespaceDeleted(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
 	}
-	result, err := nc.Reconcile(nil, req)
+	result, err := nc.Reconcile(context.TODO(), req)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -247,7 +247,7 @@ func TestReconcileNamespaceDeletedErrorOnUpdate(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
 	}
-	result, _ := nc.Reconcile(nil, req)
+	result, _ := nc.Reconcile(context.TODO(), req)
 
 	mocker.Finish()
 	asserts.True(result.Requeue)
@@ -283,7 +283,7 @@ func TestReconcileNamespaceDeletedNoFinalizer(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: "myns"},
 	}
-	result, err := nc.Reconcile(nil, req)
+	result, err := nc.Reconcile(context.TODO(), req)
 
 	mocker.Finish()
 	asserts.NoError(err)
@@ -473,7 +473,7 @@ func Test_reconcileNamespace(t *testing.T) {
 func Test_reconcileNamespaceDelete(t *testing.T) {
 	asserts := assert.New(t)
 
-	nc, err := newTestController(fake.NewFakeClientWithScheme(testScheme))
+	nc, err := newTestController(fake.NewClientBuilder().WithScheme(testScheme).Build())
 	asserts.NoErrorf(err, "Error creating test controller")
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -609,7 +609,7 @@ func runAddOCILoggingTest(t *testing.T, addLoggingResult bool) {
 		})
 
 	// if the result from adding logging returns true (meaning the Fluentd configmap was updated), then
-	// mock expections for restarting Fluentd
+	// mock exceptions for restarting Fluentd
 	if addLoggingResult {
 		mockFluentdRestart(mock, asserts)
 	}
@@ -704,7 +704,7 @@ func Test_reconcileOCILoggingAddOCILoggingAddFailed(t *testing.T) {
 	asserts.Len(ns.Finalizers, 2)
 }
 
-// mockFluentdRestart - Mock expections for Fluentd daemonset restart
+// mockFluentdRestart - Mock exceptions for Fluentd daemonset restart
 func mockFluentdRestart(mock *mocks.MockClient, asserts *assert.Assertions) {
 	// Expect a call to get the Fleuntd Daemonset and another to update it with a restart time annotation
 	mock.EXPECT().
@@ -735,7 +735,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{Name: vzconst.KubeSystem},
 	}
-	result, err := nc.Reconcile(nil, req)
+	result, err := nc.Reconcile(context.TODO(), req)
 
 	// Validate the results
 	mocker.Finish()

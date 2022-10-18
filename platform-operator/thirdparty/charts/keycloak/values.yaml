@@ -381,6 +381,10 @@ postgresql:
   networkPolicy:
     enabled: false
 
+mysql:
+  enabled: true
+  dbHost: "mysql"
+
 serviceMonitor:
   # If `true`, a ServiceMonitor resource for the prometheus-operator is created
   enabled: false

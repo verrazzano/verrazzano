@@ -66,7 +66,7 @@ func init() {
 	RegisterMetrics()
 }
 
-// RequiredInitialization initalizes the metrics object, but does not register the metrics
+// RequiredInitialization initializes the metrics object, but does not register the metrics
 func RequiredInitialization() {
 	MetricsExp = metricsExporter{
 		internalConfig: initConfiguration(),
@@ -83,7 +83,7 @@ func RegisterMetrics() {
 	go registerMetricsHandlers(zap.S())
 }
 
-// InitializeAllMetricsArray initalizes the allMetrics array
+// InitializeAllMetricsArray initializes the allMetrics array
 func InitializeAllMetricsArray() {
 	// Loop through all metrics declarations in metric maps
 	for _, value := range MetricsExp.internalData.simpleCounterMetricMap {
@@ -95,7 +95,7 @@ func InitializeAllMetricsArray() {
 
 }
 
-// initCounterMetricMap initalizes the simpleCounterMetricMap for the metricsExporter object
+// initCounterMetricMap initializes the simpleCounterMetricMap for the metricsExporter object
 func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 	return map[metricName]*SimpleCounterMetric{
 		AppconfigReconcileCounter: {
@@ -233,7 +233,7 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 	}
 }
 
-// initDurationMetricMap initalizes the DurationMetricMap for the metricsExporter object
+// initDurationMetricMap initializes the DurationMetricMap for the metricsExporter object
 func initDurationMetricMap() map[metricName]*DurationMetrics {
 	return map[metricName]*DurationMetrics{
 		AppconfigReconcileDuration: {
@@ -347,7 +347,7 @@ func registerMetricsHandlers(log *zap.SugaredLogger) {
 	}
 }
 
-// initializeFailedMetricsArray initalizes the failedMetrics array
+// initializeFailedMetricsArray initializes the failedMetrics array
 func initializeFailedMetricsArray() {
 	for i, metric := range MetricsExp.internalConfig.allMetrics {
 		MetricsExp.internalConfig.failedMetrics[metric] = i
@@ -368,7 +368,11 @@ func StartMetricsServer() error {
 	}
 	go wait.Until(func() {
 		http.Handle("/metrics", promhttp.Handler())
-		err := http.ListenAndServe(":9100", nil)
+		server := &http.Server{
+			Addr:              ":9100",
+			ReadHeaderTimeout: 3 * time.Second,
+		}
+		err := server.ListenAndServe()
 		if err != nil {
 			vlog.Oncef("Failed to start metrics server for VMI: %v", err)
 		}

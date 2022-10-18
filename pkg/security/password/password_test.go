@@ -11,8 +11,9 @@ import (
 
 // TestGeneratePassword tests generating random passwords
 // GIVEN a call to GeneratePassword
-//  WHEN the deployment object does NOT have enough replicas available
-//  THEN false is returned
+//
+//	WHEN the deployment object does NOT have enough replicas available
+//	THEN false is returned
 func TestGeneratePassword(t *testing.T) {
 	var tests = []struct {
 		length   int
@@ -40,8 +41,9 @@ func TestGeneratePassword(t *testing.T) {
 
 // TestMaskFunction tests creating and using the masking function
 // GIVEN a call to MaskFunction
-//  WHEN the created function is invoked
-//  THEN it should mask all specified matches
+//
+//	WHEN the created function is invoked
+//	THEN it should mask all specified matches
 func TestMaskFunction(t *testing.T) {
 	f := MaskFunction("password ")
 	var tests = []struct {

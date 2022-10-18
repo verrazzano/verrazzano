@@ -5,6 +5,7 @@ package operator
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -61,7 +62,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "prometheus-operator-values.yaml"),
 			// the dependency on the VMO is to ensure that a persistent volume is retained and the claim is released
 			// so that persistent storage can be migrated to the new Prometheus
-			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName, vmo.ComponentName},
+			Dependencies:            []string{networkpolicies.ComponentName, nginx.ComponentName, certmanager.ComponentName, vmo.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
 			GetInstallOverridesFunc: GetOverrides,
 		},

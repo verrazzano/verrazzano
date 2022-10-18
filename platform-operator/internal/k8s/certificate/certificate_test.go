@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -21,12 +20,13 @@ import (
 
 // TestCreateWebhookCertificates tests that the certificates needed for webhooks are created
 // GIVEN an output directory for certificates
-//  WHEN I call CreateWebhookCertificates
-//  THEN all the needed certificate artifacts are created
+//
+//	WHEN I call CreateWebhookCertificates
+//	THEN all the needed certificate artifacts are created
 func TestCreateWebhookCertificates(t *testing.T) {
 	assert := assert.New(t)
 
-	dir, err := ioutil.TempDir("", "certs")
+	dir, err := os.MkdirTemp("", "certs")
 	if err != nil {
 		assert.Nil(err, "error should not be returned creating temporary directory")
 	}
@@ -40,7 +40,7 @@ func TestCreateWebhookCertificates(t *testing.T) {
 	assert.FileExists(crtFile, dir, "tls.crt", "expected tls.crt file not found")
 	assert.FileExists(keyFile, dir, "tls.key", "expected tls.key file not found")
 
-	crtBytes, err := ioutil.ReadFile(crtFile)
+	crtBytes, err := os.ReadFile(crtFile)
 	if assert.NoError(err) {
 		block, _ := pem.Decode(crtBytes)
 		assert.NotEmptyf(block, "failed to decode PEM block containing public key")
@@ -48,15 +48,16 @@ func TestCreateWebhookCertificates(t *testing.T) {
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if assert.NoError(err) {
 			assert.NotEmpty(cert.DNSNames, "Certificate DNSNames SAN field should not be empty")
-			assert.Equal("verrazzano-platform-operator.verrazzano-install.svc", cert.DNSNames[0])
+			assert.Equal("verrazzano-platform-operator-webhook.verrazzano-install.svc", cert.DNSNames[0])
 		}
 	}
 }
 
 // TestCreateWebhookCertificatesFail tests that the certificates needed for webhooks are not created
 // GIVEN an invalid output directory for certificates
-//  WHEN I call CreateWebhookCertificates
-//  THEN all the needed certificate artifacts are not created
+//
+//	WHEN I call CreateWebhookCertificates
+//	THEN all the needed certificate artifacts are not created
 func TestCreateWebhookCertificatesFail(t *testing.T) {
 	assert := assert.New(t)
 
@@ -67,8 +68,9 @@ func TestCreateWebhookCertificatesFail(t *testing.T) {
 // TestUpdateValidatingnWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-platform-operator
 // validatingWebhookConfiguration resource.
 // GIVEN a validatingWebhookConfiguration resource with the CA Bundle set
-//  WHEN I call UpdateValidatingnWebhookConfiguration
-//  THEN the validatingWebhookConfiguration resource set the CA Bundle as expected
+//
+//	WHEN I call UpdateValidatingnWebhookConfiguration
+//	THEN the validatingWebhookConfiguration resource set the CA Bundle as expected
 func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 	assert := assert.New(t)
 
@@ -88,6 +90,7 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 		Namespace: OperatorNamespace,
 		Path:      &pathClusters,
 	}
+
 	webhook := adminv1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
@@ -118,18 +121,19 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
-	err = UpdateValidatingnWebhookConfiguration(kubeClient, &caCert)
+	err = UpdateValidatingnWebhookConfiguration(kubeClient, &caCert, OperatorName)
 	assert.Nil(err, "error should not be returned updating validation webhook configuration")
 
-	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), "verrazzano-platform-operator", metav1.GetOptions{})
+	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), "verrazzano-platform-operator-webhook", metav1.GetOptions{})
 	assert.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
 }
 
 // TestUpdateValidatingnWebhookConfigurationFail tests that the CA Bundle is not updated in the
 // verrazzano-platform-operator validatingWebhookConfiguration resource.
 // GIVEN an invalid validatingWebhookConfiguration resource with the CA Bundle set
-//  WHEN I call UpdateValidatingnWebhookConfiguration
-//  THEN the validatingWebhookConfiguration resource will fail to be updated
+//
+//	WHEN I call UpdateValidatingnWebhookConfiguration
+//	THEN the validatingWebhookConfiguration resource will fail to be updated
 func TestUpdateValidatingnWebhookConfigurationFail(t *testing.T) {
 	assert := assert.New(t)
 
@@ -161,6 +165,6 @@ func TestUpdateValidatingnWebhookConfigurationFail(t *testing.T) {
 	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	assert.Nil(err, "error should not be returned creating validation webhook configuration")
 
-	err = UpdateValidatingnWebhookConfiguration(kubeClient, &caCert)
+	err = UpdateValidatingnWebhookConfiguration(kubeClient, &caCert, OperatorName)
 	assert.Error(err, "error should be returned updating validation webhook configuration")
 }

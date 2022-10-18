@@ -7,7 +7,7 @@ package cluster
 import (
 	encjson "encoding/json"
 	"go.uber.org/zap"
-	"io/ioutil"
+	"io"
 	corev1 "k8s.io/api/core/v1"
 	"os"
 	"sync"
@@ -34,7 +34,7 @@ func GetServiceList(log *zap.SugaredLogger, path string) (serviceList *corev1.Se
 	}
 	defer file.Close()
 
-	fileBytes, err := ioutil.ReadAll(file)
+	fileBytes, err := io.ReadAll(file)
 	if err != nil {
 		log.Debugf("Failed reading Json file %s", path)
 		return nil, err

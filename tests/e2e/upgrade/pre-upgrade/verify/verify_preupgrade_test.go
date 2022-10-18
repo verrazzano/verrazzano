@@ -7,14 +7,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	"gopkg.in/yaml.v2"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
 var waitTimeout = 15 * time.Minute

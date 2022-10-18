@@ -9,7 +9,7 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/status"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -28,7 +28,7 @@ func isDeploymentReady(ctx spi.ComponentContext) bool {
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 // PreInstall implementation for the Kube State Metrics Component

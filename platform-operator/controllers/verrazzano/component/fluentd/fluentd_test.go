@@ -273,8 +273,9 @@ func TestLoggingPreInstall(t *testing.T) {
 
 // TestLoggingPreInstallSecretNotFound tests the Verrazzano loggingPreInstall call
 // GIVEN a Verrazzano component
-//  WHEN I call loggingPreInstall with fluentd overrides for ES and a custom ES secret and the secret does not exist
-//  THEN an error is returned
+//
+//	WHEN I call loggingPreInstall with fluentd overrides for ES and a custom ES secret and the secret does not exist
+//	THEN an error is returned
 func TestLoggingPreInstallSecretNotFound(t *testing.T) {
 	trueValue := true
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
@@ -295,8 +296,9 @@ func TestLoggingPreInstallSecretNotFound(t *testing.T) {
 
 // TestLoggingPreInstallFluentdNotEnabled tests the Verrazzano loggingPreInstall call
 // GIVEN a Verrazzano component
-//  WHEN I call loggingPreInstall and fluentd is disabled
-//  THEN no error is returned
+//
+//	WHEN I call loggingPreInstall and fluentd is disabled
+//	THEN no error is returned
 func TestLoggingPreInstallFluentdNotEnabled(t *testing.T) {
 	falseValue := false
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()

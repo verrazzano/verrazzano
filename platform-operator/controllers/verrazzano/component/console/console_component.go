@@ -5,6 +5,7 @@ package console
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -43,7 +44,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
-			Dependencies:              []string{authproxy.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, authproxy.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_4_0,
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,

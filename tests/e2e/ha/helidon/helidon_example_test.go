@@ -5,7 +5,7 @@ package helidon
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -15,9 +15,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	hacommon "github.com/verrazzano/verrazzano/tests/e2e/pkg/ha"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
 const (
@@ -112,7 +112,7 @@ func appEndpointAccessible(url string, hostname string) bool {
 func readResponseBody(resp *http.Response) (string, error) {
 	var body string
 	if resp != nil && resp.Body != nil {
-		bodyRaw, err := ioutil.ReadAll(resp.Body)
+		bodyRaw, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return "", err
 		}

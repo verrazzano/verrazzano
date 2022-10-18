@@ -6,7 +6,7 @@ package grafana
 import (
 	"fmt"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/status"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/types"
@@ -18,15 +18,21 @@ const grafanaDeployment = "vmi-system-grafana"
 func isGrafanaInstalled(ctx spi.ComponentContext) bool {
 	prefix := newPrefix(ctx.GetComponent())
 	deployments := newDeployments()
-	return status.DoDeploymentsExist(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return ready.DoDeploymentsExist(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 // isGrafanaReady checks that the deployment has the minimum number of replicas available and
 // that the admin secret is ready
 func isGrafanaReady(ctx spi.ComponentContext) bool {
+	var expectedReplicas int32 = 1
+	if ctx.EffectiveCR().Spec.Components.Grafana != nil && ctx.EffectiveCR().Spec.Components.Grafana.Replicas != nil {
+		if *ctx.EffectiveCR().Spec.Components.Grafana.Replicas < 1 {
+			return true
+		}
+	}
 	prefix := newPrefix(ctx.GetComponent())
 	deployments := newDeployments()
-	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) && common.IsGrafanaAdminSecretReady(ctx)
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, expectedReplicas, prefix) && common.IsGrafanaAdminSecretReady(ctx)
 }
 
 // newPrefix creates a component prefix string

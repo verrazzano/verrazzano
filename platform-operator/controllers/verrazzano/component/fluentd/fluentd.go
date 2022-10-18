@@ -9,11 +9,11 @@ import (
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -30,7 +30,7 @@ const (
 	fluentdEsConfig = "fluentd-es-config"
 )
 
-//checkSecretExists whether verrazzano-es-internal secret exists. Return error if secret does not exist.
+// checkSecretExists whether verrazzano-es-internal secret exists. Return error if secret does not exist.
 func checkSecretExists(ctx spi.ComponentContext) error {
 	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		// Check verrazzano-es-internal Secret. return error which will cause requeue
@@ -89,7 +89,7 @@ func isFluentdReady(ctx spi.ComponentContext) bool {
 				Name:      ComponentName,
 				Namespace: ComponentNamespace,
 			})
-		return status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix)
+		return ready.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix)
 	}
 	return false
 }

@@ -6,14 +6,14 @@ package mysql
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/pkg/k8s/status"
+	k8sready "github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -25,65 +25,263 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	secretName          = "mysql"
-	mySQLUsernameKey    = "mysqlUser"
-	mySQLUsername       = "keycloak"
-	helmPwd             = "mysqlPassword"
-	helmRootPwd         = "mysqlRootPassword"
-	mySQLKey            = "mysql-password"
-	mySQLRootKey        = "mysql-root-password"
-	mySQLInitFilePrefix = "init-mysql-"
-	mySQLHookFile       = "platform-operator/scripts/hooks/mysql-hook.sh"
+	rootSec               = "mysql-cluster-secret"
+	helmRootPwd           = "credentials.root.password" //nolint:gosec //#gosec G101
+	helmUserPwd           = "credentials.user.password" //nolint:gosec //#gosec G101
+	helmUserName          = "credentials.user.name"     //nolint:gosec //#gosec G101
+	mysqlUpgradeSubComp   = "mysql-upgrade"
+	mySQLRootKey          = "rootPassword"
+	mySQLUserKey          = "userPassword"
+	secretName            = "mysql"
+	secretKey             = "mysql-password"
+	mySQLUsername         = "keycloak"
+	rootPasswordKey       = "mysql-root-password" //nolint:gosec //#gosec G101
+	legacyDBDumpClaim     = "dump-claim"
+	mySQLInitFilePrefix   = "init-mysql-"
+	dbLoadJobName         = "load-dump"
+	dbLoadContainerName   = "mysqlsh-load-dump"
+	deploymentFoundStage  = "deployment-found"
+	databaseDumpedStage   = "database-dumped"
+	pvcDeletedStage       = "pvc-deleted"
+	initdbScriptsFile     = "initdbScripts.create-db\\.sql"
+	backupHookScriptsFile = "configurationFiles.mysql-hook\\.sh"
+	dbMigrationSecret     = "db-migration"
+	mySQLHookFile         = "platform-operator/scripts/hooks/mysql-hook.sh"
+	serverVersionKey      = "serverVersion"
+	bomSubComponentName   = "mysql-upgrade"
+	mysqlServerImageName  = "mysql-server"
+	imageRepositoryKey    = "image.repository"
+	initDbScript          = `CREATE USER IF NOT EXISTS keycloak IDENTIFIED BY '%s';
+CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+USE keycloak;
+GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO '%s'@'%%';
+FLUSH PRIVILEGES;
+CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
+  ID varchar(255) NOT NULL,
+  AUTHOR varchar(255) NOT NULL,
+  FILENAME varchar(255) NOT NULL,
+  DATEEXECUTED datetime NOT NULL,
+  ORDEREXECUTED int(11) NOT NULL,
+  EXECTYPE varchar(10) NOT NULL,
+  MD5SUM varchar(35) DEFAULT NULL,
+  DESCRIPTION varchar(255) DEFAULT NULL,
+  COMMENTS varchar(255) DEFAULT NULL,
+  TAG varchar(255) DEFAULT NULL,
+  LIQUIBASE varchar(20) DEFAULT NULL,
+  CONTEXTS varchar(255) DEFAULT NULL,
+  LABELS varchar(255) DEFAULT NULL,
+  DEPLOYMENT_ID varchar(10) DEFAULT NULL,
+  PRIMARY KEY (ID,AUTHOR,FILENAME)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;`
+	mySQLRootCommand = `/usr/bin/mysql -uroot -p%s <<EOF
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost'; flush privileges;
+EOF
+`
+	mySQLDbCommands = `/usr/bin/mysql -uroot -p%s <<EOF
+use keycloak;
+delimiter //
+drop procedure if exists updatePrimaryKey //
+create procedure updatePrimaryKey()
+begin
+   declare updateRequired INT DEFAULT 0;
+   select count(*)
+   into updateRequired
+   from INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+   where CONSTRAINT_TYPE = 'PRIMARY KEY'
+   and TABLE_NAME = 'DATABASECHANGELOG'
+   and TABLE_SCHEMA = 'keycloak';
+   if updateRequired = 0 then
+      ALTER TABLE keycloak.DATABASECHANGELOG ADD PRIMARY KEY (ID,AUTHOR,FILENAME);
+   end if;
+end//
+delimiter ;
+call updatePrimaryKey();
+EOF
+`
+	mySQLCleanup    = `rm -rf /var/lib/mysql/dump`
+	mySQLShCommands = `/usr/bin/mysqlsh -uroot -p%s -S /var/lib/mysql/mysql.sock --js <<EOF
+util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_definers", "strip_restricted_grants"]})
+EOF
+`
+	innoDBClusterStatusOnline = "ONLINE"
+)
+
+var (
+	// map of MySQL helm persistence values from previous version to existing version.  Other values will be ignored since
+	// they have no equivalents in the current charts
+	helmValuesMap = map[string]string{
+		"persistence.accessModes":  "datadirVolumeClaimTemplate.accessModes",
+		"persistence.size":         "datadirVolumeClaimTemplate.resources.requests.storage",
+		"persistence.storageClass": "datadirVolumeClaimTemplate.storageClassName",
+	}
+	// maskPw will mask passwords in strings with '******'
+	maskPw = vzpassword.MaskFunction("-p")
+	// Set to true during unit testing
+	unitTesting bool
+
+	innoDBClusterGVK = schema.GroupVersionKind{
+		Group:   "mysql.oracle.com",
+		Version: "v2",
+		Kind:    "InnoDBCluster",
+	}
+
+	innoDBClusterStatusFields = []string{"status", "cluster", "status"}
 )
 
 // isMySQLReady checks to see if the MySQL component is in ready state
-func isMySQLReady(context spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
+func isMySQLReady(ctx spi.ComponentContext) bool {
+	statefulset := []types.NamespacedName{
 		{
 			Name:      ComponentName,
 			Namespace: ComponentNamespace,
 		},
 	}
-	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+	deployment := []types.NamespacedName{
+		{
+			Name:      fmt.Sprintf("%s-router", ComponentName),
+			Namespace: ComponentNamespace,
+		},
+	}
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	serverReplicas := 1
+	routerReplicas := 0
+	overrides, err := common.GetInstallOverridesYAML(ctx, GetOverrides(ctx.EffectiveCR()).([]vzapi.Overrides))
+	if err != nil {
+		return false
+	}
+	for _, overrideYaml := range overrides {
+		if strings.Contains(overrideYaml, "serverInstances:") {
+			value, err := common.ExtractValueFromOverrideString(overrideYaml, "serverInstances")
+			if err != nil {
+				return false
+			}
+			serverReplicas = int(value.(float64))
+		}
+		if strings.Contains(overrideYaml, "routerInstances:") {
+			value, err := common.ExtractValueFromOverrideString(overrideYaml, "routerInstances")
+			if err != nil {
+				return false
+			}
+			routerReplicas = int(value.(float64))
+		}
+	}
+	ready := k8sready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, int32(serverReplicas), prefix)
+	if ready && routerReplicas > 0 {
+		ready = k8sready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployment, int32(routerReplicas), prefix)
+	}
+
+	return ready && checkDbMigrationJobCompletion(ctx) && isInnoDBClusterOnline(ctx)
+}
+
+// isInnoDBClusterOnline returns true if the InnoDBCluster resource cluster status is online
+func isInnoDBClusterOnline(ctx spi.ComponentContext) bool {
+	ctx.Log().Progress("Waiting for InnoDBCluster to be online")
+
+	innoDBCluster := unstructured.Unstructured{}
+	innoDBCluster.SetGroupVersionKind(innoDBClusterGVK)
+
+	// the InnoDBCluster resource name is the helm release name
+	nsn := types.NamespacedName{Namespace: ComponentNamespace, Name: helmReleaseName}
+	if err := ctx.Client().Get(context.Background(), nsn, &innoDBCluster); err != nil {
+		ctx.Log().Errorf("Error retrieving InnoDBCluster %v: %v", nsn, err)
+		return false
+	}
+
+	clusterStatus, exists, err := unstructured.NestedString(innoDBCluster.UnstructuredContent(), innoDBClusterStatusFields...)
+	if err != nil {
+		ctx.Log().Errorf("Error retrieving InnoDBCluster %v clusterStatus: %v", nsn, err)
+		return false
+	}
+	if exists {
+		if clusterStatus == innoDBClusterStatusOnline {
+			return true
+		}
+		ctx.Log().Debugf("InnoDBCluster %v clusterStatus is: %s", nsn, clusterStatus)
+		return false
+	}
+
+	ctx.Log().Debugf("InnoDBCluster %v clusterStatus not found", nsn)
+	return false
 }
 
 // appendMySQLOverrides appends the MySQL helm overrides
 func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	cr := compContext.EffectiveCR()
 
-	kvs, err := appendCustomImageOverrides(kvs)
+	var err error
+	var bomFile bom.Bom
+
+	bomFile, err = bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 
 	if compContext.Init(ComponentName).GetOperation() == vzconst.UpgradeOperation {
-		kvs, err = appendMySQLSecret(compContext, kvs)
-		if err != nil {
-			return []bom.KeyValue{}, err
+		var userPwd []byte
+		if isLegacyDatabaseUpgrade(compContext) {
+			kvs, userPwd, err = appendLegacyUpgradeBaseValues(compContext, kvs)
+			if err != nil {
+				return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+			}
+			if isLegacyPersistentDatabase(compContext) {
+				kvs, err = appendLegacyUpgradePersistenceValues(&bomFile, kvs)
+				if err != nil {
+					return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+				}
+			} else {
+				// we are in the process of upgrading from a MySQL deployment using ephemeral storage, so we need to
+				// provide the sql initialization file
+				kvs, err = appendDatabaseInitializationValues(compContext, userPwd, kvs)
+				if err != nil {
+					return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+				}
+			}
 		}
 	}
-
-	kvs = append(kvs, bom.KeyValue{Key: mySQLUsernameKey, Value: mySQLUsername})
 
 	if compContext.Init(ComponentName).GetOperation() == vzconst.InstallOperation {
-		mySQLInitFile, err := createMySQLInitFile(compContext)
+		userPwd, err := getOrCreateDBUserPassword(compContext)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
-		kvs = append(kvs, bom.KeyValue{Key: "initializationFiles.create-db\\.sql", Value: mySQLInitFile, SetFile: true})
-		kvs = append(kvs, bom.KeyValue{Key: "configurationFiles.mysql-hook\\.sh", Value: mySQLHookFile, SetFile: true})
-		kvs, err = appendMySQLSecret(compContext, kvs)
+		// persist the user password in the cluster secret
+		kvs = append(kvs, bom.KeyValue{Key: helmUserPwd, Value: userPwd})
+		kvs = append(kvs, bom.KeyValue{Key: helmUserName, Value: mySQLUsername})
+		kvs, err = appendDatabaseInitializationValues(compContext, []byte(userPwd), kvs)
+		if err != nil {
+			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+		}
+		secretName := types.NamespacedName{
+			Namespace: ComponentNamespace,
+			Name:      rootSec,
+		}
+		kvs, err = appendMySQLSecret(compContext, secretName, mySQLRootKey, kvs)
 		if err != nil {
 			return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 		}
 	}
+
+	// Apply the version of the MySQL operator to the InnoDB cluster instance for Verrazzano Components
+	mySQLVersion, err := getMySQLVersion(&bomFile)
+	if err != nil {
+		return kvs, err
+	}
+	kvs = append(kvs, mySQLVersion)
+
+	repositorySetting, err := getRegistrySettings(&bomFile)
+	if err != nil {
+		return kvs, err
+	}
+	kvs = append(kvs, repositorySetting)
 
 	// generate the MySQl PV overrides
 	kvs, err = generateVolumeSourceOverrides(compContext, kvs)
@@ -93,9 +291,31 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 	}
 
 	// Convert MySQL install-args to helm overrides
-	kvs = append(kvs, helm.GetInstallArgs(getInstallArgs(cr))...)
+	kvs = append(kvs, convertOldInstallArgs(helm.GetInstallArgs(getInstallArgs(cr)))...)
 
 	return kvs, nil
+}
+
+func getRegistrySettings(bomFile *bom.Bom) (bom.KeyValue, error) {
+	sc, err := bomFile.GetSubcomponent(bomSubComponentName)
+	if err != nil {
+		return bom.KeyValue{}, err
+	}
+	img, err := bomFile.FindImage(sc, mysqlServerImageName)
+	if err != nil {
+		return bom.KeyValue{}, err
+	}
+	resolvedRegistry := bomFile.ResolveRegistry(sc, img)
+	resolvedRepo := bomFile.ResolveRepo(sc, img)
+	return bom.KeyValue{Key: imageRepositoryKey, Value: fmt.Sprintf("%s/%s", resolvedRegistry, resolvedRepo)}, nil
+}
+
+func getMySQLVersion(bomFile *bom.Bom) (bom.KeyValue, error) {
+	version, err := bomFile.GetComponentVersion(ComponentName)
+	if err != nil {
+		return bom.KeyValue{}, err
+	}
+	return bom.KeyValue{Key: serverVersionKey, Value: version}, nil
 }
 
 // preInstall creates and label the MySQL namespace
@@ -129,92 +349,45 @@ func postInstall(ctx spi.ComponentContext) error {
 		return nil
 	}
 	// Delete create-mysql-db.sql after install
-	removeMySQLInitFile(ctx)
 	return nil
-}
-
-// createMySQLInitFile creates the .sql file that gets passed to helm as an override
-// this initializes the MySQL DB
-func createMySQLInitFile(ctx spi.ComponentContext) (string, error) {
-	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.sql", mySQLInitFilePrefix))
-	if err != nil {
-		return "", err
-	}
-	_, err = file.Write([]byte(fmt.Sprintf(
-		"CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;"+
-			"USE keycloak;"+
-			"GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO '%s'@'%%';"+
-			"FLUSH PRIVILEGES;",
-		mySQLUsername,
-	)))
-	if err != nil {
-		return "", ctx.Log().ErrorfNewErr("Failed to write to temporary file: %v", err)
-	}
-	// Close the file
-	if err := file.Close(); err != nil {
-		return "", ctx.Log().ErrorfNewErr("Failed to close temporary file: %v", err)
-	}
-	return file.Name(), nil
-}
-
-// removeMySQLInitFile removes any files from the OS temp dir that match the pattern of the MySQL init file
-func removeMySQLInitFile(ctx spi.ComponentContext) {
-	files, err := ioutil.ReadDir(os.TempDir())
-	if err != nil {
-		ctx.Log().Errorf("Failed reading temp directory: %v", err)
-	}
-	for _, file := range files {
-		if !file.IsDir() && strings.HasPrefix(file.Name(), mySQLInitFilePrefix) && strings.HasSuffix(file.Name(), ".sql") {
-			fullPath := filepath.Join(os.TempDir(), file.Name())
-			ctx.Log().Debugf("Deleting temp MySQL init file %s", fullPath)
-			if err := os.Remove(fullPath); err != nil {
-				ctx.Log().Errorf("Failed deleting temp MySQL init file %s", fullPath)
-			}
-		}
-	}
 }
 
 // generateVolumeSourceOverrides generates the appropriate persistence overrides given the component context
 func generateVolumeSourceOverrides(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	var err error
 	convertedVZ := v1beta1.Verrazzano{}
-	if err := common.ConvertVerrazzanoCR(compContext.EffectiveCR(), &convertedVZ); err != nil {
+	if err = common.ConvertVerrazzanoCR(compContext.EffectiveCR(), &convertedVZ); err != nil {
 		return nil, err
 	}
-	return doGenerateVolumeSourceOverrides(&convertedVZ, kvs)
+
+	mySQLVolumeSource := getMySQLVolumeSource(&convertedVZ)
+	if mySQLVolumeSource != nil && mySQLVolumeSource.EmptyDir != nil {
+		compContext.Log().Info("EmptyDir currently not supported for MySQL server.  A default persistent volume will be used.")
+	} else {
+		kvs, err = doGenerateVolumeSourceOverrides(&convertedVZ, kvs)
+		if err != nil {
+			return kvs, err
+		}
+	}
+
+	return kvs, nil
 }
 
 // doGenerateVolumeSourceOverrides generates the appropriate persistence overrides given the effective CR
 func doGenerateVolumeSourceOverrides(effectiveCR *v1beta1.Verrazzano, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	var mySQLVolumeSource *v1.VolumeSource
-	if effectiveCR.Spec.Components.Keycloak != nil {
-		mySQLVolumeSource = effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
-	}
-	if mySQLVolumeSource == nil {
-		mySQLVolumeSource = effectiveCR.Spec.DefaultVolumeSource
-	}
+	mySQLVolumeSource := getMySQLVolumeSource(effectiveCR)
 
-	// No volumes to process, return what we have
-	if mySQLVolumeSource == nil {
-		return kvs, nil
-	}
-
-	if mySQLVolumeSource.EmptyDir != nil {
-		// EmptyDir, disable persistence
-		kvs = append(kvs, bom.KeyValue{
-			Key:   "persistence.enabled",
-			Value: "false",
-		})
-	} else if mySQLVolumeSource.PersistentVolumeClaim != nil {
+	if mySQLVolumeSource != nil && mySQLVolumeSource.PersistentVolumeClaim != nil {
 		// Configured for persistence, adapt the PVC Spec template to the appropriate Helm args
 		pvcs := mySQLVolumeSource.PersistentVolumeClaim
 		storageSpec, found := vzconfig.FindVolumeTemplate(pvcs.ClaimName, effectiveCR)
 		if !found {
-			return kvs, fmt.Errorf("Failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
+			return kvs, fmt.Errorf("failed, No VolumeClaimTemplate found for %s", pvcs.ClaimName)
 		}
 		storageClass := storageSpec.StorageClassName
 		if storageClass != nil && len(*storageClass) > 0 {
 			kvs = append(kvs, bom.KeyValue{
-				Key:       "persistence.storageClass",
+				Key:       "datadirVolumeClaimTemplate.storageClassName",
 				Value:     *storageClass,
 				SetString: true,
 			})
@@ -222,7 +395,7 @@ func doGenerateVolumeSourceOverrides(effectiveCR *v1beta1.Verrazzano, kvs []bom.
 		storage := storageSpec.Resources.Requests.Storage()
 		if storageSpec.Resources.Requests != nil && !storage.IsZero() {
 			kvs = append(kvs, bom.KeyValue{
-				Key:       "persistence.size",
+				Key:       "datadirVolumeClaimTemplate.resources.requests.storage",
 				Value:     storage.String(),
 				SetString: true,
 			})
@@ -231,28 +404,30 @@ func doGenerateVolumeSourceOverrides(effectiveCR *v1beta1.Verrazzano, kvs []bom.
 		if len(accessModes) > 0 {
 			// MySQL only allows a single AccessMode value, so just choose the first
 			kvs = append(kvs, bom.KeyValue{
-				Key:       "persistence.accessMode",
+				Key:       "datadirVolumeClaimTemplate.accessModes",
 				Value:     string(accessModes[0]),
 				SetString: true,
 			})
 		}
-		// Enable MySQL persistence
-		kvs = append(kvs, bom.KeyValue{
-			Key:   "persistence.enabled",
-			Value: "true",
-		})
 	}
 	return kvs, nil
 }
 
-//appendCustomImageOverrides - Append the custom overrides for the busybox initContainer
-func appendCustomImageOverrides(kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
-	if err != nil {
-		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+// getMySQLVolumeSourceV1beta1 returns the volume source from v1beta1.Verrazzano
+func getMySQLVolumeSource(effectiveCR *v1beta1.Verrazzano) *v1.VolumeSource {
+	var mySQLVolumeSource *v1.VolumeSource
+	if effectiveCR.Spec.Components.Keycloak != nil {
+		mySQLVolumeSource = effectiveCR.Spec.Components.Keycloak.MySQL.VolumeSource
 	}
+	if mySQLVolumeSource == nil {
+		mySQLVolumeSource = effectiveCR.Spec.DefaultVolumeSource
+	}
+	return mySQLVolumeSource
+}
 
-	imageOverrides, err := bomFile.BuildImageOverrides("oraclelinux")
+// appendCustomImageOverrides - Append the custom overrides for the busybox initContainer
+func appendCustomImageOverrides(bomFile *bom.Bom, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	imageOverrides, err := bomFile.BuildImageOverrides(mysqlUpgradeSubComp)
 	if err != nil {
 		return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
@@ -282,33 +457,164 @@ func GetOverrides(object runtime.Object) interface{} {
 		}
 		return []v1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }
 
-func appendMySQLSecret(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	secret := &v1.Secret{}
-	nsName := types.NamespacedName{
-		Namespace: ComponentNamespace,
-		Name:      secretName}
-	// Get the mysql secret
-	err := compContext.Client().Get(context.TODO(), nsName, secret)
+func appendMySQLSecret(compContext spi.ComponentContext, secretName types.NamespacedName, rootKey string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	rootSecret := &v1.Secret{}
+	// use self-signed
+	kvs = append(kvs, bom.KeyValue{
+		Key:   "tls.useSelfSigned",
+		Value: "true",
+	})
+	// Get the mysql root secret
+	err := compContext.Client().Get(context.TODO(), secretName, rootSecret)
 	if err != nil {
 		// A secret is not expected to be found the first time around (i.e. it's an install and not an update scenario).
 		// So do not return an error in this case.
 		if errors.IsNotFound(err) && compContext.Init(ComponentName).GetOperation() == vzconst.InstallOperation {
+			rootPwd, err := vzpassword.GeneratePassword(12)
+			if err != nil {
+				return kvs, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+			}
+			// setup root password
+			kvs = append(kvs, bom.KeyValue{
+				Key:       helmRootPwd,
+				Value:     rootPwd,
+				SetString: true,
+			})
 			return kvs, nil
 		}
 		// Return an error for upgrade or update
-		return []bom.KeyValue{}, compContext.Log().ErrorfNewErr("Failed getting MySQL secret: %v", err)
+		return []bom.KeyValue{}, compContext.Log().ErrorfNewErr("Failed getting MySQL root secret: %v", err)
 	}
 	// Force mysql to use the initial password and root password during the upgrade or update, by specifying as helm overrides
 	kvs = append(kvs, bom.KeyValue{
 		Key:   helmRootPwd,
-		Value: string(secret.Data[mySQLRootKey]),
-	})
-	kvs = append(kvs, bom.KeyValue{
-		Key:   helmPwd,
-		Value: string(secret.Data[mySQLKey]),
+		Value: string(rootSecret.Data[rootKey]),
 	})
 	return kvs, nil
+}
+
+// preUpgrade handles the re-association of a previous MySQL deployment PV/PVC with the new MySQL statefulset (if needed)
+func preUpgrade(ctx spi.ComponentContext) error {
+	if ctx.IsDryRun() {
+		ctx.Log().Debug("MySQL pre upgrade dry run")
+		return nil
+	}
+	// vz > 1.3 uses statefulsets, not deployments
+	// no migration is needed if vz >= 1.4
+	if isLegacyDatabaseUpgrade(ctx) {
+		if err := handleLegacyDatabasePreUpgrade(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// postUpgrade perform operations required after the helm upgrade completes
+func postUpgrade(ctx spi.ComponentContext) error {
+	if ctx.IsDryRun() {
+		ctx.Log().Debug("MySQL post upgrade dry run")
+		return nil
+	}
+	// cleanup db migration job if it exists
+	if err := cleanupDbMigrationJob(ctx); err != nil {
+		return err
+	}
+
+	//delete db migration secret if it exists
+	if err := deleteDbMigrationSecret(ctx); err != nil {
+		return err
+	}
+
+	return common.ResetVolumeReclaimPolicy(ctx, ComponentName)
+}
+
+// PostUpgradeCleanup - Clean up any remaining resources after a successful upgrade
+func PostUpgradeCleanup(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
+	// Clean up the dump volume claim used during the database upgrade
+	log.Progressf("MySQL post-upgrade cleanup")
+	pvc := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      legacyDBDumpClaim,
+			Namespace: ComponentNamespace,
+		},
+	}
+	if err := client.Delete(context.TODO(), pvc); err != nil {
+		if !errors.IsNotFound(err) {
+			log.Progressf("Error deleting temporary database upgrade volume claim %v: %v", clipkg.ObjectKeyFromObject(pvc), err.Error())
+			return err
+		}
+	}
+	log.Oncef("Deleted temporary legacy database volume claim %v", clipkg.ObjectKeyFromObject(pvc))
+	return nil
+}
+
+// convertOldInstallArgs changes persistence.* install args to primary.persistence.* to keep compatibility with the new chart
+func convertOldInstallArgs(kvs []bom.KeyValue) []bom.KeyValue {
+	for i, kv := range kvs {
+		newValueKey, ok := helmValuesMap[kv.Key]
+		if ok {
+			kvs[i].Key = newValueKey
+		}
+	}
+	return kvs
+}
+
+// createMySQLInitFile creates the .sql file that gets passed to helm as an override
+// this initializes the MySQL DB
+func createMySQLInitFile(ctx spi.ComponentContext, userPwd []byte) (string, error) {
+	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.sql", mySQLInitFilePrefix))
+	if err != nil {
+		return "", err
+	}
+	_, err = file.Write([]byte(fmt.Sprintf(initDbScript, userPwd, mySQLUsername)))
+	if err != nil {
+		return "", ctx.Log().ErrorfNewErr("Failed to write to temporary file: %v", err)
+	}
+	// Close the file
+	if err := file.Close(); err != nil {
+		return "", ctx.Log().ErrorfNewErr("Failed to close temporary file: %v", err)
+	}
+	return file.Name(), nil
+}
+
+// getOrCreateDBUserPassword creates or updates a secret containing the password used by keycloak to access the DB
+func getOrCreateDBUserPassword(compContext spi.ComponentContext) (string, error) {
+	secretName := types.NamespacedName{
+		Namespace: ComponentNamespace,
+		Name:      rootSec,
+	}
+	dbSecret := &v1.Secret{}
+	err := compContext.Client().Get(context.TODO(), secretName, dbSecret)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			password, err := vzpassword.GeneratePassword(12)
+			if err != nil {
+				return "", err
+			}
+			return password, nil
+		}
+		return "", err
+	}
+	return string(dbSecret.Data[mySQLUserKey]), nil
+}
+
+func appendDatabaseInitializationValues(compContext spi.ComponentContext, userPwd []byte, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	compContext.Log().Debug("Adding database initialization values to MySQL helm values")
+	mySQLInitFile, err := createMySQLInitFile(compContext, userPwd)
+	if err != nil {
+		return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
+	}
+	kvs = append(kvs, bom.KeyValue{Key: initdbScriptsFile, Value: mySQLInitFile, SetFile: true})
+	kvs = append(kvs, bom.KeyValue{Key: backupHookScriptsFile, Value: mySQLHookFile, SetFile: true})
+
+	return kvs, nil
+}
+
+// This is needed for unit testing
+func initUnitTesting() {
+	unitTesting = true
 }

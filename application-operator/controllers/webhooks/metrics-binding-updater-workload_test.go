@@ -243,12 +243,12 @@ func TestHandleMetricsNoneNamespace(t *testing.T) {
 }
 
 // TestHandleInvalidMetricsTemplate tests the handling of a workload resource with references a metrics template
-//  that does not exist
+// that does not exist
 // GIVEN a call to the webhook Handle function
 // WHEN the workload resource has  "app.verrazzano.io/metrics": "badTemplate"
 // THEN the Handle function should
-//    Generate an error for a pre-VZ 1.4 app with existing metrics binding
-//    Allow the workload for an app with no existing metrics binding
+// Generate an error for a pre-VZ 1.4 app with existing metrics binding
+// Allow the workload for an app with no existing metrics binding
 func TestHandleInvalidMetricsTemplate(t *testing.T) {
 
 	tests := []struct {
@@ -302,7 +302,7 @@ func TestHandleInvalidMetricsTemplate(t *testing.T) {
 }
 
 // TestHandleMetricsTemplateWorkloadNamespace tests the handling of a workload resource which references a metrics
-//  template found in the namespace of the workload resource that already has a MetricsBinding
+// template found in the namespace of the workload resource that already has a MetricsBinding
 // GIVEN a call to the webhook Handle function
 // WHEN the workload resource has a valid metrics template reference
 // THEN the Handle function should succeed and the existing MetricsBinding is updated
@@ -390,12 +390,12 @@ func TestHandleMetricsTemplateWorkloadNamespace(t *testing.T) {
 }
 
 // TestHandleMetricsTemplateSystemNamespace tests the handling of a workload resource which references a metrics
-//  template found in the verrazzano-system namespace
+// template found in the verrazzano-system namespace
 // GIVEN a call to the webhook Handle function
 // WHEN the workload resource has a valid metrics template reference
 // THEN the Handle function should succeed
-//    AND for a pre-VZ 1.4 app with existing MetricsBinding, the metricsBinding is updated
-//    BUT for an app with no existing MetricsBinding, no action is taken
+// AND for a pre-VZ 1.4 app with existing MetricsBinding, the metricsBinding is updated
+// BUT for an app with no existing MetricsBinding, no action is taken
 func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
 
 	tests := []struct {
@@ -478,12 +478,12 @@ func TestHandleMetricsTemplateSystemNamespace(t *testing.T) {
 }
 
 // TestHandleMetricsTemplateConfigMapNotFound tests the handling of a workload resource which references a metrics
-//  template found with Prometheus config map that does not exist
+// template found with Prometheus config map that does not exist
 // GIVEN a call to the webhook Handle function
 // WHEN the workload resource has an invalid Prometheus config map reference
 // THEN the Handle function should
-//    fail and return an error for a pre-VZ 1.4 app with existing metrics binding
-//    Allow the workload for an app with no existing metrics binding
+// fail and return an error for a pre-VZ 1.4 app with existing metrics binding
+// Allow the workload for an app with no existing metrics binding
 
 func TestHandleMetricsTemplateConfigMapNotFound(t *testing.T) {
 
@@ -557,12 +557,12 @@ func TestHandleMetricsTemplateConfigMapNotFound(t *testing.T) {
 }
 
 // TestHandleMatchWorkloadNamespace tests the handling of a workload resource with no metrics template specified
-//  but matches a template found in the workload resources namespace
+// but matches a template found in the workload resources namespace
 // GIVEN a call to the webhook Handle function
 // WHEN the workload resource has no metrics template reference
 // THEN the Handle function should succeed
-//    AND for a pre-VZ 1.4 app, the existing legacy MetricsBinding is updated
-//    BUT for an app with no existing MetricsBinding, no action is taken. It's up to user to create a monitor resource.
+// AND for a pre-VZ 1.4 app, the existing legacy MetricsBinding is updated
+// BUT for an app with no existing MetricsBinding, no action is taken. It's up to user to create a monitor resource.
 func TestHandleMatchWorkloadNamespace(t *testing.T) {
 
 	tests := []struct {
@@ -651,12 +651,12 @@ func TestHandleMatchWorkloadNamespace(t *testing.T) {
 }
 
 // TestHandleMatchSystemNamespace tests the handling of a workload resource with no metrics template specified
-//  but matches a template found in the verrazzano-system namespace
+// but matches a template found in the verrazzano-system namespace
 // GIVEN a call to the webhook Handle function
 // WHEN the workload resource has no metrics template reference
 // THEN the Handle function should succeed
-//    AND for a pre-VZ 1.4 app, the existing legacy MetricsBinding is updated
-//    BUT for an app with no existing MetricsBinding, no action is taken. It's up to user to create a monitor resource.
+// AND for a pre-VZ 1.4 app, the existing legacy MetricsBinding is updated
+// BUT for an app with no existing MetricsBinding, no action is taken. It's up to user to create a monitor resource.
 func TestHandleMatchSystemNamespace(t *testing.T) {
 
 	tests := []struct {
@@ -747,7 +747,7 @@ func TestHandleMatchSystemNamespace(t *testing.T) {
 }
 
 // TestHandleMatchNotFound tests the handling of a workload resource with no metrics template specified
-//  and a matching template not found
+// and a matching template not found
 // GIVEN a call to the webhook Handle function
 // WHEN the workload resource has no metrics template reference
 // THEN the Handle function should succeed and no metricsBinding is created
@@ -808,7 +808,7 @@ func TestHandleMatchNotFound(t *testing.T) {
 }
 
 // TestHandleMatchTemplateNoWorkloadSelector tests the handling of a workload resource with no metrics template specified
-//  and a metrics template that doesn't have a workload selector specified
+// and a metrics template that doesn't have a workload selector specified
 // GIVEN a call to the webhook Handle function
 // WHEN the workload resource has no metrics template reference
 // THEN the Handle function should succeed and no metricsBinding is created
@@ -858,7 +858,7 @@ func TestHandleMatchTemplateNoWorkloadSelector(t *testing.T) {
 }
 
 // TestHandleNoConfigMap tests the handling of a workload resource that doesn't have a Prometheus target
-//  config map specified in the metrics template
+// config map specified in the metrics template
 // GIVEN a call to the webhook Handle function
 // WHEN the workload resource has a metrics template reference
 // THEN the Handle function should succeed and no metricsBinding is created
@@ -1003,7 +1003,7 @@ func TestHandleNamespaceAnnotation(t *testing.T) {
 // uses the legacy VMI Prometheus ConfigMap
 // GIVEN an existing metrics binding which uses the legacy VMI Prometheus ConfigMap
 // WHEN the webhook Handle is called
-// THEN the metrics binding should be modified to use the Pormetheus Operator additionalScrapeConfigs secret instead
+// THEN the metrics binding should be modified to use the Prometheus Operator additionalScrapeConfigs secret instead
 func TestExistingMetricsBindingVmiConfigMap(t *testing.T) {
 
 	v := newGeneratorWorkloadWebhook()

@@ -15,8 +15,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -125,7 +125,7 @@ func validateKubeConfig() bool {
 
 // Get the BOM from the platform operator in the cluster and build the BOM structure from it
 func getBOM() {
-	var platformOperatorPodName string = ""
+	var platformOperatorPodName = ""
 	pods, err := pkg.ListPods("verrazzano-install", metav1.ListOptions{})
 	if err != nil {
 		log.Fatal(err)
