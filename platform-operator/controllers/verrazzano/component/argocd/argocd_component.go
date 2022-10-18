@@ -70,11 +70,8 @@ func NewComponent() spi.Component {
 }
 
 // PreInstall
-/* Sets up the environment for Rancher
-- Create the Rancher namespace if it is not present (cattle-namespace)
-- note: VZ-5241 the rancher-operator-namespace is no longer used in 2.6.3
-- Copy TLS certificates for Rancher if using the default Verrazzano CA
-- Create additional LetsEncrypt TLS certificates for Rancher if using LE
+/* Copy TLS certificates for ArgoCD if using the default Verrazzano CA
+- Create additional LetsEncrypt TLS certificates for ArgoCD if using LE
 */
 func (r argoCDComponent) PreInstall(ctx spi.ComponentContext) error {
 	vz := ctx.EffectiveCR()
