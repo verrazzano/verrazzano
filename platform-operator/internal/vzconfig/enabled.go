@@ -66,7 +66,7 @@ func IsIstioEnabled(cr runtime.Object) bool {
 	return true
 }
 
-// IsCertManagerEnabled - Returns false only if CertManager is explictly disabled by the user
+// IsCertManagerEnabled - Returns false only if CertManager is explicitly disabled by the user
 func IsCertManagerEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
 		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.CertManager != nil && vzv1alpha1.Spec.Components.CertManager.Enabled != nil {

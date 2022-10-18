@@ -70,7 +70,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		// This test is part of the minimal verification.
 		t.It("has the expected VerrazzanoManagedCluster", func() {
 			var client *vmcClient.Clientset
-			// If registration happend in VZ versions 1.4 and above on admin cluster, check the ManagedCARetrieved condition as well
+			// If registration happened in VZ versions 1.4 and above on admin cluster, check the ManagedCARetrieved condition as well
 			adminVersionAtRegistration := os.Getenv("ADMIN_VZ_VERSION_AT_REGISTRATION")
 			pkg.Log(pkg.Info, fmt.Sprintf("Admin cluster VZ version at registration is '%s'", adminVersionAtRegistration))
 			regVersion14 := false

@@ -105,7 +105,7 @@ type Action struct {
 	} `json:"delete,omitempty"`
 }
 
-// Transistion defined in ISM policy
+// Transition defined in ISM policy
 type Transition struct {
 	StateName  string            `json:"state_name"`
 	Conditions map[string]string `json:"conditions"`

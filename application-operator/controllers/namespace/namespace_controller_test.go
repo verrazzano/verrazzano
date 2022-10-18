@@ -609,7 +609,7 @@ func runAddOCILoggingTest(t *testing.T, addLoggingResult bool) {
 		})
 
 	// if the result from adding logging returns true (meaning the Fluentd configmap was updated), then
-	// mock expections for restarting Fluentd
+	// mock exceptions for restarting Fluentd
 	if addLoggingResult {
 		mockFluentdRestart(mock, asserts)
 	}
@@ -704,7 +704,7 @@ func Test_reconcileOCILoggingAddOCILoggingAddFailed(t *testing.T) {
 	asserts.Len(ns.Finalizers, 2)
 }
 
-// mockFluentdRestart - Mock expections for Fluentd daemonset restart
+// mockFluentdRestart - Mock exceptions for Fluentd daemonset restart
 func mockFluentdRestart(mock *mocks.MockClient, asserts *assert.Assertions) {
 	// Expect a call to get the Fleuntd Daemonset and another to update it with a restart time annotation
 	mock.EXPECT().

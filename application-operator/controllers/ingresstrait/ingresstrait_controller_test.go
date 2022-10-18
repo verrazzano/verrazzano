@@ -1242,7 +1242,7 @@ func TestFailureToGetWorkloadDefinition(t *testing.T) {
 	assert.GreaterOrEqual(result.RequeueAfter.Milliseconds(), time.Duration(0).Milliseconds())
 }
 
-// TestFailureToUpdateStatus tests tje Reconcile method for the following use case
+// TestFailureToUpdateStatus tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an ingress trait resource
 // WHEN the request to update the trait status fails
 // THEN ensure an error is returned
@@ -1789,7 +1789,7 @@ func TestBuildAppHostNameNodePortExternalIP(t *testing.T) {
 	assert.Equal(testExternalDomainName, domainName)
 }
 
-// TestGetTraitFailurePropagated tests tje Reconcile method for the following use case
+// TestGetTraitFailurePropagated tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an ingress trait resource
 // WHEN a failure occurs getting the ingress trait resource
 // THEN the error is propagated

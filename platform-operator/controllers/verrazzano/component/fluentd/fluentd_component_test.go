@@ -575,7 +575,7 @@ func TestUninstallHelmChartNotInstalled(t *testing.T) {
 // TestUninstallResources tests the Fluentd Uninstall call
 // GIVEN a Fluentd component
 //  WHEN I call Uninstall with the Fluentd helm chart not installed
-//  THEN ensure that all Fluentd resources are explicity deleted
+//  THEN ensure that all Fluentd resources are explicitly deleted
 func TestUninstallResources(t *testing.T) {
 	helmcli.SetCmdRunner(os.GenericTestRunner{
 		StdOut: []byte(""),
