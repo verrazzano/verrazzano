@@ -4,6 +4,7 @@
 package kubestatemetrics
 
 import (
+	"fmt"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
@@ -63,6 +64,14 @@ func (c kubeStateMetricsComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isDeploymentReady(ctx)
 	}
 	return false
+}
+
+func (c kubeStateMetricsComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // PreInstall updates resources necessary for kube-state-metrics Component installation

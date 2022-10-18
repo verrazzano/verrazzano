@@ -5,6 +5,7 @@ package vmo
 
 import (
 	"context"
+	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
@@ -68,6 +69,14 @@ func (c vmoComponent) IsReady(context spi.ComponentContext) bool {
 		return isVMOReady(context)
 	}
 	return false
+}
+
+func (c vmoComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // IsInstalled checks if VMO is installed
