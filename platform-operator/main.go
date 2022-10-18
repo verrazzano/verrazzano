@@ -106,7 +106,7 @@ func main() {
 		"Specify the root directory of Verrazzano (used for development)")
 	flag.StringVar(&bomOverride, "bom-path", "", "BOM file location")
 	flag.BoolVar(&helm.Debug, "helm-debug", helm.Debug, "Add the --debug flag to helm commands")
-	flag.Int64Var(&healthCheckPeriodSeconds, "health-check-period", 30, "Health check period seconds")
+	flag.Int64Var(&healthCheckPeriodSeconds, "health-check-period", 60, "Health check period seconds")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
