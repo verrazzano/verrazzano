@@ -9,7 +9,7 @@ import (
 	platformOperatorConstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 )
 
-// RestartVersionAnnotation - the annotation used by user to tell Verrazzano applicaton to restart its components
+// RestartVersionAnnotation - the annotation used by user to tell Verrazzano application to restart its components
 const RestartVersionAnnotation = "verrazzano.io/restart-version"
 
 // VerrazzanoRestartAnnotation is the annotation used to restart platform workloads
