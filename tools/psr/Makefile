@@ -5,7 +5,7 @@ include ../../make/retry.mk
 
 BACKEND_NAME:=psr-backend
 MAKEFILE_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-PSR_DIR:=github.com$(shell echo ${MAKEFILE_DIR} | sed 's/.*github.com//')
+PSR_DIR:=${MAKEFILE_DIR}
 BACKEND_DIR:=$(PSR_DIR)/backend
 DOCKER_REPO:=ghcr.io
 DOCKER_REGISTRY=verrazzano
@@ -40,7 +40,7 @@ go-build:
 		-ldflags "-X main.buildVersion=${BUILD_VERSION}" \
 		-ldflags "-X main.buildDate=${BUILD_DATE}" \
 		-o out/linux_amd64/psr-backend \
-		${GOPATH}/src/${BACKEND_DIR}/main.go
+		${BACKEND_DIR}/main.go
 
 #
 # Docker-related tasks
