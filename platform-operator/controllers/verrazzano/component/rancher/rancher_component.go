@@ -292,7 +292,15 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-//Install
+// PreUpgrade
+/* Runs pre-upgrade steps
+- Scales down Rancher pods and deletes the ClusterRepo resources to work around Rancher upgrade issues (VZ-7053)
+*/
+func (r rancherComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	return chartsNotUpdatedWorkaround(ctx)
+}
+
+// Install
 /* Installs the Helm chart, and patches the resulting objects
 - ensure Helm chart is installed
 - Patch Rancher deployment with MKNOD capability

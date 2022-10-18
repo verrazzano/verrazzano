@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20221013131607-2087c7430",
-              "dashboard": "v2.6.8-20221006170612-d84a9cbf",
+              "tag": "v2.6.8-20221014110124-2d6cd89b8",
+              "dashboard": "v2.6.8-20221014105039-bdff52de",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20221013131607-2087c7430"
+              "tag": "v2.6.8-20221014110124-2d6cd89b8"
             }
           ]
         },
@@ -219,7 +219,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.0-20221004150110-bf71c6d",
+              "tag": "v1.5.0-20221013113951-13deb9c",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -280,7 +280,7 @@
     },
     {
       "name": "oam-kubernetes-runtime",
-      "version": "0.3.0",
+      "version": "0.3.3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -288,7 +288,7 @@
           "images": [
             {
               "image": "oam-kubernetes-runtime",
-              "tag": "v0.3.0-20221013061514-f30c668",
+              "tag": "v0.3.3-20221013064824-b7e9276",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -354,7 +354,7 @@
     },
     {
       "name": "kiali-server",
-      "version": "0.0.1",
+      "version": "1.42.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -372,7 +372,7 @@
     },
     {
       "name": "mysql",
-      "version": "8.0.30",
+      "version": "8.0.31",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -380,7 +380,7 @@
           "images": [
             {
               "image": "mysql-server",
-              "tag": "8.0.30",
+              "tag": "8.0.31",
               "helmFullImageKey": "legacyUpgrade.container.image"
             },
             {
@@ -398,7 +398,7 @@
           "images": [
             {
               "image": "mysql-router",
-              "tag": "8.0.30"
+              "tag": "8.0.31"
             }
           ]
         }
@@ -406,7 +406,7 @@
     },
     {
       "name": "mysql-operator",
-      "version": "8.0.30",
+      "version": "8.0.31",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -414,7 +414,7 @@
           "images": [
             {
               "image": "mysql-operator",
-              "tag": "8.0.30-2.0.6",
+              "tag": "8.0.31-2.0.7",
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",
               "helmTagKey": "image.tag"

@@ -161,6 +161,12 @@ const MetricsTemplateAPIVersion = "app.verrazzano.io/v1alpha1"
 // SecretKind is the kind for a secret
 const SecretKind = "Secret"
 
+// MysqlBackupMutatingWebhookName specifies the name of mysql webhook.
+const MysqlBackupMutatingWebhookName = "verrazzano-mysql-backup"
+
+// MysqlBackupMutatingWebhookPath specifies the path of mysql webhook.
+const MysqlBackupMutatingWebhookPath = "/mysql-backup-job-annotate"
+
 // Components Names
 const (
 	OamKubernetesRuntime          = "oam-kubernetes-runtime"
