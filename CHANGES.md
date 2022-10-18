@@ -7,6 +7,7 @@ Component version updates:
 
 - Coherence Operator v3.2.8
 - MySQL Server 8.0.30
+- oam-kubernetes-runtime 0.3.3
 
 Components added:
 - MySQL Operator 8.0.30-2.0.6
@@ -14,6 +15,7 @@ Components added:
 Fixes:
 
 - Updated base and other images for bugs and security.
+- Rancher upgrade intermittently fails with errors stating that the available chart version is less than the minimum chart version for Rancher system charts.
 
 
 ### v1.4.0

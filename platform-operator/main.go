@@ -5,8 +5,11 @@ package main
 
 import (
 	"flag"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
+	"k8s.io/client-go/dynamic"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sync"
@@ -132,6 +135,7 @@ func main() {
 		log.Errorf("Failed to get the Verrazzano version from the BOM: %v", err)
 	}
 
+	registry.InitRegistry()
 	// initWebhooks flag is set when called from an webhook deployment.  This allows separation of webhooks and operator
 	if config.InitWebhooks {
 		startWebhookServers(config, log)
@@ -161,6 +165,12 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 		os.Exit(1)
 	}
 
+	dynamicClient, err := dynamic.NewForConfig(conf)
+	if err != nil {
+		log.Errorf("Failed to create Kubernetes dynamic client: %v", err)
+		os.Exit(1)
+	}
+
 	log.Debug("Delete old VPO webhook configuration")
 	err = certificate.DeleteValidatingWebhookConfiguration(kubeClient, certificate.OperatorName)
 	if err != nil {
@@ -184,6 +194,12 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 	err = certificate.UpdateConversionWebhookConfiguration(apixClient, caCert)
 	if err != nil {
 		log.Errorf("Failed to update conversion webhook: %v", err)
+		os.Exit(1)
+	}
+
+	err = certificate.UpdateMutatingWebhookConfiguration(kubeClient, caCert, constants.MysqlBackupMutatingWebhookName)
+	if err != nil {
+		log.Errorf("Failed to update pod mutating webhook configuration: %v", err)
 		os.Exit(1)
 	}
 
@@ -232,6 +248,19 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 		log.Errorf("Failed to setup install.v1beta1.Verrazzano webhook with manager: %v", err)
 		os.Exit(1)
 	}
+
+	// register MySQL backup job mutating webhook
+	mgr.GetWebhookServer().Register(
+		constants.MysqlBackupMutatingWebhookPath,
+		&webhook.Admission{
+			Handler: &webhooks.MySQLBackupJobWebhook{
+				Client:        mgr.GetClient(),
+				KubeClient:    kubeClient,
+				DynamicClient: dynamicClient,
+				Defaulters:    []webhooks.MySQLDefaulter{},
+			},
+		},
+	)
 
 	// register MySQL install values webhooks
 	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1beta1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1beta1{}})
