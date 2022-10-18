@@ -357,9 +357,9 @@ func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
 // +disables first login setting to disable prompting for password on first login.
 // +enables or disables Keycloak Auth provider.
 func ConfigureAuthProviders(ctx spi.ComponentContext) error {
-	if vzconfig.IsKeycloakEnabled(ctx.ActualCR()) &&
-		isKeycloakAuthEnabled(ctx.ActualCR()) &&
-		vzconfig.IsRancherEnabled(ctx.ActualCR()) {
+	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) &&
+		isKeycloakAuthEnabled(ctx.EffectiveCR()) &&
+		vzconfig.IsRancherEnabled(ctx.EffectiveCR()) {
 
 		ctx.Log().Oncef("Configuring Keycloak as a Rancher authentication provider")
 		if err := configureKeycloakOIDC(ctx); err != nil {
