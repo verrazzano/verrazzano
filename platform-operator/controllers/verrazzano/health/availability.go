@@ -41,7 +41,6 @@ func (p *PlatformHealth) updateAvailability(components []spi.Component) (*Status
 
 // newStatus creates a new availability status based on the current state of the component set.
 func (p *PlatformHealth) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazzano, components []spi.Component) (*Status, error) {
-	ch := make(chan componentAvailability)
 	ctx, err := spi.NewContext(log, p.client, vz, nil, false)
 	if err != nil {
 		return nil, err
@@ -49,7 +48,9 @@ func (p *PlatformHealth) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazz
 
 	countEnabled := 0
 	countAvailable := 0
-
+	status := &Status{
+		Components: map[string]bool{},
+	}
 	for _, component := range components {
 		// If status is not fully initialized, do not check availability
 		if vz.Status.Components[component.Name()] == nil {
@@ -58,25 +59,15 @@ func (p *PlatformHealth) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazz
 		// determine a component's availability
 		if isEnabled(vz, component) {
 			countEnabled++
-			comp := component
-			go func() {
-				// gets new availability for a given component
-				ch <- p.getComponentAvailability(comp, ctx.Copy())
-			}()
+			// gets new availability for a given component
+			a := p.getComponentAvailability(component, ctx)
+			if a.available {
+				countAvailable++
+			}
+			status.Components[a.name] = a.available
 		}
 	}
 
-	status := &Status{
-		Components: map[string]bool{},
-	}
-	// count available components and set component availability
-	for i := 0; i < countEnabled; i++ {
-		a := <-ch
-		if a.available {
-			countAvailable++
-		}
-		status.Components[a.name] = a.available
-	}
 	// format the printer column with both values
 	availabilityColumn := fmt.Sprintf("%d/%d", countAvailable, countEnabled)
 	status.Available = availabilityColumn

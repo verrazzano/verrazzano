@@ -5,10 +5,12 @@ package main
 
 import (
 	"flag"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
+	"k8s.io/client-go/dynamic"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sync"
@@ -82,6 +84,8 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
+var healthCheckPeriodSeconds int64
+
 func main() {
 
 	// config will hold the entire operator config
@@ -102,6 +106,7 @@ func main() {
 		"Specify the root directory of Verrazzano (used for development)")
 	flag.StringVar(&bomOverride, "bom-path", "", "BOM file location")
 	flag.BoolVar(&helm.Debug, "helm-debug", helm.Debug, "Add the --debug flag to helm commands")
+	flag.Int64Var(&healthCheckPeriodSeconds, "health-check-period", 60, "Health check period seconds")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
@@ -165,6 +170,12 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 		os.Exit(1)
 	}
 
+	dynamicClient, err := dynamic.NewForConfig(conf)
+	if err != nil {
+		log.Errorf("Failed to create Kubernetes dynamic client: %v", err)
+		os.Exit(1)
+	}
+
 	log.Debug("Delete old VPO webhook configuration")
 	err = certificate.DeleteValidatingWebhookConfiguration(kubeClient, certificate.OperatorName)
 	if err != nil {
@@ -188,6 +199,12 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 	err = certificate.UpdateConversionWebhookConfiguration(apixClient, caCert)
 	if err != nil {
 		log.Errorf("Failed to update conversion webhook: %v", err)
+		os.Exit(1)
+	}
+
+	err = certificate.UpdateMutatingWebhookConfiguration(kubeClient, caCert, constants.MysqlBackupMutatingWebhookName)
+	if err != nil {
+		log.Errorf("Failed to update pod mutating webhook configuration: %v", err)
 		os.Exit(1)
 	}
 
@@ -237,6 +254,19 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 		os.Exit(1)
 	}
 
+	// register MySQL backup job mutating webhook
+	mgr.GetWebhookServer().Register(
+		constants.MysqlBackupMutatingWebhookPath,
+		&webhook.Admission{
+			Handler: &webhooks.MySQLBackupJobWebhook{
+				Client:        mgr.GetClient(),
+				KubeClient:    kubeClient,
+				DynamicClient: dynamicClient,
+				Defaulters:    []webhooks.MySQLDefaulter{},
+			},
+		},
+	)
+
 	// register MySQL install values webhooks
 	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1beta1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1beta1{}})
 	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1alpha1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1alpha1{}})
@@ -275,7 +305,7 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 	metricsexporter.StartMetricsServer(log)
 
 	// Set up the reconciler
-	healthCheck := health.New(mgr.GetClient(), 15*time.Second)
+	healthCheck := health.New(mgr.GetClient(), time.Duration(healthCheckPeriodSeconds)*time.Second)
 	reconciler := vzcontroller.Reconciler{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
