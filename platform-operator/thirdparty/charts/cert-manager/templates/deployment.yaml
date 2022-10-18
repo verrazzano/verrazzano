@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ template "cert-manager.fullname" . }}
-  namespace: {{ .Release.Namespace | quote }}
+  namespace: {{ include "cert-manager.namespace" . }}
   labels:
     app: {{ template "cert-manager.name" . }}
     app.kubernetes.io/name: {{ template "cert-manager.name" . }}
@@ -49,21 +49,15 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ template "cert-manager.serviceAccountName" . }}
+      {{- if hasKey .Values "automountServiceAccountToken" }}
+      automountServiceAccountToken: {{ .Values.automountServiceAccountToken }}
+      {{- end }}
       {{- with .Values.global.priorityClassName }}
       priorityClassName: {{ . | quote }}
       {{- end }}
-      {{- $enabledDefined := gt (len (keys (pick .Values.securityContext "enabled"))) 0 }}
-      {{- $legacyEnabledExplicitlyOff := and $enabledDefined (not .Values.securityContext.enabled) }}
-      {{- if and .Values.securityContext (not $legacyEnabledExplicitlyOff) }}
+      {{- with .Values.securityContext }}
       securityContext:
-        {{- if .Values.securityContext.enabled }}
-        {{/* support legacy securityContext.enabled and its two parameters */}}
-        fsGroup: {{ default 1001 .Values.securityContext.fsGroup }}
-        runAsUser: {{ default 1001 .Values.securityContext.runAsUser }}
-        {{- else }}
-        {{/* this is the way forward: support an arbitrary yaml block */}}
-        {{- toYaml .Values.securityContext | nindent 8 }}
-        {{- end }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.volumes }}
       volumes:
@@ -115,6 +109,7 @@ spec:
           {{- end }}
           ports:
           - containerPort: 9402
+            name: http-metrics
             protocol: TCP
           {{- with .Values.containerSecurityContext }}
           securityContext:
