@@ -59,20 +59,15 @@ all:
 .PHONY: run-backend
 run-backend:
 	$(GO) run ${GOPATH}/src/${BACKEND_DIR}/main.go
+
 #
 # Go build related tasks
 #
 .PHONY: go-build
 go-build:
 	GOOS=linux GOARCH=amd64 $(GO) build \
-		-ldflags "${CLI_GO_LDFLAGS}" \
-		-o out/linux_amd64/psr-backend \
-		${GOPATH}/src/${BACKEND_DIR}/main.go
-
-.PHONY: docker-build
-docker-build:
-	GOOS=linux GOARCH=amd64 $(GO) build \
-		-ldflags "${CLI_GO_LDFLAGS}" \
+		-ldflags '-extldflags "-static"' \
+		-ldflags "-X main.buildDate=${BUILDDATE}" \
 		-o out/linux_amd64/psr-backend \
 		${GOPATH}/src/${BACKEND_DIR}/main.go
 
@@ -85,6 +80,11 @@ docker-clean:
 
 .PHONY: docker-build
 docker-build: go-build
+	docker build --pull \
+		-t ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG} .
+
+.PHONY: docker-build-only
+docker-build-only:
 	docker build --pull \
 		-t ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG} .
 
