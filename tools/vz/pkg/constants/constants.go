@@ -97,6 +97,9 @@ const VerrazzanoManagedLabel = "verrazzano-managed=true"
 
 const LineSeparator = "-"
 
+// MysqlBackupMutatingWebhookName specifies the name of mysql webhook.
+const MysqlBackupMutatingWebhookName = "verrazzano-mysql-backup"
+
 // Analysis tool flags
 const (
 	DirectoryFlagName  = "capture-dir"
