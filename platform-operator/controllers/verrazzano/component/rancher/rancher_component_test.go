@@ -219,8 +219,6 @@ func TestIsReady(t *testing.T) {
 		},
 	).Build()
 
-	SetFakeCheckRancherUpgradeFailureFunc()
-	defer SetDefaultCheckRancherUpgradeFailureFunc()
 	var tests = []struct {
 		testName string
 		ctx      spi.ComponentContext
