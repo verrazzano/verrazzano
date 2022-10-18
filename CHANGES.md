@@ -14,6 +14,7 @@ Components added:
 Fixes:
 
 - Updated base and other images for bugs and security.
+- Rancher upgrade intermittently fails with errors stating that the available chart version is less than the minimum chart version for Rancher system charts.
 
 
 ### v1.4.0
