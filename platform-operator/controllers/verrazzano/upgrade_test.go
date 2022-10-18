@@ -1598,7 +1598,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 			},
 		},
 		&networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-es-ingest"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-os-ingest"},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
 					{Host: esURL},
@@ -1785,7 +1785,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 			},
 		},
 		&networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-es-ingest"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-os-ingest"},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
 					{Host: esURL},
