@@ -18,10 +18,10 @@ import (
 )
 
 const (
-	SECRET               = "testdata/secret.yaml"
-	SECRET_BAD_NAMESPACE = "testdata/secret_bad_namespace.yaml"
-	SECRET_INVALID       = "testdata/secret_invalid.yaml"
-	SECRET_NO_NAMESPACE  = "testdata/secret_no_namespace.yaml"
+	Secret             = "testdata/secret.yaml"
+	SecretBadNamespace = "testdata/secret_bad_namespace.yaml"
+	SecretInvalid      = "testdata/secret_invalid.yaml"
+	SecretNoNamespace  = "testdata/secret_no_namespace.yaml"
 )
 
 // TestFindTestDataFile tests the FindTestDataFile function
@@ -38,7 +38,7 @@ func TestFindTestDataFile(t *testing.T) {
 	asserts.EqualError(err, fmt.Sprintf("failed to find test data file: %s", filename))
 
 	// File exists, should find the file
-	filename = SECRET
+	filename = Secret
 	file, err := FindTestDataFile(filename)
 
 	asserts.NoError(err)
@@ -49,7 +49,7 @@ func TestFindTestDataFile(t *testing.T) {
 // Given a yaml file, create the resource
 func TestCreateOrUpdateResourceFromFile(t *testing.T) {
 	asserts := assert.New(t)
-	file := SECRET
+	file := Secret
 
 	server := newServer()
 	defer server.Close()
@@ -82,7 +82,7 @@ func TestCreateOrUpdateResourceFromFile(t *testing.T) {
 // Given a stream of bytes, create the resource
 func TestCreateOrUpdateResourceFromBytes(t *testing.T) {
 	asserts := assert.New(t)
-	file := SECRET
+	file := Secret
 
 	bytes, err := os.ReadFile(file)
 	asserts.NoError(err)
@@ -120,7 +120,7 @@ func TestCreateOrUpdateResourceFromBytes(t *testing.T) {
 // Given a yaml file with invalid namespace and the kubeconfig path, return an error
 func TestCreateOrUpdateResourceFromFileInCluster(t *testing.T) {
 	asserts := assert.New(t)
-	file := SECRET
+	file := Secret
 
 	server := newServer()
 	defer server.Close()
@@ -139,19 +139,19 @@ func TestCreateOrUpdateResourceFromFileInCluster(t *testing.T) {
 
 	// Creating a resource in a namespace that doesn't exist
 	// should return an error
-	file = SECRET_BAD_NAMESPACE
+	file = SecretBadNamespace
 	err = CreateOrUpdateResourceFromFileInCluster(file, kubeConfigPath)
 	asserts.Error(err)
 
 	// Passing a yaml file with no specified namespace
 	// should return an error
-	file = SECRET_NO_NAMESPACE
+	file = SecretNoNamespace
 	err = CreateOrUpdateResourceFromFileInCluster(file, kubeConfigPath)
 	asserts.Error(err)
 
 	// Passing an invalid yaml file to create a resource
 	// should return an error
-	file = SECRET_INVALID
+	file = SecretInvalid
 	err = CreateOrUpdateResourceFromFileInCluster(file, kubeConfigPath)
 	asserts.Error(err)
 
@@ -164,7 +164,7 @@ func TestCreateOrUpdateResourceFromFileInCluster(t *testing.T) {
 // Given a yaml file, create the resource in the provided namespace
 func TestCreateOrUpdateResourceFromFileInGeneratedNamespace(t *testing.T) {
 	asserts := assert.New(t)
-	file := SECRET
+	file := Secret
 
 	server := newServer()
 	defer server.Close()
@@ -200,7 +200,7 @@ func TestCreateOrUpdateResourceFromFileInGeneratedNamespace(t *testing.T) {
 // Given an invalid yaml file and the kubeconfig path, return an error
 func TestCreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(t *testing.T) {
 	asserts := assert.New(t)
-	file := SECRET_NO_NAMESPACE
+	file := SecretNoNamespace
 
 	server := newServer()
 	defer server.Close()
@@ -218,7 +218,7 @@ func TestCreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(t *testing.
 	err = CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file, kubeConfigPath, "test")
 	asserts.Error(err)
 
-	file = SECRET_INVALID
+	file = SecretInvalid
 	err = CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file, kubeConfigPath, "default")
 	asserts.Error(err)
 
@@ -230,7 +230,7 @@ func TestCreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(t *testing.
 // Given a yaml file, delete the resource
 func TestDeleteResourceFromFile(t *testing.T) {
 	asserts := assert.New(t)
-	file := SECRET
+	file := Secret
 
 	server := newServer()
 	defer server.Close()
@@ -265,7 +265,7 @@ func TestDeleteResourceFromFile(t *testing.T) {
 // Given an invalid yaml and the kubeconfig path, return an error
 func TestDeleteResourceFromFileInCluster(t *testing.T) {
 	asserts := assert.New(t)
-	file := SECRET
+	file := Secret
 
 	server := newServer()
 	defer server.Close()
@@ -281,11 +281,11 @@ func TestDeleteResourceFromFileInCluster(t *testing.T) {
 	err = DeleteResourceFromFileInCluster(file, kubeConfigPath)
 	asserts.NoError(err)
 
-	file = SECRET_BAD_NAMESPACE
+	file = SecretBadNamespace
 	err = DeleteResourceFromFileInCluster(file, kubeConfigPath)
 	asserts.Error(err)
 
-	file = SECRET_INVALID
+	file = SecretInvalid
 	err = DeleteResourceFromFileInCluster(file, kubeConfigPath)
 	asserts.Error(err)
 
@@ -300,7 +300,7 @@ func TestDeleteResourceFromFileInCluster(t *testing.T) {
 // Given an invalid yaml file, return an error
 func TestDeleteResourceFromFileInClusterInGeneratedNamespace(t *testing.T) {
 	asserts := assert.New(t)
-	file := SECRET_NO_NAMESPACE
+	file := SecretNoNamespace
 
 	server := newServer()
 	defer server.Close()
@@ -318,7 +318,7 @@ func TestDeleteResourceFromFileInClusterInGeneratedNamespace(t *testing.T) {
 	err = DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeConfigPath, "test")
 	asserts.Error(err)
 
-	file = SECRET_INVALID
+	file = SecretInvalid
 	err = DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeConfigPath, "default")
 	asserts.Error(err)
 
@@ -331,7 +331,7 @@ func TestDeleteResourceFromFileInClusterInGeneratedNamespace(t *testing.T) {
 // Given an invalid yaml file, return an error
 func TestPatchResourceFromFileInCluster(t *testing.T) {
 	asserts := assert.New(t)
-	file := SECRET
+	file := Secret
 
 	server := newServer()
 	defer server.Close()
@@ -348,7 +348,7 @@ func TestPatchResourceFromFileInCluster(t *testing.T) {
 	err = PatchResourceFromFileInCluster(gvr, "default", "test-secret", file, kubeConfigPath)
 	asserts.Error(err)
 
-	file = SECRET_INVALID
+	file = SecretInvalid
 	err = PatchResourceFromFileInCluster(gvr, "default", "test-secret", file, kubeConfigPath)
 	asserts.Error(err)
 
