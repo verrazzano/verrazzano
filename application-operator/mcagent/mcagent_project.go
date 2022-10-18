@@ -42,7 +42,7 @@ func (s *Syncer) syncVerrazzanoProjects() error {
 				vpLocal := clustersv1alpha1.VerrazzanoProject{}
 				err := s.LocalClient.Get(s.Context, types.NamespacedName{Namespace: vp.Namespace, Name: vp.Name}, &vpLocal)
 				if err == nil {
-					s.Log.Debugf("Deleting VerrazzanoProject %q from namespace %q because it is no longer targetted at this cluster", vp.Name, vp.Namespace)
+					s.Log.Debugf("Deleting VerrazzanoProject %q from namespace %q because it is no longer targeted at this cluster", vp.Name, vp.Namespace)
 					err2 := s.LocalClient.Delete(s.Context, &vpLocal)
 					if err2 != nil {
 						s.Log.Errorf("failed to delete VerrazzanoProject with name %q and namespace %q: %v", vp.Name, vp.Namespace, err2)

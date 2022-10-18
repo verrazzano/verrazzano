@@ -90,7 +90,7 @@ func TestUpgrade(t *testing.T) {
 		PreUpgradeFunc:          fakePreUpgrade,
 	}
 
-	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
 	fakeOverrides = []string{
 		"rancherImage=ghcr.io/verrazzano/rancher",
 		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
@@ -193,7 +193,7 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 	_ = os.Setenv(constants.ImageRepoOverrideEnvVar, "myrepo")
 	defer func() { _ = os.Unsetenv(constants.ImageRepoOverrideEnvVar) }()
 
-	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
 	fakeOverrides = []string{
 		"rancherImage=myreg.io/myrepo/verrazzano/rancher",
 		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
@@ -231,7 +231,7 @@ func TestInstall(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
 	fakeOverrides = []string{
 		"rancherImage=ghcr.io/verrazzano/rancher",
 		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
@@ -279,7 +279,7 @@ func TestInstallWithAllOverride(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
 	fakeOverrides = []string{
 		"rancherImage=ghcr.io/verrazzano/rancher",
 		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
@@ -325,7 +325,7 @@ func TestInstallPreviousFailure(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
 	fakeOverrides = []string{
 		"rancherImage=ghcr.io/verrazzano/rancher",
 		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
