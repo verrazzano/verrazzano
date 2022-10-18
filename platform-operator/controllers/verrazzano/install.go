@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
@@ -141,9 +142,9 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 
 		case vzStatePostInstall:
 			if !preUpgrade {
-				//if err := rancher.ConfigureAuthProviders(spiCtx); err != nil {
-				//	return ctrl.Result{Requeue: true}, err
-				//}
+				if err := rancher.ConfigureAuthProviders(spiCtx); err != nil {
+					return ctrl.Result{Requeue: true}, err
+				}
 			}
 			tracker.vzState = vzStateReconcileEnd
 		}
