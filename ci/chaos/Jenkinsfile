@@ -323,7 +323,8 @@ pipeline {
 
                     else
                         echo "Upgrading VPO to this commit version"
-                        ${GO_REPO_PATH}/vz upgrade --operator-file ${WORKSPACE}/upgrade-test-operator.yaml
+                        VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
+                        ${GO_REPO_PATH}/vz upgrade --operator-file ${WORKSPACE}/upgrade-test-operator.yaml --version VERRAZZANO_DEV_VERSION
                     fi
 
 
