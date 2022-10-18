@@ -63,15 +63,17 @@ const (
 	initDbScript          = `#!/bin/sh
 
 if [[ $HOSTNAME == *-0 ]]; then
-   IsVPO="${VPO_MANAGED:-false}"
+   IsRestore="${DB_RESTORE:-false}"
    rootPassword="${MYSQL_ROOT_PASSWORD}"
-   if [[ $IsVPO == true ]]; then
-      mysql -u root -p${rootPassword} << EOF
+   mysql -u root -p${rootPassword} << EOF
 CREATE USER IF NOT EXISTS keycloak IDENTIFIED BY '%s';
 CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
-USE keycloak;
 GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO '%s'@'%%';
 FLUSH PRIVILEGES;
+EOF
+   if [[ $IsRestore == false ]]; then
+      mysql -u root -p${rootPassword} << EOF
+USE keycloak;
 CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
   ID varchar(255) NOT NULL,
   AUTHOR varchar(255) NOT NULL,
