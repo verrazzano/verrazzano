@@ -21,6 +21,7 @@ import (
 )
 
 var testScheme = runtime.NewScheme()
+var replicas int32
 
 func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)
@@ -176,6 +177,8 @@ func TestIsGrafanaReady(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, nil, false)
 			assert.Equal(t, tt.expectTrue, isGrafanaReady(ctx))
+			ctx = spi.NewFakeContext(tt.client, &vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{Grafana: &vzapi.GrafanaComponent{Replicas: &replicas}}}}, nil, false)
+			assert.Equal(t, true, isGrafanaReady(ctx))
 		})
 	}
 }
