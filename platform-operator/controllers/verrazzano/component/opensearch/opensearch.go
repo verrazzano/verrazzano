@@ -151,7 +151,8 @@ func fixupElasticSearchReplicaCount(ctx spi.ComponentContext, namespace string) 
 	}
 
 	// Wait for an Elasticsearch (i.e., label app=system-es-master) pod with container (i.e. es-master) to be ready.
-	pods, err := waitForPodsWithReadyContainer(ctx.Client(), containerName, clipkg.MatchingLabels{"app": workloadName}, clipkg.InNamespace(namespace))
+	ctx.Log().Info("Marco Debug: about to call waitForPodsWithReadyContainer")
+	pods, err := waitForPodsWithReadyContainer(ctx, ctx.Client(), containerName, clipkg.MatchingLabels{"app": workloadName}, clipkg.InNamespace(namespace))
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed getting the Elasticsearch pods during post-upgrade: %v", err)
 	}
@@ -228,16 +229,20 @@ func getPodsWithReadyContainer(client clipkg.Client, containerName string, podSe
 	return pods, err
 }
 
-func waitForPodsWithReadyContainer(client clipkg.Client, containerName string, podSelectors ...clipkg.ListOption) ([]corev1.Pod, error) {
+func waitForPodsWithReadyContainer(ctx spi.ComponentContext, client clipkg.Client, containerName string, podSelectors ...clipkg.ListOption) ([]corev1.Pod, error) {
+	ctx.Log().Info("Marco Debug: entering waitForPodsWithReadyContainer")
 	pods, err := getPodsWithReadyContainer(client, containerName, podSelectors...)
 	// If there is an error, then return a RetryableError
 	if err != nil {
+		ctx.Log().Info("Marco Debug: returning RetryableError")
 		return nil, ctrlerrors.RetryableError{}
 	}
 	// When there is no error, and positive number of pods which have containers in Ready state
 	if len(pods) > 0 {
+		ctx.Log().Info("Marco Debug: success - returning ready pod(s)")
 		return pods, nil
 	}
 	// Default condition. This will probably not be hit.
+	ctx.Log().Info("Marco Debug: default condition - no error and no ready pods")
 	return nil, nil
 }
