@@ -741,6 +741,24 @@
           ]
         }
       ]
+    },
+    {
+      "name": "argocd",
+      "version": "latest",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "argocd",
+          "images": [
+            {
+              "image": "argocd",
+              "tag": "latest",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
     }
   ],
   "supportedKubernetesVersions": [

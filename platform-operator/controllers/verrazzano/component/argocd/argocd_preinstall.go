@@ -5,23 +5,15 @@ package argocd
 
 import (
 	"context"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-func isUsingDefaultCACertificate(cm *vzapi.CertManagerComponent) bool {
-	return cm != nil &&
-		cm.Certificate.CA != vzapi.CA{} &&
-		cm.Certificate.CA.SecretName == defaultVerrazzanoName &&
-		cm.Certificate.CA.ClusterResourceNamespace == defaultSecretNamespace
-}
 
 // copyDefaultCACertificate copies the defaultVerrazzanoName TLS Secret to the ComponentNamespace for use by Argo CD
 // This method will only copy defaultVerrazzanoName if default CA certificates are being used.
@@ -38,7 +30,7 @@ func copyDefaultCACertificate(log vzlog.VerrazzanoLogger, c client.Client, vz *v
 		}
 		argoCDCaSecret := &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: common.ArgoCDNamespace,
+				Namespace: constants.ArgoCDNamespace,
 				Name:      argoCDTLSSecretName,
 			},
 		}
@@ -54,4 +46,11 @@ func copyDefaultCACertificate(log vzlog.VerrazzanoLogger, c client.Client, vz *v
 	}
 
 	return nil
+}
+
+func isUsingDefaultCACertificate(cm *vzapi.CertManagerComponent) bool {
+	return cm != nil &&
+		cm.Certificate.CA != vzapi.CA{} &&
+		cm.Certificate.CA.SecretName == defaultVerrazzanoName &&
+		cm.Certificate.CA.ClusterResourceNamespace == defaultSecretNamespace
 }

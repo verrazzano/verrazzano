@@ -541,6 +541,38 @@ func TestIsVeleroEnabled(t *testing.T) {
 		}}))
 }
 
+// TestIsArgoCDEnabled tests the IsArgoCDEnabled function
+// GIVEN a call to IsArgoCDEnabled
+//
+//	THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
+func TestIsArgoCDEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.True(IsArgoCDEnabled(nil))
+	asserts.True(IsArgoCDEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.True(IsArgoCDEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ArgoCD: &vzapi.ArgoCDComponent{},
+			},
+		}}))
+	asserts.True(IsArgoCDEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ArgoCD: &vzapi.ArgoCDComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsArgoCDEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ArgoCD: &vzapi.ArgoCDComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
 func TestIsComponentEnabled(t *testing.T) {
 	var tests = []struct {
 		name      string

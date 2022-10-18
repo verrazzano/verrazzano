@@ -5,6 +5,7 @@ package namespace
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -178,6 +179,16 @@ func TestCreateRancherNamespace(t *testing.T) {
 	runNamespaceTest(t, globalconst.RancherSystemNamespace,
 		createVzLabels(globalconst.RancherSystemNamespace),
 		CreateRancherNamespace)
+}
+
+// TestCreateArgoCDNamespace tests the CreateArgoCDNamespace function
+// GIVEN a call to CreateArgoCDNamespace
+// WHEN no error occurs
+// THEN no error is returned, the namespace is created, and the proper labels have been added
+func TestCreateArgoCDNamespace2(t *testing.T) {
+	runNamespaceTestWithIstioFlag(t, constants.ArgoCDNamespace,
+		createVZAndIstioLabels(constants.ArgoCDNamespace),
+		CreateArgoCDNamespace)
 }
 
 // TestCreateVerrazzanoMultiClusterNamespace tests the CreateVerrazzanoMultiClusterNamespace function

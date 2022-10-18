@@ -4,12 +4,10 @@
 package common
 
 // ArgoCD HTTPS Configuration
+
 const (
 	// ArgoCDName is the name of the component
-	ArgoCDName = "argocd"
-	// ArgoCDNamespace is the namespace of the component
-	ArgoCDNamespace     = "argocd"
+	ArgoCDName          = "argocd"
 	ArgoCDIngressCAName = "tls-argo-ingress"
-	ArgoCDAdminSecret   = "argocd-admin-secret"
 	ArgoCDCACert        = "ca.crt"
 )

@@ -28,7 +28,7 @@ import (
 const ComponentName = common.ArgoCDName
 
 // ComponentNamespace is the namespace of the component
-const ComponentNamespace = common.ArgoCDNamespace
+const ComponentNamespace = constants.ArgoCDNamespace
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "argocd"
@@ -67,6 +67,21 @@ func NewComponent() spi.Component {
 			GetInstallOverridesFunc: GetOverrides,
 		},
 	}
+}
+
+// PreInstall
+/* Copy TLS certificates for ArgoCD if using the default Verrazzano CA
+- Create additional LetsEncrypt TLS certificates for ArgoCD if using LE
+*/
+func (r argoCDComponent) PreInstall(ctx spi.ComponentContext) error {
+	vz := ctx.EffectiveCR()
+	c := ctx.Client()
+	log := ctx.Log()
+	if err := copyDefaultCACertificate(log, c, vz); err != nil {
+		log.ErrorfThrottledNewErr("Failed copying default CA certificate: %s", err.Error())
+		return err
+	}
+	return nil
 }
 
 // AppendOverrides set the ArgoCD overrides for Helm

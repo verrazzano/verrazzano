@@ -74,18 +74,6 @@ func getTestLogger(t *testing.T) vzlog.VerrazzanoLogger {
 	return vzlog.DefaultLogger()
 }
 
-func createRootCASecret() v1.Secret {
-	return v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: common.ArgoCDNamespace,
-			Name:      common.ArgoCDIngressCAName,
-		},
-		Data: map[string][]byte{
-			common.ArgoCDCACert: []byte("blahblah"),
-		},
-	}
-}
-
 func createCASecret() v1.Secret {
 	return v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
