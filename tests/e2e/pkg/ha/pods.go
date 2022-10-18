@@ -51,7 +51,14 @@ func IsPodReadyOrCompleted(pod corev1.Pod) bool {
 				return false
 			}
 		}
-		return true
+		for _, c := range pod.Status.Conditions {
+			if c.Type == corev1.PodReady {
+				if c.Status == corev1.ConditionTrue {
+					return true
+				}
+			}
+		}
+		return false
 	default:
 		return false
 	}
