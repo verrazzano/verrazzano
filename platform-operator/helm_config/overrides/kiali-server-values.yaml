@@ -26,14 +26,6 @@ kubernetes_config:
   - "DeploymentConfig"
   - "ReplicationController"
 
-external_services:
-  prometheus:
-    url: http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:9090
-  grafana:
-    enabled: false
-  tracing:
-    enabled: false
-
 server:
   web_root: ""
 
