@@ -4,9 +4,8 @@
 package config
 
 import (
-	"path/filepath"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 )
@@ -193,9 +192,9 @@ func GetDefaultBOMFilePath() string {
 }
 
 func GetInjectedSystemNamespaces() []string {
-	return []string{constants.VerrazzanoSystemNamespace, constants.VerrazzanoMonitoringNamespace, constants.IngressNginxNamespace}
+	return []string{constants.VerrazzanoSystemNamespace, constants.VerrazzanoMonitoringNamespace, constants.IngressNginxNamespace, constants.KeycloakNamespace}
 }
 
 func GetNoInjectionComponents() []string {
-	return []string{"coherence-operator", "oam-kubernetes-runtime", "verrazzano-application-operator", constants.KeycloakNamespace}
+	return []string{"coherence-operator", "oam-kubernetes-runtime", "verrazzano-application-operator"}
 }
