@@ -50,7 +50,7 @@ const (
 	istioTestAnnotationValue = "value-i"
 	newReplicas              = 3
 	nginxLBShapeValue        = "flexible"
-	istioLBShapeValue        = "10Mbps"
+	istioLBShapeValue        = "flexible"
 )
 
 var testNginxIngressPorts = []corev1.ServicePort{

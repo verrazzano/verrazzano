@@ -68,7 +68,7 @@ rm -rf ${KUBECONFIG_DIR}/*
 
 # check available resources
 check_for_resources VCN vcn vcn-count $REQUIRED_VNC_COUNT
-check_for_resources LB load-balancer lb-100mbps-count $REQUIRED_LB_COUNT
+check_for_resources LB load-balancer lb-flexible-count $REQUIRED_LB_COUNT
 
 cd ${SCRIPT_DIR}/terraform/cluster
 

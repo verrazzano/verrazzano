@@ -31,14 +31,14 @@ import (
 //
 // The last segment of the name might be a quoted string, for example:
 //
-//	controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape" : 10Mbps
+//	controller.service.annotations."service\.beta\.kubernetes\.io/oci-load-balancer-shape" : flexible
 //
 // which translates to
 //
 //	controller:
 //	  service:
 //	    annotations:
-//	      service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
+//	      service.beta.kubernetes.io/oci-load-balancer-shape: flexible
 //
 // If forcelist is true then always use the list format.
 func Expand(leftMargin int, forceList bool, name string, vals ...string) (string, error) {

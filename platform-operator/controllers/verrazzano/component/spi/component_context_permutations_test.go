@@ -355,7 +355,7 @@ var prodIngressIstioOverrides = v1alpha1.Verrazzano{
 		Components: v1alpha1.ComponentSpec{
 			Ingress: &v1alpha1.IngressNginxComponent{
 				NGINXInstallArgs: []v1alpha1.InstallArgs{
-					{Name: "controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"", Value: "10Mbps"},
+					{Name: "controller.service.annotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"", Value: "flexible"},
 					{Name: "controller.service.externalTrafficPolicy", Value: "Local"},
 					{Name: "controller.service.externalIPs", ValueList: []string{"11.22.33.44"}},
 				},
@@ -366,7 +366,7 @@ var prodIngressIstioOverrides = v1alpha1.Verrazzano{
 			},
 			Istio: &v1alpha1.IstioComponent{
 				IstioInstallArgs: []v1alpha1.InstallArgs{
-					{Name: "gateways.istio-ingressgateway.serviceAnnotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"", Value: "10Mbps"},
+					{Name: "gateways.istio-ingressgateway.serviceAnnotations.\"service\\.beta\\.kubernetes\\.io/oci-load-balancer-shape\"", Value: "flexible"},
 					{Name: "gateways.istio-ingressgateway.replicaCount", Value: "3"},
 					{Name: "gateways.istio-ingressgateway.externalIPs", ValueList: []string{"11.22.33.44"}},
 				},

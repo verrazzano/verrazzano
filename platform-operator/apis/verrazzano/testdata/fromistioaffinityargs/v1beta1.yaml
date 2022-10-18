@@ -64,7 +64,7 @@ spec:
                 gateways:
                   istio-ingressgateway:
                     serviceAnnotations:
-                      service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
+                      service.beta.kubernetes.io/oci-load-balancer-shape: flexible
                 global:
                   defaultPodDisruptionBudget:
                     enabled: false

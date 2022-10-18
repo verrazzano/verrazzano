@@ -61,7 +61,7 @@ oci ce cluster list --compartment-id=${TF_VAR_compartment_id} --region=${TF_VAR_
 
 # check available resources
 check_for_resources VCN vcn vcn-count 1
-check_for_resources LB load-balancer lb-100mbps-count 2
+check_for_resources LB load-balancer lb-flexible-count 2
 
 echo 'Install OKE...'
 echo 'Create cluster...'
