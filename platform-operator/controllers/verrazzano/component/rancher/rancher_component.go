@@ -334,6 +334,14 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
+func (r rancherComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = r.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", r.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", r.Name()), false
+}
+
 // PostInstall
 /* Additional setup for Rancher after the component is installed
 - Create the Rancher admin secret if it does not already exist

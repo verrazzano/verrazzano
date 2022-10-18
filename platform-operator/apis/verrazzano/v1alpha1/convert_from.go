@@ -31,6 +31,7 @@ func (in *Verrazzano) ConvertFrom(srcRaw conversion.Hub) error {
 	in.Status.Conditions = convertConditionsFromV1Beta1(src.Status.Conditions)
 	in.Status.Components = convertComponentStatusMapFromV1Beta1(src.Status.Components)
 	in.Status.VerrazzanoInstance = convertVerrazzanoInstanceFromV1Beta1(src.Status.VerrazzanoInstance)
+	in.Status.Available = src.Status.Available
 	return nil
 }
 
@@ -69,6 +70,7 @@ func convertComponentStatusMapFromV1Beta1(components v1beta1.ComponentStatusMap)
 				Name:                     detail.Name,
 				Conditions:               convertConditionsFromV1Beta1(detail.Conditions),
 				State:                    CompStateType(detail.State),
+				Available:                detail.Available,
 				Version:                  detail.Version,
 				LastReconciledGeneration: detail.LastReconciledGeneration,
 				ReconcilingGeneration:    detail.ReconcilingGeneration,
