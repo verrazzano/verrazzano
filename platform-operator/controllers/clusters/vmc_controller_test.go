@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -26,7 +26,6 @@ import (
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
-	k8net "k8s.io/api/networking/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -156,7 +155,7 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -226,7 +225,7 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -296,7 +295,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -368,7 +367,7 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -438,7 +437,7 @@ func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -520,7 +519,7 @@ scrape_configs:
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -601,7 +600,7 @@ scrape_configs:
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -672,7 +671,7 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -705,7 +704,7 @@ func TestCreateVMCSyncSvcAccountFailed(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results - there should have been an error returned for failing to sync svc account
 	mocker.Finish()
@@ -741,7 +740,7 @@ func TestCreateVMCSyncRoleBindingFailed(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results - there should have been an error returned
 	mocker.Finish()
@@ -859,7 +858,7 @@ func TestDeleteVMC(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, testManagedCluster)
 	reconciler := newVMCReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -919,7 +918,7 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 	// Expect a call to get the Rancher ingress and return no spec rules, which will cause registration to fail
 	mock.EXPECT().
 		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *k8net.Ingress) error {
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress) error {
 			return nil
 		})
 
@@ -976,7 +975,7 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 	// Expect a call to get the ingress host name but there are no ingress rules
 	mock.EXPECT().
 		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *k8net.Ingress) error {
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress) error {
 			return nil
 		})
 
@@ -995,8 +994,8 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 	// Expect a call to get the ingress host name
 	mock.EXPECT().
 		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *k8net.Ingress) error {
-			rule := k8net.IngressRule{Host: "rancher.unit-test.com"}
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress) error {
+			rule := networkingv1.IngressRule{Host: "rancher.unit-test.com"}
 			ingress.Spec.Rules = append(ingress.Spec.Rules, rule)
 			return nil
 		})
@@ -1040,7 +1039,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	mockRequestSender.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := ioutil.NopCloser(bytes.NewReader([]byte{}))
+			r := io.NopCloser(bytes.NewReader([]byte{}))
 			resp := &http.Response{
 				StatusCode: http.StatusUnauthorized,
 				Body:       r,
@@ -1070,7 +1069,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	mockRequestSender.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
@@ -1083,7 +1082,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	mockRequestSender.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := ioutil.NopCloser(bytes.NewReader([]byte{}))
+			r := io.NopCloser(bytes.NewReader([]byte{}))
 			resp := &http.Response{
 				StatusCode: http.StatusConflict,
 				Body:       r,
@@ -1116,7 +1115,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	mockRequestSender.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
@@ -1129,7 +1128,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	mockRequestSender.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"id":"some-cluster"}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"id":"some-cluster"}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
@@ -1141,7 +1140,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	mockRequestSender.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterRegTokenPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := ioutil.NopCloser(bytes.NewReader([]byte{}))
+			r := io.NopCloser(bytes.NewReader([]byte{}))
 			resp := &http.Response{
 				StatusCode: http.StatusBadRequest,
 				Body:       r,
@@ -1174,7 +1173,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	mockRequestSender.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
@@ -1187,7 +1186,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	mockRequestSender.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"id":"some-cluster"}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"id":"some-cluster"}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
@@ -1199,7 +1198,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	mockRequestSender.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterRegTokenPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"token":"manifest-token"}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"manifest-token"}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
@@ -1212,7 +1211,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	mockRequestSender.EXPECT().
 		Do(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := ioutil.NopCloser(bytes.NewReader([]byte{}))
+			r := io.NopCloser(bytes.NewReader([]byte{}))
 			resp := &http.Response{
 				StatusCode: http.StatusUnsupportedMediaType,
 				Body:       r,
@@ -1268,7 +1267,7 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 	mockRequestSender.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := ioutil.NopCloser(bytes.NewReader([]byte{}))
+			r := io.NopCloser(bytes.NewReader([]byte{}))
 			resp := &http.Response{
 				StatusCode: http.StatusInternalServerError,
 				Body:       r,
@@ -1544,14 +1543,14 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 	if !externalES {
 		mock.EXPECT().
 			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: vmiIngest}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *k8net.Ingress) error {
+			DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *networkingv1.Ingress) error {
 				ingress.TypeMeta = metav1.TypeMeta{
 					APIVersion: "networking.k8s.io/v1",
 					Kind:       "ingress"}
 				ingress.ObjectMeta = metav1.ObjectMeta{
 					Namespace: name.Namespace,
 					Name:      name.Name}
-				ingress.Spec.Rules = []k8net.IngressRule{{
+				ingress.Spec.Rules = []networkingv1.IngressRule{{
 					Host: "vz-testhost",
 				}}
 				return nil
@@ -1602,7 +1601,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			ingress.ObjectMeta = metav1.ObjectMeta{
 				Namespace: name.Namespace,
 				Name:      name.Name}
-			ingress.Spec.Rules = []k8net.IngressRule{{
+			ingress.Spec.Rules = []networkingv1.IngressRule{{
 				Host: "keycloak",
 			}}
 			return nil
@@ -1835,8 +1834,8 @@ func expectRancherConfigK8sCalls(t *testing.T, k8sMock *mocks.MockClient) {
 	// Expect a call to get the ingress host name
 	k8sMock.EXPECT().
 		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *k8net.Ingress) error {
-			rule := k8net.IngressRule{Host: "rancher.unit-test.com"}
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress) error {
+			rule := networkingv1.IngressRule{Host: "rancher.unit-test.com"}
 			ingress.Spec.Rules = append(ingress.Spec.Rules, rule)
 			return nil
 		})
@@ -1882,7 +1881,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 				asserts.Equal(clusterPath, req.URL.Path)
 
 				var resp *http.Response
-				r := ioutil.NopCloser(bytes.NewReader([]byte(`{"id":"` + unitTestRancherClusterID + `"}`)))
+				r := io.NopCloser(bytes.NewReader([]byte(`{"id":"` + unitTestRancherClusterID + `"}`)))
 				resp = &http.Response{
 					StatusCode: http.StatusCreated,
 					Body:       r,
@@ -1900,7 +1899,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 			asserts.Equal(clusterRegTokenPath, req.URL.Path)
 
 			// assert that the cluster ID in the request body is what we expect
-			body, err := ioutil.ReadAll(req.Body)
+			body, err := io.ReadAll(req.Body)
 			asserts.NoError(err)
 			jsonString, err := gabs.ParseJSON(body)
 			asserts.NoError(err)
@@ -1909,7 +1908,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 			asserts.Equal(unitTestRancherClusterID, clusterID)
 
 			// return a response with the manifest token
-			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"token":"` + manifestToken + `"}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"` + manifestToken + `"}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
@@ -1924,7 +1923,7 @@ func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			asserts.Equal(manifestPath+manifestToken+"_"+unitTestRancherClusterID+".yaml", req.URL.Path)
 
-			r := ioutil.NopCloser(bytes.NewReader([]byte(rancherManifestYAML)))
+			r := io.NopCloser(bytes.NewReader([]byte(rancherManifestYAML)))
 			resp := &http.Response{
 				StatusCode: http.StatusOK,
 				Body:       r,
@@ -1943,7 +1942,7 @@ func expectRancherGetAdminTokenHTTPCall(t *testing.T, requestSenderMock *mocks.M
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			asserts.Equal(loginQueryString, req.URL.RawQuery)
 
-			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusCreated,
 				Body:       r,
@@ -1963,7 +1962,7 @@ func expectSyncCACertRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.Moc
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(fetchClusterPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 
-			r := ioutil.NopCloser(bytes.NewReader([]byte(`{"state":"active","agentImage":"test-image:1.0.0"}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"state":"active","agentImage":"test-image:1.0.0"}`)))
 			resp := &http.Response{
 				StatusCode: http.StatusOK,
 				Body:       r,
@@ -1977,7 +1976,7 @@ func expectSyncCACertRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.Moc
 	requestSenderMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(managedClusterAdditionalTLSCAPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := ioutil.NopCloser(bytes.NewReader([]byte{}))
+			r := io.NopCloser(bytes.NewReader([]byte{}))
 			resp := &http.Response{
 				StatusCode: http.StatusNotFound,
 				Body:       r,
@@ -1995,7 +1994,7 @@ func expectSyncCACertRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.Moc
 			if len(caCertSecretData) == 0 {
 				statusCode = http.StatusNotFound
 			}
-			r := ioutil.NopCloser(bytes.NewReader([]byte(caCertSecretData)))
+			r := io.NopCloser(bytes.NewReader([]byte(caCertSecretData)))
 			resp := &http.Response{
 				StatusCode: statusCode,
 				Body:       r,

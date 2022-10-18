@@ -5,12 +5,11 @@ def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
 def SKIP_TRIGGERED_TESTS = false
 def SUSPECT_LIST = ""
-def SCAN_IMAGE_PATCH_OPERATOR = false
 def VERRAZZANO_DEV_VERSION = ""
 def tarfilePrefix=""
 def storeLocation=""
 
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 
 pipeline {
     options {
@@ -63,12 +62,6 @@ pipeline {
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
         DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
-        DOCKER_IMAGE_PATCH_CI_IMAGE_NAME = 'verrazzano-image-patch-operator-jenkins'
-        DOCKER_IMAGE_PATCH_PUBLISH_IMAGE_NAME = 'verrazzano-image-patch-operator'
-        DOCKER_IMAGE_PATCH_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_IMAGE_PATCH_PUBLISH_IMAGE_NAME : env.DOCKER_IMAGE_PATCH_CI_IMAGE_NAME}"
-        DOCKER_WIT_CI_IMAGE_NAME = 'verrazzano-weblogic-image-tool-jenkins'
-        DOCKER_WIT_PUBLISH_IMAGE_NAME = 'verrazzano-weblogic-image-tool'
-        DOCKER_WIT_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_WIT_PUBLISH_IMAGE_NAME : env.DOCKER_WIT_CI_IMAGE_NAME}"
         DOCKER_OAM_CI_IMAGE_NAME = 'verrazzano-application-operator-jenkins'
         DOCKER_OAM_PUBLISH_IMAGE_NAME = 'verrazzano-application-operator'
         DOCKER_OAM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_OAM_PUBLISH_IMAGE_NAME : env.DOCKER_OAM_CI_IMAGE_NAME}"
@@ -259,27 +252,12 @@ pipeline {
                     }
                 }
 
-                stage('Quality and Compliance Checks') {
-                    when { not { buildingTag() } }
-                    steps {
-                        qualityCheck()
-                        thirdpartyCheck()
-                    }
-                    post {
-                        failure {
-                            script {
-                                SKIP_TRIGGERED_TESTS = true
-                            }
-                        }
-                    }
-                }
-
-                stage('Unit Tests') {
+                stage('Quality, Compliance Checks, and Unit Tests') {
                     when { not { buildingTag() } }
                     steps {
                         sh """
                     cd ${GO_REPO_PATH}/verrazzano
-                    make -B coverage
+                    make precommit
                 """
                     }
                     post {
@@ -306,7 +284,7 @@ pipeline {
                                     failNoReports: true,
                                     onlyStable: false,
                                     fileCoverageTargets: '100, 0, 0',
-                                    lineCoverageTargets: '75, 75, 75',
+                                    lineCoverageTargets: '68, 68, 68',
                                     packageCoverageTargets: '100, 0, 0',
                             )
                         }
@@ -314,31 +292,6 @@ pipeline {
                 }
             }
 
-        }
-
-        stage('Image Patch Operator') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    changeset "image-patch-operator/**"
-                }
-            }
-            steps {
-                buildImagePatchOperator("${DOCKER_IMAGE_TAG}")
-                buildWITImage("${DOCKER_IMAGE_TAG}")
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                success {
-                    script {
-                        SCAN_IMAGE_PATCH_OPERATOR = true
-                    }
-                }
-            }
         }
 
         stage('Scan Image') {
@@ -352,9 +305,6 @@ pipeline {
                 script {
                     scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                     scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    if (SCAN_IMAGE_PATCH_OPERATOR == true) {
-                        scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_PATCH_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    }
                 }
             }
             post {
@@ -619,7 +569,6 @@ def checkRepoClean() {
         echo 'Check for forgotten manifest/generate actions...'
         (cd platform-operator; make check-repo-clean)
         (cd application-operator; make check-repo-clean)
-        (cd image-patch-operator; make check-repo-clean)
     """
 }
 
@@ -636,23 +585,6 @@ def buildImages(dockerImageTag) {
     """
 }
 
-// Called in Stage Image Patch Operator
-// Makes target docker-push-ipo
-def buildImagePatchOperator(dockerImageTag) {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano
-        make docker-push-ipo VERRAZZANO_IMAGE_PATCH_OPERATOR_IMAGE_NAME=${DOCKER_IMAGE_PATCH_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
-    """
-}
-
-// Called in Stage Image Patch Operator
-def buildWITImage(dockerImageTag) {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano
-        make docker-push-wit VERRAZZANO_WEBLOGIC_IMAGE_TOOL_IMAGE_NAME=${DOCKER_WIT_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
-    """
-}
-
 // Called in Stage Generate operator.yaml steps
 def generateOperatorYaml(dockerImageTag) {
     sh """
@@ -665,22 +597,6 @@ def generateOperatorYaml(dockerImageTag) {
                 export IMAGE_PULL_SECRETS=verrazzano-container-registry
         esac
         DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} OPERATOR_YAML=$WORKSPACE/generated-operator.yaml make generate-operator-yaml
-    """
-}
-
-// Called in Stage Quality and Compliance Checks steps
-// Makes target check to run all linters
-def qualityCheck() {
-    sh """
-        echo "run all linters"
-        cd ${GO_REPO_PATH}/verrazzano
-        make check check-tests
-
-        echo "copyright scan"
-        time make copyright-check
-        ./ci/scripts/check_if_clean_after_generate.sh
-
-        echo "Third party license check"
     """
 }
 

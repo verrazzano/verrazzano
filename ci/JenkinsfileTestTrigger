@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-def agentLabel = env.JOB_NAME.contains('master') ? "phxsmall" : "VM.Standard2.2"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
 
 pipeline {
     options {
@@ -67,7 +67,6 @@ pipeline {
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
-        KUBERNETES_VERSION = '1.20,1.21,1.22,1.23,1.24'
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
@@ -158,7 +157,6 @@ pipeline {
                             script {
                                 build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        booleanParam(name: 'UPGRADE_VERRAZZANO', value: false),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -292,32 +290,13 @@ pipeline {
                         }
                     }
                 }
-                stage('Kind Acceptance Tests on 1.20') {
-                    steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
-                                    ], wait: true
-                            }
-                        }
-                    }
-                }
                 stage('Kind No Istio Injection Tests') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
                                 build job: "/verrazzano-no-injection-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.20'),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),

@@ -8,11 +8,11 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	pcons "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"time"
 )
 
@@ -38,7 +38,7 @@ var _ = t.AfterSuite(func() {
 	start := time.Now()
 	gomega.Eventually(func() bool {
 		return ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
-	}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
+	}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
 })
 
 var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
@@ -47,7 +47,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			start := time.Now()
 			gomega.Eventually(func() bool {
 				return ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
-			}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
+			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
 		})
 	})
 
@@ -79,7 +79,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			start := time.Now()
 			gomega.Eventually(func() bool {
 				return ValidateDaemonset(opensearchURL, extEsSec, "")
-			}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", opensearchURL, time.Since(start)))
+			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", opensearchURL, time.Since(start)))
 
 			//Update CR using v1beta1 API client.
 			gomega.Expect(ValidateUpdateV1beta1(v1beta1Modifier, "")).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", ""))
@@ -87,7 +87,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			start = time.Now()
 			gomega.Eventually(func() bool {
 				return ValidateDaemonsetV1beta1(opensearchURLV1beta1, extEsSec, "")
-			}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", opensearchURLV1beta1, time.Since(start)))
+			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", opensearchURLV1beta1, time.Since(start)))
 		})
 	})
 
@@ -119,11 +119,11 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			start := time.Now()
 			gomega.Eventually(func() bool {
 				return ValidateDaemonset("", "", ociLgSec)
-			}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", "", time.Since(start)))
+			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", "", time.Since(start)))
 
 			gomega.Eventually(func() bool {
 				return ValidateConfigMap(sysLogID, defLogID)
-			}, oneMinute, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("ConfigMap %s is not ready", fluentdName+"-config"))
+			}, shortWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("ConfigMap %s is not ready", fluentdName+"-config"))
 
 		})
 	})
@@ -149,7 +149,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			start := time.Now()
 			gomega.Eventually(func() bool {
 				return ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "", vm)
-			}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
+			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
 		})
 	})
 })

@@ -30,10 +30,6 @@ coverageTmp.cov
 coverage.html
 coverage.xml
 coverage.raw.cov
-platform-operator/test/integ/integ*result.xml
-platform-operator/test/integ/integ.coverprofile
-application-operator/test/integ/integ*result.xml
-application-operator/test/integ/integ.coverprofile
 out/
 **/test-report.xml
 **/*test-result.xml
@@ -41,13 +37,10 @@ out/
 **/*.log
 platform-operator/THIRD_PARTY_LICENSES.txt
 application-operator/THIRD_PARTY_LICENSES.txt
-image-patch-operator/THIRD_PARTY_LICENSES.txt
-image-patch-operator/weblogic-imagetool/THIRD_PARTY_LICENSES.txt
-image-patch-operator/weblogic-imagetool/installers/*
-!image-patch-operator/weblogic-imagetool/installers/.gitkeep
 tools/analysis/THIRD_PARTY_LICENSES.txt
 tests/e2e/**/*.test
 **/.DS_Store
 **/.vscode
 ATTRIBUTION-HELPER-DEPS
 **/.terraform
+tools/vz/cmd/bugreport/bug-report.tar.gz

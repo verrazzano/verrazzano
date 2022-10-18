@@ -8,16 +8,16 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // HelmManagedResource provides an object type and name for a resource managed within a helm chart
 type HelmManagedResource struct {
-	Obj            controllerutil.Object
+	Obj            clipkg.Object
 	NamespacedName types.NamespacedName
 }
 
-//AssociateHelmObject annotates an object as being managed by the specified release helm chart
+// AssociateHelmObject annotates an object as being managed by the specified release Helm chart
+// If the object was already associated with a different Helm release (e.g verrazzano), then that relationship will be broken
 func AssociateHelmObject(cli clipkg.Client, obj clipkg.Object, releaseName types.NamespacedName, namespacedName types.NamespacedName, keepResource bool) (clipkg.Object, error) {
 	if err := cli.Get(context.TODO(), namespacedName, obj); err != nil {
 		if errors.IsNotFound(err) {
@@ -33,6 +33,7 @@ func AssociateHelmObject(cli clipkg.Client, obj clipkg.Object, releaseName types
 	annotations["meta.helm.sh/release-name"] = releaseName.Name
 	annotations["meta.helm.sh/release-namespace"] = releaseName.Namespace
 	if keepResource {
+		// Specify "keep" so that resource doesn't get deleted when we change the release name
 		annotations["helm.sh/resource-policy"] = "keep"
 	}
 	obj.SetAnnotations(annotations)

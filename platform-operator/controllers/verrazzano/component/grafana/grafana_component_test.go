@@ -223,7 +223,7 @@ func TestPreInstall(t *testing.T) {
 	// GIVEN Verrazzano is being installed
 	// WHEN the Grafana component PreInstall function is called
 	// THEN the function succeeds and the Grafana admin secret has been created
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -246,7 +246,7 @@ func TestPreUpgrade(t *testing.T) {
 	// GIVEN Verrazzano is being upgraded
 	// WHEN the Grafana component PreUpgrade function is called
 	// THEN the function succeeds and the Grafana admin secret has been created
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -283,7 +283,7 @@ func TestUpgrade(t *testing.T) {
 
 // testInstallOrUpgrade tests both the Grafana component Install and Update functions
 func testInstallOrUpgrade(t *testing.T, installOrUpgradeFunc func(spi.ComponentContext) error) {
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{

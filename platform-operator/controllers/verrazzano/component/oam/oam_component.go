@@ -5,6 +5,7 @@ package oam
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
@@ -44,7 +45,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "oam-kubernetes-runtime-values.yaml"),
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
-			Dependencies:              []string{},
+			Dependencies:              []string{networkpolicies.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}

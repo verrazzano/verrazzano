@@ -13,7 +13,7 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
+	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -232,10 +232,10 @@ func IsCRReadyAfterUpdate(cr *vzapi.Verrazzano, updatedTime time.Time) bool {
 		pkg.Log(pkg.Info, fmt.Sprintf("Checking if condition of type '%s', transitioned at '%s' is for the expected update",
 			condition.Type, condition.LastTransitionTime))
 		if (condition.Type == vzapi.CondInstallComplete || condition.Type == vzapi.CondUpgradeComplete) && condition.Status == corev1.ConditionTrue {
-			// check if the transistion time is post the time of update
+			// check if the transition time is post the time of update
 			transitionTime, err := time.Parse(time.RFC3339, condition.LastTransitionTime)
 			if err != nil {
-				pkg.Log(pkg.Error, "Unable to parse the transistion time '"+condition.LastTransitionTime+"'")
+				pkg.Log(pkg.Error, "Unable to parse the transition time '"+condition.LastTransitionTime+"'")
 				return false
 			}
 			if transitionTime.After(updatedTime) {

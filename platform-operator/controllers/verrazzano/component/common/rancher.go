@@ -6,8 +6,10 @@ package common
 import (
 	"context"
 	"crypto/x509"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -85,7 +87,7 @@ func CertPool(certs ...[]byte) *x509.CertPool {
 	return certPool
 }
 
-//GetRancherMgmtAPIGVKForKind returns a management.cattle.io/v3 GroupVersionKind structure for specified kind
+// GetRancherMgmtAPIGVKForKind returns a management.cattle.io/v3 GroupVersionKind structure for specified kind
 func GetRancherMgmtAPIGVKForKind(kind string) schema.GroupVersionKind {
 	return schema.GroupVersionKind{
 		Group:   APIGroupRancherManagement,
@@ -94,7 +96,7 @@ func GetRancherMgmtAPIGVKForKind(kind string) schema.GroupVersionKind {
 	}
 }
 
-//UpdateKeycloakOIDCAuthConfig updates the keycloakoidc AuthConfig CR with specified attributes
+// UpdateKeycloakOIDCAuthConfig updates the keycloakoidc AuthConfig CR with specified attributes
 func UpdateKeycloakOIDCAuthConfig(ctx spi.ComponentContext, attributes map[string]interface{}) error {
 	log := ctx.Log()
 	c := ctx.Client()
@@ -103,7 +105,12 @@ func UpdateKeycloakOIDCAuthConfig(ctx spi.ComponentContext, attributes map[strin
 	keycloakAuthConfigName := types.NamespacedName{Name: AuthConfigKeycloak}
 	err := c.Get(context.Background(), keycloakAuthConfigName, &keycloakAuthConfig)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher, unable to fetch keycloak authConfig: %s", err.Error())
+		if errors.IsNotFound(err) {
+			log.Progressf("Rancher component is waiting for Keycloak authConfig to exist")
+			return ctrlerrors.RetryableError{}
+		}
+		return log.ErrorfThrottledNewErr("Failed to fetch Keycloak authConfig: %v", err.Error())
+
 	}
 
 	authConfig := keycloakAuthConfig.UnstructuredContent()
@@ -112,7 +119,7 @@ func UpdateKeycloakOIDCAuthConfig(ctx spi.ComponentContext, attributes map[strin
 	}
 	err = c.Update(context.Background(), &keycloakAuthConfig, &client.UpdateOptions{})
 	if err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring keycloak as OIDC provider for rancher: %s", err.Error())
+		return log.ErrorfThrottledNewErr("failed configuring Keycloak as OIDC provider for rancher: %s", err.Error())
 	}
 
 	return nil

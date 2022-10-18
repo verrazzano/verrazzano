@@ -231,8 +231,9 @@ func TestExternalDNSPreInstall3InvalidScope(t *testing.T) {
 
 // TestOwnerIDTextPrefix_HelmValueExists tests the getOrBuildIDs and getOrBuildTXTRecordPrefix functions
 // GIVEN calls to getOrBuildIDs and getOrBuildTXTRecordPrefix
-//  WHEN a valid helm release and namespace are deployed and the txtOwnerId and txtPrefix values exist in the release values
-//  THEN the function returns the stored helm values and no error
+//
+//	WHEN a valid helm release and namespace are deployed and the txtOwnerId and txtPrefix values exist in the release values
+//	THEN the function returns the stored helm values and no error
 func TestOwnerIDTextPrefix_HelmValueExists(t *testing.T) {
 	jsonOut := []byte(`
 {
@@ -264,7 +265,7 @@ func TestOwnerIDTextPrefix_HelmValueExists(t *testing.T) {
 	localvz.UID = "uid"
 	localvz.Spec.Components.DNS.OCI = oci
 
-	client := fake.NewFakeClientWithScheme(testScheme, localvz)
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz).Build()
 	compContext := spi.NewFakeContext(client, vz, nil, false)
 
 	ids, err := getOrBuildIDs(compContext, ComponentName, ComponentNamespace)
@@ -278,8 +279,9 @@ func TestOwnerIDTextPrefix_HelmValueExists(t *testing.T) {
 
 // TestOwnerIDTextPrefix_NoHelmValueExists tests the getOrBuildIDs and getOrBuildTXTRecordPrefix functions
 // GIVEN calls to getOrBuildIDs and getOrBuildTXTRecordPrefix
-//  WHEN no stored helm values exist
-//  THEN the function returns the generated values and no error
+//
+//	WHEN no stored helm values exist
+//	THEN the function returns the generated values and no error
 func Test_getOrBuildOwnerID_NoHelmValueExists(t *testing.T) {
 	helm.SetCmdRunner(genericTestRunner{
 		stdOut: []byte(""),

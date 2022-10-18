@@ -28,6 +28,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
@@ -84,6 +85,7 @@ const (
 	fluentdMetricName              metricName = fluentd.ComponentName
 	veleroMetricName               metricName = velero.ComponentName
 	rancherBackupMetricName        metricName = rancherbackup.ComponentName
+	networkpoliciesMetricName      metricName = networkpolicies.ComponentName
 )
 
 func init() {
@@ -91,7 +93,7 @@ func init() {
 	RegisterMetrics(zap.S())
 }
 
-// This function initalizes the metrics object, but does not register the metrics
+// This function initializes the metrics object, but does not register the metrics
 func RequiredInitialization() {
 	MetricsExp = MetricsExporter{
 		internalConfig: initConfiguration(),
@@ -105,7 +107,7 @@ func RequiredInitialization() {
 
 }
 
-//This function begins the process of registering metrics
+// This function begins the process of registering metrics
 func RegisterMetrics(log *zap.SugaredLogger) {
 	InitializeAllMetricsArray()
 	go registerMetricsHandlers(log)
@@ -130,7 +132,7 @@ func newMetricsComponent(name string) *MetricsComponent {
 	}
 }
 
-//This function initalizes the simpleCounterMetricMap for the metricsExporter object
+// This function initializes the simpleCounterMetricMap for the metricsExporter object
 func initSimpleCounterMetricMap() map[metricName]*SimpleCounterMetric {
 	return map[metricName]*SimpleCounterMetric{
 		ReconcileCounter: {
@@ -148,7 +150,7 @@ func initSimpleCounterMetricMap() map[metricName]*SimpleCounterMetric {
 	}
 }
 
-// This function initalizes the metricComponentMap for the metricsExporter object
+// This function initializes the metricComponentMap for the metricsExporter object
 func initMetricComponentMap() map[metricName]*MetricsComponent {
 	return map[metricName]*MetricsComponent{
 		authproxyMetricName:            newMetricsComponent("authproxy"),
@@ -180,15 +182,16 @@ func initMetricComponentMap() map[metricName]*MetricsComponent {
 		fluentdMetricName:              newMetricsComponent("fluentd"),
 		veleroMetricName:               newMetricsComponent("velero"),
 		rancherBackupMetricName:        newMetricsComponent("rancher-backup"),
+		networkpoliciesMetricName:      newMetricsComponent("networkpolicies"),
 	}
 }
 
-// This function initalizes the simpleGaugeMetricMap for the metricsExporter object
+// This function initializes the simpleGaugeMetricMap for the metricsExporter object
 func initSimpleGaugeMetricMap() map[metricName]*SimpleGaugeMetric {
 	return map[metricName]*SimpleGaugeMetric{}
 }
 
-// This function initalizes the durationMetricMap for the metricsExporter object
+// This function initializes the durationMetricMap for the metricsExporter object
 func initDurationMetricMap() map[metricName]*DurationMetric {
 	return map[metricName]*DurationMetric{
 		ReconcileDuration: {
@@ -267,7 +270,7 @@ func registerMetricsHandlers(log *zap.SugaredLogger) {
 	}
 }
 
-// This function initalizes the failedMetrics array
+// This function initializes the failedMetrics array
 func initializeFailedMetricsArray() {
 	for i, metric := range MetricsExp.internalConfig.allMetrics {
 		MetricsExp.internalConfig.failedMetrics[metric] = i
@@ -278,8 +281,11 @@ func initializeFailedMetricsArray() {
 func StartMetricsServer(log *zap.SugaredLogger) {
 	go wait.Until(func() {
 		http.Handle("/metrics", promhttp.Handler())
-		err := http.ListenAndServe(":9100", nil)
-		if err != nil {
+		server := &http.Server{
+			Addr:              ":9100",
+			ReadHeaderTimeout: 3 * time.Second,
+		}
+		if err := server.ListenAndServe(); err != nil {
 			log.Errorf("Failed to start metrics server for verrazzano-platform-operator: %v", err)
 		}
 	}, time.Second*3, wait.NeverStop)
@@ -316,7 +322,7 @@ func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verra
 	}
 }
 
-// This function initalizes the allMetrics array
+// This function initializes the allMetrics array
 func InitializeAllMetricsArray() {
 	//loop through all metrics declarations in metric maps
 	for _, value := range MetricsExp.internalData.simpleCounterMetricMap {

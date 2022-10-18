@@ -4,8 +4,13 @@
 package helm
 
 import (
+	ctx "context"
 	"fmt"
+	"helm.sh/helm/v3/pkg/release"
+	v1 "k8s.io/api/core/v1"
 	"os"
+	"sort"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -14,7 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
-	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/yaml"
@@ -24,7 +29,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -221,11 +225,11 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 	}
 
 	// Does the Helm installed app_version number match the chart?
-	chartInfo, err := helmcli.GetChartInfo(h.ChartDir)
+	chartInfo, err := helm.GetChartInfo(h.ChartDir)
 	if err != nil {
 		return false
 	}
-	releaseAppVersion, err := helmcli.GetReleaseAppVersion(h.ReleaseName, h.ChartNamespace)
+	releaseAppVersion, err := helm.GetReleaseAppVersion(h.ReleaseName, h.ChartNamespace)
 	if err != nil {
 		return false
 	}
@@ -309,6 +313,14 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
+	releaseStatus, err := helm.GetReleaseStatus(context.Log(), h.ReleaseName, h.ChartNamespace)
+	if err != nil {
+		context.Log().ErrorfThrottledNewErr("Error getting release status for %s", h.ReleaseName)
+	} else if releaseStatus != release.StatusDeployed.String() && releaseStatus != release.StatusUninstalled.String() {
+		// When Helm release status not in [deployed, uninstalled], cleanup the secret
+		cleanupLatestSecret(context, h, true)
+	}
+
 	if h.PreInstallFunc != nil {
 		err := h.PreInstallFunc(context, h.ReleaseName, h.resolveNamespace(context), h.ChartDir)
 		if err != nil {
@@ -316,6 +328,44 @@ func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 		}
 	}
 	return nil
+}
+
+// cleanupLatestSecret cleans up any Helm secrets that are left over from a previous operation which was interrupted by a VPO restart
+// This deletes the latest secret that matches the release if the helm release status is not deployed or uninstalled
+// If this is not vz install, do not delete the secret revision 1
+func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent, isInstall bool) {
+	secretList := &v1.SecretList{}
+	context.Client().List(ctx.TODO(), secretList, &clipkg.ListOptions{
+		Namespace: h.ChartNamespace,
+	})
+
+	filteredHelmSecrets := []v1.Secret{}
+	for _, eachSecret := range secretList.Items {
+		if eachSecret.Type == "helm.sh/release.v1" && strings.Contains(eachSecret.Name, "sh.helm.release.v1."+h.ReleaseName+".") {
+			// Filter only helm release type secrets with matching releaseName
+			filteredHelmSecrets = append(filteredHelmSecrets, eachSecret)
+		}
+	}
+
+	// Return when no secrets match found
+	if len(filteredHelmSecrets) == 0 {
+		return
+	}
+
+	// Sort the secrets based on CreationTimeStamp, latest ones first
+	sort.Slice(filteredHelmSecrets, func(i, j int) bool {
+		return (filteredHelmSecrets[i].CreationTimestamp.Time).After(filteredHelmSecrets[j].CreationTimestamp.Time)
+	})
+
+	// Return when there is only one secret AND it's not preinstall
+	if len(filteredHelmSecrets) == 1 && !isInstall {
+		return
+	}
+
+	context.Log().Progressf("Deleting secret %s", filteredHelmSecrets[0])
+	if err := context.Client().Delete(ctx.TODO(), &filteredHelmSecrets[0]); err != nil {
+		context.Log().Errorf("Error deleting secret %s", filteredHelmSecrets[0])
+	}
 }
 
 func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
@@ -327,14 +377,14 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 
 	// If the component has any ingresses associated, those should be present
 	prefix := fmt.Sprintf("Component %s", h.Name())
-	if !status.IngressesPresent(context.Log(), context.Client(), h.GetIngressNames(context), prefix) {
+	if !ready.IngressesPresent(context.Log(), context.Client(), h.GetIngressNames(context), prefix) {
 		return ctrlerrors.RetryableError{
 			Source:    h.ReleaseName,
 			Operation: "Check if Ingresses are present",
 		}
 	}
 
-	if readyStatus, certsNotReady := status.CertificatesAreReady(context.Client(), context.Log(), context.EffectiveCR(), h.Certificates); !readyStatus {
+	if readyStatus, certsNotReady := ready.CertificatesAreReady(context.Client(), context.Log(), context.EffectiveCR(), h.Certificates); !readyStatus {
 		context.Log().Progressf("Certificates not ready for component %s: %v", h.ReleaseName, certsNotReady)
 		return ctrlerrors.RetryableError{
 			Source:    h.ReleaseName,
@@ -345,7 +395,16 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 	return nil
 }
 
-func (h HelmComponent) PreUninstall(_ spi.ComponentContext) error {
+func (h HelmComponent) PreUninstall(context spi.ComponentContext) error {
+	releaseStatus, err := helm.GetReleaseStatus(context.Log(), h.ReleaseName, h.ChartNamespace)
+	if err != nil {
+		context.Log().ErrorfThrottledNewErr("Error getting release status for %s", h.ReleaseName)
+	}
+	if releaseStatus == release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() {
+		// Return when Helm release status is in [deployed,uninstalled]
+		return nil
+	}
+	cleanupLatestSecret(context, h, false)
 	return nil
 }
 
@@ -358,7 +417,7 @@ func (h HelmComponent) Uninstall(context spi.ComponentContext) error {
 		context.Log().Infof("%s already uninstalled", h.Name())
 		return nil
 	}
-	_, stderr, err := helmcli.Uninstall(context.Log(), h.ReleaseName, h.resolveNamespace(context), context.IsDryRun())
+	_, stderr, err := helm.Uninstall(context.Log(), h.ReleaseName, h.resolveNamespace(context), context.IsDryRun())
 	if err != nil {
 		context.Log().Errorf("Error uninstalling %s, error: %s, stderr: %s", h.Name(), err.Error(), stderr)
 		return err
@@ -433,7 +492,17 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	return err
 }
 
-func (h HelmComponent) PreUpgrade(_ spi.ComponentContext) error {
+func (h HelmComponent) PreUpgrade(context spi.ComponentContext) error {
+	releaseStatus, err := helm.GetReleaseStatus(context.Log(), h.ReleaseName, h.ChartNamespace)
+	if err != nil {
+		context.Log().ErrorfThrottledNewErr("Error getting release status for %s", h.ReleaseName)
+		return err
+	}
+	if releaseStatus == release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() {
+		// Return when Helm release status is in [deployed,uninstalled]
+		return nil
+	}
+	cleanupLatestSecret(context, h, false)
 	return nil
 }
 

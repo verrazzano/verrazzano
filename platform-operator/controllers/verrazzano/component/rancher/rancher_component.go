@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -62,7 +64,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			Certificates:              certificates,
-			Dependencies:              []string{nginx.ComponentName, certmanager.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, certmanager.ComponentName},
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
@@ -74,7 +76,7 @@ func NewComponent() spi.Component {
 	}
 }
 
-//AppendOverrides set the Rancher overrides for Helm
+// AppendOverrides set the Rancher overrides for Helm
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	log := ctx.Log()
 	rancherHostName, err := getRancherHostname(ctx.Client(), ctx.EffectiveCR())
@@ -98,7 +100,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	return appendCAOverrides(log, kvs, ctx)
 }
 
-//appendRegistryOverrides appends overrides if a custom registry is being used
+// appendRegistryOverrides appends overrides if a custom registry is being used
 func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 	// If using external registry, add registry overrides to Rancher
 	registry := os.Getenv(constants.RegistryOverrideEnvVar)
@@ -118,7 +120,7 @@ func appendRegistryOverrides(kvs []bom.KeyValue) []bom.KeyValue {
 	return kvs
 }
 
-//appendCAOverrides sets overrides for CA Issuers, ACME or CA.
+// appendCAOverrides sets overrides for CA Issuers, ACME or CA.
 func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyValue, error) {
 	cm := ctx.EffectiveCR().Spec.Components.CertManager
 	if cm == nil {
@@ -206,7 +208,15 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-//Install
+// PreUpgrade
+/* Runs pre-upgrade steps
+- Scales down Rancher pods and deletes the ClusterRepo resources to work around Rancher upgrade issues (VZ-7053)
+*/
+func (r rancherComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	return chartsNotUpdatedWorkaround(ctx)
+}
+
+// Install
 /* Installs the Helm chart, and patches the resulting objects
 - ensure Helm chart is installed
 - Patch Rancher deployment with MKNOD capability
@@ -330,7 +340,7 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed helm component post upgrade: %s", err.Error())
 	}
 
-	return nil
+	return patchRancherIngress(c, ctx.EffectiveCR())
 }
 
 // activateDrivers activates the nodeDriver oci and oraclecontainerengine kontainerDriver
@@ -421,7 +431,7 @@ func isKeycloakAuthEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
-// configureUISettings configures Rancher setting ui-pl, ui-logo-light and ui-logo-dark.
+// configureUISettings configures Rancher setting ui-pl, ui-logo-light, ui-logo-dark, ui-primary-color and ui-link-color.
 func configureUISettings(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 	if err := createOrUpdateUIPlSetting(ctx); err != nil {
@@ -434,6 +444,10 @@ func configureUISettings(ctx spi.ComponentContext) error {
 
 	if err := createOrUpdateUILogoSetting(ctx, SettingUILogoDark, SettingUILogoDarkLogoFilePath); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo path %s: %s", SettingUILogoDark, SettingUILogoDarkLogoFilePath, err.Error())
+	}
+
+	if err := createOrUpdateUIColorSettings(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring ui color settings: %s", err.Error())
 	}
 
 	return nil

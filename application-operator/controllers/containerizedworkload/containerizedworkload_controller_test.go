@@ -6,7 +6,7 @@ package containerizedworkload
 import (
 	"context"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -90,7 +90,7 @@ func TestReconcileRestart(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-containerized-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *oamv1.ContainerizedWorkload) error {
-			assert.NoError(updateObjectFromYAMLTemplate(workload, "test/templates/containerized_workload_deployment.yaml", params))
+			assert.NoError(updateObjectFromYAMLTemplate(workload, "testdata/templates/containerized_workload_deployment.yaml", params))
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
 			return nil
@@ -120,7 +120,7 @@ func TestReconcileRestart(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(testNamespace, "test-verrazzano-containerized-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -137,7 +137,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := newRequest(vzconst.KubeSystem, "test-verrazzano-containerized-workload")
 	reconciler := newReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -186,11 +186,11 @@ func updateUnstructuredFromYAMLTemplate(uns *unstructured.Unstructured, template
 // template - The filename of a template
 // params - a vararg of param maps
 func readTemplate(template string, params ...map[string]string) (string, error) {
-	bytes, err := ioutil.ReadFile("../../" + template)
+	bytes, err := os.ReadFile("../../" + template)
 	if err != nil {
-		bytes, err = ioutil.ReadFile("../" + template)
+		bytes, err = os.ReadFile("../" + template)
 		if err != nil {
-			bytes, err = ioutil.ReadFile(template)
+			bytes, err = os.ReadFile(template)
 			if err != nil {
 				return "", err
 			}

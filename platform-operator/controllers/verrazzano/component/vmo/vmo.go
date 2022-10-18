@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/k8s/status"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -27,7 +27,7 @@ func isVMOReady(context spi.ComponentContext) bool {
 		},
 	}
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 // appendVMOOverrides appends overrides for the VMO component

@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 
 def listOfUpgradeJobs
 def upgradeJobsStageMapping
@@ -40,8 +40,12 @@ pipeline {
                 trim: true)
         choice (description: 'Predefined config permutations for Verrazzano installation. Prod profile is the default profile for NONE', name: 'VZ_INSTALL_CONFIG',
                 choices: ["NONE", "dev-kind-persistence"])
+        choice (name: 'KIND_CLUSTER_VERSION',
+                description: 'Kubernetes Version for KIND Cluster',
+                // 1st choice is the default value
+                choices: [ "1.21", "1.22", "1.23", "1.24" ])
         string (name: 'EXCLUDE_RELEASES',
-                defaultValue: "v1.0.0, v1.0.1, v1.0.2, v1.0.3, v1.0.4, v1.1.0",
+                defaultValue: "v1.0.0, v1.0.1, v1.0.2, v1.0.3, v1.0.4, v1.1.0, v1.1.1, v1.1.2",
                 description: 'This is to exclude the specified releases from upgrade tests.', trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',
@@ -75,7 +79,6 @@ pipeline {
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
-        KUBERNETES_VERSION = '1.20,1.21,1.22,1.23,1.24'
         OCI_CLI_AUTH="instance_principal"
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
@@ -224,7 +227,6 @@ def isPagerDutyEnabled() {
     }
     return false
 }
-
 
 // Called in Stage Clean workspace and checkout steps
 @NonCPS

@@ -7,12 +7,11 @@ import (
 	"context"
 	"fmt"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	pkgstatus "github.com/verrazzano/verrazzano/pkg/k8s/status"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -47,7 +46,7 @@ func doesOSExist(ctx spi.ComponentContext) bool {
 		Name:      esMasterStatefulset,
 		Namespace: ComponentNamespace,
 	}}
-	return status.DoStatefulSetsExist(ctx.Log(), ctx.Client(), sts, 1, prefix)
+	return ready.DoStatefulSetsExist(ctx.Log(), ctx.Client(), sts, 1, prefix)
 }
 
 // IsSingleDataNodeCluster returns true if there is exactly 1 or 0 data nodes
@@ -77,7 +76,7 @@ func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix s
 
 	// If a node has the master role, it is a statefulset
 	if hasRole(node.Roles, vmov1.MasterRole) {
-		return status.StatefulSetsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
+		return ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
 			Name:      nodeControllerName,
 			Namespace: ComponentNamespace,
 		}}, node.Replicas, prefix)
@@ -94,11 +93,11 @@ func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix s
 				Namespace: ComponentNamespace,
 			})
 		}
-		return pkgstatus.DeploymentsAreReady(ctx.Log(), ctx.Client(), dataDeployments, 1, prefix)
+		return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), dataDeployments, 1, prefix)
 	}
 
 	// Ingest nodes can be handled like normal deployments
-	return pkgstatus.DeploymentsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
 		Name:      nodeControllerName,
 		Namespace: ComponentNamespace,
 	}}, node.Replicas, prefix)
@@ -115,7 +114,7 @@ func hasRole(roles []vmov1.NodeRole, roleToHave vmov1.NodeRole) bool {
 
 // findESReplicas searches the ES install args to find the correct resources to search for in isReady
 func findESReplicas(ctx spi.ComponentContext, nodeType vmov1.NodeRole) int32 {
-	var replicas int32 = 0
+	var replicas int32
 	if vzconfig.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
 		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
 			for _, role := range node.Roles {

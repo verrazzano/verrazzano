@@ -6,8 +6,8 @@ package webhooks
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -39,8 +39,8 @@ func decoder() *admission.Decoder {
 
 // TestAppConfigDefaulterHandleError tests handling an invalid appconfig admission.Request
 // GIVEN a AppConfigDefaulter and an appconfig admission.Request
-//  WHEN Handle is called with an invalid admission.Request containing no content
-//  THEN Handle should return an error with http.StatusBadRequest
+// WHEN Handle is called with an invalid admission.Request containing no content
+// THEN Handle should return an error with http.StatusBadRequest
 func TestAppConfigDefaulterHandleError(t *testing.T) {
 
 	decoder := decoder()
@@ -54,8 +54,8 @@ func TestAppConfigDefaulterHandleError(t *testing.T) {
 
 // TestAppConfigDefaulterHandle tests handling an appconfig admission.Request
 // GIVEN a AppConfigDefaulter and an appconfig admission.Request
-//  WHEN Handle is called with an admission.Request containing appconfig
-//  THEN Handle should return a patch response
+// WHEN Handle is called with an admission.Request containing appconfig
+// THEN Handle should return a patch response
 func TestAppConfigDefaulterHandle(t *testing.T) {
 
 	decoder := decoder()
@@ -70,8 +70,8 @@ func TestAppConfigDefaulterHandle(t *testing.T) {
 
 // TestAppConfigWebhookHandleDelete tests handling an appconfig Delete admission.Request
 // GIVEN a AppConfigWebhook and an appconfig Delete admission.Request
-//  WHEN Handle is called with an admission.Request containing appconfig
-//  THEN Handle should return an Allowed response with no patch
+// WHEN Handle is called with an admission.Request containing appconfig
+// THEN Handle should return an Allowed response with no patch
 func TestAppConfigWebhookHandleDelete(t *testing.T) {
 
 	testAppConfigWebhookHandleDelete(t, true, true, false)
@@ -79,8 +79,8 @@ func TestAppConfigWebhookHandleDelete(t *testing.T) {
 
 // TestAppConfigWebhookHandleDeleteDryRun tests handling a dry run appconfig Delete admission.Request
 // GIVEN a AppConfigWebhook and an appconfig Delete admission.Request
-//  WHEN Handle is called with an admission.Request containing appconfig and set for a dry run
-//  THEN Handle should return an Allowed response with no patch
+// WHEN Handle is called with an admission.Request containing appconfig and set for a dry run
+// THEN Handle should return an Allowed response with no patch
 func TestAppConfigWebhookHandleDeleteDryRun(t *testing.T) {
 
 	testAppConfigWebhookHandleDelete(t, true, true, true)
@@ -88,8 +88,9 @@ func TestAppConfigWebhookHandleDeleteDryRun(t *testing.T) {
 
 // TestAppConfigWebhookHandleDeleteCertNotFound tests handling an appconfig Delete admission.Request where the app config cert is not found
 // GIVEN a AppConfigWebhook and an appconfig Delete admission.Request
-//  WHEN Handle is called with an admission.Request containing appconfig and the cert is not found
-//  THEN Handle should return an Allowed response with no patch
+//
+//	WHEN Handle is called with an admission.Request containing appconfig and the cert is not found
+//	THEN Handle should return an Allowed response with no patch
 func TestAppConfigWebhookHandleDeleteCertNotFound(t *testing.T) {
 
 	testAppConfigWebhookHandleDelete(t, false, true, false)
@@ -97,8 +98,9 @@ func TestAppConfigWebhookHandleDeleteCertNotFound(t *testing.T) {
 
 // TestAppConfigWebhookHandleDeleteSecretNotFound tests handling an appconfig Delete admission.Request where the app config secret is not found
 // GIVEN a AppConfigWebhook and an appconfig Delete admission.Request
-//  WHEN Handle is called with an admission.Request containing appconfig and the secret is not found
-//  THEN Handle should return an Allowed response with no patch
+//
+//	WHEN Handle is called with an admission.Request containing appconfig and the secret is not found
+//	THEN Handle should return an Allowed response with no patch
 func TestAppConfigWebhookHandleDeleteSecretNotFound(t *testing.T) {
 
 	testAppConfigWebhookHandleDelete(t, true, false, false)
@@ -106,8 +108,8 @@ func TestAppConfigWebhookHandleDeleteSecretNotFound(t *testing.T) {
 
 // TestAppConfigDefaulterHandleMarshalError tests handling an appconfig with json marshal error
 // GIVEN a AppConfigDefaulter with mock appconfigMarshalFunc
-//  WHEN Handle is called with an admission.Request containing appconfig
-//  THEN Handle should return error with http.StatusInternalServerError
+// WHEN Handle is called with an admission.Request containing appconfig
+// THEN Handle should return error with http.StatusInternalServerError
 func TestAppConfigDefaulterHandleMarshalError(t *testing.T) {
 
 	decoder := decoder()
@@ -136,8 +138,8 @@ func (*mockErrorDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguration, dr
 
 // TestAppConfigDefaulterHandleDefaultError tests handling a defaulter error
 // GIVEN a AppConfigDefaulter with mock defaulter
-//  WHEN Handle is called with an admission.Request containing appconfig
-//  THEN Handle should return error with http.StatusInternalServerError
+// WHEN Handle is called with an admission.Request containing appconfig
+// THEN Handle should return error with http.StatusInternalServerError
 func TestAppConfigDefaulterHandleDefaultError(t *testing.T) {
 
 	decoder := decoder()
@@ -202,7 +204,7 @@ func testAppConfigWebhookHandleDelete(t *testing.T, certFound, secretFound, dryR
 
 func readYaml2Json(t *testing.T, path string) []byte {
 	filename, _ := filepath.Abs(fmt.Sprintf("testdata/%s", path))
-	yamlBytes, err := ioutil.ReadFile(filename)
+	yamlBytes, err := os.ReadFile(filename)
 	if err != nil {
 		t.Fatalf("Error reading %v: %v", path, err)
 	}

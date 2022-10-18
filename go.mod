@@ -3,12 +3,12 @@
 
 module github.com/verrazzano/verrazzano
 
-go 1.17
+go 1.19
 
 require (
 	github.com/Jeffail/gabs/v2 v2.2.0
 	github.com/crossplane/crossplane-runtime v0.10.0
-	github.com/crossplane/oam-kubernetes-runtime v0.3.2
+	github.com/crossplane/oam-kubernetes-runtime v0.3.3
 	github.com/gertd/go-pluralize v0.1.7
 	github.com/go-logr/logr v1.2.3
 	github.com/gogo/protobuf v1.3.2
@@ -29,7 +29,8 @@ require (
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220810134448-c6e8df57abb2
 	go.uber.org/zap v1.21.0
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
-	golang.org/x/tools v0.1.10
+	golang.org/x/text v0.3.7
+	golang.org/x/tools v0.1.12
 	gopkg.in/yaml.v2 v2.4.0
 	helm.sh/helm/v3 v3.9.2
 	istio.io/api v0.0.0-20200911191701-0dc35ad5c478
@@ -130,13 +131,11 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
-	golang.org/x/net v0.0.0-20220617184016-355a448f1bc9 // indirect
+	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
 	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb // indirect
-	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
-	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
-	golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220519153652-3a47de7e79bd // indirect
@@ -162,7 +161,7 @@ require (
 )
 
 require (
-	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
+	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	sigs.k8s.io/kind v0.14.0
 )
 
@@ -175,7 +174,6 @@ replace (
 	github.com/spf13/cobra => github.com/spf13/cobra v1.1.1
 	github.com/stretchr/testify => github.com/stretchr/testify v1.7.1
 	golang.org/x/lint => golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
-	golang.org/x/tools => golang.org/x/tools v0.0.0-20210106214847-113979e3529a
 	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.11.2
 	sigs.k8s.io/kind => github.com/verrazzano/kind v0.14.1-0.20220901151917-d1f46433d223

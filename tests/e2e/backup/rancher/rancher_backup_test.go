@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	common "github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,8 +23,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
 const (
@@ -185,7 +185,7 @@ func PopulateRancherUsers(rancherURL string, n int) error {
 			return err
 		}
 		common.RancherUserNameList = append(common.RancherUserNameList, userName)
-		t.Logs.Infof("Sucessfully created rancher user %v", userName)
+		t.Logs.Infof("Successfully created rancher user %v", userName)
 	}
 
 	return nil
@@ -206,7 +206,7 @@ func DeleteRancherUsers(rancherURL string) bool {
 			t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
 			return false
 		}
-		t.Logs.Infof("Sucessfully deleted rancher user '%v' with id '%v' ", common.RancherUserNameList[i], common.RancherUserIDList[i])
+		t.Logs.Infof("Successfully deleted rancher user '%v' with id '%v' ", common.RancherUserNameList[i], common.RancherUserIDList[i])
 	}
 	return true
 }

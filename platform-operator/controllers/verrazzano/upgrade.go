@@ -6,26 +6,20 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
-
-	"k8s.io/apimachinery/pkg/selection"
-
-	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	kblabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	ctrl "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -225,7 +219,11 @@ func isLastCondition(st installv1alpha1.VerrazzanoStatus, conditionType installv
 // postVerrazzanoUpgrade restarts pods with old Istio sidecar proxies
 func postVerrazzanoUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, cr *installv1alpha1.Verrazzano) error {
 	log.Oncef("Checking if any pods with Istio sidecars need to be restarted to pick up the new version of the Istio proxy")
-	return istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), cr.Generation, istio.DoesPodContainOldIstioSidecar)
+	if err := istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), cr.Generation, istio.DoesPodContainOldIstioSidecar); err != nil {
+		return err
+	}
+	log.Oncef("MySQL post-upgrade cleanup")
+	return mysql.PostUpgradeCleanup(log, client)
 }
 
 // getTrackerKey gets the tracker key for the Verrazzano resource

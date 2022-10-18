@@ -28,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -56,7 +55,7 @@ func setWaitRetries(retries int) { uninstallWaitRetries = retries }
 func resetWaitRetries()          { uninstallWaitRetries = uninstallDefaultWaitRetries }
 
 var propagationPolicy = metav1.DeletePropagationBackground
-var deleteOptions = &clipkg.DeleteOptions{PropagationPolicy: &propagationPolicy}
+var deleteOptions = &client.DeleteOptions{PropagationPolicy: &propagationPolicy}
 
 var logsEnum = cmdhelpers.LogFormatSimple
 
@@ -169,7 +168,7 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 
 // cleanupResources deletes remaining resources that remain after the Verrazzano resource in uninstalled
 // Resources that fail to delete will log an error but will not return
-func cleanupResources(client clipkg.Client, vzHelper helpers.VZHelper) {
+func cleanupResources(client client.Client, vzHelper helpers.VZHelper) {
 	// Delete verrazzano-install namespace
 	err := deleteNamespace(client, constants.VerrazzanoInstall)
 	if err != nil {
@@ -177,7 +176,17 @@ func cleanupResources(client clipkg.Client, vzHelper helpers.VZHelper) {
 	}
 
 	// Delete other verrazzano resources
-	err = deleteWebhookConfiguration(client, constants.VerrazzanoPlatformOperator)
+	err = deleteWebhookConfiguration(client, constants.VerrazzanoPlatformOperatorWebhook)
+	if err != nil {
+		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+	}
+
+	err = deleteWebhookConfiguration(client, constants.VerrazzanoMysqlInstallValuesWebhook)
+	if err != nil {
+		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+	}
+
+	err = deleteMutatingWebhookConfiguration(client, constants.MysqlBackupMutatingWebhookName)
 	if err != nil {
 		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
 	}
@@ -380,7 +389,7 @@ func deleteNamespace(client client.Client, name string) error {
 }
 
 // deleteWebhookConfiguration deletes a given ValidatingWebhookConfiguration
-func deleteWebhookConfiguration(client clipkg.Client, name string) error {
+func deleteWebhookConfiguration(client client.Client, name string) error {
 	vwc := &adminv1.ValidatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -394,8 +403,23 @@ func deleteWebhookConfiguration(client clipkg.Client, name string) error {
 	return nil
 }
 
+// deleteMutatingWebhookConfiguration deletes a given MutatingWebhookConfiguration
+func deleteMutatingWebhookConfiguration(client client.Client, name string) error {
+	mwc := &adminv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+
+	err := client.Delete(context.TODO(), mwc, deleteOptions)
+	if err != nil && !errors.IsNotFound(err) {
+		return fmt.Errorf("Failed to delete MutatingWebhookConfiguration resource %s: %s", name, err.Error())
+	}
+	return nil
+}
+
 // deleteClusterRoleBinding deletes a given ClusterRoleBinding
-func deleteClusterRoleBinding(client clipkg.Client, name string) error {
+func deleteClusterRoleBinding(client client.Client, name string) error {
 	crb := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,

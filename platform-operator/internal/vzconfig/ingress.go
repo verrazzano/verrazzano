@@ -38,10 +38,17 @@ func FindVolumeTemplate(templateName string, object runtime.Object) (*v1.Persist
 }
 
 // GetWildcardDomain Get the wildcard domain from the Verrazzano config
-func GetWildcardDomain(dnsConfig *vzapi.DNSComponent) string {
+func GetWildcardDomain(DNS interface{}) string {
 	wildcardDomain := defaultWildcardDomain
-	if dnsConfig != nil && dnsConfig.Wildcard != nil && len(dnsConfig.Wildcard.Domain) > 0 {
-		wildcardDomain = dnsConfig.Wildcard.Domain
+	if dnsConfigv1alpha1, ok := DNS.(*vzapi.DNSComponent); ok {
+		if dnsConfigv1alpha1 != nil && dnsConfigv1alpha1.Wildcard != nil && len(dnsConfigv1alpha1.Wildcard.Domain) > 0 {
+			wildcardDomain = dnsConfigv1alpha1.Wildcard.Domain
+		}
+	}
+	if dnsConfigv1beta1, ok := DNS.(*v1beta1.DNSComponent); ok {
+		if dnsConfigv1beta1 != nil && dnsConfigv1beta1.Wildcard != nil && len(dnsConfigv1beta1.Wildcard.Domain) > 0 {
+			wildcardDomain = dnsConfigv1beta1.Wildcard.Domain
+		}
 	}
 	return wildcardDomain
 }
@@ -103,7 +110,7 @@ func BuildDNSDomain(client client.Client, vz *vzapi.Verrazzano) (string, error) 
 	return dnsDomain, nil
 }
 
-//GetIngressClassName gets the ingress class name or default of "nginx" if not specified
+// GetIngressClassName gets the ingress class name or default of "nginx" if not specified
 func GetIngressClassName(vz *vzapi.Verrazzano) string {
 	ingressComponent := vz.Spec.Components.Ingress
 	if ingressComponent != nil && ingressComponent.IngressClassName != nil && *ingressComponent.IngressClassName != "" {

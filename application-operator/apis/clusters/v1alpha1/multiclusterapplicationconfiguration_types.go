@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -35,7 +35,8 @@ type ApplicationConfigurationTemplate struct {
 // +kubebuilder:resource:shortName=mcappconf;mcappconfs
 // +kubebuilder:subresource:status
 
-// MultiClusterApplicationConfiguration is the Schema for the multiclusterapplicationconfigurations API
+// MultiClusterApplicationConfiguration enables customization of ApplicationConfigurations
+// for deployment to multiple clusters.
 type MultiClusterApplicationConfiguration struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

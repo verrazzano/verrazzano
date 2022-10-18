@@ -10,10 +10,10 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
 )
 
@@ -21,7 +21,7 @@ var (
 	t               = framework.NewTestFramework("update dns")
 	adminCluster    *multicluster.Cluster
 	managedClusters []*multicluster.Cluster
-	tenMinutes      = 10 * time.Minute
+	waitTimeout     = 10 * time.Minute
 	pollingInterval = 5 * time.Second
 )
 
@@ -62,13 +62,13 @@ var oldPromIngs = map[string]string{}
 func updateManagedClusterDNS() {
 	for _, managedCluster := range managedClusters {
 		var oldDNS = managedCluster.GetCR(true).Spec.Components.DNS
-		var newDNS *vzapi.DNSComponent = nil
+		var newDNS *vzapi.DNSComponent
 		if pkg.IsDefaultDNS(oldDNS) {
 			newDNS = &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: pkg.SslipDomain}}
 		}
 		oldPromIngs[managedCluster.Name] = managedCluster.GetPrometheusIngress()
 		m := &DNSModifier{DNS: newDNS}
-		update.RetryUpdate(m, managedCluster.KubeConfigPath, false, pollingInterval, tenMinutes)
+		update.RetryUpdate(m, managedCluster.KubeConfigPath, false, pollingInterval, waitTimeout)
 	}
 }
 func verifyPrometheusIngress() {
@@ -79,7 +79,7 @@ func verifyPrometheusIngress() {
 			newPromIng := managedCluster.GetPrometheusIngress()
 			pkg.Log(pkg.Info, fmt.Sprintf("Cluster %v PrometheusIngress updated %v from %v to %v for %v", managedCluster.Name, newPromIng != oldPromIng, oldPromIng, newPromIng, time.Since(start)))
 			return newPromIng != oldPromIng
-		}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("%s of %s is not updated for %v", oldPromIng, managedCluster.Name, time.Since(start)))
+		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("%s of %s is not updated for %v", oldPromIng, managedCluster.Name, time.Since(start)))
 	}
 }
 
@@ -101,7 +101,7 @@ func verifyScrapeTargets() {
 				return health.(string) == "up"
 			}
 			return false
-		}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("scrape target of %s is not ready", managedCluster.Name))
+		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("scrape target of %s is not ready", managedCluster.Name))
 	}
 }
 
@@ -128,7 +128,7 @@ func verifyRegistration() {
 			gomega.Eventually(func() bool {
 				reg, err := adminCluster.GetRegistration(managedCluster.Name)
 				return reg != nil && err == nil
-			}, tenMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("%s is not registered", managedCluster.Name))
+			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("%s is not registered", managedCluster.Name))
 		}
 	}
 }

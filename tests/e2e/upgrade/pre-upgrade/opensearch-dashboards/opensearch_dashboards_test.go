@@ -13,12 +13,12 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
 const (
-	threeMinutes                = 3 * time.Minute
+	waitTimeout                 = 3 * time.Minute
 	pollingInterval             = 10 * time.Second
 	oldPatternsTestDataFile     = "testdata/upgrade/opensearch-dashboards/old-index-patterns.txt"
 	updatedPatternsTestDataFile = "testdata/upgrade/opensearch-dashboards/updated-index-patterns.txt"
@@ -76,6 +76,6 @@ var _ = t.Describe("Pre Upgrade OpenSearch Dashboards Setup", Label("f:observabi
 				}
 			}
 			return true
-		}).WithPolling(pollingInterval).WithTimeout(threeMinutes).Should(BeTrue(), "Expected not to fail creation of index patterns")
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue(), "Expected not to fail creation of index patterns")
 	})
 })

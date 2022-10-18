@@ -7,9 +7,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"io/ioutil"
 	"k8s.io/apimachinery/pkg/runtime"
+	"os"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -45,7 +46,7 @@ const (
 
 var (
 	// For Unit test purposes
-	writeFileFunc = ioutil.WriteFile
+	writeFileFunc = os.WriteFile
 )
 
 // fluentdComponent represents an Fluentd component
@@ -69,7 +70,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    vzImagePullSecretKeyName,
 			AppendOverridesFunc:       appendOverrides,
-			Dependencies:              []string{},
+			Dependencies:              []string{networkpolicies.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 		},
 	}

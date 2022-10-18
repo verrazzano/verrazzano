@@ -11,7 +11,7 @@ def LAST_CLEAN_PERIODIC_COMMIT = ""
 def VERRAZZANO_DEV_VERSION = ""
 @Field
 def RELEASABLE_IMAGES_OBJECT_STORE = ""
-def agentLabel = env.JOB_NAME.contains('master') ? "phxsmall" : "VM.Standard2.2"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
 @Field
 def TESTS_FAILED = false
 @Field
@@ -157,7 +157,6 @@ pipeline {
                             script {
                                 build job: "/verrazzano-multi-cluster-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        booleanParam(name: 'UPGRADE_VERRAZZANO', value: false),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -252,18 +251,19 @@ pipeline {
                        }
                    }
                }
-                stage('Kind Acceptance Tests With Grafana DB on 1.23') {
+                stage('Kind Acceptance Tests With HA and Grafana DB on 1.24') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
                                 build job: "/verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.23'),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                         booleanParam(name: 'ENABLE_JWT_TESTING', value: true),
+                                        booleanParam(name: 'INSTALL_HA', value: true),
                                         booleanParam(name: 'USE_DB_FOR_GRAFANA', value: true)
                         ], wait: true
                             }
@@ -353,31 +353,42 @@ pipeline {
                             }
                     }
                 }
-                /*
                 stage('Upgrade Resiliency tests') {
                     steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "/verrazzano-upgrade-resiliency-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
-                                    ], wait: true
-                            }
+                        script {
+                            build job: "/verrazzano-upgrade-resiliency-tests/${CLEAN_BRANCH_NAME}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                ], wait: true
                         }
                     }
                 }
-                */
-                stage('Kind Acceptance Tests on 1.22 Non-Calico') {
+                stage('Uninstall Resiliency tests') {
+                    steps {
+                        script {
+                            build job: "/verrazzano-uninstall-resiliency-suite/${CLEAN_BRANCH_NAME}",
+                                parameters: [
+                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+                                ], wait: true
+                        }
+                    }
+                }
+                stage('Kind Acceptance Tests on 1.24 Non-Calico') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
                                 // Do not use Calico
                                 build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -395,14 +406,14 @@ pipeline {
                         }
                     }
                 }
-                stage('Kind Acceptance Tests on 1.22 sslip.io') {
+                stage('Kind Acceptance Tests on 1.24 sslip.io') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
                                 // test with sslip.io
                                 build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: 'sslip.io'),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -426,7 +437,7 @@ pipeline {
                             script {
                                 build job: "verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
@@ -496,7 +507,7 @@ pipeline {
                             script {
                                 def builtExamples = build job: "/verrazzano-examples/${CLEAN_BRANCH_NAME}",
                                     parameters: [
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
+                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),

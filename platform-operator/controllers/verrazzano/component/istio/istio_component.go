@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 	"strings"
 
@@ -13,8 +14,8 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	"github.com/verrazzano/verrazzano/pkg/k8s/status"
 	"github.com/verrazzano/verrazzano/pkg/k8s/webhook"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -396,7 +397,7 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 			Namespace: IstioNamespace,
 		},
 	}
-	ready := status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+	ready := ready.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 	if !ready {
 		return false
 	}
@@ -430,7 +431,7 @@ func isIstioManifestNotInstalledError(err error) bool {
 
 // GetDependencies returns the dependencies of this component
 func (i istioComponent) GetDependencies() []string {
-	return []string{}
+	return []string{networkpolicies.ComponentName}
 }
 
 func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {

@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"text/template"
 
@@ -16,7 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/pkg/k8s/status"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -42,7 +41,7 @@ import (
 
 var (
 	// For Unit test purposes
-	writeFileFunc              = ioutil.WriteFile
+	writeFileFunc              = os.WriteFile
 	getControllerRuntimeClient = getClient
 	disallowedOverrides        = []string{
 		"nameOverride",
@@ -54,7 +53,7 @@ var (
 )
 
 func resetWriteFileFunc() {
-	writeFileFunc = ioutil.WriteFile
+	writeFileFunc = os.WriteFile
 }
 
 const (
@@ -136,13 +135,13 @@ func isJaegerOperatorReady(ctx spi.ComponentContext) bool {
 		},
 	}
 	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
-	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }
 
 // isDefaultJaegerInstanceReady checks if the deployments of default Jaeger instance managed by VZ are in ready state
 func isDefaultJaegerInstanceReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
-	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), getJaegerComponentDeployments(), 1, prefix)
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), getJaegerComponentDeployments(), 1, prefix)
 }
 
 // PreInstall implementation for the Jaeger Operator Component
@@ -545,7 +544,7 @@ func ReassociateResources(cli clipkg.Client) error {
 
 func doDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
-	return status.DoDeploymentsExist(ctx.Log(), ctx.Client(), getJaegerComponentDeployments(), 1, prefix)
+	return ready.DoDeploymentsExist(ctx.Log(), ctx.Client(), getJaegerComponentDeployments(), 1, prefix)
 }
 
 // removeMutatingWebhookConfig removes the  jaeger-operator-mutating-webhook-configuration resource during the pre-upgrade
@@ -688,7 +687,7 @@ func GetHelmManagedResources() []common.HelmManagedResource {
 	}
 }
 
-//Remove old Jaeger resources such as Deployment, services, certs, and webhooks
+// Remove old Jaeger resources such as Deployment, services, certs, and webhooks
 func removeOldJaegerResources(ctx spi.ComponentContext) error {
 	if err := removeDeploymentAndService(ctx); err != nil {
 		return err

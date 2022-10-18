@@ -5,6 +5,7 @@ package multiclusterapplicationconfiguration
 
 import (
 	"context"
+	"errors"
 
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -44,6 +45,9 @@ const (
 // of the MultiClusterApplicationConfiguration to reflect the success or failure of the changes to
 // the embedded resource
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	if ctx == nil {
+		return ctrl.Result{}, errors.New("context cannot be nil")
+	}
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system
 	// This is due to a bug found in OKE, it should not affect functionality of any vz operators
@@ -54,9 +58,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return reconcile.Result{}, nil
 	}
 
-	if ctx == nil {
-		ctx = context.Background()
-	}
 	var mcAppConfig clustersv1alpha1.MultiClusterApplicationConfiguration
 	err := r.fetchMultiClusterAppConfig(ctx, req.NamespacedName, &mcAppConfig)
 	if err != nil {

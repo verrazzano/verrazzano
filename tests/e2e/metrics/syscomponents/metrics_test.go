@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -34,7 +34,7 @@ const (
 	vmoFunctionMetric              = "vmo_reconcile_total"
 	vmoCounterMetric               = "vmo_deployment_update_total"
 	vmoGaugeMetric                 = "vmo_work_queue_size"
-	vmoTimestampMetric             = "vmo_configmap_last_succesful_timestamp"
+	vmoTimestampMetric             = "vmo_configmap_last_successful_timestamp"
 	vaoSuccessCountMetric          = "vao_appconfig_successful_reconcile_total"
 	vaoFailCountMetric             = "vao_appconfig_error_reconcile_total"
 	vaoDurationCountMetric         = "vao_appconfig_reconcile_duration_count"
