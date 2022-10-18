@@ -379,8 +379,6 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	rootCASecret := createRootCASecret()
 	adminSecret := createAdminSecret()
 	rancherPodList := createRancherPodListWithAllRunning()
-	verrazzanoAdminClusterRole := createClusterRoles("verrazzano-admin")
-	verrazzanoMonitorClusterRole := createClusterRoles("verrazzano-monitor")
 
 	ingress := v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -421,19 +419,15 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	serverURLSetting := createServerURLSetting()
 	ociDriver := createOciDriver()
 	okeDriver := createOkeDriver()
-	authConfig := createKeycloakAuthConfig()
-	localAuthConfig := createLocalAuthConfig()
-	kcSecret := createKeycloakSecret()
-	firstLoginSetting := createFirstLoginSetting()
 	rancherPod := newPod("cattle-system", "rancher")
 	rancherPod.Status = corev1.PodStatus{
 		Phase: corev1.PodRunning,
 	}
 
-	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &serverURLSetting, &ociDriver, &okeDriver, &authConfig, &kcIngress, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, rancherPod).Build()
+	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &serverURLSetting, &ociDriver, &okeDriver, &kcIngress, rancherPod).Build()
 	ctxWithoutIngress := spi.NewFakeContext(clientWithoutIngress, &vzDefaultCA, nil, false)
 
-	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert, &serverURLSetting, &ociDriver, &okeDriver, &authConfig, &kcIngress, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, rancherPod).Build()
+	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert, &serverURLSetting, &ociDriver, &okeDriver, &kcIngress, rancherPod).Build()
 	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, nil, false)
 	// mock the pod executor when resetting the Rancher admin password
 	scheme.Scheme.AddKnownTypes(schema.GroupVersion{Group: "", Version: "v1"}, &corev1.PodExecOptions{})
@@ -441,18 +435,6 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {
 		var commands []string
 		if commands = url.Query()["command"]; len(commands) == 3 {
-			if strings.Contains(commands[2], "id,clientId") {
-				return "[{\"id\":\"something\", \"clientId\":\"" + AuthConfigKeycloakClientIDRancher + "\"}]", "", nil
-			}
-
-			if strings.Contains(commands[2], "client-secret") {
-				return "{\"type\":\"secret\",\"value\":\"abcdef\"}", "", nil
-			}
-
-			if strings.Contains(commands[2], "get users") {
-				return "[{\"id\":\"something\", \"username\":\"verrazzano\"}]", "", nil
-			}
-
 			if strings.Contains(commands[2], fmt.Sprintf("cat %s", SettingUILogoDarkLogoFilePath)) {
 				return "dark", "", nil
 			}
