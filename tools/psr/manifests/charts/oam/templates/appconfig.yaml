@@ -4,13 +4,14 @@
 apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
-  name: backend-appconf
+  name: {{ .Release.Name}}
+  namespace: {{ .Release.Namespace }}
   annotations:
     version: v1.0.0
     description: "PSR backend application"
 spec:
   components:
-    - componentName: backend-component
+    - componentName: {{ .Release.Name}}
       traits:
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
