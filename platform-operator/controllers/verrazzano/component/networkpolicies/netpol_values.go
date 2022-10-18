@@ -17,6 +17,7 @@ type chartValues struct {
 	Keycloak       *keycloakValues       `json:"keycloak,omitempty"`
 	Prometheus     *prometheusValues     `json:"prometheus,omitempty"`
 	Rancher        *rancherValues        `json:"rancher,omitempty"`
+	Velero         *veleroValues         `json:"velero,omitempty"`
 }
 
 type elasticsearchValues struct {
@@ -48,5 +49,9 @@ type externalDNSValues struct {
 }
 
 type jaegerOperatorValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type veleroValues struct {
 	Enabled bool `json:"enabled"` // Always write
 }

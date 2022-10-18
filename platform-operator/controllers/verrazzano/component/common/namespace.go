@@ -70,6 +70,12 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", constants.VerrazzanoMonitoringNamespace, err)
 	}
 
+	if vzconfig.IsVeleroEnabled(ctx.EffectiveCR()) {
+		if err := namespace.CreateVeleroNamespace(ctx.Client()); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", constants.VeleroNameSpace, err)
+		}
+	}
+
 	return nil
 }
 
