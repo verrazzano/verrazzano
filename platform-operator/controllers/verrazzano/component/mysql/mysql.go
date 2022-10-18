@@ -52,7 +52,7 @@ const (
 	deploymentFoundStage  = "deployment-found"
 	databaseDumpedStage   = "database-dumped"
 	pvcDeletedStage       = "pvc-deleted"
-	initdbScriptsFile     = "initdbScripts.create-db\\.sql"
+	initdbScriptsFile     = "initdbScripts.create-db\\.sh"
 	backupHookScriptsFile = "configurationFiles.mysql-hook\\.sh"
 	dbMigrationSecret     = "db-migration"
 	mySQLHookFile         = "platform-operator/scripts/hooks/mysql-hook.sh"
@@ -60,7 +60,14 @@ const (
 	bomSubComponentName   = "mysql-upgrade"
 	mysqlServerImageName  = "mysql-server"
 	imageRepositoryKey    = "image.repository"
-	initDbScript          = `CREATE USER IF NOT EXISTS keycloak IDENTIFIED BY '%s';
+	initDbScript          = `#!/bin/sh
+
+if [[ $HOSTNAME == *-0 ]]; then
+   IsVPO="${VPO_MANAGED:-false}"
+   rootPassword="${MYSQL_ROOT_PASSWORD}"
+   if [[ $IsVPO == true ]]; then
+      mysql -u root -p${rootPassword} << EOF
+CREATE USER IF NOT EXISTS keycloak IDENTIFIED BY '%s';
 CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 USE keycloak;
 GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO '%s'@'%%';
@@ -81,7 +88,11 @@ CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
   LABELS varchar(255) DEFAULT NULL,
   DEPLOYMENT_ID varchar(10) DEFAULT NULL,
   PRIMARY KEY (ID,AUTHOR,FILENAME)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;`
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+EOF
+   fi
+fi
+`
 	mySQLRootCommand = `/usr/bin/mysql -uroot -p%s <<EOF
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost'; flush privileges;
 EOF
@@ -566,7 +577,7 @@ func convertOldInstallArgs(kvs []bom.KeyValue) []bom.KeyValue {
 // createMySQLInitFile creates the .sql file that gets passed to helm as an override
 // this initializes the MySQL DB
 func createMySQLInitFile(ctx spi.ComponentContext, userPwd []byte) (string, error) {
-	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.sql", mySQLInitFilePrefix))
+	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.sh", mySQLInitFilePrefix))
 	if err != nil {
 		return "", err
 	}

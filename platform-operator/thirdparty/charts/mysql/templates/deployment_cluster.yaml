@@ -67,6 +67,9 @@ spec:
 {{ if(.Values).initdbScripts }}
     initContainers:
     - name: initmysql
+      env:
+        - name: VPO_MANAGED
+          value: "true"
       volumeMounts:
 {{- range $key, $val := .Values.initdbScripts }}
       - name: custominitsql
