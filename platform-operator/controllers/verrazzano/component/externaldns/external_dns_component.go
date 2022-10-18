@@ -62,6 +62,14 @@ func (e externalDNSComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
+func (e externalDNSComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = e.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", e.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", e.Name()), false
+}
+
 func (e externalDNSComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzconfig.IsExternalDNSEnabled(effectiveCR)
 }

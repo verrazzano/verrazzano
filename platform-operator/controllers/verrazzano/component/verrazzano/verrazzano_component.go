@@ -130,6 +130,14 @@ func (c verrazzanoComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
+func (c verrazzanoComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
+}
+
 // IsInstalled component check
 func (c verrazzanoComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return c.HelmComponent.IsInstalled(ctx)

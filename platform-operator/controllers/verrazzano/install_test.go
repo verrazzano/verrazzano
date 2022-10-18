@@ -292,9 +292,11 @@ func testUpdate(t *testing.T,
 		}
 	})
 	compStatusMap := makeVerrazzanoComponentStatusMap()
+	available := true
 	for _, status := range compStatusMap {
 		status.ReconcilingGeneration = reconcilingGen
 		status.LastReconciledGeneration = lastReconciledGeneration
+		status.Available = &available
 	}
 
 	vzStatus.Components = compStatusMap

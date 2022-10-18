@@ -112,6 +112,14 @@ func (c jaegerOperatorComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
+func (c jaegerOperatorComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
+}
+
 // MonitorOverrides checks whether monitoring is enabled for install overrides sources
 func (c jaegerOperatorComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	if ctx.EffectiveCR().Spec.Components.JaegerOperator == nil {

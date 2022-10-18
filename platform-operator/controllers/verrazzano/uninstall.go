@@ -83,7 +83,7 @@ var UninstallTrackerMap = make(map[string]*UninstallTracker)
 // reconcileUninstall will Uninstall a Verrazzano installation
 func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	log.Oncef("Uninstalling Verrazzano %s/%s", cr.Namespace, cr.Name)
-
+	r.HealthCheck.Pause()
 	tracker := getUninstallTracker(cr)
 	done := false
 	for !done {
@@ -297,7 +297,6 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) (ctrl.Result, er
 	if err := r.runRancherPostInstall(ctx); err != nil {
 		return ctrl.Result{}, err
 	}
-
 	return r.deleteNamespaces(ctx.Log())
 }
 

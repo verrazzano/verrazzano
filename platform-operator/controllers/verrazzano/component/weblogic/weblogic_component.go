@@ -89,6 +89,14 @@ func (c weblogicComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
+func (c weblogicComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
+}
+
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
 func (c weblogicComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	if ctx.EffectiveCR().Spec.Components.WebLogicOperator != nil {
