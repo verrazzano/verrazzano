@@ -20,7 +20,7 @@
     },
     {
       "name": "ingress-nginx",
-      "version": "v1.1.1",
+      "version": "v1.3.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -28,13 +28,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.1.1-20221011113333-32d9515b3",
+              "tag": "20221018104124-3fd7db9f5",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "v1.1.1-20220809190136-943f98fb0",
+              "tag": "20221018104124-3fd7db9f5",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -204,7 +204,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.1.1-20221011113333-32d9515b3",
+              "tag": "20221018104124-3fd7db9f5",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             },
@@ -259,7 +259,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.1.1-20221011113333-32d9515b3",
+              "tag": "20221018104124-3fd7db9f5",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             }
           ]
