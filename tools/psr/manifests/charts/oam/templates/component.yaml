@@ -17,6 +17,10 @@ spec:
         app: backend
         version: v1
     spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{ toYaml .Values.imagePullSecrets | indent 2 }}
+      {{- end }}
       containers:
         - name: backend-container
           image: {{  .Values.imageName }}

@@ -19,6 +19,10 @@ spec:
       labels:
         run: psr-backend
     spec:
+    {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+    {{- end }}
       containers:
         - name: psr-backend
           image: {{  .Values.imageName }}
