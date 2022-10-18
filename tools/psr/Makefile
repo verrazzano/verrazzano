@@ -28,7 +28,7 @@ BUILD_VERSION:=$(shell grep verrazzano-development-version ${MAKEFILE_DIR}/../..
 BUILD_DATE:=$(shell date +"%Y-%m-%dT%H:%M:%SZ")
 
 DIST_DIR:=dist
-GO=GO111MODULE=on GOPRIVATE=github.com/verrazzano/* go
+GO=GO111MODULE=on GOPRIVATE=github.com/verrazzano/* CGO_ENABLED=0  go
 
 #
 # Go build related tasks
