@@ -46,12 +46,12 @@ func IsPodReadyOrCompleted(pod corev1.Pod) bool {
 	case corev1.PodSucceeded:
 		return true
 	case corev1.PodRunning:
-		for _, c := range pod.Status.ContainerStatuses {
-			if !c.Ready {
-				return false
+		for _, c := range pod.Status.Conditions {
+			if c.Type == corev1.PodReady {
+				return c.Status == corev1.ConditionTrue
 			}
 		}
-		return true
+		return false
 	default:
 		return false
 	}
