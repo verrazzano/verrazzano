@@ -36,7 +36,7 @@ const (
 )
 
 // CreateWebhookCertificates creates the needed certificates for the validating webhook
-func CreateWebhookCertificates(certDir string, kubeClient *kubernetes.Clientset) error {
+func CreateWebhookCertificates(certDir string, kubeClient kubernetes.Interface) error {
 
 	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)
 	serialNumber, err := newSerialNumber()
