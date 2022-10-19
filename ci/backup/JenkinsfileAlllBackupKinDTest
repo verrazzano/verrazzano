@@ -334,6 +334,7 @@ pipeline {
             }
             post {
                 always {
+                    echoAllPodInfo()
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
                 }
@@ -483,6 +484,12 @@ def deleteBucket(bucketName) {
 def waitForPodsToBeUp(namespace) {
     sh """
          kubectl wait -n ${namespace} --for=condition=ready pod --all --timeout 10m
+    """
+}
+
+def echoAllPodInfo() {
+    sh """
+         kubectl get pod -A -o wide
     """
 }
 
