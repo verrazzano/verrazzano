@@ -173,9 +173,9 @@ func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, name
 	if err != nil {
 		return err
 	}
-	caSecret, err := kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
-	if err != nil {
-		return err
+	caSecret, errX := kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+	if errX != nil {
+		return errX
 	}
 	crt := caSecret.Data["tls.crt"]
 
@@ -224,6 +224,9 @@ func UpdateConversionWebhookConfiguration(apiextClient *apiextensionsv1client.Ap
 func UpdateMutatingWebhookConfiguration(kubeClient kubernetes.Interface, name string) error {
 	var webhook *adminv1.MutatingWebhookConfiguration
 	webhook, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
 	caSecret, err := kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
 	if err != nil {
 		return err
