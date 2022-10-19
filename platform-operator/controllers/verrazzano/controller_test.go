@@ -6,7 +6,10 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
+	v1 "k8s.io/api/batch/v1"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sync"
 	"testing"
 	"time"
@@ -1389,4 +1392,125 @@ func TestReconcileErrorCounter(t *testing.T) {
 	errorCounterAfter := testutil.ToFloat64(reconcileErrorCounterMetric.Get())
 	assert.NoError(t, err)
 	asserts.Equal(errorCounterBefore, errorCounterAfter-1)
+}
+
+// TestMysqlBackupJobCleanup tests the MySQL backup job cleanup function
+// GIVEN a completed backup job
+// WHEN the function is called
+// THEN the job and associated pod are deleted
+func TestMysqlBackupJobCleanup(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.KeycloakNamespace,
+				Name:      "one-off-backup-20221018-201321",
+				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{"job-name": "one-off-backup-20221018-201321"},
+			},
+			Status: corev1.PodStatus{
+				ContainerStatuses: []corev1.ContainerStatus{
+					{
+						Name: "operator-backup-job",
+						State: corev1.ContainerState{
+							Terminated: &corev1.ContainerStateTerminated{
+								ExitCode: 0,
+							},
+						},
+					},
+				},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	job := &v1.Job{}
+	err := c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	asserts.NotNil(err)
+	asserts.True(errors.IsNotFound(err))
+}
+
+// TestInProgressMysqlBackupJobCleanup tests the MySQL backup job cleanup function
+// GIVEN a not completed backup job
+// WHEN the function is called
+// THEN the job and associated pod are not deleted
+func TestInProgressMysqlBackupJobCleanup(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.KeycloakNamespace,
+				Name:      "one-off-backup-20221018-201321",
+				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{"job-name": "one-off-backup-20221018-201321"},
+			},
+			Status: corev1.PodStatus{
+				ContainerStatuses: []corev1.ContainerStatus{
+					{
+						Name: "operator-backup-job",
+						State: corev1.ContainerState{
+							Running: &corev1.ContainerStateRunning{},
+						},
+					},
+				},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	job := &v1.Job{}
+	err := c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	asserts.Nil(err)
+	asserts.NotNil(job)
+}
+
+// TestFailedMysqlBackupJobCleanup tests the MySQL backup job cleanup function
+// GIVEN a completed backup job with a non-zero exit code
+// WHEN the function is called
+// THEN the job and associated pod are not deleted
+func TestFailedMysqlBackupJobCleanup(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.KeycloakNamespace,
+				Name:      "one-off-backup-20221018-201321",
+				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{"job-name": "one-off-backup-20221018-201321"},
+			},
+			Status: corev1.PodStatus{
+				ContainerStatuses: []corev1.ContainerStatus{
+					{
+						Name: "operator-backup-job",
+						State: corev1.ContainerState{
+							Terminated: &corev1.ContainerStateTerminated{
+								ExitCode: 1,
+							},
+						},
+					},
+				},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	job := &v1.Job{}
+	err := c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	asserts.Nil(err)
+	asserts.NotNil(job)
 }

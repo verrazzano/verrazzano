@@ -7,7 +7,10 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
+	kblabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 
 	"strings"
 	"sync"
@@ -148,7 +151,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log.Oncef("Finished reconciling Verrazzano resource %v", req.NamespacedName)
 	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *vz)
 
-	return ctrl.Result{}, nil
+	return vzctrl.NewRequeueWithDelay(1, 2, time.Minute), nil
 }
 
 // doReconcile the Verrazzano CR
@@ -238,6 +241,13 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		} else if vzctrl.ShouldRequeue(result) {
 			return result, nil
 		}
+
+		// Delete leftover MySQL backup job if we find one.
+		err := r.cleanupMysqlBackupJob(log)
+		if err != nil {
+			return newRequeueWithDelay(), err
+		}
+
 		return ctrl.Result{}, nil
 	}
 
@@ -515,6 +525,63 @@ func (r *Reconciler) cleanupUninstallJob(jobName string, namespace string, log v
 	}
 
 	return nil
+}
+
+// cleanupMysqlBackupJob checks for the existence of a stale MySQL restore job and deletes the job if one is found
+func (r *Reconciler) cleanupMysqlBackupJob(log vzlog.VerrazzanoLogger) error {
+	// Check if jobs for running the restore jobs exist
+	jobsFound := &batchv1.JobList{}
+	log.Debug("Checking if stale restore jobs exist")
+	createByReq, _ := kblabels.NewRequirement("app.kubernetes.io/created-by", selection.Equals, []string{constants.MySQLOperator})
+	labelSelector := kblabels.NewSelector()
+	labelSelector = labelSelector.Add(*createByReq)
+	err := r.List(context.TODO(), jobsFound, &client.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	for _, job := range jobsFound.Items {
+		// get and inspect the job pods to see if restore container is completed
+		podList := &corev1.PodList{}
+		podReq, _ := kblabels.NewRequirement("job-name", selection.Equals, []string{job.Name})
+		podLabelSelector := kblabels.NewSelector()
+		podLabelSelector = podLabelSelector.Add(*podReq)
+		err := r.List(context.TODO(), podList, &client.ListOptions{LabelSelector: podLabelSelector})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				log.Infof("No pods found for job %s", job.Name)
+				return nil
+			}
+			return err
+		}
+		for _, jobPod := range podList.Items {
+			if isBackupJobCompleted(&jobPod) {
+				// can delete job since pod has completed
+				log.Debugf("Deleting stale backup job %s", job.Name)
+				propagationPolicy := metav1.DeletePropagationBackground
+				deleteOptions := &client.DeleteOptions{PropagationPolicy: &propagationPolicy}
+				err = r.Delete(context.TODO(), &job, deleteOptions)
+				if err != nil {
+					return err
+
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// isBackupJobCompleted checks to see whether the backup container has terminated with an exit code of 0
+func isBackupJobCompleted(pod *corev1.Pod) bool {
+	for _, container := range pod.Status.ContainerStatuses {
+		if container.Name == "operator-backup-job" && container.State.Terminated != nil && container.State.Terminated.ExitCode == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // deleteNamespace deletes a namespace
