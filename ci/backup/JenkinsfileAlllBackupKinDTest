@@ -68,9 +68,9 @@ pipeline {
         booleanParam (description: 'Whether to run slow tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
         booleanParam (description: 'Whether to persist object store bucket', name: 'DELETE_BUCKET', defaultValue: true)
-        booleanParam (description: 'Whether to persist object store bucket', name: 'MYSQL_BACKUP', defaultValue: true)
-        booleanParam (description: 'Whether to persist object store bucket', name: 'OPENSEARCH_BACKUP', defaultValue: true)
-        booleanParam (description: 'Whether to persist object store bucket', name: 'RANCHER_BACKUP', defaultValue: true)
+        booleanParam (description: 'Whether to execute MySQL backup tests', name: 'MYSQL_BACKUP', defaultValue: true)
+        booleanParam (description: 'Whether to execute OpenSearch backup tests', name: 'OPENSEARCH_BACKUP', defaultValue: true)
+        booleanParam (description: 'Whether to execute Rancher backup tests', name: 'RANCHER_BACKUP', defaultValue: true)
     }
 
     environment {

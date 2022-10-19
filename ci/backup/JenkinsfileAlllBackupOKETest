@@ -71,9 +71,9 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to persist object store bucket', name: 'DELETE_BUCKET', defaultValue: true)
-        booleanParam (description: 'Whether to persist object store bucket', name: 'MYSQL_BACKUP', defaultValue: true)
-        booleanParam (description: 'Whether to persist object store bucket', name: 'OPENSEARCH_BACKUP', defaultValue: true)
-        booleanParam (description: 'Whether to persist object store bucket', name: 'RANCHER_BACKUP', defaultValue: true)
+        booleanParam (description: 'Whether to execute MySQL backup tests', name: 'MYSQL_BACKUP', defaultValue: true)
+        booleanParam (description: 'Whether to execute OpenSearch backup tests', name: 'OPENSEARCH_BACKUP', defaultValue: true)
+        booleanParam (description: 'Whether to execute Rancher backup tests', name: 'RANCHER_BACKUP', defaultValue: true)
     }
 
     environment {
