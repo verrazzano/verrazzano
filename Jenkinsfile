@@ -343,7 +343,7 @@ pipeline {
             }
         }
 
-        stage('Kind Acceptance Tests on 1.22') {
+        stage('Kind Acceptance Tests on 1.24') {
             when {
                 allOf {
                     not { buildingTag() }
@@ -370,7 +370,7 @@ pipeline {
                     script {
                         build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                             parameters: [
-                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
+                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
                                 string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                 string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                 string(name: 'CRD_API_VERSION', value: params.CRD_API_VERSION),

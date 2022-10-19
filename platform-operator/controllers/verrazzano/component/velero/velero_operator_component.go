@@ -130,6 +130,14 @@ func (v veleroHelmComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isVeleroOperatorReady(ctx)
 }
 
+func (v veleroHelmComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = v.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", v.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", v.Name()), false
+}
+
 func (v veleroHelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return v.HelmComponent.ValidateInstall(vz)
 }

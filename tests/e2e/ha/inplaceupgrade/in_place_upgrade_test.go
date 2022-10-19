@@ -159,8 +159,8 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 					"--timeout=15m",
 					node.Name,
 				}
-				out, err := exec.Command("kubectl", kubectlArgs...).Output() //nolint:gosec //#nosec G204
-				t.Logs.Infof("Output from kubectl drain command: %s", out)
+				out, err := exec.Command("kubectl", kubectlArgs...).CombinedOutput() //nolint:gosec //#nosec G204
+				t.Logs.Infof("Combined output from kubectl drain command: %s", out)
 				if err != nil {
 					t.Logs.Infof("Error occurred running kubectl drain command: %s", err.Error())
 				}

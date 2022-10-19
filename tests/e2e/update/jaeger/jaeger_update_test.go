@@ -108,8 +108,10 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	// THEN the operation should be denied with an error
 	t.It("disabling previously enabled Jaeger operator should be disallowed", func() {
 		m := JaegerOperatorCleanupModifier{}
-		err := update.UpdateCR(m)
-		foundExpectedErr := err != nil && strings.Contains(err.Error(), disableErrorMsg)
-		Expect(foundExpectedErr).Should(BeTrue())
+		Eventually(func() bool {
+			err := update.UpdateCR(m)
+			foundExpectedErr := err != nil && strings.Contains(err.Error(), disableErrorMsg)
+			return foundExpectedErr
+		}).Should(BeTrue(), pollingInterval, waitTimeout)
 	})
 })

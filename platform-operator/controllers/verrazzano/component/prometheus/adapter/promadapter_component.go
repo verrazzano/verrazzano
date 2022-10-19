@@ -4,6 +4,7 @@
 package adapter
 
 import (
+	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
@@ -60,6 +61,14 @@ func (c prometheusAdapterComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isPrometheusAdapterReady(ctx)
 	}
 	return false
+}
+
+func (c prometheusAdapterComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // PreInstall updates resources necessary for the Prometheus Adapter Component installation

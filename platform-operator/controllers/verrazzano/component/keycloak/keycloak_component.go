@@ -188,6 +188,14 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
+func (c KeycloakComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
+}
+
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install

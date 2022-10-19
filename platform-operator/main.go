@@ -7,11 +7,14 @@ import (
 	"flag"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 	"k8s.io/client-go/dynamic"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sync"
+	"time"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -81,6 +84,8 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
+var healthCheckPeriodSeconds int64
+
 func main() {
 
 	// config will hold the entire operator config
@@ -101,6 +106,7 @@ func main() {
 		"Specify the root directory of Verrazzano (used for development)")
 	flag.StringVar(&bomOverride, "bom-path", "", "BOM file location")
 	flag.BoolVar(&helm.Debug, "helm-debug", helm.Debug, "Add the --debug flag to helm commands")
+	flag.Int64Var(&healthCheckPeriodSeconds, "health-check-period", 60, "Health check period seconds")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
@@ -134,6 +140,7 @@ func main() {
 		log.Errorf("Failed to get the Verrazzano version from the BOM: %v", err)
 	}
 
+	registry.InitRegistry()
 	// initWebhooks flag is set when called from an webhook deployment.  This allows separation of webhooks and operator
 	if config.InitWebhooks {
 		startWebhookServers(config, log)
@@ -298,17 +305,20 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 	metricsexporter.StartMetricsServer(log)
 
 	// Set up the reconciler
+	healthCheck := health.New(mgr.GetClient(), time.Duration(healthCheckPeriodSeconds)*time.Second)
 	reconciler := vzcontroller.Reconciler{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
 		DryRun:            config.DryRun,
 		WatchedComponents: map[string]bool{},
 		WatchMutex:        &sync.RWMutex{},
+		HealthCheck:       healthCheck,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "Verrazzano")
 		os.Exit(1)
 	}
+	healthCheck.Start()
 
 	// Set up the reconciler for VerrazzanoManagedCluster objects
 	if err = (&clusterscontroller.VerrazzanoManagedClusterReconciler{

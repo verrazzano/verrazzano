@@ -36,7 +36,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
-	"sync"
 )
 
 type GetCompoentsFnType func() []spi.Component
@@ -44,8 +43,6 @@ type GetCompoentsFnType func() []spi.Component
 var getComponentsFn = getComponents
 
 var componentsRegistry []spi.Component
-
-var mutex sync.Mutex
 
 // OverrideGetComponentsFn Allows overriding the set of registry components for testing purposes
 func OverrideGetComponentsFn(fnType GetCompoentsFnType) {
@@ -57,51 +54,53 @@ func ResetGetComponentsFn() {
 	getComponentsFn = getComponents
 }
 
+func InitRegistry() {
+	componentsRegistry = []spi.Component{
+		networkpolicies.NewComponent(), // This must be first, don't move it.  see netpol_components.go
+		oam.NewComponent(),
+		appoper.NewComponent(),
+		istio.NewComponent(),
+		weblogic.NewComponent(),
+		nginx.NewComponent(),
+		certmanager.NewComponent(),
+		externaldns.NewComponent(),
+		rancher.NewComponent(),
+		verrazzano.NewComponent(),
+		vmo.NewComponent(),
+		opensearch.NewComponent(),
+		opensearchdashboards.NewComponent(),
+		grafana.NewComponent(),
+		authproxy.NewComponent(),
+		coherence.NewComponent(),
+		mysqloperator.NewComponent(), // mysqloperator needs to be upgraded before mysql
+		mysql.NewComponent(),
+		keycloak.NewComponent(),
+		kiali.NewComponent(),
+		promoperator.NewComponent(),
+		promadapter.NewComponent(),
+		kubestatemetrics.NewComponent(),
+		pushgateway.NewComponent(),
+		promnodeexporter.NewComponent(),
+		jaegeroperator.NewComponent(),
+		console.NewComponent(),
+		fluentd.NewComponent(),
+		velero.NewComponent(),
+		rancherbackup.NewComponent(),
+	}
+}
+
 // GetComponents returns the list of components that are installable and upgradeable.
 // The components will be processed in the order items in the array
 // The components will be processed in the order items in the array
 func GetComponents() []spi.Component {
+	if len(componentsRegistry) == 0 {
+		InitRegistry()
+	}
 	return getComponentsFn()
 }
 
 // getComponents is the internal impl function for GetComponents, to allow overriding it for testing purposes
 func getComponents() []spi.Component {
-	mutex.Lock()
-	defer mutex.Unlock()
-	if len(componentsRegistry) == 0 {
-		componentsRegistry = []spi.Component{
-			networkpolicies.NewComponent(), // This must be first, don't move it.  see netpol_components.go
-			oam.NewComponent(),
-			appoper.NewComponent(),
-			istio.NewComponent(),
-			weblogic.NewComponent(),
-			nginx.NewComponent(),
-			certmanager.NewComponent(),
-			externaldns.NewComponent(),
-			rancher.NewComponent(),
-			verrazzano.NewComponent(),
-			vmo.NewComponent(),
-			opensearch.NewComponent(),
-			opensearchdashboards.NewComponent(),
-			grafana.NewComponent(),
-			authproxy.NewComponent(),
-			coherence.NewComponent(),
-			mysqloperator.NewComponent(), // mysqloperator needs to be upgraded before mysql
-			mysql.NewComponent(),
-			keycloak.NewComponent(),
-			kiali.NewComponent(),
-			promoperator.NewComponent(),
-			promadapter.NewComponent(),
-			kubestatemetrics.NewComponent(),
-			pushgateway.NewComponent(),
-			promnodeexporter.NewComponent(),
-			jaegeroperator.NewComponent(),
-			console.NewComponent(),
-			fluentd.NewComponent(),
-			velero.NewComponent(),
-			rancherbackup.NewComponent(),
-		}
-	}
 	return componentsRegistry
 }
 
