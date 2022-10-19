@@ -1088,7 +1088,6 @@ func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
 			return nil
 		}).AnyTimes()
-
 	// Reconcile upgrade
 	reconciler := newVerrazzanoReconciler(mock)
 	result, err := reconcileUpgradeLoop(reconciler, &vz)
@@ -1172,6 +1171,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	mockDisabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).AnyTimes()
 	mockDisabledComp.EXPECT().IsEnabled(gomock.Any()).Return(false).AnyTimes()
 
+	postUpgradeCleanupExpectations(mock)
 	mock.EXPECT().Delete(gomock.Any(), &v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "keycloak", Name: "dump-claim"}}).Return(nil).AnyTimes()
 

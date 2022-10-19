@@ -763,6 +763,10 @@ func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
 	return f.ready
 }
 
+func (f fakeComponent) IsAvailable(_ spi.ComponentContext) (string, bool) {
+	return "", f.ready
+}
+
 func (f fakeComponent) IsEnabled(_ runtime.Object) bool {
 	return f.enabled
 }

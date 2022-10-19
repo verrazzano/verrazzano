@@ -319,6 +319,21 @@ func (mr *MockComponentInfoMockRecorder) GetOverrides(arg0 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOverrides", reflect.TypeOf((*MockComponentInfo)(nil).GetOverrides), arg0)
 }
 
+// IsAvailable mocks base method.
+func (m *MockComponentInfo) IsAvailable(arg0 spi.ComponentContext) (string, bool) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsAvailable", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(bool)
+	return ret0, ret1
+}
+
+// IsAvailable indicates an expected call of IsAvailable.
+func (mr *MockComponentInfoMockRecorder) IsAvailable(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsAvailable", reflect.TypeOf((*MockComponentInfo)(nil).IsAvailable), arg0)
+}
+
 // IsEnabled mocks base method.
 func (m *MockComponentInfo) IsEnabled(arg0 runtime.Object) bool {
 	m.ctrl.T.Helper()
@@ -387,6 +402,20 @@ func (m *MockComponentInfo) Namespace() string {
 func (mr *MockComponentInfoMockRecorder) Namespace() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Namespace", reflect.TypeOf((*MockComponentInfo)(nil).Namespace))
+}
+
+// ShouldInstallBeforeUpgrade mocks base method.
+func (m *MockComponentInfo) ShouldInstallBeforeUpgrade() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ShouldInstallBeforeUpgrade")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// ShouldInstallBeforeUpgrade indicates an expected call of ShouldInstallBeforeUpgrade.
+func (mr *MockComponentInfoMockRecorder) ShouldInstallBeforeUpgrade() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShouldInstallBeforeUpgrade", reflect.TypeOf((*MockComponentInfo)(nil).ShouldInstallBeforeUpgrade))
 }
 
 // MockComponentInstaller is a mock of ComponentInstaller interface.
@@ -571,20 +600,6 @@ func (m *MockComponent) EXPECT() *MockComponentMockRecorder {
 	return m.recorder
 }
 
-// ShouldInstallBeforeUpgrade mocks base method.
-func (m *MockComponent) ShouldInstallBeforeUpgrade() bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ShouldInstallBeforeUpgrade")
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// ShouldInstallBeforeUpgrade returns true if component can be installed before upgrade is done
-func (mr *MockComponentMockRecorder) ShouldInstallBeforeUpgrade() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShouldInstallBeforeUpgrade", reflect.TypeOf((*MockComponent)(nil).ShouldInstallBeforeUpgrade))
-}
-
 // GetCertificateNames mocks base method.
 func (m *MockComponent) GetCertificateNames(arg0 spi.ComponentContext) []types.NamespacedName {
 	m.ctrl.T.Helper()
@@ -681,6 +696,21 @@ func (m *MockComponent) Install(arg0 spi.ComponentContext) error {
 func (mr *MockComponentMockRecorder) Install(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockComponent)(nil).Install), arg0)
+}
+
+// IsAvailable mocks base method.
+func (m *MockComponent) IsAvailable(arg0 spi.ComponentContext) (string, bool) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsAvailable", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(bool)
+	return ret0, ret1
+}
+
+// IsAvailable indicates an expected call of IsAvailable.
+func (mr *MockComponentMockRecorder) IsAvailable(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsAvailable", reflect.TypeOf((*MockComponent)(nil).IsAvailable), arg0)
 }
 
 // IsEnabled mocks base method.
@@ -892,6 +922,20 @@ func (m *MockComponent) Reconcile(arg0 spi.ComponentContext) error {
 func (mr *MockComponentMockRecorder) Reconcile(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Reconcile", reflect.TypeOf((*MockComponent)(nil).Reconcile), arg0)
+}
+
+// ShouldInstallBeforeUpgrade mocks base method.
+func (m *MockComponent) ShouldInstallBeforeUpgrade() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ShouldInstallBeforeUpgrade")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// ShouldInstallBeforeUpgrade indicates an expected call of ShouldInstallBeforeUpgrade.
+func (mr *MockComponentMockRecorder) ShouldInstallBeforeUpgrade() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShouldInstallBeforeUpgrade", reflect.TypeOf((*MockComponent)(nil).ShouldInstallBeforeUpgrade))
 }
 
 // Uninstall mocks base method.
