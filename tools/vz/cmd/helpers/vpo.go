@@ -7,13 +7,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"regexp"
-	"strings"
-	"time"
-
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -22,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -30,13 +24,18 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"net/http"
+	"os"
+	"regexp"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
+	"time"
 )
 
 const VpoSimpleLogFormatRegexp = `"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`
 
 // Number of retries after waiting a second for VPO to be ready
-const vpoDefaultWaitRetries = 60 * 50
+const vpoDefaultWaitRetries = 60 * 5
 
 var vpoWaitRetries = vpoDefaultWaitRetries
 
