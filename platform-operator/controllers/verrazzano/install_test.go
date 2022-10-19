@@ -5,8 +5,7 @@ package verrazzano
 
 import (
 	"context"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	"fmt"
 	"net/url"
 	"strings"
 	"testing"
@@ -32,7 +31,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -446,11 +447,11 @@ func addExec() {
 }
 
 func assertKeycloakAuthConfig(asserts *assert.Assertions, ctx spi.ComponentContext) {
-	//authConfig := createKeycloakAuthConfig()
-	//err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: common.AuthConfigKeycloak}, &authConfig)
-	//authConfigData := authConfig.UnstructuredContent()
-	//asserts.Nil(err)
-	//asserts.Equal(authConfigData[rancher.AuthConfigKeycloakAttributeRancherURL], fmt.Sprintf("https://%s%s", constants.RancherIngress, rancher.AuthConfigKeycloakURLPathVerifyAuth))
-	//asserts.Equal(authConfigData[rancher.AuthConfigKeycloakAttributeAuthEndpoint], fmt.Sprintf("https://%s%s", constants.KeycloakIngress, rancher.AuthConfigKeycloakURLPathAuthEndPoint))
-	//asserts.Equal(authConfigData[rancher.AuthConfigKeycloakAttributeClientID], rancher.AuthConfigKeycloakClientIDRancher)
+	authConfig := createKeycloakAuthConfig()
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: common.AuthConfigKeycloak}, &authConfig)
+	authConfigData := authConfig.UnstructuredContent()
+	asserts.Nil(err)
+	asserts.Equal(authConfigData[rancher.AuthConfigKeycloakAttributeRancherURL], fmt.Sprintf("https://%s%s", constants.RancherIngress, rancher.AuthConfigKeycloakURLPathVerifyAuth))
+	asserts.Equal(authConfigData[rancher.AuthConfigKeycloakAttributeAuthEndpoint], fmt.Sprintf("https://%s%s", constants.KeycloakIngress, rancher.AuthConfigKeycloakURLPathAuthEndPoint))
+	asserts.Equal(authConfigData[rancher.AuthConfigKeycloakAttributeClientID], rancher.AuthConfigKeycloakClientIDRancher)
 }
