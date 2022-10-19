@@ -5,10 +5,11 @@ package yaml
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"helm.sh/helm/v3/pkg/strvals"
 	"sigs.k8s.io/yaml"
-	"strings"
 )
 
 // HelmValueFileConstructor creates a YAML file from a set of key value pairs
@@ -22,7 +23,12 @@ func HelmValueFileConstructor(kvs []bom.KeyValue) (string, error) {
 		}
 
 		composedStr := fmt.Sprintf("%s=%s", kv.Key, kv.Value)
-		err := strvals.ParseInto(composedStr, yamlObject)
+		var err error
+		if kv.SetString {
+			err = strvals.ParseIntoString(composedStr, yamlObject)
+		} else {
+			err = strvals.ParseInto(composedStr, yamlObject)
+		}
 		if err != nil {
 			return "", err
 		}

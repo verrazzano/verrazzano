@@ -78,6 +78,14 @@ func (c certManagerComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
+func (c certManagerComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
+}
+
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c certManagerComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
 	oldBeta := &v1beta1.Verrazzano{}
@@ -88,6 +96,15 @@ func (c certManagerComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1al
 	if err := new.ConvertTo(newBeta); err != nil {
 		return err
 	}
+
+	// Validate DNS updates only when there's a change in configuration
+	oldDNSName, _ := getDNSSuffix(oldBeta)
+	newDNSName, _ := getDNSSuffix(newBeta)
+	if oldDNSName != newDNSName || getEnvironmentName(oldBeta) != getEnvironmentName(newBeta) {
+		if err := validateLongestHostName(newBeta); err != nil {
+			return err
+		}
+	}
 	return c.ValidateUpdateV1Beta1(oldBeta, newBeta)
 }
 
@@ -95,6 +112,9 @@ func (c certManagerComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1al
 func (c certManagerComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 	vzV1Beta1 := &v1beta1.Verrazzano{}
 	if err := vz.ConvertTo(vzV1Beta1); err != nil {
+		return err
+	}
+	if err := validateLongestHostName(vz); err != nil {
 		return err
 	}
 	return c.ValidateInstallV1Beta1(vzV1Beta1)
@@ -111,6 +131,9 @@ func (c certManagerComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) err
 			return err
 		}
 	}
+	if err := validateLongestHostName(vz); err != nil {
+		return err
+	}
 	return c.HelmComponent.ValidateInstallV1Beta1(vz)
 }
 
@@ -122,6 +145,15 @@ func (c certManagerComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new
 	}
 	if _, err := validateConfiguration(new.Spec.Components.CertManager); err != nil {
 		return err
+	}
+
+	// Validate DNS updates only when there's a change in configuration
+	oldDNSName, _ := getDNSSuffix(old)
+	newDNSName, _ := getDNSSuffix(new)
+	if oldDNSName != newDNSName || getEnvironmentName(old) != getEnvironmentName(new) {
+		if err := validateLongestHostName(new); err != nil {
+			return err
+		}
 	}
 	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }

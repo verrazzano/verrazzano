@@ -15,7 +15,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -92,7 +91,7 @@ func (c kialiComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := removeDeploymentAndService(ctx); err != nil {
 		return err
 	}
-	return common.ApplyCRDYaml(ctx, config.GetHelmKialiChartsDir())
+	return nil
 }
 
 // removeDeploymentAndService removes the Kiali deployment and service during pre-upgrade.
@@ -142,6 +141,14 @@ func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 		return isKialiReady(context)
 	}
 	return false
+}
+
+func (c kialiComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // IsEnabled Kiali-specific enabled check for installation
