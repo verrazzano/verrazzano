@@ -67,6 +67,11 @@ spec:
 {{ if(.Values).initdbScripts }}
     initContainers:
     - name: initmysql
+{{ if ((.Values).initDB) }}
+      env:
+        - name: DB_RESTORE
+          value: "true"
+{{ end }}
       volumeMounts:
 {{- range $key, $val := .Values.initdbScripts }}
       - name: custominitsql
