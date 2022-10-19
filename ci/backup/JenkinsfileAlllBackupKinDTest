@@ -92,7 +92,7 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND_TESTS = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
+        INSTALL_CONFIG_FILE_KIND_TESTS = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind-backup-enabled.yaml"
         INSTALL_CONFIG_FILE_KIND_HA = "./examples/ha/ha.yaml"
         INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/install-verrazzano.yaml"
         INSTALL_PROFILE = "${params.INSTALL_HA == true ? "prod" : "dev"}"
