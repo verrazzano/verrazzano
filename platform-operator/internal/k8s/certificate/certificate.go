@@ -4,7 +4,6 @@
 package certificate
 
 import (
-	"bytes"
 	"context"
 	cryptorand "crypto/rand"
 	"crypto/rsa"
@@ -16,7 +15,6 @@ import (
 	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"math/big"
-	"os"
 	"time"
 
 	adminv1 "k8s.io/api/admissionregistration/v1"
@@ -136,22 +134,6 @@ func CreateWebhookCertificates(certDir string, kubeClient kubernetes.Interface) 
 func newSerialNumber() (*big.Int, error) {
 	// A serial number can be up to 20 octets in size.
 	return cryptorand.Int(cryptorand.Reader, new(big.Int).Lsh(big.NewInt(1), 8*20))
-}
-
-// writeFile writes data in the file at the given path
-func writeFile(filepath string, pem *bytes.Buffer) error {
-	f, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	_, err = f.Write(pem.Bytes())
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // DeleteValidatingWebhookConfiguration deletes a validating webhook configuration

@@ -6,9 +6,6 @@ package certificate
 import (
 	"bytes"
 	"context"
-	"crypto/x509"
-	"encoding/pem"
-	"fmt"
 	"os"
 	"testing"
 
@@ -33,23 +30,7 @@ func TestCreateWebhookCertificates(t *testing.T) {
 	defer os.RemoveAll(dir)
 	err = CreateWebhookCertificates(dir, client)
 	asserts.Nil(err, "error should not be returned setting up certificates")
-
-	crtFile := fmt.Sprintf("%s/%s", dir, "tls.crt")
-	keyFile := fmt.Sprintf("%s/%s", dir, "tls.key")
-	asserts.FileExists(crtFile, dir, "tls.crt", "expected tls.crt file not found")
-	asserts.FileExists(keyFile, dir, "tls.key", "expected tls.key file not found")
-
-	crtBytes, err := os.ReadFile(crtFile)
-	if asserts.NoError(err) {
-		block, _ := pem.Decode(crtBytes)
-		asserts.NotEmptyf(block, "failed to decode PEM block containing public key")
-		asserts.Equal("CERTIFICATE", block.Type)
-		cert, err := x509.ParseCertificate(block.Bytes)
-		if asserts.NoError(err) {
-			asserts.NotEmpty(cert.DNSNames, "Certificate DNSNames SAN field should not be empty")
-			asserts.Equal("verrazzano-platform-operator-webhook.verrazzano-install.svc", cert.DNSNames[0])
-		}
-	}
+	
 }
 
 // TestCreateWebhookCertificatesFail tests that the certificates needed for webhooks are not created
