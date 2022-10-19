@@ -390,7 +390,7 @@ pipeline {
                         stage('examples Todolist') {
                             when { expression { isVZOperatorMinimumCompatibleVersion("v1.2.0") } }
                             steps {
-                                runGinkgoVerify('examples/todo-list', "${TEST_DUMP_ROOT}/todo-list-workload", "false", "true", "true", "todo-list")
+                                runGinkgoVerify('examples/todo', "${TEST_DUMP_ROOT}/todo-list-workload", "false", "true", "true", "todo-list")
                             }
                         }
                         stage('Prometheus pre-upgrade') {
