@@ -12,9 +12,10 @@ auth:
 istio_namespace: istio-system
 
 deployment:
-  version_label: v1.42
+  version_label: v1.57.1
   # The platform operator will manage the Kiali ingress
-  ingress_enabled: false
+  ingress:
+    enabled: false
   instance_name: vmi-system-kiali
   view_only_mode: true
 
@@ -24,14 +25,6 @@ kubernetes_config:
   - "CronJob"
   - "DeploymentConfig"
   - "ReplicationController"
-
-external_services:
-  prometheus:
-    url: http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring.svc.cluster.local:9090
-  grafana:
-    enabled: false
-  tracing:
-    enabled: false
 
 server:
   web_root: ""

@@ -85,7 +85,7 @@ func TestAppendMySQLOverrides(t *testing.T) {
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 4+minExpectedHelmOverridesCount)
-	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sh"))
 }
 
 // TestAppendMySQLOverridesUpdate tests the appendMySQLOverrides function
@@ -139,7 +139,7 @@ func TestAppendMySQLOverridesWithInstallArgs(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 5+minExpectedHelmOverridesCount)
 	assert.Equal(t, "value", bom.FindKV(kvs, "key"))
-	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sql"))
+	assert.NotEmpty(t, bom.FindKV(kvs, "initdbScripts.create-db\\.sh"))
 }
 
 // TestAppendMySQLOverridesDev tests the appendMySQLOverrides function
