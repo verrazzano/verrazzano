@@ -2,6 +2,7 @@
 Fixes:
 
 - Rancher upgrade intermittently fails with errors stating that the available chart version is less than the minimum chart version for Rancher system charts.
+- Fixed a bug related to when to integate Rancher with Keycloak auth
 
 ### v1.4.1
 Fixes:
