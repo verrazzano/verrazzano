@@ -147,7 +147,6 @@ pipeline {
         OCI_OS_ACCESS_KEY = credentials('velero-key-id')
         OCI_OS_ACCESS_SECRET_KEY = credentials('velero-key')
         OCI_OS_COMPARTMENT_ID = credentials('v8o-velero-test')
-        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET_ID = "${ociOsBucketName}"
         OCI_OS_BUCKET_NAME = "bucket-${OCI_OS_BUCKET_ID}"
         BACKUP_OPENSEARCH = "backup-opensearch-${OCI_OS_BUCKET_ID}"
@@ -160,8 +159,6 @@ pipeline {
         BACKUP_OPENSEARCH_STORAGE = "storage-opensearch-${OCI_OS_BUCKET_ID}"
         BACKUP_MYSQL_STORAGE = "storage-mysql-${OCI_OS_BUCKET_ID}"
         BACKUP_REGION  = "us-phoenix-1"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
-        VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
     }
 
     stages {
