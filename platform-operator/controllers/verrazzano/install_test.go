@@ -5,6 +5,8 @@ package verrazzano
 
 import (
 	"context"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"net/url"
 	"strings"
 	"testing"
@@ -436,6 +438,10 @@ func addExec() {
 
 		}
 		return "", "", nil
+	}
+	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
+		config, k := k8sutilfake.NewClientsetConfig()
+		return config, k, nil
 	}
 }
 
