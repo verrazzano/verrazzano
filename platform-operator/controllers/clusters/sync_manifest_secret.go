@@ -60,7 +60,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 	vzVMCWaitingForClusterID := false
 
 	if vmc.Labels != nil && vmc.Labels[createdByLabel] == createdByVerrazzano && len(vmc.Status.RancherRegistration.ClusterID) == 0 {
-		r.log.Infof("Waiting for Verrazzano-created VMC named %s to have a cluster id in the status before attempting to fetch Rancher registration manifest", vmc.Name)
+		r.log.Progressf("Waiting for Verrazzano-created VMC named %s to have a cluster id in the status before attempting to fetch Rancher registration manifest", vmc.Name)
 		vzVMCWaitingForClusterID = true
 	} else {
 		// register the cluster with Rancher - the cluster will show as "pending" until the
