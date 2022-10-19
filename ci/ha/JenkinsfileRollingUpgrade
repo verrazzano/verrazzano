@@ -424,6 +424,9 @@ pipeline {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/ha-tests"
                     }
+                    options {
+                        timeout(time: 2, unit: "HOURS")
+                    }
                     parallel {
                         stage('K8s In-place Upgrade') {
                             environment {
