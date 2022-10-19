@@ -64,6 +64,14 @@ func (c oamComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
+func (c oamComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
+}
+
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c oamComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Block all changes for now, particularly around storage changes

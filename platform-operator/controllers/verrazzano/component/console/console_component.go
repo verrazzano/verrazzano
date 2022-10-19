@@ -84,6 +84,14 @@ func (c consoleComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
+func (c consoleComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
+}
+
 // PreInstall - actions to perform prior to installing this component
 func (c consoleComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preHook(ctx)
