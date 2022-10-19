@@ -30,7 +30,7 @@ func TestCreateWebhookCertificates(t *testing.T) {
 	defer os.RemoveAll(dir)
 	err = CreateWebhookCertificates(dir, client)
 	asserts.Nil(err, "error should not be returned setting up certificates")
-	
+
 }
 
 // TestCreateWebhookCertificatesFail tests that the certificates needed for webhooks are not created
