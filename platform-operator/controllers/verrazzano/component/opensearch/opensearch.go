@@ -230,19 +230,19 @@ func getPodsWithReadyContainer(client clipkg.Client, containerName string, podSe
 }
 
 func waitForPodsWithReadyContainer(ctx spi.ComponentContext, client clipkg.Client, containerName string, podSelectors ...clipkg.ListOption) ([]corev1.Pod, error) {
-	ctx.Log().Info("Marco Debug: entering waitForPodsWithReadyContainer")
+	ctx.Log().Once("Marco Debug: entering waitForPodsWithReadyContainer")
 	pods, err := getPodsWithReadyContainer(client, containerName, podSelectors...)
 	// If there is an error, then return a RetryableError
 	if err != nil {
-		ctx.Log().Info("Marco Debug: returning RetryableError")
+		ctx.Log().Once("Marco Debug: returning RetryableError")
 		return nil, ctrlerrors.RetryableError{}
 	}
 	// When there is no error, and positive number of pods which have containers in Ready state
 	if len(pods) > 0 {
-		ctx.Log().Info("Marco Debug: success - returning ready pod(s)")
+		ctx.Log().Once("Marco Debug: success - returning ready pod(s)")
 		return pods, nil
 	}
 	// Default condition. This will probably not be hit.
-	ctx.Log().Info("Marco Debug: default condition - no error and no ready pods")
+	ctx.Log().Once("Marco Debug: default condition - no error and no ready pods")
 	return nil, nil
 }
