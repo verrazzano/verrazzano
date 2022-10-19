@@ -59,7 +59,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 				m := &fluentd.FluentdModifier{Component: vzapi.FluentdComponent{}}
 
 				start := time.Now()
-				gomega.Expect(fluentd.ValidateUpdate(m, "")).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", ""))
+				fluentd.ValidateUpdate(m, "")
 
 				gomega.Eventually(func() bool {
 					return fluentd.ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")

@@ -33,6 +33,7 @@ const (
 // +kubebuilder:resource:path=verrazzanos
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName=vz;vzs
+// +kubebuilder:printcolumn:name="Available",type="string",JSONPath=".status.available",description="Available/Enabled Verrazzano Components."
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[-1:].type",description="The current status of the install/uninstall."
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".status.version",description="The current version of the Verrazzano installation."
 // +kubebuilder:deprecatedversion:warning="install.verrazzano.io/v1alpha1 Verrazzano is deprecated. To migrate to install.verrazzano.io/v1beta1 Verrazzano, see https://verrazzano.io/latest/docs/releasenotes/#v140."
@@ -154,6 +155,7 @@ type VerrazzanoStatus struct {
 	State VzStateType `json:"state,omitempty"`
 	// States of the individual installed components
 	Components ComponentStatusMap `json:"components,omitempty"`
+	Available  *string            `json:"available,omitempty"`
 }
 
 type ComponentStatusMap map[string]*ComponentStatusDetails
@@ -166,6 +168,8 @@ type ComponentStatusDetails struct {
 	Conditions []Condition `json:"conditions,omitempty"`
 	// The version of Verrazzano that is installed
 	State CompStateType `json:"state,omitempty"`
+	// If a component is available for use
+	Available *bool `json:"available,omitempty"`
 	// The version of Verrazzano that is installed
 	Version string `json:"version,omitempty"`
 	// The generation of the last VZ resource the Component was successfully reconciled against

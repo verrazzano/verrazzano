@@ -219,6 +219,14 @@ func (f fluentdComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
+func (f fluentdComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = f.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", f.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", f.Name()), false
+}
+
 // IsInstalled component check
 func (f fluentdComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	daemonSet := &appsv1.DaemonSet{}

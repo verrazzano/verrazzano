@@ -119,6 +119,14 @@ func (rb rancherBackupHelmComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isRancherBackupOperatorReady(ctx)
 }
 
+func (rb rancherBackupHelmComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = rb.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", rb.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", rb.Name()), false
+}
+
 func (rb rancherBackupHelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	return rb.HelmComponent.ValidateInstall(vz)
 }

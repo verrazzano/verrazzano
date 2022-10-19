@@ -7,6 +7,8 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
+
 	"strings"
 	"sync"
 	"time"
@@ -58,6 +60,7 @@ type Reconciler struct {
 	WatchedComponents map[string]bool
 	WatchMutex        *sync.RWMutex
 	Bom               *bom.Bom
+	HealthCheck       *health.PlatformHealth
 }
 
 // Name of finalizer
@@ -235,7 +238,6 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		} else if vzctrl.ShouldRequeue(result) {
 			return result, nil
 		}
-
 		return ctrl.Result{}, nil
 	}
 
@@ -1102,6 +1104,7 @@ func initUnitTesing() {
 }
 
 func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
+	r.HealthCheck.SetAvailabilityStatus(vz)
 	err := r.Status().Update(context.TODO(), vz)
 	if err == nil {
 		return nil

@@ -82,6 +82,14 @@ func (c mysqlOperatorComponent) IsReady(context spi.ComponentContext) bool {
 	return false
 }
 
+func (c mysqlOperatorComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
+}
+
 // IsInstalled returns true if the component is installed
 func (c mysqlOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return isInstalled(ctx), nil
