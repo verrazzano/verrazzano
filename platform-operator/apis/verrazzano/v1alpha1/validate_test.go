@@ -1304,7 +1304,7 @@ key_file=/root/.oci/key
 }
 
 // TestValidateFluentdOCISecretMissingConfigSection tests validateOCISecrets
-// GIVEN a Verrazzano spec containing a fluentd configuration with a Fluentd OCI secret that has a missing OCI CommonConfig key
+// GIVEN a Verrazzano spec containing a fluentd configuration with a Fluentd OCI secret that has a missing OCI Config key
 // WHEN validateOCISecrets is called
 // THEN an error is returned from validateOCISecrets
 func TestValidateFluentdOCISecretMissingConfigSection(t *testing.T) {
