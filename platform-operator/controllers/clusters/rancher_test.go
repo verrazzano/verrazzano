@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -93,9 +93,9 @@ func getNotFoundMock(t *testing.T, secret *corev1.Secret, clusterID string) *moc
 	mocker := gomock.NewController(t)
 	httpMock := mocks.NewMockRequestSender(mocker)
 	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, constructSecretURL(secret, "", clusterID))).
-		Return(&http.Response{StatusCode: 404, Body: ioutil.NopCloser(bytes.NewReader([]byte("")))}, fmt.Errorf("not found")).AnyTimes()
+		Return(&http.Response{StatusCode: 404, Body: io.NopCloser(bytes.NewReader([]byte("")))}, fmt.Errorf("not found")).AnyTimes()
 	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodPost, constructSecretURL(secret, "", clusterID))).
-		Return(&http.Response{StatusCode: 201, Body: ioutil.NopCloser(bytes.NewReader([]byte("")))}, nil)
+		Return(&http.Response{StatusCode: 201, Body: io.NopCloser(bytes.NewReader([]byte("")))}, nil)
 	return httpMock
 }
 
@@ -105,7 +105,7 @@ func getFoundMock(a *asserts.Assertions, t *testing.T, secret *corev1.Secret, cl
 	mocker := gomock.NewController(t)
 	httpMock := mocks.NewMockRequestSender(mocker)
 	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, constructSecretURL(secret, "", clusterID))).
-		Return(&http.Response{StatusCode: 200, Body: ioutil.NopCloser(bytes.NewReader(secretData))}, nil)
+		Return(&http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewReader(secretData))}, nil)
 	return httpMock
 }
 
@@ -115,8 +115,8 @@ func getMutatedMock(a *asserts.Assertions, t *testing.T, secret *corev1.Secret, 
 	mocker := gomock.NewController(t)
 	httpMock := mocks.NewMockRequestSender(mocker)
 	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, constructSecretURL(secret, "", clusterID))).
-		Return(&http.Response{StatusCode: 200, Body: ioutil.NopCloser(bytes.NewReader(secretData))}, nil)
+		Return(&http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewReader(secretData))}, nil)
 	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodPut, constructSecretURL(secret, "", clusterID))).
-		Return(&http.Response{StatusCode: 200, Body: ioutil.NopCloser(bytes.NewReader([]byte("")))}, nil)
+		Return(&http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewReader([]byte("")))}, nil)
 	return httpMock
 }
