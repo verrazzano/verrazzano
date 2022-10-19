@@ -115,7 +115,7 @@ resources: {}
 # Pod Security Context
 # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 securityContext:
-  runAsNonRoot: true
+  runAsNonRoot: false
 
 # Container Security Context to be set on the controller component container
 # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
@@ -234,7 +234,7 @@ webhook:
   # Pod Security Context to be set on the webhook component Pod
   # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
   securityContext:
-    runAsNonRoot: true
+    runAsNonRoot: false
 
   # Container Security Context to be set on the webhook component container
   # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
@@ -374,7 +374,7 @@ cainjector:
   # Pod Security Context to be set on the cainjector component Pod
   # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
   securityContext:
-    runAsNonRoot: true
+    runAsNonRoot: false
 
   # Container Security Context to be set on the cainjector component container
   # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
@@ -458,7 +458,7 @@ startupapicheck:
   # Pod Security Context to be set on the startupapicheck component Pod
   # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
   securityContext:
-    runAsNonRoot: true
+    runAsNonRoot: false
 
   # Container Security Context to be set on the controller component container
   # ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
