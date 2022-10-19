@@ -60,12 +60,13 @@ func (r *RancherClusterSyncer) initLogger() vzlog.VerrazzanoLogger {
 		// failed so fall back to the basic zap sugared logger
 		zaplog = zap.S()
 	}
-	return vzlog.EnsureContext("rancher_cluster_sync").EnsureLogger("syncer", zaplog, zaplog)
+	// set frequency on the logger so progress messages are logged once every 5 minutes
+	return vzlog.EnsureContext("rancher_cluster_sync").EnsureLogger("syncer", zaplog, zaplog).SetFrequency(300)
 }
 
 // syncRancherClusters gets the list of clusters from Rancher and creates and deletes VMC resources
 func (r *RancherClusterSyncer) syncRancherClusters(log vzlog.VerrazzanoLogger) {
-	log.Info("Synchronizing Rancher clusters and VMCs")
+	log.Progress("Synchronizing Rancher clusters and VMCs")
 
 	// first check to see if the Rancher admin secret exists, if not then either Rancher is not installed
 	// or this is not an admin cluster, so just log a debug message and there is nothing else to do
@@ -113,25 +114,29 @@ func (r *RancherClusterSyncer) ensureVMCs(rancherClusters []rancherCluster, log 
 			continue
 		}
 
-		// note that we use the Rancher cluster id as the name of the VMC, since the cluster id is unique and the name
-		// in Rancher is not
-		cr := &clustersv1alpha1.VerrazzanoManagedCluster{}
-		if err := r.Get(context.TODO(), types.NamespacedName{Name: rancherCluster.id, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr); err != nil {
+		// Rancher cluster names are unique so use the cluster name as the VMC name
+		vmc := &clustersv1alpha1.VerrazzanoManagedCluster{}
+		if err := r.Get(context.TODO(), types.NamespacedName{Name: rancherCluster.name, Namespace: constants.VerrazzanoMultiClusterNamespace}, vmc); err != nil {
 			if errors.IsNotFound(err) {
-				log.Infof("Creating empty VMC for discovered Rancher cluster with name: %s", rancherCluster.id)
-				vmc := newVMC(rancherCluster)
+				log.Infof("Creating empty VMC for discovered Rancher cluster with name: %s", rancherCluster.name)
+				vmc = newVMC(rancherCluster)
 				if err := r.Create(context.TODO(), vmc); err != nil {
-					log.Errorf("Unable to create VMC with name %s: %v", rancherCluster.id, err)
+					log.Errorf("Unable to create VMC with name %s: %v", rancherCluster.name, err)
 					return err
 				}
-				if err := r.Status().Update(context.TODO(), vmc); err != nil {
-					log.Errorf("Unable to update VMC status with name %s: %v", rancherCluster.id, err)
-					return err
-				}
-				continue
+			} else {
+				log.Errorf("Unable to get VMC with name %s: %v", rancherCluster.name, err)
+				return err
 			}
-			log.Errorf("Unable to get VMC with name %s: %v", rancherCluster.id, err)
-			return err
+		}
+
+		// if we just created the VMC or the VMC existed but the Rancher cluster ID is not set, update it in the status
+		if vmc.Status.RancherRegistration.ClusterID == "" {
+			vmc.Status.RancherRegistration.ClusterID = rancherCluster.id
+			if err := r.Status().Update(context.TODO(), vmc); err != nil {
+				log.Errorf("Unable to update VMC status with name %s: %v", rancherCluster.name, err)
+				return err
+			}
 		}
 	}
 
@@ -142,16 +147,11 @@ func (r *RancherClusterSyncer) ensureVMCs(rancherClusters []rancherCluster, log 
 func newVMC(rancherCluster rancherCluster) *clustersv1alpha1.VerrazzanoManagedCluster {
 	return &clustersv1alpha1.VerrazzanoManagedCluster{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      rancherCluster.id,
+			Name:      rancherCluster.name,
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 			Labels: map[string]string{
 				createdByLabel:                    createdByVerrazzano,
 				vzconst.VerrazzanoManagedLabelKey: "true",
-			},
-		},
-		Status: clustersv1alpha1.VerrazzanoManagedClusterStatus{
-			RancherRegistration: clustersv1alpha1.RancherRegistration{
-				ClusterID: rancherCluster.id,
 			},
 		},
 	}
@@ -167,7 +167,7 @@ func (r *RancherClusterSyncer) deleteVMCs(rancherClusters []rancherCluster, log 
 		return err
 	}
 
-	// for each VMC, if it does not exist in Rancher, delete it
+	// for each VMC, if a cluster does not exist in Rancher, delete the VMC
 	for i := range vmcList.Items {
 		vmc := vmcList.Items[i] // avoids "G601: Implicit memory aliasing in for loop" linter error
 		if vmc.Name == localClusterName {
@@ -187,9 +187,9 @@ func (r *RancherClusterSyncer) deleteVMCs(rancherClusters []rancherCluster, log 
 
 // clusterInRancher returns true if the cluster is in the list of clusters in Rancher
 func clusterInRancher(vmcName string, rancherClusters []rancherCluster) bool {
-	// the VMC name is the Rancher cluster id
+	// the VMC name is the Rancher cluster name
 	for _, rancherCluster := range rancherClusters {
-		if vmcName == rancherCluster.id {
+		if vmcName == rancherCluster.name {
 			return true
 		}
 	}
