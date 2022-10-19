@@ -40,7 +40,7 @@ spec:
           args:
             - --zap-log-level=info
             - --enable-webhook-validation=true
-            - --health-check-period=0
+            - --health-check-period=60
           env:
             - name: VERRAZZANO_KUBECONFIG
               value: /home/verrazzano/kubeconfig

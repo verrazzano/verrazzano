@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (statusChannel) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package health
@@ -159,9 +159,9 @@ func TestUpdateAvailability(t *testing.T) {
 				p = newTestHealthCheck()
 			}
 
-			status, err := p.updateAvailability([]spi.Component{})
+			err := p.updateAvailability([]spi.Component{})
 			assert.NoError(t, err)
-			assert.Equal(t, status == nil, tt.vz == nil)
+			assert.Equal(t, p.status == nil, tt.vz == nil)
 		})
 	}
 }
