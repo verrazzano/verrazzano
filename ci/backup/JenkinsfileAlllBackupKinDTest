@@ -311,7 +311,6 @@ pipeline {
 
 
         stage('Initiate opensearch backup hook tests') {
-            echoAllPodInfo()
             when {
                 expression {params.OPENSEARCH_BACKUP == true}
             }
@@ -319,6 +318,7 @@ pipeline {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
             }
             steps {
+                echoAllPodInfo()
                 waitForPodsToBeUp("verrazzano-system")
                 runGinkgoRandomize('backup/opensearch')
                 println("Wait for pods in verrazzano-system to be ready")
@@ -338,7 +338,6 @@ pipeline {
         }
 
         stage('Initiate rancher backup operator tests') {
-            echoAllPodInfo()
             when {
                 expression {params.RANCHER_BACKUP == true}
             }
@@ -346,6 +345,7 @@ pipeline {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/rancher"
             }
             steps {
+                echoAllPodInfo()
                 runGinkgoRandomize('backup/rancher')
             }
             post {
