@@ -5,7 +5,9 @@ package config
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"os"
+	"time"
 )
 
 // Define common worker configuration params
@@ -17,10 +19,11 @@ const (
 	// By default the worker runs until the pod terminates
 	PsrDuration = "PSR_DURATION"
 
-	// PsrIterationDelay specified the delay between iterations of work actions using a duration string ("4m or 2h")
+	// PsrIterationSleep specified the sleep duration between iterations
+	// of work actions using a duration string ("4m or 2h")
 	// For example, delay 1 second between logging
 	// By default the worker does not delay
-	PsrIterationDelay = "PSR_ITERATION_DELAY"
+	PsrIterationSleep = "PSR_ITERATION_SLEEP"
 )
 
 // Define worker types
@@ -32,34 +35,46 @@ const (
 	WorkerTypeWorkloadScale = "WT_WORKLOAD_SCALE"
 )
 
-type ConfigItem struct {
+type EnvVarDesc struct {
 	Key        string
 	DefaultVal string
 	Required   bool
 }
 
-var Config = make(map[string]string)
+type CommonConfig struct {
+	WorkerType           string
+	IterationSleepMillis time.Duration
+}
 
-// LoadCommonConfig loads the common config from env vars
-func LoadCommonConfig() error {
-	cc := []ConfigItem{
+var EnvVars = make(map[string]string)
+
+// GetCommonConfig loads the common config from env vars
+func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
+	dd := []EnvVarDesc{
 		{Key: PsrWorkerType, DefaultVal: "", Required: true},
 		{Key: PsrDuration, DefaultVal: "", Required: false},
-		{Key: PsrIterationDelay, DefaultVal: "1s", Required: false},
+		{Key: PsrIterationSleep, DefaultVal: "1s", Required: false},
+	}
+	if err := AddEnvConfig(dd); err != nil {
+		return CommonConfig{}, err
+	}
+	sleepDuration, err := time.ParseDuration(EnvVars[PsrIterationSleep])
+	if err != nil {
+		return CommonConfig{}, log.ErrorfNewErr("Error parsing iteration sleep duration: %v", err)
+	}
+	// Sleep at least 100 millis
+	if sleepDuration < (100 * time.Millisecond) {
+		sleepDuration = 100 * time.Millisecond
 	}
 
-	if err := AddConfigItems(cc); err != nil {
-		return err
-	}
-	return nil
+	return CommonConfig{
+		WorkerType:           EnvVars[PsrWorkerType],
+		IterationSleepMillis: sleepDuration,
+	}, nil
 }
 
-func GetWorkerType() string {
-	return Config[PsrWorkerType]
-}
-
-// AddConfigItems adds items to the config
-func AddConfigItems(cc []ConfigItem) error {
+// AddEnvConfig adds items to the config
+func AddEnvConfig(cc []EnvVarDesc) error {
 	for _, c := range cc {
 		if err := addItemConfig(c); err != nil {
 			return err
@@ -68,7 +83,7 @@ func AddConfigItems(cc []ConfigItem) error {
 	return nil
 }
 
-func addItemConfig(c ConfigItem) error {
+func addItemConfig(c EnvVarDesc) error {
 	val := os.Getenv(c.Key)
 	if len(val) == 0 {
 		if c.Required {
@@ -76,6 +91,6 @@ func addItemConfig(c ConfigItem) error {
 		}
 		val = c.DefaultVal
 	}
-	Config[c.Key] = val
+	EnvVars[c.Key] = val
 	return nil
 }
