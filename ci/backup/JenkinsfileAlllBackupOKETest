@@ -235,6 +235,13 @@ pipeline {
                     // update the description with some meaningful info
                     setDisplayName()
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+
+                    // derive the prefix for the OKE cluster
+                    OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_oke_cluster_name.sh").trim()
+
+                    // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
+                    env.K8S_VERSION_LABEL = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()
+
                 }
                 script {
                     sh """
