@@ -70,6 +70,11 @@ func CreateVerrazzanoMultiClusterNamespace(client client.Client) error {
 	return CreateAndLabelNamespace(client, globalconst.VerrazzanoMultiClusterNamespace, false, false)
 }
 
+// CreateVeleroNamespace - Create/Update and label the Velero namespace
+func CreateVeleroNamespace(client client.Client) error {
+	return CreateAndLabelNamespace(client, constants.VeleroNameSpace, true, true)
+}
+
 // MergeMaps Merge one map into another, creating new one if necessary; returns the updated map and true if it was modified
 func MergeMaps(to map[string]string, from map[string]string) (map[string]string, bool) {
 	mergedMap := to
