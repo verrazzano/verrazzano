@@ -20,7 +20,7 @@ spec:
           cluster: HelloCoherence
           role: HelloCoherenceRole
           replicas: 1
-          image: ghcr.io/oracle/coherence-helidon-sockshop-catalog:1.2.0
+          image: ghcr.io/oracle/coherence-helidon-sockshop-catalog:1.2.2
           imagePullPolicy: IfNotPresent
           application:
             type: helidon

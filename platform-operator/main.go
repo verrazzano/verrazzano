@@ -318,7 +318,9 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "Verrazzano")
 		os.Exit(1)
 	}
-	healthCheck.Start()
+	if healthCheckPeriodSeconds > 0 {
+		healthCheck.Start()
+	}
 
 	// Set up the reconciler for VerrazzanoManagedCluster objects
 	if err = (&clusterscontroller.VerrazzanoManagedClusterReconciler{
