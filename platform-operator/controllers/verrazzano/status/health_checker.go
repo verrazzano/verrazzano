@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package health
+package status
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/log"
@@ -14,40 +14,38 @@ import (
 
 const channelBufferSize = 10
 
-// PlatformHealth polls Verrazzano component availability every tickTime, and writes status updates to a secret
+// HealthChecker polls Verrazzano component availability every tickTime, and writes status updates to a secret
 // It is the job of the Verrazzano controller to read availability status from the secret when updating
 // Verrazzano status.
 // The secret containing status is used for synchronization - multiple goroutines writing to the same object
 // will cause performance degrading write conflicts.
-type PlatformHealth struct {
-	client        clipkg.Client
-	tickTime      time.Duration
-	logger        *zap.SugaredLogger
-	status        *Status      // Last known Status
-	statusChannel chan *Status // The channel on which Status is sent/received
-	shutdown      chan int     // The channel on which shutdown signals are sent/received
-	ackChannel    chan bool    // The channel on which acknowledgements are sent/received
+type HealthChecker struct {
+	updater  *VerrazzanoStatusUpdater
+	client   clipkg.Client
+	tickTime time.Duration
+	logger   *zap.SugaredLogger
+	status   *AvailabilityStatus // Last known AvailabilityStatus
+	shutdown chan int            // The channel on which shutdown signals are sent/received
 }
 
-type Status struct {
+type AvailabilityStatus struct {
 	Components map[string]bool
 	Available  string
 	Verrazzano *vzapi.Verrazzano
 }
 
-func New(c clipkg.Client, tick time.Duration) *PlatformHealth {
-	return &PlatformHealth{
-		client:        c,
-		tickTime:      tick,
-		logger:        zap.S().With(log.FieldController, "availability"),
-		statusChannel: make(chan *Status, channelBufferSize),
-		ackChannel:    make(chan bool, channelBufferSize),
+func NewHealthChecker(updater *VerrazzanoStatusUpdater, c clipkg.Client, tick time.Duration) *HealthChecker {
+	return &HealthChecker{
+		updater:  updater,
+		client:   c,
+		tickTime: tick,
+		logger:   zap.S().With(log.FieldController, "availability"),
 	}
 }
 
-// Start starts the PlatformHealth if it is not already running.
+// Start starts the HealthChecker if it is not already running.
 // It is safe to call Start multiple times, additional goroutines will not be created
-func (p *PlatformHealth) Start() {
+func (p *HealthChecker) Start() {
 	if p.shutdown != nil {
 		// already running, so nothing to do
 		return
@@ -58,7 +56,6 @@ func (p *PlatformHealth) Start() {
 	// the goroutine returns.
 	go func() {
 		ticker := time.NewTicker(p.tickTime)
-		p.ackChannel <- true
 		for {
 			select {
 			case <-ticker.C:
@@ -76,28 +73,15 @@ func (p *PlatformHealth) Start() {
 	}()
 }
 
-// Pause pauses the PlatformHealth if it was running.
+// Pause pauses the HealthChecker if it was running.
 // It is safe to call Pause multiple times
-func (p *PlatformHealth) Pause() {
+func (p *HealthChecker) Pause() {
 	if p.shutdown != nil {
 		close(p.shutdown)
 	}
 }
 
-// SetAvailabilityStatus adds health check status to a Verrazzano resource, if it is available
-func (p *PlatformHealth) SetAvailabilityStatus(vz *vzapi.Verrazzano) {
-	select {
-	case status := <-p.statusChannel:
-		if status != nil {
-			status.merge(vz)
-		}
-		p.ackChannel <- true
-	default:
-		return
-	}
-}
-
-func (a *Status) merge(vz *vzapi.Verrazzano) {
+func (a *AvailabilityStatus) merge(vz *vzapi.Verrazzano) {
 	for component := range a.Components {
 		if comp, ok := vz.Status.Components[component]; ok {
 			available := a.Components[component]
@@ -107,7 +91,7 @@ func (a *Status) merge(vz *vzapi.Verrazzano) {
 	vz.Status.Available = &a.Available
 }
 
-func (a *Status) needsUpdate() bool {
+func (a *AvailabilityStatus) needsUpdate() bool {
 	if a.Verrazzano == nil {
 		return true
 	}

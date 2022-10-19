@@ -7,7 +7,7 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 
 	"strings"
 	"sync"
@@ -19,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -60,7 +59,7 @@ type Reconciler struct {
 	WatchedComponents map[string]bool
 	WatchMutex        *sync.RWMutex
 	Bom               *bom.Bom
-	HealthCheck       *health.PlatformHealth
+	StatusUpdater     status.Updater
 }
 
 // Name of finalizer
@@ -471,7 +470,7 @@ func (r *Reconciler) checkInstallComplete(vzctx vzcontext.VerrazzanoContext) (bo
 	}
 	// Set install complete IFF all subcomponent status' are "CompStateReady"
 	message := "Verrazzano install completed successfully"
-	// Status update must be performed on the actual CR read from K8S
+	// AvailabilityStatus update must be performed on the actual CR read from K8S
 	return true, r.updateStatus(log, actualCR, message, installv1alpha1.CondInstallComplete)
 }
 
@@ -494,7 +493,7 @@ func (r *Reconciler) checkUpgradeComplete(vzctx vzcontext.VerrazzanoContext) (bo
 	}
 	// Set upgrade complete IFF all subcomponent status' are "CompStateReady"
 	message := "Verrazzano upgrade completed successfully"
-	// Status and State update must be performed on the actual CR read from K8S
+	// AvailabilityStatus and State update must be performed on the actual CR read from K8S
 	return true, r.updateVzStatusAndState(log, actualCR, message, installv1alpha1.CondUpgradeComplete, installv1alpha1.VzStateReady)
 }
 
@@ -601,7 +600,8 @@ func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha
 	log.Debugf("Setting Verrazzano resource condition and state: %v/%v", condition.Type, cr.Status.State)
 
 	// Update the status
-	return r.updateVerrazzanoStatus(log, cr)
+	r.StatusUpdater.Update(cr)
+	return nil
 }
 
 // updateVzState updates the status state in the Verrazzano CR
@@ -611,7 +611,8 @@ func (r *Reconciler) updateVzState(log vzlog.VerrazzanoLogger, cr *installv1alph
 	log.Debugf("Setting Verrazzano state: %v", cr.Status.State)
 
 	// Update the status
-	return r.updateVerrazzanoStatus(log, cr)
+	r.StatusUpdater.Update(cr)
+	return nil
 }
 
 // updateVzState updates the status state in the Verrazzano CR
@@ -632,7 +633,8 @@ func (r *Reconciler) updateVzStatusAndState(log vzlog.VerrazzanoLogger, cr *inst
 	log.Debugf("Setting Verrazzano state: %v", cr.Status.State)
 
 	// Update the status
-	return r.updateVerrazzanoStatus(log, cr)
+	r.StatusUpdater.Update(cr)
+	return nil
 }
 
 func (r *Reconciler) getBOM() (*bom.Bom, error) {
@@ -699,7 +701,8 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	}
 
 	// Update the status
-	return r.updateVerrazzanoStatus(log, cr)
+	r.StatusUpdater.Update(cr)
+	return nil
 }
 
 func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, resourceName string, conditions []installv1alpha1.Condition, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
@@ -846,7 +849,8 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 	}
 	// Update the status
 	if statusUpdated {
-		return newRequeueWithDelay(), r.updateVerrazzanoStatus(log, cr)
+		r.StatusUpdater.Update(cr)
+		return newRequeueWithDelay(), nil
 	}
 	return ctrl.Result{}, nil
 }
@@ -1101,21 +1105,6 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 // This is needed for unit testing
 func initUnitTesing() {
 	unitTesting = true
-}
-
-func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
-	r.HealthCheck.SetAvailabilityStatus(vz)
-	err := r.Status().Update(context.TODO(), vz)
-	if err == nil {
-		return nil
-	}
-	if ctrlerrors.IsUpdateConflict(err) {
-		log.Debugf("Requeuing to get a fresh copy of the Verrazzano resource since the current one is outdated.")
-	} else {
-		log.Errorf("Failed to update Verrazzano resource :v", err)
-	}
-	// Return error so that reconcile gets called again
-	return err
 }
 
 // AddWatch adds a component to the watched set

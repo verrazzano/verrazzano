@@ -148,9 +148,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			}
 			// Update the status with the new version and component generations
 			cr.Status.Version = targetVersion
-			if err := r.updateVerrazzanoStatus(log, cr); err != nil {
-				return newRequeueWithDelay(), err
-			}
+			r.StatusUpdater.Update(cr)
 			tracker.vzState = vzStateEnd
 
 			// Requeue since the status was just updated, want a fresh copy from controller-runtime cache
