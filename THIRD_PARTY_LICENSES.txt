@@ -8,7 +8,6 @@ Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 Copyright (C) 2021, 2022, Oracle and/or its affiliates.
 Copyright (C) 2021, Oracle and/or its affiliates.
 Copyright (C) 2022, Oracle and/or its affiliates.
-Copyright (C) 2022, Oracle and/or its affiliates.' | cat - generated_assets.go > tmp && mv tmp generated_assets.go
 Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
 Copyright (c) 2015-2021 Bitnami
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
@@ -17,11 +16,8 @@ Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 Copyright (c) 2020, Oracle and/or its affiliates.
 Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 Copyright (c) 2021, Oracle and/or its affiliates.
-Copyright (c) 2021, Oracle and/or its affiliates. -->")
-Copyright (c) 2021, Oracle and/or its affiliates.")
 Copyright (c) 2022, 2022, Oracle and/or its affiliates.
 Copyright (c) 2022, Oracle and/or its affiliates.
-Copyright (c) 2022, Oracle and/or its affiliates. -->
 Copyright 2020, Oracle Corporation and/or its affiliates.
 
 -------------------------- Fourth Party Dependencies ---------------------------
@@ -215,17 +211,6 @@ Copyright (c) 2014 Benedikt Lang <github at benediktlang.de>
 --------------------------------- (separator) ----------------------------------
 
 == Dependency
-github.com/blang/semver/v4
-
-== License Type
-SPDX:MIT
-
-== Copyright
-Copyright (c) 2014 Benedikt Lang <github at benediktlang.de>
-
---------------------------------- (separator) ----------------------------------
-
-== Dependency
 github.com/cert-manager/cert-manager
 
 == License Type
@@ -333,7 +318,7 @@ Copyright 2010 The Go Authors. All rights reserved.
 --------------------------------- (separator) ----------------------------------
 
 == Dependency
-github.com/emicklei/go-restful/v3
+github.com/emicklei/go-restful
 
 == License Type
 SPDX:MIT
@@ -1876,9 +1861,7 @@ Copyright 2017 The Prometheus Authors
 Copyright 2018 The Prometheus Authors
 Copyright 2019 The Prometheus Authors
 Copyright 2020 The Prometheus Authors
-Copyright 2020 The Prometheus-operator Authors
 Copyright 2021 The Prometheus Authors
-Copyright 2022 The Prometheus Authors
 
 == Notices
 Common libraries shared by Prometheus Go components.
@@ -1905,7 +1888,6 @@ Copyright 2018 The Prometheus Authors
 Copyright 2019 The Prometheus Authors
 Copyright 2020 The Prometheus Authors
 Copyright 2021 The Prometheus Authors
-Copyright 2022 The Prometheus Authors
 
 == Notices
 procfs provides functions to retrieve system, kernel and process
@@ -2153,9 +2135,6 @@ SPDX:MIT
 Copyright (c) 2016 Uber Technologies, Inc.
 Copyright (c) 2016-2020 Uber Technologies, Inc.
 Copyright (c) 2020 Uber Technologies, Inc.
-Copyright (c) 2020-2021 Uber Technologies, Inc.
-Copyright (c) 2020-{{.ToYear}} Uber Technologies, Inc.
-Copyright (c) 2021 Uber Technologies, Inc.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3003,7 +2982,6 @@ Copyright 2018 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
-Copyright 2022 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3134,7 +3112,6 @@ Copyright 2018 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
-Copyright 2022 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3211,7 +3188,6 @@ Copyright 2018 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
-Copyright 2022 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3262,7 +3238,6 @@ Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
-Copyright 2022 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3520,7 +3495,6 @@ Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2016 The Go Authors. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
-Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2021 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
@@ -3536,7 +3510,6 @@ Copyright 2018 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
-Copyright 2022 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -4244,4 +4217,4 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 === ATTRIBUTION-HELPER-GENERATED:
 === Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-79-gdcf58150 GitCommit:dcf58150ba36aa68ea479b22cf3b0c9eaeb13ba8 GitTreeState:clean BuildDate:2022-10-17T17:11:23Z GoVersion:go1.19.2 Compiler:gc Platform:darwin/amd64}
-=== License file based on go.mod with md5 sum:  e67431b264fe6943bf653229341c6fdc
+=== License file based on go.mod with md5 sum:  16720553835d5bcb224895e6a19d5238
