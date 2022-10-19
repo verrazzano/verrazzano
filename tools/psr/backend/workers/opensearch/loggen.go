@@ -11,22 +11,23 @@ import (
 )
 
 const (
-	msgSize = "PSR_MSG_SIZE"
+	psrMsgSize = "PSR_MSG_SIZE"
 )
 
 type LogGenerator struct{}
 
 var _ spi.Worker = LogGenerator{}
 
-func (w LogGenerator) GetConfigItems() []config.ConfigItem {
-	return []config.ConfigItem{
-		{Key: msgSize, DefaultVal: "20", Required: false}}
+func (w LogGenerator) GetEnvDescList() []config.EnvVarDesc {
+	return []config.EnvVarDesc{
+		{Key: psrMsgSize, DefaultVal: "20", Required: false},
+	}
 }
 
-func (w LogGenerator) Work(config map[string]string, log vzlog.VerrazzanoLogger) {
+func (w LogGenerator) Work(conf config.CommonConfig, log vzlog.VerrazzanoLogger) {
 	for {
 		log.Infof("Log Generator Doing Work")
-		time.Sleep(10 * time.Second)
+		time.Sleep(conf.IterationSleepMillis)
 	}
 
 }
