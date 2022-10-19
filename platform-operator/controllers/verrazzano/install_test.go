@@ -330,8 +330,8 @@ func testUpdate(t *testing.T,
 	firstLoginSetting := createFirstLoginSetting()
 	rancherIngress := createIngress(common.CattleSystem, constants.RancherIngress, common.RancherName)
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
-	verrazzanoAdminClusterRole := createClusterRoles("verrazzano-admin")
-	verrazzanoMonitorClusterRole := createClusterRoles("verrazzano-monitor")
+	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
+	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
 	addExec()
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vz, sa, crb, &rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole).WithLists(&ingressList).Build()

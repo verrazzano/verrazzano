@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"math/big"
 	"path/filepath"
 	"testing"
@@ -551,8 +552,8 @@ func TestUpgradeCompleted(t *testing.T) {
 	firstLoginSetting := createFirstLoginSetting()
 	rancherIngress := createIngress(common.CattleSystem, constants.RancherIngress, common.RancherName)
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
-	verrazzanoAdminClusterRole := createClusterRoles("verrazzano-admin")
-	verrazzanoMonitorClusterRole := createClusterRoles("verrazzano-monitor")
+	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
+	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
 	addExec()
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -648,8 +649,8 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	firstLoginSetting := createFirstLoginSetting()
 	rancherIngress := createIngress(common.CattleSystem, constants.RancherIngress, common.RancherName)
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
-	verrazzanoAdminClusterRole := createClusterRoles("verrazzano-admin")
-	verrazzanoMonitorClusterRole := createClusterRoles("verrazzano-monitor")
+	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
+	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
 	addExec()
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -1004,8 +1005,8 @@ func TestUpgradeComponent(t *testing.T) {
 	firstLoginSetting := createFirstLoginSetting()
 	rancherIngress := createIngress(common.CattleSystem, constants.RancherIngress, common.RancherName)
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
-	verrazzanoAdminClusterRole := createClusterRoles("verrazzano-admin")
-	verrazzanoMonitorClusterRole := createClusterRoles("verrazzano-monitor")
+	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
+	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
 	addExec()
 
 	appConfigList := oamapi.ApplicationConfigurationList{Items: []oamapi.ApplicationConfiguration{}}
@@ -1213,8 +1214,8 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	firstLoginSetting := createFirstLoginSetting()
 	rancherIngress := createIngress(common.CattleSystem, constants.RancherIngress, common.RancherName)
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
-	verrazzanoAdminClusterRole := createClusterRoles("verrazzano-admin")
-	verrazzanoMonitorClusterRole := createClusterRoles("verrazzano-monitor")
+	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
+	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
 	addExec()
 
 	appConfigList := oamapi.ApplicationConfigurationList{Items: []oamapi.ApplicationConfiguration{}}
