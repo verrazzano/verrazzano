@@ -100,6 +100,8 @@ func main() {
 	flag.BoolVar(&config.DryRun, "dry-run", config.DryRun, "Run operator in dry run mode.")
 	flag.BoolVar(&config.WebhookValidationEnabled, "enable-webhook-validation", config.WebhookValidationEnabled,
 		"Enable webhooks validation for the operator")
+	flag.BoolVar(&config.WebhooksEnabled, "webhooks-enabled", config.WebhooksEnabled,
+		"Enable webhooks for the operator")
 	flag.BoolVar(&config.InitWebhooks, "init-webhooks", config.InitWebhooks,
 		"Initialize webhooks for the operator")
 	flag.StringVar(&config.VerrazzanoRootDir, "vz-root-dir", config.VerrazzanoRootDir,
@@ -141,22 +143,45 @@ func main() {
 	}
 
 	registry.InitRegistry()
-	// initWebhooks flag is set when called from an webhook deployment.  This allows separation of webhooks and operator
+	//This allows separation of webhooks and operator
 	if config.InitWebhooks {
-		startWebhookServers(config, log)
+		initWebhookServers(config, log)
 	} else {
-		reconcilePlatformOperator(config, log)
+		if config.WebhooksEnabled {
+			startWebhookServers(config, log)
+		} else {
+			reconcilePlatformOperator(config, log)
+		}
 	}
+}
+
+// initWebhookServers uses the same image as the operator, but configured only to create Secrets for WebhookServers to use
+func initWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredLogger) {
+	log.Debug("Creating certificates used by webhooks")
+
+	conf, err := ctrl.GetConfig()
+	if err != nil {
+		log.Errorf("Failed to get kubeconfig: %v", err)
+		os.Exit(1)
+	}
+
+	kubeClient, err := kubernetes.NewForConfig(conf)
+	if err != nil {
+		log.Errorf("Failed to get clientset: %v", err)
+		os.Exit(1)
+	}
+
+	err = certificate.CreateWebhookCertificates(config.CertDir, kubeClient)
+	if err != nil {
+		log.Errorf("Failed to create certificates used by webhooks: %v", err)
+		os.Exit(1)
+	}
+
 }
 
 // startWebhookServers uses the same image as operator, but configured only to run Webhooks for the platform.
 func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredLogger) {
 	log.Debug("Creating certificates used by webhooks")
-	caCert, err := certificate.CreateWebhookCertificates(config.CertDir)
-	if err != nil {
-		log.Errorf("Failed to create certificates used by webhooks: %v", err)
-		os.Exit(1)
-	}
 
 	conf, err := ctrl.GetConfig()
 	if err != nil {
@@ -177,14 +202,14 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 	}
 
 	log.Debug("Delete old VPO webhook configuration")
-	err = certificate.DeleteValidatingWebhookConfiguration(kubeClient, certificate.OperatorName)
+	err = certificate.DeleteValidatingWebhookConfiguration(kubeClient, certificate.OldOperatorName)
 	if err != nil {
 		log.Errorf("Failed to delete old webhook configuration: %v", err)
 		os.Exit(1)
 	}
 
 	log.Debug("Updating VPO webhook configuration")
-	err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, caCert, certificate.OperatorName)
+	err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, certificate.OperatorName)
 	if err != nil {
 		log.Errorf("Failed to update validation webhook configuration: %v", err)
 		os.Exit(1)
@@ -196,20 +221,20 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 		log.Errorf("Failed to get apix clientset: %v", err)
 		os.Exit(1)
 	}
-	err = certificate.UpdateConversionWebhookConfiguration(apixClient, caCert)
+	err = certificate.UpdateConversionWebhookConfiguration(apixClient, kubeClient)
 	if err != nil {
 		log.Errorf("Failed to update conversion webhook: %v", err)
 		os.Exit(1)
 	}
 
-	err = certificate.UpdateMutatingWebhookConfiguration(kubeClient, caCert, constants.MysqlBackupMutatingWebhookName)
+	err = certificate.UpdateMutatingWebhookConfiguration(kubeClient, constants.MysqlBackupMutatingWebhookName)
 	if err != nil {
 		log.Errorf("Failed to update pod mutating webhook configuration: %v", err)
 		os.Exit(1)
 	}
 
 	log.Debug("Updating MySQL install values webhook configuration")
-	err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, caCert, webhooks.MysqlInstallValuesWebhook)
+	err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, webhooks.MysqlInstallValuesWebhook)
 	if err != nil {
 		log.Errorf("Failed to update validation webhook configuration: %v", err)
 		os.Exit(1)

@@ -10,8 +10,8 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/pem"
 	"fmt"
+	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -28,19 +28,20 @@ const (
 	// OperatorName is the resource name for the Verrazzano platform operator
 	OperatorName    = "verrazzano-platform-operator-webhook"
 	OldOperatorName = "verrazzano-platform-operator"
+	OperatorCA      = "verrazzano-platform-operator-ca"
+	OperatorTLS     = "verrazzano-platform-operator-tls"
 	// OperatorNamespace is the resource namespace for the Verrazzano platform operator
 	OperatorNamespace = "verrazzano-install"
 	CRDName           = "verrazzanos.install.verrazzano.io"
 )
 
 // CreateWebhookCertificates creates the needed certificates for the validating webhook
-func CreateWebhookCertificates(certDir string) (*bytes.Buffer, error) {
-	var caPEM, serverCertPEM, serverPrivKeyPEM *bytes.Buffer
+func CreateWebhookCertificates(certDir string, kubeClient *kubernetes.Clientset) error {
 
 	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)
 	serialNumber, err := newSerialNumber()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// CA config
@@ -61,25 +62,18 @@ func CreateWebhookCertificates(certDir string) (*bytes.Buffer, error) {
 	// CA private key
 	caPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Self signed CA certificate
 	caBytes, err := x509.CreateCertificate(cryptorand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	// PEM encode CA cert
-	caPEM = new(bytes.Buffer)
-	_ = pem.Encode(caPEM, &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: caBytes,
-	})
 
 	serialNumber, err = newSerialNumber()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// server cert config
@@ -100,44 +94,42 @@ func CreateWebhookCertificates(certDir string) (*bytes.Buffer, error) {
 	// server private key
 	serverPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// sign the server cert
 	serverCertBytes, err := x509.CreateCertificate(cryptorand.Reader, cert, ca, &serverPrivKey.PublicKey, caPrivKey)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// PEM encode the server cert and key
-	serverCertPEM = new(bytes.Buffer)
-	_ = pem.Encode(serverCertPEM, &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: serverCertBytes,
-	})
+	var webhookCA v1.Secret
+	webhookCA.Namespace = OperatorNamespace
+	webhookCA.Name = OperatorCA
+	webhookCA.Type = v1.SecretTypeTLS
+	webhookCA.Data = make(map[string][]byte)
+	webhookCA.Data["tls.crt"] = caBytes
+	webhookCA.Data["tls.key"] = x509.MarshalPKCS1PrivateKey(caPrivKey)
 
-	serverPrivKeyPEM = new(bytes.Buffer)
-	_ = pem.Encode(serverPrivKeyPEM, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(serverPrivKey),
-	})
-
-	err = os.MkdirAll(certDir, 0666)
+	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCA, metav1.CreateOptions{})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	err = writeFile(fmt.Sprintf("%s/tls.crt", certDir), serverCertPEM)
+	var webhookCrt v1.Secret
+	webhookCrt.Namespace = OperatorNamespace
+	webhookCrt.Name = OperatorTLS
+	webhookCrt.Type = v1.SecretTypeTLS
+	webhookCrt.Data = make(map[string][]byte)
+	webhookCrt.Data["tls.crt"] = serverCertBytes
+	webhookCrt.Data["tls.key"] = x509.MarshalPKCS1PrivateKey(serverPrivKey)
+
+	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	err = writeFile(fmt.Sprintf("%s/tls.key", certDir), serverPrivKeyPEM)
-	if err != nil {
-		return nil, err
-	}
-
-	return caPEM, nil
+	return nil
 }
 
 // newSerialNumber returns a new random serial number suitable for use in a certificate.
@@ -164,30 +156,31 @@ func writeFile(filepath string, pem *bytes.Buffer) error {
 
 // DeleteValidatingWebhookConfiguration deletes a validating webhook configuration
 func DeleteValidatingWebhookConfiguration(kubeClient kubernetes.Interface, name string) error {
-	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), OldOperatorName, metav1.GetOptions{})
+	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return nil
+			return err
 		}
-		return err
 	}
-	err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(context.TODO(), OldOperatorName, metav1.DeleteOptions{})
-	if err != nil {
-		return err
-	}
+	err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(context.TODO(), name, metav1.DeleteOptions{})
 
-	return nil
+	return err
 }
 
 // UpdateValidatingnWebhookConfiguration sets the CABundle
-func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer, name string) error {
+func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, name string) error {
 	validatingWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
+	caSecret, err := kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	crt := caSecret.Data["tls.crt"]
 
 	for i := range validatingWebhook.Webhooks {
-		validatingWebhook.Webhooks[i].ClientConfig.CABundle = caCert.Bytes()
+		validatingWebhook.Webhooks[i].ClientConfig.CABundle = crt
 	}
 
 	_, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Update(context.TODO(), validatingWebhook, metav1.UpdateOptions{})
@@ -195,13 +188,19 @@ func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, caCe
 }
 
 // UpdateConversionWebhookConfiguration sets the conversion webhook for the Verrazzano resource
-func UpdateConversionWebhookConfiguration(apiextClient *apiextensionsv1client.ApiextensionsV1Client, caCert *bytes.Buffer) error {
+func UpdateConversionWebhookConfiguration(apiextClient *apiextensionsv1client.ApiextensionsV1Client, kubeClient kubernetes.Interface) error {
 	crd, err := apiextClient.CustomResourceDefinitions().Get(context.TODO(), CRDName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	convertPath := "/convert"
 	var webhookPort int32 = 443
+	caSecret, err := kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	crt := caSecret.Data["tls.crt"]
+
 	crd.Spec.Conversion = &apiextensionsv1.CustomResourceConversion{
 		Strategy: apiextensionsv1.WebhookConverter,
 		Webhook: &apiextensionsv1.WebhookConversion{
@@ -212,7 +211,7 @@ func UpdateConversionWebhookConfiguration(apiextClient *apiextensionsv1client.Ap
 					Path:      &convertPath,
 					Port:      &webhookPort,
 				},
-				CABundle: caCert.Bytes(),
+				CABundle: crt,
 			},
 			ConversionReviewVersions: []string{"v1beta1"},
 		},
@@ -222,14 +221,19 @@ func UpdateConversionWebhookConfiguration(apiextClient *apiextensionsv1client.Ap
 }
 
 // UpdateMutatingWebhookConfiguration sets the CABundle
-func UpdateMutatingWebhookConfiguration(kubeClient kubernetes.Interface, caCert *bytes.Buffer, name string) error {
+func UpdateMutatingWebhookConfiguration(kubeClient kubernetes.Interface, name string) error {
 	var webhook *adminv1.MutatingWebhookConfiguration
 	webhook, err := kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), name, metav1.GetOptions{})
+	caSecret, err := kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	crt := caSecret.Data["tls.crt"]
 	if err != nil {
 		return err
 	}
 	for i := range webhook.Webhooks {
-		webhook.Webhooks[i].ClientConfig.CABundle = caCert.Bytes()
+		webhook.Webhooks[i].ClientConfig.CABundle = crt
 	}
 	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Update(context.TODO(), webhook, metav1.UpdateOptions{})
 	if err != nil {
