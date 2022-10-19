@@ -5,7 +5,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.10.0
+    controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
   name: verrazzanoprojects.clusters.verrazzano.io
 spec:
@@ -139,7 +139,9 @@ spec:
                                             is not defined or if the port field is
                                             defined as a named (string) port. The
                                             endPort must be equal or greater than
-                                            port.
+                                            port. This feature is in Beta state and
+                                            is enabled by default. It can be disabled
+                                            using the Feature Gate "NetworkPolicyEndPort".
                                           format: int32
                                           type: integer
                                         port:
@@ -535,7 +537,9 @@ spec:
                                             is not defined or if the port field is
                                             defined as a named (string) port. The
                                             endPort must be equal or greater than
-                                            port.
+                                            port. This feature is in Beta state and
+                                            is enabled by default. It can be disabled
+                                            using the Feature Gate "NetworkPolicyEndPort".
                                           format: int32
                                           type: integer
                                         port:
