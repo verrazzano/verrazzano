@@ -8,14 +8,6 @@ metadata:
 spec:
   profile: prod
   components:
-    prometheusAdapter:
-      enabled: true
-    kubeStateMetrics:
-      enabled: true
-    prometheusPushgateway:
-      enabled: true
-    prometheusNodeExporter:
-      enabled: true
     rancherBackup:
       enabled: true
     velero:
