@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -363,11 +365,19 @@ func configureAuthProviders(ctx spi.ComponentContext) error {
 			return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
 		}
 
-		if err := createOrUpdateRancherVerrazzanoUser(ctx); err != nil {
+		vzUser, err := keycloak.GetVerrazzanoUserFromKeycloak(ctx)
+		if err != nil {
+			return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user, unable to fetch verrazzano user id from keycloak: %s", err.Error())
+		}
+		rancherUsername, err := getRancherUsername(ctx, vzUser)
+		if err != nil {
+			return err
+		}
+		if err = createOrUpdateRancherVerrazzanoUser(ctx, vzUser, rancherUsername); err != nil {
 			return err
 		}
 
-		if err := createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx); err != nil {
+		if err = createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx, rancherUsername); err != nil {
 			return err
 		}
 
