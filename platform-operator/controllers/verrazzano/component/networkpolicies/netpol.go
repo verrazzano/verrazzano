@@ -64,6 +64,8 @@ var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "coherence-operator"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "kibana"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "kiali"},
+	{Namespace: constants.VeleroNameSpace, Name: "allow-same-namespace"},
+	{Namespace: constants.VeleroNameSpace, Name: "velero"},
 }
 
 var (
@@ -128,6 +130,7 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) er
 	promEnable := vzconfig.IsPrometheusEnabled(effectiveCR) || vzconfig.IsPrometheusOperatorEnabled(effectiveCR)
 	overrides.Prometheus = &prometheusValues{Enabled: promEnable}
 	overrides.Rancher = &rancherValues{Enabled: vzconfig.IsRancherEnabled(effectiveCR)}
+	overrides.Velero = &veleroValues{Enabled: vzconfig.IsVeleroEnabled(effectiveCR)}
 	return nil
 }
 
