@@ -381,6 +381,14 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 	return err
 }
 
+func (i istioComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = i.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", i.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", i.Name()), false
+}
+
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	deployments := []types.NamespacedName{

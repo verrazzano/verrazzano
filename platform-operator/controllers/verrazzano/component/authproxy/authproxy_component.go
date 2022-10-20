@@ -101,6 +101,14 @@ func (c authProxyComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
+func (c authProxyComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
+}
+
 // PreInstall - actions to perform prior to installing this component
 func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 	ctx.Log().Debug("AuthProxy pre-install")
