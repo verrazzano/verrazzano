@@ -5,7 +5,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.2
+    controller-gen.kubebuilder.io/version: v0.8.0
   creationTimestamp: null
   name: verrazzanoprojects.clusters.verrazzano.io
 spec:
@@ -263,7 +263,6 @@ spec:
                                                 ANDed.
                                               type: object
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                         podSelector:
                                           description: "This is a label selector which
                                             selects Pods. This field follows standard
@@ -326,7 +325,6 @@ spec:
                                                 ANDed.
                                               type: object
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                       type: object
                                     type: array
                                 type: object
@@ -449,7 +447,6 @@ spec:
                                                 ANDed.
                                               type: object
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                         podSelector:
                                           description: "This is a label selector which
                                             selects Pods. This field follows standard
@@ -512,7 +509,6 @@ spec:
                                                 ANDed.
                                               type: object
                                           type: object
-                                          x-kubernetes-map-type: atomic
                                       type: object
                                     type: array
                                   ports:
@@ -616,7 +612,6 @@ spec:
                                     requirements are ANDed.
                                   type: object
                               type: object
-                              x-kubernetes-map-type: atomic
                             policyTypes:
                               description: List of rule types that the NetworkPolicy
                                 relates to. Valid options are ["Ingress"], ["Egress"],
@@ -682,7 +677,6 @@ spec:
                           - kind
                           - name
                           type: object
-                          x-kubernetes-map-type: atomic
                         type: array
                       projectMonitorSubjects:
                         description: ProjectMonitorBinding specifies the subject that
@@ -718,7 +712,6 @@ spec:
                           - kind
                           - name
                           type: object
-                          x-kubernetes-map-type: atomic
                         type: array
                     type: object
                 required:
@@ -792,3 +785,9 @@ spec:
     storage: true
     subresources:
       status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
