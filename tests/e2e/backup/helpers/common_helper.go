@@ -61,7 +61,10 @@ func GatherInfo() {
 	BackupOpensearchStorageName = os.Getenv("BACKUP_OPENSEARCH_STORAGE")
 	BackupMySQLStorageName = os.Getenv("BACKUP_MYSQL_STORAGE")
 	BackupRegion = os.Getenv("BACKUP_REGION")
-
+	OciCliTenancy = os.Getenv("OCI_CLI_TENANCY")
+	OciCliUser = os.Getenv("OCI_CLI_USER")
+	OciCliFingerprint = os.Getenv("OCI_CLI_FINGERPRINT")
+	OciCliKeyFile = os.Getenv("OCI_CLI_KEY_FILE")
 }
 
 // GetRancherURL fetches the elastic search URL from the cluster
@@ -308,6 +311,39 @@ func CreateMySQLCredentialsSecretFromFile(namespace string, name string, log *za
 	secretData := make(map[string]string)
 	secretData["config"] = profileByte.String()
 	secretData["credentials"] = b.String()
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Type:       corev1.SecretTypeOpaque,
+		StringData: secretData,
+	}
+
+	_, err = clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
+	if err != nil {
+		log.Errorf("Error creating secret ", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
+// CreateMySQLCredentialsSecretFromFile creates opaque secret from a file
+func CreateMySQLCredentialsSecretFromUserPrincipal(namespace string, name string, log *zap.SugaredLogger) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		log.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	secretData := make(map[string]string)
+	secretData["region"] = BackupRegion
+	secretData["passphrase"] = ""
+	secretData["user"] = OciCliUser
+	secretData["tenancy"] = OciCliTenancy
+	secretData["fingerprint"] = OciCliFingerprint
+	secretData["privatekey"] = OciCliKeyFile
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

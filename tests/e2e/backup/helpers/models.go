@@ -634,4 +634,8 @@ var (
 	RancherUserNameList         []string
 	KeyCloakUserIDList          []string
 	MySQLBackupHelmFileName     string
+	OciCliTenancy               string
+	OciCliUser                  string
+	OciCliFingerprint           string
+	OciCliKeyFile               string
 )

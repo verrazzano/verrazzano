@@ -34,8 +34,7 @@ const (
 	mysqlPvcPrefix         = "datadir-mysql"
 	mysqlChartName         = "mysql"
 	mysqlInnoDBClusterName = "mysql"
-	//vzMySQLChartPath       = "platform-operator/thirdparty/charts/mysql"
-	vzMySQLChartPath = "../../../../platform-operator/thirdparty/charts/mysql"
+	vzMySQLChartPath       = "../../../../platform-operator/thirdparty/charts/mysql"
 )
 
 var keycloakPods = []string{"keycloak", "mysql"}
@@ -158,9 +157,9 @@ func MySQLRestore() error {
 	cmdArgs = append(cmdArgs, "helm", "install", mysqlChartName, vzMySQLChartPath)
 	cmdArgs = append(cmdArgs, "--namespace", constants.KeycloakNamespace)
 	cmdArgs = append(cmdArgs, "--set", "initDB.dump.name=alpha")
-	cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.s3.prefix=%s/%s", common.BackupMySQLStorageName, backupFolderName))
-	cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.s3.bucketName=%s", common.OciBucketName))
-	cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.s3.credentials=%s", common.VeleroMySQLSecretName))
+	cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.ociObjectStorage.prefix=%s/%s", common.BackupMySQLStorageName, backupFolderName))
+	cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.ociObjectStorage.bucketName=%s", common.OciBucketName))
+	cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.ociObjectStorage.credentials=%s", common.VeleroMySQLSecretName))
 	cmdArgs = append(cmdArgs, "--values", common.MySQLBackupHelmFileName)
 
 	cmd.CommandArgs = cmdArgs
@@ -295,6 +294,7 @@ func WhenMySQLOpInstalledIt(description string, f func()) {
 	if !pkg.IsMySQLOperatorEnabled(kubeconfigPath) {
 		supported = false
 	}
+
 	if supported {
 		t.It(description, f)
 	} else {
@@ -328,8 +328,12 @@ func backupPrerequisites() {
 		return BackupMySQLValues()
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
+	//Eventually(func() error {
+	//	return common.CreateMySQLCredentialsSecretFromFile(constants.KeycloakNamespace, common.VeleroMySQLSecretName, t.Logs)
+	//}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
+
 	Eventually(func() error {
-		return common.CreateMySQLCredentialsSecretFromFile(constants.KeycloakNamespace, common.VeleroMySQLSecretName, t.Logs)
+		return common.CreateMySQLCredentialsSecretFromUserPrincipal(constants.KeycloakNamespace, common.VeleroMySQLSecretName, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).Should(BeNil())
 
 	t.Logs.Info("Create a sample keycloak user")
