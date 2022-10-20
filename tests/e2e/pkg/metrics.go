@@ -56,6 +56,15 @@ func QueryMetric(metricsName string, kubeconfigPath string) (string, error) {
 		return "", fmt.Errorf("error retrieving metric %s, status %d", metricsName, resp.StatusCode)
 	}
 	Log(Info, fmt.Sprintf("metric: %s", resp.Body))
+	targetURL := fmt.Sprintf("https://%s/api/v1/targets?state=active", GetPrometheusIngressHost(kubeconfigPath))
+	resp1, err1 := GetWebPageWithBasicAuth(targetURL, "", "verrazzano", password, kubeconfigPath)
+	if err1 != nil {
+		return "", err1
+	}
+	if resp1.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("error retrieving target, status %d", resp.StatusCode)
+	}
+	Log(Info, fmt.Sprintf("target: %s", resp1.Body))
 	return string(resp.Body), nil
 }
 
@@ -80,7 +89,6 @@ func GetPrometheusIngressHost(kubeconfigPath string) string {
 func MetricsExistInCluster(metricsName string, keyMap map[string]string, kubeconfigPath string) bool {
 	metric, err := QueryMetric(metricsName, kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Quering metrics was false."))
 		return false
 	}
 	metrics := JTq(metric, "data", "result").([]interface{})
@@ -88,7 +96,6 @@ func MetricsExistInCluster(metricsName string, keyMap map[string]string, kubecon
 		Log(Info, fmt.Sprintf("Debug: Metrics: %v", metrics))
 		return findMetric(metrics, keyMap)
 	}
-	Log(Info, fmt.Sprintf("Metrics is nil"))
 	return false
 }
 
