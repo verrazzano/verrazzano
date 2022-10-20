@@ -16,7 +16,10 @@ echo "Killing pod $POD"
 kubectl delete pod -n keycloak "$POD"
 
 # Wait for MySQL to restart
-POD=$(kubectl get pod -l app=mysql -n keycloak -o jsonpath="{.items[0].metadata.name}")
+POD=$(kubectl get pod -l app=mysql -n keycloak -o jsonpath="{.items[0].metadata.name}" 2>/dev/null)
+if [ $? -ne 0 ] ; then
+  POD=$(kubectl get pod -l tier=mysql -n keycloak -o jsonpath="{.items[0].metadata.name}")
+fi
 echo "Waiting for $POD to be ready"
 kubectl -n keycloak wait --for=condition=ready --timeout=600s pod/"$POD"
 
