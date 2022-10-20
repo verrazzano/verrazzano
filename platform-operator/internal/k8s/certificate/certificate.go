@@ -159,13 +159,13 @@ func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
 	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			_, err := kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCA, metav1.CreateOptions{})
-			if err != nil {
-				return err
+			_, errA := kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCA, metav1.CreateOptions{})
+			if errA != nil {
+				return errA
 			}
 		}
 	}
-	if err != nil {
+	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
 
@@ -180,11 +180,14 @@ func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
 	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
-			if err != nil {
-				return err
+			_, errX := kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
+			if errX != nil {
+				return errX
 			}
 		}
+	}
+	if err != nil && !errors.IsNotFound(err) {
+		return err
 	}
 
 	return nil
