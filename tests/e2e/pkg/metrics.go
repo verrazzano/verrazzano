@@ -80,12 +80,15 @@ func GetPrometheusIngressHost(kubeconfigPath string) string {
 func MetricsExistInCluster(metricsName string, keyMap map[string]string, kubeconfigPath string) bool {
 	metric, err := QueryMetric(metricsName, kubeconfigPath)
 	if err != nil {
+		Log(Error, fmt.Sprintf("Quering metrics was false."))
 		return false
 	}
 	metrics := JTq(metric, "data", "result").([]interface{})
 	if metrics != nil {
+		Log(Info, fmt.Sprintf("Debug: Metrics: %v", metrics))
 		return findMetric(metrics, keyMap)
 	}
+	Log(Info, fmt.Sprintf("Metrics is nil"))
 	return false
 }
 
