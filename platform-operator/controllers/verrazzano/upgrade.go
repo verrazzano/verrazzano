@@ -86,7 +86,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			// Only write the upgrade started message once
 			if !isLastCondition(cr.Status, installv1alpha1.CondUpgradeStarted) {
 				err := r.updateStatus(log, cr, fmt.Sprintf("Verrazzano upgrade to version %s in progress", cr.Spec.Version),
-					installv1alpha1.CondUpgradeStarted)
+					installv1alpha1.CondUpgradeStarted, nil)
 				// Always requeue to get a fresh copy of status and avoid potential conflict
 				return newRequeueWithDelay(), err
 			}
