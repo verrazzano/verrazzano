@@ -359,27 +359,6 @@ func TestCreateLocalRegistrationSecretUnexpectedError(t *testing.T) {
 	asserts.Error(err)
 }
 
-func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
-	statusMap := make(vzapi.ComponentStatusMap)
-	for _, comp := range registry.GetComponents() {
-		if comp.IsOperatorInstallSupported() {
-			available := true
-			statusMap[comp.Name()] = &vzapi.ComponentStatusDetails{
-				Name: comp.Name(),
-				Conditions: []vzapi.Condition{
-					{
-						Type:   vzapi.CondInstallComplete,
-						Status: corev1.ConditionTrue,
-					},
-				},
-				State:     vzapi.CompStateReady,
-				Available: &available,
-			}
-		}
-	}
-	return statusMap
-}
-
 // TestCreateVerrazzanoWithOCIDNS tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an Verrazzano resource with OCI DNS configured
 // WHEN a Verrazzano resource has been created
