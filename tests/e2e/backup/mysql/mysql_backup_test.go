@@ -37,8 +37,9 @@ const (
 	vzMySQLChartPath       = "../../../../platform-operator/thirdparty/charts/mysql"
 )
 
-var keycloakPods = []string{"keycloak", "mysql"}
+var keycloakNamespacePods = []string{"keycloak", "mysql"}
 var mysqlPods = []string{"mysql"}
+var keycloakPods = []string{"keycloak"}
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()
@@ -173,7 +174,7 @@ func MySQLRestore() error {
 	return nil
 }
 
-func RebootKeyCloak() error {
+func KeycloakDown() error {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {
 		t.Logs.Errorf("Failed to get clientset with error: %v", err)
@@ -185,21 +186,35 @@ func RebootKeyCloak() error {
 	if err != nil {
 		return err
 	}
-	replicaCount := getScale.Spec.Replicas
+	common.KeyCloakReplicaCount = getScale.Spec.Replicas
 	scaleDown := *getScale
 	scaleDown.Spec.Replicas = 0
 
-	_, err = clientset.AppsV1().StatefulSets(constants.VerrazzanoSystemNamespace).UpdateScale(context.TODO(), constants.KeycloakNamespace, &scaleDown, metav1.UpdateOptions{})
+	_, err = clientset.AppsV1().StatefulSets(constants.KeycloakNamespace).UpdateScale(context.TODO(), constants.KeycloakNamespace, &scaleDown, metav1.UpdateOptions{})
 	if err != nil {
 		t.Logs.Infof("Error = %v", zap.Error(err))
 		return err
 	}
+	return nil
+}
 
-	scaleUp := scaleDown
-	scaleUp.Spec.Replicas = replicaCount
+func KeyCloakUp() error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		t.Logs.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	getKeycloak, err := clientset.AppsV1().StatefulSets(constants.KeycloakNamespace).GetScale(context.TODO(), constants.KeycloakNamespace, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	scaleUp := *getKeycloak
+	scaleUp.Spec.Replicas = common.KeyCloakReplicaCount
 
 	t.Logs.Infof("Scaling up keycloak sts")
-	_, err = clientset.AppsV1().StatefulSets(constants.VerrazzanoSystemNamespace).UpdateScale(context.TODO(), constants.KeycloakNamespace, &scaleUp, metav1.UpdateOptions{})
+	_, err = clientset.AppsV1().StatefulSets(constants.KeycloakNamespace).UpdateScale(context.TODO(), constants.KeycloakNamespace, &scaleUp, metav1.UpdateOptions{})
 	if err != nil {
 		t.Logs.Infof("Error = %v", zap.Error(err))
 		return err
@@ -413,15 +428,33 @@ var _ = t.Describe("MySQL Backup and Restore,", Label("f:platform-verrazzano.mys
 	})
 
 	t.Context("MySQL Data and Infra verification", func() {
-		WhenMySQLOpInstalledIt("After restore is complete reboot keycloak", func() {
+		WhenMySQLOpInstalledIt("After restore is complete scale down keycloak", func() {
 			Eventually(func() error {
-				return RebootKeyCloak()
+				return KeycloakDown()
 			}, waitTimeout, pollingInterval).Should(BeNil())
+		})
+
+		WhenMySQLOpInstalledIt("After scaling down keycloak, wait for all keycloak pods to go down", func() {
+			Eventually(func() bool {
+				return checkPodsNotRunning(constants.KeycloakNamespace, keycloakPods)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if keycloak pods are down")
+		})
+
+		WhenMySQLOpInstalledIt("Scale up keycloak", func() {
+			Eventually(func() error {
+				return KeyCloakUp()
+			}, waitTimeout, pollingInterval).Should(BeNil())
+		})
+
+		WhenMySQLOpInstalledIt("After scaling up keycloak, wait for all keycloak pods to be up", func() {
+			Eventually(func() bool {
+				return checkPodsRunning(constants.KeycloakNamespace, keycloakPods)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if keycloak pods are up")
 		})
 
 		WhenMySQLOpInstalledIt("After restore is complete wait for keycloak and mysql pods to come up", func() {
 			Eventually(func() bool {
-				return checkPodsRunning(constants.KeycloakNamespace, keycloakPods)
+				return checkPodsRunning(constants.KeycloakNamespace, keycloakNamespacePods)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if keycloak and mysql infra is up")
 		})
 

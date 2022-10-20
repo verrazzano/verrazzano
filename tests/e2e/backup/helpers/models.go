@@ -638,4 +638,5 @@ var (
 	OciCliUser                  string
 	OciCliFingerprint           string
 	OciCliKeyFile               string
+	KeyCloakReplicaCount        int32
 )
