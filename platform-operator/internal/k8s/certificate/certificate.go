@@ -82,7 +82,7 @@ func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
 	// PEM encode CA cert
 	caKeyPEM := new(bytes.Buffer)
 	_ = pem.Encode(caKeyPEM, &pem.Block{
-		Type:  "CERTIFICATE",
+		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(caPrivKey),
 	})
 
@@ -136,7 +136,7 @@ func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
 	// PEM encode Server cert
 	serverKeyPEM := new(bytes.Buffer)
 	_ = pem.Encode(serverKeyPEM, &pem.Block{
-		Type:  "CERTIFICATE",
+		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(serverPrivKey),
 	})
 
@@ -161,6 +161,8 @@ func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
 		if errors.IsNotFound(err) {
 			_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCA, metav1.CreateOptions{})
 		}
+	}
+	if err != nil {
 		return err
 	}
 
@@ -177,7 +179,6 @@ func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
 		if errors.IsNotFound(err) {
 			_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
 		}
-		return err
 	}
 
 	return nil
