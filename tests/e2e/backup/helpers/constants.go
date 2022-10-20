@@ -13,6 +13,7 @@ const (
 	BackupStorageLocationResource       = "backupstoragelocations"
 	BackupPodVolumeResource             = "podvolumebackups"
 	RestorePodVolumeResource            = "podvolumerestores"
+	InnoDBClusterName                   = "mysql"
 )
 
 // SecretsData template for creating backup credentials
@@ -20,6 +21,11 @@ const SecretsData = //nolint:gosec //#gosec G101 //#gosec G204
 `[default]
 {{ .AccessName }}={{ .ObjectStoreAccessValue }}
 {{ .ScrtName }}={{ .ObjectStoreScrt }}
+`
+
+// ProfileData template for creating backup credentials
+const ProfileData = `[default]
+region={{ .Region }}
 `
 
 // VeleroBackupLocation template for creating velero backup storage location object.
@@ -178,7 +184,7 @@ spec:
       endpoint: {{ .RancherSecretData.RancherObjectStorageNamespaceName }}.compat.objectstorage.{{ .RancherSecretData.RancherBackupRegion }}.oraclecloud.com
 `
 
-const MySQLBackup = `
+const VeleroMySQLBackup = `
 ---
 apiVersion: velero.io/v1
 kind: Backup
@@ -211,7 +217,7 @@ spec:
               onError: Fail
               timeout: 5m`
 
-const MySQLRestore = `
+const VeleroMySQLRestore = `
 ---
 apiVersion: velero.io/v1
 kind: Restore
@@ -242,3 +248,23 @@ spec:
               waitTimeout: 5m
               execTimeout: 5m
               onError: Fail`
+
+const InnoDBBackup = `
+---
+apiVersion: mysql.oracle.com/v2
+kind: MySQLBackup
+metadata: 
+  name: {{ .InnoDBBackupName }}
+  namespace: {{ .InnoDBNamespaceName }}
+spec: 
+  clusterName: {{ .InnoDBClusterName }}
+  backupProfile: 
+      name: {{ .InnoDBBackupProfileName}}
+      dumpInstance: 
+        storage: 
+          s3: 
+            bucketName: {{ .InnoDBBackupObjectStoreBucketName }}
+            config: {{ .InnoDBBackupCredentialsName }}
+            endpoint: "https://{{ .InnoDBObjectStorageNamespaceName }}.compat.objectstorage.{{ .InnoDBBackupRegion }}.oraclecloud.com"
+            prefix: {{ .InnoDBBackupStorageName }}
+            profile: default`

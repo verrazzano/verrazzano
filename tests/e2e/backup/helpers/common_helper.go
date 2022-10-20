@@ -29,6 +29,7 @@ import (
 	"k8s.io/client-go/restmapper"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"text/template"
 	"time"
@@ -272,6 +273,59 @@ func CreateCredentialsSecretFromFile(namespace string, name string, log *zap.Sug
 	return nil
 }
 
+// CreateMySQLCredentialsSecretFromFile creates opaque secret from a file
+func CreateMySQLCredentialsSecretFromFile(namespace string, name string, log *zap.SugaredLogger) error {
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		log.Errorf("Failed to get clientset with error: %v", err)
+		return err
+	}
+
+	var b bytes.Buffer
+	template, err := template.New("testsecrets").Parse(SecretsData)
+	if err != nil {
+		return err
+	}
+	data := AccessData{
+		AccessName:             ObjectStoreCredsAccessKeyName,
+		ScrtName:               ObjectStoreCredsSecretAccessKeyName,
+		ObjectStoreAccessValue: OciOsAccessKey,
+		ObjectStoreScrt:        OciOsAccessSecretKey,
+	}
+
+	template.Execute(&b, data)
+
+	profileTemplate, err := template.New("testprofile").Parse(ProfileData)
+	if err != nil {
+		return err
+	}
+	var profileByte bytes.Buffer
+	pdata := InnoDBSecret{
+		Region: BackupRegion,
+	}
+	profileTemplate.Execute(&profileByte, pdata)
+
+	secretData := make(map[string]string)
+	secretData["config"] = profileByte.String()
+	secretData["credentials"] = b.String()
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Type:       corev1.SecretTypeOpaque,
+		StringData: secretData,
+	}
+
+	_, err = clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
+	if err != nil {
+		log.Errorf("Error creating secret ", zap.Error(err))
+		return err
+	}
+	return nil
+}
+
 // DeleteNamespace method to delete a namespace
 func DeleteNamespace(namespace string, log *zap.SugaredLogger) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
@@ -388,4 +442,46 @@ func DisplayHookLogs(log *zap.SugaredLogger) error {
 	}
 	log.Infof(stdout)
 	return nil
+}
+
+func Runner(bcmd *BashCommand, log *zap.SugaredLogger) *RunnerResponse {
+	var stdoutBuf, stderrBuf bytes.Buffer
+	var bashCommandResponse RunnerResponse
+	bashCommand := exec.Command(bcmd.CommandArgs[0], bcmd.CommandArgs[1:]...) //nolint:gosec
+	bashCommand.Stdout = io.MultiWriter(os.Stdout, &stdoutBuf)
+	bashCommand.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
+
+	log.Infof("Executing command '%v'", bashCommand.String())
+	err := bashCommand.Start()
+	if err != nil {
+		log.Errorf("Cmd '%v' execution failed due to '%v'", bashCommand.String(), zap.Error(err))
+		bashCommandResponse.CommandError = err
+		return &bashCommandResponse
+	}
+	done := make(chan error, 1)
+	go func() {
+		done <- bashCommand.Wait()
+	}()
+	select {
+	case <-time.After(bcmd.Timeout):
+		if err = bashCommand.Process.Kill(); err != nil {
+			log.Errorf("Failed to kill cmd '%v' due to '%v'", bashCommand.String(), zap.Error(err))
+			bashCommandResponse.CommandError = err
+			return &bashCommandResponse
+		}
+		log.Errorf("Cmd '%v' timeout expired", bashCommand.String())
+		bashCommandResponse.CommandError = err
+		return &bashCommandResponse
+	case err = <-done:
+		if err != nil {
+			log.Errorf("Cmd '%v' execution failed due to '%v'", bashCommand.String(), zap.Error(err))
+			bashCommandResponse.StandardErr = stderrBuf
+			bashCommandResponse.CommandError = err
+			return &bashCommandResponse
+		}
+		log.Debugf("Command '%s' execution successful", bashCommand.String())
+		bashCommandResponse.StandardOut = stdoutBuf
+		bashCommandResponse.CommandError = err
+		return &bashCommandResponse
+	}
 }

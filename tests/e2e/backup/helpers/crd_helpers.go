@@ -314,10 +314,90 @@ func GetRancherRestore(restoreName string, log *zap.SugaredLogger) (*RancherRest
 	return &restore, nil
 }
 
+func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQLBackupModel, error) {
+	backupFetched, err := getUnstructuredData("mysql.oracle.com", "v2", "mysqlbackups", backupName, namespace, "MySQL", log)
+	if err != nil {
+		log.Errorf("Unable to fetch MySQL backup '%s' due to '%v'", backupName, zap.Error(err))
+		return nil, err
+	}
+
+	if backupFetched == nil {
+		log.Infof("No MySQL backup with name '%s' in namespace '%s' was detected", backupName, namespace)
+	}
+
+	var backup MySQLBackupModel
+	bdata, err := json.Marshal(backupFetched)
+	if err != nil {
+		log.Errorf("Json marshalling error %v", zap.Error(err))
+		return nil, err
+	}
+	err = json.Unmarshal(bdata, &backup)
+	if err != nil {
+		log.Errorf("Json unmarshall error %v", zap.Error(err))
+		return nil, err
+	}
+
+	return &backup, nil
+}
+
+func GetMySQLInnoDBStatus(namespace, backupName string, log *zap.SugaredLogger) (*InnoDBIcsModel, error) {
+	innodbFetched, err := getUnstructuredData("mysql.oracle.com", "v2", "innodbclusters", backupName, namespace, "MySQL", log)
+	if err != nil {
+		log.Errorf("Unable to fetch MySQL backup '%s' due to '%v'", backupName, zap.Error(err))
+		return nil, err
+	}
+
+	if innodbFetched == nil {
+		log.Infof("No MySQL backup with name '%s' in namespace '%s' was detected", backupName, namespace)
+	}
+
+	var ics InnoDBIcsModel
+	bdata, err := json.Marshal(innodbFetched)
+	if err != nil {
+		log.Errorf("Json marshalling error %v", zap.Error(err))
+		return nil, err
+	}
+	err = json.Unmarshal(bdata, &ics)
+	if err != nil {
+		log.Errorf("Json unmarshall error %v", zap.Error(err))
+		return nil, err
+	}
+
+	return &ics, nil
+}
+
 // TrackOperationProgress used to track operation status for a given gvr
 func TrackOperationProgress(operator, operation, objectName, namespace string, log *zap.SugaredLogger) error {
 	var response string
 	switch operator {
+	case "mysql":
+		switch operation {
+		case "backups":
+			backupInfo, err := GetMySQLBackup(namespace, objectName, log)
+			if err != nil {
+				log.Errorf("Unable to fetch backup '%s' due to '%v'", objectName, zap.Error(err))
+			}
+			if backupInfo == nil {
+				response = "Nil"
+			} else {
+				response = backupInfo.Status.Status
+			}
+
+		case "restores":
+			restoreInfo, err := GetMySQLInnoDBStatus(namespace, objectName, log)
+			if err != nil {
+				log.Errorf("Unable to fetch restore '%s' due to '%v'", objectName, zap.Error(err))
+			}
+			if restoreInfo == nil {
+				response = "Nil"
+			} else {
+				response = restoreInfo.Status.Cluster.Status
+			}
+		default:
+			log.Errorf("Invalid operation specified for Velero = %s'", operation)
+			response = "NAN"
+		}
+
 	case "velero":
 		switch operation {
 		case "backups":
@@ -398,10 +478,10 @@ func TrackOperationProgress(operator, operation, objectName, namespace string, l
 	}
 
 	switch response {
-	case "InProgress", "":
-		log.Infof("%s '%s' is in progress.", strings.ToTitle(operation), objectName)
+	case "InProgress", "", "PENDING", "INITIALIZING":
+		log.Infof("%s '%s' is in progress. Status = %s", strings.ToTitle(operation), objectName, response)
 		return fmt.Errorf("%s '%s' is in progress", strings.ToTitle(operation), objectName)
-	case "Completed":
+	case "Completed", "ONLINE":
 		log.Infof("%s '%s' completed successfully", strings.ToTitle(operation), objectName)
 		return nil
 	default:
@@ -429,7 +509,7 @@ func CrdPruner(group, version, resource, resourceName, nameSpaceName string, log
 		Resource: resource,
 	}
 
-	if strings.Contains(group, "velero") {
+	if strings.Contains(group, "velero") || strings.Contains(group, "mysql") {
 		err = dclient.Resource(gvr).Namespace(nameSpaceName).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
 		if err != nil {
 			if !k8serror.IsNotFound(err) {
