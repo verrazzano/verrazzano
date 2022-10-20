@@ -5,6 +5,7 @@ package verrazzano
 
 import (
 	"context"
+	v1 "k8s.io/api/batch/v1"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -199,6 +200,13 @@ func testUpdate(t *testing.T,
 		List(gomock.Any(), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, ingressList *networkingv1.IngressList, options ...client.UpdateOption) error {
 			ingressList.Items = []networkingv1.Ingress{}
+			return nil
+		}).AnyTimes()
+	// expect call to list jobs
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1.JobList, opts ...client.ListOption) error {
+			// return no resources
 			return nil
 		}).AnyTimes()
 	mock.EXPECT().Status().Return(mockStatus).AnyTimes()

@@ -8,6 +8,7 @@ import (
 	goerrors "errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
 	kblabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -552,13 +553,14 @@ func (r *Reconciler) cleanupMysqlBackupJob(log vzlog.VerrazzanoLogger) error {
 		if err != nil {
 			return err
 		}
-		for _, jobPod := range podList.Items {
-			if isBackupJobCompleted(&jobPod) {
+		backupJob := job
+		for i := range podList.Items {
+			if isBackupJobCompleted(&podList.Items[i]) {
 				// can delete job since pod has completed
 				log.Debugf("Deleting stale backup job %s", job.Name)
 				propagationPolicy := metav1.DeletePropagationBackground
 				deleteOptions := &client.DeleteOptions{PropagationPolicy: &propagationPolicy}
-				err = r.Delete(context.TODO(), &job, deleteOptions)
+				err = r.Delete(context.TODO(), &backupJob, deleteOptions)
 				if err != nil {
 					return err
 				}
@@ -566,7 +568,7 @@ func (r *Reconciler) cleanupMysqlBackupJob(log vzlog.VerrazzanoLogger) error {
 				return nil
 			}
 
-			return fmt.Errorf("Pod %s has not completed the database backup", jobPod.Name)
+			return fmt.Errorf("Pod %s has not completed the database backup", backupJob.Name)
 		}
 	}
 
@@ -576,7 +578,7 @@ func (r *Reconciler) cleanupMysqlBackupJob(log vzlog.VerrazzanoLogger) error {
 // isBackupJobCompleted checks to see whether the backup container has terminated with an exit code of 0
 func isBackupJobCompleted(pod *corev1.Pod) bool {
 	for _, container := range pod.Status.ContainerStatuses {
-		if container.Name == "operator-backup-job" && container.State.Terminated != nil && container.State.Terminated.ExitCode == 0 {
+		if container.Name == mysqloperator.BackupContainerName && container.State.Terminated != nil && container.State.Terminated.ExitCode == 0 {
 			return true
 		}
 	}
