@@ -12,21 +12,6 @@ import (
 )
 
 func StartMetricsServerOrDie() {
-
-	//func StartMetricsServerOrDie(cc []prometheus.Collector) {
-	//reg := prometheus.NewPedanticRegistry()
-	//rc, err := NewRunCollector(cc)
-	//if err != nil {
-	//	os.Exit(1)
-	//}
-	//reg.MustRegister(
-	//	rc,
-	//)
-	//// Add the standard process and Go metrics to the custom registry.
-	//reg.MustRegister(
-	//	collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
-	//)
-
 	http.Handle("/metrics", promhttp.Handler())
 	server := http.Server{
 		ReadTimeout:  10 * time.Second,

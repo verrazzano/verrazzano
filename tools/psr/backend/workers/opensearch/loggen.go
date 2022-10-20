@@ -8,35 +8,52 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
-	"time"
+	"sync/atomic"
 )
 
 const (
 	psrMsgSize = "PSR_MSG_SIZE"
 )
 
-type LogGenerator struct{}
+type logGenerator struct {
+	loggedLinesTotal int64
+	loggedCharsTotal int64
+	logMsg           string
+	logMsgSize       int
+}
 
-var _ spi.Worker = LogGenerator{}
+var _ spi.Worker = logGenerator{}
 
-func (w LogGenerator) GetEnvDescList() []config.EnvVarDesc {
+func NewLogGenerator() spi.Worker {
+	return logGenerator{
+		logMsg: "Log Generator doing work",
+	}
+}
+
+func (w logGenerator) GetEnvDescList() []config.EnvVarDesc {
 	return []config.EnvVarDesc{
 		{Key: psrMsgSize, DefaultVal: "20", Required: false},
 	}
 }
 
-func (w LogGenerator) Work(conf config.CommonConfig, log vzlog.VerrazzanoLogger) {
-	for {
-		log.Infof("Log Generator Doing Work")
-		time.Sleep(conf.IterationSleepNanos)
-	}
-
+func (w logGenerator) WantIterationInfoLogged() bool {
+	return false
 }
 
-func (w LogGenerator) GetMetricDescList() []prometheus.Desc {
+func (w logGenerator) Work(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+	if w.logMsgSize == 0 {
+		w.logMsgSize = len(w.logMsg)
+	}
+	log.Infof(w.logMsg)
+	atomic.AddInt64(&w.loggedCharsTotal, int64(w.logMsgSize))
+	atomic.AddInt64(&w.loggedLinesTotal, 1)
 	return nil
 }
 
-func (w LogGenerator) GetMetricList() []prometheus.Metric {
+func (w logGenerator) GetMetricDescList() []prometheus.Desc {
+	return nil
+}
+
+func (w logGenerator) GetMetricList() []prometheus.Metric {
 	return nil
 }

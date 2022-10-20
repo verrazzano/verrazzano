@@ -10,8 +10,13 @@ import (
 )
 
 type Worker interface {
+	GetEnvDescList() []config.EnvVarDesc
+	Work(config.CommonConfig, vzlog.VerrazzanoLogger) error
+	WantIterationInfoLogged() bool
+	WorkerMetricsProvider
+}
+
+type WorkerMetricsProvider interface {
 	GetMetricDescList() []prometheus.Desc
 	GetMetricList() []prometheus.Metric
-	GetEnvDescList() []config.EnvVarDesc
-	Work(config.CommonConfig, vzlog.VerrazzanoLogger)
 }
