@@ -164,10 +164,9 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		r.handleError(ctx, vmc, "Failed to push the Manifest objects", err, log)
 		r.setStatusConditionManifestPushed(vmc, corev1.ConditionFalse, fmt.Sprintf("Failed to push the manifest objects to the managed cluster: %v", err))
 		return newRequeueWithDelay(), err
-	} else {
-		if pushedManifest {
-			r.setStatusConditionManifestPushed(vmc, corev1.ConditionTrue, "Manifest objects pushed to the managed cluster")
-		}
+	}
+	if pushedManifest {
+		r.setStatusConditionManifestPushed(vmc, corev1.ConditionTrue, "Manifest objects pushed to the managed cluster")
 	}
 
 	// create/update a secret with the CA cert from the managed cluster (if any errors occur we just log and continue)

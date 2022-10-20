@@ -40,7 +40,7 @@ const (
 	// populated. This is done by the VMC controller via the Rancher API proxy for the managed cluster.
 	ConditionManagedCARetrieved ConditionType = "ManagedCARetrieved"
 
-	// ConditionManifestPushed = true means the the agent and registration secrets have been successfully transfered
+	// ConditionManifestPushed = true means the the agent and registration secrets have been successfully transferred
 	// to the managed cluster on a multicluster install
 	ConditionManifestPushed ConditionType = "ManifestPushed"
 )
