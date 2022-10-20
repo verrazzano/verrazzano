@@ -133,7 +133,7 @@ func UpdateCRV1beta1WithRetries(m CRModifierV1beta1, pollingInterval, waitTime t
 			return false
 		}
 		return true
-	}, pollingInterval, waitTime).Should(gomega.BeTrue())
+	}).WithPolling(pollingInterval).WithTimeout(waitTime).Should(gomega.BeTrue())
 }
 
 // UpdateCRV1beta1 updates the CR with the given CRModifierV1beta1.
