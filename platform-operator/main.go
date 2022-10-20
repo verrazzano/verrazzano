@@ -334,8 +334,9 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 
 	// Setup secrets reconciler
 	if err = (&secretscontroller.VerrazzanoSecretsReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:        mgr.GetClient(),
+		Scheme:        mgr.GetScheme(),
+		StatusUpdater: statusUpdater,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoSecrets")
 		os.Exit(1)
@@ -343,8 +344,9 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 
 	// Setup configMaps reconciler
 	if err = (&configmapcontroller.VerrazzanoConfigMapsReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:        mgr.GetClient(),
+		Scheme:        mgr.GetScheme(),
+		StatusUpdater: statusUpdater,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoConfigMaps")
 		os.Exit(1)
