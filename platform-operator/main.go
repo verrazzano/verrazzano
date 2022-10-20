@@ -147,12 +147,10 @@ func main() {
 	//This allows separation of webhooks and operator
 	if config.InitWebhooks {
 		initWebhookServers(config, log)
+	} else if config.WebhooksEnabled {
+		startWebhookServers(config, log)
 	} else {
-		if config.WebhooksEnabled {
-			startWebhookServers(config, log)
-		} else {
-			reconcilePlatformOperator(config, log)
-		}
+		reconcilePlatformOperator(config, log)
 	}
 }
 
