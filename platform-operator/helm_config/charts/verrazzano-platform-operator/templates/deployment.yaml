@@ -125,6 +125,9 @@ spec:
           resources:
             requests:
               memory: 72Mi
+          volumeMounts:
+            - mountPath: /etc/webhook/certs
+              name: webhook-cert
           ports:
             - containerPort: 9100
               name: http-metric
@@ -132,4 +135,8 @@ spec:
             - containerPort: 9443
               name: webhook
               protocol: TCP
+      volumes:
+        - name: webhook-cert
+          secret:
+            secretName: verrazzano-platform-operator-tls
       serviceAccountName: {{ .Values.name }}
