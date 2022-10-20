@@ -14,7 +14,7 @@ Collections.shuffle(availableRegions)
 
 pipeline {
     options {
-        timeout(time: 2, unit: 'HOURS')
+        timeout(time: 3, unit: 'HOURS')
         skipDefaultCheckout true
         timestamps ()
     }
@@ -430,16 +430,25 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/inplaceupgrade"
                                 OKE_CLUSTER_ID="${OKE_CLUSTER_ID}"
                             }
+                            options {
+                                timeout(time: 90, unit: "MINUTES")
+                            }
                             steps {
                                 runGinkgoFailFast('ha/inplaceupgrade')
                             }
                         }
                         stage('HA Tests') {
+                            options {
+                                timeout(time: 90, unit: "MINUTES")
+                            }
                             steps {
                                 runGinkgoRandomize('ha/monitor')
                             }
                         }
                         stage('Access Hello Helidon') {
+                            options {
+                                timeout(time: 90, unit: "MINUTES")
+                            }
                             steps {
                                 runGinkgo("ha/helidon", "--namespace=${HELIDON_TEST_NAMESPACE}")
                             }
@@ -447,6 +456,9 @@ pipeline {
                         stage ('console') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+                            }
+                            options {
+                                timeout(time: 90, unit: "MINUTES")
                             }
                             steps {
                                 sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
