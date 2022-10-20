@@ -546,7 +546,7 @@ func doRequest(req *http.Request, rc *rancherConfig, log vzlog.VerrazzanoLogger)
 
 		// retry any HTTP 500 errors
 		if resp != nil && resp.StatusCode >= 500 && resp.StatusCode <= 599 {
-			log.Infof("HTTP status %v executing HTTP request %v, retrying", resp.StatusCode, req)
+			log.ErrorfThrottled("HTTP status %v executing HTTP request %v, retrying", resp.StatusCode, req)
 			return false, err
 		}
 

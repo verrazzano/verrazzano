@@ -66,14 +66,14 @@ func (r *RancherClusterSyncer) initLogger() vzlog.VerrazzanoLogger {
 
 // syncRancherClusters gets the list of clusters from Rancher and creates and deletes VMC resources
 func (r *RancherClusterSyncer) syncRancherClusters(log vzlog.VerrazzanoLogger) {
-	log.Progress("Synchronizing Rancher clusters and VMCs")
-
 	// first check to see if the Rancher admin secret exists, if not then either Rancher is not installed
 	// or this is not an admin cluster, so just log a debug message and there is nothing else to do
 	if _, err := getAdminSecret(r.Client); err != nil {
 		log.Debug("Unable to get Rancher admin secret, either Rancher is not installed or this is not an admin cluster, skipping Rancher cluster sync")
 		return
 	}
+
+	log.Progress("Synchronizing Rancher clusters and VMCs")
 
 	// call Rancher to get the list of clusters
 	rc, err := newRancherConfig(r.Client, log)
