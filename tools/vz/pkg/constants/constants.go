@@ -24,7 +24,7 @@ const (
 	TimeoutFlagHelp = "Limits the amount of time a command will wait to complete"
 
 	VPOTimeoutFlag     = "platform-operator-timeout"
-	VPOTimeoutFlagHelp = "Limits the amount of time the CLI will wait for the Verrazzano Platform Operator to be ready"
+	VPOTimeoutFlagHelp = "Limits the amount of time a command will wait for the Verrazzano Platform Operator to be ready"
 
 	VersionFlag            = "version"
 	VersionFlagDefault     = "latest"
