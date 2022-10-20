@@ -145,12 +145,14 @@ func main() {
 
 	registry.InitRegistry()
 	//This allows separation of webhooks and operator
-	if config.InitWebhooks {
+	if config.InitWebhooks && !config.WebhooksEnabled {
 		initWebhookServers(config, log)
-	} else if config.WebhooksEnabled {
+	} else if config.WebhooksEnabled && !config.InitWebhooks {
 		startWebhookServers(config, log)
-	} else {
+	} else if !config.InitWebhooks && !config.WebhooksEnabled {
 		reconcilePlatformOperator(config, log)
+	} else {
+		os.Exit(1)
 	}
 }
 
