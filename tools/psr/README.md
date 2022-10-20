@@ -59,9 +59,9 @@ would just need to put the KUBECONFIG in a secret and pass the secret info to as
 the default mode and intention is that these workers run in the Verrazzano cluster that is being measure.
 
 ## Usage
-Use the Makefile to execute build the backend image or execute other targets.  If you just want to try 
-the example use case on a local Kind cluster, then run the following to build the code, build the docker image, 
-load the docker image into the Kind cluster, and deploy the example use case.
+Use the Makefile to build the backend image or execute other targets.  If you just want to try 
+the example use case on a local Kind cluster, then run the following which builds the code, builds the docker image, 
+loads the docker image into the Kind cluster, and deploys the example use case.
 ```
 make run-example-k8s
 ```
@@ -74,6 +74,23 @@ The other Make targets are:
 * docker-push - docker-build, then push the image to ghcr.io. 
 * kind-load-image - docker-build, then load to local Kind cluster
 * run-example-k8s - kind-load-image, then deploy the example use case using Helm k8s chart
+
+### Example Helm Installs
+
+Install the example worker as a Kubernetes deployment with 10 replicas:
+```
+helm install  psr manifests/charts/k8s --set imageName=ghcr.io/verrazzano/psr-backend:local-582bfcfcf --replicas=10
+```
+
+Install the logging generator worker as an OAM application using the default image in the helm chart:
+```
+helm install  psr2 manifests/charts/oam -f manifests/helm/workers/opensearch.yaml
+```
+
+Install the example worker as a Kubernetes deployment using the default image in the helm chart, providing an imagePullSecret
+```
+helm install  psr-3  manifests/charts/k8s/ --set imagePullSecrets[0].name=verrazzano-container-registry
+```
 
 ### The Backend Image
 The backend image is a private image that should never be made public in ghcr.io.  The image is
