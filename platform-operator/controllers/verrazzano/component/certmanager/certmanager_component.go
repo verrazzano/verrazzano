@@ -183,7 +183,7 @@ func (c certManagerComponent) PreInstall(compContext spi.ComponentContext) error
 	if err := common.ProcessAdditionalCertificates(log, cli, vz); err != nil {
 		return err
 	}
-	return nil
+	return c.HelmComponent.PreInstall(compContext)
 }
 
 // PostInstall applies necessary cert-manager resources after the install has occurred

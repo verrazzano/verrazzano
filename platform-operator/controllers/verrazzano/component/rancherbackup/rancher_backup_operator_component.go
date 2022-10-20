@@ -111,7 +111,10 @@ func (rb rancherBackupHelmComponent) MonitorOverrides(ctx spi.ComponentContext) 
 }
 
 func (rb rancherBackupHelmComponent) PreInstall(ctx spi.ComponentContext) error {
-	return ensureRancherBackupCrdInstall(ctx)
+	if err := ensureRancherBackupCrdInstall(ctx); err != nil {
+		return err
+	}
+	return rb.HelmComponent.PreInstall(ctx)
 }
 
 // IsReady checks if the RancherBackup objects are ready

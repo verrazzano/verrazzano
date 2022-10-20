@@ -52,7 +52,10 @@ func NewComponent() spi.Component {
 }
 
 func (e externalDNSComponent) PreInstall(compContext spi.ComponentContext) error {
-	return preInstall(compContext)
+	if err := preInstall(compContext); err != nil {
+		return err
+	}
+	return e.HelmComponent.PreInstall(compContext)
 }
 
 func (e externalDNSComponent) IsReady(ctx spi.ComponentContext) bool {

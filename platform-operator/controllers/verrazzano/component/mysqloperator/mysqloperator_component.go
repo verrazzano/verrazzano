@@ -116,7 +116,7 @@ func (c mysqlOperatorComponent) PreInstall(compContext spi.ComponentContext) err
 		return log.ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
 	}
 
-	return nil
+	return c.HelmComponent.PreInstall(compContext)
 }
 
 // PreUpgrade recycles the MySql operator pods to make sure the latest Istio sidecar exists.
@@ -138,7 +138,7 @@ func (c mysqlOperatorComponent) PreUpgrade(compContext spi.ComponentContext) err
 	}); err != nil {
 		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
-	return nil
+	return c.HelmComponent.PreUpgrade(compContext)
 }
 
 // PreUninstall waits until MySQL pods in the Keycloak namespace are gone. This is needed since the pods have finalizers
@@ -165,7 +165,7 @@ func (c mysqlOperatorComponent) PreUninstall(compContext spi.ComponentContext) e
 	}
 
 	// MySQL is not installed, safe to uninstall MySQL operator
-	return nil
+	return c.HelmComponent.PreUninstall(compContext)
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed

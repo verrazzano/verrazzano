@@ -93,12 +93,18 @@ func (c mysqlComponent) IsEnabled(effectiveCR runtime.Object) bool {
 
 // PreInstall calls MySQL preInstall function
 func (c mysqlComponent) PreInstall(ctx spi.ComponentContext) error {
-	return preInstall(ctx, c.ChartNamespace)
+	if err := preInstall(ctx, c.ChartNamespace); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 // PreUpgrade updates resources necessary for the MySQL Component upgrade
 func (c mysqlComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return preUpgrade(ctx)
+	if err := preUpgrade(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // PostInstall calls MySQL postInstall function

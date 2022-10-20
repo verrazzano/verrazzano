@@ -122,7 +122,10 @@ func (v veleroHelmComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 }
 
 func (v veleroHelmComponent) PreInstall(ctx spi.ComponentContext) error {
-	return ensureVeleroNamespace(ctx)
+	if err := ensureVeleroNamespace(ctx); err != nil {
+		return err
+	}
+	return v.HelmComponent.PreInstall(ctx)
 }
 
 // IsReady checks if the Velero objects are ready

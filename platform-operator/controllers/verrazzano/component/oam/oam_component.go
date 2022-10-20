@@ -92,7 +92,10 @@ func (c oamComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new 
 
 // PreUpgrade OAM-pre-upgrade processing
 func (c oamComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return common.ApplyCRDYaml(ctx, config.GetHelmOamChartsDir())
+	if err := common.ApplyCRDYaml(ctx, config.GetHelmOamChartsDir()); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // PostInstall runs post-install processing for the OAM component

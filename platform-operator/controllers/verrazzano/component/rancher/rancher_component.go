@@ -289,7 +289,7 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 		log.ErrorfThrottledNewErr("Failed copying default CA certificate: %s", err.Error())
 		return err
 	}
-	return nil
+	return r.HelmComponent.PreInstall(ctx)
 }
 
 // PreUpgrade
@@ -297,7 +297,10 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 - Scales down Rancher pods and deletes the ClusterRepo resources to work around Rancher upgrade issues (VZ-7053)
 */
 func (r rancherComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return chartsNotUpdatedWorkaround(ctx)
+	if err := chartsNotUpdatedWorkaround(ctx); err != nil {
+		return err
+	}
+	return r.HelmComponent.PreUpgrade(ctx)
 }
 
 // Install

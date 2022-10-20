@@ -91,7 +91,7 @@ func (c kialiComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := removeDeploymentAndService(ctx); err != nil {
 		return err
 	}
-	return nil
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // removeDeploymentAndService removes the Kiali deployment and service during pre-upgrade.

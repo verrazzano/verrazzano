@@ -104,12 +104,18 @@ func (c prometheusComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 
 // PreInstall updates resources necessary for the Prometheus Operator Component installation
 func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
-	return preInstallUpgrade(ctx)
+	if err := preInstallUpgrade(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 // PreUpgrade updates resources necessary for the Prometheus Operator Component installation
 func (c prometheusComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return preInstallUpgrade(ctx)
+	if err := preInstallUpgrade(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // PostInstall creates/updates associated resources after this component is installed

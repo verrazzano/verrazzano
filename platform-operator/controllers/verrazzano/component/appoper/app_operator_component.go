@@ -83,7 +83,10 @@ func (c applicationOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error
 	if err != nil {
 		return err
 	}
-	return labelAnnotateWorkloadDefinitions(ctx.Client())
+	if err := labelAnnotateWorkloadDefinitions(ctx.Client()); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // PostUpgrade processing for the application-operator

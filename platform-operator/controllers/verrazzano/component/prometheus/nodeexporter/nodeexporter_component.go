@@ -78,7 +78,10 @@ func (c prometheusNodeExporterComponent) IsAvailable(context spi.ComponentContex
 
 // PreInstall updates resources necessary for the Prometheus Node-Exporter Component installation
 func (c prometheusNodeExporterComponent) PreInstall(ctx spi.ComponentContext) error {
-	return preInstall(ctx)
+	if err := preInstall(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 // AppendOverrides appends install overrides for the Prometheus Node Exporter component's Helm chart

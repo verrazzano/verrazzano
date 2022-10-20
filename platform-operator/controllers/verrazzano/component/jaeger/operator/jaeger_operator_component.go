@@ -133,7 +133,10 @@ func (c jaegerOperatorComponent) MonitorOverrides(ctx spi.ComponentContext) bool
 
 // PreInstall updates resources necessary for the Jaeger Operator Component installation
 func (c jaegerOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
-	return preInstall(ctx)
+	if err := preInstall(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 // PostInstall creates the ingress resource for exposing Jaeger UI service.
@@ -231,7 +234,7 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		// Create Jaeger secret with the OpenSearch credentials
 		return createJaegerSecret(ctx)
 	}
-	return nil
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // Upgrade jaegeroperator component for upgrade processing.

@@ -101,7 +101,7 @@ func (c vmoComponent) PreUpgrade(context spi.ComponentContext) error {
 	if err := retainPrometheusPersistentVolume(context); err != nil {
 		return err
 	}
-	return nil
+	return c.HelmComponent.PreUpgrade(context)
 }
 
 // Upgrade VMO processing

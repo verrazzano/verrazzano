@@ -77,7 +77,10 @@ func (c prometheusPushgatewayComponent) IsAvailable(context spi.ComponentContext
 
 // PreInstall updates resources necessary for the Prometheus PrometheusPushgateway Component installation
 func (c prometheusPushgatewayComponent) PreInstall(ctx spi.ComponentContext) error {
-	return preInstall(ctx)
+	if err := preInstall(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
