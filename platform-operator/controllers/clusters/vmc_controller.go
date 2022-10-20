@@ -159,10 +159,15 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 	}
 
 	log.Debugf("Pushing the Manifest objects for VMC %s", vmc.Name)
-	_, err = r.pushManifestObjects(vmc)
+	pushedManifest, err := r.pushManifestObjects(vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to push the Manifest objects", err, log)
+		r.setStatusConditionManifestPushed(vmc, corev1.ConditionFalse, fmt.Sprintf("Failed to push the manifest objects to the managed cluster: %v", err))
 		return newRequeueWithDelay(), err
+	} else {
+		if pushedManifest {
+			r.setStatusConditionManifestPushed(vmc, corev1.ConditionTrue, "Manifest objects pushed to the managed cluster")
+		}
 	}
 
 	// create/update a secret with the CA cert from the managed cluster (if any errors occur we just log and continue)
@@ -319,6 +324,11 @@ func (r *VerrazzanoManagedClusterReconciler) reconcileManagedClusterDelete(ctx c
 func (r *VerrazzanoManagedClusterReconciler) setStatusConditionManagedCARetrieved(vmc *clustersv1alpha1.VerrazzanoManagedCluster, value corev1.ConditionStatus, msg string) {
 	now := metav1.Now()
 	r.setStatusCondition(vmc, clustersv1alpha1.Condition{Status: value, Type: clustersv1alpha1.ConditionManagedCARetrieved, Message: msg, LastTransitionTime: &now})
+}
+
+func (r *VerrazzanoManagedClusterReconciler) setStatusConditionManifestPushed(vmc *clustersv1alpha1.VerrazzanoManagedCluster, value corev1.ConditionStatus, msg string) {
+	now := metav1.Now()
+	r.setStatusCondition(vmc, clustersv1alpha1.Condition{Status: value, Type: clustersv1alpha1.ConditionManifestPushed, Message: msg, LastTransitionTime: &now})
 }
 
 // setStatusConditionNotReady sets the status condition Ready = false on the VMC in memory - does NOT update the status in the cluster

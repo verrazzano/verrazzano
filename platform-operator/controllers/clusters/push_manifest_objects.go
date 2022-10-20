@@ -12,6 +12,12 @@ import (
 // pushManifestObjects applies the Verrazzano manifest objects to the managed cluster.
 // To access the managed cluster, we are taking advantage of the Rancher proxy
 func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(vmc *clusterapi.VerrazzanoManagedCluster) (bool, error) {
+	for _, condition := range vmc.Status.Conditions {
+		if condition.Type == clusterapi.ConditionManifestPushed && condition.Status == corev1.ConditionTrue {
+			r.log.Once("Manifest has been successfully pushed, skipping the push process")
+			return true, nil
+		}
+	}
 	clusterID := vmc.Status.RancherRegistration.ClusterID
 	if len(clusterID) == 0 {
 		return false, nil
