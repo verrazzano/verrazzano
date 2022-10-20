@@ -6,7 +6,7 @@ package certificate
 import (
 	"bytes"
 	"context"
-	"os"
+	v1 "k8s.io/api/core/v1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,26 +23,13 @@ import (
 func TestCreateWebhookCertificates(t *testing.T) {
 	asserts := assert.New(t)
 	client := fake.NewSimpleClientset()
-	dir, err := os.MkdirTemp("", "certs")
-	if err != nil {
-		asserts.Nil(err, "error should not be returned creating temporary directory")
-	}
-	defer os.RemoveAll(dir)
-	err = CreateWebhookCertificates(dir, client)
+	_ = CreateWebhookCertificates(client)
+	var secret *v1.Secret
+	secret, err := client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+	_, err2 := client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
 	asserts.Nil(err, "error should not be returned setting up certificates")
-
-}
-
-// TestCreateWebhookCertificatesFail tests that the certificates needed for webhooks are not created
-// GIVEN an invalid output directory for certificates
-//
-//	WHEN I call CreateWebhookCertificates
-//	THEN all the needed certificate artifacts are not created
-func TestCreateWebhookCertificatesFail(t *testing.T) {
-	asserts := assert.New(t)
-	kubeClient := fake.NewSimpleClientset()
-	err := CreateWebhookCertificates("/bad-dir", kubeClient)
-	asserts.Error(err, "error should be returned setting up certificates")
+	asserts.Nil(err2, "error should not be returned setting up certificates")
+	asserts.NotEmpty(string(secret.Data["tls.crt"]))
 }
 
 // TestUpdateValidatingnWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-platform-operator
@@ -58,6 +45,17 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 
 	var caCert bytes.Buffer
 	caCert.WriteString("Fake CABundle")
+
+	caSecret := v1.Secret{}
+	caSecret.Name = OperatorCA
+	caSecret.Type = v1.SecretTypeTLS
+	caSecret.Namespace = OperatorNamespace
+	caSecret.Data = make(map[string][]byte)
+	caSecret.Data["tls.crt"] = caCert.Bytes()
+	caSecret.Data["tls.key"] = caCert.Bytes()
+
+	kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &caSecret, metav1.CreateOptions{})
+
 	pathInstall := "/validate-install-verrazzano-io-v1alpha1-verrazzano"
 	serviceInstall := adminv1.ServiceReference{
 		Name:      OperatorName,
@@ -98,8 +96,9 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 		},
 	}
 
-	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
+	wh, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	asserts.Nil(err, "error should not be returned creating validation webhook configuration")
+	asserts.NotEmpty(wh)
 
 	err = UpdateValidatingnWebhookConfiguration(kubeClient, OperatorName)
 	asserts.Nil(err, "error should not be returned updating validation webhook configuration")
@@ -121,6 +120,16 @@ func TestUpdateValidatingnWebhookConfigurationFail(t *testing.T) {
 
 	var caCert bytes.Buffer
 	caCert.WriteString("Fake CABundle")
+	caSecret := v1.Secret{}
+	caSecret.Name = OperatorCA
+	caSecret.Type = v1.SecretTypeTLS
+	caSecret.Namespace = OperatorNamespace
+	caSecret.Data = make(map[string][]byte)
+	caSecret.Data["tls.crt"] = caCert.Bytes()
+	caSecret.Data["tls.key"] = caCert.Bytes()
+
+	kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &caSecret, metav1.CreateOptions{})
+	
 	path := "/validate-install-verrazzano-io-v1alpha1-verrazzano"
 	service := adminv1.ServiceReference{
 		Name:      OperatorName,

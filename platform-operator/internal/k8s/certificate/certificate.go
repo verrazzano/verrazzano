@@ -4,11 +4,14 @@
 package certificate
 
 import (
+	"bytes"
 	"context"
 	cryptorand "crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -34,7 +37,7 @@ const (
 )
 
 // CreateWebhookCertificates creates the needed certificates for the validating webhook
-func CreateWebhookCertificates(certDir string, kubeClient kubernetes.Interface) error {
+func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
 
 	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)
 	serialNumber, err := newSerialNumber()
@@ -69,6 +72,28 @@ func CreateWebhookCertificates(certDir string, kubeClient kubernetes.Interface) 
 		return err
 	}
 
+	// PEM encode CA cert
+	caPEM := new(bytes.Buffer)
+	_ = pem.Encode(caPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: caBytes,
+	})
+
+	// PEM encode CA cert
+	caKeyPEM := new(bytes.Buffer)
+	_ = pem.Encode(caKeyPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: x509.MarshalPKCS1PrivateKey(caPrivKey),
+	})
+
+	caPEMBytes := caPEM.Bytes()
+	caPEM64Bytes := make([]byte, base64.StdEncoding.EncodedLen(len(caPEMBytes)))
+	base64.StdEncoding.Encode(caPEM64Bytes, caPEMBytes)
+
+	caKeyPEMBytes := caKeyPEM.Bytes()
+	caKeyPEM64Bytes := make([]byte, base64.StdEncoding.EncodedLen(len(caKeyPEMBytes)))
+	base64.StdEncoding.Encode(caKeyPEM64Bytes, caKeyPEMBytes)
+
 	serialNumber, err = newSerialNumber()
 	if err != nil {
 		return err
@@ -101,13 +126,35 @@ func CreateWebhookCertificates(certDir string, kubeClient kubernetes.Interface) 
 		return err
 	}
 
+	// PEM encode Server cert
+	serverPEM := new(bytes.Buffer)
+	_ = pem.Encode(serverPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: serverCertBytes,
+	})
+
+	// PEM encode Server cert
+	serverKeyPEM := new(bytes.Buffer)
+	_ = pem.Encode(serverKeyPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: x509.MarshalPKCS1PrivateKey(serverPrivKey),
+	})
+
+	serverPEMBytes := serverPEM.Bytes()
+	serverPEM64Bytes := make([]byte, base64.StdEncoding.EncodedLen(len(serverPEMBytes)))
+	base64.StdEncoding.Encode(serverPEM64Bytes, serverPEMBytes)
+
+	serverKeyPEMBytes := serverKeyPEM.Bytes()
+	serverKeyPEM64Bytes := make([]byte, base64.StdEncoding.EncodedLen(len(serverKeyPEMBytes)))
+	base64.StdEncoding.Encode(serverKeyPEM64Bytes, serverKeyPEMBytes)
+
 	var webhookCA v1.Secret
 	webhookCA.Namespace = OperatorNamespace
 	webhookCA.Name = OperatorCA
 	webhookCA.Type = v1.SecretTypeTLS
 	webhookCA.Data = make(map[string][]byte)
-	webhookCA.Data["tls.crt"] = caBytes
-	webhookCA.Data["tls.key"] = x509.MarshalPKCS1PrivateKey(caPrivKey)
+	webhookCA.Data["tls.crt"] = caKeyPEM64Bytes
+	webhookCA.Data["tls.key"] = caKeyPEM64Bytes
 
 	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCA, metav1.CreateOptions{})
 	if err != nil {
@@ -119,8 +166,8 @@ func CreateWebhookCertificates(certDir string, kubeClient kubernetes.Interface) 
 	webhookCrt.Name = OperatorTLS
 	webhookCrt.Type = v1.SecretTypeTLS
 	webhookCrt.Data = make(map[string][]byte)
-	webhookCrt.Data["tls.crt"] = serverCertBytes
-	webhookCrt.Data["tls.key"] = x509.MarshalPKCS1PrivateKey(serverPrivKey)
+	webhookCrt.Data["tls.crt"] = serverPEM64Bytes
+	webhookCrt.Data["tls.key"] = serverKeyPEM64Bytes
 
 	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
 	if err != nil {

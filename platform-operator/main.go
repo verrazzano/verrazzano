@@ -171,7 +171,7 @@ func initWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredLo
 		os.Exit(1)
 	}
 
-	err = certificate.CreateWebhookCertificates(config.CertDir, kubeClient)
+	err = certificate.CreateWebhookCertificates(kubeClient)
 	if err != nil {
 		log.Errorf("Failed to create certificates used by webhooks: %v", err)
 		os.Exit(1)
