@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022 Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package verrazzano
@@ -166,6 +166,22 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 
 	// Update the status
 	return r.updateVerrazzanoStatus(log, cr)
+}
+
+func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, resourceName string, conditions []installv1alpha1.Condition, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
+	var newConditionsList []installv1alpha1.Condition
+	for i, existingCondition := range conditions {
+		if existingCondition.Type != newCondition.Type {
+			// Skip any existing conditions of the same type as the new condition. We will append
+			// the new condition at the end. If there are duplicate conditions from a legacy
+			// VZ resource, they will all be skipped.
+			newConditionsList = append(newConditionsList, conditions[i])
+		}
+	}
+	log.Debugf("Adding/modifying %s resource newCondition: %v", resourceName, newCondition.Type)
+	// Always put the new condition at the end of the list since the kubectl status display and
+	// some upgrade stuff depends on the most recent condition being the last one
+	return append(newConditionsList, newCondition)
 }
 
 // Convert a condition to a VZ State
