@@ -50,8 +50,10 @@ type ComponentInfo interface {
 	ShouldInstallBeforeUpgrade() bool
 	// GetDependencies returns the dependencies of this component
 	GetDependencies() []string
-	// IsReady Indicates whether or not a component is available and ready
+	// IsReady Indicates whether a component is Ready for dependency components
 	IsReady(context ComponentContext) bool
+	// IsAvailable Indicates whether a component is Available for end users
+	IsAvailable(context ComponentContext) (string, bool)
 	// IsEnabled Indicates whether or a component is enabled for installation
 	IsEnabled(effectiveCR runtime.Object) bool
 	// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component

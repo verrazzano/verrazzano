@@ -23,17 +23,23 @@ import (
 
 func EventuallyGetURLForIngress(log *zap.SugaredLogger, api *APIEndpoint, namespace string, name string, scheme string) string {
 	var ingressURL string
+	var err error
 	gomega.Eventually(func() error {
-		ingress, err := api.GetIngress(namespace, name)
-		if err != nil {
-			return err
-		}
-		ingressURL = fmt.Sprintf("%s://%s", scheme, ingress.Spec.Rules[0].Host)
-		log.Info(fmt.Sprintf("Found ingress URL: %s", ingressURL))
-		return nil
+		ingressURL, err = GetURLForIngress(log, api, namespace, name, scheme)
+		return err
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil())
 	gomega.Expect(ingressURL).ToNot(gomega.BeEmpty())
 	return ingressURL
+}
+
+func GetURLForIngress(log *zap.SugaredLogger, api *APIEndpoint, namespace string, name string, scheme string) (string, error) {
+	ingress, err := api.GetIngress(namespace, name)
+	if err != nil {
+		return "", err
+	}
+	ingressURL := fmt.Sprintf("%s://%s", scheme, ingress.Spec.Rules[0].Host)
+	log.Info(fmt.Sprintf("Found ingress URL: %s", ingressURL))
+	return ingressURL, err
 }
 
 func GetRancherAdminToken(log *zap.SugaredLogger, httpClient *retryablehttp.Client, rancherURL string) string {
@@ -114,16 +120,28 @@ func VerifyRancherKeycloakAuthConfig(log *zap.SugaredLogger) error {
 	}
 
 	log.Info("Verify Keycloak AuthConfig")
-	api := EventuallyGetAPIEndpoint(kubeconfigPath)
-	keycloakURL := EventuallyGetURLForIngress(log, api, "keycloak", "keycloak", "https")
-	rancherURL := EventuallyGetURLForIngress(log, api, "cattle-system", "rancher", "https")
-	k8sClient, err := GetDynamicClientInCluster(kubeconfigPath)
-	if err != nil {
-		log.Error(fmt.Sprintf("Error getting dynamic client: %v", err))
-		return err
-	}
 
 	gomega.Eventually(func() (bool, error) {
+		api, err := GetAPIEndpoint(kubeconfigPath)
+		if err != nil {
+			log.Error(fmt.Sprintf("Error getting API endpoint: %v", err))
+			return false, err
+		}
+		keycloakURL, err := GetURLForIngress(log, api, "keycloak", "keycloak", "https")
+		if err != nil {
+			log.Error(fmt.Sprintf("Error getting API endpoint: %v", err))
+			return false, err
+		}
+		rancherURL, err := GetURLForIngress(log, api, "cattle-system", "rancher", "https")
+		if err != nil {
+			return false, err
+		}
+		k8sClient, err := GetDynamicClientInCluster(kubeconfigPath)
+		if err != nil {
+			log.Error(fmt.Sprintf("Error getting dynamic client: %v", err))
+			return false, err
+		}
+
 		authConfigData, err := k8sClient.Resource(GvkToGvr(common.GVKAuthConfig)).Get(context.Background(), common.AuthConfigKeycloak, v1.GetOptions{})
 		if err != nil {
 			log.Error(fmt.Sprintf("error getting keycloak oidc authConfig: %v", err))

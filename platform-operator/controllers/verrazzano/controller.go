@@ -7,6 +7,8 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
+
 	"strings"
 	"sync"
 	"time"
@@ -58,6 +60,7 @@ type Reconciler struct {
 	WatchedComponents map[string]bool
 	WatchMutex        *sync.RWMutex
 	Bom               *bom.Bom
+	HealthCheck       *health.PlatformHealth
 }
 
 // Name of finalizer
@@ -182,7 +185,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 	case installv1alpha1.VzStateFailed:
 		return r.ProcFailedState(vzctx)
 	case installv1alpha1.VzStateReconciling:
-		return r.ProcInstallingState(vzctx)
+		return r.ProcReconcilingState(vzctx)
 	case installv1alpha1.VzStateReady:
 		return r.ProcReadyState(vzctx)
 	case installv1alpha1.VzStateUpgrading:
@@ -235,7 +238,6 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		} else if vzctrl.ShouldRequeue(result) {
 			return result, nil
 		}
-
 		return ctrl.Result{}, nil
 	}
 
@@ -277,13 +279,14 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 
 	// Change the state to installing
 	err = r.setInstallingState(log, actualCR)
+	log.ErrorfThrottled("Error writing Install Started condition to the Verrazzano status: %v", err)
 	return newRequeueWithDelay(), err
 }
 
-// ProcInstallingState processes the CR while in the installing state
-func (r *Reconciler) ProcInstallingState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
+// ProcReconcilingState processes the CR while in the installing state
+func (r *Reconciler) ProcReconcilingState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
 	log := vzctx.Log
-	log.Debug("Entering ProcInstallingState")
+	log.Debug("Entering ProcReconcilingState")
 
 	if result, err := r.reconcileComponents(vzctx, false); err != nil {
 		return newRequeueWithDelay(), err
@@ -1102,6 +1105,7 @@ func initUnitTesing() {
 }
 
 func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
+	r.HealthCheck.SetAvailabilityStatus(vz)
 	err := r.Status().Update(context.TODO(), vz)
 	if err == nil {
 		return nil
