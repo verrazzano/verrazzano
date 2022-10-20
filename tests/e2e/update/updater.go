@@ -103,14 +103,14 @@ func UpdateCR(m CRModifier) error {
 // Then, it updates the modified.
 // Any error during the process will cause Ginkgo Fail.
 func UpdateCRV1beta1WithRetries(m CRModifierV1beta1, pollingInterval, waitTime time.Duration) {
-	// GetCRV1beta1 gets the CR using v1beta1 client.
-	cr := GetCRV1beta1()
-
-	// Modify the CR
-	m.ModifyCRV1beta1(cr)
-
 	// Update the CR
 	gomega.Eventually(func() bool {
+		// GetCRV1beta1 gets the CR using v1beta1 client.
+		cr := GetCRV1beta1()
+
+		// Modify the CR
+		m.ModifyCRV1beta1(cr)
+
 		path, err := k8sutil.GetKubeConfigLocation()
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
