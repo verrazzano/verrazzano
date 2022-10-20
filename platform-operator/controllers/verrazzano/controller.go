@@ -315,7 +315,7 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 
 		err := r.updateStatus(log, actualCR,
 			fmt.Sprintf("Verrazzano upgrade to version %s paused. Upgrade will be performed when version is updated to %s", actualCR.Spec.Version, bomVersion),
-			installv1alpha1.CondUpgradePaused)
+			installv1alpha1.CondUpgradePaused, nil)
 		return newRequeueWithDelay(), err
 	}
 
@@ -409,7 +409,7 @@ func (r *Reconciler) ProcFailedState(vzctx vzcontext.VerrazzanoContext) (ctrl.Re
 
 		err := r.updateStatus(log, vz,
 			fmt.Sprintf("Verrazzano upgrade to version %s paused. Upgrade will be performed when version is updated to %s", vz.Spec.Version, bomVersion),
-			installv1alpha1.CondUpgradePaused)
+			installv1alpha1.CondUpgradePaused, nil)
 		return newRequeueWithDelay(), err
 	}
 
@@ -472,7 +472,7 @@ func (r *Reconciler) checkInstallComplete(vzctx vzcontext.VerrazzanoContext) (bo
 	// Set install complete IFF all subcomponent status' are "CompStateReady"
 	message := "Verrazzano install completed successfully"
 	// AvailabilityStatus update must be performed on the actual CR read from K8S
-	return true, r.updateStatus(log, actualCR, message, installv1alpha1.CondInstallComplete)
+	return true, r.updateStatus(log, actualCR, message, installv1alpha1.CondInstallComplete, nil)
 }
 
 // checkUpgradeComplete checks to see if the upgrade is complete
@@ -584,7 +584,7 @@ func getVzAndOperatorVersions(vzVersion string) (*semver.SemVersion, *semver.Sem
 }
 
 // updateStatus updates the status in the Verrazzano CR
-func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType) error {
+func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType, version *string) error {
 	t := time.Now().UTC()
 	condition := installv1alpha1.Condition{
 		Type:    conditionType,
@@ -603,6 +603,7 @@ func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha
 	// Update the status
 	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
 		Verrazzano: cr,
+		Version:    version,
 		State:      state,
 		Conditions: conditions,
 	})
@@ -780,8 +781,8 @@ func (r *Reconciler) setInstallingState(log vzlog.VerrazzanoLogger, vz *installv
 		return err
 	}
 
-	vz.Status.Version = bomSemVer.ToString()
-	return r.updateStatus(log, vz, "Verrazzano install in progress", installv1alpha1.CondInstallStarted)
+	version := bomSemVer.ToString()
+	return r.updateStatus(log, vz, "Verrazzano install in progress", installv1alpha1.CondInstallStarted, &version)
 }
 
 // checkComponentReadyState returns true if all component-level status' are "CompStateReady" for enabled components
@@ -879,7 +880,7 @@ func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, vz *insta
 			return nil
 		}
 	}
-	return r.updateStatus(log, vz, msg, newCondition)
+	return r.updateStatus(log, vz, msg, newCondition, nil)
 }
 
 // createVerrazzanoSystemNamespace creates the Verrazzano system namespace if it does not already exist
