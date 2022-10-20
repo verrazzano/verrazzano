@@ -27,8 +27,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
@@ -457,46 +455,6 @@ func (r *Reconciler) deleteClusterRoleBinding(ctx context.Context, log vzlog.Ver
 	return nil
 }
 
-// checkInstallComplete checks to see if the install is complete
-func (r *Reconciler) checkInstallComplete(vzctx vzcontext.VerrazzanoContext) (bool, error) {
-	log := vzctx.Log
-	actualCR := vzctx.ActualCR
-	ready, err := r.checkComponentReadyState(vzctx)
-	if err != nil {
-		return false, err
-	}
-	if !ready {
-		return false, nil
-	}
-	// Set install complete IFF all subcomponent status' are "CompStateReady"
-	message := "Verrazzano install completed successfully"
-	// Status update must be performed on the actual CR read from K8S
-	return true, r.updateStatus(log, actualCR, message, installv1alpha1.CondInstallComplete)
-}
-
-// checkUpgradeComplete checks to see if the upgrade is complete
-func (r *Reconciler) checkUpgradeComplete(vzctx vzcontext.VerrazzanoContext) (bool, error) {
-	if vzctx.ActualCR == nil {
-		return false, nil
-	}
-	if vzctx.ActualCR.Status.State != installv1alpha1.VzStateUpgrading {
-		return true, nil
-	}
-	log := vzctx.Log
-	actualCR := vzctx.ActualCR
-	ready, err := r.checkComponentReadyState(vzctx)
-	if err != nil {
-		return false, err
-	}
-	if !ready {
-		return false, nil
-	}
-	// Set upgrade complete IFF all subcomponent status' are "CompStateReady"
-	message := "Verrazzano upgrade completed successfully"
-	// Status and State update must be performed on the actual CR read from K8S
-	return true, r.updateVzStatusAndState(log, actualCR, message, installv1alpha1.CondUpgradeComplete, installv1alpha1.VzStateReady)
-}
-
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
 func (r *Reconciler) cleanupUninstallJob(jobName string, namespace string, log vzlog.VerrazzanoLogger) error {
 	// Check if the job for running the uninstall scripts exist
@@ -628,76 +586,6 @@ func checkCondtitionType(currentCondition installv1alpha1.ConditionType) install
 	}
 	// Return ready for installv1alpha1.CondInstallComplete, installv1alpha1.CondUpgradeComplete
 	return installv1alpha1.CompStateReady
-}
-
-// Convert a condition to a VZ State
-func conditionToVzState(currentCondition installv1alpha1.ConditionType) installv1alpha1.VzStateType {
-	switch currentCondition {
-	case installv1alpha1.CondInstallStarted:
-		return installv1alpha1.VzStateReconciling
-	case installv1alpha1.CondUninstallStarted:
-		return installv1alpha1.VzStateUninstalling
-	case installv1alpha1.CondUpgradeStarted:
-		return installv1alpha1.VzStateUpgrading
-	case installv1alpha1.CondUpgradePaused:
-		return installv1alpha1.VzStatePaused
-	case installv1alpha1.CondUninstallComplete:
-		return installv1alpha1.VzStateReady
-	case installv1alpha1.CondInstallFailed, installv1alpha1.CondUpgradeFailed, installv1alpha1.CondUninstallFailed:
-		return installv1alpha1.VzStateFailed
-	}
-	// Return ready for installv1alpha1.CondInstallComplete, installv1alpha1.CondUpgradeComplete
-	return installv1alpha1.VzStateReady
-}
-
-// setInstallStartedCondition
-func (r *Reconciler) setInstallingState(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
-	// Set the version in the status.  This will be updated when the starting install condition is updated.
-	bomSemVer, err := validators.GetCurrentBomVersion()
-	if err != nil {
-		return err
-	}
-
-	vz.Status.Version = bomSemVer.ToString()
-	return r.updateStatus(log, vz, "Verrazzano install in progress", installv1alpha1.CondInstallStarted)
-}
-
-// checkComponentReadyState returns true if all component-level status' are "CompStateReady" for enabled components
-func (r *Reconciler) checkComponentReadyState(vzctx vzcontext.VerrazzanoContext) (bool, error) {
-	cr := vzctx.ActualCR
-	if unitTesting {
-		for _, compStatus := range cr.Status.Components {
-			if compStatus.State != installv1alpha1.CompStateDisabled && compStatus.State != installv1alpha1.CompStateReady {
-				return false, nil
-			}
-		}
-		return true, nil
-	}
-
-	// Return false if any enabled component is not ready
-	for _, comp := range registry.GetComponents() {
-		spiCtx, err := spi.NewContext(vzctx.Log, r.Client, vzctx.ActualCR, nil, r.DryRun)
-		if err != nil {
-			spiCtx.Log().Errorf("Failed to create component context: %v", err)
-			return false, err
-		}
-		if comp.IsEnabled(spiCtx.EffectiveCR()) && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
-			spiCtx.Log().Progressf("Waiting for component %s to be ready", comp.Name())
-			return false, nil
-		}
-	}
-	return true, nil
-}
-
-// setUninstallCondition sets the Verrazzano resource condition in status for uninstall
-func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano, newCondition installv1alpha1.ConditionType, msg string) (err error) {
-	// Add the uninstall started condition if not already added
-	for _, condition := range vz.Status.Conditions {
-		if condition.Type == newCondition {
-			return nil
-		}
-	}
-	return r.updateStatus(log, vz, msg, newCondition)
 }
 
 // createVerrazzanoSystemNamespace creates the Verrazzano system namespace if it does not already exist
