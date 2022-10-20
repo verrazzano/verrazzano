@@ -23,7 +23,7 @@ spec:
     spec:
       terminationGracePeriodSeconds: 0
       initContainers:
-        - name: initWebhooks
+        - name: initwebhooks
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           image: {{ .Values.image }}
           args:
