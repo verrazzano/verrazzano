@@ -12,6 +12,14 @@ spec:
       enabled: true
     velero:
       enabled: true
+    prometheusAdapter:
+      enabled: true
+    kubeStateMetrics:
+      enabled: true
+    prometheusPushgateway:
+      enabled: true
+    prometheusNodeExporter:
+      enabled: true
     authProxy:
       overrides:
         - values:
