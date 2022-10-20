@@ -23,7 +23,7 @@ import (
 const (
 	shortWaitTimeout         = 10 * time.Minute
 	shortPollingInterval     = 10 * time.Second
-	longWaitTimeout          = 20 * time.Minute
+	longWaitTimeout          = 25 * time.Minute
 	longPollingInterval      = 20 * time.Second
 	imagePullWaitTimeout     = 40 * time.Minute
 	imagePullPollingInterval = 30 * time.Second
