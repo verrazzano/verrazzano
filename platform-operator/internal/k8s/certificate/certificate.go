@@ -189,9 +189,8 @@ func DeleteValidatingWebhookConfiguration(kubeClient kubernetes.Interface, name 
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
-		} else {
-			return err
 		}
+		return err
 	}
 	err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(context.TODO(), name, metav1.DeleteOptions{})
 
