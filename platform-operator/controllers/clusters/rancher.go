@@ -48,7 +48,7 @@ const (
 	clusterRegTokenPath = "/v3/clusterregistrationtoken" //nolint:gosec //#gosec G101
 	manifestPath        = "/v3/import/"
 	loginPath           = "/v3-public/localProviders/local?action=login"
-	secretPathTemplate  = "/api/v1/namespaces/%s/secrets/%s"
+	secretPathTemplate  = "/api/v1/namespaces/%s/secrets/%s" //nolint:gosec //#gosec G101
 
 	k8sClustersPath = "/k8s/clusters/"
 
