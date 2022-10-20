@@ -129,7 +129,7 @@ func TestUpdateValidatingnWebhookConfigurationFail(t *testing.T) {
 	caSecret.Data["tls.key"] = caCert.Bytes()
 
 	kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &caSecret, metav1.CreateOptions{})
-	
+
 	path := "/validate-install-verrazzano-io-v1alpha1-verrazzano"
 	service := adminv1.ServiceReference{
 		Name:      OperatorName,
