@@ -551,27 +551,6 @@ func (r *Reconciler) getBOM() (*bom.Bom, error) {
 	return r.Bom, nil
 }
 
-func checkCondtitionType(currentCondition installv1alpha1.ConditionType) installv1alpha1.CompStateType {
-	switch currentCondition {
-	case installv1alpha1.CondPreInstall:
-		return installv1alpha1.CompStatePreInstalling
-	case installv1alpha1.CondInstallStarted:
-		return installv1alpha1.CompStateInstalling
-	case installv1alpha1.CondUninstallStarted:
-		return installv1alpha1.CompStateUninstalling
-	case installv1alpha1.CondUpgradeStarted:
-		return installv1alpha1.CompStateUpgrading
-	case installv1alpha1.CondUpgradePaused:
-		return installv1alpha1.CompStateUpgrading
-	case installv1alpha1.CondUninstallComplete:
-		return installv1alpha1.CompStateUninstalled
-	case installv1alpha1.CondInstallFailed, installv1alpha1.CondUpgradeFailed, installv1alpha1.CondUninstallFailed:
-		return installv1alpha1.CompStateFailed
-	}
-	// Return ready for installv1alpha1.CondInstallComplete, installv1alpha1.CondUpgradeComplete
-	return installv1alpha1.CompStateReady
-}
-
 // createVerrazzanoSystemNamespace creates the Verrazzano system namespace if it does not already exist
 func (r *Reconciler) createVerrazzanoSystemNamespace(ctx context.Context, cr *installv1alpha1.Verrazzano, log vzlog.VerrazzanoLogger) error {
 	// remove injection label if disabled
