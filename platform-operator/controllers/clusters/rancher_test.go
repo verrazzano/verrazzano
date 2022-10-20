@@ -55,6 +55,8 @@ func TestCreateOrUpdateSecretRancherProxy(t *testing.T) {
 	}
 	clusterID := "cluster-id"
 
+	mocker := gomock.NewController(t)
+
 	tests := []struct {
 		name string
 		f    controllerutil.MutateFn
@@ -63,12 +65,12 @@ func TestCreateOrUpdateSecretRancherProxy(t *testing.T) {
 		{
 			name: "test secret not found",
 			f:    func() error { return nil },
-			mock: getNotFoundMock(t, &secret, clusterID),
+			mock: addNotFoundMock(mocks.NewMockRequestSender(mocker), &secret, clusterID),
 		},
 		{
 			name: "test secret found",
 			f:    func() error { return nil },
-			mock: getFoundMock(a, t, &secret, clusterID),
+			mock: addFoundMock(mocks.NewMockRequestSender(mocker), a, &secret, clusterID),
 		},
 		{
 			name: "test secret mutated",
@@ -77,7 +79,7 @@ func TestCreateOrUpdateSecretRancherProxy(t *testing.T) {
 				secret.Data["test"] = []byte("newVal")
 				return nil
 			},
-			mock: getMutatedMock(a, t, &secret, clusterID),
+			mock: addMutatedMock(mocks.NewMockRequestSender(mocker), a, &secret, clusterID),
 		},
 	}
 	for _, tt := range tests {
@@ -89,9 +91,7 @@ func TestCreateOrUpdateSecretRancherProxy(t *testing.T) {
 	}
 }
 
-func getNotFoundMock(t *testing.T, secret *corev1.Secret, clusterID string) *mocks.MockRequestSender {
-	mocker := gomock.NewController(t)
-	httpMock := mocks.NewMockRequestSender(mocker)
+func addNotFoundMock(httpMock *mocks.MockRequestSender, secret *corev1.Secret, clusterID string) *mocks.MockRequestSender {
 	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, constructSecretURL(secret, "", clusterID))).
 		Return(&http.Response{StatusCode: 404, Body: io.NopCloser(bytes.NewReader([]byte("")))}, fmt.Errorf("not found")).AnyTimes()
 	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodPost, constructSecretURL(secret, "", clusterID))).
@@ -99,21 +99,17 @@ func getNotFoundMock(t *testing.T, secret *corev1.Secret, clusterID string) *moc
 	return httpMock
 }
 
-func getFoundMock(a *asserts.Assertions, t *testing.T, secret *corev1.Secret, clusterID string) *mocks.MockRequestSender {
+func addFoundMock(httpMock *mocks.MockRequestSender, a *asserts.Assertions, secret *corev1.Secret, clusterID string) *mocks.MockRequestSender {
 	secretData, err := json.Marshal(secret)
 	a.NoError(err)
-	mocker := gomock.NewController(t)
-	httpMock := mocks.NewMockRequestSender(mocker)
 	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, constructSecretURL(secret, "", clusterID))).
 		Return(&http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewReader(secretData))}, nil)
 	return httpMock
 }
 
-func getMutatedMock(a *asserts.Assertions, t *testing.T, secret *corev1.Secret, clusterID string) *mocks.MockRequestSender {
+func addMutatedMock(httpMock *mocks.MockRequestSender, a *asserts.Assertions, secret *corev1.Secret, clusterID string) *mocks.MockRequestSender {
 	secretData, err := json.Marshal(secret)
 	a.NoError(err)
-	mocker := gomock.NewController(t)
-	httpMock := mocks.NewMockRequestSender(mocker)
 	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, constructSecretURL(secret, "", clusterID))).
 		Return(&http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewReader(secretData))}, nil)
 	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodPut, constructSecretURL(secret, "", clusterID))).

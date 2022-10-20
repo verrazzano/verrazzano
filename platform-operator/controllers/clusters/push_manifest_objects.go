@@ -40,7 +40,7 @@ func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(vmc *clusterapi
 	regSecret.Namespace = constants.VerrazzanoSystemNamespace
 	regSecret.Name = constants.MCRegistrationSecret
 	err = createOrUpdateSecretRancherProxy(&agentSecret, rc, clusterID, func() error {
-		agentSecret, err = r.getSecret(GetAgentSecretName(vmc.Name), vmc.Namespace, true)
+		agentSecret, err = r.getSecret(vmc.Namespace, GetAgentSecretName(vmc.Name), true)
 		if err != nil {
 			return err
 		}
@@ -53,7 +53,7 @@ func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(vmc *clusterapi
 		return false, err
 	}
 	err = createOrUpdateSecretRancherProxy(&regSecret, rc, clusterID, func() error {
-		regSecret, err = r.getSecret(GetRegistrationSecretName(vmc.Name), vmc.Namespace, true)
+		regSecret, err = r.getSecret(vmc.Namespace, GetRegistrationSecretName(vmc.Name), true)
 		if err != nil {
 			return err
 		}
