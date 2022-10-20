@@ -67,6 +67,7 @@ func TestStartUpdate(t *testing.T) {
 				Type: vzapi.CondInstallComplete,
 			},
 		},
+		Components: makeVerrazzanoComponentStatusMap(),
 	}
 
 	ctx, asserts, result, fakeCompUpdated, err := testUpdate(t,
@@ -85,11 +86,11 @@ func TestStartUpdate(t *testing.T) {
 	asserts.True(result.Requeue)
 }
 
-// TestUpdate tests the reconcile func with updated generation
+// TestCompleteUpdateReadyComponent tests the reconcile func with updated generation
 // GIVEN a request to reconcile an verrazzano resource after install has been started
 // WHEN all components have the smaller LastReconciledGeneration than verrazzano CR in the request
 // THEN ensure a Ready State
-func TestCompleteUpdate(t *testing.T) {
+func TestCompleteUpdateReadyComponent(t *testing.T) {
 	initUnitTesing()
 	status := vzapi.VerrazzanoStatus{
 		State:   vzapi.VzStateReconciling,
@@ -102,6 +103,46 @@ func TestCompleteUpdate(t *testing.T) {
 				Type: vzapi.CondInstallStarted,
 			},
 		},
+		Components: makeVerrazzanoComponentStatusMap(),
+	}
+	ctx, asserts, result, fakeCompUpdated, err := testUpdate(t,
+		lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
+		"1.3.0", status, namespace, name, "true")
+	asserts.NoError(err)
+
+	defer reset()
+
+	vz := vzapi.Verrazzano{}
+	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &vz)
+	asserts.NoError(err)
+
+	asserts.Equal(vzapi.VzStateReady, vz.Status.State)
+	asserts.True(*fakeCompUpdated)
+	asserts.Equal(vz.Generation, vz.Status.Components[fakeCompReleaseName].LastReconciledGeneration)
+	asserts.Equal(vzapi.CondInstallStarted, vz.Status.Components[fakeCompReleaseName].Conditions[0].Type)
+	asserts.Equal(vzapi.CondInstallComplete, vz.Status.Components[fakeCompReleaseName].Conditions[1].Type)
+	asserts.False(result.Requeue)
+	assertKeycloakAuthConfig(asserts, ctx)
+}
+
+// TestCompleteUpdateDisabledComponent tests the reconcile func with updated generation
+// GIVEN a request to reconcile an verrazzano resource after install has been started
+// WHEN all components have the smaller LastReconciledGeneration than verrazzano CR in the request
+// THEN ensure a Ready State
+func TestCompleteUpdateDisabledComponent(t *testing.T) {
+	initUnitTesing()
+	status := vzapi.VerrazzanoStatus{
+		State:   vzapi.VzStateReconciling,
+		Version: statusVer,
+		Conditions: []vzapi.Condition{
+			{
+				Type: vzapi.CondInstallComplete,
+			},
+			{
+				Type: vzapi.CondInstallStarted,
+			},
+		},
+		Components: makeVerrazzanoComponentStatusMapDisabled(),
 	}
 	ctx, asserts, result, fakeCompUpdated, err := testUpdate(t,
 		lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
@@ -137,6 +178,7 @@ func TestNoUpdateSameGeneration(t *testing.T) {
 				Type: vzapi.CondInstallComplete,
 			},
 		},
+		Components: makeVerrazzanoComponentStatusMap(),
 	}
 
 	ctx, asserts, result, fakeCompUpdated, err := testUpdate(t,
@@ -169,6 +211,7 @@ func TestUpdateWithUpgrade(t *testing.T) {
 				Type: vzapi.CondInstallComplete,
 			},
 		},
+		Components: makeVerrazzanoComponentStatusMap(),
 	}
 
 	ctx, asserts, result, fakeCompUpdated, err := testUpdate(t,
@@ -207,6 +250,7 @@ func TestUpdateOnUpdate(t *testing.T) {
 				Type: vzapi.CondInstallComplete,
 			},
 		},
+		Components: makeVerrazzanoComponentStatusMap(),
 	}
 
 	ctx, asserts, result, fakeCompUpdated, err := testUpdate(t,
@@ -242,6 +286,7 @@ func TestUpdateFalseMonitorChanges(t *testing.T) {
 				Type: vzapi.CondInstallStarted,
 			},
 		},
+		Components: makeVerrazzanoComponentStatusMap(),
 	}
 	ctx, asserts, result, fakeCompUpdated, err := testUpdate(t,
 		lastReconciledGeneration+1, reconcilingGen, lastReconciledGeneration,
@@ -294,15 +339,10 @@ func testUpdate(t *testing.T,
 			fakeComp,
 		}
 	})
-	compStatusMap := makeVerrazzanoComponentStatusMap()
-	available := true
-	for _, status := range compStatusMap {
+	for _, status := range vzStatus.Components {
 		status.ReconcilingGeneration = reconcilingGen
 		status.LastReconciledGeneration = lastReconciledGeneration
-		status.Available = &available
 	}
-
-	vzStatus.Components = compStatusMap
 
 	vz := &vzapi.Verrazzano{
 		TypeMeta: metav1.TypeMeta{
@@ -357,6 +397,42 @@ func testUpdate(t *testing.T,
 	reconciler := newVerrazzanoReconciler(ctx.Client())
 	result, err := reconciler.Reconcile(context.TODO(), request)
 	return ctx, asserts, result, fakeCompUpdated, err
+}
+
+func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
+	statusMap := make(vzapi.ComponentStatusMap)
+	for _, comp := range registry.GetComponents() {
+		if comp.IsOperatorInstallSupported() {
+			available := true
+			statusMap[comp.Name()] = &vzapi.ComponentStatusDetails{
+				Name: comp.Name(),
+				Conditions: []vzapi.Condition{
+					{
+						Type:   vzapi.CondInstallComplete,
+						Status: corev1.ConditionTrue,
+					},
+				},
+				State:     vzapi.CompStateReady,
+				Available: &available,
+			}
+		}
+	}
+	return statusMap
+}
+
+func makeVerrazzanoComponentStatusMapDisabled() vzapi.ComponentStatusMap {
+	statusMap := make(vzapi.ComponentStatusMap)
+	for _, comp := range registry.GetComponents() {
+		if comp.IsOperatorInstallSupported() {
+			available := false
+			statusMap[comp.Name()] = &vzapi.ComponentStatusDetails{
+				Name:      comp.Name(),
+				State:     vzapi.CompStateDisabled,
+				Available: &available,
+			}
+		}
+	}
+	return statusMap
 }
 
 func createKeycloakAuthConfig() unstructured.Unstructured {
