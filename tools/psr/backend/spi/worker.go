@@ -9,6 +9,6 @@ import (
 )
 
 type Worker interface {
-	GetConfigItems() []config.ConfigItem
-	Work(config map[string]string, log vzlog.VerrazzanoLogger)
+	GetEnvDescList() []config.EnvVarDesc
+	Work(config.CommonConfig, vzlog.VerrazzanoLogger)
 }
