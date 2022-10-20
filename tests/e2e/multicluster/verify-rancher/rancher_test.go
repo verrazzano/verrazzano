@@ -6,13 +6,15 @@ package rancher_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"os"
 	"regexp"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
 const (
@@ -44,6 +46,26 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 
 			Expect(getNumBadSocketMessages()).To(BeNumerically("<", 20))
 
+		})
+
+		t.It("Rancher cluster import results in VMC creation", func() {
+			// GIVEN a Rancher cluster is created using Rancher API/UI
+			// WHEN the Rancher cluster is appropriately labeled
+			// THEN a VMC is auto-created for that cluster
+
+			// Get Rancher API URL and creds
+			rancherClusterName := "cluster1"
+			adminKubeconfig := os.Getenv("ADMIN_KUBECONFIG")
+			Expect(adminKubeconfig).To(Not(BeEmpty()))
+			rc, err := pkg.CreateNewRancherConfig(t.Logs, adminKubeconfig)
+			Expect(err).To(BeNil(), err.Error())
+
+			// Create cluster in Rancher and label it (when labels are supported)
+			clusterId, err := clusters.ImportClusterToRancher(rc, rancherClusterName, log)
+			Expect(err).To(BeNil(), err.Error())
+
+			// Eventually, a VMC with that cluster id should be created
+			fmt.Printf("Got cluster id %s from Rancher\n", clusterId)
 		})
 	})
 
