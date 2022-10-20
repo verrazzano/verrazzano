@@ -156,8 +156,11 @@ func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
 	webhookCA.Data["tls.crt"] = caKeyPEM64Bytes
 	webhookCA.Data["tls.key"] = caKeyPEM64Bytes
 
-	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCA, metav1.CreateOptions{})
+	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
 	if err != nil {
+		if errors.IsNotFound(err) {
+			_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCA, metav1.CreateOptions{})
+		}
 		return err
 	}
 
@@ -169,8 +172,11 @@ func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
 	webhookCrt.Data["tls.crt"] = serverPEM64Bytes
 	webhookCrt.Data["tls.key"] = serverKeyPEM64Bytes
 
-	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
+	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
 	if err != nil {
+		if errors.IsNotFound(err) {
+			_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
+		}
 		return err
 	}
 
