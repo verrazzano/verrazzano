@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
+	"github.com/verrazzano/verrazzano/platform-operator/webhookreadiness"
 	"k8s.io/client-go/dynamic"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -328,6 +329,7 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 	}
 
 	metricsexporter.StartMetricsServer(log)
+	webhookreadiness.StartReadinessServer(log)
 
 	// Set up the reconciler
 	healthCheck := health.New(mgr.GetClient(), time.Duration(healthCheckPeriodSeconds)*time.Second)

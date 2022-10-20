@@ -29,12 +29,13 @@ spec:
           args:
             - --init-webhooks=true
             - --webhooks-enabled=false
-          volumeMounts:
-            - name: webhook-certs
-              mountPath: /etc/webhook/certs
           resources:
             requests:
               memory: 72Mi
+      {{- with .Values.affinity }}
+      affinity:
+        {{- tpl . $ | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Values.name }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
@@ -85,8 +86,6 @@ spec:
           hostPath:
             path: /var/log
             type: ""
-        - name: webhook-certs
-          emptyDir: { }
       serviceAccountName: {{ .Values.name }}
 ---
 apiVersion: apps/v1
@@ -111,6 +110,10 @@ spec:
         app.kubernetes.io/version: {{ .Chart.Version }}
     spec:
       terminationGracePeriodSeconds: 0
+      {{- with .Values.affinity }}
+      affinity:
+        {{- tpl . $ | nindent 8 }}
+      {{- end }}
       containers:
         - name: webhook-run
           image: {{ .Values.image }}
@@ -119,9 +122,6 @@ spec:
             - --zap-log-level=info
             - --webhooks-enabled=true
             - --init-webhooks=false
-          volumeMounts:
-            - name: webhook-certs
-              mountPath: /etc/webhook/certs
           resources:
             requests:
               memory: 72Mi
@@ -132,7 +132,4 @@ spec:
             - containerPort: 9443
               name: webhook
               protocol: TCP
-      volumes:
-        - name: webhook-certs
-          emptyDir: {}
       serviceAccountName: {{ .Values.name }}

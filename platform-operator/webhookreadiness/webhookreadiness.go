@@ -1,18 +1,12 @@
 package webhookreadiness
 
 import (
-	"net/http"
-	"os"
+	"fmt"
+	"go.uber.org/zap"
 )
 
-func ready(w http.ResponseWriter, req *http.Request) {
+// StartReadinessServer to check webhook readiness
+func StartReadinessServer(log *zap.SugaredLogger) {
+	log.Info(fmt.Println("put something here"))
 
-}
-
-func startServer() {
-	http.HandleFunc("/ready", ready)
-	err := http.ListenAndServe(":8080", nil)
-	if err != nil {
-		os.Exit(1)
-	}
 }

@@ -10,3 +10,4 @@ global:
 # platform operator docker build.
 image:
 imagePullPolicy: IfNotPresent
+affinity:
