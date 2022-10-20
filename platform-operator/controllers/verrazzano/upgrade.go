@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -139,16 +140,20 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 		case vzStateUpgradeDone:
 			log.Once("Verrazzano successfully upgraded all existing components and will now install any new components")
 			effectiveCR, _ := transform.GetEffectiveCR(cr)
+			componentsToUpdate := map[string]*installv1alpha1.ComponentStatusDetails{}
 			for _, comp := range registry.GetComponents() {
 				compName := comp.Name()
 				componentStatus := cr.Status.Components[compName]
 				if componentStatus != nil && (effectiveCR != nil && comp.IsEnabled(effectiveCR)) {
 					componentStatus.LastReconciledGeneration = cr.Generation
+					componentsToUpdate[compName] = componentStatus
 				}
 			}
 			// Update the status with the new version and component generations
-			cr.Status.Version = targetVersion
-			r.StatusUpdater.Update(cr)
+			r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+				Components: componentsToUpdate,
+				Version:    &targetVersion,
+			})
 			tracker.vzState = vzStateEnd
 
 			// Requeue since the status was just updated, want a fresh copy from controller-runtime cache

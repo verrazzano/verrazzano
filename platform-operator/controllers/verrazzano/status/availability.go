@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type componentAvailability struct {
@@ -20,7 +21,7 @@ type componentAvailability struct {
 // updateAvailability updates the availability for a given set of components
 func (p *HealthChecker) updateAvailability(components []spi.Component) error {
 	// Get the Verrazzano resource
-	vz, err := p.getVerrazzanoResource()
+	vz, err := getVerrazzanoResource(p.client)
 	if err != nil {
 		return fmt.Errorf("Failed to get Verrazzano resource: %v", err)
 	}
@@ -83,9 +84,9 @@ func (p *HealthChecker) sendStatus(status *AvailabilityStatus) {
 	if p.status == nil || !p.status.needsUpdate() {
 		return
 	}
-	p.status.merge(p.status.Verrazzano)
-	p.updater.Update(p.status.Verrazzano)
-
+	p.updater.Update(&UpdateEvent{
+		Availability: p.status,
+	})
 }
 
 func isEnabled(vz *vzapi.Verrazzano, component spi.Component) bool {
@@ -105,9 +106,9 @@ func (p *HealthChecker) getComponentAvailability(component spi.Component, ctx sp
 }
 
 // getVerrazzanoResource fetches a Verrazzano resource, if one exists
-func (p *HealthChecker) getVerrazzanoResource() (*vzapi.Verrazzano, error) {
+func getVerrazzanoResource(client clipkg.Client) (*vzapi.Verrazzano, error) {
 	vzList := &vzapi.VerrazzanoList{}
-	if err := p.client.List(context.TODO(), vzList); err != nil {
+	if err := client.List(context.TODO(), vzList); err != nil {
 		return nil, err
 	}
 	if len(vzList.Items) != 1 {

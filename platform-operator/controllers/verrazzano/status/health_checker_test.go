@@ -35,7 +35,7 @@ func TestAddStatus(t *testing.T) {
 	time.Sleep(waitTime)
 	p.Pause()
 	assert.NotNil(t, p.status)
-	vz, err := p.getVerrazzanoResource()
+	vz, err := getVerrazzanoResource(p.client)
 	assert.NoError(t, err)
 	assert.NotNil(t, vz.Status.Components)
 }
