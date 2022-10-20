@@ -4,6 +4,7 @@
 package opensearch
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
@@ -27,7 +28,15 @@ func (w LogGenerator) GetEnvDescList() []config.EnvVarDesc {
 func (w LogGenerator) Work(conf config.CommonConfig, log vzlog.VerrazzanoLogger) {
 	for {
 		log.Infof("Log Generator Doing Work")
-		time.Sleep(conf.IterationSleepMillis)
+		time.Sleep(conf.IterationSleepNanos)
 	}
 
+}
+
+func (w LogGenerator) GetMetricDescList() []prometheus.Desc {
+	return nil
+}
+
+func (w LogGenerator) GetMetricList() []prometheus.Metric {
+	return nil
 }

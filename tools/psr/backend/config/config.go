@@ -42,8 +42,8 @@ type EnvVarDesc struct {
 }
 
 type CommonConfig struct {
-	WorkerType           string
-	IterationSleepMillis time.Duration
+	WorkerType          string
+	IterationSleepNanos time.Duration
 }
 
 var EnvVars = make(map[string]string)
@@ -63,13 +63,13 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 		return CommonConfig{}, log.ErrorfNewErr("Error parsing iteration sleep duration: %v", err)
 	}
 	// Sleep at least 100 millis
-	if sleepDuration < (100 * time.Millisecond) {
-		sleepDuration = 100 * time.Millisecond
+	if sleepDuration < (10 * time.Millisecond) {
+		sleepDuration = 10 * time.Millisecond
 	}
 
 	return CommonConfig{
-		WorkerType:           EnvVars[PsrWorkerType],
-		IterationSleepMillis: sleepDuration,
+		WorkerType:          EnvVars[PsrWorkerType],
+		IterationSleepNanos: sleepDuration,
 	}, nil
 }
 
