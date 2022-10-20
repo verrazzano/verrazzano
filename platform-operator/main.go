@@ -318,7 +318,7 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: config.MetricsAddr,
-		Port:               9443,
+		Port:               8080,
 		LeaderElection:     config.LeaderElectionEnabled,
 		LeaderElectionID:   "3ec4d290.verrazzano.io",
 	})
