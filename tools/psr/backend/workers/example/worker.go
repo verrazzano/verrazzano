@@ -23,12 +23,12 @@ type ExampleWorker struct{}
 
 var _ spi.Worker = ExampleWorker{}
 
-func (w ExampleWorker) GetConfigItems() []config.ConfigItem {
-	return []config.ConfigItem{
+func (w ExampleWorker) GetEnvDescList() []config.EnvVarDesc {
+	return []config.EnvVarDesc{
 		{Key: msgSize, DefaultVal: "20", Required: false}}
 }
 
-func (w ExampleWorker) Work(config map[string]string, log vzlog.VerrazzanoLogger) {
+func (w ExampleWorker) Work(conf config.CommonConfig, log vzlog.VerrazzanoLogger) {
 	for {
 		log.Infof("Example Worker Doing Work")
 		time.Sleep(10 * time.Second)

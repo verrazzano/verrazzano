@@ -21,13 +21,14 @@ func main() {
 	log := vzlog.DefaultLogger()
 	log.Info("Starting PSR worker")
 
-	if err := config.LoadCommonConfig(); err != nil {
+	conf, err := config.GetCommonConfig(log)
+	if err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
 
 	// Configure the worker
-	wt := config.GetWorkerType()
+	wt := conf.WorkerType
 	if len(wt) == 0 {
 		log.Errorf("Failed, missing Env var PSR_WORKER_TYPE")
 		os.Exit(1)
@@ -38,7 +39,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := config.AddConfigItems(worker.GetConfigItems()); err != nil {
+	if err := config.AddEnvConfig(worker.GetEnvDescList()); err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
@@ -49,7 +50,7 @@ func main() {
 
 	// Run the worker to completion (usually forever)
 	log.Infof("Running worker %s", wt)
-	worker.Work(config.Config, log)
+	worker.Work(conf, log)
 
 	log.Info("Stopping worker")
 }
