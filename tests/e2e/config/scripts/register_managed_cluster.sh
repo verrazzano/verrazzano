@@ -43,6 +43,10 @@ if ! kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc get configmap ver
   kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc create configmap verrazzano-admin-cluster --from-literal=server=${ADMIN_K8S_SERVER_ADDRESS}
 fi
 
+# 'kubectl get vz' occasionally fails with 'error: the server doesn't have a resource type "vz"' but it always works the second time, so run
+# it here to prevent the next invocation from failing
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vz 2> /dev/null || true
+
 VERSION=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vz -o jsonpath='{.items[0].status.version}')
 MAJOR_VERSION=$(echo ${VERSION} | cut -d. -f1)
 MINOR_VERSION=$(echo ${VERSION} | cut -d. -f2)
