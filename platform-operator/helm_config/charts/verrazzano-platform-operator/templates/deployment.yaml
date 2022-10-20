@@ -137,9 +137,9 @@ spec:
               name: webhook
               protocol: TCP
       volumes:
-        - name: webhook-ca-cert
+        - name: webhook-ca-certs
           secret:
-            secretName: verrazzano-platform-operator-tls
+            secretName: verrazzano-platform-operator-ca
         - name: webhook-server-cert
           secret:
             secretName: verrazzano-platform-operator-tls
