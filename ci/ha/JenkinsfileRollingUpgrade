@@ -302,7 +302,7 @@ pipeline {
                             fi
 
                             echo "Installing Verrazzano"
-                            ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/platform-operator.yaml --timeout 45m
+                            ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/platform-operator.yaml --timeout 45m --platform-operator-timeout 10m
                        """
                     }
                     post {
@@ -454,6 +454,9 @@ pipeline {
                             }
                         }
                         stage ('console') {
+                            when {
+                                expression { false }
+                            }
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
                             }
