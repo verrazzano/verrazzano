@@ -14,9 +14,10 @@ import (
 	"time"
 )
 
+// StartMetricsServerOrDie starts the metrics server.  If there is an error the code exits
 func StartMetricsServerOrDie(providers []spi.WorkerMetricsProvider) {
 	reg := prometheus.NewPedanticRegistry()
-	rc := runCollector{providers: providers}
+	rc := workerCollector{providers: providers}
 	reg.MustRegister(
 		rc,
 	)
@@ -24,6 +25,7 @@ func StartMetricsServerOrDie(providers []spi.WorkerMetricsProvider) {
 	reg.MustRegister(
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 	)
+
 	// Register the custom collector and start the metrics server
 	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 
