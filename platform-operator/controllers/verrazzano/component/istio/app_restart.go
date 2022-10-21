@@ -77,7 +77,6 @@ func StopDomainsUsingOldEnvoy(log vzlog.VerrazzanoLogger, client clipkg.Client) 
 
 // RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions restarts all the WebLogic domains using Envoy 1.7.3
 func RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVersion string) error {
-	log.Infof("RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions -------")
 	// Generate a restart version that will not change for this Verrazzano version
 	//restartVersion := "upgrade-" + strconv.Itoa(int(generation))
 
@@ -98,7 +97,6 @@ func RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions(log vzlog.VerrazzanoLogg
 		log.Debugf("RestartWebLogicApps: found appConfig %s", appConfig.Name)
 		for _, wl := range appConfig.Status.Workloads {
 			if wl.Reference.Kind == vzconst.VerrazzanoWebLogicWorkloadKind {
-				log.Infof("Before restartDomainIfNeeded -------")
 				if err := restartDomainIfNeeded(log, client, appConfig, wl.Reference.Name, istioProxyImage, restartVersion); err != nil {
 					return err
 				}
