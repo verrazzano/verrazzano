@@ -191,6 +191,7 @@ func DoesPodContainOldIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodLi
 func DoesPodContainOldIstioSidecarSkewGreaterThanTwoMinorVersion(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string, istioProxyImageName string) bool {
 	istoiProxyImageSplitArray := strings.SplitN(istioProxyImageName, ":", 2)
 	istioProxyImageVersionArray := strings.Split(istoiProxyImageSplitArray[1], ".")
+
 	for _, pod := range podList.Items {
 		for _, container := range pod.Spec.Containers {
 			if strings.Contains(container.Image, "proxyv2") {
