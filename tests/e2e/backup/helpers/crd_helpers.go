@@ -337,6 +337,31 @@ func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQ
 		return nil, err
 	}
 
+	// Debug
+	var cmd BashCommand
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "get")
+	cmdArgs = append(cmdArgs, "mbk")
+	cmdArgs = append(cmdArgs, "-n")
+	cmdArgs = append(cmdArgs, "keycloak")
+	cmdArgs = append(cmdArgs, backupName)
+	cmd.CommandArgs = cmdArgs
+
+	response := Runner(&cmd, log)
+	log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
+
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "describe")
+	cmdArgs = append(cmdArgs, "mbk")
+	cmdArgs = append(cmdArgs, "-n")
+	cmdArgs = append(cmdArgs, "keycloak")
+	cmdArgs = append(cmdArgs, backupName)
+	cmd.CommandArgs = cmdArgs
+
+	response = Runner(&cmd, log)
+	log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
+
 	return &backup, nil
 }
 
@@ -362,6 +387,20 @@ func GetMySQLInnoDBStatus(namespace, backupName string, log *zap.SugaredLogger) 
 		log.Errorf("Json unmarshall error %v", zap.Error(err))
 		return nil, err
 	}
+
+	//Debug
+	var cmd BashCommand
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "kubectl")
+	cmdArgs = append(cmdArgs, "get")
+	cmdArgs = append(cmdArgs, "ics")
+	cmdArgs = append(cmdArgs, "-n")
+	cmdArgs = append(cmdArgs, "keycloak")
+	cmdArgs = append(cmdArgs, backupName)
+	cmd.CommandArgs = cmdArgs
+
+	response := Runner(&cmd, log)
+	log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
 
 	return &ics, nil
 }
