@@ -32,7 +32,7 @@ do
   echo "Initial keycloak resource version: ${RV}, current resource version found: ${CURRENT_RV}"
   sleep 15
   waittime=$(waittime + 15)
-  if [ "$waittime" -gt "600" ]; then
+  if [ $waittime -gt 600 ]; then
     echo "The keycloak pod has not been recycled after 10 minutes, capture more details and fail the test"
     kubectl get pod -l app.kubernetes.io/name=keycloak -n keycloak
     kubectl describe pod -l app.kubernetes.io/name=keycloak -n keycloak
