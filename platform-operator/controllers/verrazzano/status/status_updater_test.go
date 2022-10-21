@@ -25,18 +25,42 @@ const (
 	retries = 5
 )
 
-func TestStatusUpdater(t *testing.T) {
+var testvz *vzapi.Verrazzano
+var testScheme *runtime.Scheme
 
-	vz := &vzapi.Verrazzano{
+func init() {
+	testScheme = runtime.NewScheme()
+	_ = vzapi.AddToScheme(testScheme)
+	testvz = &vzapi.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "a",
 			Name:      "b",
 		},
 	}
-	testScheme := runtime.NewScheme()
-	_ = vzapi.AddToScheme(testScheme)
+}
+
+func TestFakeStatusUpdater(t *testing.T) {
+	vz := testvz.DeepCopy()
+	c := fake.NewClientBuilder().WithObjects(vz).WithScheme(testScheme).Build()
+	f := FakeVerrazzanoStatusUpdater{Client: c}
+	vz.Status.State = vzapi.VzStateReady
+	f.Update(&UpdateEvent{Verrazzano: vz})
+	updatedVZ := &vzapi.Verrazzano{}
+	if err := c.Get(context.TODO(), types.NamespacedName{
+		Name:      vz.Name,
+		Namespace: vz.Namespace,
+	}, updatedVZ); err != nil {
+		assert.Failf(t, "%v", err.Error())
+	}
+	assert.Equal(t, vzapi.VzStateReady, updatedVZ.Status.State)
+}
+
+func TestStatusUpdater(t *testing.T) {
+	vz := testvz.DeepCopy()
 	c := fake.NewClientBuilder().WithObjects(vz).WithScheme(testScheme).Build()
 	updater := NewStatusUpdater(c)
+	updater.Start()     // should be able to call start multiple times out issue
+	time.Sleep(timeout) // updater takes some time to initialize
 	version := "1.5.0"
 	availability := &AvailabilityStatus{
 		Components: map[string]bool{
@@ -74,10 +98,10 @@ func TestStatusUpdater(t *testing.T) {
 		InstanceInfo: instanceInfo,
 		Components:   nil,
 	}
-	time.Sleep(timeout) // updater takes a bit to initialize...
+	// Send an update
 	updater.Update(u)
-	retryFunction(func(i int) bool {
-		return checkUpdate(t, c, u, i)
+	retryFunction(t, func() bool {
+		return checkUpdate(t, c, u)
 	})
 
 	available := true
@@ -95,13 +119,19 @@ func TestStatusUpdater(t *testing.T) {
 			},
 		},
 	}
+	// Send another update
 	updater.Update(u2)
-	retryFunction(func(i int) bool {
-		return checkUpdate(t, c, u2, i)
+	retryFunction(t, func() bool {
+		return checkUpdate(t, c, u2)
+	})
+	// Closes the update channel
+	updater.Update(nil)
+	retryFunction(t, func() bool {
+		return updater.updateChannel == nil
 	})
 }
 
-func checkUpdate(t *testing.T, c client.Client, u *UpdateEvent, i int) bool {
+func checkUpdate(t *testing.T, c client.Client, u *UpdateEvent) bool {
 	vz := &vzapi.Verrazzano{}
 	if err := c.Get(context.TODO(), types.NamespacedName{
 		Name:      u.Verrazzano.Name,
@@ -116,17 +146,17 @@ func checkUpdate(t *testing.T, c client.Client, u *UpdateEvent, i int) bool {
 	if equal {
 		return true
 	}
-	if i >= retries {
-		assert.Fail(t, "Status not equal after update")
-		return true
-	}
 	return false
 }
 
-func retryFunction(f func(i int) bool) {
+func retryFunction(t *testing.T, f func() bool) {
 	for i := 0; i < retries; i++ {
-		ok := f(i)
+		ok := f()
 		if ok {
+			break
+		}
+		if i >= retries {
+			assert.Fail(t, "Timed out")
 			break
 		}
 		time.Sleep(timeout)

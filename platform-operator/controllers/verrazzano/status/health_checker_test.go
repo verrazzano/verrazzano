@@ -39,3 +39,11 @@ func TestAddStatus(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, vz.Status.Components)
 }
+
+func TestStart(t *testing.T) {
+	p := newTestHealthCheck()
+	p.Start()
+	p.Start()
+	p.Pause()
+	p.Pause()
+}

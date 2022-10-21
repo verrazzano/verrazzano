@@ -78,6 +78,7 @@ func (p *HealthChecker) Start() {
 func (p *HealthChecker) Pause() {
 	if p.shutdown != nil {
 		close(p.shutdown)
+		p.shutdown = nil
 	}
 }
 

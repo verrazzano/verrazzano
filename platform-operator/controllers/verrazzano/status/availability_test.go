@@ -43,8 +43,6 @@ func newFakeComponent(name string, available, enabled bool) fakeComponent {
 }
 
 func newTestHealthCheck(objs ...client.Object) *HealthChecker {
-	testScheme := runtime.NewScheme()
-	_ = vzapi.AddToScheme(testScheme)
 	c := fake.NewClientBuilder().WithObjects(objs...).WithScheme(testScheme).Build()
 	updater := NewStatusUpdater(c)
 	return NewHealthChecker(updater, c, 1*time.Second)
