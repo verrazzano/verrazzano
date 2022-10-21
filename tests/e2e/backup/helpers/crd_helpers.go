@@ -348,8 +348,8 @@ func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQ
 	cmdArgs = append(cmdArgs, backupName)
 	cmd.CommandArgs = cmdArgs
 
-	response := Runner(&cmd, log)
-	log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
+	_ = Runner(&cmd, log)
+	//log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
 
 	var newCmdArgs []string
 	newCmdArgs = append(newCmdArgs, "kubectl")
@@ -360,19 +360,8 @@ func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQ
 	newCmdArgs = append(newCmdArgs, backupName)
 	cmd.CommandArgs = newCmdArgs
 
-	response = Runner(&cmd, log)
-	log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
-
-	var jobCmdArgs []string
-	jobCmdArgs = append(jobCmdArgs, "kubectl")
-	jobCmdArgs = append(jobCmdArgs, "get")
-	jobCmdArgs = append(jobCmdArgs, "job")
-	jobCmdArgs = append(jobCmdArgs, "-n")
-	jobCmdArgs = append(jobCmdArgs, "keycloak")
-	cmd.CommandArgs = jobCmdArgs
-
-	response = Runner(&cmd, log)
-	log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
+	_ = Runner(&cmd, log)
+	//log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
 
 	var podCmdArgs []string
 	podCmdArgs = append(podCmdArgs, "kubectl")
@@ -382,8 +371,38 @@ func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQ
 	podCmdArgs = append(podCmdArgs, "keycloak")
 	cmd.CommandArgs = podCmdArgs
 
-	response = Runner(&cmd, log)
-	log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
+	_ = Runner(&cmd, log)
+	//log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
+
+	var jobCmdArgs []string
+	jobCmdArgs = append(jobCmdArgs, "kubectl")
+	jobCmdArgs = append(jobCmdArgs, "get")
+	jobCmdArgs = append(jobCmdArgs, "job")
+	jobCmdArgs = append(jobCmdArgs, "-n")
+	jobCmdArgs = append(jobCmdArgs, "keycloak")
+	jobCmdArgs = append(jobCmdArgs, "-l")
+	jobCmdArgs = append(jobCmdArgs, fmt.Sprintf("mysql.oracle.com/cluster=%s", backupName))
+	jobCmdArgs = append(jobCmdArgs, "-o")
+	jobCmdArgs = append(jobCmdArgs, "-custom-columns=:metadata.name")
+	jobCmdArgs = append(jobCmdArgs, "--no-headers")
+	jobCmdArgs = append(jobCmdArgs, "--ignore-not-found=true")
+	cmd.CommandArgs = jobCmdArgs
+
+	jobNameResponse := Runner(&cmd, log)
+	jobName := jobNameResponse.StandardOut.String()
+	log.Infof("Debug Cmd Output , Job name =  '%v'", jobNameResponse.StandardOut.String())
+
+	var podLogCmdArgs []string
+	podLogCmdArgs = append(podLogCmdArgs, "kubectl")
+	podLogCmdArgs = append(podLogCmdArgs, "logs")
+	podLogCmdArgs = append(podLogCmdArgs, "-n")
+	podLogCmdArgs = append(podLogCmdArgs, "keycloak")
+	podLogCmdArgs = append(podLogCmdArgs, "-c")
+	podLogCmdArgs = append(podLogCmdArgs, "operator-backup-job")
+	podLogCmdArgs = append(podLogCmdArgs, "-l")
+	podLogCmdArgs = append(podLogCmdArgs, fmt.Sprintf("job-name=%s", jobName))
+	cmd.CommandArgs = podLogCmdArgs
+	Runner(&cmd, log)
 
 	return &backup, nil
 }
