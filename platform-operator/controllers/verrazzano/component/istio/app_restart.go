@@ -188,7 +188,6 @@ func stopDomain(client clipkg.Client, wlNamespace string, wlName string) error {
 
 // Restart the WebLogic domain
 func restartDomain(log vzlog.VerrazzanoLogger, client clipkg.Client, wlNamespace string, wlName string, restartVersion string) error {
-	log.Infof("restartDomain -------")
 	var wl vzapp.VerrazzanoWebLogicWorkload
 	wl.Namespace = wlNamespace
 	wl.Name = wlName
@@ -196,7 +195,6 @@ func restartDomain(log vzlog.VerrazzanoLogger, client clipkg.Client, wlNamespace
 		if wl.ObjectMeta.Annotations == nil {
 			wl.ObjectMeta.Annotations = make(map[string]string)
 		}
-		log.Infof("restartDomain--------Update restart Version  -------")
 		wl.ObjectMeta.Annotations[vzconst.RestartVersionAnnotation] = restartVersion
 		return nil
 	})
