@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-// Package example had an example worker is used as the default worker when the helm chart is run without specifying a worker
+// Package example has an example worker is used as the default worker when the helm chart is run without specifying a worker
 // override file.
 package example
 
@@ -40,6 +40,10 @@ func (w exampleWorker) GetMetricList() []prometheus.Metric {
 
 func (w exampleWorker) WantIterationInfoLogged() bool {
 	return true
+}
+
+func (w exampleWorker) Init(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+	return nil
 }
 
 func (w exampleWorker) Work(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {

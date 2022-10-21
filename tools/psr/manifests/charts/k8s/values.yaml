@@ -11,6 +11,6 @@ replicas: 1
 # envVars contains default worker type and ENV vars common to all workers
 envVars:
   PSR_WORKER_TYPE: WT_EXAMPLE
-  PSR_ITERATION_DELAY: 1s
+  PSR_ITERATION_SLEEP: 1s
 
 
