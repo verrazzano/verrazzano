@@ -249,7 +249,7 @@ spec:
               execTimeout: 5m
               onError: Fail`
 
-const InnoDBBackup = `
+const InnoDBBackupS3 = `
 ---
 apiVersion: mysql.oracle.com/v2
 kind: MySQLBackup
@@ -268,3 +268,21 @@ spec:
             endpoint: "https://{{ .InnoDBObjectStorageNamespaceName }}.compat.objectstorage.{{ .InnoDBBackupRegion }}.oraclecloud.com"
             prefix: {{ .InnoDBBackupStorageName }}
             profile: default`
+
+const InnoDBBackupOci = `
+---
+apiVersion: mysql.oracle.com/v2
+kind: MySQLBackup
+metadata: 
+  name: {{ .InnoDBBackupName }}
+  namespace: {{ .InnoDBNamespaceName }}
+spec: 
+  clusterName: {{ .InnoDBClusterName }}
+  backupProfile: 
+      name: {{ .InnoDBBackupProfileName}}
+      dumpInstance: 
+        storage:
+          ociObjectStorage:
+            prefix: {{ .InnoDBBackupStorageName }}
+            bucketName: {{ .InnoDBBackupObjectStoreBucketName }}
+            credentials: {{ .InnoDBBackupCredentialsName }}`

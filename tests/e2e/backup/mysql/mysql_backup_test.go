@@ -64,9 +64,9 @@ var _ = t.AfterSuite(func() {
 var t = framework.NewTestFramework("mysql-backup")
 
 // func CreateInnoDBBackupObject() error  creates mysql operator backup CR starting the backup process
-func CreateInnoDBBackupObject() error {
+func CreateInnoDBBackupObjectWithS3() error {
 	var b bytes.Buffer
-	template, _ := template.New("mysql-backup").Parse(common.InnoDBBackup)
+	template, _ := template.New("mysql-backup").Parse(common.InnoDBBackupS3)
 	data := common.InnoDBBackupObject{
 		InnoDBBackupName:                  common.BackupMySQLName,
 		InnoDBNamespaceName:               constants.KeycloakNamespace,
@@ -88,13 +88,34 @@ func CreateInnoDBBackupObject() error {
 	return nil
 }
 
+func CreateInnoDBBackupObjectWithOci() error {
+	var b bytes.Buffer
+	template, _ := template.New("mysql-backup").Parse(common.InnoDBBackupOci)
+	data := common.InnoDBBackupObject{
+		InnoDBBackupName:                  common.BackupMySQLName,
+		InnoDBNamespaceName:               constants.KeycloakNamespace,
+		InnoDBClusterName:                 common.InnoDBClusterName,
+		InnoDBBackupProfileName:           common.BackupResourceName,
+		InnoDBBackupObjectStoreBucketName: common.OciBucketName,
+		InnoDBBackupCredentialsName:       common.VeleroMySQLSecretName,
+		InnoDBBackupStorageName:           common.BackupMySQLStorageName,
+	}
+	template.Execute(&b, data)
+	err := common.DynamicSSA(context.TODO(), b.String(), t.Logs)
+	if err != nil {
+		t.Logs.Errorf("Error creating innodb backup object", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
 func BackupMySQLValues() error {
 	t.Logs.Infof("Backing up mysql values to file '%s'", common.MySQLBackupHelmFileName)
 	var cmd common.BashCommand
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "/bin/sh", "-c", fmt.Sprintf("helm get values %s -n %s > %s", mysqlChartName, constants.KeycloakNamespace, common.MySQLBackupHelmFileName))
 	cmd.CommandArgs = cmdArgs
-	cmd.Timeout = 1 * time.Minute
 
 	response := common.Runner(&cmd, t.Logs)
 	if response.CommandError != nil {
@@ -114,7 +135,6 @@ func NukeMySQL() error {
 	cmdArgs = append(cmdArgs, constants.KeycloakNamespace)
 
 	cmd.CommandArgs = cmdArgs
-	cmd.Timeout = 5 * time.Minute
 
 	response := common.Runner(&cmd, t.Logs)
 	if response.CommandError != nil {
@@ -163,8 +183,18 @@ func MySQLRestore() error {
 	cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.ociObjectStorage.credentials=%s", common.VeleroMySQLSecretName))
 	cmdArgs = append(cmdArgs, "--values", common.MySQLBackupHelmFileName)
 
+	//s3EndPoint := fmt.Sprintf("https://%s.compat.objectstorage.%s.oraclecloud.com", common.OciNamespaceName, common.BackupRegion)
+	//cmdArgs = append(cmdArgs, "helm", "install", mysqlChartName, vzMySQLChartPath)
+	//cmdArgs = append(cmdArgs, "--namespace", constants.KeycloakNamespace)
+	//cmdArgs = append(cmdArgs, "--set", "initDB.dump.name=alpha")
+	//cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.s3.prefix=%s/%s", common.BackupMySQLStorageName, backupFolderName))
+	//cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.s3.bucketName=%s", common.OciBucketName))
+	//cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.s3.config=%s", common.VeleroMySQLSecretName))
+	//cmdArgs = append(cmdArgs, "--set", fmt.Sprintf("initDB.dump.s3.endpoint=%s", s3EndPoint))
+	//cmdArgs = append(cmdArgs, "--set", "initDB.dump.s3.profile=default")
+	//cmdArgs = append(cmdArgs, "--values", common.MySQLBackupHelmFileName)
+
 	cmd.CommandArgs = cmdArgs
-	cmd.Timeout = 10 * time.Minute
 
 	response := common.Runner(&cmd, t.Logs)
 	if response.CommandError != nil {
@@ -382,7 +412,7 @@ var _ = t.Describe("MySQL Backup and Restore,", Label("f:platform-verrazzano.mys
 	t.Context("MySQL backup operator", func() {
 		WhenMySQLOpInstalledIt("MySQL backup triggered", func() {
 			Eventually(func() error {
-				return CreateInnoDBBackupObject()
+				return CreateInnoDBBackupObjectWithOci()
 			}, waitTimeout, pollingInterval).Should(BeNil())
 		})
 

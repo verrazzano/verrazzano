@@ -488,36 +488,13 @@ func Runner(bcmd *BashCommand, log *zap.SugaredLogger) *RunnerResponse {
 	bashCommand.Stderr = io.MultiWriter(os.Stderr, &stderrBuf)
 
 	log.Infof("Executing command '%v'", bashCommand.String())
-	err := bashCommand.Start()
+	err := bashCommand.Run()
 	if err != nil {
 		log.Errorf("Cmd '%v' execution failed due to '%v'", bashCommand.String(), zap.Error(err))
 		bashCommandResponse.CommandError = err
 		return &bashCommandResponse
 	}
-	done := make(chan error, 1)
-	go func() {
-		done <- bashCommand.Wait()
-	}()
-	select {
-	case <-time.After(bcmd.Timeout):
-		if err = bashCommand.Process.Kill(); err != nil {
-			log.Errorf("Failed to kill cmd '%v' due to '%v'", bashCommand.String(), zap.Error(err))
-			bashCommandResponse.CommandError = err
-			return &bashCommandResponse
-		}
-		log.Errorf("Cmd '%v' timeout expired", bashCommand.String())
-		bashCommandResponse.CommandError = err
-		return &bashCommandResponse
-	case err = <-done:
-		if err != nil {
-			log.Errorf("Cmd '%v' execution failed due to '%v'", bashCommand.String(), zap.Error(err))
-			bashCommandResponse.StandardErr = stderrBuf
-			bashCommandResponse.CommandError = err
-			return &bashCommandResponse
-		}
-		log.Debugf("Command '%s' execution successful", bashCommand.String())
-		bashCommandResponse.StandardOut = stdoutBuf
-		bashCommandResponse.CommandError = err
-		return &bashCommandResponse
-	}
+	bashCommandResponse.StandardOut = stdoutBuf
+	bashCommandResponse.CommandError = err
+	return &bashCommandResponse
 }

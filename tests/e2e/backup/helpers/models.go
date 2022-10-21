@@ -32,8 +32,7 @@ type RancherObjectStoreData struct {
 
 // BashCommand struct used for running bash commands
 type BashCommand struct {
-	Timeout     time.Duration `json:"timeout"`
-	CommandArgs []string      `json:"cmdArgs"`
+	CommandArgs []string `json:"cmdArgs"`
 }
 
 // RunnerResponse is structured response for bash commands
