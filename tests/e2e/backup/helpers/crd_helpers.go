@@ -351,13 +351,14 @@ func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQ
 	response := Runner(&cmd, log)
 	log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
 
-	cmdArgs = append(cmdArgs, "kubectl")
-	cmdArgs = append(cmdArgs, "describe")
-	cmdArgs = append(cmdArgs, "mbk")
-	cmdArgs = append(cmdArgs, "-n")
-	cmdArgs = append(cmdArgs, "keycloak")
-	cmdArgs = append(cmdArgs, backupName)
-	cmd.CommandArgs = cmdArgs
+	var newCmdArgs []string
+	newCmdArgs = append(cmdArgs, "kubectl")
+	newCmdArgs = append(cmdArgs, "describe")
+	newCmdArgs = append(cmdArgs, "mbk")
+	newCmdArgs = append(cmdArgs, "-n")
+	newCmdArgs = append(cmdArgs, "keycloak")
+	newCmdArgs = append(cmdArgs, backupName)
+	cmd.CommandArgs = newCmdArgs
 
 	response = Runner(&cmd, log)
 	log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
