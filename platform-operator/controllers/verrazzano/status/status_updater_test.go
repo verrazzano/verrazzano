@@ -142,11 +142,7 @@ func checkUpdate(t *testing.T, c client.Client, u *UpdateEvent) bool {
 
 	vzCopy := vz.DeepCopy()
 	u.merge(vzCopy)
-	equal := reflect.DeepEqual(vzCopy.Status, vz.Status)
-	if equal {
-		return true
-	}
-	return false
+	return reflect.DeepEqual(vzCopy.Status, vz.Status)
 }
 
 func retryFunction(t *testing.T, f func() bool) {
