@@ -4,23 +4,30 @@
 package rancher
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	"github.com/stretchr/testify/assert"
 	admv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	v12 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	dynfake "k8s.io/client-go/dynamic/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -121,10 +128,6 @@ func createRancherPodListWithAllRunning() v1.PodList {
 	}
 }
 
-func createClusterRoles(roleName string) rbacv1.ClusterRole {
-	return rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: roleName}}
-}
-
 func createRancherPodListWithNoneRunning() v1.PodList {
 	return v1.PodList{
 		Items: []v1.Pod{
@@ -192,18 +195,9 @@ func createServerURLSetting() unstructured.Unstructured {
 	serverURLSetting := unstructured.Unstructured{
 		Object: map[string]interface{}{},
 	}
-	serverURLSetting.SetGroupVersionKind(GVKSetting)
+	serverURLSetting.SetGroupVersionKind(common.GVKSetting)
 	serverURLSetting.SetName(SettingServerURL)
 	return serverURLSetting
-}
-
-func createFirstLoginSetting() unstructured.Unstructured {
-	firstLoginSetting := unstructured.Unstructured{
-		Object: map[string]interface{}{},
-	}
-	firstLoginSetting.SetGroupVersionKind(GVKSetting)
-	firstLoginSetting.SetName(SettingFirstLogin)
-	return firstLoginSetting
 }
 
 func createOciDriver() unstructured.Unstructured {
@@ -230,36 +224,6 @@ func createOkeDriver() unstructured.Unstructured {
 	okeDriver.SetGroupVersionKind(GVKKontainerDriver)
 	okeDriver.SetName(KontainerDriverOKE)
 	return okeDriver
-}
-
-func createKeycloakAuthConfig() unstructured.Unstructured {
-	authConfig := unstructured.Unstructured{
-		Object: map[string]interface{}{},
-	}
-	authConfig.SetGroupVersionKind(common.GVKAuthConfig)
-	authConfig.SetName(common.AuthConfigKeycloak)
-	return authConfig
-}
-
-func createLocalAuthConfig() unstructured.Unstructured {
-	authConfig := unstructured.Unstructured{
-		Object: map[string]interface{}{},
-	}
-	authConfig.SetGroupVersionKind(common.GVKAuthConfig)
-	authConfig.SetName(AuthConfigLocal)
-	return authConfig
-}
-
-func createKeycloakSecret() v1.Secret {
-	return v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "keycloak",
-			Name:      "keycloak-http",
-		},
-		Data: map[string][]byte{
-			"password": []byte("blahblah"),
-		},
-	}
 }
 
 // TestUseAdditionalCAs verifies that additional CAs should be used when specified in the Verrazzano CR
@@ -302,4 +266,94 @@ func TestGetRancherHostname(t *testing.T) {
 func TestGetRancherHostnameNotFound(t *testing.T) {
 	_, err := getRancherHostname(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzapi.Verrazzano{})
 	assert.NotNil(t, err)
+}
+
+// TestChartsNotUpdatedWorkaround tests the chartsNotUpdatedWorkaround function
+// GIVEN an existing Rancher installation
+//
+//	WHEN chartsNotUpdatedWorkaround is called
+//	THEN the Rancher deployment has been scaled down and the ClusterRepo resources for system charts are deleted
+func TestChartsNotUpdatedWorkaround(t *testing.T) {
+	// the first pass will have the Rancher deployment available replicas set to 3
+	client := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: common.CattleSystem,
+				Name:      common.RancherName,
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 3,
+			},
+		},
+	).Build()
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+	err := chartsNotUpdatedWorkaround(ctx)
+	assert.Error(t, err)
+
+	// create a fake dynamic client to serve the Setting and ClusterRepo resources
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(getScheme(), newClusterRepoResources()...)
+
+	// override the getDynamicClientFunc for unit testing and reset it when done
+	prevGetDynamicClientFunc := getDynamicClientFunc
+	getDynamicClientFunc = func() (dynamic.Interface, error) { return fakeDynamicClient, nil }
+	defer func() {
+		getDynamicClientFunc = prevGetDynamicClientFunc
+	}()
+
+	// the second pass now shows the available replicas to be zero
+	client = fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: common.CattleSystem,
+				Name:      common.RancherName,
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 0,
+			},
+		},
+	).Build()
+	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+	err = chartsNotUpdatedWorkaround(ctx)
+	assert.NoError(t, err)
+
+	// validate that the Setting and ClusterRepo resources have been deleted
+	_, err = fakeDynamicClient.Resource(cattleSettingsGVR).Get(context.TODO(), chartDefaultBranchName, metav1.GetOptions{})
+	assert.True(t, errors.IsNotFound(err))
+
+	_, err = fakeDynamicClient.Resource(cattleClusterReposGVR).Get(context.TODO(), rancherChartsClusterRepoName, metav1.GetOptions{})
+	assert.True(t, errors.IsNotFound(err))
+	_, err = fakeDynamicClient.Resource(cattleClusterReposGVR).Get(context.TODO(), rancherPartnerChartsClusterRepoName, metav1.GetOptions{})
+	assert.True(t, errors.IsNotFound(err))
+	_, err = fakeDynamicClient.Resource(cattleClusterReposGVR).Get(context.TODO(), rancherRke2ChartsClusterRepoName, metav1.GetOptions{})
+	assert.True(t, errors.IsNotFound(err))
+
+	// this ClusterRepo should not have been deleted
+	_, err = fakeDynamicClient.Resource(cattleClusterReposGVR).Get(context.TODO(), "app-charts", metav1.GetOptions{})
+	assert.NoError(t, err)
+}
+
+// newClusterRepoResources creates resources that will be loaded into the dynamic k8s client
+func newClusterRepoResources() []runtime.Object {
+	cattleSettings := &unstructured.Unstructured{}
+	cattleSettings.SetGroupVersionKind(common.GVKSetting)
+	cattleSettings.SetName(chartDefaultBranchName)
+
+	gvk := schema.GroupVersionKind{Group: "catalog.cattle.io", Version: "v1", Kind: "ClusterRepo"}
+	rancherClusterRepo := &unstructured.Unstructured{}
+	rancherClusterRepo.SetGroupVersionKind(gvk)
+	rancherClusterRepo.SetName(rancherChartsClusterRepoName)
+
+	rancherPartnerClusterRepo := &unstructured.Unstructured{}
+	rancherPartnerClusterRepo.SetGroupVersionKind(gvk)
+	rancherPartnerClusterRepo.SetName(rancherPartnerChartsClusterRepoName)
+
+	rancherRke2ClusterRepo := &unstructured.Unstructured{}
+	rancherRke2ClusterRepo.SetGroupVersionKind(gvk)
+	rancherRke2ClusterRepo.SetName(rancherRke2ChartsClusterRepoName)
+
+	appClusterRepo := &unstructured.Unstructured{}
+	appClusterRepo.SetGroupVersionKind(gvk)
+	appClusterRepo.SetName("app-charts")
+
+	return []runtime.Object{cattleSettings, rancherClusterRepo, rancherPartnerClusterRepo, rancherRke2ClusterRepo, appClusterRepo}
 }

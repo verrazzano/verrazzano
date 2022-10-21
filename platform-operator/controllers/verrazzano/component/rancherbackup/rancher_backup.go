@@ -6,7 +6,7 @@ package rancherbackup
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/k8s/status"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -27,7 +27,7 @@ const (
 
 // isRancherBackupOperatorReady checks if the Rancher Backup deployment is ready
 func isRancherBackupOperatorReady(context spi.ComponentContext) bool {
-	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, componentPrefix)
+	return ready.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, componentPrefix)
 }
 
 // GetOverrides gets the install overrides

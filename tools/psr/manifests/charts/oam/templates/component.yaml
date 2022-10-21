@@ -1,0 +1,35 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: core.oam.dev/v1alpha2
+kind: Component
+metadata:
+  name: {{ .Release.Name}}
+  namespace: {{ .Release.Namespace }}
+spec:
+  workload:
+    apiVersion: core.oam.dev/v1alpha2
+    kind: ContainerizedWorkload
+    metadata:
+      name: {{ .Release.Name}}
+      namespace: {{ .Release.Namespace }}
+      labels:
+        app: backend
+        version: v1
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{ toYaml .Values.imagePullSecrets | indent 2 }}
+      {{- end }}
+      containers:
+        - name: backend-container
+          image: {{  .Values.imageName }}
+          imagePullPolicy: {{  .Values.imagePullPolicy }}
+          env:
+            {{- range $key, $val := .Values.envVars }}
+            - name: {{ $key }}
+              value: {{ $val }}
+              {{- end }}
+          ports:
+            - containerPort: 8080
+              name: backend

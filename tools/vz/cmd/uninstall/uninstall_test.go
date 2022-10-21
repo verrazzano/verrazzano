@@ -324,7 +324,7 @@ func createWebhook() *adminv1.ValidatingWebhookConfiguration {
 	return &adminv1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.VerrazzanoPlatformOperator,
+			Name: constants.VerrazzanoPlatformOperatorWebhook,
 		},
 	}
 }
@@ -360,7 +360,7 @@ func ensureResourcesDeleted(t *testing.T, client ctrlclient.Client) {
 
 	// Expect the Validating Webhook Configuration to be deleted
 	vwc := adminv1.ValidatingWebhookConfiguration{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperator}, &vwc)
+	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperatorWebhook}, &vwc)
 	assert.True(t, errors.IsNotFound(err))
 
 	// Expect the Cluster Role Binding to be deleted
@@ -382,7 +382,7 @@ func ensureResourcesNotDeleted(t *testing.T, client ctrlclient.Client) {
 
 	// Expect the Validating Webhook Configuration not to be deleted
 	vwc := adminv1.ValidatingWebhookConfiguration{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperator}, &vwc)
+	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperatorWebhook}, &vwc)
 	assert.NoError(t, err)
 
 	// Expect the Cluster Role Binding not to be deleted

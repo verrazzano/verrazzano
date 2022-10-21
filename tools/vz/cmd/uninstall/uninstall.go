@@ -7,11 +7,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"io"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"regexp"
 	"time"
+
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"k8s.io/apimachinery/pkg/api/meta"
 
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
@@ -114,7 +115,7 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	}
 
 	// Get the timeout value for the uninstall command.
-	timeout, err := cmdhelpers.GetWaitTimeout(cmd)
+	timeout, err := cmdhelpers.GetWaitTimeout(cmd, constants.TimeoutFlag)
 	if err != nil {
 		return err
 	}
@@ -176,7 +177,17 @@ func cleanupResources(client client.Client, vzHelper helpers.VZHelper) {
 	}
 
 	// Delete other verrazzano resources
-	err = deleteWebhookConfiguration(client, constants.VerrazzanoPlatformOperator)
+	err = deleteWebhookConfiguration(client, constants.VerrazzanoPlatformOperatorWebhook)
+	if err != nil {
+		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+	}
+
+	err = deleteWebhookConfiguration(client, constants.VerrazzanoMysqlInstallValuesWebhook)
+	if err != nil {
+		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+	}
+
+	err = deleteMutatingWebhookConfiguration(client, constants.MysqlBackupMutatingWebhookName)
 	if err != nil {
 		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
 	}
@@ -389,6 +400,21 @@ func deleteWebhookConfiguration(client client.Client, name string) error {
 	err := client.Delete(context.TODO(), vwc, deleteOptions)
 	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("Failed to delete ValidatingWebhookConfiguration resource %s: %s", name, err.Error())
+	}
+	return nil
+}
+
+// deleteMutatingWebhookConfiguration deletes a given MutatingWebhookConfiguration
+func deleteMutatingWebhookConfiguration(client client.Client, name string) error {
+	mwc := &adminv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+
+	err := client.Delete(context.TODO(), mwc, deleteOptions)
+	if err != nil && !errors.IsNotFound(err) {
+		return fmt.Errorf("Failed to delete MutatingWebhookConfiguration resource %s: %s", name, err.Error())
 	}
 	return nil
 }

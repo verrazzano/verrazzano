@@ -49,7 +49,6 @@ var testScheme = runtime.NewScheme()
 
 func init() {
 	_ = k8scheme.AddToScheme(testScheme)
-	//_ = clientgoscheme.AddToScheme(testScheme)
 	_ = v1alpha1.AddToScheme(testScheme)
 	_ = certv1.AddToScheme(testScheme)
 	// +kubebuilder:scaffold:testScheme
@@ -92,7 +91,7 @@ func TestUpgrade(t *testing.T) {
 		PreUpgradeFunc:          fakePreUpgrade,
 	}
 
-	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
 	fakeOverrides = []string{
 		"rancherImage=ghcr.io/verrazzano/rancher",
 		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
@@ -198,7 +197,7 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 	_ = os.Setenv(constants.ImageRepoOverrideEnvVar, "myrepo")
 	defer func() { _ = os.Unsetenv(constants.ImageRepoOverrideEnvVar) }()
 
-	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
 	fakeOverrides = []string{
 		"rancherImage=myreg.io/myrepo/verrazzano/rancher",
 		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
@@ -237,7 +236,7 @@ func TestInstall(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
 	fakeOverrides = []string{
 		"rancherImage=ghcr.io/verrazzano/rancher",
 		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
@@ -286,7 +285,7 @@ func TestInstallWithAllOverride(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
 	fakeOverrides = []string{
 		"rancherImage=ghcr.io/verrazzano/rancher",
 		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
@@ -333,7 +332,7 @@ func TestInstallPreviousFailure(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
 	fakeOverrides = []string{
 		"rancherImage=ghcr.io/verrazzano/rancher",
 		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
@@ -651,11 +650,12 @@ func TestOrganizeHelmValues(t *testing.T) {
 func TestFilesFromVerrazzanoHelm(t *testing.T) {
 
 	tests := []struct {
-		name             string
-		expectError      bool
-		component        *HelmComponent
-		additionalValues []bom.KeyValue
-		kvsLen           int
+		name                 string
+		expectError          bool
+		component            *HelmComponent
+		additionalValues     []bom.KeyValue
+		kvsLen               int
+		expectedStringInFile string
 	}{
 		{
 			name:             "test no overrides",
@@ -713,6 +713,20 @@ func TestFilesFromVerrazzanoHelm(t *testing.T) {
 			kvsLen: 5,
 		},
 		{
+			name:        "test file overrides boolean value with setString",
+			expectError: false,
+			component: &HelmComponent{
+				AppendOverridesFunc: func(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+					kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].name", 0), Value: "SOME_BOOLEAN_AS_STRING"})
+					kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].value", 0), Value: "true", SetString: true})
+					return kvs, nil
+				},
+			},
+			additionalValues:     []bom.KeyValue{},
+			kvsLen:               1,
+			expectedStringInFile: "value: \"true\"",
+		},
+		{
 			name:        "test get file error",
 			expectError: true,
 			component:   &HelmComponent{},
@@ -759,6 +773,16 @@ func TestFilesFromVerrazzanoHelm(t *testing.T) {
 			a.Equal(tt.kvsLen, len(kvs))
 			for _, kv := range kvs {
 				a.True(kv.IsFile)
+			}
+			if tt.expectedStringInFile != "" {
+				// assert that the given string occurs in the file generated
+				content, err := os.ReadFile(kvs[0].Value)
+				if err != nil {
+					a.Error(err)
+				} else {
+					contentStr := string(content)
+					a.Contains(contentStr, tt.expectedStringInFile)
+				}
 			}
 			if tt.expectError {
 				a.Error(err)

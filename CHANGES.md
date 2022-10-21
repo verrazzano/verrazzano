@@ -1,7 +1,22 @@
 ### v1.5.0
+Features:
+
+- Separated Verrazzano Platform Operator and Verrazzano Platform Webhooks into separate deployments for scalability and resiliency.
+
 Component version updates:
 
 - Coherence Operator v3.2.8
+- MySQL Server 8.0.30
+- oam-kubernetes-runtime 0.3.3
+
+Components added:
+- MySQL Operator 8.0.30-2.0.6
+
+Fixes:
+
+- Updated base and other images for bugs and security.
+- Rancher upgrade intermittently fails with errors stating that the available chart version is less than the minimum chart version for Rancher system charts.
+
 
 ### v1.4.0
 Features:
@@ -46,7 +61,7 @@ Fixes:
 - Resolved an issue with Verrazzano resource status conditions being appended as duplicates instead of updated.
 - Resolved an issue where Verrazzano Monitoring Operator was querying OpenSearch before it was ready.
 - Resolved an issue where Verrazzano Platform Operator transitioned to a ready condition before all webhook context paths were ready.
-- Updated base and other images to resolves CVEs.
+- Updated base and other images to resolve CVEs.
 
 
 ### v1.3.5

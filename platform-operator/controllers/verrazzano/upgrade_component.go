@@ -12,38 +12,39 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-// ComponentUpgradeState identifies the state of a component during upgrade
-type ComponentUpgradeState string
+// componentUpgradeState identifies the state of a component during upgrade
+type componentUpgradeState string
 
 const (
-	// compStateInit is the state when a component is starting the upgrade flow
-	compStateInit ComponentUpgradeState = "Init"
+	// compStateUpgradeInit is the state when a component is starting the upgrade flow
+	compStateUpgradeInit componentUpgradeState = "componentStateUpgradeInit"
 
 	// compStatePreUpgrade is the state when a component does a pre-upgrade
-	compStatePreUpgrade ComponentUpgradeState = "PreUpgrade"
+	compStatePreUpgrade componentUpgradeState = "compStatePreUpgrade"
 
 	// compStateUpgrade is the state where a component does an upgrade
-	compStateUpgrade ComponentUpgradeState = "Upgrade"
+	compStateUpgrade componentUpgradeState = "compStateUpgrade"
 
-	// compStateWaitReady is the state when a component is waiting for upgrade ready
-	compStateWaitReady ComponentUpgradeState = "WaitReady"
+	// compStateUpgradeWaitReady is the state when a component is waiting for upgrade ready
+	compStateUpgradeWaitReady componentUpgradeState = "compStateUpgradeWaitReady"
 
 	// compStatePostUpgrade is the state when a component is doing a post-upgrade
-	compStatePostUpgrade ComponentUpgradeState = "PostUpgrade"
+	compStatePostUpgrade componentUpgradeState = "compStatePostUpgrade"
 
 	// compStateUpgradeDone is the state when component upgrade is done
-	compStateUpgradeDone ComponentUpgradeState = "UpgradeDone"
+	compStateUpgradeDone componentUpgradeState = "compStateUpgradeDone"
 
-	// compStateEnd is the terminal state
-	compStateEnd ComponentUpgradeState = "End"
+	// compStateUpgradeEnd is the terminal state
+	compStateUpgradeEnd componentUpgradeState = "compStateEnd"
 )
 
 // componentUpgradeContext has the upgrade context for a Verrazzano component upgrade
 type componentUpgradeContext struct {
-	state ComponentUpgradeState
+	state componentUpgradeState
 }
 
 // upgradeComponents will upgrade the components as required
@@ -73,9 +74,9 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 	compContext := spiCtx.Init(compName).Operation(vzconst.UpgradeOperation)
 	compLog := compContext.Log()
 
-	for upgradeContext.state != compStateEnd {
+	for upgradeContext.state != compStateUpgradeEnd {
 		switch upgradeContext.state {
-		case compStateInit:
+		case compStateUpgradeInit:
 			// Check if component is installed, if not continue
 			installed, err := comp.IsInstalled(compContext)
 			if err != nil {
@@ -90,13 +91,12 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 				upgradeContext.state = compStatePreUpgrade
 			} else {
 				compLog.Oncef("Component %s is not installed; upgrade being skipped", compName)
-				upgradeContext.state = compStateEnd
+				upgradeContext.state = compStateUpgradeEnd
 			}
 
 		case compStatePreUpgrade:
 			compLog.Oncef("Component %s pre-upgrade running", compName)
 			if err := comp.PreUpgrade(compContext); err != nil {
-				compLog.Errorf("Failed pre-upgrading component %s: %v", compName, err)
 				return ctrl.Result{}, err
 			}
 			upgradeContext.state = compStateUpgrade
@@ -110,9 +110,9 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 				// requeue for 30 to 60 seconds later
 				return controller.NewRequeueWithDelay(30, 60, time.Second), nil
 			}
-			upgradeContext.state = compStateWaitReady
+			upgradeContext.state = compStateUpgradeWaitReady
 
-		case compStateWaitReady:
+		case compStateUpgradeWaitReady:
 			if !comp.IsReady(compContext) {
 				compLog.Progressf("Component %s has been upgraded. Waiting for the component to be ready", compName)
 				return newRequeueWithDelay(), nil
@@ -132,7 +132,7 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 			if err := r.updateComponentStatus(compContext, "Upgrade complete", installv1alpha1.CondUpgradeComplete); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
-			upgradeContext.state = compStateEnd
+			upgradeContext.state = compStateUpgradeEnd
 		}
 	}
 	// Component has been upgraded
@@ -144,7 +144,7 @@ func (vuc *upgradeTracker) getComponentUpgradeContext(compName string) *componen
 	context, ok := vuc.compMap[compName]
 	if !ok {
 		context = &componentUpgradeContext{
-			state: compStateInit,
+			state: compStateUpgradeInit,
 		}
 		vuc.compMap[compName] = context
 	}

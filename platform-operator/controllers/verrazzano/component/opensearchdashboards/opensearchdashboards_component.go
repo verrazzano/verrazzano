@@ -143,6 +143,14 @@ func (d opensearchDashboardsComponent) Upgrade(ctx spi.ComponentContext) error {
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
+func (d opensearchDashboardsComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = d.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", d.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", d.Name()), false
+}
+
 // IsReady component check
 func (d opensearchDashboardsComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isOSDReady(ctx)

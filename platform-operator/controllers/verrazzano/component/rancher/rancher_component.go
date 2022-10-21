@@ -42,6 +42,31 @@ const ComponentJSONName = "rancher"
 
 const rancherIngressClassNameKey = "ingress.ingressClassName"
 
+// rancherImageSubcomponent is the name of the subcomponent for the additional Rancher images
+const rancherImageSubcomponent = "additional-rancher"
+
+// cattleShellImageName is the name of the shell image used for the shell override special case
+const cattleShellImageName = "shell"
+
+// cattleUIEnvName is the environment variable name to set for the Rancher dashboard
+const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
+
+// Environment variables for the Rancher images
+// format: imageName: baseEnvVar
+var imageEnvVars = map[string]string{
+	"fleet":           "FLEET_IMAGE",
+	"fleet-agent":     "FLEET_AGENT_IMAGE",
+	"shell":           "CATTLE_SHELL_IMAGE",
+	"rancher-webhook": "RANCHER_WEBHOOK_IMAGE",
+	"gitjob":          "GITJOB_IMAGE",
+}
+
+type envVar struct {
+	Name      string
+	Value     string
+	SetString bool
+}
+
 type rancherComponent struct {
 	helm.HelmComponent
 }
@@ -92,6 +117,10 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Key:   useBundledSystemChartKey,
 		Value: useBundledSystemChartValue,
 	})
+	kvs, err = appendImageOverrides(ctx, kvs)
+	if err != nil {
+		return kvs, err
+	}
 	kvs = appendRegistryOverrides(kvs)
 	kvs = append(kvs, bom.KeyValue{
 		Key:   rancherIngressClassNameKey,
@@ -162,6 +191,61 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 	return kvs, nil
 }
 
+// appendImageOverrides creates overrides to set the pod environment variables for the image overrides
+func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to get the bom file for the Rancher image overrides: %v", err)
+	}
+
+	// Set the Rancher default registry, if registry overrides are not present
+	registry := os.Getenv(constants.RegistryOverrideEnvVar)
+	if registry == "" {
+		kvs = append(kvs, bom.KeyValue{Key: systemDefaultRegistryKey, Value: bomFile.GetRegistry()})
+	}
+
+	subcomponent, err := bomFile.GetSubcomponent(rancherImageSubcomponent)
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to get the subcomponent %s from the bom: %v", rancherImageSubcomponent, err)
+	}
+	repo := subcomponent.Repository
+	images := subcomponent.Images
+
+	var envList []envVar
+	for _, image := range images {
+		imEnvVar, ok := imageEnvVars[image.ImageName]
+		// skip the images that are not included in the override map
+		if !ok {
+			continue
+		}
+		fullImageName := fmt.Sprintf("%s/%s", repo, image.ImageName)
+		// For the shell image, we need to combine to one env var
+		if image.ImageName == cattleShellImageName {
+			envList = append(envList, envVar{Name: imEnvVar, Value: fmt.Sprintf("%s:%s", fullImageName, image.ImageTag), SetString: false})
+			continue
+		}
+		tagEnvVar := imEnvVar + "_TAG"
+		envList = append(envList, envVar{Name: imEnvVar, Value: fullImageName, SetString: false})
+		envList = append(envList, envVar{Name: tagEnvVar, Value: image.ImageTag, SetString: false})
+	}
+
+	// For the Rancher UI, we need to update this final env var
+	envList = append(envList, envVar{Name: cattleUIEnvName, Value: "true", SetString: true})
+
+	return createEnvVars(kvs, envList), nil
+}
+
+// createEnvVars takes in a list of env arguments and creates the extraEnv override arguments
+func createEnvVars(kvs []bom.KeyValue, envList []envVar) []bom.KeyValue {
+	envPos := 0
+	for _, env := range envList {
+		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].name", envPos), Value: env.Name})
+		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].value", envPos), Value: env.Value, SetString: env.SetString})
+		envPos++
+	}
+	return kvs
+}
+
 // IsEnabled Rancher is always enabled on admin clusters,
 // and is not enabled by default on managed clusters
 func (r rancherComponent) IsEnabled(effectiveCR runtime.Object) bool {
@@ -208,7 +292,15 @@ func (r rancherComponent) PreInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
-//Install
+// PreUpgrade
+/* Runs pre-upgrade steps
+- Scales down Rancher pods and deletes the ClusterRepo resources to work around Rancher upgrade issues (VZ-7053)
+*/
+func (r rancherComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	return chartsNotUpdatedWorkaround(ctx)
+}
+
+// Install
 /* Installs the Helm chart, and patches the resulting objects
 - ensure Helm chart is installed
 - Patch Rancher deployment with MKNOD capability
@@ -240,6 +332,14 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isRancherReady(ctx)
 	}
 	return false
+}
+
+func (r rancherComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = r.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", r.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", r.Name()), false
 }
 
 // PostInstall
@@ -275,10 +375,6 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 
 	if err := removeBootstrapSecretIfExists(log, c); err != nil {
 		return log.ErrorfThrottledNewErr("Failed removing Rancher bootstrap secret: %s", err.Error())
-	}
-
-	if err := configureAuthProviders(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring rancher auth providers: %s", err.Error())
 	}
 
 	if err := configureUISettings(ctx); err != nil {
@@ -320,10 +416,6 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if err := configureAuthProviders(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring rancher auth providers: %s", err.Error())
-	}
-
 	if err := configureUISettings(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring rancher UI settings: %s", err.Error())
 	}
@@ -350,17 +442,20 @@ func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
 	return nil
 }
 
-// configureAuthProviders
+// ConfigureAuthProviders
 // +configures Keycloak as OIDC provider for Rancher.
 // +creates or updates default user verrazzano.
 // +creates or updates admin clusterRole binding for  user verrazzano.
 // +disables first login setting to disable prompting for password on first login.
 // +enables or disables Keycloak Auth provider.
-func configureAuthProviders(ctx spi.ComponentContext) error {
-	log := ctx.Log()
-	if vzconfig.IsKeycloakEnabled(ctx.ActualCR()) && isKeycloakAuthEnabled(ctx.ActualCR()) {
+func ConfigureAuthProviders(ctx spi.ComponentContext) error {
+	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) &&
+		isKeycloakAuthEnabled(ctx.EffectiveCR()) &&
+		vzconfig.IsRancherEnabled(ctx.EffectiveCR()) {
+
+		ctx.Log().Oncef("Configuring Keycloak as a Rancher authentication provider")
 		if err := configureKeycloakOIDC(ctx); err != nil {
-			return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
+			return err
 		}
 
 		if err := createOrUpdateRancherVerrazzanoUser(ctx); err != nil {
@@ -380,10 +475,9 @@ func configureAuthProviders(ctx spi.ComponentContext) error {
 		}
 
 		if err := disableFirstLogin(ctx); err != nil {
-			return log.ErrorfThrottledNewErr("failed disabling first login setting: %s", err.Error())
+			return err
 		}
 	}
-
 	return nil
 }
 

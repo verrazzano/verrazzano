@@ -32,3 +32,5 @@ jaegerOperator:
 console:
   enabled: true
 
+velero:
+  enabled: false

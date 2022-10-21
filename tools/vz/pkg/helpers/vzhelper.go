@@ -6,6 +6,7 @@ package helpers
 import (
 	"context"
 	"fmt"
+	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -18,6 +19,7 @@ import (
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -52,7 +54,7 @@ const v1beta1MinVersion = "1.4.0"
 
 func NewVerrazzanoForVZVersion(version string) (schema.GroupVersion, client.Object, error) {
 	if version == "" {
-		// default to a v1alpha1 compatible verison if not specified
+		// default to a v1alpha1 compatible version if not specified
 		version = "1.3.0"
 	}
 	actualVersion, err := semver.NewSemVersion(version)
@@ -175,6 +177,8 @@ func NewScheme() *runtime.Scheme {
 	_ = adminv1.SchemeBuilder.AddToScheme(scheme)
 	_ = rbacv1.SchemeBuilder.AddToScheme(scheme)
 	_ = appv1.SchemeBuilder.AddToScheme(scheme)
+	_ = networkingv1.AddToScheme(scheme)
+	_ = oam.AddToScheme(scheme)
 	return scheme
 }
 
