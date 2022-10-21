@@ -92,9 +92,9 @@ func TestCreateOrUpdateSecretRancherProxy(t *testing.T) {
 }
 
 func addNotFoundMock(httpMock *mocks.MockRequestSender, secret *corev1.Secret, clusterID string) *mocks.MockRequestSender {
-	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, getTestPath(secret, clusterID))).
+	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, getTestPath(secret, clusterID, false))).
 		Return(&http.Response{StatusCode: 404, Body: io.NopCloser(bytes.NewReader([]byte("")))}, fmt.Errorf("not found")).AnyTimes()
-	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodPost, getTestPath(secret, clusterID))).
+	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodPost, getTestPath(secret, clusterID, true))).
 		Return(&http.Response{StatusCode: 201, Body: io.NopCloser(bytes.NewReader([]byte("")))}, nil)
 	return httpMock
 }
@@ -102,7 +102,7 @@ func addNotFoundMock(httpMock *mocks.MockRequestSender, secret *corev1.Secret, c
 func addFoundMock(httpMock *mocks.MockRequestSender, a *asserts.Assertions, secret *corev1.Secret, clusterID string) *mocks.MockRequestSender {
 	secretData, err := json.Marshal(secret)
 	a.NoError(err)
-	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, getTestPath(secret, clusterID))).
+	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, getTestPath(secret, clusterID, false))).
 		Return(&http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewReader(secretData))}, nil)
 	return httpMock
 }
@@ -110,13 +110,16 @@ func addFoundMock(httpMock *mocks.MockRequestSender, a *asserts.Assertions, secr
 func addMutatedMock(httpMock *mocks.MockRequestSender, a *asserts.Assertions, secret *corev1.Secret, clusterID string) *mocks.MockRequestSender {
 	secretData, err := json.Marshal(secret)
 	a.NoError(err)
-	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, getTestPath(secret, clusterID))).
+	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, getTestPath(secret, clusterID, false))).
 		Return(&http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewReader(secretData))}, nil)
-	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodPut, getTestPath(secret, clusterID))).
+	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodPut, getTestPath(secret, clusterID, false))).
 		Return(&http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewReader([]byte("")))}, nil)
 	return httpMock
 }
 
-func getTestPath(secret *corev1.Secret, clusterID string) string {
+func getTestPath(secret *corev1.Secret, clusterID string, create bool) string {
+	if create {
+		return k8sClustersPath + clusterID + fmt.Sprintf(secretCreateTemplate, secret.GetNamespace())
+	}
 	return k8sClustersPath + clusterID + fmt.Sprintf(secretPathTemplate, secret.GetNamespace(), secret.GetName())
 }
