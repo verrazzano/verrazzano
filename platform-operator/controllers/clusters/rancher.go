@@ -42,13 +42,14 @@ const (
 	rancherAdminSecret = "rancher-admin-secret" //nolint:gosec //#gosec G101
 	rancherTLSSecret   = "tls-rancher-ingress"  //nolint:gosec //#gosec G101
 
-	clusterPath         = "/v3/cluster"
-	clustersPath        = "/v3/clusters"
-	clustersByNamePath  = "/v3/clusters?name="
-	clusterRegTokenPath = "/v3/clusterregistrationtoken" //nolint:gosec //#gosec G101
-	manifestPath        = "/v3/import/"
-	loginPath           = "/v3-public/localProviders/local?action=login"
-	secretPathTemplate  = "/api/v1/namespaces/%s/secrets/%s" //nolint:gosec //#gosec G101
+	clusterPath          = "/v3/cluster"
+	clustersPath         = "/v3/clusters"
+	clustersByNamePath   = "/v3/clusters?name="
+	clusterRegTokenPath  = "/v3/clusterregistrationtoken" //nolint:gosec //#gosec G101
+	manifestPath         = "/v3/import/"
+	loginPath            = "/v3-public/localProviders/local?action=login"
+	secretPathTemplate   = "/api/v1/namespaces/%s/secrets/%s" //nolint:gosec //#gosec G101
+	secretCreateTemplate = "/api/v1/namespaces/%s/secrets"    //nolint:gosec //#gosec G101
 
 	k8sClustersPath = "/k8s/clusters/"
 
@@ -593,7 +594,7 @@ func rancherSecretMutate(f controllerutil.MutateFn, secret *corev1.Secret, log v
 
 // rancherSecretGet simulates a client get request through the Rancher proxy for secrets
 func rancherSecretGet(secret *corev1.Secret, rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) error {
-	reqURL := constructSecretURL(secret, rc.host, clusterID)
+	reqURL := constructSecretURL(secret, rc.host, clusterID, false)
 	headers := map[string]string{"Authorization": "Bearer " + rc.apiAccessToken}
 	resp, body, err := sendRequest(http.MethodGet, reqURL, headers, "", rc, log)
 	if err != nil && (resp == nil || resp.StatusCode != 404) {
@@ -619,7 +620,7 @@ func rancherSecretGet(secret *corev1.Secret, rc *rancherConfig, clusterID string
 
 // rancherSecretCreate simulates a client create request through the Rancher proxy for secrets
 func rancherSecretCreate(secret *corev1.Secret, rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) error {
-	reqURL := constructSecretURL(secret, rc.host, clusterID)
+	reqURL := constructSecretURL(secret, rc.host, clusterID, true)
 	payload, err := json.Marshal(secret)
 	if err != nil {
 		return log.ErrorfNewErr("Failed to marshall secret %s/%s: %v", secret.GetNamespace(), secret.GetName(), err)
@@ -644,7 +645,7 @@ func rancherSecretCreate(secret *corev1.Secret, rc *rancherConfig, clusterID str
 
 // rancherSecretUpdate simulates a client update request through the Rancher proxy for secrets
 func rancherSecretUpdate(secret *corev1.Secret, rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) error {
-	reqURL := constructSecretURL(secret, rc.host, clusterID)
+	reqURL := constructSecretURL(secret, rc.host, clusterID, false)
 	payload, err := json.Marshal(secret)
 	if err != nil {
 		return log.ErrorfNewErr("Failed to marshall secret %s/%s: %v", secret.GetNamespace(), secret.GetName(), err)
@@ -668,6 +669,9 @@ func rancherSecretUpdate(secret *corev1.Secret, rc *rancherConfig, clusterID str
 }
 
 // constructSecretURL returns a formatted url string from path requirements and objects
-func constructSecretURL(secret *corev1.Secret, host, clusterID string) string {
+func constructSecretURL(secret *corev1.Secret, host, clusterID string, create bool) string {
+	if create {
+		return "https://" + host + k8sClustersPath + clusterID + fmt.Sprintf(secretCreateTemplate, secret.GetNamespace())
+	}
 	return "https://" + host + k8sClustersPath + clusterID + fmt.Sprintf(secretPathTemplate, secret.GetNamespace(), secret.GetName())
 }
