@@ -7,10 +7,11 @@ import (
 	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
+	"time"
 )
 
 const (
@@ -19,6 +20,8 @@ const (
 	ingressNGINXComponentControllerValue = "controller"
 	ingressNGINXNameLabelValue           = "ingress-nginx"
 	ingressNGINXNameLabelKey             = "app.kubernetes.io/name"
+	waitTimeout                          = 10 * time.Minute
+	pollingInterval                      = 5 * time.Second
 )
 
 type IngressNGINXControllerReplicasModifierV1beta1 struct {
@@ -50,10 +53,7 @@ var _ = t.BeforeSuite(func() {
 
 var _ = t.AfterSuite(func() {
 	m := IngressNGINXDefaultModifierV1beta1{}
-	err := update.UpdateCRV1beta1(m)
-	if err != nil {
-		Fail(err.Error())
-	}
+	update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
 	expectedRunning := uint32(2)
 	update.ValidatePods(ingressNGINXNameLabelValue, ingressNGINXNameLabelKey, constants.IngressNamespace, expectedRunning, false)
 
@@ -81,10 +81,7 @@ var _ = t.Describe("Update ingressNGINX", Label("f:platform-lcm.update"), func()
 	t.Describe("ingressNginx update backend replicas with v1beta1 client", Label("f:platform-lcm.ingressNginx-update-replicas"), func() {
 		t.It("ingressNginx explicit replicas", func() {
 			m := IngressNGINXBackendReplicasModifierV1beta1{replicas: nodeCount}
-			err := update.UpdateCRV1beta1(m)
-			if err != nil {
-				Fail(err.Error())
-			}
+			update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
 			expectedRunning := nodeCount
 			update.ValidatePods(ingressNGINXComponentBackendValue, ingressNGINXComponentLabelKey, constants.IngressNamespace, expectedRunning, false)
 
@@ -94,10 +91,7 @@ var _ = t.Describe("Update ingressNGINX", Label("f:platform-lcm.update"), func()
 	t.Describe("ingressNginx update controller replicas with v1beta1 client", Label("f:platform-lcm.ingressNginx-update-replicas"), func() {
 		t.It("ingressNginx explicit replicas", func() {
 			m := IngressNGINXControllerReplicasModifierV1beta1{replicas: nodeCount}
-			err := update.UpdateCRV1beta1(m)
-			if err != nil {
-				Fail(err.Error())
-			}
+			update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
 			expectedRunning := nodeCount
 			update.ValidatePods(ingressNGINXComponentControllerValue, ingressNGINXComponentLabelKey, constants.IngressNamespace, expectedRunning, false)
 

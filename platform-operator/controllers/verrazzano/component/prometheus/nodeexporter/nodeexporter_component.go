@@ -68,6 +68,14 @@ func (c prometheusNodeExporterComponent) IsReady(ctx spi.ComponentContext) bool 
 	return false
 }
 
+func (c prometheusNodeExporterComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
+}
+
 // PreInstall updates resources necessary for the Prometheus Node-Exporter Component installation
 func (c prometheusNodeExporterComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx)

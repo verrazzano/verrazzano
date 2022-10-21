@@ -12,7 +12,7 @@ Collections.shuffle(availableRegions)
 def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def dns_zone_ocid = 'dummy'
 def OKE_CLUSTER_PREFIX = ""
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 
 installerFileName = "install-verrazzano.yaml"
 
@@ -55,7 +55,7 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "1.21", "1.22", "1.23", "1.24" ])
         string (name: 'VERSION_FOR_INSTALL',
-                defaultValue: 'v1.1.2',
+                defaultValue: 'v1.2.2',
                 description: 'This is the Verrazzano version for install before doing an upgrade.  By default, the v1.1.2 release will be installed',
                 trim: true)
         string (name: 'VERSION_FOR_UPGRADE',
@@ -1957,7 +1957,7 @@ def downloadCLI() {
     script {
         sh """
             echo "Downloading VZ CLI from object storage"
-            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+            oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
             tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
             ${GO_REPO_PATH}/vz version
         """

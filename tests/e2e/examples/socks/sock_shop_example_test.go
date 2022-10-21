@@ -7,15 +7,17 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
+
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	"net/http"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
-	"k8s.io/apimachinery/pkg/api/errors"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

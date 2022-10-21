@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-def agentLabel = env.JOB_NAME.contains('master') ? "phxsmall" : "VM.Standard2.2"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
 
 pipeline {
     options {
@@ -225,66 +225,6 @@ pipeline {
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                         booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
-                                    ], wait: true
-                            }
-                        }
-                    }
-                }
-                stage('Kind Acceptance Tests on 1.24') {
-                    steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                        string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
-                                    ], wait: true
-                            }
-                        }
-                    }
-                }
-                stage('Kind Acceptance Tests on 1.23') {
-                    steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.23'),
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                        string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
-                                    ], wait: true
-                            }
-                        }
-                    }
-                }
-                stage('Kind Acceptance Tests on 1.21') {
-                    steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "verrazzano-new-kind-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.21'),
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                        string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
                                     ], wait: true
                             }
                         }

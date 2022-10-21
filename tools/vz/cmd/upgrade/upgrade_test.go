@@ -6,6 +6,9 @@ package upgrade
 import (
 	"bytes"
 	"context"
+	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	cmdHelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
@@ -16,9 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 // TestUpgradeCmdDefaultNoWait
@@ -94,9 +95,8 @@ func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 
 	// Run upgrade command
-	cmdHelpers.SetVpoWaitRetries(1) // override for unit testing
+	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
 	err := cmd.Execute()
-	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
 	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
@@ -123,9 +123,8 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run upgrade command
-	cmdHelpers.SetVpoWaitRetries(1) // override for unit testing
+	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
 	err := cmd.Execute()
-	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
 	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
@@ -249,6 +248,29 @@ func TestUpgradeCmdLesserStatusVersion(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Upgrade to a lesser version of Verrazzano is not allowed. Upgrade version specified was v1.3.3 and current Verrazzano version is v1.3.4\n", errBuf.String())
+}
+
+// TestUpgradeCmdEqualStatusVersion
+// GIVEN a CLI upgrade command specifying a version equal to the status version and the spec version is empty
+//
+//	WHEN I call cmd.Execute for upgrade
+//	THEN the CLI upgrade command is successful with an informational message
+func TestUpgradeCmdEqualStatusVersion(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateVerrazzanoObjectWithVersion()).Build()
+
+	// Send stdout stderr to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdUpgrade(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.3.4")
+
+	// Run upgrade command
+	err := cmd.Execute()
+	assert.NoError(t, err)
+	assert.Equal(t, "Verrazzano is already at the specified upgrade version of v1.3.4\n", buf.String())
 }
 
 // TestUpgradeCmdLesserSpecVersion

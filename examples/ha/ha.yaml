@@ -20,6 +20,10 @@ spec:
               replicaCount: 2
             webhook:
               replicaCount: 2
+    coherenceOperator:
+      overrides:
+        - values:
+            replicas: 3
     console:
       overrides:
         - values:
@@ -82,7 +86,12 @@ spec:
     keycloak:
       overrides:
         - values:
-            replicas: 2
+            replicas: 3
+      mysql:
+        overrides:
+          - values:
+              serverInstances: 3
+              routerInstances: 3
     opensearchDashboards:
       replicas: 2
     kiali:

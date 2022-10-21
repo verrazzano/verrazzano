@@ -14,10 +14,9 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster"
-
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
@@ -47,8 +46,9 @@ const (
 
 	// metrics
 	jvmUptime            = "base_jvm_uptime_seconds"
-	vendoRequestsCount   = "vendor_requests_count_total"
-	cpuCFSPeriods        = "container_cpu_cfs_periods_total"
+	vendorRequestsCount  = "vendor_requests_count_total"
+	memUsageBytes        = "container_memory_usage_bytes"
+	clusterSize          = "vendor:coherence_cluster_size"
 	serviceMessagesLocal = "vendor:coherence_service_messages_local"
 
 	// various labels
@@ -319,7 +319,7 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 							m := make(map[string]string)
 							m[labelApp] = appName
 							m[clusterNameMetricsLabel] = clusterName
-							return pkg.MetricsExistInCluster(vendoRequestsCount, m, adminKubeconfig)
+							return pkg.MetricsExistInCluster(vendorRequestsCount, m, adminKubeconfig)
 						}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 					},
 					func() {
@@ -328,8 +328,17 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 							m := make(map[string]string)
 							m[labelNS] = appNamespace
 							m[clusterNameMetricsLabel] = clusterName
-							return pkg.MetricsExistInCluster(cpuCFSPeriods, m, adminKubeconfig)
+							return pkg.MetricsExistInCluster(memUsageBytes, m, adminKubeconfig)
 						}, longWaitTimeout, longPollingInterval).Should(BeTrue())
+					},
+					func() {
+						clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
+						Eventually(func() bool {
+							m := make(map[string]string)
+							m[labelCluster] = cohClusterName
+							m[clusterNameMetricsLabel] = clusterName
+							return pkg.MetricsExistInCluster(clusterSize, m, adminKubeconfig)
+						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find coherence metric")
 					},
 					func() {
 						clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)

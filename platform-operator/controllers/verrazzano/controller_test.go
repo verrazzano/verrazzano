@@ -6,6 +6,7 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
 	"sync"
 	"testing"
 	"time"
@@ -355,25 +356,6 @@ func TestCreateLocalRegistrationSecretUnexpectedError(t *testing.T) {
 	asserts.Error(err)
 }
 
-func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
-	statusMap := make(vzapi.ComponentStatusMap)
-	for _, comp := range registry.GetComponents() {
-		if comp.IsOperatorInstallSupported() {
-			statusMap[comp.Name()] = &vzapi.ComponentStatusDetails{
-				Name: comp.Name(),
-				Conditions: []vzapi.Condition{
-					{
-						Type:   vzapi.CondInstallComplete,
-						Status: corev1.ConditionTrue,
-					},
-				},
-				State: vzapi.CompStateReady,
-			}
-		}
-	}
-	return statusMap
-}
-
 // TestCreateVerrazzanoWithOCIDNS tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an Verrazzano resource with OCI DNS configured
 // WHEN a Verrazzano resource has been created
@@ -444,7 +426,6 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 			secret.Type = corev1.SecretTypeOpaque
 			return nil
 		})
-
 	// Expect a call to get the Verrazzano system namespace (return exists)
 	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
 
@@ -570,7 +551,7 @@ func TestUninstallComplete(t *testing.T) {
 // TestUninstallStarted tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an Verrazzano resource
 // WHEN a Verrazzano resource has been deleted
-// THEN ensure an unisntall job is started
+// THEN ensure an uninstall job is started
 func TestUninstallStarted(t *testing.T) {
 	unitTesting = true
 	namespace := "verrazzano"
@@ -1111,6 +1092,7 @@ func newVerrazzanoReconciler(c client.Client) Reconciler {
 		Scheme:            scheme,
 		WatchedComponents: map[string]bool{},
 		WatchMutex:        &sync.RWMutex{},
+		HealthCheck:       health.New(c, 300*time.Second),
 	}
 	return reconciler
 }

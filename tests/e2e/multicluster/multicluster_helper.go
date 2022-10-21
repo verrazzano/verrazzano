@@ -27,7 +27,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	mcapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	mcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
+	mcClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	yv2 "gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"

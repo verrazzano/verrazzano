@@ -11,11 +11,11 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	mcconst "github.com/verrazzano/verrazzano/pkg/mcconstants"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	poconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	"github.com/verrazzano/verrazzano/tests/e2e/update/fluentd"
 	corev1 "k8s.io/api/core/v1"
@@ -59,7 +59,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 				m := &fluentd.FluentdModifier{Component: vzapi.FluentdComponent{}}
 
 				start := time.Now()
-				gomega.Expect(fluentd.ValidateUpdate(m, "")).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", ""))
+				fluentd.ValidateUpdate(m, "")
 
 				gomega.Eventually(func() bool {
 					return fluentd.ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")

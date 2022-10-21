@@ -254,6 +254,38 @@ spec:
                           app.kubernetes.io/instance: keycloak
                           app.kubernetes.io/name: keycloak
                       topologyKey: kubernetes.io/hostname
+      mysql:
+        overrides:
+          - values:
+              serverInstances: 1
+              routerInstances: 1
+              router:
+                podSpec:
+                  affinity:
+                    podAntiAffinity:
+                      preferredDuringSchedulingIgnoredDuringExecution:
+                        - weight: 100
+                          podAffinityTerm:
+                            labelSelector:
+                              matchLabels:
+                                app.kubernetes.io/instance: mysql-innodbcluster-mysql-router
+                                app.kubernetes.io/name: mysql-router
+                            topologyKey: kubernetes.io/hostname
+              image:
+                pullPolicy: IfNotPresent
+                pullSecrets:
+                  enabled: false
+              podSpec:
+                affinity:
+                  podAntiAffinity:
+                    preferredDuringSchedulingIgnoredDuringExecution:
+                      - weight: 100
+                        podAffinityTerm:
+                          labelSelector:
+                            matchLabels:
+                              app.kubernetes.io/instance: mysql-innodbcluster-mysql-mysql-server
+                              app.kubernetes.io/name: mysql-innodbcluster-mysql-server
+                          topologyKey: kubernetes.io/hostname
     mySQLOperator:
       enabled: true
     kibana:

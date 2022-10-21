@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
@@ -154,7 +154,6 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 				strings.HasSuffix(crd.Name, "cattle.io") ||
 				strings.HasSuffix(crd.Name, "mysql.oracle.com") ||
 				strings.HasSuffix(crd.Name, "zalando.org") ||
-				crd.Name == "monitoringdashboards.monitoring.kiali.io" ||
 				crd.Name == "domains.weblogic.oracle" ||
 				crd.Name == "coherence.coherence.oracle.com" {
 				crdsFound[crd.Name] = true

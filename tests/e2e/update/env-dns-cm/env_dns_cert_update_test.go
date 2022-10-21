@@ -14,8 +14,8 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
 )
 
@@ -87,18 +87,15 @@ var _ = t.AfterSuite(func() {
 var _ = t.Describe("Test updates to environment name, dns domain and cert-manager CA certificates", func() {
 	t.It("Verify the current environment name", func() {
 		cr := update.GetCR()
-		currentEnvironmentName = cr.Spec.EnvironmentName
-		currentDNSDomain = cr.Spec.Components.DNS.Wildcard.Domain
+		currentEnvironmentName = pkg.GetEnvironmentName(cr)
+		currentDNSDomain = pkg.GetDNS(cr)
 		validateIngressList(currentEnvironmentName, currentDNSDomain)
 		validateVirtualServiceList(currentDNSDomain)
 	})
 
 	t.It("Update and verify environment name", func() {
 		m := EnvironmentNameModifier{testEnvironmentName}
-		err := update.UpdateCR(m)
-		if err != nil {
-			log.Fatalf("Error in updating environment name\n%s", err)
-		}
+		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 		validateIngressList(testEnvironmentName, currentDNSDomain)
 		validateVirtualServiceList(currentDNSDomain)
 		pkg.VerifyKeycloakAccess(t.Logs)
@@ -108,10 +105,7 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 
 	t.It("Update and verify dns domain", func() {
 		m := WildcardDNSModifier{testDNSDomain}
-		err := update.UpdateCR(m)
-		if err != nil {
-			log.Fatalf("Error in updating DNS domain\n%s", err)
-		}
+		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 		validateIngressList(testEnvironmentName, testDNSDomain)
 		validateVirtualServiceList(testDNSDomain)
 		pkg.VerifyKeycloakAccess(t.Logs)
@@ -122,10 +116,7 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 	t.It("Update and verify CA certificate", func() {
 		createCustomCACertificate(testCertName, testCertSecretNamespace, testCertSecretName)
 		m := CustomCACertificateModifier{testCertSecretNamespace, testCertSecretName}
-		err := update.UpdateCR(m)
-		if err != nil {
-			log.Fatalf("Error in updating CA certificate\n%s", err)
-		}
+		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 		validateCertManagerResourcesCleanup()
 		validateCACertificateIssuer()
 	})

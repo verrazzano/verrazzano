@@ -5,12 +5,14 @@ package resources_test
 
 import (
 	"fmt"
+
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+
 	"os"
 	"strings"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

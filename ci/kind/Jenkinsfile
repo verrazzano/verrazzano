@@ -2,7 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 pipeline {
@@ -43,6 +43,7 @@ pipeline {
                 description: 'This is the API crd version.',
                 // 1st choice is the default value
                 choices: [ "v1beta1", "v1alpha1"])
+        booleanParam (description: 'Whether to install Verrazzano using examples/ha/ha.yaml and 3 kind nodes (defaults to false)', name: 'INSTALL_HA', defaultValue: false)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to use a database for Grafana persistence', name: 'USE_DB_FOR_GRAFANA', defaultValue: false)
@@ -87,8 +88,11 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
-        INSTALL_PROFILE = "dev"
+        INSTALL_CONFIG_FILE_KIND_TESTS = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
+        INSTALL_CONFIG_FILE_KIND_HA = "./examples/ha/ha.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${WORKSPACE}/install-verrazzano.yaml"
+        INSTALL_PROFILE = "${params.INSTALL_HA == true ? "prod" : "dev"}"
+        KIND_NODE_COUNT = "${params.INSTALL_HA == true ? "3" : "1"}"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
@@ -223,6 +227,19 @@ pipeline {
                         REALM_NAME = "test-realm"
                     }
                     steps {
+                        script {
+                            if (params.INSTALL_HA) {
+                                sh """
+                                    cp ${env.INSTALL_CONFIG_FILE_KIND_HA} ${env.INSTALL_CONFIG_FILE_KIND}
+                                    cd ${GO_REPO_PATH}/verrazzano
+                                    ci/scripts/prepare_ha_test_at_environment.sh ${env.INSTALL_CONFIG_FILE_KIND}
+                                """
+                            } else {
+                                sh """
+                                    cp ${env.INSTALL_CONFIG_FILE_KIND_TESTS} ${env.INSTALL_CONFIG_FILE_KIND}
+                                """
+                            }
+                        }
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
                             ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${params.USE_DB_FOR_GRAFANA}
@@ -251,7 +268,7 @@ pipeline {
                             archiveArtifacts artifacts: "**/kind-logs/**", allowEmptyArchive: true
                         }
                         always {
-                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
+                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml,$INSTALL_CONFIG_FILE_KIND", allowEmptyArchive: true
                             script {
                                 VZ_TEST_METRIC = metricJobName('')
                                 metricTimerStart("${VZ_TEST_METRIC}")
@@ -365,11 +382,6 @@ pipeline {
 
                 stage('Run Acceptance Tests Deployments') {
                     parallel {
-                        stage('opensearch-topology') {
-                            steps {
-                                runGinkgoRandomize('opensearch/topology')
-                            }
-                        }
                         stage('istio authorization policy') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/istio-authz-policy"
@@ -526,22 +538,6 @@ pipeline {
                                 runGinkgo('examples/helidonmetrics')
                             }
                         }
-                        stage('console ingress') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
-                            }
-                            steps {
-                                runGinkgo('ingress/console')
-                            }
-                        }
-                        stage('logging trait WebLogic workload') {
-                            environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
-                            }
-                            steps {
-                                runGinkgo('loggingtrait/weblogicworkload')
-                            }
-                        }
                         stage('logging trait Helidon workload') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-helidonworkload"
@@ -563,6 +559,32 @@ pipeline {
                         always {
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**,**/Screenshot*.png,**/ConsoleLog*.log', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Run Acceptance Tests Deployments Group 2') {
+                    parallel {
+                        stage('opensearch-topology') {
+                            steps {
+                                runGinkgoRandomize('opensearch/topology')
+                            }
+                        }
+                        stage('console ingress') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console-ingress"
+                            }
+                            steps {
+                                runGinkgo('ingress/console')
+                            }
+                        }
+                        stage('logging trait WebLogic workload') {
+                            environment {
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-weblogicworkload"
+                            }
+                            steps {
+                                runGinkgo('loggingtrait/weblogicworkload')
+                            }
                         }
                     }
                 }

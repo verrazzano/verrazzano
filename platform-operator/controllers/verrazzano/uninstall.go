@@ -83,7 +83,6 @@ var UninstallTrackerMap = make(map[string]*UninstallTracker)
 // reconcileUninstall will Uninstall a Verrazzano installation
 func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	log.Oncef("Uninstalling Verrazzano %s/%s", cr.Namespace, cr.Name)
-
 	tracker := getUninstallTracker(cr)
 	done := false
 	for !done {
@@ -291,13 +290,12 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) (ctrl.Result, er
 		return ctrl.Result{}, err
 	}
 
-	// Run Rancher Post Uninstall explicilty to delete any remaining Rancher resources; this may be needed in case
+	// Run Rancher Post Uninstall explicitly to delete any remaining Rancher resources; this may be needed in case
 	// the uninstall was interrupted during uninstall, or if the cluster is a managed cluster where Rancher is not
-	// installed explicilty.
+	// installed explicitly.
 	if err := r.runRancherPostInstall(ctx); err != nil {
 		return ctrl.Result{}, err
 	}
-
 	return r.deleteNamespaces(ctx.Log())
 }
 

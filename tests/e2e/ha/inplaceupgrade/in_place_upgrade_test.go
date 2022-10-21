@@ -4,6 +4,7 @@
 package inplaceupgrade
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -11,19 +12,21 @@ import (
 	"strconv"
 	"time"
 
-	"context"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/oracle/oci-go-sdk/v53/common"
 	"github.com/oracle/oci-go-sdk/v53/common/auth"
 	ocice "github.com/oracle/oci-go-sdk/v53/containerengine"
 	ocicore "github.com/oracle/oci-go-sdk/v53/core"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	hacommon "github.com/verrazzano/verrazzano/tests/e2e/pkg/ha"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	hacommon "github.com/verrazzano/verrazzano/tests/e2e/pkg/ha"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -33,6 +36,11 @@ const (
 
 	waitTimeout     = 20 * time.Minute
 	pollingInterval = 30 * time.Second
+
+	waitForDeleteTimeout = 600 * time.Second
+
+	mysqlComponentLabel = "component"
+	mysqldComponentName = "mysqld"
 )
 
 var clientset = k8sutil.GetKubernetesClientsetOrDie()
@@ -147,13 +155,20 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 					"--ignore-daemonsets",
 					"--delete-emptydir-data",
 					"--force",
-					"--skip-wait-for-delete-timeout=600",
+					fmt.Sprintf("--skip-wait-for-delete-timeout=%v", int(waitForDeleteTimeout.Seconds())),
 					"--timeout=15m",
 					node.Name,
 				}
-				out, err := exec.Command("kubectl", kubectlArgs...).Output() //nolint:gosec //#nosec G204
+				out, err := exec.Command("kubectl", kubectlArgs...).CombinedOutput() //nolint:gosec //#nosec G204
+				t.Logs.Infof("Combined output from kubectl drain command: %s", out)
+				if err != nil {
+					t.Logs.Infof("Error occurred running kubectl drain command: %s", err.Error())
+				}
 				Expect(err).ShouldNot(HaveOccurred())
-				t.Logs.Infof("Output from kubectl drain command: %s", out)
+
+				// Handle the case where MySQL pods can be left dangling waiting for finalizers to be cleaned up
+				// - this is a workaround until we can perhaps get a fix from the MySQL team
+				cleanupDanglingMySQLPods(clientset)
 
 				// terminate the compute instance that the node is on, OKE will replace it with a new node
 				// running the upgraded Kubernetes version
@@ -184,6 +199,47 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 		}
 	})
 })
+
+// cleanupDanglingMySQLPods - workaround to clean up any dangling MySQL pods, workaround for case where finalizers don't get cleaned up
+func cleanupDanglingMySQLPods(client *kubernetes.Clientset) {
+	Eventually(func() error {
+		t.Logs.Info("Cleaning up any dangling MySQL pods after node drain")
+		mysqldReq, err := labels.NewRequirement(mysqlComponentLabel, selection.Equals, []string{mysqldComponentName})
+		if err != nil {
+			return err
+		}
+		selector := labels.NewSelector().Add(*mysqldReq)
+		selector = selector.Add(*mysqldReq)
+
+		list, err := client.CoreV1().Pods(constants.KeycloakNamespace).List(context.TODO(), metav1.ListOptions{
+			LabelSelector: selector.String(),
+		})
+		if err != nil {
+			return err
+		}
+		if len(list.Items) == 0 {
+			return fmt.Errorf("No pods found matching selector %s", selector.String())
+		}
+		for i := range list.Items {
+			mysqlPod := list.Items[i]
+			deletionTimestamp := mysqlPod.ObjectMeta.DeletionTimestamp
+			if !deletionTimestamp.IsZero() {
+				diff := metav1.Now().Sub(deletionTimestamp.Time)
+				t.Logs.Infof("Pod %s/%s deletion time: %s, difference: %v", mysqlPod.Namespace, mysqlPod.Name, deletionTimestamp.String(), diff.Seconds())
+				if diff.Seconds() >= waitForDeleteTimeout.Seconds() {
+					t.Logs.Infof("Found dangling MySQL pod %s/%s, patching out finalizers %v", mysqlPod.Namespace, mysqlPod.Name, mysqlPod.Finalizers)
+					mysqlPod.Finalizers = []string{}
+					_, err := client.CoreV1().Pods(constants.KeycloakNamespace).Update(context.TODO(), &mysqlPod, metav1.UpdateOptions{})
+					if err != nil {
+						t.Logs.Errorf("Error occurred patching finalizers for %s/%s, %s", mysqlPod.Namespace, mysqlPod.Name, err.Error())
+						return err
+					}
+				}
+			}
+		}
+		return nil
+	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
+}
 
 // waitForWorkRequest waits for the work request to transition to success
 func waitForWorkRequest(workRequestID string) {

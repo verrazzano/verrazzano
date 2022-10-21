@@ -7,10 +7,10 @@ import (
 	"fmt"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -163,11 +163,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy update replicas", Label("f:platform-lcm.authproxy-update-replicas"), func() {
 		t.It("authproxy explicit replicas", func() {
 			m := AuthProxyReplicasModifier{replicas: nodeCount}
-			err := update.UpdateCR(m)
-			if err != nil {
-				Fail(err.Error())
-			}
-
+			update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 			expectedRunning := nodeCount
 			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 		})
@@ -176,10 +172,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy update affinity", Label("f:platform-lcm.authproxy-update-affinity"), func() {
 		t.It("authproxy explicit affinity", func() {
 			m := AuthProxyPodPerNodeAffintyModifier{}
-			err := update.UpdateCR(m)
-			if err != nil {
-				Fail(err.Error())
-			}
+			update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 
 			expectedRunning := nodeCount - 1
 			expectedPending := true
@@ -194,10 +187,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy update replicas with v1beta1 client", Label("f:platform-lcm.authproxy-update-replicas"), func() {
 		t.It("authproxy explicit replicas", func() {
 			m := AuthProxyReplicasModifierV1beta1{replicas: explicitReplicas}
-			err := update.UpdateCRV1beta1(m)
-			if err != nil {
-				Fail(err.Error())
-			}
+			update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
 			expectedRunning := explicitReplicas
 			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 		})
@@ -206,10 +196,7 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy update affinity using v1beta1 client", Label("f:platform-lcm.authproxy-update-affinity"), func() {
 		t.It("authproxy explicit affinity", func() {
 			m := AuthProxyPodPerNodeAffintyModifierV1beta1{}
-			err := update.UpdateCRV1beta1(m)
-			if err != nil {
-				Fail(err.Error())
-			}
+			update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
 			expectedRunning := explicitReplicas
 			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 		})

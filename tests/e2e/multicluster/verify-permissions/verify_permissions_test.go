@@ -6,13 +6,15 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
+
 	"os"
 	"strings"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	. "github.com/onsi/ginkgo/v2"

@@ -72,6 +72,7 @@ func (in *Verrazzano) ConvertTo(dstRaw conversion.Hub) error {
 	out.Status.Conditions = convertConditionsTo(in.Status.Conditions)
 	out.Status.Components = convertComponentStatusMapTo(in.Status.Components)
 	out.Status.VerrazzanoInstance = convertVerrazzanoInstanceTo(in.Status.VerrazzanoInstance)
+	out.Status.Available = in.Status.Available
 	return nil
 }
 
@@ -754,6 +755,7 @@ func convertComponentStatusMapTo(components ComponentStatusMap) v1beta1.Componen
 				Name:                     detail.Name,
 				Conditions:               convertConditionsTo(detail.Conditions),
 				State:                    v1beta1.CompStateType(detail.State),
+				Available:                detail.Available,
 				Version:                  detail.Version,
 				LastReconciledGeneration: detail.LastReconciledGeneration,
 				ReconcilingGeneration:    detail.ReconcilingGeneration,

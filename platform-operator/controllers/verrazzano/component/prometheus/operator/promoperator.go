@@ -17,7 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/pkg/k8s/status"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -68,7 +68,7 @@ func isPrometheusOperatorReady(ctx spi.ComponentContext) bool {
 		ctx.Log().Errorf("Failed to create selector for %s: %v", ComponentName, err)
 		return false
 	}
-	return status.DeploymentsReadyBySelectors(ctx.Log(), ctx.Client(), 1, prefix, &client.ListOptions{
+	return ready.DeploymentsReadyBySelectors(ctx.Log(), ctx.Client(), 1, prefix, &client.ListOptions{
 		Namespace:     ComponentNamespace,
 		LabelSelector: selector,
 	})

@@ -8,11 +8,11 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	pcons "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"time"
 )
 
@@ -58,7 +58,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 				ElasticsearchURL:    opensearchURL,
 			}}
 			expectedError := "must be created"
-			gomega.Expect(ValidateUpdate(m, expectedError)).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError))
+			ValidateUpdate(m, expectedError)
 		})
 	})
 
@@ -75,14 +75,14 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			}}
 
 			// Update CR using v1alpha1 API client.
-			gomega.Expect(ValidateUpdate(v1alpha1Modifier, "")).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", ""))
+			ValidateUpdate(v1alpha1Modifier, "")
 			start := time.Now()
 			gomega.Eventually(func() bool {
 				return ValidateDaemonset(opensearchURL, extEsSec, "")
 			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", opensearchURL, time.Since(start)))
 
 			//Update CR using v1beta1 API client.
-			gomega.Expect(ValidateUpdateV1beta1(v1beta1Modifier, "")).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", ""))
+			ValidateUpdateV1beta1(v1beta1Modifier, "")
 
 			start = time.Now()
 			gomega.Eventually(func() bool {
@@ -97,12 +97,12 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 				OCI: &vzapi.OciLoggingConfiguration{APISecret: wrongSec},
 			}}
 			expectedError1 := "must be created"
-			gomega.Expect(ValidateUpdate(m, expectedError1)).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError1))
+			ValidateUpdate(m, expectedError1)
 
 			pkg.CreateCredentialsSecret(pcons.VerrazzanoInstallNamespace, wrongSec, "api", "pw", map[string]string{})
 
 			expectedError2 := "Did not find OCI configuration"
-			gomega.Expect(ValidateUpdate(m, expectedError2)).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError2))
+			ValidateUpdate(m, expectedError2)
 		})
 	})
 
@@ -114,7 +114,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 				SystemLogID:     sysLogID,
 				DefaultAppLogID: defLogID,
 			}}}
-			gomega.Expect(ValidateUpdate(m, "")).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", ""))
+			ValidateUpdate(m, "")
 
 			start := time.Now()
 			gomega.Eventually(func() bool {
@@ -134,7 +134,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 				ExtraVolumeMounts: []vzapi.VolumeMount{{Source: "/var/log"}},
 			}}
 			expectedError := "duplicate mount path found"
-			gomega.Expect(ValidateUpdate(m, expectedError)).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError))
+			ValidateUpdate(m, expectedError)
 		})
 	})
 
@@ -144,7 +144,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			m := &FluentdModifier{Component: vzapi.FluentdComponent{
 				ExtraVolumeMounts: []vzapi.VolumeMount{vm},
 			}}
-			gomega.Expect(ValidateUpdate(m, "")).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", ""))
+			ValidateUpdate(m, "")
 
 			start := time.Now()
 			gomega.Eventually(func() bool {

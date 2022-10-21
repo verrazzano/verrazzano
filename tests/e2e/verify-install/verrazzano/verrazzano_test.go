@@ -14,8 +14,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -31,6 +31,7 @@ const (
 var isMinVersion110 bool
 var isMinVersion120 bool
 var isMinVersion140 bool
+var isMinVersion150 bool
 var keycloakEnabled bool
 var mySQLOperatorEnabled bool
 
@@ -53,6 +54,10 @@ var _ = t.BeforeSuite(func() {
 		Fail(err.Error())
 	}
 	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+	if err != nil {
+		Fail(err.Error())
+	}
+	isMinVersion150, err = pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
@@ -321,7 +326,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			Expect(crb.RoleRef.Name == "admin").To(BeTrue(),
 				"the roleRef.name should be admin")
 			Expect(crb.RoleRef.Kind == "ClusterRole").To(BeTrue(),
-				"the roleRef.kind shoudl be ClusterRole")
+				"the roleRef.kind should be ClusterRole")
 
 			Expect(len(crb.Subjects) == 1).To(BeTrue(),
 				"there should be one subject")
@@ -349,7 +354,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 			Expect(crb.RoleRef.Name == "verrazzano-monitor").To(BeTrue(),
 				"the roleRef.name should be verrazzano-monitor")
 			Expect(crb.RoleRef.Kind == "ClusterRole").To(BeTrue(),
-				"the roleRef.kind shoudl be ClusterRole")
+				"the roleRef.kind should be ClusterRole")
 
 			Expect(len(crb.Subjects) == 1).To(BeTrue(),
 				"there should be one subject")
@@ -566,7 +571,7 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 
 			t.It("has correct number of pods running", func() {
 				if isMinVersion110 {
-					err := validateCorrectNumberOfPodsRunningSts(constants.Keycloak, constants.KeycloakNamespace, "app.kubernetes.io/name")
+					err := validateCorrectNumberOfPodsRunningSts(constants.Keycloak, constants.KeycloakNamespace, "app.kubernetes.io/name", constants.Keycloak)
 					Expect(err).To(BeNil())
 				} else {
 					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.1.0")
@@ -580,6 +585,60 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
 				}
 			})
+
+			// check associated mysql elements
+			t.It("has expected mysql statefulset", func() {
+				if isMinVersion150 {
+					Eventually(func() (bool, error) {
+						return pkg.DoesStatefulSetExist(constants.KeycloakNamespace, "mysql")
+					}, waitTimeout, pollingInterval).Should(BeTrue())
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.5.0")
+				}
+			})
+
+			t.It("has correct number of mysql server pods running", func() {
+				if isMinVersion150 {
+					err := validateCorrectNumberOfPodsRunningSts("mysql", constants.KeycloakNamespace, "app.kubernetes.io/name", "mysql-innodbcluster-mysql-server")
+					Expect(err).To(BeNil())
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.5.0")
+				}
+			})
+
+			t.It("has expected mysql router deployment", func() {
+				if isMinVersion150 {
+					Eventually(func() (bool, error) {
+						return pkg.DoesDeploymentExist(constants.KeycloakNamespace, "mysql-router")
+					}, waitTimeout, pollingInterval).Should(BeTrue())
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.5.0")
+				}
+			})
+
+			t.It("has correct number of mysql router pods running", func() {
+				if isMinVersion150 {
+					validateCorrectNumberOfPodsRunning("mysql-router", constants.KeycloakNamespace)
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.5.0")
+				}
+			})
+
+			t.It("has affinity configured for mysql statefulset as expected", func() {
+				if isMinVersion150 {
+					assertPodAntiAffinity(map[string]string{"app.kubernetes.io/name": "mysql-innodbcluster-mysql-server"}, constants.KeycloakNamespace)
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.5.0")
+				}
+			})
+
+			t.It("has affinity configured for mysql router deployment as expected", func() {
+				if isMinVersion150 {
+					assertPodAntiAffinity(map[string]string{"app.kubernetes.io/name": "mysql-router"}, constants.KeycloakNamespace)
+				} else {
+					t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.5.0")
+				}
+			})
 		})
 	} else {
 		t.Logs.Info("Skipping Keycloak check because it is not enabled")
@@ -588,20 +647,20 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 	// The MySQLOperator is enabled if Keycloak is enabled, or if it is explicitly enabled
 	if keycloakEnabled || mySQLOperatorEnabled {
 		t.It("has expected deployment", func() {
-			if isMinVersion140 {
+			if isMinVersion150 {
 				Eventually(func() (bool, error) {
 					return pkg.DoesDeploymentExist(constants.MySQLOperatorNamespace, mysqloperator.ComponentName)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 			} else {
-				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.5.0")
 			}
 		})
 
 		t.It("has correct number of pods running", func() {
-			if isMinVersion140 {
+			if isMinVersion150 {
 				validateCorrectNumberOfPodsRunning(mysqloperator.ComponentName, constants.MySQLOperatorNamespace)
 			} else {
-				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.4.0")
+				t.Logs.Info("Skipping check, Verrazzano minimum version is not V1.5.0")
 			}
 		})
 
@@ -700,7 +759,7 @@ func validateCorrectNumberOfIngressNGINXPodsRunning() {
 }
 
 // validateCorrectNumberOfPodsRunningSts - validate the expected number of pods is running for a statefulset
-func validateCorrectNumberOfPodsRunningSts(stsName string, nameSpace string, label string) error {
+func validateCorrectNumberOfPodsRunningSts(stsName string, nameSpace string, label string, labelValue string) error {
 	// Get the deployment
 	var statefulset *appsv1.StatefulSet
 	Eventually(func() (*appsv1.StatefulSet, error) {

@@ -140,6 +140,14 @@ func (o opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
+func (o opensearchComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = o.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", o.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", o.Name()), false
+}
+
 // IsReady component check
 func (o opensearchComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isOSReady(ctx)

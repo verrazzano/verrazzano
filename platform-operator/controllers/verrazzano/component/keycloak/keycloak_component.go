@@ -63,7 +63,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
-			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, mysql.ComponentName},
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			AppendOverridesFunc:       AppendKeycloakOverrides,
@@ -108,21 +108,6 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 			constants.VerrazzanoSystemNamespace, constants.Verrazzano, err)
 		return err
 	}
-	// Check MySQL Secret. return error which will cause requeue
-	secret = &corev1.Secret{}
-	err = ctx.Client().Get(context.TODO(), client.ObjectKey{
-		Namespace: ComponentNamespace,
-		Name:      mysql.ComponentName,
-	}, secret)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			ctx.Log().Progressf("Component Keycloak waiting for the MySql password %s/%s to exist", ComponentNamespace, mysql.ComponentName)
-			return ctrlerrors.RetryableError{Source: ComponentName}
-		}
-		ctx.Log().Errorf("Component Keycloak failed to get the MySQL password %s/%s: %v", ComponentNamespace, mysql.ComponentName, err)
-		return err
-	}
-
 	// Create secret for the keycloakadmin user if it doesn't exist
 	err = createAuthSecret(ctx, ComponentNamespace, "keycloak-http", "keycloakadmin")
 	if err != nil {
@@ -201,6 +186,14 @@ func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isKeycloakReady(ctx)
 	}
 	return false
+}
+
+func (c KeycloakComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated

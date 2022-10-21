@@ -2,7 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 pipeline {
@@ -26,7 +26,7 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "1.21", "1.22", "1.23", "1.24" ])
         string (name: 'VERSION_FOR_INSTALL',
-                defaultValue: 'v1.1.2',
+                defaultValue: 'v1.2.2',
                 description: 'This is the Verrazzano version for install.  By default, the latest Master release will be installed',
                 trim: true)
         string (name: 'GIT_COMMIT_FOR_UPGRADE',
@@ -328,7 +328,8 @@ pipeline {
                 # Download the operator.yaml for the target version that we are upgrading to
                 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                 cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/upgrade-test-operator.yaml
-                kubectl apply -f ${WORKSPACE}/upgrade-test-operator.yaml
+                VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
+                ${GO_REPO_PATH}/vz upgrade --operator-file ${WORKSPACE}/upgrade-test-operator.yaml --version ${VERRAZZANO_DEV_VERSION}
 
                 # ensure operator pod is up
                 kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
