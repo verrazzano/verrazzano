@@ -15,14 +15,18 @@ import (
 
 const maxUpdateAttempts = 5
 
+// Updater interface for Verrazzano status updates
 type Updater interface {
+	// Update given an UpdateEvent, updates a Verrazzano resource's status object
 	Update(event *UpdateEvent)
 }
 
 type UpdateEventType int8
 
+// UpdateEvent defines an event used during Verrazzano update. Event fields are merged into the Verrazzano
+// resource's status object.
 type UpdateEvent struct {
-	Verrazzano   *vzapi.Verrazzano
+	Verrazzano   *vzapi.Verrazzano // resource reference for test injection
 	Version      *string
 	State        vzapi.VzStateType
 	Conditions   []vzapi.Condition
@@ -31,13 +35,16 @@ type UpdateEvent struct {
 	Components   map[string]*vzapi.ComponentStatusDetails
 }
 
+// VerrazzanoStatusUpdater implement Updater for asynchronous status updates, using updateChannel to receive UpdateEvent objects
+// from other goroutines
 type VerrazzanoStatusUpdater struct {
 	client        clipkg.Client
-	updateChannel chan *UpdateEvent
-	channelLock   *sync.Mutex
+	updateChannel chan *UpdateEvent // The channel on which UpdateEvent objects are sent/received
+	channelLock   *sync.Mutex       // For restricting access to the updateChannel
 	logger        *zap.SugaredLogger
 }
 
+// FakeVerrazzanoStatusUpdater for stubbing unit tests
 type FakeVerrazzanoStatusUpdater struct {
 	Client clipkg.Client
 }
@@ -57,10 +64,12 @@ func NewStatusUpdater(client clipkg.Client) *VerrazzanoStatusUpdater {
 	return s
 }
 
+// Update initiates an asynchronous Verrazzano status update
 func (v *VerrazzanoStatusUpdater) Update(event *UpdateEvent) {
 	v.updateChannel <- event
 }
 
+// Start initiates a goroutine that listens of the status update channel for events
 func (v *VerrazzanoStatusUpdater) Start() {
 	go func() {
 		v.channelLock.Lock()
@@ -84,6 +93,7 @@ func (v *VerrazzanoStatusUpdater) Start() {
 	}()
 }
 
+// doUpdate updates the cluster Verrazzano. Resource conflicts are retried.
 func (v *VerrazzanoStatusUpdater) doUpdate(event *UpdateEvent, attempt int) error {
 	vz, err := getVerrazzanoResource(v.client)
 	if err != nil {
@@ -97,6 +107,7 @@ func (v *VerrazzanoStatusUpdater) doUpdate(event *UpdateEvent, attempt int) erro
 	return err
 }
 
+// shutdown closes the status channel
 func (v *VerrazzanoStatusUpdater) shutdown() {
 	v.channelLock.Lock()
 	defer v.channelLock.Unlock()
@@ -106,6 +117,7 @@ func (v *VerrazzanoStatusUpdater) shutdown() {
 	}
 }
 
+// merge merges the UpdateEvent into the Verrazzano resource's status object
 func (u *UpdateEvent) merge(vz *vzapi.Verrazzano) {
 	if vz == nil {
 		return

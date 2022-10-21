@@ -84,7 +84,7 @@ func TestStatusUpdater(t *testing.T) {
 	u2 := &UpdateEvent{
 		Verrazzano: vz,
 		Components: map[string]*vzapi.ComponentStatusDetails{
-			opensearch.ComponentName: &vzapi.ComponentStatusDetails{
+			opensearch.ComponentName: {
 				Name:                     opensearch.ComponentName,
 				Conditions:               []vzapi.Condition{},
 				State:                    vzapi.CompStateReady,
