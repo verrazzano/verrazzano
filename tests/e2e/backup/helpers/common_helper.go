@@ -359,23 +359,6 @@ func CreateMySQLCredentialsSecretFromUserPrincipal(namespace string, name string
 		log.Errorf("Error creating secret ", zap.Error(err))
 		return err
 	}
-
-	//Debug
-	var cmd BashCommand
-	var cmdArgs []string
-	cmdArgs = append(cmdArgs, "kubectl")
-	cmdArgs = append(cmdArgs, "get")
-	cmdArgs = append(cmdArgs, "secret")
-	cmdArgs = append(cmdArgs, "-n")
-	cmdArgs = append(cmdArgs, "keycloak")
-	cmdArgs = append(cmdArgs, name)
-	cmdArgs = append(cmdArgs, "-o")
-	cmdArgs = append(cmdArgs, "yaml")
-	cmd.CommandArgs = cmdArgs
-
-	response := Runner(&cmd, log)
-	log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
-
 	return nil
 }
 
