@@ -43,9 +43,8 @@ type metricInfo struct {
 
 // runnerMetrics holds the metrics produced by the runner. Metrics must be thread safe.
 type runnerMetrics struct {
-	workerContext interface{}
-	loopCount     metricInfo
-	elapsedSecs   metricInfo
+	loopCount   metricInfo
+	elapsedSecs metricInfo
 }
 
 var metricDescList []prometheus.Desc
@@ -80,23 +79,24 @@ func (r Runner) GetMetricDescList() []prometheus.Desc {
 
 // GetMetricList returns the realtime metrics for the worker.  Must be thread safe
 func (r Runner) GetMetricList() []prometheus.Metric {
-	//m := prometheus.MustNewConstMetric(
-	//	rc.runDesc,
-	//	prometheus.GaugeValue,
-	//	float64(job.JobStatus),
-	//	job.JobSummary.Name, job.Branch, job.JobStatus.String(),
+	metrics := []prometheus.Metric{}
 
-	return nil
+	m := prometheus.MustNewConstMetric(
+		r.runnerMetrics.loopCount.desc,
+		prometheus.GaugeValue,
+		float64(atomic.LoadInt64(&r.runnerMetrics.loopCount.val)))
+	metrics = append(metrics, m)
+
+	return metrics
 }
 
 // RunWorker runs the worker in a loop
 func (r Runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-
 	startTime := time.Now().Unix()
 	for {
 		atomic.AddInt64(&r.runnerMetrics.loopCount.val, 1)
 		secs := time.Now().Unix() - startTime
-		atomic.SwapInt64(&r.runnerMetrics.elapsedSecs.val, secs)
+		atomic.StoreInt64(&r.runnerMetrics.elapsedSecs.val, secs)
 
 		// call the wrapped worker.  Log any error but keep working
 		err := r.Worker.Work(conf, log)
