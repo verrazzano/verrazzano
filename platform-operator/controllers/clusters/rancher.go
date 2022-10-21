@@ -594,7 +594,8 @@ func rancherSecretMutate(f controllerutil.MutateFn, secret *corev1.Secret, log v
 // rancherSecretGet simulates a client get request through the Rancher proxy for secrets
 func rancherSecretGet(secret *corev1.Secret, rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) error {
 	reqURL := constructSecretURL(secret, rc.host, clusterID)
-	resp, body, err := sendRequest(http.MethodGet, reqURL, map[string]string{}, "", rc, log)
+	headers := map[string]string{"Authorization": "Bearer " + rc.apiAccessToken}
+	resp, body, err := sendRequest(http.MethodGet, reqURL, headers, "", rc, log)
 	if err != nil && (resp == nil || resp.StatusCode != 404) {
 		return err
 	}
@@ -623,7 +624,11 @@ func rancherSecretCreate(secret *corev1.Secret, rc *rancherConfig, clusterID str
 	if err != nil {
 		return log.ErrorfNewErr("Failed to marshall secret %s/%s: %v", secret.GetNamespace(), secret.GetName(), err)
 	}
-	resp, _, err := sendRequest(http.MethodPost, reqURL, map[string]string{}, string(payload), rc, log)
+	headers := map[string]string{
+		"Authorization": "Bearer " + rc.apiAccessToken,
+		"Content-Type":  "application/json",
+	}
+	resp, _, err := sendRequest(http.MethodPost, reqURL, headers, string(payload), rc, log)
 	if err != nil {
 		return err
 	}
@@ -644,7 +649,11 @@ func rancherSecretUpdate(secret *corev1.Secret, rc *rancherConfig, clusterID str
 	if err != nil {
 		return log.ErrorfNewErr("Failed to marshall secret %s/%s: %v", secret.GetNamespace(), secret.GetName(), err)
 	}
-	resp, _, err := sendRequest(http.MethodPut, reqURL, map[string]string{"Content-Type": "application/json"}, string(payload), rc, log)
+	headers := map[string]string{
+		"Authorization": "Bearer " + rc.apiAccessToken,
+		"Content-Type":  "application/json",
+	}
+	resp, _, err := sendRequest(http.MethodPut, reqURL, headers, string(payload), rc, log)
 	if err != nil {
 		return err
 	}
