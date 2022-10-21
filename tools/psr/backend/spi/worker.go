@@ -4,11 +4,19 @@
 package spi
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 )
 
 type Worker interface {
 	GetEnvDescList() []config.EnvVarDesc
-	Work(config.CommonConfig, vzlog.VerrazzanoLogger)
+	Work(config.CommonConfig, vzlog.VerrazzanoLogger) error
+	WantIterationInfoLogged() bool
+	WorkerMetricsProvider
+}
+
+type WorkerMetricsProvider interface {
+	GetMetricDescList() []prometheus.Desc
+	GetMetricList() []prometheus.Metric
 }

@@ -6,19 +6,19 @@ package install
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/semver"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/semver"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"helm.sh/helm/v3/pkg/strvals"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -66,6 +66,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 
 	cmd.PersistentFlags().Bool(constants.WaitFlag, constants.WaitFlagDefault, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
+	cmd.PersistentFlags().Duration(constants.VPOTimeoutFlag, time.Minute*5, constants.VPOTimeoutFlagHelp)
 	cmd.PersistentFlags().String(constants.VersionFlag, constants.VersionFlagDefault, constants.VersionFlagInstallHelp)
 	cmd.PersistentFlags().StringSliceP(constants.FilenameFlag, constants.FilenameFlagShorthand, []string{}, constants.FilenameFlagHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
@@ -80,6 +81,9 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an install.")
 	cmd.PersistentFlags().MarkHidden(constants.DryRunFlag)
 
+	// Hide the flag for overriding the default wait timeout for the platform-operator
+	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
+
 	return cmd
 }
 
@@ -91,7 +95,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Get the timeout value for the install command
-	timeout, err := cmdhelpers.GetWaitTimeout(cmd)
+	timeout, err := cmdhelpers.GetWaitTimeout(cmd, constants.TimeoutFlag)
 	if err != nil {
 		return err
 	}
@@ -181,8 +185,14 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			return err
 		}
 
+		// Get the VPO timeout
+		vpoTimeout, err := cmdhelpers.GetWaitTimeout(cmd, constants.VPOTimeoutFlag)
+		if err != nil {
+			return err
+		}
+
 		// Wait for the platform operator to be ready before we create the Verrazzano resource.
-		vpoPodName, err = cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete)
+		vpoPodName, err = cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, vpoTimeout)
 		if err != nil {
 			return err
 		}

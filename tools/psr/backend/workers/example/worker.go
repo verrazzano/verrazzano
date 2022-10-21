@@ -6,32 +6,44 @@
 package example
 
 import (
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
-	"time"
+	"sync/atomic"
 )
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 )
 
-const (
-	msgSize = "PSR_MSG_SIZE"
-)
-
-type ExampleWorker struct{}
-
-var _ spi.Worker = ExampleWorker{}
-
-func (w ExampleWorker) GetEnvDescList() []config.EnvVarDesc {
-	return []config.EnvVarDesc{
-		{Key: msgSize, DefaultVal: "20", Required: false}}
+type exampleWorker struct {
+	loggedLinesTotal int64
 }
 
-func (w ExampleWorker) Work(conf config.CommonConfig, log vzlog.VerrazzanoLogger) {
-	for {
-		log.Infof("Example Worker Doing Work")
-		time.Sleep(10 * time.Second)
-	}
+var _ spi.Worker = exampleWorker{}
 
+func NewExampleWorker() spi.Worker {
+	return exampleWorker{}
+}
+
+func (w exampleWorker) GetEnvDescList() []config.EnvVarDesc {
+	return []config.EnvVarDesc{}
+}
+
+func (w exampleWorker) GetMetricDescList() []prometheus.Desc {
+	return nil
+}
+
+func (w exampleWorker) GetMetricList() []prometheus.Metric {
+	return nil
+}
+
+func (w exampleWorker) WantIterationInfoLogged() bool {
+	return true
+}
+
+func (w exampleWorker) Work(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+	log.Infof("Example Worker doing work")
+	atomic.AddInt64(&w.loggedLinesTotal, 1)
+	return nil
 }
