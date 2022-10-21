@@ -204,10 +204,10 @@ func DoesPodContainOldIstioSidecarSkewGreaterThanTwoMinorVersion(log vzlog.Verra
 				minorVersionDiff := istioMinorVersion - containerImageMinorVersion
 
 				if strings.Compare(istioProxyImageVersionArray[0], containerImageVersionArray[0]) == 1 {
-					log.Oncef("Restarting %s %s which has a pod with an old Istio proxy with a major version change%s", workloadType, workloadName, container.Image)
+					log.Oncef("%s %s has a pod with an Istio proxy with a major version change%s", workloadType, workloadName, container.Image)
 					return true
 				} else if minorVersionDiff > 2 {
-					log.Oncef("Restarting %s %s which has a pod with an old Istio proxy where skew is 2 or more minor versions%s", workloadType, workloadName, container.Image)
+					log.Oncef("%s %s has a pod with an old Istio proxy where skew is more than 2 minor versions%s", workloadType, workloadName, container.Image)
 					return true
 				}
 			}
