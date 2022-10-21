@@ -5,6 +5,11 @@ package mccoherence
 
 import (
 	"fmt"
+	"net/http"
+	"os"
+	"strconv"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -12,10 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster"
-	"net/http"
-	"os"
-	"strconv"
-	"time"
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
@@ -394,15 +395,26 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 
 func cleanUp(kubeconfigPath string) error {
 	start := time.Now()
-	if err := resource.DeleteResourceFromFileInClusterInGeneratedNamespace(appConfiguration, kubeconfigPath, appNamespace); err != nil {
+	file, err := pkg.FindTestDataFile(appConfiguration)
+	if err != nil {
+		return err
+	}
+	if err := resource.DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeconfigPath, appNamespace); err != nil {
 		return fmt.Errorf("failed to delete application resource: %v", err)
 	}
-
-	if err := resource.DeleteResourceFromFileInClusterInGeneratedNamespace(compConfiguration, kubeconfigPath, appNamespace); err != nil {
+	file, err = pkg.FindTestDataFile(compConfiguration)
+	if err != nil {
+		return err
+	}
+	if err := resource.DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeconfigPath, appNamespace); err != nil {
 		return fmt.Errorf("failed to delete component resource: %v", err)
 	}
 
-	if err := resource.DeleteResourceFromFileInCluster(projectConfiguration, kubeconfigPath); err != nil {
+	file, err = pkg.FindTestDataFile(projectConfiguration)
+	if err != nil {
+		return err
+	}
+	if err := resource.DeleteResourceFromFileInCluster(file, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete project resource: %v", err)
 	}
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))

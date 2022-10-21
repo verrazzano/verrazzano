@@ -6,9 +6,10 @@ package register_test
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"os"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -60,7 +61,11 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			}
 			// create a project
 			Eventually(func() error {
-				return resource.CreateOrUpdateResourceFromFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
+				file, err := pkg.FindTestDataFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
+				if err != nil {
+					return err
+				}
+				return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 			Eventually(func() (bool, error) {

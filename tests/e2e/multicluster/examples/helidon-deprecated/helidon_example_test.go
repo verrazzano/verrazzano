@@ -5,10 +5,11 @@ package mchelidon
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 
@@ -56,7 +57,11 @@ var _ = t.BeforeSuite(func() {
 	// deploy the VerrazzanoProject
 	start := time.Now()
 	Eventually(func() error {
-		return resource.CreateOrUpdateResourceFromFileInCluster(projectfile, adminKubeconfig)
+		file, err := pkg.FindTestDataFile(projectfile)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInCluster(file, adminKubeconfig)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// wait for the namespace to be created on the cluster before deploying app
@@ -66,12 +71,20 @@ var _ = t.BeforeSuite(func() {
 
 	// deploy the multicluster components
 	Eventually(func() error {
-		return resource.CreateOrUpdateResourceFromFileInCluster(compFile, adminKubeconfig)
+		file, err := pkg.FindTestDataFile(compFile)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInCluster(file, adminKubeconfig)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// deploy the multicluster app
 	Eventually(func() error {
-		return resource.CreateOrUpdateResourceFromFileInCluster(appFile, adminKubeconfig)
+		file, err := pkg.FindTestDataFile(appFile)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInCluster(file, adminKubeconfig)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
@@ -316,15 +329,27 @@ var _ = t.AfterSuite(func() {
 
 func cleanUp(kubeconfigPath string) error {
 	start := time.Now()
-	if err := resource.DeleteResourceFromFileInCluster(projectfile, kubeconfigPath); err != nil {
+	file, err := pkg.FindTestDataFile(projectfile)
+	if err != nil {
+		return err
+	}
+	if err := resource.DeleteResourceFromFileInCluster(file, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete multi-cluster hello-helidon application resource: %v", err)
 	}
 
-	if err := resource.DeleteResourceFromFileInCluster(compFile, kubeconfigPath); err != nil {
+	file, err = pkg.FindTestDataFile(compFile)
+	if err != nil {
+		return err
+	}
+	if err := resource.DeleteResourceFromFileInCluster(file, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete multi-cluster hello-helidon component resources: %v", err)
 	}
 
-	if err := resource.DeleteResourceFromFileInCluster(appFile, kubeconfigPath); err != nil {
+	file, err = pkg.FindTestDataFile(appFile)
+	if err != nil {
+		return err
+	}
+	if err := resource.DeleteResourceFromFileInCluster(file, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete hello-helidon project resource: %v", err)
 	}
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))

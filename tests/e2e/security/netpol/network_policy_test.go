@@ -6,12 +6,13 @@ package netpol
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
+
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -83,7 +84,11 @@ var _ = clusterDump.BeforeSuite(func() {
 		return pkg.CreateNamespace(testNamespace, nsLabels)
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 	Eventually(func() error {
-		return resource.CreateOrUpdateResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
+		file, err := pkg.FindTestDataFile("testdata/security/network-policies/netpol-test.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
@@ -115,7 +120,11 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	// undeploy the applications here
 	start := time.Now()
 	Eventually(func() error {
-		return resource.DeleteResourceFromFile("testdata/security/network-policies/netpol-test.yaml")
+		file, err := pkg.FindTestDataFile("testdata/security/network-policies/netpol-test.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	Eventually(func() error {
 		return pkg.DeleteNamespace(testNamespace)

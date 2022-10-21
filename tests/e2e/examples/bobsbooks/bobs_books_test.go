@@ -5,10 +5,11 @@ package bobsbooks
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -125,12 +126,20 @@ func deployBobsBooksExample(namespace string) {
 	// Note: creating the app config first to verify that default metrics traits are created properly if the app config exists before the components
 	t.Logs.Info("Create application resources")
 	Eventually(func() error {
-		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-app.yaml", namespace)
+		file, err := pkg.FindTestDataFile("examples/bobs-books/bobs-books-app.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create component resources")
 	Eventually(func() error {
-		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-comp.yaml", namespace)
+		file, err := pkg.FindTestDataFile("examples/bobs-books/bobs-books-comp.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval, "Failed to create Bobs Books component resources").ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
@@ -140,12 +149,20 @@ func undeployBobsBooksExample() {
 	t.Logs.Info("Delete application")
 	start := time.Now()
 	Eventually(func() error {
-		return resource.DeleteResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-app.yaml", namespace)
+		file, err := pkg.FindTestDataFile("examples/bobs-books/bobs-books-app.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
-		return resource.DeleteResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-comp.yaml", namespace)
+		file, err := pkg.FindTestDataFile("examples/bobs-books/bobs-books-comp.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for pods to terminate")

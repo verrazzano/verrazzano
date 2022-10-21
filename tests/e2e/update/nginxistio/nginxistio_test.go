@@ -7,11 +7,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"reflect"
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/yaml"
@@ -556,7 +557,7 @@ func applyResource(resourceFile string, templateData *externalLBsTemplateData) {
 		Fail(err.Error())
 	}
 
-	err = resource.CreateOrUpdateResourceFromBytes(buff.Bytes())
+	err = resource.CreateOrUpdateResourceFromBytes(buff.Bytes(), t.Logs)
 	if err != nil {
 		Fail(err.Error())
 	}

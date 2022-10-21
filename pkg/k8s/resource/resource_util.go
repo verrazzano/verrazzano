@@ -8,13 +8,14 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 
+	"go.uber.org/zap"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,11 +41,10 @@ var nsGvr = schema.GroupVersionResource{
 // The test data file is found using the FindTestDataFile function.
 // This is intended to be equivalent to `kubectl apply`
 // The cluster used is the one set by default in the environment
-func CreateOrUpdateResourceFromFile(file string) error {
-	var logger = vzlog.DefaultLogger()
+func CreateOrUpdateResourceFromFile(file string, log *zap.SugaredLogger) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		logger.Errorf("Error getting kubeconfig, error: %v", err)
+		log.Errorf("Error getting kubeconfig, error: %v", err)
 		return err
 	}
 
@@ -53,11 +53,10 @@ func CreateOrUpdateResourceFromFile(file string) error {
 
 // CreateOrUpdateResourceFromBytes creates or updates a Kubernetes resources from a YAML test data byte array.
 // The cluster used is the one set by default in the environment
-func CreateOrUpdateResourceFromBytes(data []byte) error {
-	var logger = vzlog.DefaultLogger()
+func CreateOrUpdateResourceFromBytes(data []byte, log *zap.SugaredLogger) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		logger.Errorf("Error getting kubeconfig, error: %v", err)
+		log.Errorf("Error getting kubeconfig, error: %v", err)
 		return err
 	}
 
@@ -72,16 +71,10 @@ func CreateOrUpdateResourceFromBytes(data []byte) error {
 // CreateOrUpdateResourceFromFileInCluster is identical to CreateOrUpdateResourceFromFile, except that
 // it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
 func CreateOrUpdateResourceFromFileInCluster(file string, kubeconfigPath string) error {
-	var logger = vzlog.DefaultLogger()
-	found, err := FindTestDataFile(file)
-	if err != nil {
-		return fmt.Errorf("failed to find test data file: %w", err)
-	}
-	bytes, err := os.ReadFile(found)
+	bytes, err := os.ReadFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
-	logger.Infof("Found resource: %s", found)
 
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
@@ -158,16 +151,10 @@ func CreateOrUpdateResourceFromFileInGeneratedNamespace(file string, namespace s
 // CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace is identical to CreateOrUpdateResourceFromFileInGeneratedNamespace, except that
 // it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
 func CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file string, kubeconfigPath string, namespace string) error {
-	var logger = vzlog.DefaultLogger()
-	found, err := FindTestDataFile(file)
-	if err != nil {
-		return fmt.Errorf("failed to find test data file: %w", err)
-	}
-	bytes, err := os.ReadFile(found)
+	bytes, err := os.ReadFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
-	logger.Infof("Found resource: %s", found)
 
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
@@ -263,11 +250,10 @@ func readNextResourceFromBytes(reader *utilyaml.YAMLReader, mapper *restmapper.D
 // DeleteResourceFromFile deletes Kubernetes resources using names found in a YAML test data file.
 // This is intended to be equivalent to `kubectl delete`
 // The test data file is found using the FindTestDataFile function.
-func DeleteResourceFromFile(file string) error {
-	var logger = vzlog.DefaultLogger()
+func DeleteResourceFromFile(file string, log *zap.SugaredLogger) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		logger.Errorf("Error getting kubeconfig, error: %v", err)
+		log.Errorf("Error getting kubeconfig, error: %v", err)
 		return err
 	}
 	return DeleteResourceFromFileInCluster(file, kubeconfigPath)
@@ -276,11 +262,7 @@ func DeleteResourceFromFile(file string) error {
 // DeleteResourceFromFileInCluster is identical to DeleteResourceFromFile, except that
 // // it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
 func DeleteResourceFromFileInCluster(file string, kubeconfigPath string) error {
-	found, err := FindTestDataFile(file)
-	if err != nil {
-		return fmt.Errorf("failed to find test data file: %w", err)
-	}
-	bytes, err := os.ReadFile(found)
+	bytes, err := os.ReadFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
@@ -328,9 +310,9 @@ func deleteResourceFromBytes(data []byte, config *rest.Config) error {
 	}
 }
 
-// DeleteResourceFromFile deletes Kubernetes resources using names found in a YAML test data file.
-// This is intended to be equivalent to `kubectl delete`
+// DeleteResourceFromFileInGeneratedNamespace deletes Kubernetes resources using names found in a YAML test data file.
 // The test data file is found using the FindTestDataFile function.
+// The namespace is generated and passed in
 func DeleteResourceFromFileInGeneratedNamespace(file string, namespace string) error {
 	var logger = vzlog.DefaultLogger()
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -341,14 +323,10 @@ func DeleteResourceFromFileInGeneratedNamespace(file string, namespace string) e
 	return DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeconfigPath, namespace)
 }
 
-// DeleteResourceFromFileInCluster is identical to DeleteResourceFromFile, except that
-// it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
+// DeleteResourceFromFileInClusterInGeneratedNamespace is identical to DeleteResourceFromFileInGeneratedNamespace,
+// except that it uses the cluster specified by the kubeconfigPath argument instead of the default cluster in the environment
 func DeleteResourceFromFileInClusterInGeneratedNamespace(file string, kubeconfigPath string, namespace string) error {
-	found, err := FindTestDataFile(file)
-	if err != nil {
-		return fmt.Errorf("failed to find test data file: %w", err)
-	}
-	bytes, err := os.ReadFile(found)
+	bytes, err := os.ReadFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
@@ -400,16 +378,10 @@ func deleteResourceFromBytesInGeneratedNamespace(data []byte, config *rest.Confi
 // If the given patch file has a ".yaml" extension, the contents will be converted to JSON
 // This is intended to be equivalent to `kubectl patch`
 func PatchResourceFromFileInCluster(gvr schema.GroupVersionResource, namespace string, name string, patchFile string, kubeconfigPath string) error {
-	var logger = vzlog.DefaultLogger()
-	found, err := FindTestDataFile(patchFile)
-	if err != nil {
-		return fmt.Errorf("failed to find test data file: %w", err)
-	}
-	patchBytes, err := os.ReadFile(found)
+	patchBytes, err := os.ReadFile(patchFile)
 	if err != nil {
 		return fmt.Errorf("failed to read test data file: %w", err)
 	}
-	logger.Infof("Found resource: %s", found)
 
 	if strings.HasSuffix(patchFile, ".yaml") {
 		patchBytes, err = utilyaml.ToJSON(patchBytes)
@@ -440,27 +412,4 @@ func patchResourceFromBytes(gvr schema.GroupVersionResource, namespace string, n
 		return fmt.Errorf("failed to patch %s/%v: %w", namespace, gvr, err)
 	}
 	return nil
-}
-
-// FindTestDataFile finds a test data file by searching up from the working directory looking for a relative file.
-// This is done to simplify the execution of tests in both local and remote environments.
-func FindTestDataFile(file string) (string, error) {
-	find := file
-	_, err := os.Stat(file)
-	if err != nil {
-		dir, err := os.Getwd()
-		if err != nil {
-			return find, err
-		}
-		for dir != "/" {
-			dir = filepath.Dir(dir)
-			find = filepath.Join(dir, file)
-			_, err = os.Stat(find)
-			if err == nil {
-				return find, nil
-			}
-		}
-		return find, fmt.Errorf("failed to find test data file: %s", file)
-	}
-	return file, nil
 }

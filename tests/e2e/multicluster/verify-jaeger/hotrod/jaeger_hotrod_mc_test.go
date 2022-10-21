@@ -5,9 +5,10 @@ package hotrod
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"os"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -51,7 +52,11 @@ var _ = t.BeforeSuite(func() {
 		AbortSuite("One or more required env variables (ADMIN_KUBECONFIG, MANAGED_KUBECONFIG, MANAGED_CLUSTER_NAME) for the test suite are not set.")
 	}
 	Eventually(func() error {
-		if err := resource.CreateOrUpdateResourceFromFileInCluster(verrazzanoProjectFilePath, adminKubeconfig); err != nil {
+		file, err := pkg.FindTestDataFile(verrazzanoProjectFilePath)
+		if err != nil {
+			return err
+		}
+		if err := resource.CreateOrUpdateResourceFromFileInCluster(file, adminKubeconfig); err != nil {
 			return fmt.Errorf("failed to create %s project resource: %v", projectName, err)
 		}
 		return nil
@@ -64,10 +69,18 @@ var _ = t.BeforeSuite(func() {
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 
 	Eventually(func() error {
-		if err := resource.CreateOrUpdateResourceFromFileInCluster(testAppComponentFilePath, adminKubeconfig); err != nil {
+		file, err := pkg.FindTestDataFile(testAppComponentFilePath)
+		if err != nil {
+			return err
+		}
+		if err := resource.CreateOrUpdateResourceFromFileInCluster(file, adminKubeconfig); err != nil {
 			return fmt.Errorf("failed to create multi-cluster %s component resources: %v", projectName, err)
 		}
-		if err := resource.CreateOrUpdateResourceFromFileInCluster(testAppConfigurationFilePath, adminKubeconfig); err != nil {
+		file, err = pkg.FindTestDataFile(testAppConfigurationFilePath)
+		if err != nil {
+			return err
+		}
+		if err := resource.CreateOrUpdateResourceFromFileInCluster(file, adminKubeconfig); err != nil {
 			return fmt.Errorf("failed to create multi-cluster %s application resource: %v", projectName, err)
 		}
 		return nil
@@ -101,20 +114,32 @@ var _ = t.AfterSuite(func() {
 	// undeploy the application here
 	start := time.Now()
 	Eventually(func() error {
-		if err := resource.DeleteResourceFromFileInCluster(testAppConfigurationFilePath, adminKubeconfig); err != nil {
+		file, err := pkg.FindTestDataFile(testAppConfigurationFilePath)
+		if err != nil {
+			return err
+		}
+		if err := resource.DeleteResourceFromFileInCluster(file, adminKubeconfig); err != nil {
 			return fmt.Errorf("failed to delete multi-cluster hotrod application resource: %v", err)
 		}
 		return nil
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(HaveOccurred())
 	Eventually(func() error {
-		if err := resource.DeleteResourceFromFileInCluster(testAppComponentFilePath, adminKubeconfig); err != nil {
+		file, err := pkg.FindTestDataFile(testAppComponentFilePath)
+		if err != nil {
+			return err
+		}
+		if err := resource.DeleteResourceFromFileInCluster(file, adminKubeconfig); err != nil {
 			return fmt.Errorf("failed to delete multi-cluster hotrod component resources: %v", err)
 		}
 		return nil
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		if err := resource.DeleteResourceFromFileInCluster(verrazzanoProjectFilePath, adminKubeconfig); err != nil {
+		file, err := pkg.FindTestDataFile(verrazzanoProjectFilePath)
+		if err != nil {
+			return err
+		}
+		if err := resource.DeleteResourceFromFileInCluster(file, adminKubeconfig); err != nil {
 			return fmt.Errorf("failed to delete hotrod project resource: %v", err)
 		}
 		return nil

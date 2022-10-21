@@ -5,8 +5,9 @@ package weblogic
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -73,17 +74,29 @@ var _ = t.BeforeSuite(func() {
 
 	t.Logs.Info("Create persistent volume claim")
 	Eventually(func() error {
-		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/pvc.yaml", namespace)
+		file, err := pkg.FindTestDataFile("testdata/logging/weblogic/pvc.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create component resources")
 	Eventually(func() error {
-		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/weblogic-logging-comp.yaml", namespace)
+		file, err := pkg.FindTestDataFile("testdata/logging/weblogic/weblogic-logging-comp.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create application resources")
 	Eventually(func() error {
-		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/weblogic-logging-app.yaml", namespace)
+		file, err := pkg.FindTestDataFile("testdata/logging/weblogic/weblogic-logging-app.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for image pulls")
@@ -113,12 +126,20 @@ var _ = t.AfterSuite(func() {
 
 	t.Logs.Info("Delete component resources")
 	Eventually(func() error {
-		return resource.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/weblogic-logging-app.yaml", namespace)
+		file, err := pkg.FindTestDataFile("testdata/logging/weblogic/weblogic-logging-app.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete application resources")
 	Eventually(func() error {
-		return resource.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/weblogic-logging-comp.yaml", namespace)
+		file, err := pkg.FindTestDataFile("testdata/logging/weblogic/weblogic-logging-comp.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for application pods to terminate")
@@ -129,7 +150,11 @@ var _ = t.AfterSuite(func() {
 
 	t.Logs.Info("Delete persistent volume claim")
 	Eventually(func() error {
-		return resource.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/pvc.yaml", namespace)
+		file, err := pkg.FindTestDataFile("testdata/logging/weblogic/pvc.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete namespace")

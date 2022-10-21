@@ -5,11 +5,12 @@ package helidonsvc
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 
 	"github.com/hashicorp/go-retryablehttp"
 	v1 "k8s.io/api/core/v1"
@@ -228,12 +229,20 @@ func deployHelloHelidonApplication(namespace string, ociLogID string, istioInjec
 
 	pkg.Log(pkg.Info, "Create Hello Helidon component resource")
 	Eventually(func() error {
-		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
+		file, err := pkg.FindTestDataFile(helidonComponentYaml)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon component resource")
 
 	pkg.Log(pkg.Info, "Create Hello Helidon application resource")
 	Eventually(func() error {
-		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
+		file, err := pkg.FindTestDataFile(helidonAppYaml)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
 }
 
@@ -243,12 +252,20 @@ func undeployHelloHelidonApplication(namespace string) {
 	if exists, _ := pkg.DoesNamespaceExist(namespace); exists {
 		pkg.Log(pkg.Info, "Delete Hello Helidon application")
 		Eventually(func() error {
-			return resource.DeleteResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
+			file, err := pkg.FindTestDataFile(helidonAppYaml)
+			if err != nil {
+				return err
+			}
+			return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
 
 		pkg.Log(pkg.Info, "Delete Hello Helidon components")
 		Eventually(func() error {
-			return resource.DeleteResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
+			file, err := pkg.FindTestDataFile(helidonComponentYaml)
+			if err != nil {
+				return err
+			}
+			return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon component resource")
 
 		pkg.Log(pkg.Info, "Wait for application pods to terminate")

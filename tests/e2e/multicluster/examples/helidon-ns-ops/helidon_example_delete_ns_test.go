@@ -5,11 +5,12 @@ package mcnshelidon
 
 import (
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
-	"os"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -149,7 +150,11 @@ var _ = t.AfterSuite(func() {
 
 func deleteProject(kubeconfigPath string) error {
 	start := time.Now()
-	if err := resource.DeleteResourceFromFileInCluster("examples/multicluster/hello-helidon-ns/verrazzano-project.yaml", kubeconfigPath); err != nil {
+	file, err := pkg.FindTestDataFile("examples/multicluster/hello-helidon-ns/verrazzano-project.yaml")
+	if err != nil {
+		return err
+	}
+	if err := resource.DeleteResourceFromFileInCluster(file, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete hello-helidon project resource: %v", err)
 	}
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))

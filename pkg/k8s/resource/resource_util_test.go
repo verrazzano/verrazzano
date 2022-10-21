@@ -6,15 +6,18 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"io"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 const (
@@ -23,27 +26,6 @@ const (
 	SecretInvalid      = "testdata/secret_invalid.yaml"
 	SecretNoNamespace  = "testdata/secret_no_namespace.yaml"
 )
-
-// TestFindTestDataFile tests the FindTestDataFile function
-// Given a filename, it should verify that the file exists
-// and return the path to the file relative to pwd
-func TestFindTestDataFile(t *testing.T) {
-	asserts := assert.New(t)
-
-	// File doesn't exist, should return an error
-	filename := "test-file"
-
-	_, err := FindTestDataFile(filename)
-	asserts.Error(err)
-	asserts.EqualError(err, fmt.Sprintf("failed to find test data file: %s", filename))
-
-	// File exists, should find the file
-	filename = Secret
-	file, err := FindTestDataFile(filename)
-
-	asserts.NoError(err)
-	asserts.Equal(filename, file)
-}
 
 // TestCreateOrUpdateResourceFromFile tests the CreateOrUpdateResourceFromFile function
 // Given a yaml file, create the resource
@@ -67,7 +49,8 @@ func TestCreateOrUpdateResourceFromFile(t *testing.T) {
 	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, kubeConfigPath)
 	asserts.NoError(err)
 
-	err = CreateOrUpdateResourceFromFile(file)
+	logger := vzlog.DefaultLogger().GetZapLogger()
+	err = CreateOrUpdateResourceFromFile(file, logger)
 	asserts.NoError(err)
 
 	// Reset env variable
@@ -103,7 +86,7 @@ func TestCreateOrUpdateResourceFromBytes(t *testing.T) {
 	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, kubeConfigPath)
 	asserts.NoError(err)
 
-	err = CreateOrUpdateResourceFromBytes(bytes)
+	err = CreateOrUpdateResourceFromBytes(bytes, vzlog.DefaultLogger().GetZapLogger())
 	asserts.NoError(err)
 
 	// Reset env variable
@@ -248,7 +231,7 @@ func TestDeleteResourceFromFile(t *testing.T) {
 	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, kubeConfigPath)
 	asserts.NoError(err)
 
-	err = DeleteResourceFromFile(file)
+	err = DeleteResourceFromFile(file, vzlog.DefaultLogger().GetZapLogger())
 	asserts.NoError(err)
 
 	// Reset env variable
@@ -288,6 +271,40 @@ func TestDeleteResourceFromFileInCluster(t *testing.T) {
 	file = SecretInvalid
 	err = DeleteResourceFromFileInCluster(file, kubeConfigPath)
 	asserts.Error(err)
+
+	err = deleteFakeKubeConfig()
+	asserts.NoError(err)
+}
+
+// TestDeleteResourceFromFileInGeneratedNamespace tests
+// the DeleteResourceFromFileInGeneratedNamespace
+// Given a yaml with no namespace, delete the resource
+func TestDeleteResourceFromFileInGeneratedNamespace(t *testing.T) {
+	asserts := assert.New(t)
+	file := SecretNoNamespace
+
+	server := newServer()
+	defer server.Close()
+
+	err := createFakeKubeConfig(server.URL)
+	asserts.NoError(err)
+
+	kubeConfigPath, err := getFakeKubeConfigPath()
+	asserts.NoError(err)
+
+	// Preserve previous env var value
+	prevEnvVar := os.Getenv(k8sutil.EnvVarTestKubeConfig)
+
+	// Test using environment variable
+	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, kubeConfigPath)
+	asserts.NoError(err)
+
+	err = DeleteResourceFromFileInGeneratedNamespace(file, "default")
+	asserts.NoError(err)
+
+	// Reset env variable
+	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, prevEnvVar)
+	asserts.NoError(err)
 
 	err = deleteFakeKubeConfig()
 	asserts.NoError(err)

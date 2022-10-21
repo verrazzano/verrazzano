@@ -5,9 +5,10 @@ package metricsbinding
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	v1 "k8s.io/api/core/v1"
-	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -51,7 +52,11 @@ func createNamespace(namespace, istioInjection string, t framework.TestFramework
 func deployApplication(namespace, yamlPath, podPrefix string, t framework.TestFramework) {
 	t.Logs.Info("Create application from yaml path")
 	gomega.Eventually(func() error {
-		err := resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(yamlPath, namespace)
+		file, err := pkg.FindTestDataFile(yamlPath)
+		if err != nil {
+			return err
+		}
+		err = resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 		if err != nil {
 			t.Logs.Errorf("Failed to apply the Application from file: %v", err)
 		}
@@ -72,7 +77,11 @@ func deployApplication(namespace, yamlPath, podPrefix string, t framework.TestFr
 func deployConfigMap(namespace, configMapYamlPath string, t framework.TestFramework) {
 	t.Logs.Info("Create ConfigMap resource")
 	gomega.Eventually(func() error {
-		err := resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(configMapYamlPath, namespace)
+		file, err := pkg.FindTestDataFile(configMapYamlPath)
+		if err != nil {
+			return err
+		}
+		err = resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 		if err != nil {
 			t.Logs.Errorf("Failed to apply the ConfigMap from file: %v", err)
 		}
@@ -84,7 +93,11 @@ func deployConfigMap(namespace, configMapYamlPath string, t framework.TestFramew
 func deployTemplate(namespace, templateYamlPath string, t framework.TestFramework) {
 	t.Logs.Info("Create template resource")
 	gomega.Eventually(func() error {
-		err := resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(templateYamlPath, namespace)
+		file, err := pkg.FindTestDataFile(templateYamlPath)
+		if err != nil {
+			return err
+		}
+		err = resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 		if err != nil {
 			t.Logs.Errorf("Failed to apply the Metrics Template from file: %v", err)
 		}

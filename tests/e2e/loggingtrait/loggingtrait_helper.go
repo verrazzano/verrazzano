@@ -5,6 +5,8 @@ package loggingtrait
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -13,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"time"
 )
 
 const (
@@ -37,12 +38,20 @@ func DeployApplication(namespace, istionInjection, componentsPath, applicationPa
 
 	t.Logs.Info("Create component resources")
 	gomega.Eventually(func() error {
-		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(componentsPath, namespace)
+		file, err := pkg.FindTestDataFile(componentsPath)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	t.Logs.Info("Create application resources")
 	gomega.Eventually(func() error {
-		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(applicationPath, namespace)
+		file, err := pkg.FindTestDataFile(applicationPath)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	t.Logs.Infof("Check pod %v is running", podName)
@@ -61,12 +70,20 @@ func UndeployApplication(namespace string, componentsPath string, applicationPat
 	t.Logs.Info("Delete application")
 	start := time.Now()
 	gomega.Eventually(func() error {
-		return resource.DeleteResourceFromFileInGeneratedNamespace(applicationPath, namespace)
+		file, err := pkg.FindTestDataFile(applicationPath)
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	gomega.Eventually(func() error {
-		return resource.DeleteResourceFromFileInGeneratedNamespace(componentsPath, namespace)
+		file, err := pkg.FindTestDataFile(componentsPath)
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	t.Logs.Info("Verify ConfigMap is Deleted")

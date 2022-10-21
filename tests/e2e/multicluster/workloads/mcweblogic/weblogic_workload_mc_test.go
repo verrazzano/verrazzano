@@ -4,6 +4,10 @@
 package mcweblogic
 
 import (
+	"net/http"
+	"os"
+	"strconv"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -11,9 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/weblogic"
 	m1 "k8s.io/api/core/v1"
-	"net/http"
-	"os"
-	"strconv"
 
 	"fmt"
 	"time"
@@ -388,23 +389,40 @@ var _ = t.Describe("In Multi-cluster, verify WebLogic application", Label("f:mul
 
 func cleanUp(kubeconfigPath string) error {
 	start := time.Now()
-	if err := resource.DeleteResourceFromFileInClusterInGeneratedNamespace(appConfiguration, kubeconfigPath, appNamespace); err != nil {
+	file, err := pkg.FindTestDataFile(appConfiguration)
+	if err != nil {
+		return err
+	}
+	if err := resource.DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeconfigPath, appNamespace); err != nil {
 		return fmt.Errorf("failed to delete application resource: %v", err)
 	}
-
-	if err := resource.DeleteResourceFromFileInClusterInGeneratedNamespace(compConfiguration, kubeconfigPath, appNamespace); err != nil {
+	file, err = pkg.FindTestDataFile(compConfiguration)
+	if err != nil {
+		return err
+	}
+	if err := resource.DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeconfigPath, appNamespace); err != nil {
 		return fmt.Errorf("failed to delete component resource: %v", err)
 	}
-
-	if err := resource.DeleteResourceFromFileInClusterInGeneratedNamespace(wlDomainSecretConfiguration, kubeconfigPath, appNamespace); err != nil {
+	file, err = pkg.FindTestDataFile(wlDomainSecretConfiguration)
+	if err != nil {
+		return err
+	}
+	if err := resource.DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeconfigPath, appNamespace); err != nil {
 		return fmt.Errorf("failed to delete WebLogic domain secret: %v", err)
 	}
-
-	if err := resource.DeleteResourceFromFileInClusterInGeneratedNamespace(dockerRegistrySecretConfiguration, kubeconfigPath, appNamespace); err != nil {
+	file, err = pkg.FindTestDataFile(dockerRegistrySecretConfiguration)
+	if err != nil {
+		return err
+	}
+	if err := resource.DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeconfigPath, appNamespace); err != nil {
 		return fmt.Errorf("failed to delete docker registry secret: %v", err)
 	}
 
-	if err := resource.DeleteResourceFromFileInCluster(projectConfiguration, kubeconfigPath); err != nil {
+	file, err = pkg.FindTestDataFile(projectConfiguration)
+	if err != nil {
+		return err
+	}
+	if err := resource.DeleteResourceFromFileInCluster(file, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete project resource: %v", err)
 	}
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
