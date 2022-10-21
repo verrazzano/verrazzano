@@ -40,6 +40,10 @@ func (w logGenerator) WantIterationInfoLogged() bool {
 	return false
 }
 
+func (w logGenerator) Init(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+	return nil
+}
+
 func (w logGenerator) Work(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	if w.logMsgSize == 0 {
 		w.logMsgSize = len(w.logMsg)

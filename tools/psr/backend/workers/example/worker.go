@@ -42,6 +42,10 @@ func (w exampleWorker) WantIterationInfoLogged() bool {
 	return true
 }
 
+func (w exampleWorker) Init(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+	return nil
+}
+
 func (w exampleWorker) Work(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	log.Infof("Example Worker doing work")
 	atomic.AddInt64(&w.loggedLinesTotal, 1)
