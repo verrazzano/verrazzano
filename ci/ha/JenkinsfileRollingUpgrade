@@ -454,6 +454,9 @@ pipeline {
                             }
                         }
                         stage ('console') {
+                            when {
+                                expression { false }
+                            }
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
                             }
