@@ -5,13 +5,13 @@ package upgrade
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/semver"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"k8s.io/apimachinery/pkg/types"
@@ -43,6 +43,7 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 
 	cmd.PersistentFlags().Bool(constants.WaitFlag, constants.WaitFlagDefault, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
+	cmd.PersistentFlags().Duration(constants.VPOTimeoutFlag, time.Minute*5, constants.VPOTimeoutFlagHelp)
 	cmd.PersistentFlags().String(constants.VersionFlag, constants.VersionFlagDefault, constants.VersionFlagUpgradeHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 
@@ -54,6 +55,9 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	// Dry run flag is still being discussed - keep hidden for now
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an upgrade.")
 	cmd.PersistentFlags().MarkHidden(constants.DryRunFlag)
+
+	// Hide the flag for overriding the default wait timeout for the platform-operator
+	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
 
 	return cmd
 }
@@ -112,7 +116,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Upgrading Verrazzano to version %s\n", version))
 
 	// Get the timeout value for the upgrade command
-	timeout, err := cmdhelpers.GetWaitTimeout(cmd)
+	timeout, err := cmdhelpers.GetWaitTimeout(cmd, constants.TimeoutFlag)
 	if err != nil {
 		return err
 	}
@@ -143,8 +147,14 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 			return err
 		}
 
+		// Get the VPO timeout
+		vpoTimeout, err := cmdhelpers.GetWaitTimeout(cmd, constants.VPOTimeoutFlag)
+		if err != nil {
+			return err
+		}
+
 		// Wait for the platform operator to be ready before we update the verrazzano install resource
-		vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondUpgradeComplete)
+		vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondUpgradeComplete, vpoTimeout)
 		if err != nil {
 			return err
 		}
