@@ -41,18 +41,19 @@ func RunWorker(log vzlog.VerrazzanoLogger) error {
 		os.Exit(1)
 	}
 
-	// create the runner to continually calls the worker in a loop
-	runner := Runner{Worker: worker}
-
 	// init the runner and wrapped worker
 	log.Infof("Initializing worker %s", wt)
-	runner.Init(conf, log)
+	runner, err := NewRunner(worker, conf, log)
+	if err != nil {
+		log.Errorf("Failed initializing runner and worker: %v", err)
+		os.Exit(1)
+	}
 
 	// start metrics server as go routine
 	log.Info("Starting metrics server")
 	mProviders := []spi.WorkerMetricsProvider{}
 	mProviders = append(mProviders, runner)
-	mProviders = append(mProviders, runner.Worker)
+	mProviders = append(mProviders, worker)
 	go metrics2.StartMetricsServerOrDie(mProviders)
 
 	// run the worker to completion (usually forever)

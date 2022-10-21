@@ -13,27 +13,21 @@ import (
 )
 
 type WorkerRunner interface {
-	// Init initializes the runner. This is called once at startup, before RunWork is called
-	Init(config.CommonConfig, vzlog.VerrazzanoLogger) error
-
-	// GetEnvDescList get the Environment variable descriptors used for worker configuration
-	GetEnvDescList() []config.EnvVarDesc
-
 	// RunWorker runs the worker use case in a loop
 	RunWorker(config.CommonConfig, vzlog.VerrazzanoLogger) error
-
-	// WantIterationInfoLogged returns true if the runner should log information for each iteration
-	WantIterationInfoLogged() bool
 
 	// WorkerMetricsProvider is an interface to get prometheus metrics information for the worker
 	spi.WorkerMetricsProvider
 }
 
-// Runner is needed to run the worker
-type Runner struct {
+// runner is needed to run the worker
+type runner struct {
 	spi.Worker
-	runnerMetrics
+	metricDescList []prometheus.Desc
+	*runnerMetrics
 }
+
+var _ WorkerRunner = runner{}
 
 // metricInfo contains the information for a single metric
 type metricInfo struct {
@@ -47,38 +41,31 @@ type runnerMetrics struct {
 	elapsedSecs metricInfo
 }
 
-var metricDescList []prometheus.Desc
-
-// GetEnvDescList get the Environment variable descriptors used for worker configuration
-func (r Runner) GetEnvDescList() []config.EnvVarDesc {
-	return []config.EnvVarDesc{}
-}
-
-// Init creates the metrics descriptors
-func (r Runner) Init(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+// NewRunner creates a new runner
+func NewRunner(worker spi.Worker, conf config.CommonConfig, log vzlog.VerrazzanoLogger) (WorkerRunner, error) {
 	constLabels := prometheus.Labels{}
 
+	r := runner{Worker: worker, runnerMetrics: &runnerMetrics{}}
+
 	d := prometheus.NewDesc(
-		prometheus.BuildFQName("PSR", "Worker", "loop_count"),
+		prometheus.BuildFQName("psr", "loggen", "loop_count"),
 		"The number of loop iterations executed",
 		nil,
 		constLabels,
 	)
-	metricDescList = append(metricDescList, *d)
+	r.metricDescList = append(r.metricDescList, *d)
+	r.runnerMetrics.loopCount.desc = d
 
-	if err := r.Worker.Init(conf, log); err != nil {
-		return err
-	}
-	return nil
+	return r, nil
 }
 
 // GetMetricDescList returns the prometheus metrics descriptors for the worker metrics.  Must be thread safe
-func (r Runner) GetMetricDescList() []prometheus.Desc {
-	return metricDescList
+func (r runner) GetMetricDescList() []prometheus.Desc {
+	return r.metricDescList
 }
 
 // GetMetricList returns the realtime metrics for the worker.  Must be thread safe
-func (r Runner) GetMetricList() []prometheus.Metric {
+func (r runner) GetMetricList() []prometheus.Metric {
 	metrics := []prometheus.Metric{}
 
 	m := prometheus.MustNewConstMetric(
@@ -91,7 +78,7 @@ func (r Runner) GetMetricList() []prometheus.Metric {
 }
 
 // RunWorker runs the worker in a loop
-func (r Runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	startTime := time.Now().Unix()
 	for {
 		atomic.AddInt64(&r.runnerMetrics.loopCount.val, 1)
@@ -99,7 +86,7 @@ func (r Runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		atomic.StoreInt64(&r.runnerMetrics.elapsedSecs.val, secs)
 
 		// call the wrapped worker.  Log any error but keep working
-		err := r.Worker.Work(conf, log)
+		err := r.Worker.DoWork(conf, log)
 		if err != nil {
 			log.Error("Failed calling %s to do work: %v", err)
 		}
