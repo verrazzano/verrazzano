@@ -16,7 +16,7 @@ import (
 type componentUninstallState string
 
 const (
-	// compStateInit is the state when a component is starting the Uninstall flow
+	// compStateUpgradeStart is the state when a component is starting the Uninstall flow
 	compStateUninstallStart componentUninstallState = "compStateUninstallStart"
 
 	// compStatePreUninstall is the state when a component does a pre-Uninstall
@@ -28,8 +28,8 @@ const (
 	// compStateWaitUninstalled is the state when a component is waiting to be uninstalled
 	compStateWaitUninstalled componentUninstallState = "compStateWaitUninstalled"
 
-	// compStateUninstalledone is the state when component Uninstall is done
-	compStateUninstalledone componentUninstallState = "compStateUninstalledone"
+	// compStateUninstalleDone is the state when component Uninstall is done
+	compStateUninstalleDone componentUninstallState = "compStateUninstalleDone"
 
 	// compStateUninstallEnd is the terminal state
 	compStateUninstallEnd componentUninstallState = "compStateUninstallEnd"
@@ -130,9 +130,9 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 				compLog.Errorf("PostUninstall for component %s failed: %v", compName, err)
 				return newRequeueWithDelay(), nil
 			}
-			UninstallContext.state = compStateUninstalledone
+			UninstallContext.state = compStateUninstalleDone
 
-		case compStateUninstalledone:
+		case compStateUninstalleDone:
 			if err := r.updateComponentStatus(compContext, "Uninstall complete", v1alpha1.CondUninstallComplete); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
