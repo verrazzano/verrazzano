@@ -5,6 +5,7 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 	"go.uber.org/zap"
@@ -19,7 +20,10 @@ func StartMetricsServerOrDie(providers []spi.WorkerMetricsProvider) {
 	reg.MustRegister(
 		rc,
 	)
-
+	// Add the standard process and Go metrics to the custom registry.
+	reg.MustRegister(
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+	)
 	// Register the custom collector and start the metrics server
 	http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 

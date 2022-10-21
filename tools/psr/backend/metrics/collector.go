@@ -27,9 +27,9 @@ func (rc runCollector) Collect(ch chan<- prometheus.Metric) {
 	// Loop through the metrics providers. Usually it is just the runner and a worker
 	for _, p := range rc.providers {
 		// Get the metrics for the provider and send the metric to the channel
-		dd := p.GetMetricList()
-		for i := range dd {
-			ch <- dd[i]
+		mm := p.GetMetricList()
+		for i := range mm {
+			ch <- mm[i]
 		}
 	}
 }
