@@ -374,19 +374,26 @@ func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQ
 	_ = Runner(&cmd, log)
 	//log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
 
-	var jobCmdArgs []string
-	jobCmdArgs = append(jobCmdArgs, "kubectl")
-	jobCmdArgs = append(jobCmdArgs, "get")
-	jobCmdArgs = append(jobCmdArgs, "job")
-	jobCmdArgs = append(jobCmdArgs, "-n")
-	jobCmdArgs = append(jobCmdArgs, "keycloak")
-	jobCmdArgs = append(jobCmdArgs, "-l")
-	jobCmdArgs = append(jobCmdArgs, fmt.Sprintf("mysql.oracle.com/cluster=%s", backupName))
-	jobCmdArgs = append(jobCmdArgs, "-o")
-	jobCmdArgs = append(jobCmdArgs, "-custom-columns=:metadata.name")
-	jobCmdArgs = append(jobCmdArgs, "--no-headers")
-	jobCmdArgs = append(jobCmdArgs, "--ignore-not-found=true")
-	cmd.CommandArgs = jobCmdArgs
+	//var jobCmdArgs []string
+	//jobCmdArgs = append(jobCmdArgs, "kubectl")
+	//jobCmdArgs = append(jobCmdArgs, "get")
+	//jobCmdArgs = append(jobCmdArgs, "job")
+	//jobCmdArgs = append(jobCmdArgs, "-n")
+	//jobCmdArgs = append(jobCmdArgs, "keycloak")
+	//jobCmdArgs = append(jobCmdArgs, "-l")
+	//jobCmdArgs = append(jobCmdArgs, fmt.Sprintf("mysql.oracle.com/cluster=%s", backupName))
+	//jobCmdArgs = append(jobCmdArgs, "-o")
+	//jobCmdArgs = append(jobCmdArgs, "-custom-columns=:metadata.name")
+	//jobCmdArgs = append(jobCmdArgs, "--no-headers")
+	//jobCmdArgs = append(jobCmdArgs, "--ignore-not-found=true")
+	//cmd.CommandArgs = jobCmdArgs
+
+	var mbkCmdArgs []string
+	mbkcmd := fmt.Sprintf("kubectl get mbk -n keycloak %s -o json | jq -r '.status.output'", backupName)
+	mbkCmdArgs = append(mbkCmdArgs, "/bin/sh")
+	mbkCmdArgs = append(mbkCmdArgs, "-c")
+	mbkCmdArgs = append(mbkCmdArgs, mbkcmd)
+	cmd.CommandArgs = mbkCmdArgs
 
 	jobNameResponse := Runner(&cmd, log)
 	jobName := jobNameResponse.StandardOut.String()
