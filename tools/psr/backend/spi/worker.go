@@ -9,8 +9,23 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 )
 
+// WorkerDesc contains basic information about a worker
+type WorkerDesc struct {
+	// EnvName returns the worker name specified by the Env var
+	EnvName string
+
+	// Description returns a description of the worker
+	Description string
+
+	// MetricsName returns the worker name used for metrics
+	MetricsName string
+}
+
 // Worker is an interface that must be implemented by all workers
 type Worker interface {
+	// GetWorkerDesc returns the WorkerDesc for the worker
+	GetWorkerDesc() WorkerDesc
+
 	// GetEnvDescList get the Environment variable descriptors used for worker configuration
 	GetEnvDescList() []config.EnvVarDesc
 
