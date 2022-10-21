@@ -77,6 +77,9 @@ var _ = t.BeforeSuite(func() {
 			return fmt.Errorf("failed to create multi-cluster %s component resources: %v", projectName, err)
 		}
 		file, err = pkg.FindTestDataFile(testAppConfigurationFilePath)
+		if err != nil {
+			return err
+		}
 		if err := resource.CreateOrUpdateResourceFromFileInCluster(file, adminKubeconfig); err != nil {
 			return fmt.Errorf("failed to create multi-cluster %s application resource: %v", projectName, err)
 		}

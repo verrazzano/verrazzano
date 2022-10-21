@@ -175,7 +175,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 			Eventually(func() (bool, error) {
 				file, err := pkg.FindTestDataFile("testdata/multicluster/multicluster_configmap_update.yaml")
 				if err != nil {
-					return false, goerrors.New(fmt.Sprintf("expected error from CreateOrUpdateResourceFromFile: %v", err))
+					return false, fmt.Errorf(fmt.Sprintf("expected error from CreateOrUpdateResourceFromFile: %v", err))
 				}
 				err = resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 				// if we didn't get an error, fail immediately
@@ -188,7 +188,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 			Eventually(func() (bool, error) {
 				file, err := pkg.FindTestDataFile("testdata/multicluster/multicluster_configmap.yaml")
 				if err != nil {
-					return false, goerrors.New(fmt.Sprintf("expected error message from DeleteResourceFromFile: %v", err))
+					return false, fmt.Errorf(fmt.Sprintf("expected error message from DeleteResourceFromFile: %v", err))
 				}
 				err = resource.DeleteResourceFromFile(file, t.Logs)
 				// if we didn't get an error, fail immediately
@@ -207,7 +207,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 			Eventually(func() (bool, error) {
 				file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest1-multicluster-secret-update.yaml")
 				if err != nil {
-					return false, goerrors.New(fmt.Sprintf("expected error from CreateOrUpdateResourceFromFile: %v", err))
+					return false, fmt.Errorf(fmt.Sprintf("expected error from CreateOrUpdateResourceFromFile: %v", err))
 				}
 				err = resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 				// if we didn't get an error, fail immediately
@@ -220,7 +220,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 			Eventually(func() (bool, error) {
 				file, err := pkg.FindTestDataFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml")
 				if err != nil {
-					return false, goerrors.New(fmt.Sprintf("expected error message from DeleteResourceFromFile: %v", err))
+					return false, fmt.Errorf(fmt.Sprintf("expected error message from DeleteResourceFromFile: %v", err))
 				}
 				err = resource.DeleteResourceFromFile(file, t.Logs)
 				// if we didn't get an error, fail immediately
@@ -239,7 +239,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 			Eventually(func() (bool, error) {
 				file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest1-oam-component.yaml")
 				if err != nil {
-					return false, goerrors.New(fmt.Sprintf("expected error from CreateOrUpdateResourceFromFile: %v", err))
+					return false, fmt.Errorf(fmt.Sprintf("expected error from CreateOrUpdateResourceFromFile: %v", err))
 				}
 				err = resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 				// if we didn't get an error, fail immediately
@@ -252,7 +252,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 			Eventually(func() (bool, error) {
 				file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest1-oam-component.yaml")
 				if err != nil {
-					return false, goerrors.New(fmt.Sprintf("exepected error message from DeleteResourceFromFile: %v", err))
+					return false, fmt.Errorf(fmt.Sprintf("exepected error message from DeleteResourceFromFile: %v", err))
 				}
 				err = resource.DeleteResourceFromFile(file, t.Logs)
 				// if we didn't get an error, fail immediately
@@ -271,7 +271,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 			Eventually(func() (bool, error) {
 				file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest1-secret.yaml")
 				if err != nil {
-					return false, goerrors.New(fmt.Sprintf("expected error from CreateOrUpdateResourceFromFile: %v", err))
+					return false, fmt.Errorf(fmt.Sprintf("expected error from CreateOrUpdateResourceFromFile: %v", err))
 				}
 				err = resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 				// if we didn't get an error, fail immediately
@@ -284,7 +284,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 			Eventually(func() (bool, error) {
 				file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest1-secret.yaml")
 				if err != nil {
-					return false, goerrors.New(fmt.Sprintf("expected error message from DeleteResourceFromFile: %v", err))
+					return false, fmt.Errorf(fmt.Sprintf("expected error message from DeleteResourceFromFile: %v", err))
 				}
 				err = resource.DeleteResourceFromFile(file, t.Logs)
 				// if we didn't get an error, fail immediately
