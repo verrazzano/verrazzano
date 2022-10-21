@@ -79,7 +79,7 @@ The other Make targets are:
 
 Install the example worker as a Kubernetes deployment with 10 replicas:
 ```
-helm install  psr manifests/charts/k8s --set imageName=ghcr.io/verrazzano/psr-backend:local-582bfcfcf --replicas=10
+helm install  psr manifests/charts/k8s --set imageName=ghcr.io/verrazzano/psr-backend:local-582bfcfcf --set replicas=10
 ```
 
 Install the logging generator worker as an OAM application using the default image in the helm chart:
@@ -104,7 +104,7 @@ The `backend` directory has the go code which consists of a few packages:
 * workers - the various workers
 
 The `manifests/charts` directory has the Helm charts.  There is a chart for using plain Kubernetes
-resources to deploy the backend, and there is a chart to deploy the backend as an oam app. Any use case 
+resources to deploy thgit e backend, and there is a chart to deploy the backend as an oam app. Any use case 
 can be deployed with either chart.
 
 The `manifests/usecases` directory has the Helm override files for every use case. These files must

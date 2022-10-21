@@ -57,6 +57,8 @@ func getWorker(wt string) (spi.Worker, error) {
 		return example.NewExampleWorker(), nil
 	case config.WorkerTypeLogGen:
 		return opensearch.NewLogGenerator(), nil
+	case config.WorkerTypeLogGet:
+		return opensearch.NewLogGetter(), nil
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}
