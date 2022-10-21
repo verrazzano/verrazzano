@@ -106,12 +106,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.14.3-20220830175311-bc31775b",
+              "tag": "1.14.3-20221017201723-bc31775b",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.14.3-20220830175311-bc31775b",
+              "tag": "1.14.3-20221017201723-bc31775b",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -188,7 +188,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.14.3-20220830175311-bc31775b",
+              "tag": "1.14.3-20221017201723-bc31775b",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -234,7 +234,7 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.14.3-20220830175311-bc31775b",
+              "tag": "1.14.3-20221017201723-bc31775b",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
