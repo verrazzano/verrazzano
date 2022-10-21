@@ -47,12 +47,12 @@ func RestartApps(log vzlog.VerrazzanoLogger, client clipkg.Client, generation in
 	return nil
 }
 
-// StopDomainsUsingOldEnvoy stops all the WebLogic domains using Envoy 1.7.3
+// StopDomainsUsingOldEnvoy stops all the WebLogic domains that have the old Envoy sidecar where istio version skew is more than 2 minor versions.
 func StopDomainsUsingOldEnvoy(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 	// Get the latest Istio proxy image name from the bom
 	istioProxyImage, err := getIstioProxyImageFromBom()
 	if err != nil {
-		return log.ErrorfNewErr("Failed, restart components cannot find Istio proxy image in BOM: %v", err)
+		return log.ErrorfNewErr("Failed, StopDomainsUsingOldEnvoy cannot find Istio proxy image in BOM: %v", err)
 	}
 
 	// get all the app configs
@@ -75,15 +75,12 @@ func StopDomainsUsingOldEnvoy(log vzlog.VerrazzanoLogger, client clipkg.Client) 
 	return nil
 }
 
-// RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions restarts all the WebLogic domains using Envoy 1.7.3
+// RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions Rolling restart all the WebLogic domains using old istio version where skew is 2 minor versions max.
 func RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVersion string) error {
-	// Generate a restart version that will not change for this Verrazzano version
-	//restartVersion := "upgrade-" + strconv.Itoa(int(generation))
-
 	// Get the latest Istio proxy image name from the bom
 	istioProxyImage, err := getIstioProxyImageFromBom()
 	if err != nil {
-		return log.ErrorfNewErr("Failed, restart components cannot find Istio proxy image in BOM: %v", err)
+		return log.ErrorfNewErr("Failed, RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions cannot find Istio proxy image in BOM: %v", err)
 	}
 
 	// get all the app configs
