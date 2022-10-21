@@ -202,9 +202,6 @@ pipeline {
         SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
         SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
-        WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
-        DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
-
         // sample app deployed before upgrade and UI console tests
         SAMPLE_APP_NAME="hello-helidon"
         SAMPLE_APP_NAMESPACE="hello-helidon"
@@ -389,11 +386,28 @@ pipeline {
                                 runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
                             }
                         }
-
-                        stage('examples Todolist') {
-                            when { expression { isVZOperatorMinimumCompatibleVersion("v1.2.0") } }
+                        stage ('Deploy Helidon example application - single cluster') {
+                            when { expression { isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
                             steps {
-                                runGinkgoVerify('examples/todo', "${TEST_DUMP_ROOT}/todo-list-workload", "false", "true", "true", "todo-list")
+                                runGinkgoVerify('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true", "hello-helidon-sc")
+                            }
+                        }
+                        stage ('Deploy Helidon example application - multi cluster') {
+                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
+                            steps {
+                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "false", "true", "true")
+                            }
+                        }
+                        stage ('Deploy Coherence example application - single cluster') {
+                            when { expression { isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
+                            steps {
+                                runGinkgoVerify('workloads/coherence', "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "true", "hello-coherence-sc")
+                            }
+                        }
+                        stage ('Deploy Coherence example application - multi cluster') {
+                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") && checkUpgradeBelowVer("v1.3.0") } }
+                            steps {
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "true", "true")
                             }
                         }
                         stage('Prometheus pre-upgrade') {
@@ -518,6 +532,17 @@ pipeline {
         }
         stage('Post-upgrade Acceptance Tests') {
             stages {
+                stage ('Console') {
+                    when { expression { isMultiCluster() } }
+                        steps {
+                            runConsoleTests()
+                        }
+                        post {
+                            always {
+                                saveConsoleTestArtifacts()
+                            }
+                        }
+                }
                 stage('Post-upgrade Acceptance Tests parallel') {
                     parallel {
                         stage('post-upgrade verify keycloak') {
@@ -565,6 +590,21 @@ pipeline {
                                         dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-snapshot-pre-uninstall")
                                     }
                                 }
+                            }
+                        }
+                    }
+                }
+                stage ('Verify & Uninstall Example Apps') {
+                    when { expression { isMultiCluster() } }
+                    parallel {
+                        stage ('Examples Helidon') {
+                            steps {
+                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "true", "false", "false")
+                            }
+                        }
+                        stage ('Verify/Uninstall Example Coherence') {
+                            steps {
+                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", checkUpgradeBelowVer("v1.3.0"), "false", "false")
                             }
                         }
                     }
