@@ -10,7 +10,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	v1 "k8s.io/api/core/v1"
@@ -87,12 +86,8 @@ func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
 	})
 
 	caPEMBytes := caPEM.Bytes()
-	caPEM64Bytes := make([]byte, base64.StdEncoding.EncodedLen(len(caPEMBytes)))
-	base64.StdEncoding.Encode(caPEM64Bytes, caPEMBytes)
 
 	caKeyPEMBytes := caKeyPEM.Bytes()
-	caKeyPEM64Bytes := make([]byte, base64.StdEncoding.EncodedLen(len(caKeyPEMBytes)))
-	base64.StdEncoding.Encode(caKeyPEM64Bytes, caKeyPEMBytes)
 
 	serialNumber, err = newSerialNumber()
 	if err != nil {
@@ -141,20 +136,16 @@ func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
 	})
 
 	serverPEMBytes := serverPEM.Bytes()
-	serverPEM64Bytes := make([]byte, base64.StdEncoding.EncodedLen(len(serverPEMBytes)))
-	base64.StdEncoding.Encode(serverPEM64Bytes, serverPEMBytes)
 
 	serverKeyPEMBytes := serverKeyPEM.Bytes()
-	serverKeyPEM64Bytes := make([]byte, base64.StdEncoding.EncodedLen(len(serverKeyPEMBytes)))
-	base64.StdEncoding.Encode(serverKeyPEM64Bytes, serverKeyPEMBytes)
 
 	var webhookCA v1.Secret
 	webhookCA.Namespace = OperatorNamespace
 	webhookCA.Name = OperatorCA
 	webhookCA.Type = v1.SecretTypeTLS
 	webhookCA.Data = make(map[string][]byte)
-	webhookCA.Data["tls.crt"] = caKeyPEM64Bytes
-	webhookCA.Data["tls.key"] = caKeyPEM64Bytes
+	webhookCA.Data["tls.crt"] = caPEMBytes
+	webhookCA.Data["tls.key"] = caKeyPEMBytes
 
 	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
 	if err != nil {
@@ -174,8 +165,8 @@ func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
 	webhookCrt.Name = OperatorTLS
 	webhookCrt.Type = v1.SecretTypeTLS
 	webhookCrt.Data = make(map[string][]byte)
-	webhookCrt.Data["tls.crt"] = serverPEM64Bytes
-	webhookCrt.Data["tls.key"] = serverKeyPEM64Bytes
+	webhookCrt.Data["tls.crt"] = serverPEMBytes
+	webhookCrt.Data["tls.key"] = serverKeyPEMBytes
 
 	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
 	if err != nil {
