@@ -24,10 +24,20 @@ echo "Waiting for $POD to be ready"
 kubectl -n keycloak wait --for=condition=ready --timeout=600s pod/"$POD"
 
 # Wait for Keycloak pod resource version to change.  The VPO will recycle this pod to fix being able to log in.
+waittime=0
 echo "Waiting for the keycloak pod to restart ..."
 until [ "$(kubectl get pod -l app.kubernetes.io/name=keycloak -n keycloak -o jsonpath="{.items[0].metadata.resourceVersion}")" -ne "$RV" ]
 do
+  CURRENT_RV=$(kubectl get pod -l app.kubernetes.io/name=keycloak -n keycloak -o jsonpath="{.items[0].metadata.resourceVersion}")
+  echo "Initial keycloak resource version: ${RV}, current resource version found: ${CURRENT_RV}"
   sleep 15
+  waittime=$$(waittime + 15))
+  if [ "$waittime" -gt "600" ]; then
+    echo "The keycloak pod has not been recycled after 10 minutes, capture more details and fail the test"
+    kubectl get pod -l app.kubernetes.io/name=keycloak -n keycloak
+    kubectl describe pod -l app.kubernetes.io/name=keycloak -n keycloak
+    exit 1
+  fi
 done
 
 # Wait for the Keycloak pod to be ready
