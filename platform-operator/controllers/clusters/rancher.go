@@ -593,7 +593,7 @@ func rancherSecretMutate(f controllerutil.MutateFn, secret *corev1.Secret, log v
 
 // rancherSecretGet simulates a client get request through the Rancher proxy for secrets
 func rancherSecretGet(secret *corev1.Secret, rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) error {
-	reqURL := constructSecretURL(secret, rc.baseURL, clusterID)
+	reqURL := constructSecretURL(secret, rc.host, clusterID)
 	resp, body, err := sendRequest(http.MethodGet, reqURL, map[string]string{}, "", rc, log)
 	if err != nil && (resp == nil || resp.StatusCode != 404) {
 		return err
@@ -618,7 +618,7 @@ func rancherSecretGet(secret *corev1.Secret, rc *rancherConfig, clusterID string
 
 // rancherSecretCreate simulates a client create request through the Rancher proxy for secrets
 func rancherSecretCreate(secret *corev1.Secret, rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) error {
-	reqURL := constructSecretURL(secret, rc.baseURL, clusterID)
+	reqURL := constructSecretURL(secret, rc.host, clusterID)
 	payload, err := json.Marshal(secret)
 	if err != nil {
 		return log.ErrorfNewErr("Failed to marshall secret %s/%s: %v", secret.GetNamespace(), secret.GetName(), err)
@@ -639,7 +639,7 @@ func rancherSecretCreate(secret *corev1.Secret, rc *rancherConfig, clusterID str
 
 // rancherSecretUpdate simulates a client update request through the Rancher proxy for secrets
 func rancherSecretUpdate(secret *corev1.Secret, rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) error {
-	reqURL := constructSecretURL(secret, rc.baseURL, clusterID)
+	reqURL := constructSecretURL(secret, rc.host, clusterID)
 	payload, err := json.Marshal(secret)
 	if err != nil {
 		return log.ErrorfNewErr("Failed to marshall secret %s/%s: %v", secret.GetNamespace(), secret.GetName(), err)
@@ -659,6 +659,6 @@ func rancherSecretUpdate(secret *corev1.Secret, rc *rancherConfig, clusterID str
 }
 
 // constructSecretURL returns a formatted url string from path requirements and objects
-func constructSecretURL(secret *corev1.Secret, baseURL, clusterID string) string {
-	return baseURL + k8sClustersPath + clusterID + fmt.Sprintf(secretPathTemplate, secret.GetNamespace(), secret.GetName())
+func constructSecretURL(secret *corev1.Secret, host, clusterID string) string {
+	return "https://" + host + k8sClustersPath + clusterID + fmt.Sprintf(secretPathTemplate, secret.GetNamespace(), secret.GetName())
 }
