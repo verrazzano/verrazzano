@@ -389,10 +389,18 @@ func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQ
 	//cmd.CommandArgs = jobCmdArgs
 
 	var mbkCmdArgs []string
-	mbkcmd := fmt.Sprintf("kubectl get mbk -n keycloak %s -o json | jq -r '.status.output'", backupName)
-	mbkCmdArgs = append(mbkCmdArgs, "/bin/sh")
-	mbkCmdArgs = append(mbkCmdArgs, "-c")
-	mbkCmdArgs = append(mbkCmdArgs, mbkcmd)
+	//mbkcmd := fmt.Sprintf("kubectl get mbk -n keycloak %s -o json | jq -r '.status.output'", backupName)
+	//mbkCmdArgs = append(mbkCmdArgs, "/bin/sh")
+	//mbkCmdArgs = append(mbkCmdArgs, "-c")
+	mbkCmdArgs = append(mbkCmdArgs, "kubectl")
+	mbkCmdArgs = append(mbkCmdArgs, "get")
+	mbkCmdArgs = append(mbkCmdArgs, "mbk")
+	mbkCmdArgs = append(mbkCmdArgs, "-n")
+	mbkCmdArgs = append(mbkCmdArgs, "keycloak")
+	mbkCmdArgs = append(mbkCmdArgs, backupName)
+	mbkCmdArgs = append(mbkCmdArgs, "-o")
+	mbkCmdArgs = append(mbkCmdArgs, "jsonpath={.status.output}")
+	//mbkCmdArgs = append(mbkCmdArgs, mbkcmd)
 	cmd.CommandArgs = mbkCmdArgs
 
 	jobNameResponse := Runner(&cmd, log)
