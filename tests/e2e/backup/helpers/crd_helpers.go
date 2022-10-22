@@ -339,6 +339,39 @@ func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQ
 
 	// Debug
 	var cmd BashCommand
+	// get helm chart
+	var debugCmdArgs []string
+	debugCmdArgs = append(debugCmdArgs, "helm")
+	debugCmdArgs = append(debugCmdArgs, "ls")
+	debugCmdArgs = append(debugCmdArgs, "-n")
+	debugCmdArgs = append(debugCmdArgs, "keycloak")
+	cmd.CommandArgs = debugCmdArgs
+	_ = Runner(&cmd, log)
+
+	// get ics 
+	var jobCmdArgs []string
+	jobCmdArgs = append(jobCmdArgs, "kubectl")
+	jobCmdArgs = append(jobCmdArgs, "get")
+	jobCmdArgs = append(jobCmdArgs, "ics")
+	jobCmdArgs = append(jobCmdArgs, "-n")
+	jobCmdArgs = append(jobCmdArgs, "keycloak")
+	jobCmdArgs = append(jobCmdArgs, "mysql")
+	jobCmdArgs = append(jobCmdArgs, "-o")
+	jobCmdArgs = append(jobCmdArgs, "yaml")
+	cmd.CommandArgs = jobCmdArgs
+	_ = Runner(&cmd, log)
+
+	//Get pod
+	var podCmdArgs []string
+	podCmdArgs = append(podCmdArgs, "kubectl")
+	podCmdArgs = append(podCmdArgs, "get")
+	podCmdArgs = append(podCmdArgs, "pod")
+	podCmdArgs = append(podCmdArgs, "-n")
+	podCmdArgs = append(podCmdArgs, "keycloak")
+	cmd.CommandArgs = podCmdArgs
+	_ = Runner(&cmd, log)
+
+	// Get mysql backup
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "kubectl")
 	cmdArgs = append(cmdArgs, "get")
@@ -351,49 +384,22 @@ func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQ
 	cmd.CommandArgs = cmdArgs
 
 	_ = Runner(&cmd, log)
-	//log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
 
-	//var newCmdArgs []string
-	//newCmdArgs = append(newCmdArgs, "kubectl")
-	//newCmdArgs = append(newCmdArgs, "describe")
-	//newCmdArgs = append(newCmdArgs, "mbk")
-	//newCmdArgs = append(newCmdArgs, "-n")
-	//newCmdArgs = append(newCmdArgs, "keycloak")
-	//newCmdArgs = append(newCmdArgs, backupName)
-	//cmd.CommandArgs = newCmdArgs
-	//
-	//_ = Runner(&cmd, log)
-	//log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
-
-	var podCmdArgs []string
-	podCmdArgs = append(podCmdArgs, "kubectl")
-	podCmdArgs = append(podCmdArgs, "get")
-	podCmdArgs = append(podCmdArgs, "pod")
-	podCmdArgs = append(podCmdArgs, "-n")
-	podCmdArgs = append(podCmdArgs, "keycloak")
-	cmd.CommandArgs = podCmdArgs
-
+	// Get secret
+	var newCmdArgs []string
+	newCmdArgs = append(newCmdArgs, "kubectl")
+	newCmdArgs = append(newCmdArgs, "get")
+	newCmdArgs = append(newCmdArgs, "secret")
+	newCmdArgs = append(newCmdArgs, "-n")
+	newCmdArgs = append(newCmdArgs, "keycloak")
+	newCmdArgs = append(newCmdArgs, VeleroMySQLSecretName)
+	newCmdArgs = append(newCmdArgs, "-o")
+	newCmdArgs = append(newCmdArgs, "-yaml")
+	cmd.CommandArgs = newCmdArgs
 	_ = Runner(&cmd, log)
-	//log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
 
-	//var jobCmdArgs []string
-	//jobCmdArgs = append(jobCmdArgs, "kubectl")
-	//jobCmdArgs = append(jobCmdArgs, "get")
-	//jobCmdArgs = append(jobCmdArgs, "job")
-	//jobCmdArgs = append(jobCmdArgs, "-n")
-	//jobCmdArgs = append(jobCmdArgs, "keycloak")
-	//jobCmdArgs = append(jobCmdArgs, "-l")
-	//jobCmdArgs = append(jobCmdArgs, fmt.Sprintf("mysql.oracle.com/cluster=%s", backupName))
-	//jobCmdArgs = append(jobCmdArgs, "-o")
-	//jobCmdArgs = append(jobCmdArgs, "-custom-columns=:metadata.name")
-	//jobCmdArgs = append(jobCmdArgs, "--no-headers")
-	//jobCmdArgs = append(jobCmdArgs, "--ignore-not-found=true")
-	//cmd.CommandArgs = jobCmdArgs
-
+	// get output of backup
 	var mbkCmdArgs []string
-	//mbkcmd := fmt.Sprintf("kubectl get mbk -n keycloak %s -o json | jq -r '.status.output'", backupName)
-	//mbkCmdArgs = append(mbkCmdArgs, "/bin/sh")
-	//mbkCmdArgs = append(mbkCmdArgs, "-c")
 	mbkCmdArgs = append(mbkCmdArgs, "kubectl")
 	mbkCmdArgs = append(mbkCmdArgs, "get")
 	mbkCmdArgs = append(mbkCmdArgs, "mbk")
@@ -409,6 +415,7 @@ func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQ
 	jobName := jobNameResponse.StandardOut.String()
 	log.Infof("Debug Cmd Output , Job name =  '%v'", jobNameResponse.StandardOut.String())
 
+	// get pod logs based on output
 	var podLogCmdArgs []string
 	podLogCmdArgs = append(podLogCmdArgs, "kubectl")
 	podLogCmdArgs = append(podLogCmdArgs, "logs")
