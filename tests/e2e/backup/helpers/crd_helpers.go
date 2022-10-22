@@ -394,7 +394,7 @@ func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQ
 	newCmdArgs = append(newCmdArgs, "keycloak")
 	newCmdArgs = append(newCmdArgs, VeleroMySQLSecretName)
 	newCmdArgs = append(newCmdArgs, "-o")
-	newCmdArgs = append(newCmdArgs, "-yaml")
+	newCmdArgs = append(newCmdArgs, "yaml")
 	cmd.CommandArgs = newCmdArgs
 	_ = Runner(&cmd, log)
 
