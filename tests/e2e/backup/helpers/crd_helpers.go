@@ -346,21 +346,23 @@ func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQ
 	cmdArgs = append(cmdArgs, "-n")
 	cmdArgs = append(cmdArgs, "keycloak")
 	cmdArgs = append(cmdArgs, backupName)
+	cmdArgs = append(cmdArgs, "-o")
+	cmdArgs = append(cmdArgs, "yaml")
 	cmd.CommandArgs = cmdArgs
 
 	_ = Runner(&cmd, log)
 	//log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
 
-	var newCmdArgs []string
-	newCmdArgs = append(newCmdArgs, "kubectl")
-	newCmdArgs = append(newCmdArgs, "describe")
-	newCmdArgs = append(newCmdArgs, "mbk")
-	newCmdArgs = append(newCmdArgs, "-n")
-	newCmdArgs = append(newCmdArgs, "keycloak")
-	newCmdArgs = append(newCmdArgs, backupName)
-	cmd.CommandArgs = newCmdArgs
-
-	_ = Runner(&cmd, log)
+	//var newCmdArgs []string
+	//newCmdArgs = append(newCmdArgs, "kubectl")
+	//newCmdArgs = append(newCmdArgs, "describe")
+	//newCmdArgs = append(newCmdArgs, "mbk")
+	//newCmdArgs = append(newCmdArgs, "-n")
+	//newCmdArgs = append(newCmdArgs, "keycloak")
+	//newCmdArgs = append(newCmdArgs, backupName)
+	//cmd.CommandArgs = newCmdArgs
+	//
+	//_ = Runner(&cmd, log)
 	//log.Infof("Debug Cmd Output =  '%v'", response.StandardOut.String())
 
 	var podCmdArgs []string
