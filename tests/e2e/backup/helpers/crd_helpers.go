@@ -348,7 +348,7 @@ func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQ
 	cmd.CommandArgs = debugCmdArgs
 	_ = Runner(&cmd, log)
 
-	// get ics 
+	// get ics
 	var jobCmdArgs []string
 	jobCmdArgs = append(jobCmdArgs, "kubectl")
 	jobCmdArgs = append(jobCmdArgs, "get")
