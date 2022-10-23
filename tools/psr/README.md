@@ -84,7 +84,7 @@ helm install  psr manifests/charts/k8s --set imageName=ghcr.io/verrazzano/psr-ba
 
 Install the logging generator worker as an OAM application using the default image in the helm chart:
 ```
-helm install  psr2 manifests/charts/oam -f manifests/helm/workers/opensearch.yaml
+helm install  psr2 manifests/charts/oam -f manifests/usecases/opensearch/loggen.yaml
 ```
 
 Install the example worker as a Kubernetes deployment using the default image in the helm chart, providing an imagePullSecret
