@@ -63,7 +63,7 @@ const (
 type RancherConfig struct {
 	Host                     string
 	BaseURL                  string
-	ApiAccessToken           string
+	APIAccessToken           string
 	CertificateAuthorityData []byte
 	AdditionalCA             []byte
 }
@@ -150,7 +150,7 @@ func newRancherConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*RancherCo
 		log.ErrorfThrottled("Failed to get admin token from Rancher: %v", err)
 		return nil, err
 	}
-	rc.ApiAccessToken = adminToken
+	rc.APIAccessToken = adminToken
 
 	return rc, nil
 }
@@ -167,7 +167,7 @@ func ImportClusterToRancher(rc *RancherConfig, clusterName string, log vzlog.Ver
 		"enableNetworkPolicy": "false"}`
 	reqURL := rc.BaseURL + clusterPath
 	headers := map[string]string{"Content-Type": "application/json"}
-	headers["Authorization"] = "Bearer " + rc.ApiAccessToken
+	headers["Authorization"] = "Bearer " + rc.APIAccessToken
 
 	response, responseBody, err := sendRequest(action, reqURL, headers, payload, rc, log)
 
@@ -200,7 +200,7 @@ func getClusterIDFromRancher(rc *RancherConfig, clusterName string, log vzlog.Ve
 	action := http.MethodGet
 
 	reqURL := rc.BaseURL + clustersByNamePath + clusterName
-	headers := map[string]string{"Authorization": "Bearer " + rc.ApiAccessToken}
+	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
 
 	response, responseBody, err := sendRequest(action, reqURL, headers, "", rc, log)
 
@@ -281,7 +281,7 @@ func getAllClustersInRancher(rc *rancherConfig, log vzlog.VerrazzanoLogger) ([]r
 // isManagedClusterActiveInRancher returns true if the managed cluster is active
 func isManagedClusterActiveInRancher(rc *RancherConfig, clusterID string, log vzlog.VerrazzanoLogger) (bool, error) {
 	reqURL := rc.BaseURL + clustersPath + "/" + clusterID
-	headers := map[string]string{"Authorization": "Bearer " + rc.ApiAccessToken}
+	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
 
 	response, responseBody, err := sendRequest(http.MethodGet, reqURL, headers, "", rc, log)
 
@@ -339,7 +339,7 @@ func getCACertFromManagedClusterSecret(rc *RancherConfig, clusterID, namespace, 
 
 	// use the Rancher API proxy on the managed cluster to fetch the secret
 	baseReqURL := rc.BaseURL + k8sClustersPath + clusterID
-	headers := map[string]string{"Authorization": "Bearer " + rc.ApiAccessToken}
+	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
 
 	reqURL := fmt.Sprintf(k8sAPISecretPattern, baseReqURL, namespace, secretName)
 	response, responseBody, err := sendRequest(http.MethodGet, reqURL, headers, "", rc, log)
@@ -378,7 +378,7 @@ func getRegistrationYAMLFromRancher(rc *RancherConfig, rancherClusterID string, 
 	payload := `{"type": "clusterRegistrationToken", "clusterId": "` + rancherClusterID + `"}`
 	reqURL := rc.BaseURL + clusterRegTokenPath
 	headers := map[string]string{"Content-Type": "application/json"}
-	headers["Authorization"] = "Bearer " + rc.ApiAccessToken
+	headers["Authorization"] = "Bearer " + rc.APIAccessToken
 
 	response, manifestContent, err := sendRequest(action, reqURL, headers, payload, rc, log)
 

@@ -254,7 +254,7 @@ func CreateNewRancherConfig(log *zap.SugaredLogger, kubeconfigPath string) (*clu
 		// populate Rancher config from the functions available in this file,adding as necessary
 		BaseURL:                  rancherURL,
 		Host:                     rancherHost,
-		ApiAccessToken:           adminToken,
+		APIAccessToken:           adminToken,
 		CertificateAuthorityData: caCert,
 		AdditionalCA:             additionalCA,
 	}
