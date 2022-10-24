@@ -211,7 +211,13 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 		sc := bufio.NewScanner(rc)
 		sc.Split(bufio.ScanLines)
 		for {
-			sc.Scan()
+			scannedOk := sc.Scan()
+			if !scannedOk && sc.Err() != nil {
+				fmt.Fprintf(outputStream, fmt.Sprintf("scanner returned error %v, skipping error", sc.Err()))
+			} else {
+				// Reached EOF
+				return
+			}
 			if logFormat == LogFormatSimple {
 				PrintSimpleLogFormat(sc, outputStream, re)
 			} else if logFormat == LogFormatJSON {
