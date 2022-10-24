@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -160,6 +161,68 @@ func TestSyncRancherClustersWithPaging(t *testing.T) {
 	asserts.Equal(clusterID3, cr.Status.RancherRegistration.ClusterID)
 }
 
+// erroringFakeClient wraps a k8s client and returns an error when Create is called and the createReturnsError flag is set
+type erroringFakeClient struct {
+	client.Client
+}
+
+const tooManyRequestsError = "too many requests"
+
+var createReturnsError = false
+
+// Create optionally returns an error - used to simulate an error creating a resource
+func (e *erroringFakeClient) Create(_ context.Context, _ client.Object, _ ...client.CreateOption) error {
+	if createReturnsError {
+		return errors.NewTooManyRequests(tooManyRequestsError, 0)
+	}
+	return nil
+}
+
+// erroringFakeStatusClient allows us to fake a StatusWriter
+type erroringFakeStatusClient struct {
+}
+
+// Update of status always returns an error
+func (e *erroringFakeStatusClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+	return errors.NewConflict(schema.GroupResource{}, "", nil)
+}
+
+// Path is not used in these tests but is required to be implemented by StatusWriter
+func (e *erroringFakeStatusClient) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+	return nil
+}
+
+// Status returns the fake StatusWriter
+func (e *erroringFakeClient) Status() client.StatusWriter {
+	return &erroringFakeStatusClient{}
+}
+
+// TestEnsureVMCsWithError tests error conditions in the ensureVMCs function
+func TestEnsureVMCsWithError(t *testing.T) {
+	asserts := assert.New(t)
+
+	// create the k8s fake populated with resources
+	k8sFake := createK8sFake()
+
+	rancherClusters := []rancherCluster{{name: "test", id: "test"}}
+	r := &RancherClusterSyncer{Client: &erroringFakeClient{Client: k8sFake}}
+	log := r.initLogger()
+
+	// GIVEN a list of Rancher clusters fetched from the Rancher API
+	//  WHEN a call is made to ensureVMCs and the k8s client returns an error on a call to Create
+	//  THEN the expected error is returned
+	createReturnsError = true
+	err := r.ensureVMCs(rancherClusters, log)
+	asserts.ErrorContains(err, tooManyRequestsError)
+
+	// GIVEN a list of Rancher clusters fetched from the Rancher API
+	//  WHEN a call is made to ensureVMCs and the k8s client returns an error updating the status
+	//  THEN the expected error is returned
+	createReturnsError = false
+	err = r.ensureVMCs(rancherClusters, log)
+	asserts.ErrorContains(err, "Operation cannot be fulfilled")
+}
+
 // createK8sFake creates a k8s fake populated with resources for testing
 func createK8sFake() client.Client {
 	return fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
@@ -225,7 +288,8 @@ func expectHTTPCalls(httpMock *mocks.MockRequestSender, testPaging bool) {
 					clusterName1 + `","id":"` + clusterID1 + `"},{"name":"` + clusterName2 + `","id":"` + clusterID2 + `"}]}`
 				r = io.NopCloser(bytes.NewReader([]byte(data)))
 			} else {
-				data := `{"data":[{"name":"` + clusterName1 + `","id":"` + clusterID1 + `"},{"name":"` + clusterName2 + `","id":"` + clusterID2 + `"}]}`
+				data := `{"data":[{"name":"` + clusterName1 + `","id":"` + clusterID1 + `"},{"name":"` + clusterName2 + `","id":"` + clusterID2 + `"},` +
+					`{"name": "local", "id": "local"}]}`
 				r = io.NopCloser(bytes.NewReader([]byte(data)))
 			}
 			resp := &http.Response{
