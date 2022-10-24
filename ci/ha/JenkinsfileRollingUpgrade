@@ -424,36 +424,24 @@ pipeline {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/ha-tests"
                     }
-                    options {
-                        timeout(time: 90, unit: "MINUTES")
-                    }
                     parallel {
                         stage('K8s In-place Upgrade') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/inplaceupgrade"
                                 OKE_CLUSTER_ID="${OKE_CLUSTER_ID}"
                             }
-                            options {
-                                timeout(time: 90, unit: "MINUTES")
-                            }
                             steps {
-                                runGinkgoFailFast('ha/inplaceupgrade')
+                                runGinkgoFailFast('ha/inplaceupgrade', "--timeout=90m")
                             }
                         }
                         stage('HA Tests') {
-                            options {
-                                timeout(time: 90, unit: "MINUTES")
-                            }
                             steps {
-                                runGinkgoRandomize('ha/monitor')
+                                runGinkgoRandomize('ha/monitor', "--timeout=90m")
                             }
                         }
                         stage('Access Hello Helidon') {
-                            options {
-                                timeout(time: 90, unit: "MINUTES")
-                            }
                             steps {
-                                runGinkgo("ha/helidon", "--namespace=${HELIDON_TEST_NAMESPACE}")
+                                runGinkgo("ha/helidon", "--timeout=90m --namespace=${HELIDON_TEST_NAMESPACE}")
                             }
                         }
                         stage ('console') {
@@ -462,9 +450,6 @@ pipeline {
                             }
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-                            }
-                            options {
-                                timeout(time: 90, unit: "MINUTES")
                             }
                             steps {
                                 sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
@@ -567,12 +552,12 @@ pipeline {
     }
 }
 
-def runGinkgoRandomize(testSuitePath) {
+def runGinkgoRandomize(testSuitePath, arguments = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             if [ -d "${testSuitePath}" ]; then
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- $arguments
             fi
         """
     }
