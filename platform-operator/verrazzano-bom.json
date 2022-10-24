@@ -79,7 +79,7 @@
     },
     {
       "name": "external-dns",
-      "version": "v0.10.2",
+      "version": "v0.12.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -87,7 +87,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.10.2-20220802001856-7bae1b96",
+              "tag": "v0.12.2-20221024163214-0abb76aa",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
