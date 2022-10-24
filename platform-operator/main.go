@@ -5,16 +5,17 @@ package main
 
 import (
 	"flag"
+	"os"
+	"sync"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 	"k8s.io/client-go/dynamic"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-	"sync"
-	"time"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -330,6 +331,12 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoManagedCluster")
 		os.Exit(1)
 	}
+
+	// Start the goroutine to sync Rancher clusters and VerrazzanoManagedCluster objects
+	rancherClusterSyncer := &clusterscontroller.RancherClusterSyncer{
+		Client: mgr.GetClient(),
+	}
+	go rancherClusterSyncer.StartSyncing()
 
 	// Setup secrets reconciler
 	if err = (&secretscontroller.VerrazzanoSecretsReconciler{
