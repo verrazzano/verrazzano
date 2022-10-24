@@ -114,7 +114,7 @@ const KeycloakIngress = "keycloak"
 const ArgoCDNamespace = "argocd"
 
 // ArgoCDIngress - the name of the ingress for Argo CD
-const ArgoCDIngress = "argocd"
+const ArgoCDIngress = "argocd-server"
 
 // VerrazzanoAuthProxyServiceName is the name of the Verrazzano auth proxy service
 const VerrazzanoAuthProxyServiceName = "verrazzano-authproxy"

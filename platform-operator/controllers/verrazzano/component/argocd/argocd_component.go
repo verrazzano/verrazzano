@@ -7,6 +7,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 	"strconv"
 
@@ -33,14 +34,12 @@ const ComponentNamespace = constants.ArgoCDNamespace
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "argocd"
 
-const argoCDIngressClassNameKey = "ingress.ingressClassName"
-
 type argoCDComponent struct {
 	helm.HelmComponent
 }
 
 var certificates = []types.NamespacedName{
-	{Name: "tls-admin-ingress", Namespace: ComponentNamespace},
+	{Name: "tls-argocd-ingress", Namespace: ComponentNamespace},
 }
 
 func NewComponent() spi.Component {
@@ -69,37 +68,22 @@ func NewComponent() spi.Component {
 	}
 }
 
-// PreInstall
-/* Copy TLS certificates for ArgoCD if using the default Verrazzano CA
-- Create additional LetsEncrypt TLS certificates for ArgoCD if using LE
-*/
-func (r argoCDComponent) PreInstall(ctx spi.ComponentContext) error {
-	vz := ctx.EffectiveCR()
-	c := ctx.Client()
-	log := ctx.Log()
-	if err := copyDefaultCACertificate(log, c, vz); err != nil {
-		log.ErrorfThrottledNewErr("Failed copying default CA certificate: %s", err.Error())
-		return err
-	}
-	return nil
-}
-
 // AppendOverrides set the ArgoCD overrides for Helm
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	log := ctx.Log()
-	argoCDHostName, err := getArgoCDHostname(ctx.Client(), ctx.EffectiveCR())
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
-		return kvs, log.ErrorfThrottledNewErr("Failed retrieving ArgoCD hostname: %s", err.Error())
+		return kvs, ctx.Log().ErrorNewErr("Failed to get the BOM file for the cert-manager image overrides: ", err)
 	}
-	kvs = append(kvs, bom.KeyValue{
-		Key:   "hostname",
-		Value: argoCDHostName,
-	})
-	kvs = append(kvs, bom.KeyValue{
-		Key:   argoCDIngressClassNameKey,
-		Value: vzconfig.GetIngressClassName(ctx.EffectiveCR()),
-	})
-	return appendCAOverrides(log, kvs, ctx)
+	images, err := bomFile.BuildImageOverrides("argocd")
+	if err != nil {
+		return kvs, err
+	}
+
+	kvs = append(kvs, bom.KeyValue{Key: "global.image.repository", Value: images[1].Value})
+	kvs = append(kvs, bom.KeyValue{Key: "global.image.tag", Value: images[0].Value})
+	kvs = append(kvs, bom.KeyValue{Key: "server.ingress.enabled", Value: "true"})
+
+	return kvs, nil
 }
 
 // appendCAOverrides sets overrides for CA Issuers, ACME or CA.
@@ -142,4 +126,37 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 	}
 
 	return kvs, nil
+}
+
+// IsEnabled ArgoCD is always enabled on admin clusters,
+// and is not enabled by default on managed clusters
+func (r argoCDComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsArgoCDEnabled(effectiveCR)
+}
+
+// IsReady component check
+func (r argoCDComponent) IsReady(ctx spi.ComponentContext) bool {
+	if r.HelmComponent.IsReady(ctx) {
+		return isArgoCDReady(ctx)
+	}
+	return false
+}
+
+//PostInstall
+/* Installs the Helm chart, and patches the resulting objects
+- ensure Helm chart is installed
+- Patch ArgoCD ingress with NGINX/TLS annotations
+*/
+func (r argoCDComponent) Install(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	if err := r.HelmComponent.Install(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("Failed retrieving ArgoCD install component: %s", err.Error())
+	}
+	// Annotate ArgoCD ingress for NGINX/TLS
+	if err := patchArgoCDIngress(ctx); err != nil {
+		return log.ErrorfThrottledNewErr("Failed patching ArgoCD ingress: %s", err.Error())
+	}
+	log.Debugf("Patched ArgoCD ingress")
+
+	return nil
 }
