@@ -7,7 +7,6 @@ import (
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // pushManifestObjects applies the Verrazzano manifest objects to the managed cluster.
@@ -16,11 +15,14 @@ func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(vmc *clusterapi
 	for _, condition := range vmc.Status.Conditions {
 		if condition.Type == clusterapi.ConditionManifestPushed && condition.Status == corev1.ConditionTrue {
 			// Do nothing if the condition is met in the status
+			r.log.Debugf("The status condition %s is %s for VMC %s/%s, skipping the manifest objects push",
+				clusterapi.ConditionManifestPushed, corev1.ConditionTrue, vmc.GetNamespace(), vmc.GetName())
 			return true, nil
 		}
 	}
 	clusterID := vmc.Status.RancherRegistration.ClusterID
 	if len(clusterID) == 0 {
+		r.log.Debugf("Waiting to push manifest objects, Rancher ClusterID not found in the VMC %s/%s status", vmc.GetNamespace(), vmc.GetName())
 		return false, nil
 	}
 	rc, err := newRancherConfig(r.Client, r.log)
@@ -41,30 +43,22 @@ func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(vmc *clusterapi
 	regSecret.Namespace = constants.VerrazzanoSystemNamespace
 	regSecret.Name = constants.MCRegistrationSecret
 	err = createOrUpdateSecretRancherProxy(&agentSecret, rc, clusterID, func() error {
-		agentSecret, err = r.getSecret(vmc.Namespace, GetAgentSecretName(vmc.Name), true)
+		existingAgentSec, err := r.getSecret(vmc.Namespace, GetAgentSecretName(vmc.Name), true)
 		if err != nil {
 			return err
 		}
-		// Replace the existing metadata to remove erroneous fields
-		agentSecret.ObjectMeta = metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      constants.MCAgentSecret,
-		}
+		agentSecret.Data = existingAgentSec.Data
 		return nil
 	}, r.log)
 	if err != nil {
 		return false, err
 	}
 	err = createOrUpdateSecretRancherProxy(&regSecret, rc, clusterID, func() error {
-		regSecret, err = r.getSecret(vmc.Namespace, GetRegistrationSecretName(vmc.Name), true)
+		existingRegSecret, err := r.getSecret(vmc.Namespace, GetRegistrationSecretName(vmc.Name), true)
 		if err != nil {
 			return err
 		}
-		// Replace the existing metadata to remove erroneous fields
-		regSecret.ObjectMeta = metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      constants.MCRegistrationSecret,
-		}
+		regSecret.Data = existingRegSecret.Data
 		return nil
 	}, r.log)
 	if err != nil {
