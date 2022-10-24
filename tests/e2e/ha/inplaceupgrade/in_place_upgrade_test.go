@@ -170,11 +170,6 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 				// - this is a workaround until we can perhaps get a fix from the MySQL team
 				cleanupDanglingMySQLPods(clientset)
 
-				// Handle the case where MySQL pods are waiting for all readiness gates to be met.  This condition
-				// may be the result of manually removing the finalizers on a dangling MySQL pod.  So this work around
-				// could end up being resolved by the same issue causing the dangling MySQL pods.
-				repairMySQLPodsWaitingReadinessGates(clientset)
-
 				// terminate the compute instance that the node is on, OKE will replace it with a new node
 				// running the upgraded Kubernetes version
 				t.Logs.Infof("Terminating compute instance: %s", node.Spec.ProviderID)
@@ -183,6 +178,11 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 
 				latestNodes, err = waitForReplacementNode(latestNodes)
 				Expect(err).ShouldNot(HaveOccurred())
+
+				// Handle the case where MySQL pods are waiting for all readiness gates to be met.  This condition
+				// may be the result of manually removing the finalizers on a dangling MySQL pod.  So this work around
+				// could end up being resolved by the same issue causing the dangling MySQL pods.
+				repairMySQLPodsWaitingReadinessGates(clientset)
 
 				// wait for all pods to be ready before continuing to the next node
 				t.Logs.Infof("Waiting for all pods to be ready")
