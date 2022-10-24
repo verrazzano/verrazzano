@@ -330,6 +330,7 @@ pipeline {
                 runGinkgoRandomize('backup/mysql')
                 println("Wait for pods in keycloak to be ready")
                 waitForPodsToBeUp("keycloak")
+                dumpK8sCluster('mysql-cluster-dump')
             }
             post {
                 always {
@@ -362,6 +363,7 @@ pipeline {
                 always {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
+
                 }
                 failure {
                     script {
