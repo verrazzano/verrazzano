@@ -6,6 +6,7 @@ package certificate
 import (
 	"bytes"
 	"context"
+	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	v1 "k8s.io/api/core/v1"
 	"testing"
 
@@ -25,8 +26,8 @@ func TestCreateWebhookCertificates(t *testing.T) {
 	client := fake.NewSimpleClientset()
 	_ = CreateWebhookCertificates(client)
 	var secret *v1.Secret
-	secret, err := client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
-	_, err2 := client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
+	secret, err := client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), vpoconst.OperatorCA, metav1.GetOptions{})
+	_, err2 := client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), vpoconst.OperatorTLS, metav1.GetOptions{})
 	asserts.Nil(err, "error should not be returned setting up certificates")
 	asserts.Nil(err2, "error should not be returned setting up certificates")
 	asserts.NotEmpty(string(secret.Data["tls.crt"]))
@@ -47,7 +48,7 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 	caCert.WriteString("Fake CABundle")
 
 	caSecret := v1.Secret{}
-	caSecret.Name = OperatorCA
+	caSecret.Name = vpoconst.OperatorCA
 	caSecret.Type = v1.SecretTypeTLS
 	caSecret.Namespace = OperatorNamespace
 	caSecret.Data = make(map[string][]byte)
@@ -121,7 +122,7 @@ func TestUpdateValidatingnWebhookConfigurationFail(t *testing.T) {
 	var caCert bytes.Buffer
 	caCert.WriteString("Fake CABundle")
 	caSecret := v1.Secret{}
-	caSecret.Name = OperatorCA
+	caSecret.Name = vpoconst.OperatorCA
 	caSecret.Type = v1.SecretTypeTLS
 	caSecret.Namespace = OperatorNamespace
 	caSecret.Data = make(map[string][]byte)

@@ -106,6 +106,8 @@ func main() {
 		"Enable webhooks for the operator")
 	flag.BoolVar(&config.InitWebhooks, "init-webhooks", config.InitWebhooks,
 		"Initialize webhooks for the operator")
+	flag.BoolVar(&config.StartupProbeEnabled, "readiness-check-enabled", config.StartupProbeEnabled,
+		"Initialize webhooks for the operator")
 	flag.StringVar(&config.VerrazzanoRootDir, "vz-root-dir", config.VerrazzanoRootDir,
 		"Specify the root directory of Verrazzano (used for development)")
 	flag.StringVar(&bomOverride, "bom-path", "", "BOM file location")
@@ -330,7 +332,13 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 	}
 
 	metricsexporter.StartMetricsServer(log)
-	webhookreadiness.StartReadinessServer(log)
+
+	if config.StartupProbeEnabled {
+		if err := webhookreadiness.StartStartupProbeServer(log, mgr.GetClient()); err != nil {
+			log.Errorf("Failed to start webhook readiness probe server: %s", err.Error())
+			os.Exit(1)
+		}
+	}
 
 	// Set up the reconciler
 	statusUpdater := vzstatus.NewStatusUpdater(mgr.GetClient())

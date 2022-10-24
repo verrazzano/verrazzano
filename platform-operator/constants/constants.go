@@ -224,3 +224,12 @@ const ResticDaemonSetName = "restic"
 
 // RancherBackupNamesSpace indicates the namespace to be used for Rancher Backup installation
 const RancherBackupNamesSpace = "cattle-resources-system"
+
+// OperatorCA Platform Operator webhook CA bundle secret name
+const OperatorCA = "verrazzano-platform-operator-ca"
+
+// OperatorTLS Platform Operator webhook TLS secret name
+const OperatorTLS = "verrazzano-platform-operator-tls"
+
+// OperatorCADataKey Operator webhook certificate key name
+const OperatorCADataKey = "tls.crt"

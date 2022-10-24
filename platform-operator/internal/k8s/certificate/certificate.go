@@ -12,14 +12,16 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"math/big"
+	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	adminv1 "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"math/big"
-	"time"
-
-	adminv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -28,10 +30,8 @@ const (
 	// OperatorName is the resource name for the Verrazzano platform operator
 	OperatorName    = "verrazzano-platform-operator-webhook"
 	OldOperatorName = "verrazzano-platform-operator"
-	OperatorCA      = "verrazzano-platform-operator-ca"
-	OperatorTLS     = "verrazzano-platform-operator-tls"
 	// OperatorNamespace is the resource namespace for the Verrazzano platform operator
-	OperatorNamespace = "verrazzano-install"
+	OperatorNamespace = constants.VerrazzanoInstallNamespace
 	CRDName           = "verrazzanos.install.verrazzano.io"
 )
 
@@ -141,13 +141,13 @@ func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
 
 	var webhookCA v1.Secret
 	webhookCA.Namespace = OperatorNamespace
-	webhookCA.Name = OperatorCA
+	webhookCA.Name = vpoconst.OperatorCA
 	webhookCA.Type = v1.SecretTypeTLS
 	webhookCA.Data = make(map[string][]byte)
 	webhookCA.Data["tls.crt"] = caPEMBytes
 	webhookCA.Data["tls.key"] = caKeyPEMBytes
 
-	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), vpoconst.OperatorCA, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			_, errA := kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCA, metav1.CreateOptions{})
@@ -162,13 +162,13 @@ func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
 
 	var webhookCrt v1.Secret
 	webhookCrt.Namespace = OperatorNamespace
-	webhookCrt.Name = OperatorTLS
+	webhookCrt.Name = vpoconst.OperatorTLS
 	webhookCrt.Type = v1.SecretTypeTLS
 	webhookCrt.Data = make(map[string][]byte)
 	webhookCrt.Data["tls.crt"] = serverPEMBytes
 	webhookCrt.Data["tls.key"] = serverKeyPEMBytes
 
-	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
+	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), vpoconst.OperatorTLS, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			_, errX := kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
@@ -210,7 +210,7 @@ func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, name
 	if err != nil {
 		return err
 	}
-	caSecret, errX := kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+	caSecret, errX := kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), vpoconst.OperatorCA, metav1.GetOptions{})
 	if errX != nil {
 		return errX
 	}
@@ -232,7 +232,7 @@ func UpdateConversionWebhookConfiguration(apiextClient *apiextensionsv1client.Ap
 	}
 	convertPath := "/convert"
 	var webhookPort int32 = 443
-	caSecret, err := kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+	caSecret, err := kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), vpoconst.OperatorCA, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -264,7 +264,7 @@ func UpdateMutatingWebhookConfiguration(kubeClient kubernetes.Interface, name st
 	if err != nil {
 		return err
 	}
-	caSecret, err := kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+	caSecret, err := kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), vpoconst.OperatorCA, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}

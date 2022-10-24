@@ -44,10 +44,16 @@ spec:
             - containerPort: 9100
               name: http-metric
               protocol: TCP
+            - containerPort: 8080
+              name: readiness
+              protocol: TCP
           startupProbe:
-            exec:
-              command:
-                - /verrazzano/platform-operator/scripts/wait4webhook.sh
+            httpGet:
+              port: readiness
+              scheme: HTTP
+              httpHeaders:
+                - name: Content-Type
+                  value: application/json
             periodSeconds: 5
             timeoutSeconds: 5
             failureThreshold: 20

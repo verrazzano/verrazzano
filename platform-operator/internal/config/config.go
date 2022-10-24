@@ -66,6 +66,9 @@ type OperatorConfig struct {
 
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
+
+	// StartupProbeEnabled Enables readiness checks when true, otherwise bypasses them
+	StartupProbeEnabled bool
 }
 
 // The singleton instance of the operator config
@@ -77,6 +80,7 @@ var instance = OperatorConfig{
 	VersionCheckEnabled:      true,
 	WebhooksEnabled:          true,
 	WebhookValidationEnabled: true,
+	StartupProbeEnabled:      true,
 	VerrazzanoRootDir:        rootDir,
 }
 
