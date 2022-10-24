@@ -4,36 +4,23 @@
 package opensearch
 
 import (
-	"bytes"
-	"context"
-	"crypto/sha256"
-	"encoding/base64"
 	"fmt"
-	"os"
-	"os/exec"
-	"strings"
-	"testing"
-	"text/template"
-
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/yaml"
+	"testing"
 )
 
 const (
@@ -54,232 +41,6 @@ func init() {
 	_ = istioclisec.AddToScheme(testScheme)
 	_ = certv1.AddToScheme(testScheme)
 	// +kubebuilder:scaffold:testScheme
-}
-
-// newFakeRuntimeScheme creates a new fake scheme
-func newFakeRuntimeScheme() *runtime.Scheme {
-	scheme := runtime.NewScheme()
-	_ = appsv1.AddToScheme(scheme)
-	_ = corev1.AddToScheme(scheme)
-	return scheme
-}
-
-// createFakeComponentContext creates a fake component context
-func createFakeComponentContext() (spi.ComponentContext, error) {
-	c := fake.NewClientBuilder().WithScheme(newFakeRuntimeScheme()).Build()
-
-	vzTemplate := `---
-apiVersion: install.verrazzano.io/v1alpha1
-kind: Verrazzano
-metadata:
-  name: test-verrazzano
-  namespace: default
-spec:
-  version: 1.1.0
-  profile: dev
-  components:
-    elasticsearch:
-      enabled: true
-status:
-  version: 1.0.0
-`
-	vzObject := vzapi.Verrazzano{}
-	if err := createObjectFromTemplate(&vzObject, vzTemplate, nil); err != nil {
-		return nil, err
-	}
-
-	return spi.NewFakeContext(c, &vzObject, nil, false), nil
-}
-
-// createPod creates a k8s pod
-func createPod(cli client.Client) {
-	_ = cli.Create(context.TODO(), newPod())
-}
-
-func newPod() *corev1.Pod {
-	labels := map[string]string{
-		"test-label-name": "test-label-value",
-	}
-	return &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "simple-pod",
-			Namespace: "test-namespace-name",
-			Labels:    labels,
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name: "test-ready-container-name",
-					Ports: []corev1.ContainerPort{
-						{
-							ContainerPort: 42,
-							Name:          "test-ready-port-name",
-						},
-					},
-				},
-				{
-					Name: "test-not-ready-container-name",
-					Ports: []corev1.ContainerPort{
-						{
-							ContainerPort: 777,
-							Name:          "test-not-ready-port-name",
-						},
-					},
-				},
-			},
-		},
-		Status: corev1.PodStatus{
-			ContainerStatuses: []corev1.ContainerStatus{
-				{
-					Name:  "test-ready-container-name",
-					Ready: true,
-				},
-				{
-					Name:  "test-not-ready-container-name",
-					Ready: false,
-				},
-			},
-		},
-	}
-}
-
-func createElasticsearchPod(cli client.Client, portName string) {
-	labels := map[string]string{
-		"app": "system-es-master",
-	}
-	pod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "es-pod",
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Labels:    labels,
-		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{
-					Name: "es-master",
-					Ports: []corev1.ContainerPort{
-						{
-							ContainerPort: 42,
-							Name:          portName,
-						},
-					},
-				},
-			},
-		},
-		Status: corev1.PodStatus{
-			ContainerStatuses: []corev1.ContainerStatus{
-				{
-					Name:  "es-master",
-					Ready: true,
-				},
-			},
-		},
-	}
-	_ = cli.Create(context.TODO(), pod)
-}
-
-var fakeExecScenarioNames = []string{}
-var fakeExecScenarioIndex = 0
-
-// fakeExecCommand is used to fake command execution.
-// The TestFakeExecHandler test is executed as a test.
-// The test scenario is communicated using the TEST_FAKE_EXEC_SCENARIO environment variable.
-// The value of that variable is derrived from fakeExecScenarioNames at fakeExecScenarioIndex
-// The fakeExecScenarioIndex is incremented after every invocation.
-func fakeExecCommand(command string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestFakeExecHandler", "--", command}
-	cs = append(cs, args...)
-	firstArg := os.Args[0]
-	cmd := exec.Command(firstArg, cs...)
-	cmd.Env = []string{
-		fmt.Sprintf("TEST_FAKE_EXEC_SCENARIO=%s", fakeExecScenarioNames[fakeExecScenarioIndex]),
-	}
-	fakeExecScenarioIndex++
-	return cmd
-}
-
-// TestFakeExecHandler is a test intended to be use to handle fake command execution
-// See the fakeExecCommand function.
-// When this test is invoked normally no TEST_FAKE_EXEC_SCENARIO is present
-// so no assertions are made and therefore passes.
-func TestFakeExecHandler(t *testing.T) {
-	a := assert.New(t)
-	scenario, found := os.LookupEnv("TEST_FAKE_EXEC_SCENARIO")
-	if found {
-		switch scenario {
-		case "fixupElasticSearchReplicaCount/get":
-			a.Equal(`curl -v -XGET -s -k --fail http://localhost:42/_cluster/health`,
-				os.Args[13], "Expected curl command to be correct.")
-			fmt.Print(`"number_of_data_nodes":1,`)
-		case "fixupElasticSearchReplicaCount/put":
-			fmt.Println(scenario)
-			fmt.Println(strings.Join(os.Args, " "))
-			a.Equal(`curl -v -XPUT -d '{"index":{"auto_expand_replicas":"0-1"}}' --header 'Content-Type: application/json' -s -k --fail http://localhost:42/verrazzano-*/_settings`,
-				os.Args[13], "Expected curl command to be correct.")
-		default:
-			a.Fail("Unknown test scenario provided in environment variable TEST_FAKE_EXEC_SCENARIO: %s", scenario)
-		}
-	}
-}
-
-// populateTemplate reads a template from a file and replaces values in the template from param maps
-// template - The template text
-// params - a vararg of param maps
-func populateTemplate(templateStr string, data interface{}) (string, error) {
-	hasher := sha256.New()
-	hasher.Write([]byte(templateStr))
-	name := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
-	t, err := template.New(name).Option("missingkey=error").Parse(templateStr)
-	if err != nil {
-		return "", err
-	}
-	var buf bytes.Buffer
-	err = t.ExecuteTemplate(&buf, name, data)
-	if err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-}
-
-// updateUnstructuredFromYAMLTemplate updates an unstructured from a populated YAML template file.
-// uns - The unstructured to update
-// template - The template text
-// params - The param maps to merge into the template
-func updateUnstructuredFromYAMLTemplate(uns *unstructured.Unstructured, template string, data interface{}) error {
-	str, err := populateTemplate(template, data)
-	if err != nil {
-		return err
-	}
-	ybytes, err := yaml.YAMLToJSON([]byte(str))
-	if err != nil {
-		return err
-	}
-	_, _, err = unstructured.UnstructuredJSONScheme.Decode(ybytes, nil, uns)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-// createResourceFromTemplate builds a resource by merging the data with the template and then
-// stores the resource using the provided client.
-func createResourceFromTemplate(cli client.Client, obj client.Object, template string, data interface{}) error {
-	if err := createObjectFromTemplate(obj, template, data); err != nil {
-		return err
-	}
-	if err := cli.Create(context.TODO(), obj); err != nil {
-		return err
-	}
-	return nil
-}
-
-// createObjectFromTemplate builds an object by merging the data with the template
-func createObjectFromTemplate(obj runtime.Object, template string, data interface{}) error {
-	uns := unstructured.Unstructured{}
-	if err := updateUnstructuredFromYAMLTemplate(&uns, template, data); err != nil {
-		return err
-	}
-	return runtime.DefaultUnstructuredConverter.FromUnstructured(uns.Object, obj)
 }
 
 // TestIsReadySecretNotReady tests the OpenSearch isOpenSearchReady call
