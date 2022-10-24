@@ -216,9 +216,9 @@ func getClusterIDFromRancher(rc *RancherConfig, clusterName string, log vzlog.Ve
 }
 
 // getAllClustersInRancher returns cluster information for every cluster registered with Rancher
-func getAllClustersInRancher(rc *rancherConfig, log vzlog.VerrazzanoLogger) ([]rancherCluster, []byte, error) {
-	reqURL := rc.baseURL + clustersPath
-	headers := map[string]string{"Authorization": "Bearer " + rc.apiAccessToken}
+func getAllClustersInRancher(rc *RancherConfig, log vzlog.VerrazzanoLogger) ([]rancherCluster, []byte, error) {
+	reqURL := rc.BaseURL + clustersPath
+	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
 
 	hash := md5.New() //nolint:gosec //#gosec G401
 	clusters := []rancherCluster{}
