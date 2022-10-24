@@ -663,6 +663,9 @@ func rancherSecretMutate(f controllerutil.MutateFn, secret *corev1.Secret, log v
 
 // rancherSecretGet simulates a client get request through the Rancher proxy for secrets
 func rancherSecretGet(secret *corev1.Secret, rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) error {
+	if secret == nil {
+		return log.ErrorNewErr("Failed to get secret, nil value passed to get request")
+	}
 	reqURL := constructSecretURL(secret, rc.host, clusterID, false)
 	headers := map[string]string{"Authorization": "Bearer " + rc.apiAccessToken}
 	resp, body, err := sendRequest(http.MethodGet, reqURL, headers, "", rc, log)
@@ -689,6 +692,9 @@ func rancherSecretGet(secret *corev1.Secret, rc *rancherConfig, clusterID string
 
 // rancherSecretCreate simulates a client create request through the Rancher proxy for secrets
 func rancherSecretCreate(secret *corev1.Secret, rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) error {
+	if secret == nil {
+		return log.ErrorNewErr("Failed to create secret, nil value passed to create request")
+	}
 	reqURL := constructSecretURL(secret, rc.host, clusterID, true)
 	payload, err := json.Marshal(secret)
 	if err != nil {
@@ -714,6 +720,9 @@ func rancherSecretCreate(secret *corev1.Secret, rc *rancherConfig, clusterID str
 
 // rancherSecretUpdate simulates a client update request through the Rancher proxy for secrets
 func rancherSecretUpdate(secret *corev1.Secret, rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) error {
+	if secret == nil {
+		return log.ErrorNewErr("Failed to update secret, nil value passed to update request")
+	}
 	reqURL := constructSecretURL(secret, rc.host, clusterID, false)
 	payload, err := json.Marshal(secret)
 	if err != nil {
