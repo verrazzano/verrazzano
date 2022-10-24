@@ -14,7 +14,7 @@ spec:
       - {{ .nginxNamespace }}
   selector: {}
   podMetricsEndpoints:
-  - port: metrics
+  - port: http-metrics
     relabelings:
       - sourceLabels:
           - __meta_kubernetes_pod_name

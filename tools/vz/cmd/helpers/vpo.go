@@ -7,6 +7,13 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -15,7 +22,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	"io"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -24,24 +30,10 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"net/http"
-	"os"
-	"regexp"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-	"time"
 )
 
 const VpoSimpleLogFormatRegexp = `"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`
-
-// Number of retries after waiting a second for VPO to be ready
-const vpoDefaultWaitRetries = 60 * 5
-
-var vpoWaitRetries = vpoDefaultWaitRetries
-
-// Used with unit testing
-func SetVpoWaitRetries(retries int) { vpoWaitRetries = retries }
-func ResetVpoWaitRetries()          { vpoWaitRetries = vpoDefaultWaitRetries }
 
 // deleteLeftoverPlatformOperatorSig is a function needed for unit test override
 type deleteLeftoverPlatformOperatorSig func(client clipkg.Client) error
@@ -158,7 +150,7 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 }
 
 // WaitForPlatformOperator waits for the verrazzano-platform-operator to be ready
-func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, condType v1beta1.ConditionType) (string, error) {
+func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, condType v1beta1.ConditionType, timeout time.Duration) (string, error) {
 	// Provide the user with feedback while waiting for the verrazzano-platform-operator to be ready
 	feedbackChan := make(chan bool)
 	defer close(feedbackChan)
@@ -178,21 +170,20 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 	}(vzHelper.GetOutputStream())
 
 	// Wait for the verrazzano-platform-operator pod to be found
-	seconds := 0
-	retryCount := 0
+	secondsWaited := 0
+	maxSecondsToWait := int(timeout.Seconds())
 	for {
 		ready, err := vpoIsReady(client)
 		if ready {
 			break
 		}
 
-		retryCount++
-		if retryCount > vpoWaitRetries {
+		if secondsWaited > maxSecondsToWait {
 			feedbackChan <- true
 			return "", fmt.Errorf("Waiting for %s pod in namespace %s: %v", constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace, err)
 		}
 		time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
-		seconds += constants.VerrazzanoPlatformOperatorWait
+		secondsWaited += constants.VerrazzanoPlatformOperatorWait
 	}
 	feedbackChan <- true
 

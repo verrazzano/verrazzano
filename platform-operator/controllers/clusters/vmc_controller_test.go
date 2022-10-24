@@ -978,11 +978,12 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 	reconciler := newVMCReconciler(mock)
 	reconciler.log = vzlog.DefaultLogger()
 
-	err := reconciler.syncManifestSecret(context.TODO(), &vmc)
+	vzVMCWaitingForClusterID, err := reconciler.syncManifestSecret(context.TODO(), &vmc)
 
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
+	asserts.False(vzVMCWaitingForClusterID)
 }
 
 // TestRegisterClusterWithRancherK8sErrorCases tests errors cases using the Kubernetes

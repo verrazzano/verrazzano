@@ -152,10 +152,14 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 	}
 
 	log.Debugf("Syncing the Manifest secret for VMC %s", vmc.Name)
-	err = r.syncManifestSecret(ctx, vmc)
+	vzVMCWaitingForClusterID, err := r.syncManifestSecret(ctx, vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the Manifest secret", err, log)
 		return newRequeueWithDelay(), err
+	}
+	if vzVMCWaitingForClusterID {
+		// waiting for the cluster ID to be set in the status, so requeue and try again
+		return newRequeueWithDelay(), nil
 	}
 
 	log.Debugf("Pushing the Manifest objects for VMC %s", vmc.Name)
@@ -348,7 +352,7 @@ func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vm
 	r.setStatusConditionNotReady(ctx, vmc, fullMsg)
 	statusErr := r.updateStatus(ctx, vmc)
 	if statusErr != nil {
-		log.Errorf("Failed to update status for VMC %s: %v", vmc.Name, statusErr)
+		log.ErrorfThrottled("Failed to update status for VMC %s: %v", vmc.Name, statusErr)
 	}
 }
 

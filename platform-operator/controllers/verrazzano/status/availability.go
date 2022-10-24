@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package health
+package status
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type componentAvailability struct {
@@ -18,29 +19,30 @@ type componentAvailability struct {
 }
 
 // updateAvailability updates the availability for a given set of components
-func (p *PlatformHealth) updateAvailability(components []spi.Component) (*Status, error) {
+func (p *HealthChecker) updateAvailability(components []spi.Component) error {
 	// Get the Verrazzano resource
-	vz, err := p.getVerrazzanoResource()
+	vz, err := getVerrazzanoResource(p.client)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get Verrazzano resource: %v", err)
+		return fmt.Errorf("Failed to get Verrazzano resource: %v", err)
 	}
 	if vz == nil {
-		return nil, nil
+		return nil
 	}
 	vzlogger, err := newLogger(vz)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get Verrazzano resource logger: %v", err)
+		return fmt.Errorf("Failed to get Verrazzano resource logger: %v", err)
 	}
 	// calculate a new availability status
 	status, err := p.newStatus(vzlogger, vz, components)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get new Verrazzano availability: %v", err)
+		return fmt.Errorf("Failed to get new Verrazzano availability: %v", err)
 	}
-	return status, nil
+	p.sendStatus(status)
+	return nil
 }
 
 // newStatus creates a new availability status based on the current state of the component set.
-func (p *PlatformHealth) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazzano, components []spi.Component) (*Status, error) {
+func (p *HealthChecker) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazzano, components []spi.Component) (*AvailabilityStatus, error) {
 	ctx, err := spi.NewContext(log, p.client, vz, nil, false)
 	if err != nil {
 		return nil, err
@@ -48,7 +50,8 @@ func (p *PlatformHealth) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazz
 
 	countEnabled := 0
 	countAvailable := 0
-	status := &Status{
+	status := &AvailabilityStatus{
+		Verrazzano: vz,
 		Components: map[string]bool{},
 	}
 	for _, component := range components {
@@ -57,7 +60,7 @@ func (p *PlatformHealth) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazz
 			return nil, nil
 		}
 		// determine a component's availability
-		if isEnabled(vz, component) {
+		if component.IsEnabled(ctx.EffectiveCR()) {
 			countEnabled++
 			// gets new availability for a given component
 			a := p.getComponentAvailability(component, ctx)
@@ -75,12 +78,19 @@ func (p *PlatformHealth) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazz
 	return status, nil
 }
 
-func isEnabled(vz *vzapi.Verrazzano, component spi.Component) bool {
-	return vz.Status.Components[component.Name()].State != vzapi.CompStateDisabled
+func (p *HealthChecker) sendStatus(status *AvailabilityStatus) {
+	p.status = status
+	// if cluster Verrazzano has identical status, don't send an update
+	if p.status == nil || !p.status.needsUpdate() {
+		return
+	}
+	p.updater.Update(&UpdateEvent{
+		Availability: p.status,
+	})
 }
 
 // getComponentAvailability calculates componentAvailability for a given Verrazzano component
-func (p *PlatformHealth) getComponentAvailability(component spi.Component, ctx spi.ComponentContext) componentAvailability {
+func (p *HealthChecker) getComponentAvailability(component spi.Component, ctx spi.ComponentContext) componentAvailability {
 	name := component.Name()
 	ctx.Init(name)
 	reason, available := component.IsAvailable(ctx)
@@ -92,9 +102,9 @@ func (p *PlatformHealth) getComponentAvailability(component spi.Component, ctx s
 }
 
 // getVerrazzanoResource fetches a Verrazzano resource, if one exists
-func (p *PlatformHealth) getVerrazzanoResource() (*vzapi.Verrazzano, error) {
+func getVerrazzanoResource(client clipkg.Client) (*vzapi.Verrazzano, error) {
 	vzList := &vzapi.VerrazzanoList{}
-	if err := p.client.List(context.TODO(), vzList); err != nil {
+	if err := client.List(context.TODO(), vzList); err != nil {
 		return nil, err
 	}
 	if len(vzList.Items) != 1 {

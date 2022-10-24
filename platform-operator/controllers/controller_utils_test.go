@@ -4,7 +4,9 @@
 package controllers
 
 import (
-	"context"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -26,6 +28,15 @@ const (
 	testCMName = "po-val"
 	testVZName = "test-vz"
 )
+
+// newScheme creates a new scheme that includes this package's object to use for testing
+func newScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	// _ = clientgoscheme.AddToScheme(scheme)
+	// _ = core.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
+	return scheme
+}
 
 // TestVzContainsResource tests that the component name along with
 // bool value true is returned if k8s object is referenced in the CR as
@@ -72,49 +83,30 @@ func TestVzContainsResourceMonitoringDisabled(t *testing.T) {
 // TestUpdateVerrazzanoForInstallOverrides tests that the call to update Verrazzano Status
 // is made and doesn't return an error
 func TestUpdateVerrazzanoForInstallOverrides(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(&testVZ).Build()
+	statusUpdater := &vzstatus.FakeVerrazzanoStatusUpdater{Client: c}
 	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
-	compContext := fakeComponentContext(mock, &testVZ)
-
-	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vz *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			return nil
-		})
-	err := UpdateVerrazzanoForInstallOverrides(mock, compContext, "prometheus-operator")
-	mocker.Finish()
+	compContext := fakeComponentContext(c, &testVZ)
+	err := UpdateVerrazzanoForInstallOverrides(statusUpdater, compContext, "prometheus-operator")
 	asserts.Nil(err)
 }
 
 // TestUpdateVerrazzanoForInstallOverrides tests that if Verrazzano hasn't initialized component status
 // an error will be returned by the function
 func TestUpdateVerrazzanoForInstallOverridesError(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(&testVZ).Build()
+	statusUpdater := &vzstatus.FakeVerrazzanoStatusUpdater{Client: c}
 	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 
 	vz := testVZ
 	vz.Status.Components = nil
-	compContext := fakeComponentContext(mock, &vz)
-
-	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).MaxTimes(0)
-	err := UpdateVerrazzanoForInstallOverrides(mock, compContext, "prometheus-operator")
-	mocker.Finish()
+	compContext := fakeComponentContext(c, &vz)
+	err := UpdateVerrazzanoForInstallOverrides(statusUpdater, compContext, "prometheus-operator")
 	asserts.NotNil(err)
 }
 
@@ -132,8 +124,8 @@ var testConfigMap = corev1.ConfigMap{
 }
 
 // creates a component context for testing
-func fakeComponentContext(mock *mocks.MockClient, vz *vzapi.Verrazzano) spi.ComponentContext {
-	compContext := spi.NewFakeContext(mock, vz, nil, false)
+func fakeComponentContext(c client.Client, vz *vzapi.Verrazzano) spi.ComponentContext {
+	compContext := spi.NewFakeContext(c, vz, nil, false)
 	return compContext
 }
 

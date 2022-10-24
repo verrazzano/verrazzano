@@ -6,6 +6,7 @@ package clusters
 import (
 	"bytes"
 	"context"
+	"crypto/md5" //nolint:gosec //#gosec G501 // package used for caching only, not security
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -65,6 +66,11 @@ type rancherConfig struct {
 	apiAccessToken           string
 	certificateAuthorityData []byte
 	additionalCA             []byte
+}
+
+type rancherCluster struct {
+	name string
+	id   string
 }
 
 var defaultRetry = wait.Backoff{
@@ -141,7 +147,7 @@ func newRancherConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*rancherCo
 	log.Once("Getting admin token from Rancher")
 	adminToken, err := getAdminTokenFromRancher(rdr, rc, log)
 	if err != nil {
-		log.Errorf("Failed to get admin token from Rancher: %v", err)
+		log.ErrorfThrottled("Failed to get admin token from Rancher: %v", err)
 		return nil, err
 	}
 	rc.apiAccessToken = adminToken
@@ -207,6 +213,69 @@ func getClusterIDFromRancher(rc *rancherConfig, clusterName string, log vzlog.Ve
 	}
 
 	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "data.0.id", "unable to find clusterId in Rancher response")
+}
+
+// getAllClustersInRancher returns cluster information for every cluster registered with Rancher
+func getAllClustersInRancher(rc *rancherConfig, log vzlog.VerrazzanoLogger) ([]rancherCluster, []byte, error) {
+	reqURL := rc.baseURL + clustersPath
+	headers := map[string]string{"Authorization": "Bearer " + rc.apiAccessToken}
+
+	hash := md5.New() //nolint:gosec //#gosec G401
+	clusters := []rancherCluster{}
+	for {
+		response, responseBody, err := sendRequest(http.MethodGet, reqURL, headers, "", rc, log)
+		if response != nil && response.StatusCode != http.StatusOK {
+			return nil, nil, fmt.Errorf("Unable to get clusters from Rancher, response code: %d", response.StatusCode)
+		}
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// parse the response and iterate over the items
+		jsonString, err := gabs.ParseJSON([]byte(responseBody))
+		if err != nil {
+			return nil, nil, err
+		}
+
+		var items []interface{}
+		var ok bool
+		if items, ok = jsonString.Path("data").Data().([]interface{}); !ok {
+			return nil, nil, fmt.Errorf("Unable to find expected data in Rancher clusters response: %v", jsonString)
+		}
+
+		for _, item := range items {
+			var i map[string]interface{}
+			var ok bool
+			if i, ok = item.(map[string]interface{}); !ok {
+				log.Infof("Expected item to be of type 'map[string]interface{}': %s", responseBody)
+				continue
+			}
+			var name, id interface{}
+			if name, ok = i["name"]; !ok {
+				log.Infof("Expected to find 'name' field in Rancher cluster data: %s", responseBody)
+				continue
+			}
+			if id, ok = i["id"]; !ok {
+				log.Infof("Expected to find 'id' field in Rancher cluster data: %s", responseBody)
+				continue
+			}
+			cluster := rancherCluster{name: name.(string), id: id.(string)}
+			clusters = append(clusters, cluster)
+		}
+
+		// add this response body to the hash
+		io.WriteString(hash, responseBody)
+
+		// if there is a "next page" link then use that to make another request
+		if reqURL, err = httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "pagination.next", ""); err != nil {
+			break
+		}
+	}
+
+	// unfortunately Rancher does not support ETags, so we return a hash of the response bodies which allows the caller to know if
+	// there were any changes to the clusters
+	return clusters, hash.Sum(nil), nil
 }
 
 // isManagedClusterActiveInRancher returns true if the managed cluster is active
@@ -489,7 +558,7 @@ func doRequest(req *http.Request, rc *rancherConfig, log vzlog.VerrazzanoLogger)
 
 		// retry any HTTP 500 errors
 		if resp != nil && resp.StatusCode >= 500 && resp.StatusCode <= 599 {
-			log.Infof("HTTP status %v executing HTTP request %v, retrying", resp.StatusCode, req)
+			log.ErrorfThrottled("HTTP status %v executing HTTP request %v, retrying", resp.StatusCode, req)
 			return false, err
 		}
 
