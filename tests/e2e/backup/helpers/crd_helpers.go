@@ -385,19 +385,6 @@ func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQ
 
 	_ = Runner(&cmd, log)
 
-	// Get secret
-	var newCmdArgs []string
-	newCmdArgs = append(newCmdArgs, "kubectl")
-	newCmdArgs = append(newCmdArgs, "get")
-	newCmdArgs = append(newCmdArgs, "secret")
-	newCmdArgs = append(newCmdArgs, "-n")
-	newCmdArgs = append(newCmdArgs, "keycloak")
-	newCmdArgs = append(newCmdArgs, VeleroMySQLSecretName)
-	newCmdArgs = append(newCmdArgs, "-o")
-	newCmdArgs = append(newCmdArgs, "yaml")
-	cmd.CommandArgs = newCmdArgs
-	_ = Runner(&cmd, log)
-
 	// get output of backup
 	var mbkCmdArgs []string
 	mbkCmdArgs = append(mbkCmdArgs, "kubectl")
@@ -408,12 +395,24 @@ func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQ
 	mbkCmdArgs = append(mbkCmdArgs, backupName)
 	mbkCmdArgs = append(mbkCmdArgs, "-o")
 	mbkCmdArgs = append(mbkCmdArgs, "jsonpath={.status.output}")
-	//mbkCmdArgs = append(mbkCmdArgs, mbkcmd)
 	cmd.CommandArgs = mbkCmdArgs
 
 	jobNameResponse := Runner(&cmd, log)
 	jobName := jobNameResponse.StandardOut.String()
 	log.Infof("Debug Cmd Output , Job name =  '%v'", jobNameResponse.StandardOut.String())
+
+	// Get job
+	var newCmdArgs []string
+	newCmdArgs = append(newCmdArgs, "kubectl")
+	newCmdArgs = append(newCmdArgs, "get")
+	newCmdArgs = append(newCmdArgs, "job")
+	newCmdArgs = append(newCmdArgs, "-n")
+	newCmdArgs = append(newCmdArgs, "keycloak")
+	newCmdArgs = append(newCmdArgs, jobName)
+	newCmdArgs = append(newCmdArgs, "-o")
+	newCmdArgs = append(newCmdArgs, "yaml")
+	cmd.CommandArgs = newCmdArgs
+	_ = Runner(&cmd, log)
 
 	// get pod logs based on output
 	var podLogCmdArgs []string
