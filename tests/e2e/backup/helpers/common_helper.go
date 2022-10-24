@@ -337,13 +337,18 @@ func CreateMySQLCredentialsSecretFromUserPrincipal(namespace string, name string
 		return err
 	}
 
+	keydata, err := os.ReadFile(OciCliKeyFile)
+	if err != nil {
+		log.Errorf("Unable to read file '%s' due to %v", OciCliKeyFile, zap.Error(err))
+	}
+
 	secretData := make(map[string]string)
 	secretData["region"] = BackupRegion
 	secretData["passphrase"] = ""
 	secretData["user"] = OciCliUser
 	secretData["tenancy"] = OciCliTenancy
 	secretData["fingerprint"] = OciCliFingerprint
-	secretData["privatekey"] = OciCliKeyFile
+	secretData["privatekey"] = string(keydata)
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

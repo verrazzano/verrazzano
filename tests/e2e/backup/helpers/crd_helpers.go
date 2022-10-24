@@ -385,6 +385,18 @@ func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQ
 
 	_ = Runner(&cmd, log)
 
+	// Get secret
+	var secretArgs []string
+	secretArgs = append(secretArgs, "kubectl")
+	secretArgs = append(secretArgs, "get")
+	secretArgs = append(secretArgs, "secret")
+	secretArgs = append(secretArgs, "-n")
+	secretArgs = append(secretArgs, VeleroMySQLSecretName)
+	secretArgs = append(secretArgs, "-o")
+	secretArgs = append(secretArgs, "yaml")
+	cmd.CommandArgs = secretArgs
+	_ = Runner(&cmd, log)
+	
 	// get output of backup
 	var mbkCmdArgs []string
 	mbkCmdArgs = append(mbkCmdArgs, "kubectl")
