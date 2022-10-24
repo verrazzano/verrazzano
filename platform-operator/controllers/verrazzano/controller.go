@@ -4,10 +4,18 @@
 package verrazzano
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	goerrors "errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
+	"io"
+	kblabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 
 	"strings"
 	"sync"
@@ -234,6 +242,13 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		} else if vzctrl.ShouldRequeue(result) {
 			return result, nil
 		}
+
+		// Delete leftover MySQL backup job if we find one.
+		err = r.cleanupMysqlBackupJob(log)
+		if err != nil {
+			return newRequeueWithDelay(), err
+		}
+
 		return ctrl.Result{}, nil
 	}
 
@@ -474,6 +489,99 @@ func (r *Reconciler) cleanupUninstallJob(jobName string, namespace string, log v
 	return nil
 }
 
+// cleanupMysqlBackupJob checks for the existence of a stale MySQL restore job and deletes the job if one is found
+func (r *Reconciler) cleanupMysqlBackupJob(log vzlog.VerrazzanoLogger) error {
+	// Check if jobs for running the restore jobs exist
+	jobsFound := &batchv1.JobList{}
+	err := r.List(context.TODO(), jobsFound, &client.ListOptions{Namespace: mysql.ComponentNamespace})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	for _, job := range jobsFound.Items {
+		// get and inspect the job pods to see if restore container is completed
+		podList := &corev1.PodList{}
+		podReq, _ := kblabels.NewRequirement("job-name", selection.Equals, []string{job.Name})
+		podLabelSelector := kblabels.NewSelector()
+		podLabelSelector = podLabelSelector.Add(*podReq)
+		err := r.List(context.TODO(), podList, &client.ListOptions{LabelSelector: podLabelSelector})
+		if err != nil {
+			return err
+		}
+		backupJob := job
+		for i := range podList.Items {
+			jobPod := &podList.Items[i]
+			if isJobExecutionContainerCompleted(jobPod) {
+				// persist the job logs
+				persisted := persistJobLog(backupJob, jobPod, log)
+				if !persisted {
+					log.Infof("Unable to persist job log for %s", backupJob.Name)
+				}
+				// can delete job since pod has completed
+				log.Debugf("Deleting stale backup job %s", job.Name)
+				propagationPolicy := metav1.DeletePropagationBackground
+				deleteOptions := &client.DeleteOptions{PropagationPolicy: &propagationPolicy}
+				err = r.Delete(context.TODO(), &backupJob, deleteOptions)
+				if err != nil {
+					return err
+				}
+
+				return nil
+			}
+
+			return fmt.Errorf("Pod %s has not completed the database backup", backupJob.Name)
+		}
+	}
+
+	return nil
+}
+
+// persistJobLog will persist the backup job log to the VPO log
+func persistJobLog(backupJob batchv1.Job, jobPod *corev1.Pod, log vzlog.VerrazzanoLogger) bool {
+	containerName := mysqloperator.BackupContainerName
+	if strings.Contains(backupJob.Name, "-schedule-") {
+		containerName = containerName + "-cron"
+	}
+	podLogOpts := corev1.PodLogOptions{Container: containerName}
+	clientSet, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return false
+	}
+	req := clientSet.CoreV1().Pods(jobPod.Namespace).GetLogs(jobPod.Name, &podLogOpts)
+	podLogs, err := req.Stream(context.TODO())
+	if err != nil {
+		return false
+	}
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return false
+	}
+	scanner := bufio.NewScanner(buf)
+	scanner.Split(bufio.ScanLines)
+	log.Debugf("---------- Begin backup job %s log ----------", backupJob.Name)
+	for scanner.Scan() {
+		log.Debug(scanner.Text())
+	}
+	log.Debugf("---------- End backup job %s log ----------", backupJob.Name)
+
+	return true
+}
+
+// isJobExecutionContainerCompleted checks to see whether the backup container has terminated with an exit code of 0
+func isJobExecutionContainerCompleted(pod *corev1.Pod) bool {
+	for _, container := range pod.Status.ContainerStatuses {
+		if strings.HasPrefix(container.Name, mysqloperator.BackupContainerName) && container.State.Terminated != nil && container.State.Terminated.ExitCode == 0 {
+			return true
+		}
+	}
+	return false
+}
+
 // deleteNamespace deletes a namespace
 func (r *Reconciler) deleteNamespace(ctx context.Context, log vzlog.VerrazzanoLogger, namespace string) error {
 	ns := corev1.Namespace{
@@ -697,17 +805,17 @@ func (r *Reconciler) cleanupOld(ctx context.Context, log vzlog.VerrazzanoLogger,
 	return nil
 }
 
-// Create a new Result that will cause a reconcile requeue after a short delay
+// Create a new Result that will cause a reconciliation requeue after a short delay
 func newRequeueWithDelay() ctrl.Result {
 	return vzctrl.NewRequeueWithDelay(2, 3, time.Second)
 }
 
-// Watch the pods in the keycloak namespace for this vz resource.  The loop to reconcile will be called
-// when a pod is created.
-func (r *Reconciler) watchPods(namespace string, name string, log vzlog.VerrazzanoLogger) error {
+// watchResources Watches resources associated with this vz resource.  The loop to reconcile will be called
+// when a resource event is generated.
+func (r *Reconciler) watchResources(namespace string, name string, log vzlog.VerrazzanoLogger) error {
 	// Watch pods and trigger reconciles for Verrazzano resources when a pod is created
 	log.Debugf("Watching for pods to activate reconcile for Verrazzano CR %s/%s", namespace, name)
-	return r.Controller.Watch(
+	err := r.Controller.Watch(
 		&source.Kind{Type: &corev1.Pod{}},
 		createReconcileEventHandler(namespace, name),
 		createPredicate(func(e event.CreateEvent) bool {
@@ -727,6 +835,55 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 			r.AddWatch(keycloak.ComponentJSONName)
 			return true
 		}))
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("Watching for backup jobs to activate reconcile for Verrazzano CR %s/%s", namespace, name)
+	return r.Controller.Watch(
+		&source.Kind{Type: &batchv1.Job{}},
+		createReconcileEventHandler(namespace, name),
+		createPredicate(func(e event.CreateEvent) bool {
+			return r.isMysqlOperatorJob(e, log)
+		}))
+}
+
+// isMysqlOperatorJob returns true if the job is spawned directly or indirectly by MySQL operator
+func (r *Reconciler) isMysqlOperatorJob(e event.CreateEvent, log vzlog.VerrazzanoLogger) bool {
+	// Cast object to job
+	job := e.Object.(*batchv1.Job)
+
+	// Filter events to only be for the MySQL namespace
+	if job.Namespace != mysql.ComponentNamespace {
+		return false
+	}
+
+	// see if the job ownerReferences point to a cron job owned by the mysql operato
+	for _, owner := range job.GetOwnerReferences() {
+		if owner.Kind == "CronJob" {
+			// get the cronjob reference
+			cronJob := &batchv1.CronJob{}
+			err := r.Client.Get(context.TODO(), client.ObjectKey{Name: owner.Name, Namespace: job.Namespace}, cronJob)
+			if err != nil {
+				log.Errorf("Could not find cronjob %s to ascertain job source", owner.Name)
+				return false
+			}
+			return isResourceCreatedByMysqlOperator(cronJob.Labels, log)
+		}
+	}
+
+	// see if the job has been directly created by the mysql operator
+	return isResourceCreatedByMysqlOperator(job.Labels, log)
+}
+
+// isResourceCreatedByMysqlOperator checks whether the created-by label is set to "mysql-operator"
+func isResourceCreatedByMysqlOperator(labels map[string]string, log vzlog.VerrazzanoLogger) bool {
+	createdBy, ok := labels["app.kubernetes.io/created-by"]
+	if !ok || createdBy != constants.MySQLOperator {
+		return false
+	}
+	log.Debug("Resource created by MySQL Operator")
+	return true
 }
 
 func createReconcileEventHandler(namespace, name string) handler.EventHandler {
@@ -776,8 +933,8 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 		return newRequeueWithDelay(), err
 	}
 
-	// Watch pods in the keycloak namespace to handle recycle of the MySQL pod
-	if err := r.watchPods(vz.Namespace, vz.Name, log); err != nil {
+	// Watch resources to react with appropriate actions
+	if err := r.watchResources(vz.Namespace, vz.Name, log); err != nil {
 		log.Errorf("Failed to set Pod watch for Verrazzano CR %s: %v", vz.Name, err)
 		return newRequeueWithDelay(), err
 	}
