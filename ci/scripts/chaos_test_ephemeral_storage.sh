@@ -16,21 +16,12 @@ echo "Killing pod $POD"
 kubectl delete pod -n keycloak "$POD"
 
 # Wait for MySQL to restart
-POD=$(kubectl get pod -l app=mysql -n keycloak -o jsonpath="{.items[0].metadata.name}")
+POD=$(kubectl get pod -l app=mysql -n keycloak -o jsonpath="{.items[0].metadata.name}" 2>/dev/null)
+if [ $? -ne 0 ] ; then
+  POD=$(kubectl get pod -l tier=mysql -n keycloak -o jsonpath="{.items[0].metadata.name}")
+fi
 echo "Waiting for $POD to be ready"
 kubectl -n keycloak wait --for=condition=ready --timeout=600s pod/"$POD"
-
-# Wait for Keycloak pod resource version to change.  The VPO will recycle this pod to fix being able to log in.
-echo "Waiting for the keycloak pod to restart ..."
-until [ "$(kubectl get pod -l app.kubernetes.io/name=keycloak -n keycloak -o jsonpath="{.items[0].metadata.resourceVersion}")" -ne "$RV" ]
-do
-  sleep 15
-done
-
-# Wait for the Keycloak pod to be ready
-POD=$(kubectl get pod -l app.kubernetes.io/name=keycloak -n keycloak -o jsonpath="{.items[0].metadata.name}")
-kubectl -n keycloak wait --for=condition=ready --timeout=600s pod/"$POD"
-echo "Keycloak pod is ready"
 
 # Wait for Keycloak configuration to be healthy.  The VPO will rebuild the Keycloak configuration.
 secret=$(kubectl get secret --namespace keycloak keycloak-http -o jsonpath="{.data.password}" | base64 --decode; echo)
