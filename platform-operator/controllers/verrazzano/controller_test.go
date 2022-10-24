@@ -1414,6 +1414,63 @@ func TestMysqlBackupJobCleanup(t *testing.T) {
 	asserts.True(errors.IsNotFound(err))
 }
 
+// TestMysqlScheduledBackupJobCleanup tests the MySQL backup job cleanup function
+// GIVEN a completed scheduled backup job
+// WHEN the function is called
+// THEN the job and associated pod are deleted
+func TestMysqlScheduledBackupJobCleanup(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "one-off-backup-schedule20221018-201321",
+				Namespace: constants.KeycloakNamespace,
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "batch/v1",
+						Kind:       "CronJob",
+						Name:       "one-off-backup-schedule-20221018-201321",
+					},
+				},
+			},
+		},
+		&v1.CronJob{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.KeycloakNamespace,
+				Name:      "one-off-backup-schedule-20221018-201321",
+				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{"job-name": "one-off-backup-20221018-201321"},
+			},
+			Status: corev1.PodStatus{
+				ContainerStatuses: []corev1.ContainerStatus{
+					{
+						Name: "operator-backup-job",
+						State: corev1.ContainerState{
+							Terminated: &corev1.ContainerStateTerminated{
+								ExitCode: 0,
+							},
+						},
+					},
+				},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	job := &v1.Job{}
+	err := c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	asserts.NotNil(err)
+	asserts.True(errors.IsNotFound(err))
+	cronJob := &v1.CronJob{}
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-schedule-20221018-201321", Namespace: constants.KeycloakNamespace}, cronJob)
+	asserts.Nil(err)
+}
+
 // TestInProgressMysqlBackupJobCleanup tests the MySQL backup job cleanup function
 // GIVEN a not completed backup job
 // WHEN the function is called

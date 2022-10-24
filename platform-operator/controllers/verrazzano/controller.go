@@ -1117,7 +1117,7 @@ func (r *Reconciler) cleanupOld(ctx context.Context, log vzlog.VerrazzanoLogger,
 	return nil
 }
 
-// Create a new Result that will cause a reconcile requeue after a short delay
+// Create a new Result that will cause a reconciliation requeue after a short delay
 func newRequeueWithDelay() ctrl.Result {
 	return vzctrl.NewRequeueWithDelay(2, 3, time.Second)
 }
