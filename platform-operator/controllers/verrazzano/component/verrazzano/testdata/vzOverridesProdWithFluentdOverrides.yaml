@@ -8,13 +8,13 @@ console:
 dns:
   wildcard:
     domain: nip.io
-elasticSearch:
+openSearch:
   enabled: true
   multiNodeCluster: true
 logging:
   configHash: 71f8b0a204eebe76b25af157dab1019a1b107c810e97a8b00d5f3cfb897c16a9
-  elasticsearchSecret: custom-elasticsearch-secret
-  elasticsearchURL: http://myes.mydomain.com:9200
+  opensearchSecret: custom-opensearch-secret
+  opensearchURL: http://myes.mydomain.com:9200
 fluentd:
   enabled: true
   extraVolumeMounts:
