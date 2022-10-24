@@ -20,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const vmiIngest = "vmi-system-es-ingest"
+const vmiIngest = "vmi-system-os-ingest"
 const defaultSecretName = "verrazzano"
 
 // Create a registration secret with the managed cluster information.  This secret will
@@ -68,18 +68,18 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		return fmt.Errorf("can not find Verrazzano CR")
 	}
 
-	// Get the fluentd configuration for ES URL and secret
-	fluentdESURL, fluentdESSecretName, err := r.getVzESURLSecret(&vzList)
+	// Get the fluentd configuration for OS URL and secret
+	fluentdOSURL, fluentdOSSecretName, err := r.getVzOSURLSecret(&vzList)
 	if err != nil {
 		return err
 	}
 
-	// Decide which ES URL to use.
-	// If the fluentd ELASTICSEARCH_URL is the default "http://verrazzano-authproxy-elasticsearch:8775", use VMI ES ingress URL.
-	// If the fluentd ELASTICSEARCH_URL is not the default, meaning it is a custom ES, use the external ES URL.
-	esURL := fluentdESURL
-	if esURL == constants.DefaultOpensearchURL {
-		esURL, err = r.getVmiESURL()
+	// Decide which OS URL to use.
+	// If the fluentd ELASTICSEARCH_URL is the default "http://verrazzano-authproxy-elasticsearch:8775", use VMI OS ingress URL.
+	// If the fluentd ELASTICSEARCH_URL is not the default, meaning it is a custom OS, use the external OS URL.
+	osURL := fluentdOSURL
+	if osURL == constants.DefaultOpensearchURL {
+		osURL, err = r.getVmiOSURL()
 		if err != nil {
 			return err
 		}
@@ -91,28 +91,28 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		return err
 	}
 
-	// Decide which ES secret to use for username/password and password.
-	// If the fluentd elasticsearchSecret is the default "verrazzano", use VerrazzanoESInternal secret for username/password, and adminCaBundle for ES CA bundle.
+	// Decide which OS secret to use for username/password and password.
+	// If the fluentd elasticsearchSecret is the default "verrazzano", use VerrazzanoESInternal secret for username/password, and adminCaBundle for OS CA bundle.
 	// if the fluentd elasticsearchSecret is not the default, meaning it is a custom secret, use its username/password and CA bundle.
-	var esCaBundle []byte
-	var esUsername []byte
-	var esPassword []byte
-	if fluentdESSecretName != "verrazzano" {
-		esSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, fluentdESSecretName, true)
+	var osCaBundle []byte
+	var osUsername []byte
+	var osPassword []byte
+	if fluentdOSSecretName != "verrazzano" {
+		osSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, fluentdOSSecretName, true)
 		if err != nil {
 			return err
 		}
-		esCaBundle = esSecret.Data[mcconstants.FluentdESCaBundleKey]
-		esUsername = esSecret.Data[mcconstants.VerrazzanoUsernameKey]
-		esPassword = esSecret.Data[mcconstants.VerrazzanoPasswordKey]
+		osCaBundle = osSecret.Data[mcconstants.FluentdOSCaBundleKey]
+		osUsername = osSecret.Data[mcconstants.VerrazzanoUsernameKey]
+		osPassword = osSecret.Data[mcconstants.VerrazzanoPasswordKey]
 	} else {
-		esSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoESInternal, true)
+		osSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoESInternal, true)
 		if err != nil {
 			return err
 		}
-		esCaBundle = adminCaBundle
-		esUsername = esSecret.Data[mcconstants.VerrazzanoUsernameKey]
-		esPassword = esSecret.Data[mcconstants.VerrazzanoPasswordKey]
+		osCaBundle = adminCaBundle
+		osUsername = osSecret.Data[mcconstants.VerrazzanoUsernameKey]
+		osPassword = osSecret.Data[mcconstants.VerrazzanoPasswordKey]
 	}
 
 	// Get the keycloak URL
@@ -130,10 +130,10 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	// Build the secret data
 	secret.Data = map[string][]byte{
 		mcconstants.ManagedClusterNameKey:   []byte(manageClusterName),
-		mcconstants.ESURLKey:                []byte(esURL),
-		mcconstants.ESCaBundleKey:           esCaBundle,
-		mcconstants.RegistrationUsernameKey: esUsername,
-		mcconstants.RegistrationPasswordKey: esPassword,
+		mcconstants.OSURLKey:                []byte(osURL),
+		mcconstants.OSCaBundleKey:           osCaBundle,
+		mcconstants.RegistrationUsernameKey: osUsername,
+		mcconstants.RegistrationPasswordKey: osPassword,
 		mcconstants.KeycloakURLKey:          []byte(keycloakURL),
 		mcconstants.AdminCaBundleKey:        adminCaBundle,
 		mcconstants.JaegerOSURLKey:          []byte(jaegerStorage.URL),
@@ -152,8 +152,8 @@ func GetRegistrationSecretName(vmcName string) string {
 	return generateManagedResourceName(vmcName) + registrationSecretSuffix
 }
 
-// getVzESURLSecret returns the elasticsearchURL and elasticsearchSecret from Verrazzano CR
-func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret(vzList *vzapi.VerrazzanoList) (string, string, error) {
+// getVzOSURLSecret returns the elasticsearchURL and elasticsearchSecret from Verrazzano CR
+func (r *VerrazzanoManagedClusterReconciler) getVzOSURLSecret(vzList *vzapi.VerrazzanoList) (string, string, error) {
 	url := constants.DefaultOpensearchURL
 	secret := defaultSecretName
 	// what to do when there is more than one Verrazzano CR
@@ -171,7 +171,7 @@ func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret(vzList *vzapi.Verr
 }
 
 // Get the VMI Elasticsearch URL.
-func (r *VerrazzanoManagedClusterReconciler) getVmiESURL() (URL string, err error) {
+func (r *VerrazzanoManagedClusterReconciler) getVmiOSURL() (URL string, err error) {
 	var Ingress k8net.Ingress
 	nsn := types.NamespacedName{
 		Namespace: constants.VerrazzanoSystemNamespace,

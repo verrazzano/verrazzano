@@ -128,7 +128,7 @@ func verifyCaSyncToManagedClusters(admCaCrt string) {
 	for _, managedCluster := range managedClusters {
 		verifyManagedClusterRegistration(managedCluster, admCaCrt, mcconstants.AdminCaBundleKey)
 		if isDefaultFluentd(originalFluentd) {
-			verifyManagedClusterRegistration(managedCluster, admCaCrt, mcconstants.ESCaBundleKey)
+			verifyManagedClusterRegistration(managedCluster, admCaCrt, mcconstants.OSCaBundleKey)
 		}
 	}
 }

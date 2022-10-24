@@ -92,7 +92,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 func verifyCaSync(esSec string) {
 	extEsCa := ""
 	if esSec != "" && esSec != pkg.VmiESInternalSecret {
-		bytes, _ := adminCluster.GetSecretData(poconst.VerrazzanoInstallNamespace, esSec, mcconst.FluentdESCaBundleKey)
+		bytes, _ := adminCluster.GetSecretData(poconst.VerrazzanoInstallNamespace, esSec, mcconst.FluentdOSCaBundleKey)
 		if len(bytes) > 0 {
 			extEsCa = string(bytes)
 		}
@@ -127,7 +127,7 @@ func verifyCaBundles(reg *corev1.Secret, managedCluster *multicluster.Cluster, e
 		extEsCa = admEsCa
 	}
 	bytes, _ := managedCluster.
-		GetSecretData(constants.VerrazzanoSystemNamespace, "verrazzano-cluster-registration", mcconst.ESCaBundleKey)
+		GetSecretData(constants.VerrazzanoSystemNamespace, "verrazzano-cluster-registration", mcconst.OSCaBundleKey)
 	pkg.Log(pkg.Info, fmt.Sprintf("Opensearch ca-bundle synced to registration:%v managed-cluster:%v", extEsCa == regEsCa, extEsCa == mngEsCa))
 	if len(bytes) == 0 {
 		//if the managed-cluster is NOT registered, verify only the ca in registration
@@ -148,7 +148,7 @@ func verifyCaBundles(reg *corev1.Secret, managedCluster *multicluster.Cluster, e
 func caBundles(reg *corev1.Secret) (string, string) {
 	admEsCa, regEsCa := "", ""
 	for k, v := range reg.Data {
-		if k == mcconst.ESCaBundleKey {
+		if k == mcconst.OSCaBundleKey {
 			regEsCa = string(v)
 		}
 		if k == mcconst.AdminCaBundleKey {

@@ -905,7 +905,7 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 				mcconstants.CaCrtKey:                []byte(caData),
 				mcconstants.RegistrationUsernameKey: []byte(userData),
 				mcconstants.RegistrationPasswordKey: []byte(passwordData),
-				mcconstants.ESURLKey:                []byte(urlData),
+				mcconstants.OSURLKey:                []byte(urlData),
 			}
 			return nil
 		})
@@ -1565,7 +1565,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 				secret.Data = map[string][]byte{
 					mcconstants.VerrazzanoUsernameKey: []byte(externalUserData),
 					mcconstants.VerrazzanoPasswordKey: []byte(externalPasswordData),
-					mcconstants.FluentdESCaBundleKey:  []byte(externalCaData),
+					mcconstants.FluentdOSCaBundleKey:  []byte(externalCaData),
 				}
 			} else {
 				secret.Data = map[string][]byte{
@@ -1615,13 +1615,13 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			asserts.Equalf("https://keycloak", string(secret.Data[mcconstants.KeycloakURLKey]), "Incorrect admin ca bundle in Registration secret ")
 			asserts.Equalf(vzCaData, string(secret.Data[mcconstants.AdminCaBundleKey]), "Incorrect admin ca bundle in Registration secret ")
 			if externalES {
-				asserts.Equalf(externalEsURLData, string(secret.Data[mcconstants.ESURLKey]), "Incorrect ES URL in Registration secret ")
-				asserts.Equalf(externalCaData, string(secret.Data[mcconstants.ESCaBundleKey]), "Incorrect ES ca bundle in Registration secret ")
+				asserts.Equalf(externalEsURLData, string(secret.Data[mcconstants.OSURLKey]), "Incorrect ES URL in Registration secret ")
+				asserts.Equalf(externalCaData, string(secret.Data[mcconstants.OSCaBundleKey]), "Incorrect ES ca bundle in Registration secret ")
 				asserts.Equalf(externalUserData, string(secret.Data[mcconstants.RegistrationUsernameKey]), "Incorrect ES user in Registration secret ")
 				asserts.Equalf(externalPasswordData, string(secret.Data[mcconstants.RegistrationPasswordKey]), "Incorrect ES password in Registration secret ")
 			} else {
-				asserts.Equalf(vzEsURLData, string(secret.Data[mcconstants.ESURLKey]), "Incorrect ES URL in Registration secret ")
-				asserts.Equalf(vzCaData, string(secret.Data[mcconstants.ESCaBundleKey]), "Incorrect ES ca bundle in Registration secret ")
+				asserts.Equalf(vzEsURLData, string(secret.Data[mcconstants.OSURLKey]), "Incorrect ES URL in Registration secret ")
+				asserts.Equalf(vzCaData, string(secret.Data[mcconstants.OSCaBundleKey]), "Incorrect ES ca bundle in Registration secret ")
 				asserts.Equalf(vzUserData, string(secret.Data[mcconstants.RegistrationUsernameKey]), "Incorrect ES user in Registration secret ")
 				asserts.Equalf(vzPasswordData, string(secret.Data[mcconstants.RegistrationPasswordKey]), "Incorrect ES password in Registration secret ")
 			}
@@ -1660,7 +1660,7 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 				mcconstants.CaCrtKey:                []byte(caData),
 				mcconstants.RegistrationUsernameKey: []byte(userData),
 				mcconstants.RegistrationPasswordKey: []byte(passwordData),
-				mcconstants.ESURLKey:                []byte(urlData),
+				mcconstants.OSURLKey:                []byte(urlData),
 			}
 			return nil
 		})

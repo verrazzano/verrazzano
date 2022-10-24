@@ -79,11 +79,11 @@ func (s *Syncer) syncRegistrationFromAdminCluster() (controllerutil.OperationRes
 			registrationSecret.Data[mcconstants.AdminCaBundleKey] = adminCASecret.Data[mcconstants.AdminCaBundleKey]
 
 			// Get other registration info from admin registration secret for this managed cluster
-			registrationSecret.Data[mcconstants.ESURLKey] = adminRegistrationSecret.Data[mcconstants.ESURLKey]
+			registrationSecret.Data[mcconstants.OSURLKey] = adminRegistrationSecret.Data[mcconstants.OSURLKey]
 			registrationSecret.Data[mcconstants.RegistrationUsernameKey] = adminRegistrationSecret.Data[mcconstants.RegistrationUsernameKey]
 			registrationSecret.Data[mcconstants.RegistrationPasswordKey] = adminRegistrationSecret.Data[mcconstants.RegistrationPasswordKey]
 			registrationSecret.Data[mcconstants.KeycloakURLKey] = adminRegistrationSecret.Data[mcconstants.KeycloakURLKey]
-			registrationSecret.Data[mcconstants.ESCaBundleKey] = adminRegistrationSecret.Data[mcconstants.ESCaBundleKey]
+			registrationSecret.Data[mcconstants.OSCaBundleKey] = adminRegistrationSecret.Data[mcconstants.OSCaBundleKey]
 			registrationSecret.Data[mcconstants.JaegerOSURLKey] = adminRegistrationSecret.Data[mcconstants.JaegerOSURLKey]
 			registrationSecret.Data[mcconstants.JaegerOSUsernameKey] = adminRegistrationSecret.Data[mcconstants.JaegerOSUsernameKey]
 			registrationSecret.Data[mcconstants.JaegerOSPasswordKey] = adminRegistrationSecret.Data[mcconstants.JaegerOSPasswordKey]
@@ -104,16 +104,16 @@ func (s *Syncer) syncRegistrationFromAdminCluster() (controllerutil.OperationRes
 }
 
 func registrationInfoEqual(regSecret1 corev1.Secret, regSecret2 corev1.Secret) bool {
-	return byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.ESURLKey],
-		regSecret2.Data[mcconstants.ESURLKey]) &&
+	return byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.OSURLKey],
+		regSecret2.Data[mcconstants.OSURLKey]) &&
 		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.KeycloakURLKey],
 			regSecret2.Data[mcconstants.KeycloakURLKey]) &&
 		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.RegistrationUsernameKey],
 			regSecret2.Data[mcconstants.RegistrationUsernameKey]) &&
 		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.RegistrationPasswordKey],
 			regSecret2.Data[mcconstants.RegistrationPasswordKey]) &&
-		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.ESCaBundleKey],
-			regSecret2.Data[mcconstants.ESCaBundleKey]) &&
+		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.OSCaBundleKey],
+			regSecret2.Data[mcconstants.OSCaBundleKey]) &&
 		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.JaegerOSURLKey],
 			regSecret2.Data[mcconstants.JaegerOSURLKey]) &&
 		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.JaegerOSUsernameKey],

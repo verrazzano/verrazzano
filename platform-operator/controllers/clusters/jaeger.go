@@ -19,10 +19,10 @@ const (
 	jaegerCreateField      = "jaeger.create"
 	jaegerSecNameField     = "jaeger.spec.storage.secretName"
 	jaegerStorageTypeField = "jaeger.spec.storage.type"
-	jaegerOSURLField       = "jaeger.spec.storage.options.es.server-urls"
-	jaegerOSCAField        = "jaeger.spec.storage.options.es.tls.ca"
-	jaegerOSTLSKeyField    = "jaeger.spec.storage.options.es.tls.key"
-	jaegerOSTLSCertField   = "jaeger.spec.storage.options.es.tls.cert"
+	jaegerOSURLField       = "jaeger.spec.storage.options.os.server-urls"
+	jaegerOSCAField        = "jaeger.spec.storage.options.os.tls.ca"
+	jaegerOSTLSKeyField    = "jaeger.spec.storage.options.os.tls.key"
+	jaegerOSTLSCertField   = "jaeger.spec.storage.options.os.tls.cert"
 )
 
 type jaegerSpecConfig struct {
@@ -74,7 +74,7 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerOpenSearchConfig(vzList *v
 	// If the Jaeger OpenSearch URL is the default URL, use VMI OpenSearch ingress URL.
 	// If the Jaeger OpenSearch URL  is not the default, meaning it is a custom OpenSearch, use the external OpenSearch URL.
 	if jsc.OSURL == vzconstants.DefaultJaegerOSURL {
-		jc.URL, err = r.getVmiESURL()
+		jc.URL, err = r.getVmiOSURL()
 		if err != nil {
 			return jc, err
 		}

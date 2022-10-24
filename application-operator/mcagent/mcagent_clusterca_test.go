@@ -355,7 +355,7 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 			"OS url is updated in admin cluster but not synced to managed1",
 			&testAdminCASecret,
 			createSecretWithOverrides(adminRegSecretPath, map[string]string{
-				mcconstants.ESURLKey: "new OS url",
+				mcconstants.OSURLKey: "new OS url",
 			}),
 			createSecretWithOverrides(clusterRegSecretPath, nil),
 			controllerutil.OperationResultUpdated,
@@ -365,7 +365,7 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 			"OS CA bundle is updated in admin cluster but not synced to managed1",
 			&testAdminCASecret,
 			createSecretWithOverrides(adminRegSecretPath, map[string]string{
-				mcconstants.ESCaBundleKey: "new CA bundle",
+				mcconstants.OSCaBundleKey: "new CA bundle",
 			}),
 			createSecretWithOverrides(clusterRegSecretPath, nil),
 			controllerutil.OperationResultUpdated,
@@ -576,11 +576,11 @@ func newClusterCAScheme() *runtime.Scheme {
 }
 
 func assertRegistrationInfoEqual(t *testing.T, regSecret1 *corev1.Secret, regSecret2 corev1.Secret) {
-	asserts.Equal(t, regSecret1.Data[mcconstants.ESURLKey], regSecret2.Data[mcconstants.ESURLKey], "ES URL is different")
+	asserts.Equal(t, regSecret1.Data[mcconstants.OSURLKey], regSecret2.Data[mcconstants.OSURLKey], "ES URL is different")
 	asserts.Equal(t, regSecret1.Data[mcconstants.KeycloakURLKey], regSecret2.Data[mcconstants.KeycloakURLKey], "Keycloak URL is different")
 	asserts.Equal(t, regSecret1.Data[mcconstants.RegistrationUsernameKey], regSecret2.Data[mcconstants.RegistrationUsernameKey], "Registration Username is different")
 	asserts.Equal(t, regSecret1.Data[mcconstants.RegistrationPasswordKey], regSecret2.Data[mcconstants.RegistrationPasswordKey], "Registration Password is different")
-	asserts.Equal(t, regSecret1.Data[mcconstants.ESCaBundleKey], regSecret2.Data[mcconstants.ESCaBundleKey], "Registration Password is different")
+	asserts.Equal(t, regSecret1.Data[mcconstants.OSCaBundleKey], regSecret2.Data[mcconstants.OSCaBundleKey], "Registration Password is different")
 	asserts.Equal(t, regSecret1.Data[mcconstants.JaegerOSURLKey], regSecret2.Data[mcconstants.JaegerOSURLKey], "Jaeger OS URL is different")
 	asserts.Equal(t, regSecret1.Data[mcconstants.JaegerOSUsernameKey], regSecret2.Data[mcconstants.JaegerOSUsernameKey], "Jaeger OS username is different")
 	asserts.Equal(t, regSecret1.Data[mcconstants.JaegerOSPasswordKey], regSecret2.Data[mcconstants.JaegerOSPasswordKey], "Jaeger OS password different")

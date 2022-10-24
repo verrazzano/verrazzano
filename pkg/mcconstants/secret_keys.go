@@ -7,14 +7,14 @@ package mcconstants
 // CaCrtKey is the CA cert key in the tls secret
 const CaCrtKey = "ca.crt"
 
-// ESCaBundleKey is the ES CA cert key in the registration secret
-const ESCaBundleKey = "es-ca-bundle"
+// OSCaBundleKey is the OS CA cert key in the registration secret
+const OSCaBundleKey = "os-ca-bundle"
 
 // AdminCaBundleKey is the admin CA cert key in the registration secret
 const AdminCaBundleKey = "ca-bundle"
 
-// FluentdESCaBundleKey is the CA cert key in the Verrazzano CRD fluentd Elasticsearch secret
-const FluentdESCaBundleKey = "ca-bundle"
+// FluentdOSCaBundleKey is the CA cert key in the Verrazzano CRD fluentd Opensearch secret
+const FluentdOSCaBundleKey = "ca-bundle"
 
 // JaegerOSTLSKey is the key in registration secret containing TLS key used by Jaeger to connect to OpenSearch storage
 // when using mutual TLS
@@ -50,16 +50,16 @@ const VerrazzanoPasswordKey = "password"
 const VerrazzanoUsernameKey = "username"
 
 // JaegerOSPasswordKey is the password key in Jaeger secret to connect to the OpenSearch storage
-const JaegerOSPasswordKey = "ES_PASSWORD"
+const JaegerOSPasswordKey = "OS_PASSWORD"
 
 // JaegerOSUsernameKey is the username key in Jaeger secret to connect to the OpenSearch storage
-const JaegerOSUsernameKey = "ES_USERNAME"
+const JaegerOSUsernameKey = "OS_USERNAME"
 
 // TokenKey is the key for the service account token
 const TokenKey = "token"
 
-// ESURLKey is the key for Elasticsearch URL
-const ESURLKey = "es-url"
+// OSURLKey is the key for Elasticsearch URL
+const OSURLKey = "os-url"
 
 // JaegerOSURLKey is the key in registration secret containing Jaeger OpenSearch URL
 const JaegerOSURLKey = "jaeger-os-url"
