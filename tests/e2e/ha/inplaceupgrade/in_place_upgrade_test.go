@@ -170,6 +170,11 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 				// - this is a workaround until we can perhaps get a fix from the MySQL team
 				cleanupDanglingMySQLPods(clientset)
 
+				// Handle the case where MySQL pods are waiting for all readiness gates to be met.  This condition
+				// may be the result of manually removing the finalizers on a dangling MySQL pod.  So this work around
+				// could end up being resolved by the same issue causing the dangling MySQL pods.
+				repairMySQLPodsWaitingReadinessGates(clientset)
+
 				// terminate the compute instance that the node is on, OKE will replace it with a new node
 				// running the upgraded Kubernetes version
 				t.Logs.Infof("Terminating compute instance: %s", node.Spec.ProviderID)
@@ -233,6 +238,53 @@ func cleanupDanglingMySQLPods(client *kubernetes.Clientset) {
 					if err != nil {
 						t.Logs.Errorf("Error occurred patching finalizers for %s/%s, %s", mysqlPod.Namespace, mysqlPod.Name, err.Error())
 						return err
+					}
+				}
+			}
+		}
+		return nil
+	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
+}
+
+// repairMySQLPodsWaitingReadinessGates - workaround to repair any MySQL pods that are stuck starting up due
+// to readiness gates not all true.
+func repairMySQLPodsWaitingReadinessGates(client *kubernetes.Clientset) {
+	Eventually(func() error {
+		t.Logs.Info("Cleaning up any MySQL pods stuck restarting after a node drain")
+		mysqldReq, err := labels.NewRequirement(mysqlComponentLabel, selection.Equals, []string{mysqldComponentName})
+		if err != nil {
+			return err
+		}
+		selector := labels.NewSelector().Add(*mysqldReq)
+		selector = selector.Add(*mysqldReq)
+
+		list, err := client.CoreV1().Pods(constants.KeycloakNamespace).List(context.TODO(), metav1.ListOptions{
+			LabelSelector: selector.String(),
+		})
+		if err != nil {
+			return err
+		}
+		if len(list.Items) == 0 {
+			return fmt.Errorf("No pods found matching selector %s", selector.String())
+		}
+
+		for i := range list.Items {
+			mysqlPod := list.Items[i]
+
+			// Check if the readiness conditions have been met
+			conditions := mysqlPod.Status.Conditions
+			if len(conditions) == 0 {
+				return fmt.Errorf("no status conditions found for pod %s/%s", mysqlPod.Namespace, mysqlPod.Name)
+			}
+			for _, condition := range conditions {
+				if condition.Type == "mysql.oracle.com/configured" || condition.Type == "mysql.oracle.com/ready" {
+					if condition.Status != corev1.ConditionTrue {
+						// Restart the mysql-operator to see if it will finish setting the readiness gates
+						t.Logs.Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck waiting for readiness gates")
+						err := client.CoreV1().Pods(constants.Keycloak).Delete(context.TODO(), mysqlPod.Name, metav1.DeleteOptions{})
+						if err != nil {
+							return err
+						}
 					}
 				}
 			}
