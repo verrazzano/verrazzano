@@ -1373,6 +1373,35 @@ func TestReconcileErrorCounter(t *testing.T) {
 	asserts.Equal(errorCounterBefore, errorCounterAfter-1)
 }
 
+// TestUninstallJobCleanup tests the uninstall job cleanup function
+// GIVEN a completed uninstall job
+// WHEN the function is called
+// THEN the job and associated pod are deleted
+func TestUninstallJobCleanup(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.VerrazzanoInstallNamespace,
+				Name:      "uninstall-201321",
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{"job-name": "uninstall-201321"},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	err := reconciler.cleanupUninstallJob("uninstall-201321", constants.VerrazzanoInstallNamespace, vzlog.DefaultLogger())
+	asserts.Nil(err)
+	job := &v1.Job{}
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	asserts.NotNil(err)
+	asserts.True(errors.IsNotFound(err))
+}
+
 // TestMysqlBackupJobCleanup tests the MySQL backup job cleanup function
 // GIVEN a completed backup job
 // WHEN the function is called
@@ -1407,9 +1436,10 @@ func TestMysqlBackupJobCleanup(t *testing.T) {
 		},
 	).Build()
 	reconciler := newVerrazzanoReconciler(c)
-	reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	asserts.Nil(err)
 	job := &v1.Job{}
-	err := c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
 	asserts.NotNil(err)
 	asserts.True(errors.IsNotFound(err))
 }
@@ -1461,9 +1491,10 @@ func TestMysqlScheduledBackupJobCleanup(t *testing.T) {
 		},
 	).Build()
 	reconciler := newVerrazzanoReconciler(c)
-	reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	asserts.Nil(err)
 	job := &v1.Job{}
-	err := c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
 	asserts.NotNil(err)
 	asserts.True(errors.IsNotFound(err))
 	cronJob := &v1.CronJob{}
@@ -1503,9 +1534,10 @@ func TestInProgressMysqlBackupJobCleanup(t *testing.T) {
 		},
 	).Build()
 	reconciler := newVerrazzanoReconciler(c)
-	reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	asserts.NotNil(err)
 	job := &v1.Job{}
-	err := c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
 	asserts.Nil(err)
 	asserts.NotNil(job)
 }
@@ -1544,9 +1576,23 @@ func TestFailedMysqlBackupJobCleanup(t *testing.T) {
 		},
 	).Build()
 	reconciler := newVerrazzanoReconciler(c)
-	reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	asserts.NotNil(err)
 	job := &v1.Job{}
-	err := c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
 	asserts.Nil(err)
 	asserts.NotNil(job)
+}
+
+// TestNoMysqlBackupJobsFound tests the MySQL backup job cleanup function
+// GIVEN no jobs are available
+// WHEN the function is called
+// THEN the cleanup is skipped
+func TestNoMysqlBackupJobsFound(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	asserts.Nil(err)
 }
