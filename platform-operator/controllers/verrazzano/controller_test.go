@@ -7,9 +7,11 @@ import (
 	"context"
 	"fmt"
 	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
 	v1 "k8s.io/api/batch/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sync"
 	"testing"
 	"time"
@@ -1605,4 +1607,78 @@ func TestNoMysqlBackupJobsFound(t *testing.T) {
 	reconciler := newVerrazzanoReconciler(&erroringFakeClient{c})
 	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
 	asserts.Nil(err)
+}
+
+// TestMysqlOperatorJobPredicateWrongNamespace tests the MySQL operator job predicate
+// GIVEN a create event for a job in a namespace other than 'keycloak'
+// WHEN the function is called
+// THEN the result is false
+func TestMysqlOperatorJobPredicateWrongNamespace(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	job := &v1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "WrongNamespace",
+			Name:      "one-off-backup-20221018-201321",
+			Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+		},
+	}
+	isMysqlJob := reconciler.isMysqlOperatorJob(event.CreateEvent{Object: job}, vzlog.DefaultLogger())
+	asserts.False(isMysqlJob)
+}
+
+// TestMysqlOperatorJobPredicateOwnedByOperatorCronJob tests the MySQL operator job predicate
+// GIVEN a create event for a job owned by a cron job created by the operator
+// WHEN the function is called
+// THEN the result is true
+func TestMysqlOperatorJobPredicateOwnedByOperatorCronJob(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.CronJob{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.KeycloakNamespace,
+				Name:      "one-off-backup-schedule-20221018-201321",
+				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	job := &v1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: mysql.ComponentNamespace,
+			Name:      "one-off-backup-20221018-201321",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "batch/v1",
+					Kind:       "CronJob",
+					Name:       "one-off-backup-schedule-20221018-201321",
+				},
+			},
+		},
+	}
+	isMysqlJob := reconciler.isMysqlOperatorJob(event.CreateEvent{Object: job}, vzlog.DefaultLogger())
+	asserts.True(isMysqlJob)
+}
+
+// TestMysqlOperatorJobPredicateValidBackupJob tests the MySQL operator job predicate
+// GIVEN a create event for a job directly created by the operator
+// WHEN the function is called
+// THEN the result is true
+func TestMysqlOperatorJobPredicateValidBackupJob(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	job := &v1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: mysql.ComponentNamespace,
+			Name:      "one-off-backup-20221018-201321",
+			Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+		},
+	}
+	isMysqlJob := reconciler.isMysqlOperatorJob(event.CreateEvent{Object: job}, vzlog.DefaultLogger())
+	asserts.True(isMysqlJob)
 }
