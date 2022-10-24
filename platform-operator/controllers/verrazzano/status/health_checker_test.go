@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package health
+package status
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -22,7 +22,6 @@ func TestAddStatus(t *testing.T) {
 	assert.Nil(t, p.status)
 	p.Start()
 	time.Sleep(waitTime)
-	p.SetAvailabilityStatus(vz)
 	// No components are ready, check fails
 	assert.Nil(t, p.status)
 	p.Pause()
@@ -34,7 +33,17 @@ func TestAddStatus(t *testing.T) {
 	p = newTestHealthCheck(vz)
 	p.Start()
 	time.Sleep(waitTime)
-	p.SetAvailabilityStatus(vz)
 	p.Pause()
 	assert.NotNil(t, p.status)
+	vz, err := getVerrazzanoResource(p.client)
+	assert.NoError(t, err)
+	assert.NotNil(t, vz.Status.Components)
+}
+
+func TestStart(t *testing.T) {
+	p := newTestHealthCheck()
+	p.Start()
+	p.Start()
+	p.Pause()
+	p.Pause()
 }

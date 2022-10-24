@@ -22,6 +22,12 @@ spec:
         app.kubernetes.io/version: {{ .Chart.Version }}
     spec:
       terminationGracePeriodSeconds: 0
+      initContainers:
+        - name: "{{ .Values.name }}-init"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ .Values.image }}
+          command:
+            - /verrazzano/platform-operator/scripts/wait4webhook.sh
       containers:
         - name: {{ .Values.name }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
@@ -40,7 +46,7 @@ spec:
           args:
             - --zap-log-level=info
             - --enable-webhook-validation=true
-            - --health-check-period=0
+            - --health-check-period=60
           env:
             - name: VERRAZZANO_KUBECONFIG
               value: /home/verrazzano/kubeconfig

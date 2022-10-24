@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package health
+package status
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/log"
@@ -12,42 +12,45 @@ import (
 	"time"
 )
 
-// PlatformHealth polls Verrazzano component availability every tickTime, and writes status updates to a secret
+const channelBufferSize = 100
+
+// HealthChecker polls Verrazzano component availability every tickTime, and writes status updates to a secret
 // It is the job of the Verrazzano controller to read availability status from the secret when updating
 // Verrazzano status.
 // The secret containing status is used for synchronization - multiple goroutines writing to the same object
 // will cause performance degrading write conflicts.
-type PlatformHealth struct {
+type HealthChecker struct {
+	updater  *VerrazzanoStatusUpdater
 	client   clipkg.Client
 	tickTime time.Duration
-	shutdown chan int // The channel on which shutdown signals are sent/received
 	logger   *zap.SugaredLogger
-	status   *Status      // Last known Status
-	c        chan *Status // The channel on which Status is sent/received
+	status   *AvailabilityStatus // Last known AvailabilityStatus
+	shutdown chan int            // The channel on which shutdown signals are sent/received
 }
 
-type Status struct {
+type AvailabilityStatus struct {
 	Components map[string]bool
 	Available  string
+	Verrazzano *vzapi.Verrazzano
 }
 
-func New(c clipkg.Client, tick time.Duration) *PlatformHealth {
-	return &PlatformHealth{
+func NewHealthChecker(updater *VerrazzanoStatusUpdater, c clipkg.Client, tick time.Duration) *HealthChecker {
+	return &HealthChecker{
+		updater:  updater,
 		client:   c,
 		tickTime: tick,
 		logger:   zap.S().With(log.FieldController, "availability"),
-		c:        make(chan *Status),
 	}
 }
 
-// Start starts the PlatformHealth if it is not already running.
+// Start starts the HealthChecker if it is not already running.
 // It is safe to call Start multiple times, additional goroutines will not be created
-func (p *PlatformHealth) Start() {
+func (p *HealthChecker) Start() {
 	if p.shutdown != nil {
 		// already running, so nothing to do
 		return
 	}
-	p.shutdown = make(chan int)
+	p.shutdown = make(chan int, channelBufferSize)
 
 	// goroutine updates availability every p.tickTime. If a shutdown signal is received (or channel is closed),
 	// the goroutine returns.
@@ -57,15 +60,9 @@ func (p *PlatformHealth) Start() {
 			select {
 			case <-ticker.C:
 				// timer event causes availability update
-				status, err := p.updateAvailability(registry.GetComponents())
+				err := p.updateAvailability(registry.GetComponents())
 				if err != nil {
 					p.logger.Errorf("%v", err)
-				} else {
-					// only send an update if status has changed
-					if p.status != status {
-						p.status = status
-						p.c <- p.status
-					}
 				}
 			case <-p.shutdown:
 				// shutdown event causes termination
@@ -76,29 +73,35 @@ func (p *PlatformHealth) Start() {
 	}()
 }
 
-// Pause pauses the PlatformHealth if it was running.
+// Pause pauses the HealthChecker if it was running.
 // It is safe to call Pause multiple times
-func (p *PlatformHealth) Pause() {
+func (p *HealthChecker) Pause() {
 	if p.shutdown != nil {
 		close(p.shutdown)
+		p.shutdown = nil
 	}
 }
 
-// SetAvailabilityStatus adds health check status to a Verrazzano resource, if it is available
-func (p *PlatformHealth) SetAvailabilityStatus(vz *vzapi.Verrazzano) {
-	select {
-	case status := <-p.c:
-		if status == nil {
-			return
+func (a *AvailabilityStatus) merge(vz *vzapi.Verrazzano) {
+	for component := range a.Components {
+		if comp, ok := vz.Status.Components[component]; ok {
+			available := a.Components[component]
+			comp.Available = &available
 		}
-		for component := range status.Components {
-			if comp, ok := vz.Status.Components[component]; ok {
-				available := status.Components[component]
-				comp.Available = &available
+	}
+	vz.Status.Available = &a.Available
+}
+
+func (a *AvailabilityStatus) needsUpdate() bool {
+	if a.Verrazzano == nil {
+		return true
+	}
+	for component := range a.Components {
+		if comp, ok := a.Verrazzano.Status.Components[component]; ok {
+			if comp.Available == nil || *comp.Available != a.Components[component] {
+				return true
 			}
 		}
-		vz.Status.Available = &status.Available
-	default:
-		return
 	}
+	return a.Verrazzano.Status.Available == nil || *a.Verrazzano.Status.Available != a.Available
 }
