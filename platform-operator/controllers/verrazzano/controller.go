@@ -7,7 +7,7 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 
 	"strings"
 	"sync"
@@ -56,7 +56,7 @@ type Reconciler struct {
 	WatchedComponents map[string]bool
 	WatchMutex        *sync.RWMutex
 	Bom               *bom.Bom
-	HealthCheck       *health.PlatformHealth
+	StatusUpdater     vzstatus.Updater
 }
 
 // Name of finalizer
@@ -312,7 +312,7 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 
 		err := r.updateStatus(log, actualCR,
 			fmt.Sprintf("Verrazzano upgrade to version %s paused. Upgrade will be performed when version is updated to %s", actualCR.Spec.Version, bomVersion),
-			installv1alpha1.CondUpgradePaused)
+			installv1alpha1.CondUpgradePaused, nil)
 		return newRequeueWithDelay(), err
 	}
 
@@ -365,9 +365,9 @@ func (r *Reconciler) ProcPausedUpgradeState(vzctx vzcontext.VerrazzanoContext) (
 	if isOperatorSameVersionAsCR(vz.Spec.Version) {
 		// upgrade can proceed from paused state
 		log.Debugf("Restarting upgrade since VZ version and VPO version match")
-		err := r.updateVzState(log, vz, installv1alpha1.VzStateReady)
+		r.updateVzState(log, vz, installv1alpha1.VzStateReady)
 		// requeue for a fairly long time considering this may be a terminating VPO
-		return newRequeueWithDelay(), err
+		return newRequeueWithDelay(), nil
 	}
 
 	return newRequeueWithDelay(), nil
@@ -395,8 +395,8 @@ func (r *Reconciler) ProcFailedState(vzctx vzcontext.VerrazzanoContext) (ctrl.Re
 	if retry {
 		// Log the retry and set the CompStateType to ready, then requeue
 		log.Debugf("Restart Version annotation has changed, retrying upgrade")
-		err = r.updateVzState(log, vz, installv1alpha1.VzStateReady)
-		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
+		r.updateVzState(log, vz, installv1alpha1.VzStateReady)
+		return ctrl.Result{Requeue: true, RequeueAfter: 1}, nil
 	}
 
 	// if annotations didn't trigger a retry, see if a newer version of BOM should
@@ -406,7 +406,7 @@ func (r *Reconciler) ProcFailedState(vzctx vzcontext.VerrazzanoContext) (ctrl.Re
 
 		err := r.updateStatus(log, vz,
 			fmt.Sprintf("Verrazzano upgrade to version %s paused. Upgrade will be performed when version is updated to %s", vz.Spec.Version, bomVersion),
-			installv1alpha1.CondUpgradePaused)
+			installv1alpha1.CondUpgradePaused, nil)
 		return newRequeueWithDelay(), err
 	}
 

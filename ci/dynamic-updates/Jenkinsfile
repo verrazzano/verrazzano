@@ -410,6 +410,22 @@ pipeline {
                     }
                 }
 
+                stage('Availability Status Updates') {
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/availability-update"
+                    }
+                    steps {
+                        runGinkgo('update/availability')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
                 stage('API Conversion Update Tests') {
                     environment {
                         TEST_ENV = "KIND"

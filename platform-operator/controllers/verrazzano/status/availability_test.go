@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package health
+package status
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -42,10 +42,10 @@ func newFakeComponent(name string, available, enabled bool) fakeComponent {
 	return fakeComponent{name: name, available: available, enabled: enabled}
 }
 
-func newTestHealthCheck(objs ...client.Object) *PlatformHealth {
-	testScheme := runtime.NewScheme()
-	_ = vzapi.AddToScheme(testScheme)
-	return New(fake.NewClientBuilder().WithObjects(objs...).WithScheme(testScheme).Build(), 1*time.Second)
+func newTestHealthCheck(objs ...client.Object) *HealthChecker {
+	c := fake.NewClientBuilder().WithObjects(objs...).WithScheme(testScheme).Build()
+	updater := NewStatusUpdater(c)
+	return NewHealthChecker(updater, c, 1*time.Second)
 }
 
 func TestGetComponentAvailability(t *testing.T) {
@@ -152,16 +152,16 @@ func TestUpdateAvailability(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var p *PlatformHealth
+			var p *HealthChecker
 			if tt.vz != nil {
 				p = newTestHealthCheck(tt.vz)
 			} else {
 				p = newTestHealthCheck()
 			}
 
-			status, err := p.updateAvailability([]spi.Component{})
+			err := p.updateAvailability([]spi.Component{})
 			assert.NoError(t, err)
-			assert.Equal(t, status == nil, tt.vz == nil)
+			assert.Equal(t, p.status == nil, tt.vz == nil)
 		})
 	}
 }
