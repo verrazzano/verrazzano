@@ -5,6 +5,7 @@ package logget
 
 import (
 	"bytes"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
@@ -61,4 +62,12 @@ func (w LogGetter) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		log.Info("OpenSearch GET request successful")
 	}
 	return err
+}
+
+func (w LogGetter) GetMetricDescList() []prometheus.Desc {
+	return []prometheus.Desc{}
+}
+
+func (w LogGetter) GetMetricList() []prometheus.Metric {
+	return []prometheus.Metric{}
 }
