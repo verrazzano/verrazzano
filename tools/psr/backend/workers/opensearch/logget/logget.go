@@ -5,7 +5,6 @@ package logget
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
@@ -58,13 +57,15 @@ func (w LogGetter) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		Header: http.Header{"Content-Type": {"application/json"}},
 		Body:   body,
 	}
-	resp, err := c.Do(&req)
+	_, err := c.Do(&req)
 	if err != nil {
-		respBody := []byte("")
-		if resp.Body != nil {
-			respBody, _ = io.ReadAll(resp.Body)
-		}
-		return fmt.Errorf("OpenSearch GET request failed, status code: %d, status %s, body: %s, error: %v", resp.StatusCode, resp.Status, string(respBody), err)
+		//respBody := []byte("")
+		//if resp.Body != nil {
+		//	respBody, _ = io.ReadAll(resp.Body)
+		//}
+		//return fmt.Errorf("OpenSearch GET request failed, status code: %d, status %s, body: %s, error: %v", resp.StatusCode, resp.Status, string(respBody), err)
+		log.Error(err)
+		return err
 	}
 	log.Info("OpenSearch GET request successful")
 	return nil
