@@ -21,8 +21,6 @@ type Updater interface {
 	Update(event *UpdateEvent)
 }
 
-type UpdateEventType int8
-
 // UpdateEvent defines an event used during Verrazzano update. Event fields are merged into the Verrazzano
 // resource's status object.
 type UpdateEvent struct {
