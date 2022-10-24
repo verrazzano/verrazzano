@@ -139,7 +139,7 @@ func newRancherConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*rancherCo
 	log.Once("Getting admin token from Rancher")
 	adminToken, err := getAdminTokenFromRancher(rdr, rc, log)
 	if err != nil {
-		log.Errorf("Failed to get admin token from Rancher: %v", err)
+		log.ErrorfThrottled("Failed to get admin token from Rancher: %v", err)
 		return nil, err
 	}
 	rc.apiAccessToken = adminToken
@@ -237,8 +237,12 @@ func getAllClustersInRancher(rc *rancherConfig, log vzlog.VerrazzanoLogger) ([]r
 		}
 
 		for _, item := range items {
-			i := item.(map[string]interface{})
+			var i map[string]interface{}
 			var ok bool
+			if i, ok = item.(map[string]interface{}); !ok {
+				log.Infof("Expected item to be of type 'map[string]interface{}': %s", responseBody)
+				continue
+			}
 			var name, id interface{}
 			if name, ok = i["name"]; !ok {
 				log.Infof("Expected to find 'name' field in Rancher cluster data: %s", responseBody)

@@ -99,6 +99,9 @@ func TestSyncRancherClusters(t *testing.T) {
 	err = r.Get(context.TODO(), types.NamespacedName{Name: preExistingClusterNotLabeled, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
 	asserts.NoError(err)
 
+	// also assert that the pre-existing VMC did not have labels added
+	asserts.Empty(cr.Labels)
+
 	// the pre-existing VMC that is labeled (so auto-created) should have been deleted
 	err = r.Get(context.TODO(), types.NamespacedName{Name: preExistingClusterLabeled, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
 	asserts.True(errors.IsNotFound(err))

@@ -90,7 +90,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 	// create/update the manifest secret with the YAML
 	_, err = r.createOrUpdateManifestSecret(vmc, sb.String())
 	if err != nil {
-		return false, err
+		return vzVMCWaitingForClusterID, err
 	}
 
 	// Save the ClusterRegistrationSecret name in the VMC
@@ -99,7 +99,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 	// finally, update the VMC
 	err = r.Update(context.TODO(), vmc)
 	if err != nil {
-		return false, err
+		return vzVMCWaitingForClusterID, err
 	}
 
 	return vzVMCWaitingForClusterID, nil
