@@ -14,7 +14,7 @@ Collections.shuffle(availableRegions)
 
 pipeline {
     options {
-        timeout(time: 3, unit: 'HOURS')
+        timeout(time: 4, unit: 'HOURS')
         skipDefaultCheckout true
         timestamps ()
     }
@@ -430,35 +430,26 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/inplaceupgrade"
                                 OKE_CLUSTER_ID="${OKE_CLUSTER_ID}"
                             }
-                            options {
-                                timeout(time: 90, unit: "MINUTES")
-                            }
                             steps {
                                 runGinkgoFailFast('ha/inplaceupgrade')
                             }
                         }
                         stage('HA Tests') {
-                            options {
-                                timeout(time: 90, unit: "MINUTES")
-                            }
                             steps {
                                 runGinkgoRandomize('ha/monitor')
                             }
                         }
                         stage('Access Hello Helidon') {
-                            options {
-                                timeout(time: 90, unit: "MINUTES")
-                            }
                             steps {
                                 runGinkgo("ha/helidon", "--namespace=${HELIDON_TEST_NAMESPACE}")
                             }
                         }
                         stage ('console') {
+                            when {
+                                expression { false }
+                            }
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-                            }
-                            options {
-                                timeout(time: 90, unit: "MINUTES")
                             }
                             steps {
                                 sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
@@ -566,7 +557,7 @@ def runGinkgoRandomize(testSuitePath) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             if [ -d "${testSuitePath}" ]; then
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+                ginkgo --timeout=90m -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
             fi
         """
     }
@@ -576,7 +567,7 @@ def runGinkgo(testSuitePath, arguments = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- $arguments
+            ginkgo --timeout=90m -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- $arguments
         """
     }
 }
@@ -585,7 +576,7 @@ def runGinkgoFailFast(testSuitePath, arguments = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v --fail-fast --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- $arguments
+            ginkgo --timeout=90m -v --fail-fast --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- $arguments
         """
     }
 }

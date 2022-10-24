@@ -42,6 +42,9 @@ const (
 
 	// ComponentJSONName is the json name of the component in the CRD
 	ComponentJSONName = "mySQLOperator"
+
+	// BackupContainerName is the name of the executable container in a backup job pod
+	BackupContainerName = "operator-backup-job"
 )
 
 type mysqlOperatorComponent struct {

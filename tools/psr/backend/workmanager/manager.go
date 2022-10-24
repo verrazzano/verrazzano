@@ -5,14 +5,14 @@ package workmanager
 
 import (
 	"fmt"
+	metrics2 "github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"os"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
-	metrics2 "github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/example"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/loggen"
 )
 
 // RunWorker runs a worker to completion
@@ -35,28 +35,40 @@ func RunWorker(log vzlog.VerrazzanoLogger) error {
 		log.Error(err)
 		os.Exit(1)
 	}
-	// Add the worker config
+	// add the worker config
 	if err := config.AddEnvConfig(worker.GetEnvDescList()); err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
 
-	// Start metrics server as go routine
-	log.Info("Starting metrics server")
-	go metrics2.StartMetricsServerOrDie()
+	// init the runner and wrapped worker
+	log.Infof("Initializing worker %s", wt)
+	runner, err := NewRunner(worker, conf, log)
+	if err != nil {
+		log.Errorf("Failed initializing runner and worker: %v", err)
+		os.Exit(1)
+	}
 
-	// Run the worker to completion (usually forever)
+	// start metrics server as go routine
+	log.Info("Starting metrics server")
+	mProviders := []spi.WorkerMetricsProvider{}
+	mProviders = append(mProviders, runner)
+	mProviders = append(mProviders, worker)
+	go metrics2.StartMetricsServerOrDie(mProviders)
+
+	// run the worker to completion (usually forever)
 	log.Infof("Running worker %s", wt)
-	return Runner{Worker: worker}.RunWorker(conf, log)
+	err = runner.RunWorker(conf, log)
+	return err
 }
 
 // getWorker returns a worker given the name of the worker
 func getWorker(wt string) (spi.Worker, error) {
 	switch wt {
 	case config.WorkerTypeExample:
-		return example.NewExampleWorker(), nil
+		return example.NewExampleWorker()
 	case config.WorkerTypeLogGen:
-		return opensearch.NewLogGenerator(), nil
+		return loggen.NewLogGenerator()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}
