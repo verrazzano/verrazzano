@@ -382,7 +382,8 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 }
 
 func (i istioComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = i.IsReady(context)
+	prefix := fmt.Sprintf("Component %s", context.GetComponent())
+	available = areIstioDeploymentsReady(context, prefix)
 	if available {
 		return fmt.Sprintf("%s is available", i.Name()), true
 	}
@@ -391,22 +392,7 @@ func (i istioComponent) IsAvailable(context spi.ComponentContext) (reason string
 
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	deployments := []types.NamespacedName{
-		{
-			Name:      IstiodDeployment,
-			Namespace: IstioNamespace,
-		},
-		{
-			Name:      IstioIngressgatewayDeployment,
-			Namespace: IstioNamespace,
-		},
-		{
-			Name:      IstioEgressgatewayDeployment,
-			Namespace: IstioNamespace,
-		},
-	}
-	ready := ready.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
-	if !ready {
+	if !areIstioDeploymentsReady(context, prefix) {
 		return false
 	}
 
@@ -431,6 +417,24 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 		return false
 	}
 	return true
+}
+
+func areIstioDeploymentsReady(context spi.ComponentContext, prefix string) bool {
+	deployments := []types.NamespacedName{
+		{
+			Name:      IstiodDeployment,
+			Namespace: IstioNamespace,
+		},
+		{
+			Name:      IstioIngressgatewayDeployment,
+			Namespace: IstioNamespace,
+		},
+		{
+			Name:      IstioEgressgatewayDeployment,
+			Namespace: IstioNamespace,
+		},
+	}
+	return ready.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
 
 func isIstioManifestNotInstalledError(err error) bool {

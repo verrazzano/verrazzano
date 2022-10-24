@@ -8,7 +8,7 @@ import (
 	"fmt"
 	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	v1 "k8s.io/api/batch/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -1097,7 +1097,7 @@ func newVerrazzanoReconciler(c client.Client) Reconciler {
 		Scheme:            scheme,
 		WatchedComponents: map[string]bool{},
 		WatchMutex:        &sync.RWMutex{},
-		HealthCheck:       health.New(c, 300*time.Second),
+		StatusUpdater:     &vzstatus.FakeVerrazzanoStatusUpdater{Client: c},
 	}
 	return reconciler
 }

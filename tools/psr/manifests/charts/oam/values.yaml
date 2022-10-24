@@ -1,9 +1,9 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-imagePullSecrets: []
+imagePullSecrets: [ ]
 
-imageName: ghcr.io/verrazzano/psr-backend:local-2ff4ad62b
+imageName: ghcr.io/verrazzano/psr-backend:local-12aa43e
 imagePullPolicy: IfNotPresent
 
 replicas: 1
@@ -11,5 +11,5 @@ replicas: 1
 # envVars contains default worker type and ENV vars common to all workers
 envVars:
   PSR_WORKER_TYPE: WT_EXAMPLE
-  PSR_ITERATION_DELAY: 1s
+  PSR_ITERATION_SLEEP: 1s
 
