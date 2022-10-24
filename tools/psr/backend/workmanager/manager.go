@@ -6,7 +6,7 @@ package workmanager
 import (
 	"fmt"
 	metrics2 "github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/logget"
 	"os"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -63,7 +63,7 @@ func RunWorker(log vzlog.VerrazzanoLogger) error {
 	return err
 }
 
-// getWorker returns a worker given the name of the worker
+// getWorker returns a worker given the	 name of the worker
 func getWorker(wt string) (spi.Worker, error) {
 	switch wt {
 	case config.WorkerTypeExample:
@@ -71,7 +71,7 @@ func getWorker(wt string) (spi.Worker, error) {
 	case config.WorkerTypeLogGen:
 		return loggen.NewLogGenerator()
 	case config.WorkerTypeLogGet:
-		return opensearch.NewLogGetter(), nil
+		return logget.NewLogGetter(), nil
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}
