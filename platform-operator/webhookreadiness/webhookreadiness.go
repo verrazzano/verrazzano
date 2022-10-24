@@ -63,7 +63,7 @@ func (r *startupProbeServer) run() {
 	})
 	srv := &http.Server{
 		ReadHeaderTimeout: 10 * time.Second,
-		Addr:              fmt.Sprintf(":%d", 8081),
+		Addr:              fmt.Sprintf(":%d", 8080),
 		Handler:           mux,
 	}
 	go func() {
