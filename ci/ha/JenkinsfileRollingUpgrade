@@ -14,7 +14,7 @@ Collections.shuffle(availableRegions)
 
 pipeline {
     options {
-        timeout(time: 3, unit: 'HOURS')
+        timeout(time: 4, unit: 'HOURS')
         skipDefaultCheckout true
         timestamps ()
     }
@@ -423,6 +423,9 @@ pipeline {
                     }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/ha-tests"
+                    }
+                    options {
+                        timeout(time: 90, unit: "MINUTES")
                     }
                     parallel {
                         stage('K8s In-place Upgrade') {
