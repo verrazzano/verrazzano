@@ -60,8 +60,7 @@ func (w LogGetter) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 	}
 	resp, err := c.Do(&req)
 	if err != nil {
-		var respBody []byte
-		resp.Body.Read(respBody)
+		respBody, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("OpenSearch GET request failed, status code: %d, status %s, body: %s, error: %v", resp.StatusCode, resp.Status, string(respBody), err)
 	}
 	log.Info("OpenSearch GET request successful")
