@@ -16,11 +16,6 @@ import (
 )
 
 const (
-	workloadName  = "system-es-master"
-	containerName = "es-master"
-	portName      = "http"
-	indexPattern  = "verrazzano-*"
-
 	esDataDeployment   = "vmi-system-es-data"
 	esIngestDeployment = "vmi-system-es-ingest"
 
