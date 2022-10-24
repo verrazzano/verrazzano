@@ -32,10 +32,10 @@ type fluentdComponentValues struct {
 }
 
 type loggingValues struct {
-	Name                string `json:"name,omitempty"`
-	ElasticsearchURL    string `json:"elasticsearchURL,omitempty"`
-	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
-	ConfigHash          string `json:"configHash,omitempty"`
+	Name             string `json:"name,omitempty"`
+	OpensearchURL    string `json:"opensearchURL,omitempty"`
+	OpensearchSecret string `json:"opensearchSecret,omitempty"`
+	ConfigHash       string `json:"configHash,omitempty"`
 }
 
 type fluentdValues struct {
@@ -112,10 +112,10 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *fluentdCom
 	if fluentd != nil {
 		overrides.Logging = &loggingValues{ConfigHash: HashSum(fluentd)}
 		if len(fluentd.ElasticsearchURL) > 0 {
-			overrides.Logging.ElasticsearchURL = fluentd.ElasticsearchURL
+			overrides.Logging.OpensearchURL = fluentd.ElasticsearchURL
 		}
 		if len(fluentd.ElasticsearchSecret) > 0 {
-			overrides.Logging.ElasticsearchSecret = fluentd.ElasticsearchSecret
+			overrides.Logging.OpensearchSecret = fluentd.ElasticsearchSecret
 		}
 		if len(fluentd.ExtraVolumeMounts) > 0 {
 			for _, vm := range fluentd.ExtraVolumeMounts {
@@ -144,8 +144,8 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *fluentdCom
 	// Force the override to be the internal ES secret if the legacy ES secret is being used.
 	// This may be the case during an upgrade from a version that was not using the ES internal password for Fluentd.
 	if overrides.Logging != nil {
-		if overrides.Logging.ElasticsearchSecret == globalconst.LegacyElasticsearchSecretName {
-			overrides.Logging.ElasticsearchSecret = globalconst.VerrazzanoESInternal
+		if overrides.Logging.OpensearchSecret == globalconst.LegacyOpensearchSecretName {
+			overrides.Logging.OpensearchSecret = globalconst.VerrazzanoESInternal
 		}
 	}
 

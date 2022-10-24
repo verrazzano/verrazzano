@@ -1505,7 +1505,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 	const externalPasswordData = "external-pw"
 	const externalCaData = "external-ca"
 
-	fluentdESURL := "http://verrazzano-authproxy-elasticsearch:8775"
+	fluentdESURL := "http://verrazzano-authproxy-opensearch:8775"
 	fluentdESSecret := "verrazzano"
 	esSecret := constants.VerrazzanoESInternal
 	if externalES {
@@ -1557,7 +1557,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			})
 	}
 
-	// Expect a call to get the Elasticsearch secret, return the secret with the fields set
+	// Expect a call to get the Opensearch secret, return the secret with the fields set
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: esSecret}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {

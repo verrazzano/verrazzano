@@ -5,7 +5,7 @@ spec:
   components:
     console:
       enabled: false
-    elasticSearch:
+    openSearch:
       enabled: false
     grafana:
       enabled: false

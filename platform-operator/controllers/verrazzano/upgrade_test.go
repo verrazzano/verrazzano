@@ -55,7 +55,7 @@ const unitTestBomFile = "../../verrazzano-bom.json"
 // ingress list constants
 const dnsDomain = "myenv.testverrazzano.com"
 const keycloakURL = "keycloak." + dnsDomain
-const esURL = "elasticsearch." + dnsDomain
+const osURL = "opensearch." + dnsDomain
 const promURL = "prometheus." + dnsDomain
 const grafanaURL = "grafana." + dnsDomain
 const kialiURL = "kiali." + dnsDomain
@@ -1640,7 +1640,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-es-ingest"},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
-					{Host: esURL},
+					{Host: osURL},
 				},
 			},
 		},
@@ -1754,7 +1754,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
 	assert.Equal(t, "https://"+rancherURL, *instanceInfo.RancherURL)
 	assert.Equal(t, "https://"+keycloakURL, *instanceInfo.KeyCloakURL)
-	assert.Equal(t, "https://"+esURL, *instanceInfo.ElasticURL)
+	assert.Equal(t, "https://"+osURL, *instanceInfo.ElasticURL)
 	assert.Equal(t, "https://"+grafanaURL, *instanceInfo.GrafanaURL)
 	assert.Equal(t, "https://"+kialiURL, *instanceInfo.KialiURL)
 	assert.Equal(t, "https://"+kibanaURL, *instanceInfo.KibanaURL)
@@ -1827,7 +1827,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-es-ingest"},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
-					{Host: esURL},
+					{Host: osURL},
 				},
 			},
 		},
@@ -1921,7 +1921,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 	keycloakfqdn := fmt.Sprintf("https://%s", keycloakURL)
 	fakeInstanceInfo.ConsoleURL = &keycloakfqdn
 
-	esfqdn := fmt.Sprintf("https://%s", esURL)
+	esfqdn := fmt.Sprintf("https://%s", osURL)
 	fakeInstanceInfo.ConsoleURL = &esfqdn
 
 	grafanafqdn := fmt.Sprintf("https://%s", grafanaURL)
@@ -1953,7 +1953,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
 	assert.Equal(t, "https://"+rancherURL, *instanceInfo.RancherURL)
 	assert.Equal(t, "https://"+keycloakURL, *instanceInfo.KeyCloakURL)
-	assert.Equal(t, "https://"+esURL, *instanceInfo.ElasticURL)
+	assert.Equal(t, "https://"+osURL, *instanceInfo.ElasticURL)
 	assert.Equal(t, "https://"+grafanaURL, *instanceInfo.GrafanaURL)
 	assert.Equal(t, "https://"+kialiURL, *instanceInfo.KialiURL)
 	assert.Equal(t, "https://"+kibanaURL, *instanceInfo.KibanaURL)

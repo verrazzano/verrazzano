@@ -52,7 +52,7 @@ const (
 const (
 	monitoringNamespace = "monitoring"
 	nodeExporterName    = "node-exporter"
-	mcElasticSearchScrt = "verrazzano-cluster-elasticsearch"
+	mcOpenSearchScrt    = "verrazzano-cluster-opensearch"
 	istioRootCertName   = "istio-ca-root-cert"
 )
 
@@ -230,7 +230,7 @@ func (r *Reconciler) deleteMCResources(ctx spi.ComponentContext) error {
 		if err := r.deleteSecret(ctx.Log(), vzconst.VerrazzanoSystemNamespace, vzconst.MCRegistrationSecret); err != nil {
 			return err
 		}
-		if err := r.deleteSecret(ctx.Log(), vzconst.VerrazzanoSystemNamespace, mcElasticSearchScrt); err != nil {
+		if err := r.deleteSecret(ctx.Log(), vzconst.VerrazzanoSystemNamespace, mcOpenSearchScrt); err != nil {
 			return err
 		}
 		if err := r.deleteSecret(ctx.Log(), vzconst.VerrazzanoSystemNamespace, vzconst.MCAgentSecret); err != nil {

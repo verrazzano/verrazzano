@@ -6,7 +6,7 @@ metadata:
   name: ##SCOPE_NAME##
   namespace: ##SCOPE_NAMESPACE##
 spec:
-  elasticSearchURL: ##INGEST_URL##
+  openSearchURL: ##INGEST_URL##
   secretName: ##INGEST_SECRET_NAME##
   fluentdImage: ##FLUENTD_IMAGE##
   workloadRefs:

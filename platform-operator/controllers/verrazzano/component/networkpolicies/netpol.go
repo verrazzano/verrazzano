@@ -120,7 +120,7 @@ func generateOverridesFile(ctx spi.ComponentContext, overrides *chartValues) (st
 func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) error {
 	effectiveCR := ctx.EffectiveCR()
 
-	overrides.ElasticSearch = &elasticsearchValues{Enabled: vzconfig.IsOpenSearchEnabled(effectiveCR)}
+	overrides.OpenSearch = &opensearchValues{Enabled: vzconfig.IsOpenSearchEnabled(effectiveCR)}
 	overrides.Externaldns = &externalDNSValues{Enabled: vzconfig.IsExternalDNSEnabled(effectiveCR)}
 	overrides.Grafana = &grafanaValues{Enabled: vzconfig.IsGrafanaEnabled(effectiveCR)}
 	overrides.Istio = &istioValues{Enabled: vzconfig.IsIstioEnabled(effectiveCR)}

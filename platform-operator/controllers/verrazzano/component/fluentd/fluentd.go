@@ -60,7 +60,7 @@ func loggingPreInstall(ctx spi.ComponentContext) error {
 		// If fluentd is enabled, copy any custom secrets
 		fluentdConfig := ctx.EffectiveCR().Spec.Components.Fluentd
 		if fluentdConfig != nil {
-			// Copy the internal Elasticsearch secret
+			// Copy the internal Opensearch secret
 			if len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoESInternal {
 				if err := common.CopySecret(ctx, fluentdConfig.ElasticsearchSecret, constants.VerrazzanoSystemNamespace, "custom Elasticsearch"); err != nil {
 					return err
@@ -101,7 +101,7 @@ func fluentdPreUpgrade(ctx spi.ComponentContext, namespace string) error {
 
 // This function is used to fixup the fluentd daemonset on a managed cluster so that helm upgrade of Verrazzano does
 // not fail.  Prior to Verrazzano v1.0.1, the mcagent would change the environment variables CLUSTER_NAME and
-// ELASTICSEARCH_URL on a managed cluster to use valueFrom (from a secret) instead of using a Value. The helm chart
+// OPENSEARCH_URL on a managed cluster to use valueFrom (from a secret) instead of using a Value. The helm chart
 // template for the fluentd daemonset expects a Value.
 func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, namespace string) error {
 	// Get the fluentd daemonset resource
@@ -127,25 +127,25 @@ func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, nam
 		return log.ErrorfNewErr("Failed, fluentd container not found in fluentd daemonset: %s", daemonSet.Name)
 	}
 
-	// Check if env variables CLUSTER_NAME and ELASTICSEARCH_URL are using valueFrom.
+	// Check if env variables CLUSTER_NAME and OPENSEARCH_URL are using valueFrom.
 	clusterNameIndex := -1
-	elasticURLIndex := -1
+	openURLIndex := -1
 	for i, env := range daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env {
 		if env.Name == constants.ClusterNameEnvVar && env.ValueFrom != nil {
 			clusterNameIndex = i
 			continue
 		}
-		if env.Name == constants.ElasticsearchURLEnvVar && env.ValueFrom != nil {
-			elasticURLIndex = i
+		if env.Name == constants.OpensearchURLEnvVar && env.ValueFrom != nil {
+			openURLIndex = i
 		}
 	}
 
 	// If valueFrom is not being used then we do not need to fix the env variables
-	if clusterNameIndex == -1 && elasticURLIndex == -1 {
+	if clusterNameIndex == -1 && openURLIndex == -1 {
 		return nil
 	}
 
-	// Get the secret containing managed cluster name and Elasticsearch URL
+	// Get the secret containing managed cluster name and Opensearch URL
 	secretNamespacedName := types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: namespace}
 	sec := corev1.Secret{}
 	err = client.Get(context.TODO(), secretNamespacedName, &sec)
@@ -159,10 +159,10 @@ func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, nam
 		return log.ErrorfNewErr("Failed, the secret named %s in namespace %s is missing the required field %s", sec.Name, sec.Namespace, constants.ClusterNameData)
 	}
 
-	// The secret must contain the Elasticsearch endpoint's URL
-	elasticsearchURL, ok := sec.Data[constants.ElasticsearchURLData]
+	// The secret must contain the Opensearch endpoint's URL
+	opensearchURL, ok := sec.Data[constants.OpensearchURLData]
 	if !ok {
-		return log.ErrorfNewErr("Failed, the secret named %s in namespace %s is missing the required field %s", sec.Name, sec.Namespace, constants.ElasticsearchURLData)
+		return log.ErrorfNewErr("Failed, the secret named %s in namespace %s is missing the required field %s", sec.Name, sec.Namespace, constants.OpensearchURLData)
 	}
 
 	// Update the daemonset to use a Value instead of the valueFrom
@@ -170,11 +170,11 @@ func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, nam
 		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[clusterNameIndex].Value = string(clusterName)
 		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[clusterNameIndex].ValueFrom = nil
 	}
-	if elasticURLIndex != -1 {
-		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[elasticURLIndex].Value = string(elasticsearchURL)
-		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[elasticURLIndex].ValueFrom = nil
+	if openURLIndex != -1 {
+		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[openURLIndex].Value = string(opensearchURL)
+		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[openURLIndex].ValueFrom = nil
 	}
-	log.Debug("Updating fluentd daemonset to use valueFrom instead of Value for CLUSTER_NAME and ELASTICSEARCH_URL environment variables")
+	log.Debug("Updating fluentd daemonset to use valueFrom instead of Value for CLUSTER_NAME and OPENSEARCH_URL environment variables")
 	err = client.Update(context.TODO(), &daemonSet)
 	return err
 }

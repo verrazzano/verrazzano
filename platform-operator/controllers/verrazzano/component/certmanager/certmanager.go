@@ -59,7 +59,7 @@ const (
 	verrazzanoClusterIssuerName = "verrazzano-cluster-issuer"
 	clusterResourceNamespaceKey = "clusterResourceNamespace"
 
-	longestSystemURLPrefix = "elasticsearch.vmi.system"
+	longestSystemURLPrefix = "opensearch.vmi.system"
 	preOccupiedspace       = len(longestSystemURLPrefix) + 2
 
 	crdDirectory  = "/cert-manager/"

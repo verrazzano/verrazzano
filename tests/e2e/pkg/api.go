@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/hashicorp/go-retryablehttp"
 	networkingv1 "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -187,7 +186,7 @@ func (api *APIEndpoint) GetIngress(namespace, name string) (*networkingv1.Ingres
 	return &ingress, nil
 }
 
-// GetElasticURL fetches ElasticSearch endpoint URL
+// GetElasticURL fetches OpenSearch endpoint URL
 func (api *APIEndpoint) GetElasticURL() (string, error) {
 	ingress, err := api.GetIngress("verrazzano-system", "vmi-system-es-ingest")
 	if err != nil {

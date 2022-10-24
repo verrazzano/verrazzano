@@ -99,8 +99,8 @@ const jaegerCreateTemplate = `jaeger:
   spec:
     strategy: production
     storage:
-      # Jaeger Elasticsearch storage is compatible with Verrazzano OpenSearch.
-      type: elasticsearch
+      # Jaeger Opensearch storage is compatible with Verrazzano OpenSearch.
+      type: opensearch
       options:
         es:
           server-urls: {{.OpenSearchURL}}
@@ -220,7 +220,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		return nil, err
 	}
 	if len(indexCleanerImages) != 1 {
-		return nil, fmt.Errorf("component Jaeger Operator failed, expected 1 image for Jaeger Elasticsearch Index Cleaner, found %v", len(indexCleanerImages))
+		return nil, fmt.Errorf("component Jaeger Operator failed, expected 1 image for Jaeger Opensearch Index Cleaner, found %v", len(indexCleanerImages))
 	}
 
 	// Get jaeger-es-rollover image
@@ -229,7 +229,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		return nil, err
 	}
 	if len(rolloverImages) != 1 {
-		return nil, fmt.Errorf("component Jaeger Operator failed, expected 1 image for Jaeger Elasticsearch Rollover, found %v", len(rolloverImages))
+		return nil, fmt.Errorf("component Jaeger Operator failed, expected 1 image for Jaeger Opensearch Rollover, found %v", len(rolloverImages))
 	}
 
 	// Get jaeger-es-rollover image
@@ -389,7 +389,7 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 		}
 		return nil
 	}
-	// Copy the internal Elasticsearch secret
+	// Copy the internal Opensearch secret
 	ctx.Log().Debugf("Creating secret %s required by Jaeger instance to access storage", globalconst.DefaultJaegerSecretName)
 	esInternalSecret, err := getESInternalSecret(ctx)
 	if err != nil {

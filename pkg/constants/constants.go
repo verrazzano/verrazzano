@@ -82,10 +82,10 @@ const LabelIstioInjection = "istio-injection"
 // LabelVerrazzanoNamespace - constant for a Kubernetes label that is used by network policies
 const LabelVerrazzanoNamespace = "verrazzano.io/namespace"
 
-// LegacyElasticsearchSecretName legacy secret name for Elasticsearch credentials
-const LegacyElasticsearchSecretName = "verrazzano"
+// LegacyOpensearchSecretName legacy secret name for Opensearch credentials
+const LegacyOpensearchSecretName = "verrazzano"
 
-// VerrazzanoESInternal is the name of the Verrazzano internal Elasticsearch secret in the Verrazzano system namespace
+// VerrazzanoESInternal is the name of the Verrazzano internal Opensearch secret in the Verrazzano system namespace
 const VerrazzanoESInternal = "verrazzano-es-internal"
 
 // VerrazzanoPromInternal is the name of the Verrazzano internal Prometheus secret in the Verrazzano system namespace
@@ -125,10 +125,10 @@ const TestPrometheusJobScrapeInterval = "0s"
 const TestPrometheusScrapeJob = "test_job"
 
 // Default OpenSearch URL
-const DefaultOpensearchURL = "http://verrazzano-authproxy-elasticsearch:8775"
+const DefaultOpensearchURL = "http://verrazzano-authproxy-opensearch:8775"
 
 // Default Jaeger OpenSearch URL
-const DefaultJaegerOSURL = "http://verrazzano-authproxy-elasticsearch.verrazzano-system:8775"
+const DefaultJaegerOSURL = "http://verrazzano-authproxy-opensearch.verrazzano-system:8775"
 
 // DefaultJaegerSecretName is the Jaeger secret name used by the default Jaeger instance
 // #nosec

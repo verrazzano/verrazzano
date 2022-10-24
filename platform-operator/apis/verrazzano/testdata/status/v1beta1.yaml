@@ -421,7 +421,7 @@ status:
       type: InstallComplete
   instance:
     consoleUrl: https://verrazzano.default.172.18.0.231.nip.io
-    openSearchUrl: https://elasticsearch.vmi.system.default.172.18.0.231.nip.io
+    openSearchUrl: https://opensearch.vmi.system.default.172.18.0.231.nip.io
     grafanaUrl: https://grafana.vmi.system.default.172.18.0.231.nip.io
     keyCloakUrl: https://keycloak.default.172.18.0.231.nip.io
     kialiUrl: https://kiali.vmi.system.default.172.18.0.231.nip.io

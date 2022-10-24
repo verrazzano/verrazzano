@@ -9,7 +9,7 @@ package networkpolicies
 // used by the network policies helm charts
 type chartValues struct {
 	Name           string                `json:"name,omitempty"`
-	ElasticSearch  *elasticsearchValues  `json:"elasticSearch,omitempty"`
+	OpenSearch     *opensearchValues     `json:"openSearch,omitempty"`
 	Externaldns    *externalDNSValues    `json:"externaldns,omitempty"`
 	Grafana        *grafanaValues        `json:"grafana,omitempty"`
 	Istio          *istioValues          `json:"istio,omitempty"`
@@ -20,7 +20,7 @@ type chartValues struct {
 	Velero         *veleroValues         `json:"velero,omitempty"`
 }
 
-type elasticsearchValues struct {
+type opensearchValues struct {
 	Enabled bool `json:"enabled"` // Always write
 }
 

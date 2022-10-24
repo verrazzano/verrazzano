@@ -20,10 +20,10 @@ jaeger:
   spec:
     strategy: production
     storage:
-      # Jaeger Elasticsearch storage is compatible with Verrazzano OpenSearch.
-      type: elasticsearch
+      # Jaeger Opensearch storage is compatible with Verrazzano OpenSearch.
+      type: opensearch
       options:
         es:
-          server-urls: "http://verrazzano-authproxy-elasticsearch.verrazzano-system:8775"
+          server-urls: "http://verrazzano-authproxy-opensearch.verrazzano-system:8775"
           num-replicas: 0
       secretName: "verrazzano-jaeger-secret"

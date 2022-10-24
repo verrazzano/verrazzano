@@ -72,7 +72,7 @@ spec:
       enabled: false
     esIndexCleaner:
       enabled: false
-    type: elasticsearch
+    type: opensearch
     options:
       es:
         index-prefix: verrazzano

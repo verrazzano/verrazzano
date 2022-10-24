@@ -19,15 +19,16 @@ import (
 //   - "vmi.ResourceRequestValues.storage" should be allowed to record empty values, as it is a valid
 //     value to the VMO to indicate ephemeral storage is to be used
 type verrazzanoValues struct {
-	Name                   string                        `json:"name,omitempty"`
-	Global                 *globalValues                 `json:"global,omitempty"`
-	Image                  *imageValues                  `json:"image,omitempty"`
-	AppBinding             *appBindingValues             `json:"appBinding,omitempty"`
-	ElasticSearch          *elasticsearchValues          `json:"elasticSearch,omitempty"`
-	Prometheus             *prometheusValues             `json:"prometheus,omitempty"`
-	Grafana                *grafanaValues                `json:"grafana,omitempty"`
-	Kibana                 *kibanaValues                 `json:"kibana,omitempty"`
-	Istio                  *istioValues                  `json:"istio,omitempty"`
+	Name       string            `json:"name,omitempty"`
+	Global     *globalValues     `json:"global,omitempty"`
+	Image      *imageValues      `json:"image,omitempty"`
+	AppBinding *appBindingValues `json:"appBinding,omitempty"`
+	OpenSearch *opensearchValues `json:"openSearch,omitempty"`
+	Prometheus *prometheusValues `json:"prometheus,omitempty"`
+	Grafana    *grafanaValues    `json:"grafana,omitempty"`
+	Kibana     *kibanaValues     `json:"kibana,omitempty"`
+	Istio *istioValues `json:"istio,omitemp
+ty"`
 	Kiali                  *kialiValues                  `json:"kiali,omitempty"`
 	Keycloak               *keycloakValues               `json:"keycloak,omitempty"`
 	Rancher                *rancherValues                `json:"rancher,omitempty"`
@@ -64,7 +65,7 @@ type appBindingValues struct {
 	UseSystemVMI bool `json:"useSystemVMI,omitempty"`
 }
 
-type elasticsearchValues struct {
+type opensearchValues struct {
 	Enabled          bool `json:"enabled"` // Always write
 	MultiNodeCluster bool `json:"multiNodeCluster"`
 }

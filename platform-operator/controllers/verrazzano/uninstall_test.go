@@ -280,7 +280,7 @@ func TestUninstallVariations(t *testing.T) {
 			createMCNamespace: true,
 			secrets: []corev1.Secret{
 				{ObjectMeta: metav1.ObjectMeta{Name: vzconst.MCRegistrationSecret, Namespace: vzconst.VerrazzanoSystemNamespace}},
-				{ObjectMeta: metav1.ObjectMeta{Name: mcElasticSearchScrt, Namespace: vzconst.VerrazzanoSystemNamespace}},
+				{ObjectMeta: metav1.ObjectMeta{Name: mcOpenSearchScrt, Namespace: vzconst.VerrazzanoSystemNamespace}},
 			},
 		},
 		// Admin cluster test with project, MC namespace should NOT get deleted
@@ -298,7 +298,7 @@ func TestUninstallVariations(t *testing.T) {
 			secrets: []corev1.Secret{
 				{ObjectMeta: metav1.ObjectMeta{Name: vzconst.MCAgentSecret, Namespace: vzconst.VerrazzanoSystemNamespace}},
 				{ObjectMeta: metav1.ObjectMeta{Name: vzconst.MCRegistrationSecret, Namespace: vzconst.VerrazzanoSystemNamespace}},
-				{ObjectMeta: metav1.ObjectMeta{Name: mcElasticSearchScrt, Namespace: vzconst.VerrazzanoSystemNamespace}},
+				{ObjectMeta: metav1.ObjectMeta{Name: mcOpenSearchScrt, Namespace: vzconst.VerrazzanoSystemNamespace}},
 			},
 		},
 	}
