@@ -3,6 +3,9 @@ Features:
 
 - Separated Verrazzano Platform Operator and Verrazzano Platform Webhooks into separate deployments for scalability and resiliency.
 
+Features:
+- Added component availability to Verrazzano custom resource, displayed in the resource's status printout.
+
 Component version updates:
 
 - Coherence Operator v3.2.8
