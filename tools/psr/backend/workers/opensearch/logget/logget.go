@@ -52,7 +52,7 @@ func (w LogGetter) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		URL: &url.URL{
 			Scheme: "http",
 			Host:   osIngestService,
-			Path:   "verrazzano-system",
+			//Path:   "verrazzano-system",
 		},
 		Header: http.Header{"Content-Type": {"application/json"}},
 		Body:   body,
