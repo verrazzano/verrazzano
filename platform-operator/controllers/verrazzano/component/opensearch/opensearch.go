@@ -12,7 +12,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/types"
-	"os/exec"
 )
 
 const (
@@ -21,11 +20,6 @@ const (
 
 	esMasterStatefulset = "vmi-system-es-master"
 	nodeNamePrefix      = "vmi-system-%s"
-)
-
-var (
-	// For Unit test purposes
-	execCommand = exec.Command
 )
 
 // doesOSExist is the IsInstalled check
