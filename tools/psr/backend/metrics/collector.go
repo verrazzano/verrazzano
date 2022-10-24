@@ -8,11 +8,11 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 )
 
-type runCollector struct {
+type workerCollector struct {
 	providers []spi.WorkerMetricsProvider
 }
 
-func (rc runCollector) Describe(ch chan<- *prometheus.Desc) {
+func (rc workerCollector) Describe(ch chan<- *prometheus.Desc) {
 	// Loop through the metrics providers. Usually it is just the runner and a worker
 	for _, p := range rc.providers {
 		// Get the metrics for the provider and send the descriptor to the channel
@@ -23,7 +23,7 @@ func (rc runCollector) Describe(ch chan<- *prometheus.Desc) {
 	}
 }
 
-func (rc runCollector) Collect(ch chan<- prometheus.Metric) {
+func (rc workerCollector) Collect(ch chan<- prometheus.Metric) {
 	// Loop through the metrics providers. Usually it is just the runner and a worker
 	for _, p := range rc.providers {
 		// Get the metrics for the provider and send the metric to the channel

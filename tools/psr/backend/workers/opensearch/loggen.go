@@ -30,6 +30,15 @@ func NewLogGenerator() spi.Worker {
 	}
 }
 
+// GetWorkerDesc returns the WorkerDesc for the worker
+func (w logGenerator) GetWorkerDesc() spi.WorkerDesc {
+	return spi.WorkerDesc{
+		EnvName:     config.WorkerTypeLogGen,
+		Description: "The log generator worker generates logs to put a load on OpenSearch",
+		MetricsName: "loggen",
+	}
+}
+
 func (w logGenerator) GetEnvDescList() []config.EnvVarDesc {
 	return []config.EnvVarDesc{
 		{Key: psrMsgSize, DefaultVal: "20", Required: false},

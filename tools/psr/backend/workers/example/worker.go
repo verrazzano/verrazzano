@@ -26,6 +26,15 @@ func NewExampleWorker() spi.Worker {
 	return exampleWorker{}
 }
 
+// GetWorkerDesc returns the WorkerDesc for the worker
+func (w exampleWorker) GetWorkerDesc() spi.WorkerDesc {
+	return spi.WorkerDesc{
+		EnvName:     config.WorkerTypeExample,
+		Description: "Example worker that demonstrates executing a fake use case",
+		MetricsName: "example",
+	}
+}
+
 func (w exampleWorker) GetEnvDescList() []config.EnvVarDesc {
 	return []config.EnvVarDesc{}
 }

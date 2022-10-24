@@ -7,16 +7,18 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 	"sync/atomic"
 	"time"
 )
 
+// WorkerRunner interface specifies a runner that loops calling a worker
 type WorkerRunner interface {
 	// RunWorker runs the worker use case in a loop
 	RunWorker(config.CommonConfig, vzlog.VerrazzanoLogger) error
 
-	// WorkerMetricsProvider is an interface to get prometheus metrics information for the worker
+	// WorkerMetricsProvider is an interface to get prometheus metrics information for the worker to do work
 	spi.WorkerMetricsProvider
 }
 
@@ -48,8 +50,8 @@ func NewRunner(worker spi.Worker, conf config.CommonConfig, log vzlog.Verrazzano
 	r := runner{Worker: worker, runnerMetrics: &runnerMetrics{}}
 
 	d := prometheus.NewDesc(
-		prometheus.BuildFQName("psr", "loggen", "loop_count"),
-		"The number of loop iterations executed",
+		prometheus.BuildFQName(metrics.PsrNamespace, worker.GetWorkerDesc().MetricsName, metrics.LoopCount),
+		metrics.LoopCountHelp,
 		nil,
 		constLabels,
 	)
