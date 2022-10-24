@@ -45,11 +45,11 @@ func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(vmc *clusterapi
 		if err != nil {
 			return err
 		}
-		// We want to remove the managed field to resolve JSON marshaling errors
-		agentSecret.ManagedFields = []metav1.ManagedFieldsEntry{}
-		// Reset the names to their original values if they get overwritten
-		agentSecret.Namespace = constants.VerrazzanoSystemNamespace
-		agentSecret.Name = constants.MCAgentSecret
+		// Replace the existing metadata to remove erroneous fields
+		agentSecret.ObjectMeta = metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      constants.MCAgentSecret,
+		}
 		return nil
 	}, r.log)
 	if err != nil {
@@ -60,11 +60,11 @@ func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(vmc *clusterapi
 		if err != nil {
 			return err
 		}
-		// We want to remove the managed field to resolve JSON marshaling errors
-		regSecret.ManagedFields = []metav1.ManagedFieldsEntry{}
-		// Reset the names to their original values if they get overwritten
-		regSecret.Namespace = constants.VerrazzanoSystemNamespace
-		regSecret.Name = constants.MCRegistrationSecret
+		// Replace the existing metadata to remove erroneous fields
+		regSecret.ObjectMeta = metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      constants.MCRegistrationSecret,
+		}
 		return nil
 	}, r.log)
 	if err != nil {
