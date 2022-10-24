@@ -62,11 +62,11 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 			Expect(err).To(BeNil(), err.Error())
 
 			// Create cluster in Rancher and label it (when labels are supported)
-			clusterId, err := clusters.ImportClusterToRancher(rc, rancherClusterName, vzlog.DefaultLogger())
+			clusterID, err := clusters.ImportClusterToRancher(rc, rancherClusterName, vzlog.DefaultLogger())
 			Expect(err).To(BeNil(), err.Error())
 
 			// Eventually, a VMC with that cluster id should be created
-			fmt.Printf("Got cluster id %s from Rancher\n", clusterId)
+			fmt.Printf("Got cluster id %s from Rancher\n", clusterID)
 		})
 	})
 
