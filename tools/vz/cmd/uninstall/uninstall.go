@@ -7,11 +7,12 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"io"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"regexp"
 	"time"
+
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"k8s.io/apimachinery/pkg/api/meta"
 
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
@@ -114,7 +115,7 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	}
 
 	// Get the timeout value for the uninstall command.
-	timeout, err := cmdhelpers.GetWaitTimeout(cmd)
+	timeout, err := cmdhelpers.GetWaitTimeout(cmd, constants.TimeoutFlag)
 	if err != nil {
 		return err
 	}
