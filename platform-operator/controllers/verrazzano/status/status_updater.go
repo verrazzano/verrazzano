@@ -11,9 +11,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sync"
+	"time"
 )
-
-const maxUpdateAttempts = 5
 
 // Updater interface for Verrazzano status updates
 type Updater interface {
@@ -83,7 +82,7 @@ func (v *VerrazzanoStatusUpdater) Start() {
 					v.shutdown()
 					return
 				}
-				if err := v.doUpdate(event, 0); err != nil {
+				if err := v.doUpdate(event); err != nil {
 					v.logger.Errorf("%v", err)
 				}
 			}
@@ -92,17 +91,21 @@ func (v *VerrazzanoStatusUpdater) Start() {
 }
 
 // doUpdate updates the cluster Verrazzano. Resource conflicts are retried.
-func (v *VerrazzanoStatusUpdater) doUpdate(event *UpdateEvent, attempt int) error {
-	vz, err := getVerrazzanoResource(v.client)
-	if err != nil {
-		return err
+func (v *VerrazzanoStatusUpdater) doUpdate(event *UpdateEvent) error {
+	// Status updates are retried indefinitely in case of conflicts
+	for {
+		vz, err := getVerrazzanoResource(v.client)
+		if err != nil {
+			return err
+		}
+		event.merge(vz)
+		err = v.client.Status().Update(context.TODO(), vz)
+		if err == nil || !apierrors.IsConflict(err) {
+			// Update didn't have a conflict, so return and exit update loop
+			return err
+		}
+		time.Sleep(100 * time.Millisecond)
 	}
-	event.merge(vz)
-	err = v.client.Status().Update(context.TODO(), vz)
-	if apierrors.IsConflict(err) && attempt < maxUpdateAttempts {
-		return v.doUpdate(event, attempt+1)
-	}
-	return err
 }
 
 // shutdown closes the status channel

@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const channelBufferSize = 10
+const channelBufferSize = 100
 
 // HealthChecker polls Verrazzano component availability every tickTime, and writes status updates to a secret
 // It is the job of the Verrazzano controller to read availability status from the secret when updating
