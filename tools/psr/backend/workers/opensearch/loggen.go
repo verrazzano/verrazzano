@@ -30,6 +30,15 @@ func NewLogGenerator() spi.Worker {
 	}
 }
 
+// GetWorkerDesc returns the WorkerDesc for the worker
+func (w logGenerator) GetWorkerDesc() spi.WorkerDesc {
+	return spi.WorkerDesc{
+		EnvName:     config.WorkerTypeLogGen,
+		Description: "The log generator worker generates logs to put a load on OpenSearch",
+		MetricsName: "loggen",
+	}
+}
+
 func (w logGenerator) GetEnvDescList() []config.EnvVarDesc {
 	return []config.EnvVarDesc{
 		{Key: psrMsgSize, DefaultVal: "20", Required: false},
@@ -40,7 +49,7 @@ func (w logGenerator) WantIterationInfoLogged() bool {
 	return false
 }
 
-func (w logGenerator) Work(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+func (w logGenerator) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	if w.logMsgSize == 0 {
 		w.logMsgSize = len(w.logMsg)
 	}
