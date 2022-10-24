@@ -12,7 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/example"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/loggen"
 )
 
 // RunWorker runs a worker to completion
@@ -66,9 +66,9 @@ func RunWorker(log vzlog.VerrazzanoLogger) error {
 func getWorker(wt string) (spi.Worker, error) {
 	switch wt {
 	case config.WorkerTypeExample:
-		return example.NewExampleWorker(), nil
+		return example.NewExampleWorker()
 	case config.WorkerTypeLogGen:
-		return opensearch.NewLogGenerator(), nil
+		return loggen.NewLogGenerator()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}

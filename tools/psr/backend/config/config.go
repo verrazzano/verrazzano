@@ -62,9 +62,9 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 	if err != nil {
 		return CommonConfig{}, log.ErrorfNewErr("Error parsing iteration sleep duration: %v", err)
 	}
-	// Sleep at least 100 millis
-	if sleepDuration < (10 * time.Millisecond) {
-		sleepDuration = 10 * time.Millisecond
+	// Sleep at least 100 nanos
+	if sleepDuration < (100 * time.Nanosecond) {
+		sleepDuration = 100 * time.Nanosecond
 	}
 
 	return CommonConfig{

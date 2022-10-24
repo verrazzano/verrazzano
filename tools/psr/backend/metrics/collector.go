@@ -12,6 +12,12 @@ type workerCollector struct {
 	providers []spi.WorkerMetricsProvider
 }
 
+// MetricItem contains the information for a single metric
+type MetricItem struct {
+	Val  int64
+	Desc *prometheus.Desc
+}
+
 func (rc workerCollector) Describe(ch chan<- *prometheus.Desc) {
 	// Loop through the metrics providers. Usually it is just the runner and a worker
 	for _, p := range rc.providers {

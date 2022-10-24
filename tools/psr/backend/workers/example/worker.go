@@ -22,8 +22,8 @@ type exampleWorker struct {
 
 var _ spi.Worker = exampleWorker{}
 
-func NewExampleWorker() spi.Worker {
-	return exampleWorker{}
+func NewExampleWorker() (spi.Worker, error) {
+	return exampleWorker{}, nil
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
