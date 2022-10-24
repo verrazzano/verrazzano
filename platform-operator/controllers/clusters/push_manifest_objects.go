@@ -15,7 +15,7 @@ import (
 func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(vmc *clusterapi.VerrazzanoManagedCluster) (bool, error) {
 	for _, condition := range vmc.Status.Conditions {
 		if condition.Type == clusterapi.ConditionManifestPushed && condition.Status == corev1.ConditionTrue {
-			r.log.Once("Manifest has been successfully pushed, skipping the push process")
+			// Do nothing if the condition is met in the status
 			return true, nil
 		}
 	}

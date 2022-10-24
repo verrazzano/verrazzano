@@ -170,6 +170,7 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		return newRequeueWithDelay(), err
 	}
 	if pushedManifest {
+		r.log.Once("Manifest objects have been successfully pushed to the managed cluster")
 		r.setStatusConditionManifestPushed(vmc, corev1.ConditionTrue, "Manifest objects pushed to the managed cluster")
 	}
 
