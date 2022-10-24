@@ -396,7 +396,7 @@ func GetMySQLBackup(namespace, backupName string, log *zap.SugaredLogger) (*MySQ
 	secretArgs = append(secretArgs, "yaml")
 	cmd.CommandArgs = secretArgs
 	_ = Runner(&cmd, log)
-	
+
 	// get output of backup
 	var mbkCmdArgs []string
 	mbkCmdArgs = append(mbkCmdArgs, "kubectl")
