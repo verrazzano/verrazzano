@@ -85,7 +85,7 @@ spec:
     dns:
       wildcard:
         domain: "nip.io"
-    elasticsearch:
+    opensearch:
       enabled: false
       nodes:
         - name: es-master
@@ -97,8 +97,8 @@ spec:
             - master
     fluentd:
       enabled: false
-      elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
-      elasticsearchSecret: verrazzano-es-internal
+      opensearchURL: "http://verrazzano-authproxy-opensearch:8775"
+      opensearchSecret: verrazzano-es-internal
     grafana:
       enabled: false
     ingress:

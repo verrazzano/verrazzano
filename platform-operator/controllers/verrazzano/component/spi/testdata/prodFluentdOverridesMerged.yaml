@@ -83,7 +83,7 @@ spec:
     dns:
       wildcard:
         domain: "nip.io"
-    elasticsearch:
+    opensearch:
       enabled: true
       nodes:
         - name: es-master
@@ -113,8 +113,8 @@ spec:
             - ingest
     fluentd:
       enabled: true
-      elasticsearchURL: https://myes.mycorp.com
-      elasticsearchSecret: mysecret
+      opensearchURL: https://myes.mycorp.com
+      opensearchSecret: mysecret
       extraVolumeMounts:
         - source: /u01/datarw
           readOnly: false
