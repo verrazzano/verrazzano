@@ -653,7 +653,8 @@ type IngressNginxComponent struct {
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
 	NGINXInstallArgs []InstallArgs `json:"nginxInstallArgs,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
-	// The list port configurations used by the ingress.	// +optional
+	// The list of port configurations used by the ingress.
+	// +optional
 	Ports []corev1.ServicePort `json:"ports,omitempty"`
 	// The ingress type. Valid values are `LoadBalancer` and `NodePort`. The default value is LoadBalancer. If the ingress
 	// type is NodePort, a valid and accessible IP address must be specified using the controller.service.externalIPs
@@ -796,7 +797,7 @@ type RancherBackupComponent struct {
 	InstallOverrides `json:",inline"`
 }
 
-// FluentdComponent specifies the Fluentd DaemonSet configuration
+// FluentdComponent specifies the Fluentd configuration.
 type FluentdComponent struct {
 	// The secret containing the credentials for connecting to OpenSearch. This secret needs to be created in the
 	// `verrazzano-install` namespace prior to creating the Verrazzano custom resource. Specify the OpenSearch login
@@ -913,10 +914,10 @@ type Certificate struct {
 	CA CA `json:"ca,omitempty"`
 }
 
-// OciPrivateKeyFileName is the private key file name
+// OciPrivateKeyFileName is the private key file name.
 const OciPrivateKeyFileName = "oci_api_key.pem"
 
-// OciConfigSecretFile is the name of the OCI configuration yaml file
+// OciConfigSecretFile is the name of the OCI configuration yaml file.
 const OciConfigSecretFile = "oci.yaml"
 
 // Wildcard DNS type.
@@ -955,7 +956,7 @@ func init() {
 	SchemeBuilder.Register(&Verrazzano{}, &VerrazzanoList{})
 }
 
-// OCI Logging configuration for Fluentd DaemonSet
+// OciLoggingConfiguration is the OCI logging configuration for Fluentd.
 type OciLoggingConfiguration struct {
 	// The OCID of the Oracle Cloud Infrastructure Log that will collect application logs.
 	// +optional
@@ -978,7 +979,7 @@ type InstallOverrides struct {
 	ValueOverrides []Overrides `json:"overrides,omitempty"`
 }
 
-// Overrides stores the specified overrides
+// Overrides identifies overrides for a component.
 type Overrides struct {
 	// Selector for ConfigMap containing override data.
 	// +optional
