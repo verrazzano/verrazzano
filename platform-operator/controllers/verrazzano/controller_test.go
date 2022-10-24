@@ -1584,6 +1584,16 @@ func TestFailedMysqlBackupJobCleanup(t *testing.T) {
 	asserts.NotNil(job)
 }
 
+// erroringFakeClient wraps a k8s client and returns an error when List is called
+type erroringFakeClient struct {
+	client.Client
+}
+
+// List always returns an error - used to simulate an error listing a resource
+func (e *erroringFakeClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+	return errors.NewNotFound(schema.GroupResource{}, "")
+}
+
 // TestNoMysqlBackupJobsFound tests the MySQL backup job cleanup function
 // GIVEN no jobs are available
 // WHEN the function is called
@@ -1592,7 +1602,7 @@ func TestNoMysqlBackupJobsFound(t *testing.T) {
 	asserts := assert.New(t)
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	reconciler := newVerrazzanoReconciler(c)
+	reconciler := newVerrazzanoReconciler(&erroringFakeClient{c})
 	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
 	asserts.Nil(err)
 }
