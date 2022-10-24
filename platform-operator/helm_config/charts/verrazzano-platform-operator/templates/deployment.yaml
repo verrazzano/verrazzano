@@ -32,6 +32,11 @@ spec:
           resources:
             requests:
               memory: 72Mi
+        - name: "{{ .Values.name }}-init"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ .Values.image }}
+          command:
+            - /verrazzano/platform-operator/scripts/wait4webhook.sh
       {{- with .Values.affinity }}
       affinity:
         {{- tpl . $ | nindent 8 }}
@@ -53,7 +58,7 @@ spec:
             failureThreshold: 20
           args:
             - --zap-log-level=info
-            - --health-check-period=5
+            - --health-check-period=60
             - --webhooks-enabled=false
             - --init-webhooks=false
           env:

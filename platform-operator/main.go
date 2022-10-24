@@ -12,7 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 	"github.com/verrazzano/verrazzano/platform-operator/webhookreadiness"
 	"k8s.io/client-go/dynamic"
@@ -333,14 +333,15 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 	webhookreadiness.StartReadinessServer(log)
 
 	// Set up the reconciler
-	healthCheck := health.New(mgr.GetClient(), time.Duration(healthCheckPeriodSeconds)*time.Second)
+	statusUpdater := vzstatus.NewStatusUpdater(mgr.GetClient())
+	healthCheck := vzstatus.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(healthCheckPeriodSeconds)*time.Second)
 	reconciler := vzcontroller.Reconciler{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
 		DryRun:            config.DryRun,
 		WatchedComponents: map[string]bool{},
 		WatchMutex:        &sync.RWMutex{},
-		HealthCheck:       healthCheck,
+		StatusUpdater:     statusUpdater,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "Verrazzano")
@@ -367,8 +368,9 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 
 	// Setup secrets reconciler
 	if err = (&secretscontroller.VerrazzanoSecretsReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:        mgr.GetClient(),
+		Scheme:        mgr.GetScheme(),
+		StatusUpdater: statusUpdater,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoSecrets")
 		os.Exit(1)
@@ -376,8 +378,9 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 
 	// Setup configMaps reconciler
 	if err = (&configmapcontroller.VerrazzanoConfigMapsReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:        mgr.GetClient(),
+		Scheme:        mgr.GetScheme(),
+		StatusUpdater: statusUpdater,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoConfigMaps")
 		os.Exit(1)

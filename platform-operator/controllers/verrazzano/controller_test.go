@@ -6,7 +6,7 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	"sync"
 	"testing"
 	"time"
@@ -1092,7 +1092,7 @@ func newVerrazzanoReconciler(c client.Client) Reconciler {
 		Scheme:            scheme,
 		WatchedComponents: map[string]bool{},
 		WatchMutex:        &sync.RWMutex{},
-		HealthCheck:       health.New(c, 300*time.Second),
+		StatusUpdater:     &vzstatus.FakeVerrazzanoStatusUpdater{Client: c},
 	}
 	return reconciler
 }

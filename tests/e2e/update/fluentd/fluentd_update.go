@@ -63,7 +63,7 @@ func ValidateUpdate(m update.CRModifier, expectedError string) {
 			return false
 		}
 		return strings.Contains(err.Error(), expectedError)
-	}, pollingInterval, longWait).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError))
+	}).WithPolling(pollingInterval).WithTimeout(longWait).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError))
 }
 
 func ValidateUpdateV1beta1(m update.CRModifierV1beta1, expectedError string) {
@@ -79,7 +79,7 @@ func ValidateUpdateV1beta1(m update.CRModifierV1beta1, expectedError string) {
 			return false
 		}
 		return strings.Contains(err.Error(), expectedError)
-	}, pollingInterval, longWait).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError))
+	}).WithPolling(pollingInterval).WithTimeout(longWait).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError))
 }
 
 func ValidateDaemonset(osURL, osSec, apiSec string, extra ...vzapi.VolumeMount) bool {
