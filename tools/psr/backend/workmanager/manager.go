@@ -71,7 +71,7 @@ func getWorker(wt string) (spi.Worker, error) {
 	case config.WorkerTypeLogGen:
 		return loggen.NewLogGenerator()
 	case config.WorkerTypeLogGet:
-		return logget.NewLogGetter(), nil
+		return logget.NewLogGetter()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}
