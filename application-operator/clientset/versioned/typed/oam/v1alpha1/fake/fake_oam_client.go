@@ -15,6 +15,10 @@ type FakeOamV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeOamV1alpha1) IngressTraits(namespace string) v1alpha1.IngressTraitInterface {
+	return &FakeIngressTraits{c, namespace}
+}
+
 func (c *FakeOamV1alpha1) VerrazzanoHelidonWorkloads(namespace string) v1alpha1.VerrazzanoHelidonWorkloadInterface {
 	return &FakeVerrazzanoHelidonWorkloads{c, namespace}
 }
