@@ -204,22 +204,24 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	// function is exited because there is no way to cancel the blocking read to the input stream.
 	re := regexp.MustCompile(VpoSimpleLogFormatRegexp)
 	go func(kubeClient kubernetes.Interface, outputStream io.Writer) {
-		var err error
+		var sc *bufio.Scanner
 
-		sc, err := getScanner(client, kubeClient)
-		if err != nil {
-			fmt.Fprintf(outputStream, fmt.Sprintf("Failed to stream the console output: %v", err))
-			return
-		}
-		sc.Split(bufio.ScanLines)
 		for {
+			if sc == nil {
+				sc, err := getScanner(client, kubeClient)
+				if err != nil {
+					fmt.Fprintf(outputStream, fmt.Sprintf("Failed to connect to the console output: %v", err))
+					time.Sleep(5 * time.Second)
+					continue
+				}
+				sc.Split(bufio.ScanLines)
+			}
+
 			scannedOk := sc.Scan()
 			if !scannedOk {
-				fmt.Fprintf(outputStream, fmt.Sprintf("Attempting to reconnect to the console output: %v", sc.Err()))
-				sc, err = getScanner(client, kubeClient)
-				if err != nil {
-					fmt.Fprintf(outputStream, fmt.Sprintf("Failed to reconnect to the console output: %v", err))
-				}
+				fmt.Fprintf(outputStream, fmt.Sprintf("Lost connection to the console output: %v", sc.Err()))
+				sc = nil
+				time.Sleep(5 * time.Second)
 				continue
 			}
 			if logFormat == LogFormatSimple {
