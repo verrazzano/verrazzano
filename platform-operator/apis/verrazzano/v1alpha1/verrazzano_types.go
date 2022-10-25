@@ -39,7 +39,7 @@ const (
 // +kubebuilder:deprecatedversion:warning="install.verrazzano.io/v1alpha1 Verrazzano is deprecated. To migrate to install.verrazzano.io/v1beta1 Verrazzano, see https://verrazzano.io/latest/docs/releasenotes/#v140."
 // +genclient
 
-// Verrazzano specifies the verrazzanos API.
+// Verrazzano specifies the Verrazzano API.
 type Verrazzano struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -50,14 +50,14 @@ type Verrazzano struct {
 
 // +kubebuilder:object:root=true
 
-// VerrazzanoList contains a list of Verrazzano.
+// VerrazzanoList contains a list of Verrazzano resources.
 type VerrazzanoList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Verrazzano `json:"items"`
 }
 
-// VerrazzanoSpec defines the desired state of Verrazzano.
+// VerrazzanoSpec defines the desired state of a Verrazzano resource.
 type VerrazzanoSpec struct {
 	// The Verrazzano components.
 	// +optional
@@ -147,7 +147,7 @@ type InstanceInfo struct {
 	RancherURL *string `json:"rancherUrl,omitempty"`
 }
 
-// VerrazzanoStatus defines the observed state of Verrazzano.
+// VerrazzanoStatus defines the observed state of a Verrazzano resource.
 type VerrazzanoStatus struct {
 	// The summary of Verrazzano component availability.
 	Available *string `json:"available,omitempty"`
@@ -400,7 +400,7 @@ type ComponentSpec struct {
 	// +optional
 	Verrazzano *VerrazzanoComponent `json:"verrazzano,omitempty"`
 
-	// The WebLogic Operator component configuration.
+	// The WebLogic Kubernetes Operator component configuration.
 	// +optional
 	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
 }
@@ -923,7 +923,7 @@ type FluentdComponent struct {
 	// If true, then Fluentd will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// A list of host path volume mounts in addition to `/var/log` into the Fluentd DaemonSet. The Fluentd component
+	// A list of host path volume mounts, in addition to `/var/log`, into the Fluentd DaemonSet. The Fluentd component
 	// collects log files in the /var/log/containers directory of Kubernetes worker nodes. The `/var/log/containers`
 	// directory may contain symbolic links to files located outside the `/var/log` directory. If the host path
 	// directory containing the log files is located outside `/var/log`, the Fluentd DaemonSet must have the volume
@@ -943,9 +943,9 @@ type FluentdComponent struct {
 	OCI *OciLoggingConfiguration `json:"oci,omitempty"`
 }
 
-// WebLogicOperatorComponent specifies the WebLogic Operator configuration.
+// WebLogicOperatorComponent specifies the WebLogic Kubernetes Operator configuration.
 type WebLogicOperatorComponent struct {
-	// If true, then WebLogic Operator will be installed.
+	// If true, then WebLogic Kubernetes Operator will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
@@ -1041,7 +1041,7 @@ type Certificate struct {
 // OciPrivateKeyFileName is the private key file name.
 const OciPrivateKeyFileName = "oci_api_key.pem"
 
-// OciConfigSecretFile is the name of the OCI configuration yaml file.
+// OciConfigSecretFile is the name of the Oracle Cloud Infrastructure configuration yaml file.
 const OciConfigSecretFile = "oci.yaml"
 
 // Wildcard DNS type.
@@ -1080,7 +1080,7 @@ func init() {
 	SchemeBuilder.Register(&Verrazzano{}, &VerrazzanoList{})
 }
 
-// OciLoggingConfiguration is the OCI logging configuration for Fluentd.
+// OciLoggingConfiguration is the Oracle Cloud Infrastructure logging configuration for Fluentd.
 type OciLoggingConfiguration struct {
 	// The OCID of the Oracle Cloud Infrastructure Log that will collect application logs.
 	// +optional

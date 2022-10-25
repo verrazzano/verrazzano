@@ -14,7 +14,7 @@ import (
 
 // IngressTraitSpec specifies the desired state of an ingress trait.
 type IngressTraitSpec struct {
-	// A list of ingress rules to for an ingress trait.
+	// A list of ingress rules for an ingress trait.
 	Rules []IngressRule `json:"rules,omitempty"`
 
 	// The security parameters for an ingress trait.
@@ -60,7 +60,7 @@ type IngressPath struct {
 	Path string `json:"path,omitempty"`
 	// Path type values are case-sensitive and formatted as follows:
 	// <ul><li>`exact`: exact string match</li><li>`prefix`: prefix-based match</li><li>`regex`: regex-based match</li></ul>
-	// If the provided ingress path doesn't contain a `pathType`, it defaults to `prefix` if the path is `/` and `exact`
+	// Defaults to `prefix` if `path` specified is `/` otherwise, defaults to `exact`.
 	// otherwise.
 	// +optional
 	PathType string `json:"pathType,omitempty"`
