@@ -371,10 +371,10 @@ func updateLoggingDaemonsetEnv(regSecret corev1.Secret, isManaged bool, vzESURL,
 	var passwordKey string
 	if isManaged {
 		esSecretName = constants.MCRegistrationSecret
-		esURL = string(regSecret.Data[constants.OpensearchURLData])
+		esURL = string(regSecret.Data[constants.ElasticsearchURLData])
 		clusterName = string(regSecret.Data[constants.ClusterNameData])
-		usernameKey = constants.OpensearchUsernameData
-		passwordKey = constants.OpensearchPasswordData
+		usernameKey = constants.ElasticsearchUsernameData
+		passwordKey = constants.ElasticsearchPasswordData
 	} else {
 		esSecretName = vzESSecret
 		esURL = vzESURL
@@ -390,12 +390,12 @@ func updateLoggingDaemonsetEnv(regSecret corev1.Secret, isManaged bool, vzESURL,
 				Name:  env.Name,
 				Value: clusterName,
 			})
-		} else if env.Name == constants.FluentdOpensearchURLEnvVar {
+		} else if env.Name == constants.FluentdElasticsearchURLEnvVar {
 			new = append(new, corev1.EnvVar{
 				Name:  env.Name,
 				Value: esURL,
 			})
-		} else if env.Name == constants.FluentdOpensearchUserEnvVar {
+		} else if env.Name == constants.FluentdElasticsearchUserEnvVar {
 			new = append(new, corev1.EnvVar{
 				Name: env.Name,
 				ValueFrom: &corev1.EnvVarSource{
@@ -410,7 +410,7 @@ func updateLoggingDaemonsetEnv(regSecret corev1.Secret, isManaged bool, vzESURL,
 					},
 				},
 			})
-		} else if env.Name == constants.FluentdOpensearchPwdEnvVar {
+		} else if env.Name == constants.FluentdElasticsearchPwdEnvVar {
 			new = append(new, corev1.EnvVar{
 				Name: env.Name,
 				ValueFrom: &corev1.EnvVarSource{
@@ -499,7 +499,7 @@ func (s *Syncer) GetPrometheusHost() (string, error) {
 	return ingress.Spec.Rules[0].Host, nil
 }
 
-// getVzESURLSecret returns the opensearchURL and opensearchSecret from Verrazzano CR
+// getVzESURLSecret returns the elasticsearchURL and elasticsearchSecret from Verrazzano CR
 func (s *Syncer) getVzESURLSecret() (string, string, error) {
 	url := vzconstants.DefaultOpensearchURL
 	secret := defaultSecretName

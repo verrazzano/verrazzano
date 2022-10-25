@@ -736,7 +736,7 @@ func TestSyncer_configureLogging(t *testing.T) {
 						secret.ResourceVersion = "secretVersion"
 						secret.Data = map[string][]byte{}
 						secret.Data[constants.ClusterNameData] = []byte(regSecretClusterName)
-						secret.Data[constants.OpensearchURLData] = []byte(regSecretEsURL)
+						secret.Data[constants.ElasticsearchURLData] = []byte(regSecretEsURL)
 						return nil
 					}
 					return errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, constants.MCRegistrationSecret)
@@ -806,8 +806,8 @@ func getTestDaemonSetSpec(clusterName, esURL, secretName string) appsv1.DaemonSe
 	var usernameKey string
 	var passwordKey string
 	if secretName == constants.MCRegistrationSecret {
-		usernameKey = constants.OpensearchUsernameData
-		passwordKey = constants.OpensearchPasswordData
+		usernameKey = constants.ElasticsearchUsernameData
+		passwordKey = constants.ElasticsearchPasswordData
 	} else {
 		usernameKey = constants.VerrazzanoUsernameData
 		passwordKey = constants.VerrazzanoPasswordData
@@ -825,11 +825,11 @@ func getTestDaemonSetSpec(clusterName, esURL, secretName string) appsv1.DaemonSe
 								Value: clusterName,
 							},
 							{
-								Name:  constants.FluentdOpensearchURLEnvVar,
+								Name:  constants.FluentdElasticsearchURLEnvVar,
 								Value: esURL,
 							},
 							{
-								Name: constants.FluentdOpensearchUserEnvVar,
+								Name: constants.FluentdElasticsearchUserEnvVar,
 								ValueFrom: &corev1.EnvVarSource{
 									SecretKeyRef: &corev1.SecretKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
@@ -843,7 +843,7 @@ func getTestDaemonSetSpec(clusterName, esURL, secretName string) appsv1.DaemonSe
 								},
 							},
 							{
-								Name: constants.FluentdOpensearchPwdEnvVar,
+								Name: constants.FluentdElasticsearchPwdEnvVar,
 								ValueFrom: &corev1.EnvVarSource{
 									SecretKeyRef: &corev1.SecretKeySelector{
 										LocalObjectReference: corev1.LocalObjectReference{
@@ -886,15 +886,15 @@ func Test_updateLoggingDaemonsetEnv(t *testing.T) {
 			Value: defaultClusterName,
 		},
 		{
-			Name:  "OPENSEARCH_URL",
+			Name:  "ELASTICSEARCH_URL",
 			Value: vzconstants.DefaultOpensearchURL,
 		},
 		{
-			Name:  "OPENSEARCH_USER",
+			Name:  "ELASTICSEARCH_USER",
 			Value: "",
 		},
 		{
-			Name:  "OPENSEARCH_PASSWORD",
+			Name:  "ELASTICSEARCH_PASSWORD",
 			Value: "",
 		},
 		{
@@ -903,28 +903,28 @@ func Test_updateLoggingDaemonsetEnv(t *testing.T) {
 		},
 	}
 	const newClusterName = "newManagedClusterName"
-	const newOpenURL = "https://myNewOpenURL"
+	const newElasticURL = "https://myNewElasticURL"
 	regSecret := corev1.Secret{
 		Data: map[string][]byte{
-			constants.ClusterNameData:        []byte(newClusterName),
-			constants.OpensearchURLData:      []byte(newOpenURL),
-			constants.OpensearchUsernameData: []byte("someuser"),
-			constants.OpensearchPasswordData: []byte("somepassword"),
+			constants.ClusterNameData:           []byte(newClusterName),
+			constants.ElasticsearchURLData:      []byte(newElasticURL),
+			constants.ElasticsearchUsernameData: []byte("someuser"),
+			constants.ElasticsearchPasswordData: []byte("somepassword"),
 		},
 	}
 	newEnvs := updateLoggingDaemonsetEnv(regSecret, true, vzconstants.DefaultOpensearchURL, defaultSecretName, oldEnvs)
 	asserts.NotNil(t, findEnv("FLUENTD_CONF", &newEnvs))
 	asserts.Equal(t, newClusterName, findEnv("CLUSTER_NAME", &newEnvs).Value)
-	asserts.Equal(t, newOpenURL, findEnv("OPENSEARCH_URL", &newEnvs).Value)
-	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("OPENSEARCH_USER", &newEnvs).ValueFrom.SecretKeyRef.Name)
-	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("OPENSEARCH_PASSWORD", &newEnvs).ValueFrom.SecretKeyRef.Name)
+	asserts.Equal(t, newElasticURL, findEnv("ELASTICSEARCH_URL", &newEnvs).Value)
+	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("ELASTICSEARCH_USER", &newEnvs).ValueFrom.SecretKeyRef.Name)
+	asserts.Equal(t, constants.MCRegistrationSecret, findEnv("ELASTICSEARCH_PASSWORD", &newEnvs).ValueFrom.SecretKeyRef.Name)
 	// un-registration of setting secretVersion back to ""
 	newEnvs = updateLoggingDaemonsetEnv(regSecret, false, vzconstants.DefaultOpensearchURL, defaultSecretName, newEnvs)
 	asserts.NotNil(t, findEnv("FLUENTD_CONF", &newEnvs))
 	asserts.Equal(t, defaultClusterName, findEnv("CLUSTER_NAME", &newEnvs).Value)
-	asserts.Equal(t, vzconstants.DefaultOpensearchURL, findEnv("OPENSEARCH_URL", &newEnvs).Value)
-	asserts.Equal(t, defaultSecretName, findEnv("OPENSEARCH_USER", &newEnvs).ValueFrom.SecretKeyRef.Name)
-	asserts.Equal(t, defaultSecretName, findEnv("OPENSEARCH_PASSWORD", &newEnvs).ValueFrom.SecretKeyRef.Name)
+	asserts.Equal(t, vzconstants.DefaultOpensearchURL, findEnv("ELASTICSEARCH_URL", &newEnvs).Value)
+	asserts.Equal(t, defaultSecretName, findEnv("ELASTICSEARCH_USER", &newEnvs).ValueFrom.SecretKeyRef.Name)
+	asserts.Equal(t, defaultSecretName, findEnv("ELASTICSEARCH_PASSWORD", &newEnvs).ValueFrom.SecretKeyRef.Name)
 
 }
 
