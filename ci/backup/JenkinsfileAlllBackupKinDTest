@@ -318,33 +318,6 @@ pipeline {
                 }
 
 
-        stage('Initiate mysql-operator backup restore tests') {
-            when {
-                expression {params.MYSQL_BACKUP == true}
-            }
-            environment {
-                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
-            }
-            steps {
-                echoAllPodInfo()
-                waitForPodsToBeUp("keycloak")
-                runGinkgoRandomize('backup/mysql')
-                println("Wait for pods in keycloak to be ready")
-                waitForPodsToBeUp("keycloak")
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-                failure {
-                    script {
-                        dumpK8sCluster('mysql-backup-restore-cluster-dump')
-                    }
-                }
-            }
-        }
-
         stage('Initiate opensearch backup hook tests') {
             when {
                 expression {params.OPENSEARCH_BACKUP == true}
@@ -392,6 +365,33 @@ pipeline {
                 failure {
                     script {
                         dumpK8sCluster('rancher-backup-restore-cluster-dump')
+                    }
+                }
+            }
+        }
+
+        stage('Initiate mysql-operator backup restore tests') {
+            when {
+                expression {params.MYSQL_BACKUP == true}
+            }
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
+            }
+            steps {
+                echoAllPodInfo()
+                waitForPodsToBeUp("keycloak")
+                runGinkgoRandomize('backup/mysql')
+                println("Wait for pods in keycloak to be ready")
+                waitForPodsToBeUp("keycloak")
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    script {
+                        dumpK8sCluster('mysql-backup-restore-cluster-dump')
                     }
                 }
             }
