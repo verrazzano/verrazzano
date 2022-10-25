@@ -35,15 +35,17 @@ type testAppConfigInfo struct {
 
 // TestWebLogicStopStart tests the starting and stopping of WebLogic
 // GIVEN a AppConfig that contains WebLogic workloads
-// WHEN the WebLogic pods have old Istio envoy sidecar
+// WHEN the WebLogic pods have old Istio envoy sidecar with skew more than 2 minor versions.
 // THEN the domain should be stopped
-// WHEN the WebLogic pods do NOT have an old Istio envoy sidecar
+// WHEN the WebLogic pods do NOT have an old Istio envoy sidecar with skew more than 2 minor versions.
 // THEN the domain should NOT be stopped
+// WHEN the WebLogic pods do not have an old Istio envoy sidecar with skew max 2 minor versions.
+// THEN the domain should be restarted
 // IF the domain was stopped
 // THEN it should be started after upgrade
 func TestWebLogicStopStart(t *testing.T) {
 	asserts := assert.New(t)
-	config.SetDefaultBomFilePath(unitTestBomFile)
+	config.SetDefaultBomFilePath(appRestartUnitTestBomFile)
 
 	tests := []struct {
 		name                   string
@@ -53,28 +55,28 @@ func TestWebLogicStopStart(t *testing.T) {
 		updatedLifeCycleAction string
 		f                      func(mock *mocks.MockClient) error
 	}{
-		// Test stopping WebLogic by setting annotation on WebLogic workload because it has an old Istio image
+		// Test stopping WebLogic by setting annotation on WebLogic workload because it has an old Istio image with skew more than 2 minor versions.
 		{
 			name:                   "StopWebLogic",
 			expectGetAndUpdate:     true,
-			image:                  oldIstioImage,
+			image:                  "proxyv2:1.4.5",
 			initialLifeCycleAction: "",
 			updatedLifeCycleAction: vzconst.LifecycleActionStop,
 			f: func(mock *mocks.MockClient) error {
 				return StopDomainsUsingOldEnvoy(vzlog.DefaultLogger(), mock)
 			},
 		},
-		// Test NOT stopping WebLogic by setting annotation on WebLogic workload because it has an old Istio image
+		// Test NOT stopping WebLogic by setting annotation on WebLogic workload because it has an old Istio image with skew max 2 minor versions.
 		{
 			name:                   "DoNotStopWebLogic",
 			expectGetAndUpdate:     false,
-			image:                  "randomImage",
+			image:                  "proxyv2:1.5.5",
 			initialLifeCycleAction: "",
 			f: func(mock *mocks.MockClient) error {
 				return StopDomainsUsingOldEnvoy(vzlog.DefaultLogger(), mock)
 			},
 		},
-		// Test starting WebLogic by setting annotation on WebLogic workload because it has an old Istio image
+		// Test starting WebLogic by setting annotation on WebLogic workload because it has an old Istio image with skew max 2 minor versions.
 		{
 			name:                   "StartWebLogic",
 			expectGetAndUpdate:     true,
@@ -93,6 +95,28 @@ func TestWebLogicStopStart(t *testing.T) {
 			initialLifeCycleAction: "",
 			f: func(mock *mocks.MockClient) error {
 				return startDomainsStoppedByUpgrade(vzlog.DefaultLogger(), mock, "1")
+			},
+		},
+
+		// Test rolling restart of WebLogic because it has an old Istio image with skew max 2 minor versions.
+		{
+			name:                   "RollingRestartWebLogic",
+			image:                  "proxyv2:1.5.5",
+			expectGetAndUpdate:     true,
+			initialLifeCycleAction: "",
+			f: func(mock *mocks.MockClient) error {
+				return RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions(vzlog.DefaultLogger(), mock, "1")
+			},
+		},
+
+		// Test rolling restart of WebLogic because it has an old Istio image with skew max 2 minor versions.
+		{
+			name:                   "DoNotRollingRestartWebLogic",
+			image:                  "proxyv2:1.4.5",
+			expectGetAndUpdate:     false,
+			initialLifeCycleAction: "",
+			f: func(mock *mocks.MockClient) error {
+				return RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions(vzlog.DefaultLogger(), mock, "1")
 			},
 		},
 	}

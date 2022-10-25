@@ -6,7 +6,12 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
+	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
+	v1 "k8s.io/api/batch/v1"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sync"
 	"testing"
 	"time"
@@ -1092,7 +1097,7 @@ func newVerrazzanoReconciler(c client.Client) Reconciler {
 		Scheme:            scheme,
 		WatchedComponents: map[string]bool{},
 		WatchMutex:        &sync.RWMutex{},
-		HealthCheck:       health.New(c, 300*time.Second),
+		StatusUpdater:     &vzstatus.FakeVerrazzanoStatusUpdater{Client: c},
 	}
 	return reconciler
 }
@@ -1368,4 +1373,312 @@ func TestReconcileErrorCounter(t *testing.T) {
 	errorCounterAfter := testutil.ToFloat64(reconcileErrorCounterMetric.Get())
 	assert.NoError(t, err)
 	asserts.Equal(errorCounterBefore, errorCounterAfter-1)
+}
+
+// TestUninstallJobCleanup tests the uninstall job cleanup function
+// GIVEN a completed uninstall job
+// WHEN the function is called
+// THEN the job and associated pod are deleted
+func TestUninstallJobCleanup(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.VerrazzanoInstallNamespace,
+				Name:      "uninstall-201321",
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{"job-name": "uninstall-201321"},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	err := reconciler.cleanupUninstallJob("uninstall-201321", constants.VerrazzanoInstallNamespace, vzlog.DefaultLogger())
+	asserts.Nil(err)
+	job := &v1.Job{}
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	asserts.NotNil(err)
+	asserts.True(errors.IsNotFound(err))
+}
+
+// TestMysqlBackupJobCleanup tests the MySQL backup job cleanup function
+// GIVEN a completed backup job
+// WHEN the function is called
+// THEN the job and associated pod are deleted
+func TestMysqlBackupJobCleanup(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.KeycloakNamespace,
+				Name:      "one-off-backup-20221018-201321",
+				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{"job-name": "one-off-backup-20221018-201321"},
+			},
+			Status: corev1.PodStatus{
+				ContainerStatuses: []corev1.ContainerStatus{
+					{
+						Name: "operator-backup-job",
+						State: corev1.ContainerState{
+							Terminated: &corev1.ContainerStateTerminated{
+								ExitCode: 0,
+							},
+						},
+					},
+				},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	asserts.Nil(err)
+	job := &v1.Job{}
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	asserts.NotNil(err)
+	asserts.True(errors.IsNotFound(err))
+}
+
+// TestMysqlScheduledBackupJobCleanup tests the MySQL backup job cleanup function
+// GIVEN a completed scheduled backup job
+// WHEN the function is called
+// THEN the job and associated pod are deleted
+func TestMysqlScheduledBackupJobCleanup(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "one-off-backup-schedule20221018-201321",
+				Namespace: constants.KeycloakNamespace,
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "batch/v1",
+						Kind:       "CronJob",
+						Name:       "one-off-backup-schedule-20221018-201321",
+					},
+				},
+			},
+		},
+		&v1.CronJob{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.KeycloakNamespace,
+				Name:      "one-off-backup-schedule-20221018-201321",
+				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{"job-name": "one-off-backup-20221018-201321"},
+			},
+			Status: corev1.PodStatus{
+				ContainerStatuses: []corev1.ContainerStatus{
+					{
+						Name: "operator-backup-job",
+						State: corev1.ContainerState{
+							Terminated: &corev1.ContainerStateTerminated{
+								ExitCode: 0,
+							},
+						},
+					},
+				},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	asserts.Nil(err)
+	job := &v1.Job{}
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	asserts.NotNil(err)
+	asserts.True(errors.IsNotFound(err))
+	cronJob := &v1.CronJob{}
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-schedule-20221018-201321", Namespace: constants.KeycloakNamespace}, cronJob)
+	asserts.Nil(err)
+}
+
+// TestInProgressMysqlBackupJobCleanup tests the MySQL backup job cleanup function
+// GIVEN a not completed backup job
+// WHEN the function is called
+// THEN the job and associated pod are not deleted
+func TestInProgressMysqlBackupJobCleanup(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.KeycloakNamespace,
+				Name:      "one-off-backup-20221018-201321",
+				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{"job-name": "one-off-backup-20221018-201321"},
+			},
+			Status: corev1.PodStatus{
+				ContainerStatuses: []corev1.ContainerStatus{
+					{
+						Name: "operator-backup-job",
+						State: corev1.ContainerState{
+							Running: &corev1.ContainerStateRunning{},
+						},
+					},
+				},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	asserts.NotNil(err)
+	job := &v1.Job{}
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	asserts.Nil(err)
+	asserts.NotNil(job)
+}
+
+// TestFailedMysqlBackupJobCleanup tests the MySQL backup job cleanup function
+// GIVEN a completed backup job with a non-zero exit code
+// WHEN the function is called
+// THEN the job and associated pod are not deleted
+func TestFailedMysqlBackupJobCleanup(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.KeycloakNamespace,
+				Name:      "one-off-backup-20221018-201321",
+				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{"job-name": "one-off-backup-20221018-201321"},
+			},
+			Status: corev1.PodStatus{
+				ContainerStatuses: []corev1.ContainerStatus{
+					{
+						Name: "operator-backup-job",
+						State: corev1.ContainerState{
+							Terminated: &corev1.ContainerStateTerminated{
+								ExitCode: 1,
+							},
+						},
+					},
+				},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	asserts.NotNil(err)
+	job := &v1.Job{}
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	asserts.Nil(err)
+	asserts.NotNil(job)
+}
+
+// erroringFakeClient wraps a k8s client and returns an error when List is called
+type erroringFakeClient struct {
+	client.Client
+}
+
+// List always returns an error - used to simulate an error listing a resource
+func (e *erroringFakeClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+	return errors.NewNotFound(schema.GroupResource{}, "")
+}
+
+// TestNoMysqlBackupJobsFound tests the MySQL backup job cleanup function
+// GIVEN no jobs are available
+// WHEN the function is called
+// THEN the cleanup is skipped
+func TestNoMysqlBackupJobsFound(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	reconciler := newVerrazzanoReconciler(&erroringFakeClient{c})
+	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	asserts.Nil(err)
+}
+
+// TestMysqlOperatorJobPredicateWrongNamespace tests the MySQL operator job predicate
+// GIVEN a create event for a job in a namespace other than 'keycloak'
+// WHEN the function is called
+// THEN the result is false
+func TestMysqlOperatorJobPredicateWrongNamespace(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	job := &v1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "WrongNamespace",
+			Name:      "one-off-backup-20221018-201321",
+			Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+		},
+	}
+	isMysqlJob := reconciler.isMysqlOperatorJob(event.CreateEvent{Object: job}, vzlog.DefaultLogger())
+	asserts.False(isMysqlJob)
+}
+
+// TestMysqlOperatorJobPredicateOwnedByOperatorCronJob tests the MySQL operator job predicate
+// GIVEN a create event for a job owned by a cron job created by the operator
+// WHEN the function is called
+// THEN the result is true
+func TestMysqlOperatorJobPredicateOwnedByOperatorCronJob(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.CronJob{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.KeycloakNamespace,
+				Name:      "one-off-backup-schedule-20221018-201321",
+				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	job := &v1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: mysql.ComponentNamespace,
+			Name:      "one-off-backup-20221018-201321",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "batch/v1",
+					Kind:       "CronJob",
+					Name:       "one-off-backup-schedule-20221018-201321",
+				},
+			},
+		},
+	}
+	isMysqlJob := reconciler.isMysqlOperatorJob(event.CreateEvent{Object: job}, vzlog.DefaultLogger())
+	asserts.True(isMysqlJob)
+}
+
+// TestMysqlOperatorJobPredicateValidBackupJob tests the MySQL operator job predicate
+// GIVEN a create event for a job directly created by the operator
+// WHEN the function is called
+// THEN the result is true
+func TestMysqlOperatorJobPredicateValidBackupJob(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	job := &v1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: mysql.ComponentNamespace,
+			Name:      "one-off-backup-20221018-201321",
+			Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+		},
+	}
+	isMysqlJob := reconciler.isMysqlOperatorJob(event.CreateEvent{Object: job}, vzlog.DefaultLogger())
+	asserts.True(isMysqlJob)
 }
