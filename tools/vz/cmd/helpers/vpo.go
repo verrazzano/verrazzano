@@ -215,18 +215,12 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 		for {
 			scannedOk := sc.Scan()
 			if !scannedOk {
-				if sc.Err() != nil {
-					fmt.Fprintf(outputStream, fmt.Sprintf("Attempting to reconnect to the console output: %v", sc.Err()))
-					sc, err = getScanner(client, kubeClient)
-					if err != nil {
-						fmt.Fprintf(outputStream, fmt.Sprintf("Failed to reconnect to the console output: %v", err))
-					}
-					continue
-				} else {
-					// Reached EOF
-					fmt.Fprintf(outputStream, fmt.Sprintf("Reached the EOF"))
-					return
+				fmt.Fprintf(outputStream, fmt.Sprintf("Attempting to reconnect to the console output: %v", sc.Err()))
+				sc, err = getScanner(client, kubeClient)
+				if err != nil {
+					fmt.Fprintf(outputStream, fmt.Sprintf("Failed to reconnect to the console output: %v", err))
 				}
+				continue
 			}
 			if logFormat == LogFormatSimple {
 				PrintSimpleLogFormat(sc, outputStream, re)
