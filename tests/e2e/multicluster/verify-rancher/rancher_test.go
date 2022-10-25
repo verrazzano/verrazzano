@@ -57,6 +57,7 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 
 		var client *versioned.Clientset
 		var rc *clusters.RancherConfig
+		var clusterID string
 
 		BeforeEach(func() {
 			adminKubeconfig := os.Getenv("ADMIN_KUBECONFIG")
@@ -77,7 +78,8 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 			// THEN a VMC is auto-created for that cluster
 
 			// Create cluster in Rancher and label it (when labels are supported)
-			clusterID, err := clusters.ImportClusterToRancher(rc, rancherClusterName, vzlog.DefaultLogger())
+			var err error
+			clusterID, err = clusters.ImportClusterToRancher(rc, rancherClusterName, vzlog.DefaultLogger())
 			Expect(err).ShouldNot(HaveOccurred())
 			pkg.Log(pkg.Info, fmt.Sprintf("Got cluster id %s from Rancher\n", clusterID))
 
@@ -93,7 +95,9 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 			// THEN the VMC for the cluster is deleted
 
 			// Delete cluster using Rancher API
-			// TODO: Add delete here
+			deleted, err := clusters.DeleteClusterFromRancher(rc, clusterID, vzlog.DefaultLogger())
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(deleted).To(BeTrue())
 
 			// Eventually, a VMC with that cluster name should be deleted
 			Eventually(func() bool {
