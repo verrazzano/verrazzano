@@ -170,22 +170,20 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 	}(vzHelper.GetOutputStream())
 
 	// Wait for the verrazzano-platform-operator pod to be found
-	seconds := 0
-	retryCount := 0
-	retryMax := int(timeout.Seconds())
+	secondsWaited := 0
+	maxSecondsToWait := int(timeout.Seconds())
 	for {
 		ready, err := vpoIsReady(client)
 		if ready {
 			break
 		}
 
-		retryCount++
-		if retryCount > retryMax {
+		if secondsWaited > maxSecondsToWait {
 			feedbackChan <- true
 			return "", fmt.Errorf("Waiting for %s pod in namespace %s: %v", constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace, err)
 		}
 		time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
-		seconds += constants.VerrazzanoPlatformOperatorWait
+		secondsWaited += constants.VerrazzanoPlatformOperatorWait
 	}
 	feedbackChan <- true
 
