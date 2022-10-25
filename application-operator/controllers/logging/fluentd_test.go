@@ -148,13 +148,13 @@ func TestFluentdRemove(t *testing.T) {
 	mocker.Finish()
 }
 
-// TestFluentdApply_ManagedClusterOpensearch tests the creation of all FLUENTD resources in the \
+// TestFluentdApply_ManagedClusterElasticsearch tests the creation of all FLUENTD resources in the \
 // system for a resource on a MANAGED cluster
 // GIVEN a desired state for FLUENTD resources where no resources yet exist
 // WHEN Apply is called on a Managed Cluster using the default logging logInfo
-// THEN ensure that the expected FLUENTD resources are created and the managed cluster's opensearch
+// THEN ensure that the expected FLUENTD resources are created and the managed cluster's elasticsearch
 // secret is used to determine the ES endpoint
-func TestFluentdApply_ManagedClusterOpensearch(t *testing.T) {
+func TestFluentdApply_ManagedClusterElasticsearch(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mockClient := mocks.NewMockClient(mocker)
 
@@ -265,7 +265,7 @@ func createFluentdESEnv() []v1.EnvVar {
 			Value: fluentdConfKey,
 		},
 		{
-			Name:  "FLUENT_OPENSEARCH_SED_DISABLE",
+			Name:  "FLUENT_ELASTICSEARCH_SED_DISABLE",
 			Value: "true",
 		},
 	}
