@@ -113,7 +113,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			// if the VZ state is Ready, start an install if the generation is updated and end reconciling if not
 			// if the VZ state is not Ready, proceed with installing components
 			if spiCtx.ActualCR().Status.State == vzapi.VzStateReady {
-				if checkGenerationUpdated(spiCtx) {
+				if componentsNeedUpdate(spiCtx) {
 					// Start global upgrade
 					tracker.vzState = vzStateSetGlobalInstallStatus
 				} else {
@@ -156,8 +156,8 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 	return ctrl.Result{}, nil
 }
 
-// checkGenerationUpdated loops through the components and calls checkConfigUpdated on each
-func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
+// componentsNeedUpdate loops through the components and calls checkComponentNeedsUpdate and isUnavailableAndNeedsUpdate on each
+func componentsNeedUpdate(spiCtx spi.ComponentContext) bool {
 	for _, comp := range registry.GetComponents() {
 		if comp.IsEnabled(spiCtx.EffectiveCR()) {
 			componentStatus, ok := spiCtx.ActualCR().Status.Components[comp.Name()]
@@ -166,7 +166,7 @@ func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 				// if we can't find the component status, enter install loop to try to fix it
 				return true
 			}
-			if checkConfigUpdated(spiCtx, componentStatus) && comp.MonitorOverrides(spiCtx) {
+			if checkComponentNeedsUpdate(spiCtx, componentStatus) && comp.MonitorOverrides(spiCtx) {
 				spiCtx.Log().Oncef("Verrazzano CR generation change detected, generation: %v, component: %s, component reconciling generation: %v, component lastreconciling generation %v",
 					spiCtx.ActualCR().Generation, comp.Name(), componentStatus.ReconcilingGeneration, componentStatus.LastReconciledGeneration)
 				return true

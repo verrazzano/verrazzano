@@ -183,9 +183,13 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 	return ctrl.Result{}
 }
 
-// checkConfigUpdated checks if the component config in the VZ CR has been updated
-// back looking at the VZ Generation, component ReconcilingGeneration, and component LastReconciledGeneration values
-func checkConfigUpdated(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails) bool {
+// checkComponentNeedsUpdate checks if the component config in the VZ CR has been updated,or is unavailable
+// back looking at the VZ Generation, component ReconcilingGeneration, Availability, and component LastReconciledGeneration values
+func checkComponentNeedsUpdate(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails) bool {
+	// The component needs an update if the VZ CR is ready (and the same version as the VPO), but the component is unavailable
+	if ctx.ActualCR().Status.State == vzapi.VzStateReady {
+		return isUnavailableAndNeedsUpdate(ctx.ActualCR(), componentStatus)
+	}
 	// The component is being reconciled/installed with ReconcilingGeneration of the CR
 	// if CR.Generation > ReconcilingGeneration then re-enter install flow
 	if componentStatus.ReconcilingGeneration > 0 {
@@ -278,7 +282,7 @@ func skipComponentFromReadyState(compContext spi.ComponentContext, comp spi.Comp
 		return true
 	}
 	// only run component install if the component generation does not match the CR generation
-	if !checkConfigUpdated(compContext, componentStatus) {
+	if !checkComponentNeedsUpdate(compContext, componentStatus) {
 		return true
 	}
 	if !comp.MonitorOverrides(compContext) {
@@ -286,4 +290,12 @@ func skipComponentFromReadyState(compContext spi.ComponentContext, comp spi.Comp
 		return true
 	}
 	return false
+}
+
+func isUnavailableAndNeedsUpdate(vz *vzapi.Verrazzano, status *vzapi.ComponentStatusDetails) bool {
+	var needsUpdate = false
+	if status.Available != nil && !*status.Available {
+		needsUpdate = isOperatorSameVersionAsCR(vz.Status.Version)
+	}
+	return needsUpdate
 }
