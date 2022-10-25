@@ -14,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
-	"github.com/verrazzano/verrazzano/platform-operator/webhookreadiness"
 	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -330,7 +329,6 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 	}
 
 	metricsexporter.StartMetricsServer(log)
-	webhookreadiness.StartReadinessServer(log)
 
 	// Set up the reconciler
 	statusUpdater := vzstatus.NewStatusUpdater(mgr.GetClient())
