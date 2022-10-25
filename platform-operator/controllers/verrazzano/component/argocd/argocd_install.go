@@ -5,9 +5,7 @@ package argocd
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -59,12 +57,10 @@ func patchArgoCDIngress(ctx spi.ComponentContext) error {
 		}
 		ingress.Spec.Rules = []v1.IngressRule{ingRule}
 		ingress.Spec.IngressClassName = &ingressClassName
-		dnsSuffix, _ := vzconfig.GetDNSSuffix(ctx.Client(), ctx.EffectiveCR())
 		if ingress.Annotations == nil {
 			ingress.Annotations = map[string]string{}
 		}
-		ingress.Annotations["cert-manager.io/common-name"] = fmt.Sprintf("%s.%s.%s",
-			ComponentName, ctx.EffectiveCR().Spec.EnvironmentName, dnsSuffix)
+		ingress.Annotations["cert-manager.io/common-name"] = argoCDHostName
 		ingress.Annotations["kubernetes.io/tls-acme"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/backend-protocol"] = "HTTP"
 		ingress.Annotations["nginx.ingress.kubernetes.io/force-ssl-redirect"] = "true"
@@ -79,36 +75,15 @@ func patchArgoCDIngress(ctx spi.ComponentContext) error {
 		ingress.Annotations["nginx.ingress.kubernetes.io/session-cookie-name"] = "route"
 		ingress.Annotations["nginx.ingress.kubernetes.io/session-cookie-samesite"] = "Strict"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
-		cm := ctx.EffectiveCR().Spec.Components.CertManager
-		if cm == nil {
-			return errors.New("CertificateManager was not found in the effective CR")
-		}
-		if (cm.Certificate.Acme != vzapi.Acme{}) {
-			addAcmeIngressAnnotations(ctx.EffectiveCR().Spec.EnvironmentName, dnsSuffix, ingress)
-		} else {
-			addCAIngressAnnotations(ctx.EffectiveCR().Spec.EnvironmentName, dnsSuffix, ingress)
+		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
+			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
+			ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
 		}
 		return nil
 	})
 	ctx.Log().Debugf("patchArgoCDIngress: ArgoCD ingress operation result: %v", err)
 	return err
-}
-
-// addAcmeIngressAnnotations annotate ingress with ACME specific values
-func addAcmeIngressAnnotations(name, dnsSuffix string, ingress networkv1.Ingress) {
-	ingress.Annotations["nginx.ingress.kubernetes.io/auth-realm"] = fmt.Sprintf("%s auth", dnsSuffix)
-	ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = fmt.Sprintf("verrazzano-ingress.%s.%s", name, dnsSuffix)
-	ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
-	// Remove any existing cert manage annotations
-	delete(ingress.Annotations, "cert-manager.io/issuer")
-	delete(ingress.Annotations, "cert-manager.io/issuer-kind")
-}
-
-// addCAIngressAnnotations annotate ingress with custom CA specific values
-func addCAIngressAnnotations(name, dnsSuffix string, ingress networkv1.Ingress) {
-	ingress.Annotations["nginx.ingress.kubernetes.io/auth-realm"] = fmt.Sprintf("%s.%s auth", name, dnsSuffix)
-	ingress.Annotations["cert-manager.io/cluster-issuer"] = "verrazzano-cluster-issuer"
-	ingress.Annotations["cert-manager.io/common-name"] = fmt.Sprintf("%s.%s.%s", common.ArgoCDName, name, dnsSuffix)
 }
 
 // buildArgoCDHostNameForDomain - builds the hostname for ArgocD ingress
