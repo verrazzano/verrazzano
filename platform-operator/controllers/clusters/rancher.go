@@ -195,6 +195,26 @@ func ImportClusterToRancher(rc *RancherConfig, clusterName string, log vzlog.Ver
 	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "id", "unable to find cluster id in Rancher response")
 }
 
+// DeleteClusterFromRancher uses the Rancher API to delete a cluster in Rancher.
+func DeleteClusterFromRancher(rc *RancherConfig, clusterID string, log vzlog.VerrazzanoLogger) (bool, error) {
+	action := http.MethodDelete
+	reqURL := rc.BaseURL + clustersPath + "/" + clusterID
+	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
+
+	response, _, err := sendRequest(action, reqURL, headers, "", rc, log)
+
+	if response != nil && response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNotFound {
+		return false, fmt.Errorf("tried to delete cluster from Rancher but failed, response code: %d", response.StatusCode)
+	}
+
+	if err != nil {
+		return false, err
+	}
+
+	log.Oncef("Successfully deleted cluster %s from Rancher", clusterID)
+	return true, nil
+}
+
 // getClusterIDFromRancher attempts to fetch the cluster from Rancher by name and pull out the cluster ID
 func getClusterIDFromRancher(rc *RancherConfig, clusterName string, log vzlog.VerrazzanoLogger) (string, error) {
 	action := http.MethodGet
