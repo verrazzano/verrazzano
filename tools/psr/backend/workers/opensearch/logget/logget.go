@@ -12,7 +12,7 @@ import (
 	"net/url"
 )
 
-const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
+const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200/verrazzano-system"
 
 //var bodyString = "{\"query\":{\"bool\":{\"filter\":[{\"match_phrase\":{\"kubernetes.container_name\":\"istio-proxy\"}}]}}}"
 //var body = io.NopCloser(bytes.NewBuffer([]byte(bodyString)))
