@@ -331,7 +331,6 @@ pipeline {
                 runGinkgoRandomize('backup/mysql')
                 println("Wait for pods in keycloak to be ready")
                 waitForPodsToBeUp("keycloak")
-                dumpK8sCluster('mysql-cluster-dump')
             }
             post {
                 always {
