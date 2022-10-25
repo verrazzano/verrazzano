@@ -284,32 +284,29 @@ func repairMySQLPodsWaitingReadinessGates(client *kubernetes.Clientset) {
 				if condition.Type == "mysql.oracle.com/ready" && condition.Status == corev1.ConditionTrue {
 					rgReadyStatus = true
 				}
-				// Both readiness gates must be true
-				if !(rgReadyStatus && rgConfiguredStatus) {
-					// Restart the mysql-operator to see if it will finish setting the readiness gates
-					t.Logs.Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck waiting for readiness gates")
+			}
+			// Both readiness gates must be true
+			if !(rgReadyStatus && rgConfiguredStatus) {
+				// Restart the mysql-operator to see if it will finish setting the readiness gates
+				t.Logs.Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck waiting for readiness gates")
 
-					operReq, err := labels.NewRequirement("name", selection.Equals, []string{mysqloperator.ComponentName})
-					if err != nil {
-						return err
-					}
-					selector := labels.NewSelector().Add(*operReq)
-
-					operList, err := client.CoreV1().Pods(constants.MySQLOperatorNamespace).List(context.TODO(), metav1.ListOptions{
-						LabelSelector: selector.String(),
-					})
-					if err != nil {
-						return err
-					}
-					if len(operList.Items) != 1 {
-						return fmt.Errorf("expected one pod to match selector %s, found %d", selector.String(), len(operList.Items))
-					}
-
-					err = client.CoreV1().Pods(constants.MySQLOperatorNamespace).Delete(context.TODO(), operList.Items[0].Name, metav1.DeleteOptions{})
-					if err != nil {
-						return err
-					}
+				operReq, err := labels.NewRequirement("name", selection.Equals, []string{mysqloperator.ComponentName})
+				if err != nil {
+					return err
 				}
+				selector := labels.NewSelector().Add(*operReq)
+
+				operList, err := client.CoreV1().Pods(constants.MySQLOperatorNamespace).List(context.TODO(), metav1.ListOptions{
+					LabelSelector: selector.String(),
+				})
+				if err != nil {
+					return err
+				}
+				if len(operList.Items) != 1 {
+					return fmt.Errorf("expected one pod to match selector %s, found %d", selector.String(), len(operList.Items))
+				}
+
+				return client.CoreV1().Pods(constants.MySQLOperatorNamespace).Delete(context.TODO(), operList.Items[0].Name, metav1.DeleteOptions{})
 			}
 		}
 		return nil
