@@ -243,7 +243,7 @@ func (o opensearchComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
-			Name:      constants.ElasticsearchIngress,
+			Name:      constants.OpensearchIngress,
 		})
 	}
 

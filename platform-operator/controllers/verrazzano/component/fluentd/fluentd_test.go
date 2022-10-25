@@ -136,7 +136,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 									Value: "managed1",
 								},
 								{
-									Name:  vpoconst.ElasticsearchURLEnvVar,
+									Name:  vpoconst.OpensearchURLEnvVar,
 									Value: someURL,
 								},
 							},
@@ -164,7 +164,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	// create a secret with needed keys
 	data := make(map[string][]byte)
 	data[vpoconst.ClusterNameData] = []byte("managed1")
-	data[vpoconst.ElasticsearchURLData] = []byte(someURL)
+	data[vpoconst.OpensearchURLData] = []byte(someURL)
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: defNs,
@@ -189,7 +189,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: vpoconst.MCRegistrationSecret,
 			},
-			Key: vpoconst.ElasticsearchURLData,
+			Key: vpoconst.OpensearchURLData,
 		},
 	}
 	daemonSet.Spec.Template.Spec.Containers[0].Env[0].Value = ""

@@ -75,8 +75,8 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	}
 
 	// Decide which ES URL to use.
-	// If the fluentd ELASTICSEARCH_URL is the default "http://verrazzano-authproxy-elasticsearch:8775", use VMI ES ingress URL.
-	// If the fluentd ELASTICSEARCH_URL is not the default, meaning it is a custom ES, use the external ES URL.
+	// If the fluentd OPENSEARCH_URL is the default "http://verrazzano-authproxy-elasticsearch:8775", use VMI ES ingress URL.
+	// If the fluentd OPENSEARCH_URL is not the default, meaning it is a custom ES, use the external ES URL.
 	esURL := fluentdESURL
 	if esURL == constants.DefaultOpensearchURL {
 		esURL, err = r.getVmiESURL()
