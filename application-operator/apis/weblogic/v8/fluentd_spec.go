@@ -22,8 +22,8 @@ type FluentdSpecification struct {
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 	//VolumeMounts, Volume mounts for fluentd container.
 	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
-	// ElasticSearchCredentials, Fluentd elastic search credentials. A Kubernetes secret in the same namespace of the domain.
-	ElasticSearchCredentials string `json:"elasticSearchCredentials,omitempty"`
+	// OpenSearchCredentials, Fluentd open search credentials. A Kubernetes secret in the same namespace of the domain.
+	OpenSearchCredentials string `json:"openSearchCredentials,omitempty"`
 	// WatchIntrospectorLogs, if true Fluentd will watch introspector logs.
 	WatchIntrospectorLogs bool `json:"watchIntrospectorLogs,omitempty"`
 }
