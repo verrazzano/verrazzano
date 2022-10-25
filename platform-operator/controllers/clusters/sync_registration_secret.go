@@ -75,7 +75,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	}
 
 	// Decide which ES URL to use.
-	// If the fluentd OPENSEARCH_URL is the default "http://verrazzano-authproxy-elasticsearch:8775", use VMI ES ingress URL.
+	// If the fluentd OPENSEARCH_URL is the default "http://verrazzano-authproxy-opensearch:8775", use VMI ES ingress URL.
 	// If the fluentd OPENSEARCH_URL is not the default, meaning it is a custom ES, use the external ES URL.
 	esURL := fluentdESURL
 	if esURL == constants.DefaultOpensearchURL {
@@ -92,8 +92,8 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	}
 
 	// Decide which ES secret to use for username/password and password.
-	// If the fluentd elasticsearchSecret is the default "verrazzano", use VerrazzanoESInternal secret for username/password, and adminCaBundle for ES CA bundle.
-	// if the fluentd elasticsearchSecret is not the default, meaning it is a custom secret, use its username/password and CA bundle.
+	// If the fluentd opensearchSecret is the default "verrazzano", use VerrazzanoESInternal secret for username/password, and adminCaBundle for ES CA bundle.
+	// if the fluentd opensearchSecret is not the default, meaning it is a custom secret, use its username/password and CA bundle.
 	var esCaBundle []byte
 	var esUsername []byte
 	var esPassword []byte
@@ -152,7 +152,7 @@ func GetRegistrationSecretName(vmcName string) string {
 	return generateManagedResourceName(vmcName) + registrationSecretSuffix
 }
 
-// getVzESURLSecret returns the elasticsearchURL and elasticsearchSecret from Verrazzano CR
+// getVzESURLSecret returns the opensearchURL and opensearchSecret from Verrazzano CR
 func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret(vzList *vzapi.VerrazzanoList) (string, string, error) {
 	url := constants.DefaultOpensearchURL
 	secret := defaultSecretName
@@ -170,7 +170,7 @@ func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret(vzList *vzapi.Verr
 	return url, secret, nil
 }
 
-// Get the VMI Elasticsearch URL.
+// Get the VMI opensearch URL.
 func (r *VerrazzanoManagedClusterReconciler) getVmiESURL() (URL string, err error) {
 	var Ingress k8net.Ingress
 	nsn := types.NamespacedName{
