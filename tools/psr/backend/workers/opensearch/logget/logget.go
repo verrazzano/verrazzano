@@ -16,7 +16,7 @@ import (
 
 const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
 
-var bodyString = "{\"query\":{\"bool\"{\"filter\":[{\"match_phrase\":{\"kubernetes.container_name\":\"istio-proxy\"}}]}}}"
+var bodyString = "{\"query\":{\"bool\":{\"filter\":[{\"match_phrase\":{\"kubernetes.container_name\":\"istio-proxy\"}}]}}}"
 var body = io.NopCloser(bytes.NewBuffer([]byte(bodyString)))
 
 type LogGetter struct {
@@ -52,23 +52,17 @@ func (w LogGetter) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		URL: &url.URL{
 			Scheme: "http",
 			Host:   osIngestService,
-			//Path:   "verrazzano-system",
+			Path:   "verrazzano-system",
 		},
 		Header: http.Header{"Content-Type": {"application/json"}},
 		Body:   body,
 	}
 	_, err := c.Do(&req)
-	if err != nil {
-		//respBody := []byte("")
-		//if resp.Body != nil {
-		//	respBody, _ = io.ReadAll(resp.Body)
-		//}
-		//return fmt.Errorf("OpenSearch GET request failed, status code: %d, status %s, body: %s, error: %v", resp.StatusCode, resp.Status, string(respBody), err)
-		log.Error(err)
-		return err
+	if err == nil {
+		log.Info("OpenSearch GET request successful")
+		return nil
 	}
-	log.Info("OpenSearch GET request successful")
-	return nil
+	return err
 }
 
 func (w LogGetter) GetMetricDescList() []prometheus.Desc {
