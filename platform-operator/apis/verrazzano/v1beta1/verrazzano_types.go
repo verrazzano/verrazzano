@@ -452,7 +452,7 @@ type KubeStateMetricsComponent struct {
 	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{< release_source_url path=platform-operator/thirdparty/charts/prometheus-community/kube-state-metrics/values.yaml >}} )
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/prometheus-community/kube-state-metrics/values.yaml %}} )
 	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
@@ -493,6 +493,11 @@ type PrometheusAdapterComponent struct {
 	// If true, then Prometheus Adaptor will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/prometheus-community/prometheus-adapter/values.yaml %}} )
+	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -502,6 +507,11 @@ type PrometheusNodeExporterComponent struct {
 	// If true, then Prometheus Node Exporter will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/prometheus-community/prometheus-node-exporter/values.yaml %}} )
+	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -511,6 +521,11 @@ type PrometheusOperatorComponent struct {
 	// If true, then Prometheus Operator will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack/values.yaml %}} )
+	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -520,6 +535,11 @@ type PrometheusPushgatewayComponent struct {
 	// If true, then Prometheus Pushgateway will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/prometheus-community/prometheus-pushgateway/values.yaml %}} )
+	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
