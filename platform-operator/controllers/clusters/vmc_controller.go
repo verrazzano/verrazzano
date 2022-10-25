@@ -360,7 +360,7 @@ func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vm
 // setStatusCondition updates the VMC status conditions based and replaces already created status conditions
 // the onTime flag updates the status condition if the time has changed
 func (r *VerrazzanoManagedClusterReconciler) setStatusCondition(vmc *clustersv1alpha1.VerrazzanoManagedCluster, condition clustersv1alpha1.Condition, onTime bool) {
-	r.log.Debugf("Entered setStatusCondition for VMC %s for condition %s = %s, existing conditions = %v",
+	r.log.Infof("Entered setStatusCondition for VMC %s for condition %s = %s, existing conditions = %v",
 		vmc.Name, condition.Type, condition.Status, vmc.Status.Conditions)
 	var matchingCondition *clustersv1alpha1.Condition
 	var conditionExists bool
