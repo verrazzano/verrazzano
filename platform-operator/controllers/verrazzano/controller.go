@@ -290,7 +290,9 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 
 	// Change the state to installing
 	err = r.setInstallingState(log, actualCR)
-	log.ErrorfThrottled("Error writing Install Started condition to the Verrazzano status: %v", err)
+	if err != nil {
+		log.ErrorfThrottled("Error writing Install Started condition to the Verrazzano status: %v", err)
+	}
 	return newRequeueWithDelay(), err
 }
 
