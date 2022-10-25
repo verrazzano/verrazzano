@@ -22,9 +22,9 @@ type MetricsTemplateList struct {
 	Items           []MetricsTemplate `json:"items"`
 }
 
-// MetricsTemplate specifies the metrics template API.
-// +kubebuilder:object:root=true
 // +genclient
+// +kubebuilder:object:root=true
+// MetricsTemplate specifies the metrics template API.
 type MetricsTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

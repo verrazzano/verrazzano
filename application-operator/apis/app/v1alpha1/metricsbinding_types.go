@@ -19,9 +19,9 @@ type MetricsBindingList struct {
 	Items           []MetricsBinding `json:"items"`
 }
 
-// MetricsBinding specifies the metrics binding API.
-// +kubebuilder:object:root=true
 // +genclient
+// +kubebuilder:object:root=true
+// MetricsBinding specifies the metrics binding API.
 type MetricsBinding struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
