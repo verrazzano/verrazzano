@@ -12,12 +12,12 @@ metadata:
 spec:
   selector:
     matchLabels:
-      run: psr-backend
+      app: psr-backend
   replicas: {{ .Values.replicas }}
   template:
     metadata:
       labels:
-        run: psr-backend
+        app: psr-backend
     spec:
     {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
