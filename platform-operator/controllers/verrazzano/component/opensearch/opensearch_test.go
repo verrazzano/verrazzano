@@ -25,6 +25,7 @@ import (
 
 const (
 	vmoDeployment = "verrazzano-monitoring-operator"
+	masterAppName = "system-es-master"
 )
 
 var (
@@ -222,11 +223,11 @@ func TestIsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      esMasterStatefulset,
-				Labels:    map[string]string{"app": "system-es-master"},
+				Labels:    map[string]string{"app": masterAppName},
 			},
 			Spec: appsv1.StatefulSetSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"app": "system-es-master"},
+					MatchLabels: map[string]string{"app": masterAppName},
 				},
 			},
 			Status: appsv1.StatefulSetStatus{
@@ -239,7 +240,7 @@ func TestIsReady(t *testing.T) {
 				Namespace: ComponentNamespace,
 				Name:      esMasterStatefulset + "-0",
 				Labels: map[string]string{
-					"app":                      "system-es-master",
+					"app":                      masterAppName,
 					"controller-revision-hash": "test-95d8c5d96",
 				},
 			},
@@ -325,7 +326,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      esMasterStatefulset,
-				Labels:    map[string]string{"app": "system-es-master"},
+				Labels:    map[string]string{"app": masterAppName},
 			},
 			Status: appsv1.StatefulSetStatus{
 				ReadyReplicas:   1,
@@ -397,7 +398,7 @@ func TestIsinstalled(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      esMasterStatefulset,
-				Labels:    map[string]string{"app": "system-es-master"},
+				Labels:    map[string]string{"app": masterAppName},
 			},
 		},
 	).Build()
