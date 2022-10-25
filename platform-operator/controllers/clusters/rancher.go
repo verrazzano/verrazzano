@@ -622,31 +622,31 @@ func getProxyURL() string {
 }
 
 // createOrUpdateSecretRancherProxy simulates the controllerutil create or update function through the Rancher Proxy API for secrets
-func createOrUpdateSecretRancherProxy(secret *corev1.Secret, rc *rancherConfig, clusterID string, f controllerutil.MutateFn, log vzlog.VerrazzanoLogger) error {
+func createOrUpdateSecretRancherProxy(secret *corev1.Secret, rc *rancherConfig, clusterID string, f controllerutil.MutateFn, log vzlog.VerrazzanoLogger) (controllerutil.OperationResult, error) {
 	if err := rancherSecretGet(secret, rc, clusterID, log); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return err
+			return controllerutil.OperationResultNone, err
 		}
 		if err := rancherSecretMutate(f, secret, log); err != nil {
-			return err
+			return controllerutil.OperationResultNone, err
 		}
 		if err := rancherSecretCreate(secret, rc, clusterID, log); err != nil {
-			return err
+			return controllerutil.OperationResultNone, err
 		}
-		return nil
+		return controllerutil.OperationResultCreated, nil
 	}
 
 	existingSec := secret.DeepCopyObject()
 	if err := rancherSecretMutate(f, secret, log); err != nil {
-		return err
+		return controllerutil.OperationResultNone, err
 	}
 	if equality.Semantic.DeepEqual(existingSec, secret) {
-		return nil
+		return controllerutil.OperationResultNone, nil
 	}
 	if err := rancherSecretUpdate(secret, rc, clusterID, log); err != nil {
-		return err
+		return controllerutil.OperationResultNone, err
 	}
-	return nil
+	return controllerutil.OperationResultUpdated, nil
 }
 
 // rancherSecretMutate mutates the rancher secret from the given Mutate function

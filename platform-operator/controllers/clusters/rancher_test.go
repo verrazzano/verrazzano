@@ -58,19 +58,22 @@ func TestCreateOrUpdateSecretRancherProxy(t *testing.T) {
 	mocker := gomock.NewController(t)
 
 	tests := []struct {
-		name string
-		f    controllerutil.MutateFn
-		mock *mocks.MockRequestSender
+		name   string
+		f      controllerutil.MutateFn
+		mock   *mocks.MockRequestSender
+		result controllerutil.OperationResult
 	}{
 		{
-			name: "test secret not found",
-			f:    func() error { return nil },
-			mock: addNotFoundMock(mocks.NewMockRequestSender(mocker), &secret, clusterID),
+			name:   "test secret not found",
+			f:      func() error { return nil },
+			mock:   addNotFoundMock(mocks.NewMockRequestSender(mocker), &secret, clusterID),
+			result: controllerutil.OperationResultCreated,
 		},
 		{
-			name: "test secret found",
-			f:    func() error { return nil },
-			mock: addFoundMock(mocks.NewMockRequestSender(mocker), a, &secret, clusterID),
+			name:   "test secret found",
+			f:      func() error { return nil },
+			mock:   addFoundMock(mocks.NewMockRequestSender(mocker), a, &secret, clusterID),
+			result: controllerutil.OperationResultNone,
 		},
 		{
 			name: "test secret mutated",
@@ -79,14 +82,16 @@ func TestCreateOrUpdateSecretRancherProxy(t *testing.T) {
 				secret.Data["test"] = []byte("newVal")
 				return nil
 			},
-			mock: addMutatedMock(mocks.NewMockRequestSender(mocker), a, &secret, clusterID),
+			mock:   addMutatedMock(mocks.NewMockRequestSender(mocker), a, &secret, clusterID),
+			result: controllerutil.OperationResultUpdated,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rancherHTTPClient = tt.mock
-			err := createOrUpdateSecretRancherProxy(&secret, &rancherConfig{}, clusterID, tt.f, vzlog.DefaultLogger())
+			result, err := createOrUpdateSecretRancherProxy(&secret, &rancherConfig{}, clusterID, tt.f, vzlog.DefaultLogger())
 			a.Nil(err)
+			a.Equal(tt.result, result)
 		})
 	}
 }

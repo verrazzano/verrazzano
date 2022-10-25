@@ -82,12 +82,6 @@ func TestPushManifestObjects(t *testing.T) {
 		mock    *mocks.MockRequestSender
 	}{
 		{
-			name:    "test status true",
-			vmc:     statusTrueVMC,
-			updated: true,
-			mock:    nil,
-		},
-		{
 			name:    "test not active",
 			vmc:     vmc,
 			updated: false,

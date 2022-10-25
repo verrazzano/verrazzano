@@ -7,19 +7,12 @@ import (
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // pushManifestObjects applies the Verrazzano manifest objects to the managed cluster.
 // To access the managed cluster, we are taking advantage of the Rancher proxy
 func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(vmc *clusterapi.VerrazzanoManagedCluster) (bool, error) {
-	for _, condition := range vmc.Status.Conditions {
-		if condition.Type == clusterapi.ConditionManifestPushed && condition.Status == corev1.ConditionTrue {
-			// Do nothing if the condition is met in the status
-			r.log.Debugf("The status condition %s is %s for VMC %s/%s, skipping the manifest objects push",
-				clusterapi.ConditionManifestPushed, corev1.ConditionTrue, vmc.GetNamespace(), vmc.GetName())
-			return true, nil
-		}
-	}
 	clusterID := vmc.Status.RancherRegistration.ClusterID
 	if len(clusterID) == 0 {
 		r.log.Debugf("Waiting to push manifest objects, Rancher ClusterID not found in the VMC %s/%s status", vmc.GetNamespace(), vmc.GetName())
@@ -42,7 +35,7 @@ func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(vmc *clusterapi
 	regSecret := corev1.Secret{}
 	regSecret.Namespace = constants.VerrazzanoSystemNamespace
 	regSecret.Name = constants.MCRegistrationSecret
-	err = createOrUpdateSecretRancherProxy(&agentSecret, rc, clusterID, func() error {
+	agentOperation, err := createOrUpdateSecretRancherProxy(&agentSecret, rc, clusterID, func() error {
 		existingAgentSec, err := r.getSecret(vmc.Namespace, GetAgentSecretName(vmc.Name), true)
 		if err != nil {
 			return err
@@ -53,7 +46,7 @@ func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(vmc *clusterapi
 	if err != nil {
 		return false, err
 	}
-	err = createOrUpdateSecretRancherProxy(&regSecret, rc, clusterID, func() error {
+	regOperation, err := createOrUpdateSecretRancherProxy(&regSecret, rc, clusterID, func() error {
 		existingRegSecret, err := r.getSecret(vmc.Namespace, GetRegistrationSecretName(vmc.Name), true)
 		if err != nil {
 			return err
@@ -64,5 +57,8 @@ func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(vmc *clusterapi
 	if err != nil {
 		return false, err
 	}
-	return true, nil
+
+	agentModified := agentOperation != controllerutil.OperationResultNone
+	regModified := regOperation != controllerutil.OperationResultNone
+	return agentModified || regModified, nil
 }
