@@ -162,18 +162,6 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		return newRequeueWithDelay(), nil
 	}
 
-	log.Debugf("Pushing the Manifest objects for VMC %s", vmc.Name)
-	pushedManifest, err := r.pushManifestObjects(vmc)
-	if err != nil {
-		r.handleError(ctx, vmc, "Failed to push the Manifest objects", err, log)
-		r.setStatusConditionManifestPushed(vmc, corev1.ConditionFalse, fmt.Sprintf("Failed to push the manifest objects to the managed cluster: %v", err))
-		return newRequeueWithDelay(), err
-	}
-	if pushedManifest {
-		r.log.Info("Manifest objects have been successfully pushed to the managed cluster")
-		r.setStatusConditionManifestPushed(vmc, corev1.ConditionTrue, "Manifest objects pushed to the managed cluster")
-	}
-
 	// create/update a secret with the CA cert from the managed cluster (if any errors occur we just log and continue)
 	syncedCert, err := r.syncCACertSecret(vmc)
 	if err != nil {
@@ -184,6 +172,18 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		if syncedCert {
 			r.setStatusConditionManagedCARetrieved(vmc, corev1.ConditionTrue, "Managed cluster CA cert retrieved successfully")
 		}
+	}
+
+	log.Debugf("Pushing the Manifest objects for VMC %s", vmc.Name)
+	pushedManifest, err := r.pushManifestObjects(vmc)
+	if err != nil {
+		r.handleError(ctx, vmc, "Failed to push the Manifest objects", err, log)
+		r.setStatusConditionManifestPushed(vmc, corev1.ConditionFalse, fmt.Sprintf("Failed to push the manifest objects to the managed cluster: %v", err))
+		return newRequeueWithDelay(), err
+	}
+	if pushedManifest {
+		r.log.Info("Manifest objects have been successfully pushed to the managed cluster")
+		r.setStatusConditionManifestPushed(vmc, corev1.ConditionTrue, "Manifest objects pushed to the managed cluster")
 	}
 
 	r.setStatusConditionReady(vmc, "Ready")
