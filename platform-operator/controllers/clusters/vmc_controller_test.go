@@ -986,6 +986,85 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 	asserts.False(vzVMCWaitingForClusterID)
 }
 
+// TestSyncManifestSecretEmptyRancherManifest tests syncing the manifest secret
+// when Rancher returns an empty registration manifest YAML string.
+// GIVEN a call to sync the manifest secret
+// WHEN Rancher returns an empty manifest
+// THEN the status is set to failed on the VMC with an appropriate message and the syncManifestSecret call returns an error
+func TestSyncManifestSecretEmptyRancherManifest(t *testing.T) {
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	mockRequestSender := mocks.NewMockRequestSender(mocker)
+	savedRancherHTTPClient := rancherHTTPClient
+	defer func() {
+		rancherHTTPClient = savedRancherHTTPClient
+	}()
+	rancherHTTPClient = mockRequestSender
+
+	defer setConfigFunc(getConfigFunc)
+	setConfigFunc(fakeGetConfig)
+
+	caData := "ca"
+	userData := "user"
+	passwordData := "pw"
+	kubeconfigData := "fakekubeconfig"
+	urlData := "https://testhost:443"
+
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetAgentSecretName(testManagedCluster)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				mcconstants.KubeconfigKey: []byte(kubeconfigData),
+			}
+			return nil
+		})
+
+	// Expect a call to get the registration secret
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: GetRegistrationSecretName(testManagedCluster)}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				mcconstants.ManagedClusterNameKey:   []byte(testManagedCluster),
+				mcconstants.CaCrtKey:                []byte(caData),
+				mcconstants.RegistrationUsernameKey: []byte(userData),
+				mcconstants.RegistrationPasswordKey: []byte(passwordData),
+				mcconstants.ESURLKey:                []byte(urlData),
+			}
+			return nil
+		})
+
+	// Expect all the calls needed to register the cluster with Rancher - note we are passing an empty string for the Rancher manifest YAML
+	// that will be returned when calling the Rancher API
+	expectRegisterClusterWithRancher(t, mock, mockRequestSender, testManagedCluster, false, "")
+
+	// Expect the Rancher registration status to be set appropriately
+	mock.EXPECT().Status().Return(mockStatus)
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(clustersapi.RegistrationFailed, vmc.Status.RancherRegistration.Status)
+			asserts.Equal(unitTestRancherClusterID, vmc.Status.RancherRegistration.ClusterID)
+			asserts.Equal("Empty Rancher manifest YAML", vmc.Status.RancherRegistration.Message)
+			return nil
+		})
+
+	// Create a reconciler and call the function to sync the manifest secret
+	vmc := clustersapi.VerrazzanoManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: testManagedCluster, Namespace: constants.VerrazzanoMultiClusterNamespace}}
+	reconciler := newVMCReconciler(mock)
+	reconciler.log = vzlog.DefaultLogger()
+
+	vzVMCWaitingForClusterID, err := reconciler.syncManifestSecret(context.TODO(), &vmc)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.ErrorContains(err, "Failed retrieving Rancher manifest, YAML is an empty string")
+	asserts.False(vzVMCWaitingForClusterID)
+}
+
 // TestRegisterClusterWithRancherK8sErrorCases tests errors cases using the Kubernetes
 // client when registering with Rancher.
 func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
@@ -1305,6 +1384,84 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 
 	mocker.Finish()
 	asserts.Error(err)
+}
+
+// TestUpateStatus tests the updateStatus function
+func TestUpateStatus(t *testing.T) {
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	// GIVEN a VMC with a status state unset and the last agent connect time set
+	// WHEN the updateStatus function is called
+	// THEN the status state is updated to pending
+	mock.EXPECT().Status().Return(mockStatus)
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(clustersapi.StatePending, vmc.Status.State)
+			return nil
+		})
+
+	vmc := clustersapi.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testManagedCluster,
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+		Status: clustersapi.VerrazzanoManagedClusterStatus{
+			LastAgentConnectTime: &metav1.Time{
+				Time: time.Now(),
+			},
+		},
+	}
+	reconciler := newVMCReconciler(mock)
+	reconciler.log = vzlog.DefaultLogger()
+
+	err := reconciler.updateStatus(context.TODO(), &vmc)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+
+	// GIVEN a VMC with a status state of pending and the last agent connect time set
+	// WHEN the updateStatus function is called
+	// THEN the status state is updated to active
+	mock.EXPECT().Status().Return(mockStatus)
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(clustersapi.StateActive, vmc.Status.State)
+			return nil
+		})
+
+	err = reconciler.updateStatus(context.TODO(), &vmc)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+
+	// GIVEN a VMC with a last agent connect time set in the past
+	// WHEN the updateStatus function is called
+	// THEN the status state is updated to inactive
+	past := metav1.Unix(0, 0)
+	vmc.Status.LastAgentConnectTime = &past
+
+	// Expect the Rancher registration status to be set appropriately
+	mock.EXPECT().Status().Return(mockStatus)
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(clustersapi.StateInactive, vmc.Status.State)
+			return nil
+		})
+
+	err = reconciler.updateStatus(context.TODO(), &vmc)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing
@@ -1696,7 +1853,7 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 		Return(errors.NewNotFound(schema.GroupResource{Group: constants.VerrazzanoMultiClusterNamespace, Resource: "Secret"}, GetManifestSecretName(name)))
 
 	// Expect all the calls needed to register the cluster with Rancher
-	expectRegisterClusterWithRancher(t, mock, mockRequestSender, name, clusterAlreadyRegistered)
+	expectRegisterClusterWithRancher(t, mock, mockRequestSender, name, clusterAlreadyRegistered, expectedRancherYAML)
 
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
@@ -1861,10 +2018,11 @@ func expectRegisterClusterWithRancher(t *testing.T,
 	k8sMock *mocks.MockClient,
 	requestSenderMock *mocks.MockRequestSender,
 	clusterName string,
-	clusterAlreadyRegistered bool) {
+	clusterAlreadyRegistered bool,
+	expectedRancherYAML string) {
 
 	expectRancherConfigK8sCalls(t, k8sMock)
-	expectRegisterClusterWithRancherHTTPCalls(t, requestSenderMock, clusterName, clusterAlreadyRegistered)
+	expectRegisterClusterWithRancherHTTPCalls(t, requestSenderMock, clusterName, clusterAlreadyRegistered, expectedRancherYAML)
 }
 
 // expectRancherConfigK8sCalls asserts all of the expected calls on the Kubernetes client mock
@@ -1906,7 +2064,7 @@ func expectRancherConfigK8sCalls(t *testing.T, k8sMock *mocks.MockClient) {
 }
 
 // expectRegisterClusterWithRancherHTTPCalls asserts all of the expected calls on the HTTP client mock
-func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.MockRequestSender, clusterName string, clusterAlreadyRegistered bool) {
+func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.MockRequestSender, clusterName string, clusterAlreadyRegistered bool, rancherManifestYAML string) {
 	asserts := assert.New(t)
 
 	expectRancherGetAdminTokenHTTPCall(t, requestSenderMock)
