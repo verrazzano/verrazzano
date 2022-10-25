@@ -53,9 +53,9 @@ spec:
             failureThreshold: 20
           args:
             - --zap-log-level=info
-            - --health-check-period=5
             - --webhooks-enabled=false
             - --init-webhooks=false
+            - --health-check-period=60
           env:
             - name: VERRAZZANO_KUBECONFIG
               value: /home/verrazzano/kubeconfig

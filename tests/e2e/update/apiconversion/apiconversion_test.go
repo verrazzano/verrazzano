@@ -39,7 +39,7 @@ func (u IngressNGINXDefaultModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazza
 	cr.Spec.Components.IngressNGINX = &v1beta1.IngressNginxComponent{}
 }
 
-var t = framework.NewTestFramework("update ingressNginx")
+var t = framework.NewTestFramework("apiconversion")
 
 var nodeCount uint32
 

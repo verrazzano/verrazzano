@@ -4,9 +4,7 @@
 package verrazzano
 
 import (
-	"context"
 	"fmt"
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
@@ -14,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -34,7 +33,7 @@ func (r *Reconciler) checkInstallComplete(vzctx vzcontext.VerrazzanoContext) (bo
 	// Set install complete IFF all subcomponent status' are "CompStateReady"
 	message := "Verrazzano install completed successfully"
 	// Status update must be performed on the actual CR read from K8S
-	return true, r.updateStatus(log, actualCR, message, installv1alpha1.CondInstallComplete)
+	return true, r.updateStatus(log, actualCR, message, installv1alpha1.CondInstallComplete, nil)
 }
 
 // checkUpgradeComplete checks to see if the upgrade is complete
@@ -61,7 +60,7 @@ func (r *Reconciler) checkUpgradeComplete(vzctx vzcontext.VerrazzanoContext) (bo
 }
 
 // updateStatus updates the status in the Verrazzano CR
-func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType) error {
+func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType, version *string) error {
 	t := time.Now().UTC()
 	condition := installv1alpha1.Condition{
 		Type:    conditionType,
@@ -71,24 +70,30 @@ func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha
 			t.Year(), t.Month(), t.Day(),
 			t.Hour(), t.Minute(), t.Second()),
 	}
-	cr.Status.Conditions = appendConditionIfNecessary(log, cr.Name, cr.Status.Conditions, condition)
+	conditions := appendConditionIfNecessary(log, cr.Name, cr.Status.Conditions, condition)
 
 	// Set the state of resource
-	cr.Status.State = conditionToVzState(conditionType)
-	log.Debugf("Setting Verrazzano resource condition and state: %v/%v", condition.Type, cr.Status.State)
+	state := conditionToVzState(conditionType)
+	log.Debugf("Setting Verrazzano resource condition and state: %v/%v", condition.Type, state)
 
 	// Update the status
-	return r.updateVerrazzanoStatus(log, cr)
+	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+		Verrazzano: cr,
+		Version:    version,
+		State:      state,
+		Conditions: conditions,
+	})
+	return nil
 }
 
 // updateVzState updates the status state in the Verrazzano CR
-func (r *Reconciler) updateVzState(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, state installv1alpha1.VzStateType) error {
-	// Set the state of resource
-	cr.Status.State = state
-	log.Debugf("Setting Verrazzano state: %v", cr.Status.State)
-
+func (r *Reconciler) updateVzState(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, state installv1alpha1.VzStateType) {
+	log.Debugf("Setting Verrazzano state: %v", state)
 	// Update the status
-	return r.updateVerrazzanoStatus(log, cr)
+	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+		Verrazzano: cr,
+		State:      state,
+	})
 }
 
 // updateVzState updates the status state in the Verrazzano CR
@@ -102,14 +107,15 @@ func (r *Reconciler) updateVzStatusAndState(log vzlog.VerrazzanoLogger, cr *inst
 			t.Year(), t.Month(), t.Day(),
 			t.Hour(), t.Minute(), t.Second()),
 	}
-	cr.Status.Conditions = appendConditionIfNecessary(log, cr.Name, cr.Status.Conditions, condition)
-
-	// Set the state of resource
-	cr.Status.State = state
-	log.Debugf("Setting Verrazzano state: %v", cr.Status.State)
-
+	conditions := appendConditionIfNecessary(log, cr.Name, cr.Status.Conditions, condition)
+	log.Debugf("Setting Verrazzano state: %v", state)
 	// Update the status
-	return r.updateVerrazzanoStatus(log, cr)
+	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+		Verrazzano: cr,
+		State:      state,
+		Conditions: conditions,
+	})
+	return nil
 }
 
 func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, message string, conditionType installv1alpha1.ConditionType) error {
@@ -127,18 +133,15 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	cr := compContext.ActualCR()
 	log := compContext.Log()
 
-	if cr.Status.Components == nil {
-		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
-	}
 	componentStatus := cr.Status.Components[componentName]
 	if componentStatus == nil {
 		componentStatus = &installv1alpha1.ComponentStatusDetails{
 			Name: componentName,
 		}
-		cr.Status.Components[componentName] = componentStatus
 	}
+	var instanceInfo *installv1alpha1.InstanceInfo
 	if conditionType == installv1alpha1.CondInstallComplete {
-		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(compContext)
+		instanceInfo = vzinstance.GetInstanceInfo(compContext)
 		if componentStatus.ReconcilingGeneration > 0 {
 			componentStatus.LastReconciledGeneration = componentStatus.ReconcilingGeneration
 			componentStatus.ReconcilingGeneration = 0
@@ -165,7 +168,14 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	}
 
 	// Update the status
-	return r.updateVerrazzanoStatus(log, cr)
+	r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+		Verrazzano: cr,
+		Components: map[string]*installv1alpha1.ComponentStatusDetails{
+			componentName: componentStatus,
+		},
+		InstanceInfo: instanceInfo,
+	})
+	return nil
 }
 
 func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, resourceName string, conditions []installv1alpha1.Condition, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
@@ -233,8 +243,8 @@ func (r *Reconciler) setInstallingState(log vzlog.VerrazzanoLogger, vz *installv
 		return err
 	}
 
-	vz.Status.Version = bomSemVer.ToString()
-	return r.updateStatus(log, vz, "Verrazzano install in progress", installv1alpha1.CondInstallStarted)
+	version := bomSemVer.ToString()
+	return r.updateStatus(log, vz, "Verrazzano install in progress", installv1alpha1.CondInstallStarted, &version)
 }
 
 // checkComponentReadyState returns true if all component-level status' are "CompStateReady" for enabled components
@@ -278,9 +288,11 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 	}
 
 	statusUpdated := false
+	componentsToUpdate := map[string]*installv1alpha1.ComponentStatusDetails{}
 	for _, comp := range registry.GetComponents() {
 		if status, ok := cr.Status.Components[comp.Name()]; ok {
 			if status.LastReconciledGeneration == 0 {
+				componentsToUpdate[comp.Name()] = status
 				status.LastReconciledGeneration = cr.Generation
 			}
 			// Skip components that have already been processed
@@ -302,7 +314,7 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 					lastReconciled = compContext.ActualCR().Generation
 				}
 			}
-			cr.Status.Components[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
+			componentsToUpdate[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
 				Name:                     comp.Name(),
 				State:                    state,
 				LastReconciledGeneration: lastReconciled,
@@ -312,7 +324,11 @@ func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *i
 	}
 	// Update the status
 	if statusUpdated {
-		return newRequeueWithDelay(), r.updateVerrazzanoStatus(log, cr)
+		r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+			Verrazzano: cr,
+			Components: componentsToUpdate,
+		})
+		return newRequeueWithDelay(), nil
 	}
 	return ctrl.Result{}, nil
 }
@@ -325,20 +341,5 @@ func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, vz *insta
 			return nil
 		}
 	}
-	return r.updateStatus(log, vz, msg, newCondition)
-}
-
-func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
-	r.HealthCheck.SetAvailabilityStatus(vz)
-	err := r.Status().Update(context.TODO(), vz)
-	if err == nil {
-		return nil
-	}
-	if ctrlerrors.IsUpdateConflict(err) {
-		log.Debugf("Requeuing to get a fresh copy of the Verrazzano resource since the current one is outdated.")
-	} else {
-		log.Errorf("Failed to update Verrazzano resource :v", err)
-	}
-	// Return error so that reconcile gets called again
-	return err
+	return r.updateStatus(log, vz, msg, newCondition, nil)
 }
