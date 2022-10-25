@@ -21,6 +21,7 @@ type MetricsBindingList struct {
 
 // +genclient
 // +kubebuilder:object:root=true
+
 // MetricsBinding specifies the metrics binding API.
 type MetricsBinding struct {
 	metav1.TypeMeta   `json:",inline"`
