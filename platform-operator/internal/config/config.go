@@ -80,7 +80,7 @@ var instance = OperatorConfig{
 	VersionCheckEnabled:      true,
 	WebhooksEnabled:          true,
 	WebhookValidationEnabled: true,
-	StartupProbeEnabled:      false,
+	StartupProbeEnabled:      true,
 	VerrazzanoRootDir:        rootDir,
 }
 
