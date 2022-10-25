@@ -194,10 +194,6 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 // WaitForOperationToComplete waits for the Verrazzano install/upgrade to complete and
 // shows the logs of the ongoing Verrazzano install/upgrade.
 func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat LogFormat, condType v1beta1.ConditionType) error {
-	rc, err := GetVpoLogStream(kubeClient, vpoPodName)
-	if err != nil {
-		return err
-	}
 	resChan := make(chan error, 1)
 	defer close(resChan)
 
@@ -207,18 +203,28 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	// goroutine to stream log file output - this goroutine will be left running when this
 	// function is exited because there is no way to cancel the blocking read to the input stream.
 	re := regexp.MustCompile(VpoSimpleLogFormatRegexp)
-	go func(outputStream io.Writer) {
+	go func(kubeClient kubernetes.Interface, vpoPodName string, outputStream io.Writer) {
+		var err error
+		rc, err := GetVpoLogStream(kubeClient, vpoPodName)
+		if err != nil {
+			fmt.Fprintf(outputStream, fmt.Sprintf("failed to stream log output: %v", err))
+			return
+		}
+
 		sc := bufio.NewScanner(rc)
 		sc.Split(bufio.ScanLines)
 		for {
 			scannedOk := sc.Scan()
 			if !scannedOk {
 				if sc.Err() != nil {
-					fmt.Fprintf(outputStream, fmt.Sprintf("scanner returned error %v, skipping error", sc.Err()))
+					fmt.Fprintf(outputStream, fmt.Sprintf("Attempting to reconnect to the console output: %v", sc.Err()))
+					rc, err = GetVpoLogStream(kubeClient, vpoPodName)
+					if err != nil {
+						fmt.Fprintf(outputStream, fmt.Sprintf("Failed to reconnect to the console output: %v", err))
+					}
 					continue
 				} else {
 					// Reached EOF
-					fmt.Fprintf(outputStream, "End of file reached")
 					return
 				}
 			}
@@ -228,7 +234,7 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 				fmt.Fprintf(outputStream, fmt.Sprintf("%s\n", sc.Text()))
 			}
 		}
-	}(vzHelper.GetOutputStream())
+	}(kubeClient, vpoPodName, vzHelper.GetOutputStream())
 
 	startTime := time.Now().UTC()
 
