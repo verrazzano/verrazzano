@@ -55,8 +55,20 @@ func (w LogGetter) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		Header: http.Header{"Content-Type": {"application/json"}},
 		//Body:   body,
 	}
-	_, err := c.Do(&req)
+	resp, err := c.Do(&req)
+	log.Infof("Resp: %V", resp == nil)
 	if err == nil {
+		if resp == nil {
+			log.Info("resp is nil")
+			return nil
+		}
+
+		respBody := []byte("")
+		if resp.Body != nil {
+			resp.Body.Read(respBody)
+
+		}
+		log.Infof("OpenSearch GET request failed, status code: %d, status %s, body: %s, error: %v", resp.StatusCode, resp.Status, string(respBody), err)
 		log.Info("OpenSearch GET request successful")
 		return nil
 	}
