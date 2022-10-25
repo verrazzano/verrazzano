@@ -20,6 +20,7 @@ import (
 	ocicore "github.com/oracle/oci-go-sdk/v53/core"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	hacommon "github.com/verrazzano/verrazzano/tests/e2e/pkg/ha"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	corev1 "k8s.io/api/core/v1"
@@ -214,7 +215,6 @@ func cleanupDanglingMySQLPods(client *kubernetes.Clientset) {
 			return err
 		}
 		selector := labels.NewSelector().Add(*mysqldReq)
-		selector = selector.Add(*mysqldReq)
 
 		list, err := client.CoreV1().Pods(constants.KeycloakNamespace).List(context.TODO(), metav1.ListOptions{
 			LabelSelector: selector.String(),
@@ -223,7 +223,7 @@ func cleanupDanglingMySQLPods(client *kubernetes.Clientset) {
 			return err
 		}
 		if len(list.Items) == 0 {
-			return fmt.Errorf("No pods found matching selector %s", selector.String())
+			return fmt.Errorf("no pods found matching selector %s", selector.String())
 		}
 		for i := range list.Items {
 			mysqlPod := list.Items[i]
@@ -256,7 +256,6 @@ func repairMySQLPodsWaitingReadinessGates(client *kubernetes.Clientset) {
 			return err
 		}
 		selector := labels.NewSelector().Add(*mysqldReq)
-		selector = selector.Add(*mysqldReq)
 
 		list, err := client.CoreV1().Pods(constants.KeycloakNamespace).List(context.TODO(), metav1.ListOptions{
 			LabelSelector: selector.String(),
@@ -265,11 +264,13 @@ func repairMySQLPodsWaitingReadinessGates(client *kubernetes.Clientset) {
 			return err
 		}
 		if len(list.Items) == 0 {
-			return fmt.Errorf("No pods found matching selector %s", selector.String())
+			return fmt.Errorf("no pods found matching selector %s", selector.String())
 		}
 
 		for i := range list.Items {
 			mysqlPod := list.Items[i]
+			rgConfiguredStatus := false
+			rgReadyStatus := false
 
 			// Check if the readiness conditions have been met
 			conditions := mysqlPod.Status.Conditions
@@ -277,14 +278,36 @@ func repairMySQLPodsWaitingReadinessGates(client *kubernetes.Clientset) {
 				return fmt.Errorf("no status conditions found for pod %s/%s", mysqlPod.Namespace, mysqlPod.Name)
 			}
 			for _, condition := range conditions {
-				if condition.Type == "mysql.oracle.com/configured" || condition.Type == "mysql.oracle.com/ready" {
-					if condition.Status != corev1.ConditionTrue {
-						// Restart the mysql-operator to see if it will finish setting the readiness gates
-						t.Logs.Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck waiting for readiness gates")
-						err := client.CoreV1().Pods(constants.Keycloak).Delete(context.TODO(), mysqlPod.Name, metav1.DeleteOptions{})
-						if err != nil {
-							return err
-						}
+				if condition.Type == "mysql.oracle.com/configured" && condition.Status == corev1.ConditionTrue {
+					rgConfiguredStatus = true
+				}
+				if condition.Type == "mysql.oracle.com/ready" && condition.Status == corev1.ConditionTrue {
+					rgReadyStatus = true
+				}
+				// Both readiness gates must be true
+				if !(rgReadyStatus && rgConfiguredStatus) {
+					// Restart the mysql-operator to see if it will finish setting the readiness gates
+					t.Logs.Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck waiting for readiness gates")
+
+					operReq, err := labels.NewRequirement("name", selection.Equals, []string{mysqloperator.ComponentName})
+					if err != nil {
+						return err
+					}
+					selector := labels.NewSelector().Add(*operReq)
+
+					operList, err := client.CoreV1().Pods(constants.MySQLOperatorNamespace).List(context.TODO(), metav1.ListOptions{
+						LabelSelector: selector.String(),
+					})
+					if err != nil {
+						return err
+					}
+					if len(operList.Items) != 1 {
+						return fmt.Errorf("expected one pod to match selector %s, found %d", selector.String(), len(operList.Items))
+					}
+
+					err = client.CoreV1().Pods(constants.MySQLOperatorNamespace).Delete(context.TODO(), operList.Items[0].Name, metav1.DeleteOptions{})
+					if err != nil {
+						return err
 					}
 				}
 			}
@@ -336,7 +359,7 @@ func waitForReplacementNode(existingNodes *corev1.NodeList) (*corev1.NodeList, e
 	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(BeEmpty())
 
 	if len(replacement) == 0 {
-		return nil, errors.New("Timed out waiting for new worker to be added to node pool")
+		return nil, errors.New("timed out waiting for new worker to be added to node pool")
 	}
 
 	Eventually(func() (bool, error) {
