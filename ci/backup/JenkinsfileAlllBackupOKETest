@@ -486,6 +486,12 @@ pipeline {
     }
 }
 
+def echoAllPodInfo() {
+    sh """
+         kubectl get pod -A
+    """
+}
+
 def createBucket(bucketName) {
     sh """
         OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os bucket create -c ${OCI_OS_COMPARTMENT_ID} --namespace ${OCI_OS_NAMESPACE} --name ${bucketName}
