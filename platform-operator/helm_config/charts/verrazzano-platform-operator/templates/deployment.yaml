@@ -32,6 +32,10 @@ spec:
           resources:
             requests:
               memory: 72Mi
+        - name: webhookswait
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ .Values.image }}
+          command: [ 'sh', '-c', "/verrazzano/platform-operator/scripts/wait4webhook.sh" ]
       {{- with .Values.affinity }}
       affinity:
         {{- tpl . $ | nindent 8 }}
@@ -44,19 +48,6 @@ spec:
             - containerPort: 9100
               name: http-metric
               protocol: TCP
-            - containerPort: 8080
-              name: readiness
-              protocol: TCP
-          startupProbe:
-            httpGet:
-              port: readiness
-              scheme: HTTP
-              httpHeaders:
-                - name: Content-Type
-                  value: application/json
-            periodSeconds: 5
-            timeoutSeconds: 5
-            failureThreshold: 20
           args:
             - --zap-log-level=info
             - --webhooks-enabled=false
