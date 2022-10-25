@@ -240,10 +240,9 @@ func CreateNewRancherConfig(log *zap.SugaredLogger, kubeconfigPath string) (*clu
 	if err != nil {
 		return nil, fmt.Errorf("failed to get caCert: %v", err)
 	}
-	additionalCA, err := GetCACertFromSecret(constants.AdditionalTLS, constants.RancherSystemNamespace, constants.AdditionalTLSCAKey, kubeconfigPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get caCert: %v", err)
-	}
+
+	// the tls-ca-additional secret is optional
+	additionalCA, _ := GetCACertFromSecret(constants.AdditionalTLS, constants.RancherSystemNamespace, constants.AdditionalTLSCAKey, kubeconfigPath)
 
 	httpClient, err := GetVerrazzanoHTTPClient(kubeconfigPath)
 	if err != nil {
