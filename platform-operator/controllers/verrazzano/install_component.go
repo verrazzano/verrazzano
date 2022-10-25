@@ -187,13 +187,11 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 // back looking at the VZ Generation, component ReconcilingGeneration, Availability, and component LastReconciledGeneration values
 func checkComponentNeedsUpdate(ctx spi.ComponentContext, componentStatus *vzapi.ComponentStatusDetails) bool {
 	// The component needs an update if the VZ CR is ready (and the same version as the VPO), but the component is unavailable
-	if ctx.ActualCR().Status.State == vzapi.VzStateReady {
-		return isUnavailableAndNeedsUpdate(ctx.ActualCR(), componentStatus)
-	}
+	isUnavailable := isUnavailableAndNeedsUpdate(ctx.ActualCR(), componentStatus)
 	// The component is being reconciled/installed with ReconcilingGeneration of the CR
 	// if CR.Generation > ReconcilingGeneration then re-enter install flow
-	if componentStatus.ReconcilingGeneration > 0 {
-		return ctx.ActualCR().Generation > componentStatus.ReconcilingGeneration
+	if componentStatus.ReconcilingGeneration > 0 || isUnavailable {
+		return ctx.ActualCR().Generation > componentStatus.ReconcilingGeneration || isUnavailable
 	}
 	// The component has been reconciled/installed with LastReconciledGeneration of the CR
 	// if CR.Generation > LastReconciledGeneration then re-enter install flow
@@ -294,7 +292,7 @@ func skipComponentFromReadyState(compContext spi.ComponentContext, comp spi.Comp
 
 func isUnavailableAndNeedsUpdate(vz *vzapi.Verrazzano, status *vzapi.ComponentStatusDetails) bool {
 	var needsUpdate = false
-	if status.Available != nil && !*status.Available {
+	if vz.Status.State == vzapi.VzStateReady && status.Available != nil && !*status.Available {
 		needsUpdate = isOperatorSameVersionAsCR(vz.Status.Version)
 	}
 	return needsUpdate
