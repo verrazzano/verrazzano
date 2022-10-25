@@ -39,7 +39,7 @@ spec:
               trait.
             properties:
               rules:
-                description: A list of ingress rules to for an ingress trait.
+                description: A list of ingress rules for an ingress trait.
                 items:
                   description: IngressRule specifies a rule for an ingress trait.
                   properties:
@@ -137,9 +137,9 @@ spec:
                             description: 'Path type values are case-sensitive and
                               formatted as follows: <ul><li>`exact`: exact string
                               match</li><li>`prefix`: prefix-based match</li><li>`regex`:
-                              regex-based match</li></ul> If the provided ingress
-                              path doesn''t contain a `pathType`, it defaults to `prefix`
-                              if the path is `/` and `exact` otherwise.'
+                              regex-based match</li></ul> Defaults to `prefix` if
+                              `path` specified is `/` otherwise, defaults to `exact`.
+                              otherwise.'
                             type: string
                         type: object
                       type: array
