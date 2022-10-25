@@ -224,6 +224,7 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 					continue
 				} else {
 					// Reached EOF
+					fmt.Fprintf(outputStream, fmt.Sprintf("Reached the EOF"))
 					return
 				}
 			}
