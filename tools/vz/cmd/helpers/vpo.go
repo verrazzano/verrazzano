@@ -218,6 +218,7 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 					continue
 				} else {
 					// Reached EOF
+					fmt.Fprintf(outputStream, "End of file reached")
 					return
 				}
 			}
