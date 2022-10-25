@@ -23,17 +23,17 @@ const MCLocalRegistrationSecret = "verrazzano-local-registration" //nolint:gosec
 // ClusterNameData - the field name in MCRegistrationSecret that contains this managed cluster's name
 const ClusterNameData = "managed-cluster-name"
 
-// ElasticsearchURLData - the field name in MCRegistrationSecret that contains the admin cluster's
-// Elasticsearch endpoint's URL
-const ElasticsearchURLData = "es-url"
+// OpensearchURLData - the field name in MCRegistrationSecret that contains the admin cluster's
+// Opensearch endpoint's URL
+const OpensearchURLData = "es-url"
 
-// ElasticsearchUsernameData - the field name in MCRegistrationSecret that contains the admin
-// cluster's Elasticsearch username
-const ElasticsearchUsernameData = "username"
+// OpensearchUsernameData - the field name in MCRegistrationSecret that contains the admin
+// cluster's Opensearch username
+const OpensearchUsernameData = "username"
 
-// ElasticsearchPasswordData - the field name in MCRegistrationSecret that contains the admin
-// cluster's Elasticsearch password
-const ElasticsearchPasswordData = "password"
+// OpensearchPasswordData - the field name in MCRegistrationSecret that contains the admin
+// cluster's Opensearch password
+const OpensearchPasswordData = "password"
 
 // LabelVerrazzanoManagedDefault - default value for LabelVerrazzanoManaged
 const LabelVerrazzanoManagedDefault = "true"
@@ -76,17 +76,17 @@ const VzPrometheusIngress = "vmi-system-prometheus"
 // ClusterNameEnvVar is the environment variable used to identify the managed cluster for fluentd
 const FluentdClusterNameEnvVar = "CLUSTER_NAME"
 
-// FluentdElasticsearchURLEnvVar is the environment variable name used to identify the admin cluster's
-// Elasticsearch URL for fluentd
-const FluentdElasticsearchURLEnvVar = "ELASTICSEARCH_URL"
+// FluentdOpensearchURLEnvVar is the environment variable name used to identify the admin cluster's
+// Opensearch URL for fluentd
+const FluentdOpensearchURLEnvVar = "OPENSEARCH_URL"
 
-// FluentdElasticsearchUserEnvVar is the environment variable name used to identify the admin cluster's
-// Elasticsearch username for fluentd
-const FluentdElasticsearchUserEnvVar = "ELASTICSEARCH_USER"
+// FluentdOpensearchUserEnvVar is the environment variable name used to identify the admin cluster's
+// Opensearch username for fluentd
+const FluentdOpensearchUserEnvVar = "OPENSEARCH_USER"
 
-// FluentdElasticsearchPwdEnvVar is the environment variable name used to identify the admin cluster's
-// Elasticsearch password for fluentd
-const FluentdElasticsearchPwdEnvVar = "ELASTICSEARCH_PASSWORD"
+// FluentdOpensearchPwdEnvVar is the environment variable name used to identify the admin cluster's
+// Opensearch password for fluentd
+const FluentdOpensearchPwdEnvVar = "OPENSEARCH_PASSWORD"
 
 // VerrazzanoUsernameData - the field name in Verrazzano secret that contains the username
 const VerrazzanoUsernameData = "username"

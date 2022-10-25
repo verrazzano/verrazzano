@@ -249,6 +249,7 @@ func cleanupDanglingMySQLPods(client *kubernetes.Clientset) {
 // repairMySQLPodsWaitingReadinessGates - workaround to repair any MySQL pods that are stuck starting up due
 // to readiness gates not all true.
 func repairMySQLPodsWaitingReadinessGates(client *kubernetes.Clientset) {
+	operatorRestarted := false
 	Eventually(func() error {
 		t.Logs.Info("Cleaning up any MySQL pods stuck restarting after a node drain")
 		mysqldReq, err := labels.NewRequirement(mysqlComponentLabel, selection.Equals, []string{mysqldComponentName})
@@ -290,27 +291,55 @@ func repairMySQLPodsWaitingReadinessGates(client *kubernetes.Clientset) {
 				// Restart the mysql-operator to see if it will finish setting the readiness gates
 				t.Logs.Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck waiting for readiness gates")
 
-				operReq, err := labels.NewRequirement("name", selection.Equals, []string{mysqloperator.ComponentName})
+				operList, err := getMySQLOperatorPod(client)
 				if err != nil {
 					return err
 				}
-				selector := labels.NewSelector().Add(*operReq)
 
-				operList, err := client.CoreV1().Pods(constants.MySQLOperatorNamespace).List(context.TODO(), metav1.ListOptions{
-					LabelSelector: selector.String(),
-				})
-				if err != nil {
+				if err = client.CoreV1().Pods(constants.MySQLOperatorNamespace).Delete(context.TODO(), operList.Items[0].Name, metav1.DeleteOptions{}); err != nil {
 					return err
 				}
-				if len(operList.Items) != 1 {
-					return fmt.Errorf("expected one pod to match selector %s, found %d", selector.String(), len(operList.Items))
-				}
-
-				return client.CoreV1().Pods(constants.MySQLOperatorNamespace).Delete(context.TODO(), operList.Items[0].Name, metav1.DeleteOptions{})
+				operatorRestarted = true
+				return nil
 			}
 		}
 		return nil
 	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
+
+	// If the mysql-operator was restarted, wait for it to be ready
+	if operatorRestarted {
+		Eventually(func() error {
+			operList, err := getMySQLOperatorPod(client)
+			if err != nil {
+				return err
+			}
+			if !hacommon.IsPodReadyOrCompleted(operList.Items[0]) {
+				return fmt.Errorf("mysql-operator pod not ready yet")
+			}
+			return nil
+		}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
+	}
+}
+
+// getMySQLOperatorPod - return the mysql-operator pod
+func getMySQLOperatorPod(client *kubernetes.Clientset) (*corev1.PodList, error) {
+	operReq, err := labels.NewRequirement("name", selection.Equals, []string{mysqloperator.ComponentName})
+	if err != nil {
+		return nil, err
+	}
+	selector := labels.NewSelector().Add(*operReq)
+
+	operList, err := client.CoreV1().Pods(constants.MySQLOperatorNamespace).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: selector.String(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(operList.Items) != 1 {
+		return nil, fmt.Errorf("expected one pod to match selector %s, found %d", selector.String(), len(operList.Items))
+	}
+	return operList, nil
 }
 
 // waitForWorkRequest waits for the work request to transition to success
