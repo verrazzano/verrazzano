@@ -12,7 +12,7 @@ import (
 	"net/url"
 )
 
-const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200/verrazzano-system"
+const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
 
 //var bodyString = "{\"query\":{\"bool\":{\"filter\":[{\"match_phrase\":{\"kubernetes.container_name\":\"istio-proxy\"}}]}}}"
 //var body = io.NopCloser(bytes.NewBuffer([]byte(bodyString)))
@@ -50,7 +50,7 @@ func (w LogGetter) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		URL: &url.URL{
 			Scheme: "http",
 			Host:   osIngestService,
-			//Path:   "verrazzano-system",
+			Path:   ".ds-verrazzano-system-000001",
 		},
 		Header: http.Header{"Content-Type": {"application/json"}},
 		//Body:   body,
