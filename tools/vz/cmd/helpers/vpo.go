@@ -204,8 +204,7 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	// function is exited because there is no way to cancel the blocking read to the input stream.
 	re := regexp.MustCompile(VpoSimpleLogFormatRegexp)
 	go func(kubeClient kubernetes.Interface, outputStream io.Writer) {
-		var sc *bufio.Scanner
-
+		var sc = &bufio.Scanner{}
 		for {
 			if sc == nil {
 				sc, err := getScanner(client, kubeClient)
