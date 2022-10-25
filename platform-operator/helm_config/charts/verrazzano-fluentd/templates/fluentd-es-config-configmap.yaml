@@ -11,3 +11,4 @@ metadata:
 data:
   es-url: {{ .Values.logging.osURL }}
   es-secret: {{ .Values.logging.credentialsSecret }}
+
