@@ -107,11 +107,11 @@ func TestImportClusterToRancher(t *testing.T) {
 	tests := []struct {
 		name           string
 		httpStatusCode int
-		clusterId      string
+		clusterID      string
 		expectErr      bool
 	}{
-		{name: "Import ok", httpStatusCode: http.StatusCreated, clusterId: "some-cluster1", expectErr: false},
-		{name: "Import bad status", httpStatusCode: http.StatusBadRequest, clusterId: "", expectErr: true},
+		{name: "Import ok", httpStatusCode: http.StatusCreated, clusterID: "some-cluster1", expectErr: false},
+		{name: "Import bad status", httpStatusCode: http.StatusBadRequest, clusterID: "", expectErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -125,7 +125,7 @@ func TestImportClusterToRancher(t *testing.T) {
 			mockRequestSender.EXPECT().
 				Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterPath)).
 				DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-					r := io.NopCloser(bytes.NewReader([]byte(`{"id":"` + tt.clusterId + `"}`)))
+					r := io.NopCloser(bytes.NewReader([]byte(`{"id":"` + tt.clusterID + `"}`)))
 					resp := &http.Response{
 						StatusCode: tt.httpStatusCode,
 						Body:       r,
@@ -133,13 +133,13 @@ func TestImportClusterToRancher(t *testing.T) {
 					}
 					return resp, nil
 				})
-			clusterId, err := ImportClusterToRancher(&fakeRC, clusterName, vzlog.DefaultLogger())
+			clusterID, err := ImportClusterToRancher(&fakeRC, clusterName, vzlog.DefaultLogger())
 
 			if tt.expectErr {
 				asserts.Error(t, err)
 			} else {
 				asserts.NoError(t, err)
-				asserts.Equal(t, tt.clusterId, clusterId)
+				asserts.Equal(t, tt.clusterID, clusterID)
 			}
 			mocker.Finish()
 		})
@@ -161,11 +161,11 @@ func TestDeleteClusterFromRancher(t *testing.T) {
 			mocker := gomock.NewController(t)
 			mockRequestSender := mocks.NewMockRequestSender(mocker)
 			rancherHTTPClient = mockRequestSender
-			clusterId := "my-cluster-id"
+			clusterID := "my-cluster-id"
 
 			// Expect an HTTP request to delete the cluster from Rancher and return 200
 			mockRequestSender.EXPECT().
-				Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clustersPath+"/"+clusterId)).
+				Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clustersPath+"/"+clusterID)).
 				DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 					r := io.NopCloser(bytes.NewReader([]byte(`{"somejsonkey":"some-json-value"}`)))
 					resp := &http.Response{
@@ -174,7 +174,7 @@ func TestDeleteClusterFromRancher(t *testing.T) {
 					}
 					return resp, nil
 				})
-			deleted, err := DeleteClusterFromRancher(&fakeRC, clusterId, vzlog.DefaultLogger())
+			deleted, err := DeleteClusterFromRancher(&fakeRC, clusterID, vzlog.DefaultLogger())
 
 			if tt.expectErr {
 				asserts.Error(t, err)
