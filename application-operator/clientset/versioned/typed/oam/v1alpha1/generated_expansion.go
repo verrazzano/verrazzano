@@ -7,4 +7,6 @@ package v1alpha1
 
 type IngressTraitExpansion interface{}
 
+type LoggingTraitExpansion interface{}
+
 type VerrazzanoHelidonWorkloadExpansion interface{}
