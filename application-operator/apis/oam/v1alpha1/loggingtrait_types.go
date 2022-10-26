@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// LoggingTraitKind is the Kind of the LoggingTrait
+// LoggingTraitKind is the Kind of the LoggingTrait.
 const LoggingTraitKind string = "LoggingTrait"
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -44,9 +44,11 @@ type LoggingTraitStatus struct {
 	Resources []oamrt.TypedReference `json:"resources,omitempty"`
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:object:generate=true
+
 // LoggingTrait is the Schema for the loggingtraits API
 type LoggingTrait struct {
 	metav1.TypeMeta   `json:",inline"`
