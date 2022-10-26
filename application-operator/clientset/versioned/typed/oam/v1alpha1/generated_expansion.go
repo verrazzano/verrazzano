@@ -9,4 +9,6 @@ type IngressTraitExpansion interface{}
 
 type LoggingTraitExpansion interface{}
 
+type MetricsTraitExpansion interface{}
+
 type VerrazzanoHelidonWorkloadExpansion interface{}

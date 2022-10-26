@@ -23,6 +23,10 @@ func (c *FakeOamV1alpha1) LoggingTraits(namespace string) v1alpha1.LoggingTraitI
 	return &FakeLoggingTraits{c, namespace}
 }
 
+func (c *FakeOamV1alpha1) MetricsTraits(namespace string) v1alpha1.MetricsTraitInterface {
+	return &FakeMetricsTraits{c, namespace}
+}
+
 func (c *FakeOamV1alpha1) VerrazzanoHelidonWorkloads(namespace string) v1alpha1.VerrazzanoHelidonWorkloadInterface {
 	return &FakeVerrazzanoHelidonWorkloads{c, namespace}
 }
