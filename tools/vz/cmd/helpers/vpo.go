@@ -193,7 +193,7 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 
 // WaitForOperationToComplete waits for the Verrazzano install/upgrade to complete and
 // shows the logs of the ongoing Verrazzano install/upgrade.
-func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, namespacedName types.NamespacedName, timeout time.Duration, logFormat LogFormat, condType v1beta1.ConditionType) error {
+func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, namespacedName types.NamespacedName, timeout time.Duration, vpoTimeout time.Duration, logFormat LogFormat, condType v1beta1.ConditionType) error {
 	resChan := make(chan error, 1)
 	defer close(resChan)
 
@@ -206,30 +206,34 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	go func(kubeClient kubernetes.Interface, outputStream io.Writer) {
 		var sc *bufio.Scanner
 		var err error
-		connectRetryCount := 0
-		const maxConnectRetries = 5
+		secondsWaited := 0
+		maxSecondsToWait := int(vpoTimeout.Seconds())
+		const secondsPerRetry = 10
 
 		for {
 			if sc == nil {
 				sc, err = getScanner(client, kubeClient)
 				if err != nil {
-					connectRetryCount++
-					fmt.Fprintf(outputStream, fmt.Sprintf("Failed to connect to the console output, retry %d of %d: %v\n", connectRetryCount, maxConnectRetries, err))
-					if connectRetryCount >= 5 {
+					fmt.Fprintf(outputStream, fmt.Sprintf("Failed to connect to the console output, waited %d of %d seconds: %v\n", secondsWaited, maxSecondsToWait, err))
+					secondsWaited += secondsPerRetry
+					if secondsWaited >= maxSecondsToWait {
 						return
 					}
-					time.Sleep(5 * time.Second)
+					time.Sleep(secondsPerRetry * time.Second)
 					continue
 				}
-				connectRetryCount = 0
+				secondsWaited = 0
 				sc.Split(bufio.ScanLines)
 			}
 
 			scannedOk := sc.Scan()
 			if !scannedOk {
-				fmt.Fprintf(outputStream, "Lost connection to the console output, attempting to reconnect\n")
+				errText := ""
+				if sc.Err() != nil {
+					errText = fmt.Sprintf(": %v", sc.Err())
+				}
+				fmt.Fprintf(outputStream, fmt.Sprintf("Lost connection to the console output, attempting to reconnect%s\n", errText))
 				sc = nil
-				time.Sleep(5 * time.Second)
 				continue
 			}
 			if logFormat == LogFormatSimple {
