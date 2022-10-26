@@ -214,9 +214,9 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 			if sc == nil {
 				sc, err = getScanner(client, kubeClient)
 				if err != nil {
-					fmt.Fprintf(outputStream, fmt.Sprintf("Failed to connect to the console output, waited %d of %d seconds: %v\n", secondsWaited, maxSecondsToWait, err))
+					fmt.Fprintf(outputStream, fmt.Sprintf("Failed to connect to the console output, waited %d of %d seconds to recover: %v\n", secondsWaited, maxSecondsToWait, err))
 					secondsWaited += secondsPerRetry
-					if secondsWaited >= maxSecondsToWait {
+					if secondsWaited > maxSecondsToWait {
 						return
 					}
 					time.Sleep(secondsPerRetry * time.Second)
