@@ -122,6 +122,9 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 	expectSyncAgent(t, mock, testManagedCluster, rancherEnabled, false)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectRancherConfigK8sCalls(t, mock)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -192,6 +195,9 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster, false, true)
 	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectRancherConfigK8sCalls(t, mock)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -262,6 +268,9 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster, false, true)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectRancherConfigK8sCalls(t, mock)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, "", func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -335,6 +344,9 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	expectRancherConfigK8sCalls(t, mock)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectSyncCACertRancherHTTPCalls(t, mockRequestSender, "")
+	expectRancherConfigK8sCalls(t, mock)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectPushManifestRequests(mockRequestSender)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", false, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -406,6 +418,9 @@ func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncCACertRancherHTTPCalls(t, mockRequestSender, `{"data":{"ca.crt":"base64-ca-cert"}}`)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, true)
+	expectRancherConfigK8sCalls(t, mock)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectPushManifestRequests(mockRequestSender)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -484,6 +499,9 @@ scrape_configs:
 	expectSyncAgent(t, mock, testManagedCluster, false, false)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectRancherConfigK8sCalls(t, mock)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, jobs, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 
@@ -566,6 +584,9 @@ scrape_configs:
 	expectSyncAgent(t, mock, testManagedCluster, false, true)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectRancherConfigK8sCalls(t, mock)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, jobs, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 
@@ -638,6 +659,9 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster, false, true)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, true, rancherManifestYAML)
+	expectRancherConfigK8sCalls(t, mock)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -1704,6 +1728,20 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(vmc.Spec.ManagedClusterManifestSecret, GetManifestSecretName(name), "Manifest secret testManagedCluster did not match")
 			return nil
+		})
+}
+
+func expectPushManifestRequests(mockRequestSender *mocks.MockRequestSender) {
+	mockRequestSender.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clustersPath+"/"+unitTestRancherClusterID)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			var resp *http.Response
+			r := io.NopCloser(bytes.NewReader([]byte(`{"state":"inactive", "agentImage":"test"}`)))
+			resp = &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       r,
+			}
+			return resp, nil
 		})
 }
 
