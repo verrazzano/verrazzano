@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	"os"
 	"regexp"
 	"time"
@@ -50,6 +51,45 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-system")
 
 		Expect(getNumBadSocketMessages()).To(BeNumerically("<", 20))
+	})
+
+	t.Context("When the VMC is updated to the status of the managed cluster", func() {
+		var client *versioned.Clientset
+		BeforeEach(func() {
+			adminKubeconfig := os.Getenv("ADMIN_KUBECONFIG")
+			Expect(adminKubeconfig).To(Not(BeEmpty()))
+
+			var err error
+
+			client, err = pkg.GetVerrazzanoClientsetInCluster(adminKubeconfig)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		t.It("the VMC status is updated that objects have been pushed to the managed cluster", func() {
+			vmcList, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
+			Expect(err).ShouldNot(HaveOccurred())
+
+			Eventually(func() error {
+				pkg.Log(pkg.Info, "Waiting for all VMC to have status ManifestPushed = True")
+				for _, vmc := range vmcList.Items {
+					statusPushedFound := false
+					for _, condition := range vmc.Status.Conditions {
+						if condition.Type == v1alpha1.ConditionManifestPushed && condition.Status == corev1.ConditionFalse {
+							return fmt.Errorf("failed to find successful condition for ManifestPushed, VMC %s/%s has condition: %s = %s",
+								vmc.Name, vmc.Namespace, condition.Type, condition.Status)
+						}
+						if condition.Type == v1alpha1.ConditionManifestPushed && condition.Status == corev1.ConditionTrue {
+							statusPushedFound = true
+						}
+					}
+					if !statusPushedFound {
+						return fmt.Errorf("failed to find expected condition, VMC %s/%s had no condition of type %s",
+							vmc.Name, vmc.Namespace, v1alpha1.ConditionManifestPushed)
+					}
+				}
+				return nil
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).ShouldNot(BeNil())
+		})
 	})
 
 	t.Context("When clusters are created and deleted in Rancher", func() {
