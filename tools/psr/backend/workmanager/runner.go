@@ -125,7 +125,7 @@ func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		startIteration := time.Now().UnixNano()
 		err := r.Worker.DoWork(conf, log)
 		if err != nil {
-			log.Errorf("Failed calling %s to do work: %v", r.Worker.GetWorkerDesc().EnvName, err)
+			log.Errorf("Failed calling %s to do work: %v", r.Worker.GetWorkerDesc().MetricsName, err)
 		}
 		if r.Worker.WantIterationInfoLogged() {
 			log.Infof("Loop Count: %v, Elapsed Secs: %v", r.runnerMetrics.loopCount, r.runnerMetrics.workerDurationTotalSeconds)
