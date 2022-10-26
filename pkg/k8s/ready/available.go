@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	appsv1 "k8s.io/api/apps/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -18,16 +17,14 @@ const (
 	typeDeployment  = "deployment"
 	typeStatefulset = "statefulset"
 	typeDaemonset   = "daemonset"
-	typeIngress     = "ingress"
 )
 
 type (
-	isObjectReadySig    func(client clipkg.Client, nsn types.NamespacedName) error
-	AvailabilityObjects struct {
+	isObjectAvailableSig func(client clipkg.Client, nsn types.NamespacedName) error
+	AvailabilityObjects  struct {
 		StatefulsetNames []types.NamespacedName
 		DeploymentNames  []types.NamespacedName
 		DaemonsetNames   []types.NamespacedName
-		Ingresses        []types.NamespacedName
 	}
 )
 
@@ -39,9 +36,6 @@ func (c *AvailabilityObjects) IsAvailable(log vzlog.VerrazzanoLogger, client cli
 		return handleNotAvailableError(log, err)
 	}
 	if err := DaemonsetsAreAvailable(client, c.DaemonsetNames); err != nil {
-		return handleNotAvailableError(log, err)
-	}
-	if err := IngressesAreAvailable(client, c.Ingresses); err != nil {
 		return handleNotAvailableError(log, err)
 	}
 	return "", true
@@ -67,11 +61,7 @@ func DaemonsetsAreAvailable(client clipkg.Client, daemonsets []types.NamespacedN
 	return objectsAreAvailable(client, daemonsets, isDaemonsetAvailable)
 }
 
-func IngressesAreAvailable(client clipkg.Client, ingresses []types.NamespacedName) error {
-	return objectsAreAvailable(client, ingresses, isIngressAvailable)
-}
-
-func objectsAreAvailable(client clipkg.Client, objectKeys []types.NamespacedName, objectReadyFunc isObjectReadySig) error {
+func objectsAreAvailable(client clipkg.Client, objectKeys []types.NamespacedName, objectReadyFunc isObjectAvailableSig) error {
 	for _, nsn := range objectKeys {
 		if err := objectReadyFunc(client, nsn); err != nil {
 			return err
@@ -102,14 +92,6 @@ func isDaemonsetAvailable(client clipkg.Client, nsn types.NamespacedName) error 
 		return handleGetError(err, nsn, typeDaemonset)
 	}
 	return handleReplicasNotReady(ds.Status.NumberReady, ds.Status.DesiredNumberScheduled, nsn, typeDaemonset)
-}
-
-func isIngressAvailable(client clipkg.Client, nsn types.NamespacedName) error {
-	ing := networkingv1.Ingress{}
-	if err := client.Get(context.TODO(), nsn, &ing); err != nil {
-		return handleGetError(err, nsn, typeIngress)
-	}
-	return nil
 }
 
 func handleGetError(err error, nsn types.NamespacedName, objectType string) error {
