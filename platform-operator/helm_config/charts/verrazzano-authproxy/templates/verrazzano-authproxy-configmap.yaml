@@ -470,6 +470,11 @@ data:
                 able_to_redirect = false
             end
         end
+        if backend_name == "kibana" then
+           if not (uri == "/" or uri:find("/app/") == 1) then
+               able_to_redirect = false
+           end
+        end
         if able_to_redirect == true then
             me.debug("returning backend_name '"..backend_name.."', able_to_redirect is true")
         else
