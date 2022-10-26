@@ -11,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ProfileType is the type of install profile.
+// ProfileType is the type of installation profile.
 type ProfileType string
 
 const (
@@ -65,17 +65,17 @@ type VerrazzanoSpec struct {
 	Components ComponentSpec `json:"components,omitempty" patchStrategy:"merge"`
 	// Defines the type of volume to be used for persistence for all components unless overridden, and can be one of
 	// either EmptyDirVolumeSource or PersistentVolumeClaimVolumeSource. If PersistentVolumeClaimVolumeSource is
-	// declared, then the claimName must reference the name of an existing VolumeClaimSpecTemplate declared in the
-	// volumeClaimSpecTemplates section.
+	// declared, then the `claimName` must reference the name of an existing `VolumeClaimSpecTemplate` declared in the
+	// `volumeClaimSpecTemplates` section.
 	// +optional
 	// +patchStrategy=replace
 	DefaultVolumeSource *corev1.VolumeSource `json:"defaultVolumeSource,omitempty" patchStrategy:"replace"`
 	// Name of the installation. This name is part of the endpoint access URLs that are generated.
-	// The default value is default.
+	// The default value is `default`.
 	// +optional
 	EnvironmentName string `json:"environmentName,omitempty"`
-	// The installation profile to select. Valid values are prod (production), dev (development), and managed-cluster.
-	// The default is prod.
+	// The installation profile to select. Valid values are `prod` (production), `dev` (development), and `managed-cluster`.
+	// The default is `prod`.
 	// +optional
 	Profile ProfileType `json:"profile,omitempty"`
 	// Security specifies Verrazzano security configuration.
@@ -115,7 +115,7 @@ type VolumeClaimSpecTemplate struct {
 	Spec corev1.PersistentVolumeClaimSpec `json:"spec,omitempty"`
 }
 
-// InstanceInfo details of installed Verrazzano instance maintained in status field.
+// InstanceInfo details of the installed Verrazzano instance maintained in status field.
 type InstanceInfo struct {
 	// The Console URL for this Verrazzano installation.
 	ConsoleURL *string `json:"consoleUrl,omitempty"`
@@ -158,7 +158,7 @@ type ComponentStatusMap map[string]*ComponentStatusDetails
 
 // ComponentStatusDetails defines the observed state of a component.
 type ComponentStatusDetails struct {
-	// If a component is available for use.
+	// Whether or not a component is available for use.
 	Available *bool `json:"available,omitempty"`
 	// Information about the current state of a component.
 	Conditions []Condition `json:"conditions,omitempty"`
@@ -168,13 +168,13 @@ type ComponentStatusDetails struct {
 	Name string `json:"name,omitempty"`
 	// The generation of the Verrazzano resource the Component is currently being reconciled against.
 	ReconcilingGeneration int64 `json:"reconcilingGeneration,omitempty"`
-	// The version of Verrazzano that is installed.
+	// The state of a component.
 	State CompStateType `json:"state,omitempty"`
-	// The version of Verrazzano that is installed.
+	// The version of a component.
 	Version string `json:"version,omitempty"`
 }
 
-// ConditionType identifies the condition of the install/uninstall/upgrade which can be checked with `kubectl wait`.
+// ConditionType identifies the condition of the install, uninstall, or upgrade, which can be checked with `kubectl wait`.
 type ConditionType string
 
 const (
@@ -212,13 +212,13 @@ const (
 	CondUpgradeComplete ConditionType = "UpgradeComplete"
 )
 
-// Condition describes current state of an installation.
+// Condition describes the current state of an installation.
 type Condition struct {
 	// Last time the condition transitioned from one status to another.
 	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
-	// Human readable message indicating details about last transition.
+	// Human readable message indicating details about the last transition.
 	Message string `json:"message,omitempty"`
-	// Status of the condition, one of True, False, Unknown.
+	// Status of the condition: one of `True`, `False`, or `Unknown`.
 	Status corev1.ConditionStatus `json:"status"`
 	// Type of condition.
 	Type ConditionType `json:"type"`
@@ -247,7 +247,7 @@ const (
 	VzStateReconciling VzStateType = "Reconciling"
 )
 
-// CompStateType identifies the state of a component
+// CompStateType identifies the state of a component.
 type CompStateType string
 
 const (
@@ -279,7 +279,7 @@ const (
 	CompStateFailed CompStateType = "Failed"
 )
 
-// ComponentSpec contains a set of components used by Verrazzano
+// ComponentSpec contains a set of components used by Verrazzano.
 type ComponentSpec struct {
 	// The Application Operator component configuration.
 	// +optional
@@ -378,7 +378,7 @@ type ComponentSpec struct {
 	// +optional
 	Rancher *RancherComponent `json:"rancher,omitempty"`
 
-	// The Rancher Backup component configuration.
+	// The rancherBackup component configuration.
 	// +optional
 	RancherBackup *RancherBackupComponent `json:"rancherBackup,omitempty"`
 
@@ -422,7 +422,7 @@ type OpenSearchNode struct {
 	// Kubernetes container resources for nodes in the node group.
 	// +optional
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Role(s) that nodes in the group will assume. May be `master`, `data`, and/or `ingest`.
+	// Role or roles that nodes in the group will assume: may be `master`, `data`, and/or `ingest`.
 	Roles []vmov1.NodeRole `json:"roles,omitempty"`
 	// Storage settings for the node group.
 	// +optional
@@ -431,7 +431,7 @@ type OpenSearchNode struct {
 
 type OpenSearchNodeStorage struct {
 	// Node group storage size expressed as a
-	// <a href="https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity/#Quantity">Quantity</a>
+	// <a href="https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity/#Quantity">Quantity</a>.
 	Size string `json:"size"`
 }
 
@@ -440,7 +440,7 @@ type OpenSearchDashboardsComponent struct {
 	// If true, then OpenSearch Dashboards will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// The number of pods to replicate. The default is 1.
+	// The number of pods to replicate. The default is `1`.
 	Replicas *int32 `json:"replicas,omitempty"`
 }
 
@@ -474,7 +474,7 @@ type GrafanaComponent struct {
 	// If true, then Grafana will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// The number of pods to replicate. The default is 1.
+	// The number of pods to replicate. The default is `1`.
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 }
@@ -564,7 +564,7 @@ type CertManagerComponent struct {
 
 // CoherenceOperatorComponent specifies the Coherence Operator configuration.
 type CoherenceOperatorComponent struct {
-	// If true, then Coherence Operator will be installed.
+	// If true, then the Coherence Operator will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
@@ -578,7 +578,7 @@ type CoherenceOperatorComponent struct {
 
 // ApplicationOperatorComponent specifies the Application Operator configuration.
 type ApplicationOperatorComponent struct {
-	// If true, then Application Operator will be installed.
+	// If true, then the Application Operator will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
@@ -685,7 +685,7 @@ type IngressNginxComponent struct {
 	// If true, then ingress NGINX will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// Name of the ingress class used by the ingress controller. Defaults to verrazzano-nginx.
+	// Name of the ingress class used by the ingress controller. Defaults to `verrazzano-nginx`.
 	// +optional
 	IngressClassName *string `json:"ingressClassName,omitempty"`
 	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
@@ -698,8 +698,8 @@ type IngressNginxComponent struct {
 	// The list of port configurations used by the ingress.
 	// +optional
 	Ports []corev1.ServicePort `json:"ports,omitempty"`
-	// The ingress type. Valid values are `LoadBalancer` and `NodePort`. The default value is LoadBalancer. If the ingress
-	// type is NodePort, a valid and accessible IP address must be specified using the controller.service.externalIPs
+	// The ingress type. Valid values are `LoadBalancer` and `NodePort`. The default value is `LoadBalancer`. If the ingress
+	// type is `NodePort`, then a valid and accessible IP address must be specified using the `controller.service.externalIPs`
 	// key in the [InstallOverrides](#install.verrazzano.io/v1beta1.InstallOverrides). For sample usage, see
 	// <a href="../../../../../docs/customize/externallbs/">External Load Balancers</a>.
 	// +optional
@@ -708,10 +708,10 @@ type IngressNginxComponent struct {
 
 // IstioComponent specifies the Istio configuration.
 type IstioComponent struct {
-	// If true, then ingress Istio will be installed.
+	// If true, then Istio will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// Istio sidecar injection enabled for installed components.  Default is true.
+	// Istio sidecar injection enabled for installed components.  Default is `true`.
 	// +optional
 	InjectionEnabled *bool `json:"injectionEnabled,omitempty"`
 	// List of Overrides for default IstioOperator. Overrides are merged together, but in the event of conflicting
@@ -805,14 +805,14 @@ type RancherComponent struct {
 	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
-	// KeycloakAuthEnabled specifies whether the Keycloak Auth provider is enabled.  Default is false.
+	// KeycloakAuthEnabled specifies whether the Keycloak Auth provider is enabled.  Default is `false`.
 	// +optional
 	KeycloakAuthEnabled *bool `json:"keycloakAuthEnabled,omitempty"`
 }
 
-// RancherBackupComponent specifies the Rancher Backup configuration.
+// RancherBackupComponent specifies the rancherBackup configuration.
 type RancherBackupComponent struct {
-	// If true, then Rancher Backup will be installed.
+	// If true, then rancherBackup will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
@@ -830,7 +830,7 @@ type FluentdComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// A list of host path volume mounts, in addition to `/var/log`, into the Fluentd DaemonSet. The Fluentd component
-	// collects log files in the /var/log/containers directory of Kubernetes worker nodes. The `/var/log/containers`
+	// collects log files in the `/var/log/containers` directory of Kubernetes worker nodes. The `/var/log/containers`
 	// directory may contain symbolic links to files located outside the `/var/log` directory. If the host path
 	// directory containing the log files is located outside `/var/log`, the Fluentd DaemonSet must have the volume
 	// mount of that directory to collect the logs.
@@ -850,7 +850,7 @@ type FluentdComponent struct {
 	// The secret containing the credentials for connecting to OpenSearch. This secret needs to be created in the
 	// `verrazzano-install` namespace prior to creating the Verrazzano custom resource. Specify the OpenSearch login
 	// credentials in the `username` and `password` fields in this secret. Specify the CA for verifying the OpenSearch
-	// certificate in the `ca-bundle field`, if applicable. The default `verrazzano` is the secret for connecting to
+	// certificate in the `ca-bundle` field, if applicable. The default `verrazzano` is the secret for connecting to
 	// the VMI OpenSearch.
 	// +optional
 	OpenSearchSecret string `json:"opensearchSecret,omitempty"`
@@ -863,7 +863,7 @@ type FluentdComponent struct {
 
 // WebLogicOperatorComponent specifies the WebLogic Kubernetes Operator configuration.
 type WebLogicOperatorComponent struct {
-	// If true, then WebLogic Kubernetes Operator will be installed.
+	// If true, then the WebLogic Kubernetes Operator will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
@@ -894,7 +894,7 @@ type VolumeMount struct {
 	// The destination path on the Fluentd Container, defaults to the source host path.
 	// +optional
 	Destination string `json:"destination,omitempty"`
-	// Specifies if the volume mount is read-only, defaults to true.
+	// Specifies if the volume mount is read-only, defaults to `true`.
 	// +optional
 	ReadOnly *bool `json:"readOnly,omitempty"`
 	// The source host path.
@@ -931,10 +931,10 @@ type CA struct {
 
 // Certificate represents the type of cert issuer for an installation.
 type Certificate struct {
-	// The ACME configuration. Either acme or ca must be specified.
+	// The ACME configuration. Either `acme` or `ca` must be specified.
 	// +optional
 	Acme Acme `json:"acme,omitempty"`
-	// The ACME configuration. Either acme or ca must be specified.
+	// The ACME configuration. Either `acme` or `ca` must be specified.
 	// +optional
 	CA CA `json:"ca,omitempty"`
 }
@@ -953,7 +953,7 @@ type Wildcard struct {
 
 // OCI DNS type.
 type OCI struct {
-	// Scope of the Oracle Cloud Infrastructure DNS zone (PRIVATE, GLOBAL). If not specified, then defaults to GLOBAL.
+	// Scope of the Oracle Cloud Infrastructure DNS zone (`PRIVATE`, `GLOBAL`). If not specified, then defaults to `GLOBAL`.
 	// +optional
 	DNSScope string `json:"dnsScope,omitempty"`
 	// The Oracle Cloud Infrastructure DNS compartment OCID.
@@ -964,7 +964,7 @@ type OCI struct {
 	DNSZoneName string `json:"dnsZoneName"`
 	// Name of the Oracle Cloud Infrastructure configuration secret. Generate a secret based on the
 	// Oracle Cloud Infrastructure configuration profile you want to use. You can specify a profile other than
-	// DEFAULT and specify the secret name. See instructions by running `./install/create_oci_config_secret.sh`.
+	// `DEFAULT` and specify the secret name. See instructions by running `./install/create_oci_config_secret.sh`.
 	OCIConfigSecret string `json:"ociConfigSecret"`
 }
 
@@ -983,7 +983,7 @@ func init() {
 
 // OciLoggingConfiguration is the Oracle Cloud Infrastructure logging configuration for Fluentd.
 type OciLoggingConfiguration struct {
-	// The OCID of the Oracle Cloud Infrastructure Log that will collect application logs.
+	// The name of the secret containing the Oracle Cloud Infrastructure API configuration and private key.
 	// +optional
 	APISecret string `json:"apiSecret,omitempty"`
 	// The OCID of the Oracle Cloud Infrastructure Log that will collect application logs.
