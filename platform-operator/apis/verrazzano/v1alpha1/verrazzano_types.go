@@ -11,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ProfileType is the type of install profile.
+// ProfileType is the type of installation profile.
 type ProfileType string
 
 const (
@@ -184,7 +184,7 @@ type ComponentStatusDetails struct {
 	Version string `json:"version,omitempty"`
 }
 
-// ConditionType identifies the condition of the install/uninstall/upgrade which can be checked with `kubectl wait`.
+// ConditionType identifies the condition of the install, uninstall, or upgrade, which can be checked with `kubectl wait`.
 type ConditionType string
 
 const (
@@ -228,7 +228,7 @@ type Condition struct {
 	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
 	// Human readable message indicating details about the last transition.
 	Message string `json:"message,omitempty"`
-	// Status of the condition: one of True, False, or Unknown.
+	// Status of the condition: one of `True`, `False`, or `Unknown`.
 	Status corev1.ConditionStatus `json:"status"`
 	// Type of condition.
 	Type ConditionType `json:"type"`
@@ -437,7 +437,7 @@ type OpenSearchNode struct {
 	// Kubernetes container resources for nodes in the node group.
 	// +optional
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
-	// Role(s) that nodes in the group will assume: may be `master`, `data`, and/or `ingest`.
+	// Role or roles that nodes in the group will assume: may be `master`, `data`, and/or `ingest`.
 	Roles []vmov1.NodeRole `json:"roles,omitempty"`
 	// Storage settings for the node group.
 	// +optional
@@ -892,7 +892,7 @@ type RancherComponent struct {
 	KeycloakAuthEnabled *bool `json:"keycloakAuthEnabled,omitempty"`
 }
 
-// RancherBackupComponent specifies the Rancher Backup configuration.
+// RancherBackupComponent specifies the rancherBackup configuration.
 type RancherBackupComponent struct {
 	// If true, then rancherBackup will be installed.
 	// +optional
