@@ -219,7 +219,7 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 
 			scannedOk := sc.Scan()
 			if !scannedOk {
-				fmt.Fprintf(outputStream, fmt.Sprintf("Lost connection to the console output: %v", sc.Err()))
+				fmt.Fprintf(outputStream, fmt.Sprintf("Lost connection to the console output, attempting to reconnect"))
 				sc = nil
 				time.Sleep(5 * time.Second)
 				continue
