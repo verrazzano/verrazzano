@@ -215,7 +215,7 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 				if err != nil {
 					connectRetryCount++
 					fmt.Fprintf(outputStream, fmt.Sprintf("Failed to connect to the console output, retry %d of %d: %v\n", connectRetryCount, maxConnectRetries, err))
-					if connectRetryCount > 5 {
+					if connectRetryCount >= 5 {
 						return
 					}
 					time.Sleep(5 * time.Second)
