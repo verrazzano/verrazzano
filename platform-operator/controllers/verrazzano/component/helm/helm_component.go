@@ -108,7 +108,7 @@ type HelmComponent struct {
 	// Certificates associated with the component
 	Certificates []types.NamespacedName
 
-	AvailabilityObjects *common.ComponentAvailabilityObjects
+	AvailabilityObjects *ready.AvailabilityObjects
 }
 
 // Verify that HelmComponent implements Component
@@ -224,7 +224,7 @@ func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 // if the check fails.
 func (h HelmComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
 	if h.AvailabilityObjects != nil {
-		return h.AvailabilityObjects.IsAvailable(context)
+		return h.AvailabilityObjects.IsAvailable(context.Log(), context.Client())
 	}
 	return "", true
 }
