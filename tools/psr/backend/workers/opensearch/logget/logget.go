@@ -4,18 +4,20 @@
 package logget
 
 import (
+	"bytes"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
+	"io"
 	"net/http"
 	"net/url"
 )
 
-const osIngestService = "http://vmi-system-es-ingest.verrazzano-system:9200/verrazzano-system"
+const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
 
-//var bodyString = "{\"query\":{\"bool\":{\"filter\":[{\"match_phrase\":{\"kubernetes.container_name\":\"istio-proxy\"}}]}}}"
-//var body = io.NopCloser(bytes.NewBuffer([]byte(bodyString)))
+var bodyString = "{\"query\":{\"bool\":{\"filter\":[{\"match_phrase\":{\"kubernetes.container_name\":\"istio-proxy\"}}]}}}"
+var body = io.NopCloser(bytes.NewBuffer([]byte(bodyString)))
 
 type LogGetter struct {
 	spi.Worker
@@ -48,17 +50,12 @@ func (w LogGetter) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 	c := http.Client{}
 	req := http.Request{
 		URL: &url.URL{
-			//Scheme: "http",
-			//Host:   osIngestService,
-			//Path:   "verrazzano-system",
+			Scheme: "http",
+			Host:   osIngestService,
+			Path:   "/verrazzano-system",
 		},
-		//Header: http.Header{"Content-Type": {"application/json"}},
-		//Body:   body,
-	}
-	u, err := url.Parse(osIngestService)
-	req.URL = u
-	if err != nil {
-		log.Error(err)
+		Header: http.Header{"Content-Type": {"application/json"}},
+		Body:   body,
 	}
 	resp, err := c.Do(&req)
 	log.Infof("Resp: %V", resp == nil)
