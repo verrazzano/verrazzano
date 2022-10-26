@@ -16,6 +16,8 @@ import (
 type OamV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	IngressTraitsGetter
+	LoggingTraitsGetter
+	MetricsTraitsGetter
 	VerrazzanoHelidonWorkloadsGetter
 }
 
@@ -26,6 +28,14 @@ type OamV1alpha1Client struct {
 
 func (c *OamV1alpha1Client) IngressTraits(namespace string) IngressTraitInterface {
 	return newIngressTraits(c, namespace)
+}
+
+func (c *OamV1alpha1Client) LoggingTraits(namespace string) LoggingTraitInterface {
+	return newLoggingTraits(c, namespace)
+}
+
+func (c *OamV1alpha1Client) MetricsTraits(namespace string) MetricsTraitInterface {
+	return newMetricsTraits(c, namespace)
 }
 
 func (c *OamV1alpha1Client) VerrazzanoHelidonWorkloads(namespace string) VerrazzanoHelidonWorkloadInterface {
