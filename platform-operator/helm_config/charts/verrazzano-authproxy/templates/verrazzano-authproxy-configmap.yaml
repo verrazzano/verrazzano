@@ -512,6 +512,8 @@ data:
             serverUrl = me.makeVmiBackendUrl(backend, '5601')
         elseif backend == 'opensearch' then
             serverUrl = me.makeVmiBackendUrl('es-ingest', '9200')
+        elseif backend == 'elasticsearch' then
+            serverUrl = me.makeVmiBackendUrl('es-ingest', '9200')    
         elseif backend == 'kiali' then
             serverUrl = me.makeVmiBackendUrl(backend, '20001')
         elseif backend == 'jaeger' then
@@ -1190,6 +1192,8 @@ data:
         elseif backend == 'kibana' then
             allowedOrigins = os.getenv("VZ_KIBANA_ALLOWED_ORIGINS")
         elseif backend == 'opensearch' then
+            allowedOrigins = os.getenv("VZ_ES_ALLOWED_ORIGINS")
+        elseif backend == 'elasticsearch' then
             allowedOrigins = os.getenv("VZ_ES_ALLOWED_ORIGINS")
         elseif backend == 'kiali' then
             allowedOrigins = os.getenv("VZ_KIALI_ALLOWED_ORIGINS")
