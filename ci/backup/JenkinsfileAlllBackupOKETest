@@ -407,6 +407,33 @@ pipeline {
             }
         }
 
+        stage('Initiate mysql-operator backup restore tests') {
+            when {
+                expression {params.MYSQL_BACKUP == true}
+            }
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
+            }
+            steps {
+                echoAllPodInfo()
+                waitForPodsToBeUp("keycloak")
+                runGinkgoRandomize('backup/mysql')
+                println("Wait for pods in keycloak to be ready")
+                waitForPodsToBeUp("keycloak")
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    script {
+                        dumpK8sCluster('mysql-backup-restore-cluster-dump')
+                    }
+                }
+            }
+        }
+
     }
     post {
         always {
@@ -457,6 +484,12 @@ pipeline {
             deleteDir()
         }
     }
+}
+
+def echoAllPodInfo() {
+    sh """
+         kubectl get pod -A
+    """
 }
 
 def createBucket(bucketName) {
