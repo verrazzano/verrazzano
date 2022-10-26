@@ -66,11 +66,11 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 		})
 
 		t.It("the VMC status is updated that objects have been pushed to the managed cluster", func() {
-			vmcList, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
-			Expect(err).ShouldNot(HaveOccurred())
-
 			Eventually(func() error {
-				pkg.Log(pkg.Info, "Waiting for all VMC to have status ManifestPushed = True")
+				pkg.Log(pkg.Info, "Waiting for all VMC to have status condition ManifestPushed = True")
+				vmcList, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
+				Expect(err).ShouldNot(HaveOccurred())
+
 				for _, vmc := range vmcList.Items {
 					statusPushedFound := false
 					for _, condition := range vmc.Status.Conditions {
@@ -88,7 +88,7 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 					}
 				}
 				return nil
-			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).ShouldNot(BeNil())
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeNil())
 		})
 	})
 
