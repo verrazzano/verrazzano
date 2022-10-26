@@ -5,6 +5,7 @@ package logget
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
@@ -58,25 +59,17 @@ func (w LogGetter) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		Body:   body,
 	}
 	resp, err := c.Do(&req)
-	log.Infof("Resp: %V", resp == nil)
-	if err == nil {
-		if resp == nil {
-			log.Info("resp is nil")
-			return nil
-		}
-
-		respBody := []byte("")
-		if resp.Body != nil {
-			respBody, err = io.ReadAll(resp.Body)
-		}
-		if err != nil {
-			log.Error(err)
-		}
-		log.Infof("OpenSearch GET request failed, status code: %d, status %s, body: %s, error: %v", resp.StatusCode, resp.Status, string(respBody), err)
-		log.Info("OpenSearch GET request successful")
-		return nil
+	if err != nil {
+		return err
 	}
-	return err
+	if resp == nil {
+		return fmt.Errorf("GET request to URI %s received a nil response", req.URL.RequestURI())
+	}
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("GET request to URI %s received a non 200 response, status code: %d, status %s", req.URL.RequestURI(), resp.StatusCode, resp.Status)
+	}
+	log.Info("OpenSearch GET request successful")
+	return nil
 }
 
 func (w LogGetter) GetMetricDescList() []prometheus.Desc {
