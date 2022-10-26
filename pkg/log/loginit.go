@@ -92,10 +92,15 @@ func IgnoreConflictWithLog(message string, err error, log *zap.SugaredLogger) (r
 	return vzctrl.NewRequeueWithDelay(2, 3, time.Second), nil
 }
 
-// BuildZapLogger initializes zap logger
-func BuildZapLogger(callerSkip int) (*zap.SugaredLogger, error) {
+// BuildZapInfoLogger initializes a zap logger at info level
+func BuildZapInfoLogger(callerSkip int) (*zap.SugaredLogger, error) {
+	return BuildZapLoggerWithLevel(callerSkip, zapcore.InfoLevel)
+}
+
+// BuildZapLoggerWithLevel initializes a zap logger for a given log level
+func BuildZapLoggerWithLevel(callerSkip int, level zapcore.Level) (*zap.SugaredLogger, error) {
 	config := zap.NewProductionConfig()
-	config.Level.SetLevel(zapcore.InfoLevel)
+	config.Level.SetLevel(level)
 
 	config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(timeFormat)
 	config.EncoderConfig.TimeKey = "@timestamp"

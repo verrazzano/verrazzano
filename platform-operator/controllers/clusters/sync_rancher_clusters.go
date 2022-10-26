@@ -55,7 +55,7 @@ func (r *RancherClusterSyncer) StartSyncing() {
 
 // initLogger initializes the Verrazzano logger
 func (r *RancherClusterSyncer) initLogger() vzlog.VerrazzanoLogger {
-	zaplog, err := log.BuildZapLogger(2)
+	zaplog, err := log.BuildZapInfoLogger(2)
 	if err != nil {
 		// failed so fall back to the basic zap sugared logger
 		zaplog = zap.S()
