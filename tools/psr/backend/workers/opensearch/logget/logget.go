@@ -54,8 +54,8 @@ func (w LogGetter) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 			Host:   osIngestService,
 			Path:   "verrazzano-system",
 		},
-		Header: http.Header{"Content-Type": {"application/json"}},
-		Body:   body,
+		//Header: http.Header{"Content-Type": {"application/json"}},
+		//Body:   body,
 	}
 	resp, err := c.Do(&req)
 	log.Infof("Resp: %V", resp == nil)
