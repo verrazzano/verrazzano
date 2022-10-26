@@ -6,9 +6,11 @@ package status
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"go.uber.org/zap/zapcore"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -114,11 +116,15 @@ func getVerrazzanoResource(client clipkg.Client) (*vzapi.Verrazzano, error) {
 }
 
 func newLogger(vz *vzapi.Verrazzano) (vzlog.VerrazzanoLogger, error) {
-	return vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
+	zaplog, err := log.BuildZapLoggerWithLevel(2, zapcore.ErrorLevel)
+	if err != nil {
+		return nil, err
+	}
+	return vzlog.ForZapLogger(&vzlog.ResourceConfig{
 		Name:           vz.Name,
 		Namespace:      vz.Namespace,
 		ID:             string(vz.UID),
 		Generation:     vz.Generation,
 		ControllerName: "availability",
-	})
+	}, zaplog), nil
 }

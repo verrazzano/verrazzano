@@ -35,6 +35,10 @@ const (
 
 	MySQLOperatorJobPodSpecAnnotationKey   = "traffic.sidecar.istio.io/excludeOutboundPorts"
 	MySQLOperatorJobPodSpecAnnotationValue = "443"
+
+	// MySQLTierKey labels required for network policy access
+	MySQLTierKey   = "tier"
+	MySQLTierValue = "mysql"
 )
 
 // MySQLBackupJobWebhook type for Verrazzano mysql backup webhook
@@ -112,7 +116,7 @@ func (m *MySQLBackupJobWebhook) processJob(req admission.Request, job *batchv1.J
 	}
 
 	// Check if the Job was created from an CronJob or MySQLBackup resource.
-	// We do this by checking for the existence of an ApplicationConfiguration ownerReference resource.
+	// We do this by checking for the existence of a MySQL Backup ownerReference resource.
 	for _, ownerRef := range ownerRefList {
 		// This condition is satisfied by any Job for backup created from mysql-operator
 		if ownerRef.Kind == "MySQLBackup" {
@@ -140,6 +144,9 @@ func (m *MySQLBackupJobWebhook) processJob(req admission.Request, job *batchv1.J
 	istioAnnotation := make(map[string]string)
 	istioAnnotation[MySQLOperatorJobPodSpecAnnotationKey] = MySQLOperatorJobPodSpecAnnotationValue
 	job.Spec.Template.SetAnnotations(istioAnnotation)
+	jobPodLables := make(map[string]string)
+	jobPodLables[MySQLTierKey] = MySQLTierValue
+	job.Spec.Template.SetLabels(jobPodLables)
 
 	// Marshal the mutated pod to send back in the admission review response.
 	marshaledJobData, err := json.Marshal(job)
@@ -211,7 +218,7 @@ func (m *MySQLBackupJobWebhook) isCronJobCreatedByMysqlOperator(req admission.Re
 		}
 	}
 
-	if mysqlOperatorOwnerReferencePresent && mysqlOperatorLabelPresent {
+	if mysqlOperatorOwnerReferencePresent || mysqlOperatorLabelPresent {
 		// This is a litmus test that the cronjob was created by mysql-operator
 		return true, nil
 	}

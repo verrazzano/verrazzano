@@ -13,3 +13,5 @@ envVars:
   PSR_WORKER_TYPE: WT_EXAMPLE
   PSR_ITERATION_SLEEP: 1s
 
+istio:
+  enabled: false

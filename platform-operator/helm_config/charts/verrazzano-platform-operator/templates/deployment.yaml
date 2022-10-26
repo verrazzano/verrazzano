@@ -23,11 +23,22 @@ spec:
     spec:
       terminationGracePeriodSeconds: 0
       initContainers:
-        - name: "{{ .Values.name }}-init"
+        - name: initwebhooks
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           image: {{ .Values.image }}
-          command:
-            - /verrazzano/platform-operator/scripts/wait4webhook.sh
+          args:
+            - --init-webhooks=true
+            - --webhooks-enabled=false
+          resources:
+            requests:
+              memory: 72Mi
+        - name: webhookswait
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ .Values.image }}
+          command: [ 'sh', '-c', "/verrazzano/platform-operator/scripts/wait4webhook.sh" ]
+      {{- if .Values.affinity }}
+      affinity: {{ toYaml .Values.affinity | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Values.name }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
@@ -36,17 +47,11 @@ spec:
             - containerPort: 9100
               name: http-metric
               protocol: TCP
-          startupProbe:
-            exec:
-              command:
-                - /verrazzano/platform-operator/scripts/wait4webhook.sh
-            periodSeconds: 5
-            timeoutSeconds: 5
-            failureThreshold: 20
           args:
             - --zap-log-level=info
-            - --enable-webhook-validation=true
             - --health-check-period=60
+            - --webhooks-enabled=false
+            - --init-webhooks=false
           env:
             - name: VERRAZZANO_KUBECONFIG
               value: /home/verrazzano/kubeconfig
@@ -102,19 +107,23 @@ spec:
         app.kubernetes.io/version: {{ .Chart.Version }}
     spec:
       terminationGracePeriodSeconds: 0
+      {{- if .Values.webhookAffinity }}
+      affinity: {{ toYaml .Values.webhookAffinity | nindent 8 }}
+      {{- end }}
       containers:
         - name: webhook-run
           image: {{ .Values.image }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           args:
             - --zap-log-level=info
-            - --init-webhooks=true
-          volumeMounts:
-            - name: webhook-certs
-              mountPath: /etc/webhook/certs
+            - --webhooks-enabled=true
+            - --init-webhooks=false
           resources:
             requests:
               memory: 72Mi
+          volumeMounts:
+            - mountPath: /etc/webhook/certs
+              name: webhook-server-certs
           ports:
             - containerPort: 9100
               name: http-metric
@@ -123,6 +132,10 @@ spec:
               name: webhook
               protocol: TCP
       volumes:
-        - name: webhook-certs
-          emptyDir: {}
+        - name: webhook-ca-certs
+          secret:
+            secretName: verrazzano-platform-operator-ca
+        - name: webhook-server-certs
+          secret:
+            secretName: verrazzano-platform-operator-tls
       serviceAccountName: {{ .Values.name }}

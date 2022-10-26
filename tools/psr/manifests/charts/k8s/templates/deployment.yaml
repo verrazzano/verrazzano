@@ -19,6 +19,7 @@ spec:
       labels:
         app: psr-backend
     spec:
+      serviceAccount: psr
     {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.imagePullSecrets | indent 8 }}
