@@ -2,8 +2,10 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
+ def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
+// def agentLabel = "largeexperimental"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
+def ociOsBucketName = UUID.randomUUID().toString().substring(0,6).replace('-','')
 
 pipeline {
     options {
@@ -115,7 +117,7 @@ pipeline {
 
         // used for console artifact capture on failure
         JENKINS_READ = credentials('jenkins-auditor')
-        OCI_CLI_AUTH="instance_principal"
+        // OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
@@ -156,6 +158,12 @@ pipeline {
         BACKUP_OPENSEARCH_STORAGE = "storage-opensearch-${OCI_OS_BUCKET_ID}"
         BACKUP_MYSQL_STORAGE = "storage-mysql-${OCI_OS_BUCKET_ID}"
         BACKUP_REGION  = "us-phoenix-1"
+
+        //OCI parameters
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
     }
 
     stages {
@@ -328,6 +336,7 @@ pipeline {
                 always {
                     archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
                     junit testResults: '**/*test-result.xml', allowEmptyResults: true
+
                 }
                 failure {
                     script {
@@ -356,6 +365,33 @@ pipeline {
                 failure {
                     script {
                         dumpK8sCluster('rancher-backup-restore-cluster-dump')
+                    }
+                }
+            }
+        }
+
+        stage('Initiate mysql-operator backup restore tests') {
+            when {
+                expression {params.MYSQL_BACKUP == true}
+            }
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
+            }
+            steps {
+                echoAllPodInfo()
+                waitForPodsToBeUp("keycloak")
+                runGinkgoRandomize('backup/mysql')
+                println("Wait for pods in keycloak to be ready")
+                waitForPodsToBeUp("keycloak")
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    script {
+                        dumpK8sCluster('mysql-backup-restore-cluster-dump')
                     }
                 }
             }
