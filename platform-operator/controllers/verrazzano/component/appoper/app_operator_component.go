@@ -53,6 +53,14 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
 			Dependencies:              []string{networkpolicies.ComponentName, oam.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &common.ComponentAvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -63,14 +71,6 @@ func (c applicationOperatorComponent) IsReady(context spi.ComponentContext) bool
 		return isApplicationOperatorReady(context)
 	}
 	return false
-}
-
-func (c applicationOperatorComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = c.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", c.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // PreUpgrade processing for the application-operator
