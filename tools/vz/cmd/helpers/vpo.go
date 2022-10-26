@@ -206,14 +206,22 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	go func(kubeClient kubernetes.Interface, outputStream io.Writer) {
 		var sc *bufio.Scanner
 		var err error
+		connectRetryCount := 0
+		const maxConnectRetries = 5
+
 		for {
 			if sc == nil {
 				sc, err = getScanner(client, kubeClient)
 				if err != nil {
-					fmt.Fprintf(outputStream, fmt.Sprintf("Failed to connect to the console output: %v\n", err))
+					connectRetryCount++
+					fmt.Fprintf(outputStream, fmt.Sprintf("Failed to connect to the console output, retry %d of %d: %v\n", connectRetryCount, maxConnectRetries, err))
+					if connectRetryCount > 5 {
+						return
+					}
 					time.Sleep(5 * time.Second)
 					continue
 				}
+				connectRetryCount = 0
 				sc.Split(bufio.ScanLines)
 			}
 
