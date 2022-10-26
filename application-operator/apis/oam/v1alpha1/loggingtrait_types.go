@@ -37,7 +37,7 @@ type LoggingTraitSpec struct {
 	WorkloadReference oamrt.TypedReference `json:"workloadRef"`
 }
 
-// LoggingTraitStatus specifies the observed state of a logging trait.
+// LoggingTraitStatus specifies the observed state of a logging trait and related resources.
 type LoggingTraitStatus struct {
 	// Reconcile status of this logging trait.
 	oamrt.ConditionedStatus `json:",inline"`
@@ -62,7 +62,7 @@ type LoggingTrait struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:object:generate=true
-// LoggingTraitList contains a list of LoggingTrait
+// LoggingTraitList contains a list of LoggingTrait.
 type LoggingTraitList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
