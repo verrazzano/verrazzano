@@ -5,6 +5,7 @@ package clusters
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,11 +15,16 @@ import (
 
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/test/mockmatchers"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -218,4 +224,42 @@ func getTestPath(secret *corev1.Secret, clusterID string, create bool) string {
 		return k8sClustersPath + clusterID + fmt.Sprintf(secretCreateTemplate, secret.GetNamespace())
 	}
 	return k8sClustersPath + clusterID + fmt.Sprintf(secretPathTemplate, secret.GetNamespace(), secret.GetName())
+}
+
+// expectRancherConfigK8sCalls asserts all of the expected calls on the Kubernetes client mock
+// when creating a new Rancher config for the purpose of making http calls
+func expectRancherConfigK8sCalls(t *testing.T, k8sMock *mocks.MockClient) {
+	// Expect a call to get the ingress host name
+	k8sMock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress) error {
+			rule := networkingv1.IngressRule{Host: "rancher.unit-test.com"}
+			ingress.Spec.Rules = append(ingress.Spec.Rules, rule)
+			return nil
+		})
+
+	// Expect a call to get the secret with the Rancher root CA cert
+	k8sMock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherTLSSecret}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				"ca.crt": {},
+			}
+			return nil
+		})
+
+	// Expect a call to get the Rancher admin secret
+	k8sMock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherAdminSecret}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				"password": []byte("super-secret"),
+			}
+			return nil
+		})
+
+	// Expect a call to get the Rancher additional CA secret
+	k8sMock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: constants.AdditionalTLS}), gomock.Not(gomock.Nil())).
+		Return(errors.NewNotFound(schema.GroupResource{Group: rancherNamespace, Resource: "Secret"}, constants.AdditionalTLS))
 }
