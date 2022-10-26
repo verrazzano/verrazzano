@@ -1189,7 +1189,7 @@ data:
             allowedOrigins = os.getenv("VZ_PROMETHEUS_ALLOWED_ORIGINS")
         elseif backend == 'kibana' then
             allowedOrigins = os.getenv("VZ_KIBANA_ALLOWED_ORIGINS")
-        elseif backend == 'elasticsearch' then
+        elseif backend == 'opensearch' then
             allowedOrigins = os.getenv("VZ_ES_ALLOWED_ORIGINS")
         elseif backend == 'kiali' then
             allowedOrigins = os.getenv("VZ_KIALI_ALLOWED_ORIGINS")
