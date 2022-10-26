@@ -5,6 +5,7 @@ package config
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"time"
 )
 
@@ -33,6 +34,8 @@ const (
 	WorkerTypeWorkloadScale = "WT_WORKLOAD_SCALE"
 )
 
+var env = osenv.NewEnv()
+
 type CommonConfig struct {
 	WorkerType          string
 	IterationSleepNanos time.Duration
@@ -40,15 +43,15 @@ type CommonConfig struct {
 
 // GetCommonConfig loads the common config from env vars
 func LoadCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
-	dd := []EnvVarDesc{
+	dd := []osenv.EnvVarDesc{
 		{Key: PsrWorkerType, DefaultVal: "", Required: true},
 		{Key: PsrDuration, DefaultVal: "", Required: false},
 		{Key: PsrIterationSleep, DefaultVal: "1s", Required: false},
 	}
-	if err := LoadFromEnv(dd); err != nil {
+	if err := env.LoadFromEnv(dd); err != nil {
 		return CommonConfig{}, err
 	}
-	sleepDuration, err := time.ParseDuration(EnvVars[PsrIterationSleep])
+	sleepDuration, err := time.ParseDuration(env.GetEnv(PsrIterationSleep))
 	if err != nil {
 		return CommonConfig{}, log.ErrorfNewErr("Error parsing iteration sleep duration: %v", err)
 	}
@@ -58,7 +61,7 @@ func LoadCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 	}
 
 	return CommonConfig{
-		WorkerType:          EnvVars[PsrWorkerType],
+		WorkerType:          env.GetEnv(PsrWorkerType),
 		IterationSleepNanos: sleepDuration,
 	}, nil
 }
