@@ -41,8 +41,12 @@ type CommonConfig struct {
 	IterationSleepNanos time.Duration
 }
 
+func GetEnv() osenv.Environment {
+	return env
+}
+
 // GetCommonConfig loads the common config from env vars
-func LoadCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
+func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 	dd := []osenv.EnvVarDesc{
 		{Key: PsrWorkerType, DefaultVal: "", Required: true},
 		{Key: PsrDuration, DefaultVal: "", Required: false},
