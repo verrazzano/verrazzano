@@ -511,13 +511,13 @@ func (in *MetricsTraitSpec) DeepCopyInto(out *MetricsTraitSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.Secret != nil {
-		in, out := &in.Secret, &out.Secret
+	if in.Scraper != nil {
+		in, out := &in.Scraper, &out.Scraper
 		*out = new(string)
 		**out = **in
 	}
-	if in.Scraper != nil {
-		in, out := &in.Scraper, &out.Scraper
+	if in.Secret != nil {
+		in, out := &in.Secret, &out.Secret
 		*out = new(string)
 		**out = **in
 	}

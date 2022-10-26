@@ -145,18 +145,22 @@ spec:
                 description: Related resources affected by this metrics trait.
                 items:
                   description: QualifiedResourceRelation identifies a specific related
-                    resource (both APIVersion/Kind and namespace name) along this
-                    the role of the resource in the relationship.
+                    resource.
                   properties:
                     apiversion:
+                      description: API version of the related resource.
                       type: string
                     kind:
+                      description: Kind of the related resource.
                       type: string
                     name:
+                      description: Name of the related resource.
                       type: string
                     namespace:
+                      description: Namespace of the related resource.
                       type: string
                     role:
+                      description: Role of the related resource.  For example, `Deployment`.
                       type: string
                   required:
                   - apiversion

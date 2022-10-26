@@ -5,15 +5,18 @@ package v1alpha1
 
 import "reflect"
 
-// QualifiedResourceRelation identifies a specific related resource
-// (both APIVersion/Kind and namespace name) along this the role of the resource
-// in the relationship.
+// QualifiedResourceRelation identifies a specific related resource.
 type QualifiedResourceRelation struct {
+	// API version of the related resource.
 	APIVersion string `json:"apiversion"`
-	Kind       string `json:"kind"`
-	Namespace  string `json:"namespace"`
-	Name       string `json:"name"`
-	Role       string `json:"role"`
+	// Kind of the related resource.
+	Kind string `json:"kind"`
+	// Name of the related resource.
+	Name string `json:"name"`
+	// Namespace of the related resource.
+	Namespace string `json:"namespace"`
+	// Role of the related resource.  For example, `Deployment`.
+	Role string `json:"role"`
 }
 
 // QualifiedResourceRelationSlicesEquivalent determines if two slices of related resources are equivalent.

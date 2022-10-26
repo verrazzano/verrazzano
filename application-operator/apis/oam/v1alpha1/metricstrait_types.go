@@ -55,15 +55,15 @@ type MetricsTraitSpec struct {
 	// +optional
 	Ports []PortSpec `json:"ports,omitempty"`
 
-	// The name of an opaque secret (for example, username and password) within the workload’s namespace for metrics
-	// endpoint access.
-	// +optional
-	Secret *string `json:"secret,omitempty"`
-
 	// The Prometheus deployment used to scrape the related metrics endpoints. By default, the Verrazzano-supplied
 	// Prometheus component is used to scrape the endpoint.
 	// +optional
 	Scraper *string `json:"scraper,omitempty"`
+
+	// The name of an opaque secret (for example, username and password) within the workload’s namespace for metrics
+	// endpoint access.
+	// +optional
+	Secret *string `json:"secret,omitempty"`
 
 	// The WorkloadReference of the workload to which this trait applies.
 	// This value is populated by the OAM runtime when an ApplicationConfiguration
