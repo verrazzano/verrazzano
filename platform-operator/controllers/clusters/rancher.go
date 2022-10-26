@@ -623,6 +623,7 @@ func getProxyURL() string {
 
 // createOrUpdateSecretRancherProxy simulates the controllerutil create or update function through the Rancher Proxy API for secrets
 func createOrUpdateSecretRancherProxy(secret *corev1.Secret, rc *rancherConfig, clusterID string, f controllerutil.MutateFn, log vzlog.VerrazzanoLogger) (controllerutil.OperationResult, error) {
+	log.Debugf("Creating or Updating Secret %s/%s", secret.GetNamespace(), secret.GetName())
 	if err := rancherSecretGet(secret, rc, clusterID, log); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return controllerutil.OperationResultNone, err
