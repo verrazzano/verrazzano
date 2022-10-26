@@ -37,6 +37,7 @@ func TestCreateOrUpdateResourceFromFile(t *testing.T) {
 	defer server.Close()
 
 	err := createFakeKubeConfig(server.URL)
+	defer deleteFakeKubeConfig()
 	asserts.NoError(err)
 
 	kubeConfigPath, err := getFakeKubeConfigPath()
@@ -44,6 +45,7 @@ func TestCreateOrUpdateResourceFromFile(t *testing.T) {
 
 	// Preserve previous env var value
 	prevEnvVar := os.Getenv(k8sutil.EnvVarTestKubeConfig)
+	defer os.Setenv(k8sutil.EnvVarTestKubeConfig, prevEnvVar)
 
 	// Test using environment variable
 	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, kubeConfigPath)
@@ -51,13 +53,6 @@ func TestCreateOrUpdateResourceFromFile(t *testing.T) {
 
 	logger := vzlog.DefaultLogger().GetZapLogger()
 	err = CreateOrUpdateResourceFromFile(file, logger)
-	asserts.NoError(err)
-
-	// Reset env variable
-	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, prevEnvVar)
-	asserts.NoError(err)
-
-	err = deleteFakeKubeConfig()
 	asserts.NoError(err)
 }
 
@@ -74,6 +69,7 @@ func TestCreateOrUpdateResourceFromBytes(t *testing.T) {
 	defer server.Close()
 
 	err = createFakeKubeConfig(server.URL)
+	defer deleteFakeKubeConfig()
 	asserts.NoError(err)
 
 	kubeConfigPath, err := getFakeKubeConfigPath()
@@ -81,19 +77,13 @@ func TestCreateOrUpdateResourceFromBytes(t *testing.T) {
 
 	// Preserve previous env var value
 	prevEnvVar := os.Getenv(k8sutil.EnvVarTestKubeConfig)
+	defer os.Setenv(k8sutil.EnvVarTestKubeConfig, prevEnvVar)
 
 	// Test using environment variable
 	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, kubeConfigPath)
 	asserts.NoError(err)
 
 	err = CreateOrUpdateResourceFromBytes(bytes, vzlog.DefaultLogger().GetZapLogger())
-	asserts.NoError(err)
-
-	// Reset env variable
-	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, prevEnvVar)
-	asserts.NoError(err)
-
-	err = deleteFakeKubeConfig()
 	asserts.NoError(err)
 }
 
@@ -109,6 +99,7 @@ func TestCreateOrUpdateResourceFromFileInCluster(t *testing.T) {
 	defer server.Close()
 
 	err := createFakeKubeConfig(server.URL)
+	defer deleteFakeKubeConfig()
 	asserts.NoError(err)
 
 	kubeConfigPath, err := getFakeKubeConfigPath()
@@ -137,9 +128,6 @@ func TestCreateOrUpdateResourceFromFileInCluster(t *testing.T) {
 	file = SecretInvalid
 	err = CreateOrUpdateResourceFromFileInCluster(file, kubeConfigPath)
 	asserts.Error(err)
-
-	err = deleteFakeKubeConfig()
-	asserts.NoError(err)
 }
 
 // TestCreateOrUpdateResourceFromFileInGeneratedNamespace tests the
@@ -153,6 +141,7 @@ func TestCreateOrUpdateResourceFromFileInGeneratedNamespace(t *testing.T) {
 	defer server.Close()
 
 	err := createFakeKubeConfig(server.URL)
+	defer deleteFakeKubeConfig()
 	asserts.NoError(err)
 
 	kubeConfigPath, err := getFakeKubeConfigPath()
@@ -160,19 +149,13 @@ func TestCreateOrUpdateResourceFromFileInGeneratedNamespace(t *testing.T) {
 
 	// Preserve previous env var value
 	prevEnvVar := os.Getenv(k8sutil.EnvVarTestKubeConfig)
+	defer os.Setenv(k8sutil.EnvVarTestKubeConfig, prevEnvVar)
 
 	// Test using environment variable
 	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, kubeConfigPath)
 	asserts.NoError(err)
 
 	err = CreateOrUpdateResourceFromFileInGeneratedNamespace(file, "default")
-	asserts.NoError(err)
-
-	// Reset env variable
-	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, prevEnvVar)
-	asserts.NoError(err)
-
-	err = deleteFakeKubeConfig()
 	asserts.NoError(err)
 }
 
@@ -189,6 +172,7 @@ func TestCreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(t *testing.
 	defer server.Close()
 
 	err := createFakeKubeConfig(server.URL)
+	defer deleteFakeKubeConfig()
 	asserts.NoError(err)
 
 	kubeConfigPath, err := getFakeKubeConfigPath()
@@ -204,9 +188,6 @@ func TestCreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(t *testing.
 	file = SecretInvalid
 	err = CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file, kubeConfigPath, "default")
 	asserts.Error(err)
-
-	err = deleteFakeKubeConfig()
-	asserts.NoError(err)
 }
 
 // TestDeleteResourceFromFile tests the DeleteResourceFromFile
@@ -219,6 +200,7 @@ func TestDeleteResourceFromFile(t *testing.T) {
 	defer server.Close()
 
 	err := createFakeKubeConfig(server.URL)
+	defer deleteFakeKubeConfig()
 	asserts.NoError(err)
 
 	kubeConfigPath, err := getFakeKubeConfigPath()
@@ -226,19 +208,13 @@ func TestDeleteResourceFromFile(t *testing.T) {
 
 	// Preserve previous env var value
 	prevEnvVar := os.Getenv(k8sutil.EnvVarTestKubeConfig)
+	defer os.Setenv(k8sutil.EnvVarTestKubeConfig, prevEnvVar)
 
 	// Test using environment variable
 	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, kubeConfigPath)
 	asserts.NoError(err)
 
 	err = DeleteResourceFromFile(file, vzlog.DefaultLogger().GetZapLogger())
-	asserts.NoError(err)
-
-	// Reset env variable
-	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, prevEnvVar)
-	asserts.NoError(err)
-
-	err = deleteFakeKubeConfig()
 	asserts.NoError(err)
 }
 
@@ -254,6 +230,7 @@ func TestDeleteResourceFromFileInCluster(t *testing.T) {
 	defer server.Close()
 
 	err := createFakeKubeConfig(server.URL)
+	defer deleteFakeKubeConfig()
 	asserts.NoError(err)
 
 	kubeConfigPath, err := getFakeKubeConfigPath()
@@ -271,9 +248,6 @@ func TestDeleteResourceFromFileInCluster(t *testing.T) {
 	file = SecretInvalid
 	err = DeleteResourceFromFileInCluster(file, kubeConfigPath)
 	asserts.Error(err)
-
-	err = deleteFakeKubeConfig()
-	asserts.NoError(err)
 }
 
 // TestDeleteResourceFromFileInGeneratedNamespace tests
@@ -287,6 +261,7 @@ func TestDeleteResourceFromFileInGeneratedNamespace(t *testing.T) {
 	defer server.Close()
 
 	err := createFakeKubeConfig(server.URL)
+	defer deleteFakeKubeConfig()
 	asserts.NoError(err)
 
 	kubeConfigPath, err := getFakeKubeConfigPath()
@@ -294,19 +269,13 @@ func TestDeleteResourceFromFileInGeneratedNamespace(t *testing.T) {
 
 	// Preserve previous env var value
 	prevEnvVar := os.Getenv(k8sutil.EnvVarTestKubeConfig)
+	defer os.Setenv(k8sutil.EnvVarTestKubeConfig, prevEnvVar)
 
 	// Test using environment variable
 	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, kubeConfigPath)
 	asserts.NoError(err)
 
 	err = DeleteResourceFromFileInGeneratedNamespace(file, "default")
-	asserts.NoError(err)
-
-	// Reset env variable
-	err = os.Setenv(k8sutil.EnvVarTestKubeConfig, prevEnvVar)
-	asserts.NoError(err)
-
-	err = deleteFakeKubeConfig()
 	asserts.NoError(err)
 }
 
@@ -323,6 +292,7 @@ func TestDeleteResourceFromFileInClusterInGeneratedNamespace(t *testing.T) {
 	defer server.Close()
 
 	err := createFakeKubeConfig(server.URL)
+	defer deleteFakeKubeConfig()
 	asserts.NoError(err)
 
 	kubeConfigPath, err := getFakeKubeConfigPath()
@@ -338,9 +308,6 @@ func TestDeleteResourceFromFileInClusterInGeneratedNamespace(t *testing.T) {
 	file = SecretInvalid
 	err = DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeConfigPath, "default")
 	asserts.Error(err)
-
-	err = deleteFakeKubeConfig()
-	asserts.NoError(err)
 }
 
 // TestPatchResourceFromFileInCluster tests PatchResourceFromFileInCluster function
@@ -354,6 +321,7 @@ func TestPatchResourceFromFileInCluster(t *testing.T) {
 	defer server.Close()
 
 	err := createFakeKubeConfig(server.URL)
+	defer deleteFakeKubeConfig()
 	asserts.NoError(err)
 
 	kubeConfigPath, err := getFakeKubeConfigPath()
@@ -368,9 +336,6 @@ func TestPatchResourceFromFileInCluster(t *testing.T) {
 	file = SecretInvalid
 	err = PatchResourceFromFileInCluster(gvr, "default", "test-secret", file, kubeConfigPath)
 	asserts.Error(err)
-
-	err = deleteFakeKubeConfig()
-	asserts.NoError(err)
 }
 
 // newServer returns a httptest server which the
