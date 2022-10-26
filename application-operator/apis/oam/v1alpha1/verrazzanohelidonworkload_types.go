@@ -10,49 +10,53 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// VerrazzanoHelidonWorkloadSpec wraps meta/ObjectMeta & apps/DeploymentSpec.
+// VerrazzanoHelidonWorkloadSpec wraps a Kubernetes deployment.
 type VerrazzanoHelidonWorkloadSpec struct {
-	// The embedded apps/Deployment
+	// An embedded application deployment.
 	DeploymentTemplate DeploymentTemplate `json:"deploymentTemplate"`
 }
 
-// DeploymentTemplate should have the metadata and spec of the underlying apps/Deployment
+// DeploymentTemplate specifies the metadata and pod spec of an underlying application.
 type DeploymentTemplate struct {
+	// Metadata about an underlying application.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Metadata metav1.ObjectMeta `json:"metadata"`
-	// The deployment strategy to use to replace existing pods with new ones.
+	// The pod spec of an underlying application.
+	// +kubebuilder:validation:Required
+	PodSpec v1.PodSpec `json:"podSpec"`
+	// Label selector of an underlying application.
+	Selector metav1.LabelSelector `json:"selector,omitempty" patchStrategy:"retainKeys"`
+	// The replacement strategy of an underlying application.
 	// +kubebuilder:validation:Optional
 	// +patchStrategy=retainKeys
 	Strategy appsv1.DeploymentStrategy `json:"strategy,omitempty" patchStrategy:"retainKeys"  protobuf:"bytes,4,opt,name=strategy"`
-	// +kubebuilder:validation:Required
-	PodSpec v1.PodSpec `json:"podSpec"`
-	// A label selector is a label query over a set of resources
-	Selector metav1.LabelSelector `json:"selector,omitempty" patchStrategy:"retainKeys"`
 }
 
-// VerrazzanoHelidonWorkloadStatus defines the observed state of VerrazzanoHelidonWorkload
+// VerrazzanoHelidonWorkloadStatus defines the observed state of Verrazzano Helidon workload.
 type VerrazzanoHelidonWorkloadStatus struct {
-	// The reconcile status of this workload.
+	// Reconcile status of this Verrazzano Helidon workload.
 	oamrt.ConditionedStatus `json:",inline"`
 
-	// Resources managed by this workload.
+	// The resources managed by this Verrazzano Helidon workload.
 	Resources []QualifiedResourceRelation `json:"resources,omitempty"`
 }
 
-// VerrazzanoHelidonWorkload is the Schema for verrazzanohelidonworkloads API
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +genclient
+
+// VerrazzanoHelidonWorkload specifies the Verrazzano Helidon workload API.
 type VerrazzanoHelidonWorkload struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
+	// The desired state of a Verrazzano Helidon workload.
 	// +kubebuilder:validation:Required
 	Spec   VerrazzanoHelidonWorkloadSpec   `json:"spec"`
 	Status VerrazzanoHelidonWorkloadStatus `json:"status,omitempty"`
 }
 
-// VerrazzanoHelidonWorkloadList contains a list of VerrazzanoHelidonWorkload
+// VerrazzanoHelidonWorkloadList contains a list of VerrazzanoHelidonWorkload resources.
 // +kubebuilder:object:root=true
 type VerrazzanoHelidonWorkloadList struct {
 	metav1.TypeMeta `json:",inline"`

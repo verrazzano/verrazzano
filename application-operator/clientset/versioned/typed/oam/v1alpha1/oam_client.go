@@ -18,6 +18,7 @@ type OamV1alpha1Interface interface {
 	IngressTraitsGetter
 	LoggingTraitsGetter
 	MetricsTraitsGetter
+	VerrazzanoCoherenceWorkloadsGetter
 	VerrazzanoHelidonWorkloadsGetter
 }
 
@@ -36,6 +37,10 @@ func (c *OamV1alpha1Client) LoggingTraits(namespace string) LoggingTraitInterfac
 
 func (c *OamV1alpha1Client) MetricsTraits(namespace string) MetricsTraitInterface {
 	return newMetricsTraits(c, namespace)
+}
+
+func (c *OamV1alpha1Client) VerrazzanoCoherenceWorkloads(namespace string) VerrazzanoCoherenceWorkloadInterface {
+	return newVerrazzanoCoherenceWorkloads(c, namespace)
 }
 
 func (c *OamV1alpha1Client) VerrazzanoHelidonWorkloads(namespace string) VerrazzanoHelidonWorkloadInterface {
