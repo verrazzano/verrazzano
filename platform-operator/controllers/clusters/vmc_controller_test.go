@@ -1867,44 +1867,6 @@ func expectRegisterClusterWithRancher(t *testing.T,
 	expectRegisterClusterWithRancherHTTPCalls(t, requestSenderMock, clusterName, clusterAlreadyRegistered)
 }
 
-// expectRancherConfigK8sCalls asserts all of the expected calls on the Kubernetes client mock
-// when creating a new Rancher config for the purpose of making http calls
-func expectRancherConfigK8sCalls(t *testing.T, k8sMock *mocks.MockClient) {
-	// Expect a call to get the ingress host name
-	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress) error {
-			rule := networkingv1.IngressRule{Host: "rancher.unit-test.com"}
-			ingress.Spec.Rules = append(ingress.Spec.Rules, rule)
-			return nil
-		})
-
-	// Expect a call to get the secret with the Rancher root CA cert
-	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherTLSSecret}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				"ca.crt": {},
-			}
-			return nil
-		})
-
-	// Expect a call to get the Rancher admin secret
-	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherAdminSecret}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				"password": []byte("super-secret"),
-			}
-			return nil
-		})
-
-	// Expect a call to get the Rancher additional CA secret
-	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: constants.AdditionalTLS}), gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: rancherNamespace, Resource: "Secret"}, constants.AdditionalTLS))
-}
-
 // expectRegisterClusterWithRancherHTTPCalls asserts all of the expected calls on the HTTP client mock
 func expectRegisterClusterWithRancherHTTPCalls(t *testing.T, requestSenderMock *mocks.MockRequestSender, clusterName string, clusterAlreadyRegistered bool) {
 	asserts := assert.New(t)
