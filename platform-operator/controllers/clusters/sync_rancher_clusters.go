@@ -9,7 +9,6 @@ import (
 	"time"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -33,11 +32,15 @@ var clustersResponseHash []byte
 
 type RancherClusterSyncer struct {
 	client.Client
+	Log *zap.SugaredLogger
 }
 
 // StartSyncing starts the Rancher cluster synchronization loop
 func (r *RancherClusterSyncer) StartSyncing() {
-	log := r.initLogger()
+	// initialize logger - the AddCallerSkip is needed otherwise the caller in the log message always shows "vzlog.go"
+	l := r.Log.Desugar().WithOptions(zap.AddCallerSkip(2))
+	log := vzlog.EnsureContext("rancher_cluster_sync").EnsureLogger("syncer", l.Sugar(), zap.S()).SetFrequency(300)
+
 	log.Info("Starting Rancher cluster synchronizing loop")
 
 	// prevent a panic from taking down the operator
@@ -51,17 +54,6 @@ func (r *RancherClusterSyncer) StartSyncing() {
 		r.syncRancherClusters(log)
 		time.Sleep(time.Minute)
 	}
-}
-
-// initLogger initializes the Verrazzano logger
-func (r *RancherClusterSyncer) initLogger() vzlog.VerrazzanoLogger {
-	zaplog, err := log.BuildZapInfoLogger(2)
-	if err != nil {
-		// failed so fall back to the basic zap sugared logger
-		zaplog = zap.S()
-	}
-	// set frequency on the logger so progress messages are logged once every 5 minutes
-	return vzlog.EnsureContext("rancher_cluster_sync").EnsureLogger("syncer", zaplog, zaplog).SetFrequency(300)
 }
 
 // syncRancherClusters gets the list of clusters from Rancher and creates and deletes VMC resources

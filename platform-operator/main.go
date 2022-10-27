@@ -362,6 +362,7 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 	// Start the goroutine to sync Rancher clusters and VerrazzanoManagedCluster objects
 	rancherClusterSyncer := &clusterscontroller.RancherClusterSyncer{
 		Client: mgr.GetClient(),
+		Log:    log,
 	}
 	go rancherClusterSyncer.StartSyncing()
 
