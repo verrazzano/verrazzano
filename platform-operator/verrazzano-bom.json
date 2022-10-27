@@ -27,13 +27,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "1.1.1-20220413170248-b60724ed1",
+              "tag": "20221027125153-68c3ea6a0",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "1.1.1-20220413170248-b60724ed1",
+              "tag": "20221027125153-68c3ea6a0",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -203,7 +203,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "1.1.1-20220413170248-b60724ed1",
+              "tag": "20221027125153-68c3ea6a0",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             }
@@ -256,7 +256,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "1.1.1-20220413170248-b60724ed1",
+              "tag": "20221027125153-68c3ea6a0",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             }
           ]
@@ -444,7 +444,7 @@
             },
             {
               "image": "kube-webhook-certgen",
-              "tag": "1.1.1-20220414195226-864e56292",
+              "tag": "20221027125153-68c3ea6a0",
               "helmFullImageKey": "prometheusOperator.admissionWebhooks.patch.image.repository",
               "helmTagKey": "prometheusOperator.admissionWebhooks.patch.image.tag"
             }
