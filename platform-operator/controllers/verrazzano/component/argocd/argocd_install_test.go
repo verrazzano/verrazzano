@@ -35,8 +35,6 @@ func init() {
 	// +kubebuilder:scaffold:testScheme
 }
 
-const profilesRelativePath = "../../../../../manifests/profiles"
-
 // TestPatchArgoCDIngress should annotate the ArgoCD ingress with Acme/Private CA values
 // GIVEN a ArgoCD Ingress and a Verrazzano CR
 //
