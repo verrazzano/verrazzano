@@ -15,3 +15,6 @@ envVars:
 
 istio:
   enabled: false
+
+# appType can be either oam or k8s, which are just Kubernetes deployments
+appType: k8s

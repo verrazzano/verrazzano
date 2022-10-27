@@ -1,1 +1,0 @@
-The PSR Backend Helm chart has been installed!

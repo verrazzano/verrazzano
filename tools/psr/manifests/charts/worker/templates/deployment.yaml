@@ -4,6 +4,7 @@
 # This manifest is used for testing without OAM by native Kubernetes resources only
 #
 
+{{- if eq .Values.appType "k8s" }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,13 +20,13 @@ spec:
       labels:
         run: psr-backend
     spec:
-      serviceAccount: psr
+      serviceAccountName: {{ .Release.Name}}
     {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.imagePullSecrets | indent 8 }}
     {{- end }}
       containers:
-        - name: psr-backend
+        - name: worker
           image: {{  .Values.imageName }}
           imagePullPolicy: {{  .Values.imagePullPolicy }}
           env:
@@ -36,3 +37,4 @@ spec:
           ports:
             - containerPort: 8080
               protocol: TCP
+{{- end }}
