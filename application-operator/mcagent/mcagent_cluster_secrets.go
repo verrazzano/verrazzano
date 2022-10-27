@@ -33,6 +33,45 @@ func (s *Syncer) syncClusterCAs() (controllerutil.OperationResult, error) {
 	return managedClusterResult, nil
 }
 
+// syncAgentSecretFromAdminCluster - synchronize the agent secret from admin cluster including
+// kubeconfig, cluster name -- update local agent secret if any of those change
+func (s *Syncer) syncAgentSecretFromAdminCluster() (controllerutil.OperationResult, error) {
+	opResult := controllerutil.OperationResultNone
+
+	// Get the managed cluster registration secret for THIS managed cluster, from the admin cluster.
+	// This will be used to sync registration information here on the managed cluster.
+	adminAgentSecret := corev1.Secret{}
+	err := s.AdminClient.Get(s.Context, client.ObjectKey{
+		Namespace: constants.VerrazzanoMultiClusterNamespace,
+		Name:      getAgentSecretName(s.ManagedClusterName),
+	}, &adminAgentSecret)
+	if err != nil {
+		return opResult, err
+	}
+
+	// Get the local cluster agent secret
+	agentSecret := corev1.Secret{}
+	err = s.LocalClient.Get(s.Context, client.ObjectKey{
+		Namespace: constants.VerrazzanoSystemNamespace,
+		Name:      constants.MCAgentSecret,
+	}, &agentSecret)
+	if err != nil {
+		return opResult, err
+	}
+
+	// Update the local cluster agent secret if the admin-kubeconfig or managed-cluster-name have changed
+	if !agentSecretsEqual(agentSecret, adminAgentSecret) {
+		opResult, err = controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &agentSecret, func() error {
+			// Get info from admin agent secret
+			agentSecret.Data[mcconstants.KubeconfigKey] = adminAgentSecret.Data[mcconstants.KubeconfigKey]
+			agentSecret.Data[mcconstants.ManagedClusterNameKey] = adminAgentSecret.Data[mcconstants.ManagedClusterNameKey]
+			return nil
+		})
+		return opResult, err
+	}
+	return controllerutil.OperationResultNone, nil
+}
+
 // syncRegistrationFromAdminCluster - synchronize the admin cluster registration info including
 // CA cert, URLs and credentials -- update local registration if any of those change
 func (s *Syncer) syncRegistrationFromAdminCluster() (controllerutil.OperationResult, error) {
@@ -101,6 +140,11 @@ func (s *Syncer) syncRegistrationFromAdminCluster() (controllerutil.OperationRes
 	}
 
 	return opResult, nil
+}
+
+func agentSecretsEqual(agentSecret1 corev1.Secret, agentSecret2 corev1.Secret) bool {
+	return byteSlicesEqualTrimmedWhitespace(agentSecret1.Data[mcconstants.KubeconfigKey], agentSecret2.Data[mcconstants.KubeconfigKey]) &&
+		byteSlicesEqualTrimmedWhitespace(agentSecret1.Data[mcconstants.ManagedClusterNameKey], agentSecret2.Data[mcconstants.ManagedClusterNameKey])
 }
 
 func registrationInfoEqual(regSecret1 corev1.Secret, regSecret2 corev1.Secret) bool {
@@ -214,4 +258,11 @@ func generateManagedResourceName(clusterName string) string {
 func getRegistrationSecretName(clusterName string) string {
 	const registrationSecretSuffix = "-registration"
 	return generateManagedResourceName(clusterName) + registrationSecretSuffix
+}
+
+// getAgentSecretName returns the agent secret name for a managed cluster on the admin
+// cluster
+func getAgentSecretName(clusterName string) string {
+	const suffix = "-agent"
+	return generateManagedResourceName(clusterName) + suffix
 }
