@@ -11,7 +11,7 @@ import (
 // VerrazzanoCoherenceWorkloadSpec wraps a Coherence resource.
 type VerrazzanoCoherenceWorkloadSpec struct {
 	// The metadata and spec for the underlying
-	// <a href="https://oracle.github.io/coherence-operator/docs/3.2.8/#/docs/about/04_coherence_spec">Coherence</a> resource.
+	// <a href="https://oracle.github.io/coherence-operator/docs/latest/#/docs/about/04_coherence_spec">Coherence</a> resource.
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Template runtime.RawExtension `json:"template"`
 }
@@ -41,7 +41,7 @@ type VerrazzanoCoherenceWorkload struct {
 
 // +kubebuilder:object:root=true
 
-// VerrazzanoCoherenceWorkloadList contains a list of VerrazzanoCoherenceWorkload resources.
+// VerrazzanoCoherenceWorkloadList contains a list of Verrazzano Coherence workload resources.
 type VerrazzanoCoherenceWorkloadList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

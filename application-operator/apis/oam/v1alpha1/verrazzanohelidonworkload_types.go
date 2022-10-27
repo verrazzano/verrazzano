@@ -59,7 +59,7 @@ type VerrazzanoHelidonWorkload struct {
 	Status VerrazzanoHelidonWorkloadStatus `json:"status,omitempty"`
 }
 
-// VerrazzanoHelidonWorkloadList contains a list of VerrazzanoHelidonWorkload resources.
+// VerrazzanoHelidonWorkloadList contains a list of Verrazzano Helidon workload resources.
 // +kubebuilder:object:root=true
 type VerrazzanoHelidonWorkloadList struct {
 	metav1.TypeMeta `json:",inline"`

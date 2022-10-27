@@ -43,7 +43,7 @@ type VerrazzanoWebLogicWorkload struct {
 
 // +kubebuilder:object:root=true
 
-// VerrazzanoWebLogicWorkloadList contains a list of VerrazzanoWebLogicWorkload resources.
+// VerrazzanoWebLogicWorkloadList contains a list of Verrazzano WebLogic workload resources.
 type VerrazzanoWebLogicWorkloadList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
