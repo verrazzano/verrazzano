@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	flags := pflag.NewFlagSet("vz", pflag.ExitOnError)
+	flags := pflag.NewFlagSet("psrctl", pflag.ExitOnError)
 	pflag.CommandLine = flags
 
 	rc := helpers.NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr})

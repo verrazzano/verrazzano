@@ -14,7 +14,7 @@ const (
 	helpShort   = "Run a PSR test scenario"
 	helpLong    = `The command 'run' executes a PSR test scenario consisting of one or more use cases`
 	helpExample = `
-psrctl start scenario-1`
+psrctl run psr-1`
 )
 
 func NewCmdRun(vzHelper helpers.VZHelper) *cobra.Command {

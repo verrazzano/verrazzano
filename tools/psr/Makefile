@@ -6,6 +6,8 @@ include ../../make/retry.mk
 BACKEND_NAME:=psr-backend
 MAKEFILE_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 PSR_DIR:=${MAKEFILE_DIR}
+CLI_DIR:=github.com$(shell echo ${MAKEFILE_DIR} | sed 's/.*github.com//')/cli
+VERSION_DIR:=$(CLI_DIR)/cmd/version
 BACKEND_DIR:=$(PSR_DIR)/backend
 DOCKER_REPO:=ghcr.io
 DOCKER_REGISTRY=verrazzano
@@ -28,7 +30,9 @@ BUILD_VERSION:=$(shell grep verrazzano-development-version ${MAKEFILE_DIR}/../..
 BUILD_DATE:=$(shell date +"%Y-%m-%dT%H:%M:%SZ")
 
 DIST_DIR:=dist
+ENV_NAME=psr
 GO=GO111MODULE=on GOPRIVATE=github.com/verrazzano/* CGO_ENABLED=0  go
+CLI_GO_LDFLAGS=-X '${VERSION_DIR}.gitCommit=${GIT_COMMIT}' -X '${VERSION_DIR}.buildDate=${BUILD_DATE}' -X '${VERSION_DIR}.cliVersion=${BUILD_VERSION}'
 
 #
 # Go build related tasks
@@ -65,6 +69,17 @@ kind-load-image: docker-build
 .PHONY: run-example-k8s
 run-example-k8s: kind-load-image
 	helm upgrade --install psr manifests/charts/k8s --set imageName=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
+
+#
+# CLI
+#
+.PHONY: run
+run:
+	$(GO) run ${GOPATH}/src/${CLI_DIR}/main.go
+
+.PHONY: cli
+cli: ## build the CLI
+	$(GO) install -ldflags "${CLI_GO_LDFLAGS}" ./...
 
 .PHONY: unit-test
 unit-test: cli
