@@ -130,7 +130,12 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 
 	var vzNamespace string
 	var vzName string
-	var vpoPodName string
+
+	// Get the VPO timeout
+	vpoTimeout, err := cmdhelpers.GetWaitTimeout(cmd, constants.VPOTimeoutFlag)
+	if err != nil {
+		return err
+	}
 
 	// Check to see if we have a vz resource already deployed
 	existingvz, _ := helpers.FindVerrazzanoResource(client)
@@ -158,11 +163,6 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 
 		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Install of Verrazzano version %s is already in progress\n", version))
 
-		vpoPodName, err = cmdhelpers.GetVerrazzanoPlatformOperatorPodName(client)
-		if err != nil {
-			return err
-		}
-
 		vzNamespace = existingvz.Namespace
 		vzName = existingvz.Name
 	} else {
@@ -185,14 +185,8 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			return err
 		}
 
-		// Get the VPO timeout
-		vpoTimeout, err := cmdhelpers.GetWaitTimeout(cmd, constants.VPOTimeoutFlag)
-		if err != nil {
-			return err
-		}
-
 		// Wait for the platform operator to be ready before we create the Verrazzano resource.
-		vpoPodName, err = cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, vpoTimeout)
+		_, err = cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, vpoTimeout)
 		if err != nil {
 			return err
 		}
@@ -220,7 +214,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 	}
 
 	// Wait for the Verrazzano install to complete
-	return waitForInstallToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, logFormat)
+	return waitForInstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vzNamespace, Name: vzName}, timeout, vpoTimeout, logFormat)
 }
 
 // getVerrazzanoYAML returns the verrazzano install resource to be created
@@ -340,8 +334,8 @@ func getSetArguments(cmd *cobra.Command, vzHelper helpers.VZHelper) (map[string]
 
 // waitForInstallToComplete waits for the Verrazzano install to complete and shows the logs of
 // the ongoing Verrazzano install.
-func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat cmdhelpers.LogFormat) error {
-	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, vpoPodName, namespacedName, timeout, logFormat, v1beta1.CondInstallComplete)
+func waitForInstallToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, namespacedName types.NamespacedName, timeout time.Duration, vpoTimeout time.Duration, logFormat cmdhelpers.LogFormat) error {
+	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, namespacedName, timeout, vpoTimeout, logFormat, v1beta1.CondInstallComplete)
 }
 
 // validateCmd - validate the command line options
