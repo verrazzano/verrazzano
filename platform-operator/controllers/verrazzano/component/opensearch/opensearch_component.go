@@ -165,14 +165,6 @@ func (o opensearchComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := common.CheckIngressesAndCerts(ctx, o); err != nil {
 		return err
 	}
-	return o.updateElasticsearchResources(ctx)
-}
-
-// updateElasticsearchResources updates elasticsearch resources
-func (o opensearchComponent) updateElasticsearchResources(ctx spi.ComponentContext) error {
-	if err := fixupElasticSearchReplicaCount(ctx, ComponentNamespace); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -243,7 +235,7 @@ func (o opensearchComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
-			Name:      constants.ElasticsearchIngress,
+			Name:      constants.OpensearchIngress,
 		})
 	}
 

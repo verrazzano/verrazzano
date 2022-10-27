@@ -52,13 +52,24 @@ func TestGetComponentAvailability(t *testing.T) {
 	config.TestProfilesDir = reldir
 	defer func() { config.TestProfilesDir = "" }()
 	var tests = []struct {
-		f fakeComponent
+		f         fakeComponent
+		state     vzapi.CompStateType
+		available bool
 	}{
 		{
 			newFakeComponent("availableComponent", true, true),
+			vzapi.CompStateReady,
+			true,
+		},
+		{
+			newFakeComponent("unreadyComponent", true, true),
+			vzapi.CompStateInstalling,
+			false,
 		},
 		{
 			newFakeComponent("unavailableComponent", false, true),
+			vzapi.CompStateReady,
+			false,
 		},
 	}
 
@@ -67,8 +78,8 @@ func TestGetComponentAvailability(t *testing.T) {
 	ctx := spi.NewFakeContext(c.client, vz, nil, false)
 	for _, tt := range tests {
 		t.Run(tt.f.name, func(t *testing.T) {
-			a := c.getComponentAvailability(tt.f, ctx)
-			assert.Equal(t, tt.f.available, a.available)
+			a := c.getComponentAvailability(tt.f, tt.state, ctx)
+			assert.Equal(t, tt.available, a.available)
 		})
 	}
 }
@@ -123,7 +134,9 @@ func TestSetAvailabilityFields(t *testing.T) {
 			}
 			for _, component := range tt.components {
 				if component.IsEnabled(nil) {
-					vz.Status.Components[component.Name()] = &vzapi.ComponentStatusDetails{}
+					vz.Status.Components[component.Name()] = &vzapi.ComponentStatusDetails{
+						State: vzapi.CompStateReady,
+					}
 				}
 			}
 			status, err := p.newStatus(log, vz, tt.components)

@@ -22,11 +22,11 @@ type IngressTraitSpec struct {
 	// +optional
 	TLS IngressSecurity `json:"tls,omitempty"`
 
-	// The WorkloadReference to the workload to which this trait applies.
-	// This value is populated by the OAM runtime when a ApplicationConfiguration
-	// resource is processed.  When the ApplicationConfiguration is processed a trait and
+	// The WorkloadReference of the workload to which this trait applies.
+	// This value is populated by the OAM runtime when an ApplicationConfiguration
+	// resource is processed.  When the ApplicationConfiguration is processed, a trait and
 	// a workload resource are created from the content of the ApplicationConfiguration.
-	// The WorkloadReference is provided in the trait by OAM to ensure the trait controller
+	// The WorkloadReference is provided in the trait by OAM to ensure that the trait controller
 	// can find the workload associated with the component containing the trait within the
 	// original ApplicationConfiguration.
 	WorkloadReference oamrt.TypedReference `json:"workloadRef"`
@@ -55,12 +55,12 @@ type IngressSecurity struct {
 
 // IngressPath specifies a specific path to be exposed for an ingress trait.
 type IngressPath struct {
-	// If no path is provided, it defaults to forward slash (/).
+	// If no path is provided, then it defaults to forward slash (/).
 	// +optional
 	Path string `json:"path,omitempty"`
 	// Path type values are case-sensitive and formatted as follows:
 	// <ul><li>`exact`: exact string match</li><li>`prefix`: prefix-based match</li><li>`regex`: regex-based match</li></ul>
-	// Defaults to `prefix` if `path` specified is `/` otherwise, defaults to `exact`.
+	// Defaults to `prefix` if `path` specified is `/`; otherwise, defaults to `exact`.
 	// otherwise.
 	// +optional
 	PathType string `json:"pathType,omitempty"`
@@ -92,7 +92,7 @@ type IngressDestinationHTTPCookie struct {
 	// The name of the HTTP cookie.
 	// +optional
 	Name string `json:"name,omitempty"`
-	// The name of the HTTP cookie.
+	// The path of the HTTP cookie.
 	// +optional
 	Path string `json:"path,omitempty"`
 	// The lifetime of the HTTP cookie (in seconds).
@@ -102,9 +102,9 @@ type IngressDestinationHTTPCookie struct {
 
 // IngressTraitStatus specifies the observed state of an ingress trait and related resources.
 type IngressTraitStatus struct {
-	// Reconcile status of this ingress trait
+	// Reconcile status of this ingress trait.
 	oamrt.ConditionedStatus `json:",inline"`
-	// The resources managed by this ingress trait
+	// The resources managed by this ingress trait.
 	Resources []oamrt.TypedReference `json:"resources,omitempty"`
 }
 
@@ -124,7 +124,7 @@ type IngressTrait struct {
 
 // +kubebuilder:object:root=true
 
-// IngressTraitList contains a list of IngressTrait.
+// IngressTraitList contains a list of IngressTraits.
 type IngressTraitList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

@@ -59,7 +59,7 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerOpenSearchConfig(vzList *v
 		return jc, nil
 	}
 	// If OpenSearch storage is not configured for the Jaeger instance, then just return
-	if jsc.storageType != "elasticsearch" {
+	if jsc.storageType != "opensearch" {
 		r.log.Once("A Jaeger instance with OpenSearch storage is not configured. Skipping multicluster Jaeger" +
 			" configuration.")
 		return jc, nil
@@ -106,7 +106,7 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerSpecConfig(vzList *vzapi.V
 			jsc.jaegerCreate = true
 			jsc.OSURL = vzconstants.DefaultJaegerOSURL
 			jsc.secName = vzconstants.DefaultJaegerSecretName
-			jsc.storageType = "elasticsearch"
+			jsc.storageType = "opensearch"
 		}
 		overrides := vz.Spec.Components.JaegerOperator.ValueOverrides
 		overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(r.Client, vzapi.ConvertValueOverridesToV1Beta1(overrides), jaegerNamespace)
