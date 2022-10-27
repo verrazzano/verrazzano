@@ -11,31 +11,3 @@ global:
 # platform operator docker build.
 image:
 imagePullPolicy: IfNotPresent
-
-# Default operator affinity rules
-affinity:
-  podAntiAffinity:
-    preferredDuringSchedulingIgnoredDuringExecution:
-      - podAffinityTerm:
-          labelSelector:
-            matchExpressions:
-              - key: app
-                operator: In
-                values:
-                  - verrazzano-platform-operator
-          topologyKey: kubernetes.io/hostname
-        weight: 100
-
-# Default webhook deployment affinity rules
-webhookAffinity:
-  podAntiAffinity:
-    preferredDuringSchedulingIgnoredDuringExecution:
-      - podAffinityTerm:
-          labelSelector:
-            matchExpressions:
-              - key: app
-                operator: In
-                values:
-                  - verrazzano-platform-operator-webhook
-          topologyKey: kubernetes.io/hostname
-        weight: 100
