@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	appsv1 "k8s.io/api/apps/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -50,8 +49,6 @@ func TestIsComponentAvailable(t *testing.T) {
 				NumberReady:            oneReplica,
 				DesiredNumberScheduled: oneReplica,
 			},
-		}, &networkingv1.Ingress{
-			ObjectMeta: objectMeta,
 		}).Build()
 	unreadyClient := fake.NewClientBuilder().WithScheme(getScheme()).
 		WithObjects(&appsv1.Deployment{
@@ -72,8 +69,6 @@ func TestIsComponentAvailable(t *testing.T) {
 				DesiredNumberScheduled: oneReplica,
 				NumberReady:            zeroReplicas,
 			},
-		}, &networkingv1.Ingress{
-			ObjectMeta: objectMeta,
 		}).Build()
 	var tests = []struct {
 		name      string
@@ -112,14 +107,6 @@ func TestIsComponentAvailable(t *testing.T) {
 			false,
 		},
 		{
-			"unavailable when ing not present",
-			&AvailabilityObjects{
-				Ingresses: []types.NamespacedName{nsn},
-			},
-			emptyClient,
-			false,
-		},
-		{
 			"unavailable when deploy replicas not ready",
 			&AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{nsn},
@@ -149,7 +136,6 @@ func TestIsComponentAvailable(t *testing.T) {
 				DeploymentNames:  []types.NamespacedName{nsn},
 				StatefulsetNames: []types.NamespacedName{nsn},
 				DaemonsetNames:   []types.NamespacedName{nsn},
-				Ingresses:        []types.NamespacedName{nsn},
 			},
 			readyAndAvailableClient,
 			true,
