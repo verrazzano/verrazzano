@@ -296,7 +296,7 @@ func main() {
 			&webhook.Admission{Handler: &webhooks.MultiClusterSecretValidator{}})
 	}
 
-	logger, err := vzlog.BuildZapLogger(0)
+	logger, err := vzlog.BuildZapInfoLogger(0)
 	if err != nil {
 		log.Errorf("Failed to create ApplicationConfiguration logger: %v", err)
 		os.Exit(1)

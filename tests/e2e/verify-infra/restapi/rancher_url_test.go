@@ -248,7 +248,7 @@ func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dyna
 	start := time.Now()
 	t.Logs.Infof("Verify %s setting", settingName)
 	Eventually(func() (bool, error) {
-		clusterData, err := dynamicClient.Resource(pkg.GvkToGvr(rancher.GVKSetting)).Get(context.Background(), settingName, v1.GetOptions{})
+		clusterData, err := dynamicClient.Resource(pkg.GvkToGvr(common.GVKSetting)).Get(context.Background(), settingName, v1.GetOptions{})
 		if err != nil {
 			t.Logs.Error(fmt.Sprintf("Error getting %s setting: %v", settingName, err))
 			return false, err
@@ -303,7 +303,7 @@ func verifySettingValue(settingName string, expectedValue string, k8sClient dyna
 	start := time.Now()
 	t.Logs.Infof("Verify %s setting", settingName)
 	Eventually(func() (bool, error) {
-		clusterData, err := k8sClient.Resource(pkg.GvkToGvr(rancher.GVKSetting)).Get(context.Background(), settingName, v1.GetOptions{})
+		clusterData, err := k8sClient.Resource(pkg.GvkToGvr(common.GVKSetting)).Get(context.Background(), settingName, v1.GetOptions{})
 		if err != nil {
 			t.Logs.Errorf("Error getting %s setting: %v", settingName, err.Error())
 			return false, err

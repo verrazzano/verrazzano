@@ -212,6 +212,9 @@ func TestBugReportSuccess(t *testing.T) {
 // WHEN I call cmd.Execute, without specifying --report-file
 // THEN expect the command to create the report bug-report.tar.gz under the current directory
 func TestBugReportDefaultReportFile(t *testing.T) {
+	// clean up the bugreport file that is generated
+	defer os.Remove(constants.BugReportFileDefaultValue)
+
 	c := getClientWithWatch()
 	installVZ(t, c)
 
@@ -228,23 +231,12 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
 	assert.NotNil(t, cmd)
 	err = cmd.Execute()
-	if err != nil {
-		assert.Error(t, err)
-	}
-
 	assert.NoError(t, err)
 	// Commenting the assertions due to intermittent failures
 	// assert.Contains(t, buf.String(), "Capturing Verrazzano resource",
 	//	"Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace",
 	//	"Created the bug report",
 	//	"WARNING: Please examine the contents of the bug report for sensitive data", "Namespace dummy not found in the cluster")
-	// currentDir, err := os.Getwd()
-	// if err != nil {
-	//	assert.Error(t, err)
-	// }
-	// defaultBugReport := currentDir + string(os.PathSeparator) + constants.BugReportFileDefaultValue
-	// assert.FileExists(t, defaultBugReport)
-	// os.Remove(defaultBugReport)
 }
 
 // TestBugReportNoVerrazzano

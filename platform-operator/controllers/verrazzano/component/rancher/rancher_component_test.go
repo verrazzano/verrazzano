@@ -11,9 +11,6 @@ import (
 	"strings"
 	"testing"
 
-	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
@@ -23,6 +20,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
+	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
@@ -428,8 +429,6 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	rootCASecret := createRootCASecret()
 	adminSecret := createAdminSecret()
 	rancherPodList := createRancherPodListWithAllRunning()
-	verrazzanoAdminClusterRole := createClusterRoles("verrazzano-admin")
-	verrazzanoMonitorClusterRole := createClusterRoles("verrazzano-monitor")
 
 	ingress := v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -470,19 +469,15 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	serverURLSetting := createServerURLSetting()
 	ociDriver := createOciDriver()
 	okeDriver := createOkeDriver()
-	authConfig := createKeycloakAuthConfig()
-	localAuthConfig := createLocalAuthConfig()
-	kcSecret := createKeycloakSecret()
-	firstLoginSetting := createFirstLoginSetting()
 	rancherPod := newPod("cattle-system", "rancher")
 	rancherPod.Status = corev1.PodStatus{
 		Phase: corev1.PodRunning,
 	}
 
-	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &serverURLSetting, &ociDriver, &okeDriver, &authConfig, &kcIngress, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, rancherPod).Build()
+	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &serverURLSetting, &ociDriver, &okeDriver, &kcIngress, rancherPod).Build()
 	ctxWithoutIngress := spi.NewFakeContext(clientWithoutIngress, &vzDefaultCA, nil, false)
 
-	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert, &serverURLSetting, &ociDriver, &okeDriver, &authConfig, &kcIngress, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, rancherPod).Build()
+	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert, &serverURLSetting, &ociDriver, &okeDriver, &kcIngress, rancherPod).Build()
 	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, nil, false)
 	// mock the pod executor when resetting the Rancher admin password
 	scheme.Scheme.AddKnownTypes(schema.GroupVersion{Group: "", Version: "v1"}, &corev1.PodExecOptions{})
@@ -490,18 +485,6 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {
 		var commands []string
 		if commands = url.Query()["command"]; len(commands) == 3 {
-			if strings.Contains(commands[2], "id,clientId") {
-				return "[{\"id\":\"something\", \"clientId\":\"" + AuthConfigKeycloakClientIDRancher + "\"}]", "", nil
-			}
-
-			if strings.Contains(commands[2], "client-secret") {
-				return "{\"type\":\"secret\",\"value\":\"abcdef\"}", "", nil
-			}
-
-			if strings.Contains(commands[2], "get users") {
-				return "[{\"id\":\"something\", \"username\":\"verrazzano\"}]", "", nil
-			}
-
 			if strings.Contains(commands[2], fmt.Sprintf("cat %s", SettingUILogoDarkLogoFilePath)) {
 				return "dark", "", nil
 			}
@@ -561,4 +544,39 @@ func newReplicaSet(namespace string, name string) *appsv1.ReplicaSet {
 			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 		},
 	}
+}
+
+// TestValidateInstall verifies the ValidateInstall function of Rancher Component
+// When there is namespace without the required label,
+// Then ValidateInstall should throw error
+func TestValidateInstall(t *testing.T) {
+	namespaceWithoutLabels := &corev1.Namespace{}
+	namespaceWithoutLabels.Name = FleetSystemNamespace
+	namespaceWithoutLabels.Namespace = FleetSystemNamespace
+	labelledNamespace := &corev1.Namespace{}
+	labelledNamespace.Name = FleetSystemNamespace
+	labelledNamespace.Namespace = FleetSystemNamespace
+	labelledNamespace.Labels = map[string]string{namespaceLabelKey: FleetSystemNamespace}
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Rancher: &vzapi.RancherComponent{},
+			},
+		},
+	}
+	common.RunValidateInstallTest(t, NewComponent,
+		common.ValidateInstallTest{
+			Name:      "ValidRancherNamespace",
+			WantErr:   "",
+			Appsv1Cli: common.MockGetAppsV1(),
+			Corev1Cli: common.MockGetCoreV1(labelledNamespace),
+			Vz:        vz,
+		},
+		common.ValidateInstallTest{
+			Name:      "InvalidRancherNamespace",
+			WantErr:   FleetSystemNamespace,
+			Appsv1Cli: common.MockGetAppsV1(),
+			Corev1Cli: common.MockGetCoreV1(namespaceWithoutLabels),
+			Vz:        vz,
+		})
 }

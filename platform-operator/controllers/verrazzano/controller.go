@@ -4,10 +4,18 @@
 package verrazzano
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	goerrors "errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/health"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
+	"io"
+	kblabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 
 	"strings"
 	"sync"
@@ -19,7 +27,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -28,10 +35,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
@@ -60,7 +64,7 @@ type Reconciler struct {
 	WatchedComponents map[string]bool
 	WatchMutex        *sync.RWMutex
 	Bom               *bom.Bom
-	HealthCheck       *health.PlatformHealth
+	StatusUpdater     vzstatus.Updater
 }
 
 // Name of finalizer
@@ -185,7 +189,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 	case installv1alpha1.VzStateFailed:
 		return r.ProcFailedState(vzctx)
 	case installv1alpha1.VzStateReconciling:
-		return r.ProcInstallingState(vzctx)
+		return r.ProcReconcilingState(vzctx)
 	case installv1alpha1.VzStateReady:
 		return r.ProcReadyState(vzctx)
 	case installv1alpha1.VzStateUpgrading:
@@ -238,6 +242,13 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 		} else if vzctrl.ShouldRequeue(result) {
 			return result, nil
 		}
+
+		// Delete leftover MySQL backup job if we find one.
+		err = r.cleanupMysqlBackupJob(log)
+		if err != nil {
+			return newRequeueWithDelay(), err
+		}
+
 		return ctrl.Result{}, nil
 	}
 
@@ -279,13 +290,16 @@ func (r *Reconciler) ProcReadyState(vzctx vzcontext.VerrazzanoContext) (ctrl.Res
 
 	// Change the state to installing
 	err = r.setInstallingState(log, actualCR)
+	if err != nil {
+		log.ErrorfThrottled("Error writing Install Started condition to the Verrazzano status: %v", err)
+	}
 	return newRequeueWithDelay(), err
 }
 
-// ProcInstallingState processes the CR while in the installing state
-func (r *Reconciler) ProcInstallingState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
+// ProcReconcilingState processes the CR while in the installing state
+func (r *Reconciler) ProcReconcilingState(vzctx vzcontext.VerrazzanoContext) (ctrl.Result, error) {
 	log := vzctx.Log
-	log.Debug("Entering ProcInstallingState")
+	log.Debug("Entering ProcReconcilingState")
 
 	if result, err := r.reconcileComponents(vzctx, false); err != nil {
 		return newRequeueWithDelay(), err
@@ -315,7 +329,7 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 
 		err := r.updateStatus(log, actualCR,
 			fmt.Sprintf("Verrazzano upgrade to version %s paused. Upgrade will be performed when version is updated to %s", actualCR.Spec.Version, bomVersion),
-			installv1alpha1.CondUpgradePaused)
+			installv1alpha1.CondUpgradePaused, nil)
 		return newRequeueWithDelay(), err
 	}
 
@@ -368,9 +382,9 @@ func (r *Reconciler) ProcPausedUpgradeState(vzctx vzcontext.VerrazzanoContext) (
 	if isOperatorSameVersionAsCR(vz.Spec.Version) {
 		// upgrade can proceed from paused state
 		log.Debugf("Restarting upgrade since VZ version and VPO version match")
-		err := r.updateVzState(log, vz, installv1alpha1.VzStateReady)
+		r.updateVzState(log, vz, installv1alpha1.VzStateReady)
 		// requeue for a fairly long time considering this may be a terminating VPO
-		return newRequeueWithDelay(), err
+		return newRequeueWithDelay(), nil
 	}
 
 	return newRequeueWithDelay(), nil
@@ -398,8 +412,8 @@ func (r *Reconciler) ProcFailedState(vzctx vzcontext.VerrazzanoContext) (ctrl.Re
 	if retry {
 		// Log the retry and set the CompStateType to ready, then requeue
 		log.Debugf("Restart Version annotation has changed, retrying upgrade")
-		err = r.updateVzState(log, vz, installv1alpha1.VzStateReady)
-		return ctrl.Result{Requeue: true, RequeueAfter: 1}, err
+		r.updateVzState(log, vz, installv1alpha1.VzStateReady)
+		return ctrl.Result{Requeue: true, RequeueAfter: 1}, nil
 	}
 
 	// if annotations didn't trigger a retry, see if a newer version of BOM should
@@ -409,7 +423,7 @@ func (r *Reconciler) ProcFailedState(vzctx vzcontext.VerrazzanoContext) (ctrl.Re
 
 		err := r.updateStatus(log, vz,
 			fmt.Sprintf("Verrazzano upgrade to version %s paused. Upgrade will be performed when version is updated to %s", vz.Spec.Version, bomVersion),
-			installv1alpha1.CondUpgradePaused)
+			installv1alpha1.CondUpgradePaused, nil)
 		return newRequeueWithDelay(), err
 	}
 
@@ -458,46 +472,6 @@ func (r *Reconciler) deleteClusterRoleBinding(ctx context.Context, log vzlog.Ver
 	return nil
 }
 
-// checkInstallComplete checks to see if the install is complete
-func (r *Reconciler) checkInstallComplete(vzctx vzcontext.VerrazzanoContext) (bool, error) {
-	log := vzctx.Log
-	actualCR := vzctx.ActualCR
-	ready, err := r.checkComponentReadyState(vzctx)
-	if err != nil {
-		return false, err
-	}
-	if !ready {
-		return false, nil
-	}
-	// Set install complete IFF all subcomponent status' are "CompStateReady"
-	message := "Verrazzano install completed successfully"
-	// Status update must be performed on the actual CR read from K8S
-	return true, r.updateStatus(log, actualCR, message, installv1alpha1.CondInstallComplete)
-}
-
-// checkUpgradeComplete checks to see if the upgrade is complete
-func (r *Reconciler) checkUpgradeComplete(vzctx vzcontext.VerrazzanoContext) (bool, error) {
-	if vzctx.ActualCR == nil {
-		return false, nil
-	}
-	if vzctx.ActualCR.Status.State != installv1alpha1.VzStateUpgrading {
-		return true, nil
-	}
-	log := vzctx.Log
-	actualCR := vzctx.ActualCR
-	ready, err := r.checkComponentReadyState(vzctx)
-	if err != nil {
-		return false, err
-	}
-	if !ready {
-		return false, nil
-	}
-	// Set upgrade complete IFF all subcomponent status' are "CompStateReady"
-	message := "Verrazzano upgrade completed successfully"
-	// Status and State update must be performed on the actual CR read from K8S
-	return true, r.updateVzStatusAndState(log, actualCR, message, installv1alpha1.CondUpgradeComplete, installv1alpha1.VzStateReady)
-}
-
 // cleanupUninstallJob checks for the existence of a stale uninstall job and deletes the job if one is found
 func (r *Reconciler) cleanupUninstallJob(jobName string, namespace string, log vzlog.VerrazzanoLogger) error {
 	// Check if the job for running the uninstall scripts exist
@@ -515,6 +489,99 @@ func (r *Reconciler) cleanupUninstallJob(jobName string, namespace string, log v
 	}
 
 	return nil
+}
+
+// cleanupMysqlBackupJob checks for the existence of a stale MySQL restore job and deletes the job if one is found
+func (r *Reconciler) cleanupMysqlBackupJob(log vzlog.VerrazzanoLogger) error {
+	// Check if jobs for running the restore jobs exist
+	jobsFound := &batchv1.JobList{}
+	err := r.List(context.TODO(), jobsFound, &client.ListOptions{Namespace: mysql.ComponentNamespace})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	for _, job := range jobsFound.Items {
+		// get and inspect the job pods to see if restore container is completed
+		podList := &corev1.PodList{}
+		podReq, _ := kblabels.NewRequirement("job-name", selection.Equals, []string{job.Name})
+		podLabelSelector := kblabels.NewSelector()
+		podLabelSelector = podLabelSelector.Add(*podReq)
+		err := r.List(context.TODO(), podList, &client.ListOptions{LabelSelector: podLabelSelector})
+		if err != nil {
+			return err
+		}
+		backupJob := job
+		for i := range podList.Items {
+			jobPod := &podList.Items[i]
+			if isJobExecutionContainerCompleted(jobPod) {
+				// persist the job logs
+				persisted := persistJobLog(backupJob, jobPod, log)
+				if !persisted {
+					log.Infof("Unable to persist job log for %s", backupJob.Name)
+				}
+				// can delete job since pod has completed
+				log.Debugf("Deleting stale backup job %s", job.Name)
+				propagationPolicy := metav1.DeletePropagationBackground
+				deleteOptions := &client.DeleteOptions{PropagationPolicy: &propagationPolicy}
+				err = r.Delete(context.TODO(), &backupJob, deleteOptions)
+				if err != nil {
+					return err
+				}
+
+				return nil
+			}
+
+			return fmt.Errorf("Pod %s has not completed the database backup", backupJob.Name)
+		}
+	}
+
+	return nil
+}
+
+// persistJobLog will persist the backup job log to the VPO log
+func persistJobLog(backupJob batchv1.Job, jobPod *corev1.Pod, log vzlog.VerrazzanoLogger) bool {
+	containerName := mysqloperator.BackupContainerName
+	if strings.Contains(backupJob.Name, "-schedule-") {
+		containerName = containerName + "-cron"
+	}
+	podLogOpts := corev1.PodLogOptions{Container: containerName}
+	clientSet, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return false
+	}
+	req := clientSet.CoreV1().Pods(jobPod.Namespace).GetLogs(jobPod.Name, &podLogOpts)
+	podLogs, err := req.Stream(context.TODO())
+	if err != nil {
+		return false
+	}
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return false
+	}
+	scanner := bufio.NewScanner(buf)
+	scanner.Split(bufio.ScanLines)
+	log.Debugf("---------- Begin backup job %s log ----------", backupJob.Name)
+	for scanner.Scan() {
+		log.Debug(scanner.Text())
+	}
+	log.Debugf("---------- End backup job %s log ----------", backupJob.Name)
+
+	return true
+}
+
+// isJobExecutionContainerCompleted checks to see whether the backup container has terminated with an exit code of 0
+func isJobExecutionContainerCompleted(pod *corev1.Pod) bool {
+	for _, container := range pod.Status.ContainerStatuses {
+		if strings.HasPrefix(container.Name, mysqloperator.BackupContainerName) && container.State.Terminated != nil && container.State.Terminated.ExitCode == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // deleteNamespace deletes a namespace
@@ -583,58 +650,6 @@ func getVzAndOperatorVersions(vzVersion string) (*semver.SemVersion, *semver.Sem
 	return bomVersion, currentVersion, true
 }
 
-// updateStatus updates the status in the Verrazzano CR
-func (r *Reconciler) updateStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType) error {
-	t := time.Now().UTC()
-	condition := installv1alpha1.Condition{
-		Type:    conditionType,
-		Status:  corev1.ConditionTrue,
-		Message: message,
-		LastTransitionTime: fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
-			t.Year(), t.Month(), t.Day(),
-			t.Hour(), t.Minute(), t.Second()),
-	}
-	cr.Status.Conditions = appendConditionIfNecessary(log, cr.Name, cr.Status.Conditions, condition)
-
-	// Set the state of resource
-	cr.Status.State = conditionToVzState(conditionType)
-	log.Debugf("Setting Verrazzano resource condition and state: %v/%v", condition.Type, cr.Status.State)
-
-	// Update the status
-	return r.updateVerrazzanoStatus(log, cr)
-}
-
-// updateVzState updates the status state in the Verrazzano CR
-func (r *Reconciler) updateVzState(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, state installv1alpha1.VzStateType) error {
-	// Set the state of resource
-	cr.Status.State = state
-	log.Debugf("Setting Verrazzano state: %v", cr.Status.State)
-
-	// Update the status
-	return r.updateVerrazzanoStatus(log, cr)
-}
-
-// updateVzState updates the status state in the Verrazzano CR
-func (r *Reconciler) updateVzStatusAndState(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, message string, conditionType installv1alpha1.ConditionType, state installv1alpha1.VzStateType) error {
-	t := time.Now().UTC()
-	condition := installv1alpha1.Condition{
-		Type:    conditionType,
-		Status:  corev1.ConditionTrue,
-		Message: message,
-		LastTransitionTime: fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
-			t.Year(), t.Month(), t.Day(),
-			t.Hour(), t.Minute(), t.Second()),
-	}
-	cr.Status.Conditions = appendConditionIfNecessary(log, cr.Name, cr.Status.Conditions, condition)
-
-	// Set the state of resource
-	cr.Status.State = state
-	log.Debugf("Setting Verrazzano state: %v", cr.Status.State)
-
-	// Update the status
-	return r.updateVerrazzanoStatus(log, cr)
-}
-
 func (r *Reconciler) getBOM() (*bom.Bom, error) {
 	if r.Bom == nil {
 		bom, err := bom.NewBom(config.GetDefaultBOMFilePath())
@@ -644,222 +659,6 @@ func (r *Reconciler) getBOM() (*bom.Bom, error) {
 		r.Bom = &bom
 	}
 	return r.Bom, nil
-}
-
-func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, message string, conditionType installv1alpha1.ConditionType) error {
-	t := time.Now().UTC()
-	condition := installv1alpha1.Condition{
-		Type:    conditionType,
-		Status:  corev1.ConditionTrue,
-		Message: message,
-		LastTransitionTime: fmt.Sprintf("%d-%02d-%02dT%02d:%02d:%02dZ",
-			t.Year(), t.Month(), t.Day(),
-			t.Hour(), t.Minute(), t.Second()),
-	}
-
-	componentName := compContext.GetComponent()
-	cr := compContext.ActualCR()
-	log := compContext.Log()
-
-	if cr.Status.Components == nil {
-		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
-	}
-	componentStatus := cr.Status.Components[componentName]
-	if componentStatus == nil {
-		componentStatus = &installv1alpha1.ComponentStatusDetails{
-			Name: componentName,
-		}
-		cr.Status.Components[componentName] = componentStatus
-	}
-	if conditionType == installv1alpha1.CondInstallComplete {
-		cr.Status.VerrazzanoInstance = vzinstance.GetInstanceInfo(compContext)
-		if componentStatus.ReconcilingGeneration > 0 {
-			componentStatus.LastReconciledGeneration = componentStatus.ReconcilingGeneration
-			componentStatus.ReconcilingGeneration = 0
-		} else {
-			componentStatus.LastReconciledGeneration = cr.Generation
-		}
-	} else {
-		if componentStatus.ReconcilingGeneration == 0 {
-			componentStatus.ReconcilingGeneration = cr.Generation
-		}
-	}
-	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus.Name, componentStatus.Conditions, condition)
-
-	// Set the state of resource
-	componentStatus.State = checkCondtitionType(conditionType)
-
-	// Set the version of component when install and upgrade complete
-	if conditionType == installv1alpha1.CondInstallComplete || conditionType == installv1alpha1.CondUpgradeComplete {
-		if bomFile, err := r.getBOM(); err == nil {
-			if component, er := bomFile.GetComponent(componentName); er == nil {
-				componentStatus.Version = component.Version
-			}
-		}
-	}
-
-	// Update the status
-	return r.updateVerrazzanoStatus(log, cr)
-}
-
-func appendConditionIfNecessary(log vzlog.VerrazzanoLogger, resourceName string, conditions []installv1alpha1.Condition, newCondition installv1alpha1.Condition) []installv1alpha1.Condition {
-	var newConditionsList []installv1alpha1.Condition
-	for i, existingCondition := range conditions {
-		if existingCondition.Type != newCondition.Type {
-			// Skip any existing conditions of the same type as the new condition. We will append
-			// the new condition at the end. If there are duplicate conditions from a legacy
-			// VZ resource, they will all be skipped.
-			newConditionsList = append(newConditionsList, conditions[i])
-		}
-	}
-	log.Debugf("Adding/modifying %s resource newCondition: %v", resourceName, newCondition.Type)
-	// Always put the new condition at the end of the list since the kubectl status display and
-	// some upgrade stuff depends on the most recent condition being the last one
-	return append(newConditionsList, newCondition)
-}
-
-func checkCondtitionType(currentCondition installv1alpha1.ConditionType) installv1alpha1.CompStateType {
-	switch currentCondition {
-	case installv1alpha1.CondPreInstall:
-		return installv1alpha1.CompStatePreInstalling
-	case installv1alpha1.CondInstallStarted:
-		return installv1alpha1.CompStateInstalling
-	case installv1alpha1.CondUninstallStarted:
-		return installv1alpha1.CompStateUninstalling
-	case installv1alpha1.CondUpgradeStarted:
-		return installv1alpha1.CompStateUpgrading
-	case installv1alpha1.CondUpgradePaused:
-		return installv1alpha1.CompStateUpgrading
-	case installv1alpha1.CondUninstallComplete:
-		return installv1alpha1.CompStateUninstalled
-	case installv1alpha1.CondInstallFailed, installv1alpha1.CondUpgradeFailed, installv1alpha1.CondUninstallFailed:
-		return installv1alpha1.CompStateFailed
-	}
-	// Return ready for installv1alpha1.CondInstallComplete, installv1alpha1.CondUpgradeComplete
-	return installv1alpha1.CompStateReady
-}
-
-// Convert a condition to a VZ State
-func conditionToVzState(currentCondition installv1alpha1.ConditionType) installv1alpha1.VzStateType {
-	switch currentCondition {
-	case installv1alpha1.CondInstallStarted:
-		return installv1alpha1.VzStateReconciling
-	case installv1alpha1.CondUninstallStarted:
-		return installv1alpha1.VzStateUninstalling
-	case installv1alpha1.CondUpgradeStarted:
-		return installv1alpha1.VzStateUpgrading
-	case installv1alpha1.CondUpgradePaused:
-		return installv1alpha1.VzStatePaused
-	case installv1alpha1.CondUninstallComplete:
-		return installv1alpha1.VzStateReady
-	case installv1alpha1.CondInstallFailed, installv1alpha1.CondUpgradeFailed, installv1alpha1.CondUninstallFailed:
-		return installv1alpha1.VzStateFailed
-	}
-	// Return ready for installv1alpha1.CondInstallComplete, installv1alpha1.CondUpgradeComplete
-	return installv1alpha1.VzStateReady
-}
-
-// setInstallStartedCondition
-func (r *Reconciler) setInstallingState(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
-	// Set the version in the status.  This will be updated when the starting install condition is updated.
-	bomSemVer, err := validators.GetCurrentBomVersion()
-	if err != nil {
-		return err
-	}
-
-	vz.Status.Version = bomSemVer.ToString()
-	return r.updateStatus(log, vz, "Verrazzano install in progress", installv1alpha1.CondInstallStarted)
-}
-
-// checkComponentReadyState returns true if all component-level status' are "CompStateReady" for enabled components
-func (r *Reconciler) checkComponentReadyState(vzctx vzcontext.VerrazzanoContext) (bool, error) {
-	cr := vzctx.ActualCR
-	if unitTesting {
-		for _, compStatus := range cr.Status.Components {
-			if compStatus.State != installv1alpha1.CompStateDisabled && compStatus.State != installv1alpha1.CompStateReady {
-				return false, nil
-			}
-		}
-		return true, nil
-	}
-
-	// Return false if any enabled component is not ready
-	for _, comp := range registry.GetComponents() {
-		spiCtx, err := spi.NewContext(vzctx.Log, r.Client, vzctx.ActualCR, nil, r.DryRun)
-		if err != nil {
-			spiCtx.Log().Errorf("Failed to create component context: %v", err)
-			return false, err
-		}
-		if comp.IsEnabled(spiCtx.EffectiveCR()) && cr.Status.Components[comp.Name()].State != installv1alpha1.CompStateReady {
-			spiCtx.Log().Progressf("Waiting for component %s to be ready", comp.Name())
-			return false, nil
-		}
-	}
-	return true, nil
-}
-
-// initializeComponentStatus Initialize the component status field with the known set that indicate they support the
-// operator-based install.  This is so that we know ahead of time exactly how many components we expect to install
-// via the operator, and when we're done installing.
-func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
-	if cr.Status.Components == nil {
-		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)
-	}
-
-	newContext, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
-	if err != nil {
-		return newRequeueWithDelay(), err
-	}
-
-	statusUpdated := false
-	for _, comp := range registry.GetComponents() {
-		if status, ok := cr.Status.Components[comp.Name()]; ok {
-			if status.LastReconciledGeneration == 0 {
-				status.LastReconciledGeneration = cr.Generation
-			}
-			// Skip components that have already been processed
-			continue
-		}
-		if comp.IsOperatorInstallSupported() {
-			// If the component is installed then mark it as ready
-			compContext := newContext.Init(comp.Name()).Operation(vzconst.InitializeOperation)
-			lastReconciled := int64(0)
-			state := installv1alpha1.CompStateDisabled
-			if !unitTesting {
-				installed, err := comp.IsInstalled(compContext)
-				if err != nil {
-					log.Errorf("Failed to determine if component %s is installed: %v", comp.Name(), err)
-					return newRequeueWithDelay(), err
-				}
-				if installed {
-					state = installv1alpha1.CompStateReady
-					lastReconciled = compContext.ActualCR().Generation
-				}
-			}
-			cr.Status.Components[comp.Name()] = &installv1alpha1.ComponentStatusDetails{
-				Name:                     comp.Name(),
-				State:                    state,
-				LastReconciledGeneration: lastReconciled,
-			}
-			statusUpdated = true
-		}
-	}
-	// Update the status
-	if statusUpdated {
-		return newRequeueWithDelay(), r.updateVerrazzanoStatus(log, cr)
-	}
-	return ctrl.Result{}, nil
-}
-
-// setUninstallCondition sets the Verrazzano resource condition in status for uninstall
-func (r *Reconciler) setUninstallCondition(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano, newCondition installv1alpha1.ConditionType, msg string) (err error) {
-	// Add the uninstall started condition if not already added
-	for _, condition := range vz.Status.Conditions {
-		if condition.Type == newCondition {
-			return nil
-		}
-	}
-	return r.updateStatus(log, vz, msg, newCondition)
 }
 
 // createVerrazzanoSystemNamespace creates the Verrazzano system namespace if it does not already exist
@@ -1008,17 +807,17 @@ func (r *Reconciler) cleanupOld(ctx context.Context, log vzlog.VerrazzanoLogger,
 	return nil
 }
 
-// Create a new Result that will cause a reconcile requeue after a short delay
+// Create a new Result that will cause a reconciliation requeue after a short delay
 func newRequeueWithDelay() ctrl.Result {
 	return vzctrl.NewRequeueWithDelay(2, 3, time.Second)
 }
 
-// Watch the pods in the keycloak namespace for this vz resource.  The loop to reconcile will be called
-// when a pod is created.
-func (r *Reconciler) watchPods(namespace string, name string, log vzlog.VerrazzanoLogger) error {
+// watchResources Watches resources associated with this vz resource.  The loop to reconcile will be called
+// when a resource event is generated.
+func (r *Reconciler) watchResources(namespace string, name string, log vzlog.VerrazzanoLogger) error {
 	// Watch pods and trigger reconciles for Verrazzano resources when a pod is created
 	log.Debugf("Watching for pods to activate reconcile for Verrazzano CR %s/%s", namespace, name)
-	return r.Controller.Watch(
+	err := r.Controller.Watch(
 		&source.Kind{Type: &corev1.Pod{}},
 		createReconcileEventHandler(namespace, name),
 		createPredicate(func(e event.CreateEvent) bool {
@@ -1038,6 +837,55 @@ func (r *Reconciler) watchPods(namespace string, name string, log vzlog.Verrazza
 			r.AddWatch(keycloak.ComponentJSONName)
 			return true
 		}))
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("Watching for backup jobs to activate reconcile for Verrazzano CR %s/%s", namespace, name)
+	return r.Controller.Watch(
+		&source.Kind{Type: &batchv1.Job{}},
+		createReconcileEventHandler(namespace, name),
+		createPredicate(func(e event.CreateEvent) bool {
+			return r.isMysqlOperatorJob(e, log)
+		}))
+}
+
+// isMysqlOperatorJob returns true if the job is spawned directly or indirectly by MySQL operator
+func (r *Reconciler) isMysqlOperatorJob(e event.CreateEvent, log vzlog.VerrazzanoLogger) bool {
+	// Cast object to job
+	job := e.Object.(*batchv1.Job)
+
+	// Filter events to only be for the MySQL namespace
+	if job.Namespace != mysql.ComponentNamespace {
+		return false
+	}
+
+	// see if the job ownerReferences point to a cron job owned by the mysql operato
+	for _, owner := range job.GetOwnerReferences() {
+		if owner.Kind == "CronJob" {
+			// get the cronjob reference
+			cronJob := &batchv1.CronJob{}
+			err := r.Client.Get(context.TODO(), client.ObjectKey{Name: owner.Name, Namespace: job.Namespace}, cronJob)
+			if err != nil {
+				log.Errorf("Could not find cronjob %s to ascertain job source", owner.Name)
+				return false
+			}
+			return isResourceCreatedByMysqlOperator(cronJob.Labels, log)
+		}
+	}
+
+	// see if the job has been directly created by the mysql operator
+	return isResourceCreatedByMysqlOperator(job.Labels, log)
+}
+
+// isResourceCreatedByMysqlOperator checks whether the created-by label is set to "mysql-operator"
+func isResourceCreatedByMysqlOperator(labels map[string]string, log vzlog.VerrazzanoLogger) bool {
+	createdBy, ok := labels["app.kubernetes.io/created-by"]
+	if !ok || createdBy != constants.MySQLOperator {
+		return false
+	}
+	log.Debug("Resource created by MySQL Operator")
+	return true
 }
 
 func createReconcileEventHandler(namespace, name string) handler.EventHandler {
@@ -1087,8 +935,8 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 		return newRequeueWithDelay(), err
 	}
 
-	// Watch pods in the keycloak namespace to handle recycle of the MySQL pod
-	if err := r.watchPods(vz.Namespace, vz.Name, log); err != nil {
+	// Watch resources to react with appropriate actions
+	if err := r.watchResources(vz.Namespace, vz.Name, log); err != nil {
 		log.Errorf("Failed to set Pod watch for Verrazzano CR %s: %v", vz.Name, err)
 		return newRequeueWithDelay(), err
 	}
@@ -1101,21 +949,6 @@ func (r *Reconciler) initForVzResource(vz *installv1alpha1.Verrazzano, log vzlog
 // This is needed for unit testing
 func initUnitTesing() {
 	unitTesting = true
-}
-
-func (r *Reconciler) updateVerrazzanoStatus(log vzlog.VerrazzanoLogger, vz *installv1alpha1.Verrazzano) error {
-	r.HealthCheck.SetAvailabilityStatus(vz)
-	err := r.Status().Update(context.TODO(), vz)
-	if err == nil {
-		return nil
-	}
-	if ctrlerrors.IsUpdateConflict(err) {
-		log.Debugf("Requeuing to get a fresh copy of the Verrazzano resource since the current one is outdated.")
-	} else {
-		log.Errorf("Failed to update Verrazzano resource :v", err)
-	}
-	// Return error so that reconcile gets called again
-	return err
 }
 
 // AddWatch adds a component to the watched set
