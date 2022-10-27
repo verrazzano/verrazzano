@@ -11,7 +11,7 @@ import (
 // The VerrazzanoManagedCluster custom resource contains information about a
 // kubernetes cluster where Verrazzano managed applications are deployed.
 
-// VerrazzanoManagedClusterSpec defines the desired state of a VerrazzanoManagedCluster.
+// VerrazzanoManagedClusterSpec defines the desired state of a Verrazzano Managed Cluster.
 type VerrazzanoManagedClusterSpec struct {
 	// The name of a Secret that contains the CA certificate of the managed cluster. This is used to configure the
 	// admin cluster to scrape metrics from the Prometheus endpoint on the managed cluster. See the pre-registration
@@ -50,7 +50,7 @@ const (
 	ConditionManifestPushed ConditionType = "ManifestPushed"
 )
 
-// StateType identifies the state of the VerrazzanoManagedCluster resource.
+// StateType identifies the state of the Verrazzano Managed Cluster.
 type StateType string
 
 const (
@@ -59,21 +59,24 @@ const (
 	StatePending  StateType = "Pending"
 )
 
-// Condition describes a condition that occurred on the VerrazzanoManagedCluster resource.
+// Condition describes a condition that occurred on the Verrazzano Managed Cluster.
 type Condition struct {
-	// Type of condition.
+	// The condition of the multicluster resource which can be checked with a `kubectl wait` command. Condition values
+	// are case-sensitive and formatted as follows: `Ready`: the VerrazzanoManagedCluster is ready to be used and all
+	// resources needed have been generated.
 	Type ConditionType `json:"type"`
-	// Status of the condition, one of True, False, Unknown.
+	// An instance of the type ConditionStatus that is defined in
+	// <a href="https://github.com/kubernetes/api/blob/master/core/v1/types.go">types.go</a>.
 	Status corev1.ConditionStatus `json:"status"`
 	// Last time the condition transitioned from one status to another.
 	// +optional
 	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
-	// Human readable message indicating details about last transition.
+	// A message with details about the last transition.
 	// +optional
 	Message string `json:"message,omitempty"`
 }
 
-// RancherRegistrationStatus identifies the status of Rancher registration.
+// RancherRegistrationStatus identifies the status of a Rancher registration.
 type RancherRegistrationStatus string
 
 const (
@@ -83,16 +86,16 @@ const (
 
 // RancherRegistration defines the Rancher registration state for a managed cluster.
 type RancherRegistration struct {
-	// The status of the Rancher registration
+	// The status of the Rancher registration.
 	Status RancherRegistrationStatus `json:"status"`
-	// Supporting message related to the Rancher registration status
+	// A supporting message related to the Rancher registration status.
 	// +optional
 	Message string `json:"message,omitempty"`
-	// ClusterID is the Rancher cluster ID for this cluster
+	// The Rancher cluster ID for this cluster.
 	ClusterID string `json:"clusterID,omitempty"`
 }
 
-// VerrazzanoManagedClusterStatus defines the observed state of a VerrazzanoManagedCluster resource.
+// VerrazzanoManagedClusterStatus defines the observed state of a Verrazzano Managed Cluster.
 type VerrazzanoManagedClusterStatus struct {
 	// The Verrazzano API server URL for this managed cluster.
 	APIUrl string `json:"apiUrl,omitempty"`
@@ -108,12 +111,12 @@ type VerrazzanoManagedClusterStatus struct {
 	State StateType `json:"state"`
 }
 
-//	VerrazzanoManagedCluster specifies the Verrazzano Managed Cluster API.
-//
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName=vmc;vmcs
-// +genclient
+
+// VerrazzanoManagedCluster specifies the Verrazzano Managed Cluster API.
 type VerrazzanoManagedCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -126,7 +129,7 @@ type VerrazzanoManagedCluster struct {
 
 // +kubebuilder:object:root=true
 
-// VerrazzanoManagedClusterList contains a list of VerrazzanoManagedCluster resources.
+// VerrazzanoManagedClusterList contains a list of Verrazzano Managed Cluster resources.
 type VerrazzanoManagedClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
