@@ -7,6 +7,9 @@ import (
 	"net/url"
 	"testing"
 
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
@@ -130,6 +133,54 @@ func TestParsePasswordStdout(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.in, func(t *testing.T) {
 			assert.Equal(t, tt.out, parsePasswordStdout(tt.in))
+		})
+	}
+}
+
+// TestLabelNamespace verifies adding the labels in the rancher components
+// When Rancher namespaces are not labelled
+// Then Required labels should be added to that namespace
+func TestLabelNamespace(t *testing.T) {
+	type args struct {
+		c client.Client
+	}
+	rancherNamespaceWithlabel := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: FleetSystemNamespace,
+			Labels: map[string]string{
+				namespaceLabelKey: FleetSystemNamespace,
+			},
+		},
+	}
+	rancherNamespaceWithoutlabel := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: FleetSystemNamespace,
+			Labels: map[string]string{
+				namespaceLabelKey: FleetSystemNamespace,
+			},
+		},
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"When no namespace Label in rancher component namespace",
+			args{fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&rancherNamespaceWithoutlabel).Build()},
+			false,
+		},
+		{
+			"When namespace label is there in rancher component namespace",
+			args{fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&rancherNamespaceWithlabel).Build()},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := labelNamespace(tt.args.c); (err != nil) != tt.wantErr {
+				t.Errorf("labelNamespace() error = %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }
