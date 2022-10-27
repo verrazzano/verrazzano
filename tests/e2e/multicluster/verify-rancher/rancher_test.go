@@ -80,7 +80,9 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 			Eventually(func() error {
 				pkg.Log(pkg.Info, "Waiting for all VMC to have status condition ManifestPushed = True")
 				vmcList, err := adminClient.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
-				Expect(err).ShouldNot(HaveOccurred())
+				if err != nil {
+					return err
+				}
 
 				for _, vmc := range vmcList.Items {
 					statusPushedFound := false
