@@ -47,8 +47,7 @@ spec:
             - template
             type: object
           status:
-            description: VerrazzanoWebLogicWorkloadStatus defines the observed state
-              of a Verrazzano WebLogic workload.
+            description: The observed state of a Verrazzano WebLogic workload.
             properties:
               lastGeneration:
                 description: The last generation of the Verrazzano WebLogic workload

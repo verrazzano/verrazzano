@@ -36,7 +36,8 @@ type VerrazzanoWebLogicWorkload struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// The desired state of a Verrazzano WebLogic workload.
-	Spec   VerrazzanoWebLogicWorkloadSpec   `json:"spec,omitempty"`
+	Spec VerrazzanoWebLogicWorkloadSpec `json:"spec,omitempty"`
+	// The observed state of a Verrazzano WebLogic workload.
 	Status VerrazzanoWebLogicWorkloadStatus `json:"status,omitempty"`
 }
 

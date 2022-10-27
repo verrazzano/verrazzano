@@ -34,7 +34,8 @@ type VerrazzanoCoherenceWorkload struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// The desired state of a Verrazzano Coherence workload.
-	Spec   VerrazzanoCoherenceWorkloadSpec   `json:"spec,omitempty"`
+	Spec VerrazzanoCoherenceWorkloadSpec `json:"spec,omitempty"`
+	// The observed state of a Verrazzano Coherence workload.
 	Status VerrazzanoCoherenceWorkloadStatus `json:"status,omitempty"`
 }
 

@@ -47,8 +47,7 @@ spec:
             - template
             type: object
           status:
-            description: VerrazzanoCoherenceWorkloadStatus defines the observed state
-              of a Verrazzano Coherence workload.
+            description: The observed state of a Verrazzano Coherence workload.
             properties:
               lastGeneration:
                 description: The last generation of the Verrazzano Coherence workload

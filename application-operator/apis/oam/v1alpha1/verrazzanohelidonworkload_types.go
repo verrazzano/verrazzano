@@ -54,7 +54,8 @@ type VerrazzanoHelidonWorkload struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// The desired state of a Verrazzano Helidon workload.
 	// +kubebuilder:validation:Required
-	Spec   VerrazzanoHelidonWorkloadSpec   `json:"spec"`
+	Spec VerrazzanoHelidonWorkloadSpec `json:"spec"`
+	// The observed state of a Verrazzano Helidon workload.
 	Status VerrazzanoHelidonWorkloadStatus `json:"status,omitempty"`
 }
 
