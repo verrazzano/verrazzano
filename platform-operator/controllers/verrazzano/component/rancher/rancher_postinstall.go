@@ -6,6 +6,7 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -158,8 +159,8 @@ func labelNamespace(c client.Client) error {
 		return err
 	}
 	for i := range nsList.Items {
-		if _, found := nsList.Items[i].Labels[namespaceLabelKey]; isRancherNamespace(&(nsList.Items[i])) && !found {
-			nsList.Items[i].Labels[namespaceLabelKey] = nsList.Items[i].Name
+		if _, found := nsList.Items[i].Labels[constants.VerrazzanoManagedKey]; isRancherNamespace(&(nsList.Items[i])) && !found {
+			nsList.Items[i].Labels[constants.VerrazzanoManagedKey] = nsList.Items[i].Name
 			c.Update(context.TODO(), &(nsList.Items[i]), &client.UpdateOptions{})
 		}
 	}

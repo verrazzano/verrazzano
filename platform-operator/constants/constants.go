@@ -224,3 +224,6 @@ const ResticDaemonSetName = "restic"
 
 // RancherBackupNamesSpace indicates the namespace to be used for Rancher Backup installation
 const RancherBackupNamesSpace = "cattle-resources-system"
+
+// VerrazzanoManagedKey indicates the label key to the Verrazzano managed namespaces
+const VerrazzanoManagedKey = "verrazzano.io/namespace"
