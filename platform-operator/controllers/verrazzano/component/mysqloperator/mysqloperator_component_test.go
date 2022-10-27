@@ -156,7 +156,8 @@ func TestIsMySQLOperatorReady(t *testing.T) {
 		},
 	).Build()
 
-	assert.True(t, isReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
+	mysqlOperator := NewComponent().(mysqlOperatorComponent)
+	assert.True(t, mysqlOperator.isReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsMySQLOperatorNotReady tests the isReady function
@@ -180,7 +181,8 @@ func TestIsMySQLOperatorNotReady(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	assert.False(t, isReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
+	mysqlOperator := NewComponent().(mysqlOperatorComponent)
+	assert.False(t, mysqlOperator.isReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsInstalled tests the isInstalled function
@@ -203,7 +205,8 @@ func TestIsInstalled(t *testing.T) {
 		},
 	).Build()
 
-	assert.True(t, isInstalled(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
+	mysqlOperator := NewComponent().(mysqlOperatorComponent)
+	assert.True(t, mysqlOperator.isInstalled(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsInstalledFalse tests the isInstalled function
@@ -212,8 +215,8 @@ func TestIsInstalled(t *testing.T) {
 // THEN false is returned
 func TestIsInstalledFalse(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects().Build()
-
-	assert.False(t, isInstalled(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
+	mysqlOperator := NewComponent().(mysqlOperatorComponent)
+	assert.False(t, mysqlOperator.isInstalled(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestValidateInstall tests the ValidateInstall function

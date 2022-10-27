@@ -43,7 +43,7 @@ var keycloakDisabledCR = &vzapi.Verrazzano{
 }
 
 func TestIsFluentdReady(t *testing.T) {
-	boolTrue, boolFalse := true, false
+	boolTrue := true
 	var tests = []struct {
 		testName string
 		spec     vzapi.Verrazzano
@@ -57,13 +57,6 @@ func TestIsFluentdReady(t *testing.T) {
 				}},
 			},
 		}, getFakeClient(1), true},
-		{"2", vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{Fluentd: &vzapi.FluentdComponent{
-					Enabled: &boolFalse,
-				}},
-			},
-		}, getFakeClient(1), false},
 		{"3", vzapi.Verrazzano{
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{Fluentd: &vzapi.FluentdComponent{
@@ -86,9 +79,10 @@ func TestIsFluentdReady(t *testing.T) {
 			},
 		}, getFakeClient(0), false},
 	}
+	fluentd := NewComponent().(fluentdComponent)
 	for _, test := range tests {
 		ctx := spi.NewFakeContext(test.client, &test.spec, nil, false)
-		if actual := isFluentdReady(ctx); actual != test.expected {
+		if actual := fluentd.isFluentdReady(ctx); actual != test.expected {
 			t.Errorf("test name %s: got fluent ready = %v, want %v", test.testName, actual, test.expected)
 		}
 	}

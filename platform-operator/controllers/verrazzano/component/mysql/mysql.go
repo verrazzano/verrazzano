@@ -151,13 +151,7 @@ var (
 )
 
 // isMySQLReady checks to see if the MySQL component is in ready state
-func isMySQLReady(ctx spi.ComponentContext) bool {
-	statefulset := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c mysqlComponent) isMySQLReady(ctx spi.ComponentContext) bool {
 	deployment := []types.NamespacedName{
 		{
 			Name:      fmt.Sprintf("%s-router", ComponentName),
@@ -187,7 +181,7 @@ func isMySQLReady(ctx spi.ComponentContext) bool {
 			routerReplicas = int(value.(float64))
 		}
 	}
-	ready := k8sready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, int32(serverReplicas), prefix)
+	ready := k8sready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.StatefulsetNames, int32(serverReplicas), prefix)
 	if ready && routerReplicas > 0 {
 		ready = k8sready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployment, int32(routerReplicas), prefix)
 	}

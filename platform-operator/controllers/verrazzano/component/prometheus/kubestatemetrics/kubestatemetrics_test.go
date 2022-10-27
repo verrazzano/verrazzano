@@ -103,10 +103,11 @@ func TestIsReady(t *testing.T) {
 			expectTrue: false,
 		},
 	}
+	kubeStateMetrics := NewComponent().(kubeStateMetricsComponent)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, nil, false)
-			assert.Equal(t, tt.expectTrue, isDeploymentReady(ctx))
+			assert.Equal(t, tt.expectTrue, kubeStateMetrics.isDeploymentReady(ctx))
 		})
 	}
 }
