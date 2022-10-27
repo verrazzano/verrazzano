@@ -1194,7 +1194,7 @@ data:
         elseif backend == 'elasticsearch' then
             allowedOrigins = os.getenv("VZ_ES_ALLOWED_ORIGINS")
         elseif backend == 'opensearch' then
-            allowedOrigins = os.getenv("VZ_ES_ALLOWED_ORIGINS")
+            allowedOrigins = os.getenv("VZ_OS_ALLOWED_ORIGINS")
         elseif backend == 'kiali' then
             allowedOrigins = os.getenv("VZ_KIALI_ALLOWED_ORIGINS")
         elseif backend == 'jaeger' then
@@ -1237,6 +1237,7 @@ data:
     env VZ_PROMETHEUS_ALLOWED_ORIGINS;
     env VZ_KIBANA_ALLOWED_ORIGINS;
     env VZ_ES_ALLOWED_ORIGINS;
+    env VZ_OS_ALLOWED_ORIGINS;
     env VZ_KIALI_ALLOWED_ORIGINS;
     env VZ_JAEGER_ALLOWED_ORIGINS;
 
