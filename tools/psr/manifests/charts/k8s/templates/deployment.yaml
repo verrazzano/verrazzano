@@ -1,0 +1,38 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+# This manifest is used for testing without OAM by native Kubernetes resources only
+#
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name}}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      run: psr-backend
+  replicas: {{ .Values.replicas }}
+  template:
+    metadata:
+      labels:
+        run: psr-backend
+    spec:
+      serviceAccount: psr
+    {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+    {{- end }}
+      containers:
+        - name: psr-backend
+          image: {{  .Values.imageName }}
+          imagePullPolicy: {{  .Values.imagePullPolicy }}
+          env:
+            {{- range $key, $val := .Values.envVars }}
+            - name: {{ $key }}
+              value: {{ $val }}
+              {{- end }}
+          ports:
+            - containerPort: 8080
+              protocol: TCP

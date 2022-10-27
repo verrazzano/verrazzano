@@ -127,6 +127,14 @@ func (g grafanaComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return isGrafanaInstalled(ctx), nil
 }
 
+func (g grafanaComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = g.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", g.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", g.Name()), false
+}
+
 // IsReady returns true if the Grafana component is ready
 func (g grafanaComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isGrafanaReady(ctx)

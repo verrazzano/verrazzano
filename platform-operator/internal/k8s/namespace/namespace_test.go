@@ -186,7 +186,7 @@ func TestCreateRancherNamespace(t *testing.T) {
 // THEN no error is returned, the namespace is created, and the proper labels have been added
 func TestCreateVerrazzanoMultiClusterNamespace(t *testing.T) {
 	runNamespaceTest(t, globalconst.VerrazzanoMultiClusterNamespace,
-		map[string]string{},
+		map[string]string{globalconst.LabelVerrazzanoNamespace: globalconst.VerrazzanoMultiClusterNamespace},
 		CreateVerrazzanoMultiClusterNamespace)
 }
 

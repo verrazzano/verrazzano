@@ -6,16 +6,20 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	kblabels "k8s.io/apimachinery/pkg/labels"
@@ -66,6 +70,11 @@ var upgradeTrackerMap = make(map[string]*upgradeTracker)
 func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	log.Oncef("Upgrading Verrazzano to version %s", cr.Spec.Version)
 
+	spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
+
 	// Upgrade version was validated in webhook, see ValidateVersion
 	targetVersion := cr.Spec.Version
 
@@ -77,7 +86,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			// Only write the upgrade started message once
 			if !isLastCondition(cr.Status, installv1alpha1.CondUpgradeStarted) {
 				err := r.updateStatus(log, cr, fmt.Sprintf("Verrazzano upgrade to version %s in progress", cr.Spec.Version),
-					installv1alpha1.CondUpgradeStarted)
+					installv1alpha1.CondUpgradeStarted, nil)
 				// Always requeue to get a fresh copy of status and avoid potential conflict
 				return newRequeueWithDelay(), err
 			}
@@ -95,7 +104,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 		case vzStatePostUpgrade:
 			// Invoke the global post upgrade function after all components are upgraded.
 			log.Once("Doing Verrazzano post-upgrade processing")
-			err := postVerrazzanoUpgrade(log, r.Client, cr)
+			err := postVerrazzanoUpgrade(spiCtx)
 			if err != nil {
 				log.Errorf("Error running Verrazzano system-level post-upgrade")
 				return newRequeueWithDelay(), err
@@ -104,10 +113,6 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 
 		case vzStateWaitPostUpgradeDone:
 			log.Progress("Post-upgrade is waiting for all components to be ready")
-			spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
-			if err != nil {
-				return newRequeueWithDelay(), err
-			}
 			// Check installed enabled component and make sure it is ready
 			for _, comp := range registry.GetComponents() {
 				compName := comp.Name()
@@ -139,18 +144,20 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 		case vzStateUpgradeDone:
 			log.Once("Verrazzano successfully upgraded all existing components and will now install any new components")
 			effectiveCR, _ := transform.GetEffectiveCR(cr)
+			componentsToUpdate := map[string]*installv1alpha1.ComponentStatusDetails{}
 			for _, comp := range registry.GetComponents() {
 				compName := comp.Name()
 				componentStatus := cr.Status.Components[compName]
 				if componentStatus != nil && (effectiveCR != nil && comp.IsEnabled(effectiveCR)) {
 					componentStatus.LastReconciledGeneration = cr.Generation
+					componentsToUpdate[compName] = componentStatus
 				}
 			}
 			// Update the status with the new version and component generations
-			cr.Status.Version = targetVersion
-			if err := r.updateVerrazzanoStatus(log, cr); err != nil {
-				return newRequeueWithDelay(), err
-			}
+			r.StatusUpdater.Update(&vzstatus.UpdateEvent{
+				Components: componentsToUpdate,
+				Version:    &targetVersion,
+			})
 			tracker.vzState = vzStateEnd
 
 			// Requeue since the status was just updated, want a fresh copy from controller-runtime cache
@@ -217,18 +224,17 @@ func isLastCondition(st installv1alpha1.VerrazzanoStatus, conditionType installv
 }
 
 // postVerrazzanoUpgrade restarts pods with old Istio sidecar proxies
-func postVerrazzanoUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, cr *installv1alpha1.Verrazzano) error {
+func postVerrazzanoUpgrade(spiCtx spi.ComponentContext) error {
+	log := spiCtx.Log()
+	if err := rancher.ConfigureAuthProviders(spiCtx); err != nil {
+		return err
+	}
 	log.Oncef("Checking if any pods with Istio sidecars need to be restarted to pick up the new version of the Istio proxy")
-	if err := istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), cr.Generation, istio.DoesPodContainOldIstioSidecar); err != nil {
+	if err := istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), spiCtx.ActualCR().Generation, istio.DoesPodContainOldIstioSidecar); err != nil {
 		return err
 	}
 	log.Oncef("MySQL post-upgrade cleanup")
-	return mysql.PostUpgradeCleanup(log, client)
-}
-
-// getTrackerKey gets the tracker key for the Verrazzano resource
-func getTrackerKey(cr *installv1alpha1.Verrazzano) string {
-	return fmt.Sprintf("%s-%s-%s", cr.Namespace, cr.Name, string(cr.UID))
+	return mysql.PostUpgradeCleanup(log, spiCtx.Client())
 }
 
 // getUpgradeTracker gets the upgrade tracker for Verrazzano

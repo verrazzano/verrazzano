@@ -42,6 +42,9 @@ const (
 
 	// ComponentJSONName is the json name of the component in the CRD
 	ComponentJSONName = "mySQLOperator"
+
+	// BackupContainerName is the name of the executable container in a backup job pod
+	BackupContainerName = "operator-backup-job"
 )
 
 type mysqlOperatorComponent struct {
@@ -80,6 +83,14 @@ func (c mysqlOperatorComponent) IsReady(context spi.ComponentContext) bool {
 		return isReady(context)
 	}
 	return false
+}
+
+func (c mysqlOperatorComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // IsInstalled returns true if the component is installed

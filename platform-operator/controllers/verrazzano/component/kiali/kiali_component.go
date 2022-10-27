@@ -143,6 +143,14 @@ func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 	return false
 }
 
+func (c kialiComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
+}
+
 // IsEnabled Kiali-specific enabled check for installation
 func (c kialiComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzconfig.IsKialiEnabled(effectiveCR)
