@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 	"io"
 	"net/http"
@@ -119,8 +120,8 @@ func (w logGetter) GetWorkerDesc() spi.WorkerDesc {
 	}
 }
 
-func (w logGetter) GetEnvDescList() []config.EnvVarDesc {
-	return []config.EnvVarDesc{}
+func (w logGetter) GetEnvDescList() []osenv.EnvVarDesc {
+	return []osenv.EnvVarDesc{}
 }
 
 func (w logGetter) WantIterationInfoLogged() bool {

@@ -11,15 +11,17 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"io"
-	"k8s.io/apimachinery/pkg/runtime"
 	"net/mail"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
+
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	cmutil "github.com/jetstack/cert-manager/pkg/api/util"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -87,6 +89,8 @@ const (
 	// Uninstall resources
 	controllerConfigMap = "cert-manager-controller"
 	caInjectorConfigMap = "cert-manager-cainjector-leader-election"
+
+	vzNsLabel = "verrazzano.io/namespace"
 )
 
 type authenticationType string
