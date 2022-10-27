@@ -5,9 +5,11 @@ package ingress
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -92,12 +94,20 @@ func deployApplication() {
 
 	t.Logs.Info("Create component resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/components.yaml")
+		file, err := pkg.FindTestDataFile("testdata/ingress/console/components.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create application resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/ingress/console/application.yaml")
+		file, err := pkg.FindTestDataFile("testdata/ingress/console/application.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	// Verify cidomain-adminserver and mysql pods are running
@@ -115,12 +125,20 @@ func undeployApplication() {
 	t.Logs.Info("Delete application")
 	start := time.Now()
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/ingress/console/application.yaml")
+		file, err := pkg.FindTestDataFile("testdata/ingress/console/application.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/ingress/console/components.yaml")
+		file, err := pkg.FindTestDataFile("testdata/ingress/console/components.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for application pods to terminate")
