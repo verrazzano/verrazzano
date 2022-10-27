@@ -39,7 +39,7 @@ type RancherClusterSyncer struct {
 func (r *RancherClusterSyncer) StartSyncing() {
 	// initialize logger - the AddCallerSkip is needed otherwise the caller in the log message always shows "vzlog.go"
 	l := r.Log.Desugar().WithOptions(zap.AddCallerSkip(2))
-	log := vzlog.EnsureContext("rancher_cluster_sync").EnsureLogger("syncer", l.Sugar(), zap.S()).SetFrequency(300)
+	log := vzlog.EnsureContext("rancher_cluster_sync").EnsureLogger("syncer", l.Sugar(), zap.S())
 
 	log.Info("Starting Rancher cluster synchronizing loop")
 
