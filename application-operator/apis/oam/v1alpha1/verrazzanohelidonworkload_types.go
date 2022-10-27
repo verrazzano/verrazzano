@@ -10,26 +10,28 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// VerrazzanoHelidonWorkloadSpec wraps a Kubernetes deployment.
+// VerrazzanoHelidonWorkloadSpec wraps a Helidon application deployment.
 type VerrazzanoHelidonWorkloadSpec struct {
-	// An embedded application deployment.
+	// An embedded Helidon application deployment.
 	DeploymentTemplate DeploymentTemplate `json:"deploymentTemplate"`
 }
 
-// DeploymentTemplate specifies the metadata and pod spec of an underlying application.
+// DeploymentTemplate specifies the metadata and pod spec of a Helidon workload.
 type DeploymentTemplate struct {
-	// Metadata about an underlying application.
+	// Metadata about a Helidon application.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Metadata metav1.ObjectMeta `json:"metadata"`
-	// The pod spec of an underlying application.
+	// The pod spec of a Helidon application.
 	// +kubebuilder:validation:Required
 	PodSpec v1.PodSpec `json:"podSpec"`
-	// Label selector of an underlying application.
+	// Label selector of a Helidon application.
+	// +optional
 	Selector metav1.LabelSelector `json:"selector,omitempty" patchStrategy:"retainKeys"`
-	// The replacement strategy of an underlying application.
+	// The replacement strategy of a Helidon application.
 	// +kubebuilder:validation:Optional
 	// +patchStrategy=retainKeys
+	// +optional
 	Strategy appsv1.DeploymentStrategy `json:"strategy,omitempty" patchStrategy:"retainKeys"  protobuf:"bytes,4,opt,name=strategy"`
 }
 

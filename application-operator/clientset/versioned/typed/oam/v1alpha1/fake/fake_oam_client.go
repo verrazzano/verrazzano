@@ -35,6 +35,10 @@ func (c *FakeOamV1alpha1) VerrazzanoHelidonWorkloads(namespace string) v1alpha1.
 	return &FakeVerrazzanoHelidonWorkloads{c, namespace}
 }
 
+func (c *FakeOamV1alpha1) VerrazzanoWebLogicWorkloads(namespace string) v1alpha1.VerrazzanoWebLogicWorkloadInterface {
+	return &FakeVerrazzanoWebLogicWorkloads{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeOamV1alpha1) RESTClient() rest.Interface {

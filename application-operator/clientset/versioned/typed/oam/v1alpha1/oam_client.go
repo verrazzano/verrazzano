@@ -20,6 +20,7 @@ type OamV1alpha1Interface interface {
 	MetricsTraitsGetter
 	VerrazzanoCoherenceWorkloadsGetter
 	VerrazzanoHelidonWorkloadsGetter
+	VerrazzanoWebLogicWorkloadsGetter
 }
 
 // OamV1alpha1Client is used to interact with features provided by the oam.verrazzano.io group.
@@ -45,6 +46,10 @@ func (c *OamV1alpha1Client) VerrazzanoCoherenceWorkloads(namespace string) Verra
 
 func (c *OamV1alpha1Client) VerrazzanoHelidonWorkloads(namespace string) VerrazzanoHelidonWorkloadInterface {
 	return newVerrazzanoHelidonWorkloads(c, namespace)
+}
+
+func (c *OamV1alpha1Client) VerrazzanoWebLogicWorkloads(namespace string) VerrazzanoWebLogicWorkloadInterface {
+	return newVerrazzanoWebLogicWorkloads(c, namespace)
 }
 
 // NewForConfig creates a new OamV1alpha1Client for the given config.

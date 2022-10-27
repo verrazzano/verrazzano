@@ -39,14 +39,14 @@ spec:
             description: The desired state of a Verrazzano Helidon workload.
             properties:
               deploymentTemplate:
-                description: An embedded application deployment.
+                description: An embedded Helidon application deployment.
                 properties:
                   metadata:
-                    description: Metadata about an underlying application.
+                    description: Metadata about a Helidon application.
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
                   podSpec:
-                    description: The pod spec of an underlying application.
+                    description: The pod spec of a Helidon application.
                     properties:
                       activeDeadlineSeconds:
                         description: Optional duration in seconds the pod may be active
@@ -7122,7 +7122,7 @@ spec:
                     - containers
                     type: object
                   selector:
-                    description: Label selector of an underlying application.
+                    description: Label selector of a Helidon application.
                     properties:
                       matchExpressions:
                         description: matchExpressions is a list of label selector
@@ -7166,7 +7166,7 @@ spec:
                         type: object
                     type: object
                   strategy:
-                    description: The replacement strategy of an underlying application.
+                    description: The replacement strategy of a Helidon application.
                     properties:
                       rollingUpdate:
                         description: 'Rolling update config params. Present only if

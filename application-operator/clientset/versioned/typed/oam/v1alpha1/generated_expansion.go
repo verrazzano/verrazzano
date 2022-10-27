@@ -14,3 +14,5 @@ type MetricsTraitExpansion interface{}
 type VerrazzanoCoherenceWorkloadExpansion interface{}
 
 type VerrazzanoHelidonWorkloadExpansion interface{}
+
+type VerrazzanoWebLogicWorkloadExpansion interface{}
