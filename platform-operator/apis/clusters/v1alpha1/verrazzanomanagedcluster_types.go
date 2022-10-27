@@ -11,22 +11,27 @@ import (
 // The VerrazzanoManagedCluster custom resource contains information about a
 // kubernetes cluster where Verrazzano managed applications are deployed.
 
-// VerrazzanoManagedClusterSpec defines the desired state of VerrazzanoManagedCluster
+// VerrazzanoManagedClusterSpec defines the desired state of a VerrazzanoManagedCluster.
 type VerrazzanoManagedClusterSpec struct {
-	// The description of the managed cluster.
-	Description string `json:"description,omitempty"`
-
-	// The name of a secret that contains the ca certificate for accessing console
-	// and api endpoints on the managed cluster.
+	// The name of a Secret that contains the CA certificate of the managed cluster. This is used to configure the
+	// admin cluster to scrape metrics from the Prometheus endpoint on the managed cluster. See the pre-registration
+	// <a href="../../../../../docs/setup/install/multicluster/#preregistration-setup">instructions</a>
+	// for how to create this Secret.
 	CASecret string `json:"caSecret,omitempty"`
 
-	// The name of the ServiceAccount that was generated for the managed cluster.
-	// This field is managed by a Verrazzano Kubernetes operator.
-	ServiceAccount string `json:"serviceAccount,omitempty"`
+	// The description of the managed cluster.
+	// +optional
+	Description string `json:"description,omitempty"`
 
-	// The name of the secret containing generated YAML manifest to be applied by the user to the managed cluster.
+	// The name of the Secret containing generated YAML manifest file to be applied by the user to the managed cluster.
 	// This field is managed by a Verrazzano Kubernetes operator.
+	// +optional
 	ManagedClusterManifestSecret string `json:"managedClusterManifestSecret,omitempty"`
+
+	// The name of the ServiceAccount that was generated for the managed cluster. This field is managed by a
+	// Verrazzano Kubernetes operator.
+	// +optional
+	ServiceAccount string `json:"serviceAccount,omitempty"`
 }
 
 // ConditionType identifies the condition of the VMC which can be checked with kubectl wait
@@ -45,7 +50,7 @@ const (
 	ConditionManifestPushed ConditionType = "ManifestPushed"
 )
 
-// StateType identifies the state of the VMC which is shown in Verrazzano Dashboard.
+// StateType identifies the state of the VerrazzanoManagedCluster resource.
 type StateType string
 
 const (
@@ -54,7 +59,7 @@ const (
 	StatePending  StateType = "Pending"
 )
 
-// Condition describes a condition that occurred on the VerrazzanoManagedCluster resource
+// Condition describes a condition that occurred on the VerrazzanoManagedCluster resource.
 type Condition struct {
 	// Type of condition.
 	Type ConditionType `json:"type"`
@@ -68,6 +73,7 @@ type Condition struct {
 	Message string `json:"message,omitempty"`
 }
 
+// RancherRegistrationStatus identifies the status of Rancher registration.
 type RancherRegistrationStatus string
 
 const (
@@ -75,7 +81,7 @@ const (
 	RegistrationFailed    RancherRegistrationStatus = "Failed"
 )
 
-// RancherRegistration defines the Rancher registration state for a managed cluster
+// RancherRegistration defines the Rancher registration state for a managed cluster.
 type RancherRegistration struct {
 	// The status of the Rancher registration
 	Status RancherRegistrationStatus `json:"status"`
@@ -86,24 +92,24 @@ type RancherRegistration struct {
 	ClusterID string `json:"clusterID,omitempty"`
 }
 
-// VerrazzanoManagedClusterStatus defines the observed state of VerrazzanoManagedCluster
+// VerrazzanoManagedClusterStatus defines the observed state of a VerrazzanoManagedCluster resource.
 type VerrazzanoManagedClusterStatus struct {
-	// The latest available observations of an object's current state.
-	Conditions []Condition `json:"conditions,omitempty"`
-	// Last time the agent from this managed cluster connected to the admin cluster.
-	// +optional
-	LastAgentConnectTime *metav1.Time `json:"lastAgentConnectTime,omitempty"`
-	// State of the Cluster to determine if it is Active, Pending, or Inactive.
-	State StateType `json:"state"`
-	// Verrazzano API Server URL for the managed cluster.
+	// The Verrazzano API server URL for this managed cluster.
 	APIUrl string `json:"apiUrl,omitempty"`
-	// Prometheus Host for the managed cluster.
+	// The current state of this managed cluster.
+	Conditions []Condition `json:"conditions,omitempty"`
+	// The last time the agent from this managed cluster connected to the admin cluster.
+	LastAgentConnectTime *metav1.Time `json:"lastAgentConnectTime,omitempty"`
+	// The Prometheus host for this managed cluster.
 	PrometheusHost string `json:"prometheusHost,omitempty"`
-	// State of Rancher registration for a managed cluster
+	// The state of Rancher registration for this managed cluster.
 	RancherRegistration RancherRegistration `json:"rancherRegistration,omitempty"`
+	// The state of this managed cluster.
+	State StateType `json:"state"`
 }
 
-// VerrazzanoManagedCluster is the Schema for the Verrazzanomanagedclusters API
+//	VerrazzanoManagedCluster specifies the Verrazzano Managed Cluster API.
+//
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName=vmc;vmcs
@@ -112,13 +118,15 @@ type VerrazzanoManagedCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VerrazzanoManagedClusterSpec   `json:"spec,omitempty"`
+	// The desired state of a Verrazzano Managed Cluster resource.
+	Spec VerrazzanoManagedClusterSpec `json:"spec,omitempty"`
+	// The observed state of a Verrazzano Managed Cluster resource.
 	Status VerrazzanoManagedClusterStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// VerrazzanoManagedClusterList contains a list of VerrazzanoManagedCluster
+// VerrazzanoManagedClusterList contains a list of VerrazzanoManagedCluster resources.
 type VerrazzanoManagedClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
