@@ -121,25 +121,24 @@ The other Make targets are:
 
 ### Example Helm Installs
 
-Install the example worker as a Kubernetes deployment with 10 replicas:
-
+Install the example worker as an OAM application with 10 replicas:
 ```
-helm install  psr manifests/charts/k8s --set imageName=ghcr.io/verrazzano/psr-backend:local-582bfcfcf --replicas=10
-```
-
-Install the logging generator worker as an OAM application using the default
-image in the helm chart:
-
-```
-helm install  psr2 manifests/charts/oam -f manifests/helm/workers/opensearch.yaml
+helm install  psr manifests/charts/worker --set imageName=ghcr.io/verrazzano/psr-backend:local-582bfcfcf --replicas=10
 ```
 
-Install the example worker as a Kubernetes deployment using the default image in
+Install the example worker as an OAM application using the default image in
 the helm chart, providing an imagePullSecret
+```
+helm install  psr-3  manifests/charts/worker --set imagePullSecrets[0].name=verrazzano-container-registry
+```
+
+Install the logging generator worker as a Kubernetes deployment using the default
+image in the helm chart.  Note the appType must be supplied:
 
 ```
-helm install  psr-3  manifests/charts/k8s/ --set imagePullSecrets[0].name=verrazzano-container-registry
+helm install  psr2 manifests/charts/worker --set appType=k8s -f manifests/helm/workers/opensearch.yaml
 ```
+
 
 ### The Backend Image
 
