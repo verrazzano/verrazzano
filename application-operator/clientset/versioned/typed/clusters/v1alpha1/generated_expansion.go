@@ -5,4 +5,8 @@
 
 package v1alpha1
 
+type MultiClusterConfigMapExpansion interface{}
+
+type MultiClusterSecretExpansion interface{}
+
 type VerrazzanoProjectExpansion interface{}

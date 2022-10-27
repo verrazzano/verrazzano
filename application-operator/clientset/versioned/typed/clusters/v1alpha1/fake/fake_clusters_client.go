@@ -15,6 +15,14 @@ type FakeClustersV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeClustersV1alpha1) MultiClusterConfigMaps(namespace string) v1alpha1.MultiClusterConfigMapInterface {
+	return &FakeMultiClusterConfigMaps{c, namespace}
+}
+
+func (c *FakeClustersV1alpha1) MultiClusterSecrets(namespace string) v1alpha1.MultiClusterSecretInterface {
+	return &FakeMultiClusterSecrets{c, namespace}
+}
+
 func (c *FakeClustersV1alpha1) VerrazzanoProjects(namespace string) v1alpha1.VerrazzanoProjectInterface {
 	return &FakeVerrazzanoProjects{c, namespace}
 }

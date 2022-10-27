@@ -15,12 +15,22 @@ import (
 
 type ClustersV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	MultiClusterConfigMapsGetter
+	MultiClusterSecretsGetter
 	VerrazzanoProjectsGetter
 }
 
 // ClustersV1alpha1Client is used to interact with features provided by the clusters.verrazzano.io group.
 type ClustersV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *ClustersV1alpha1Client) MultiClusterConfigMaps(namespace string) MultiClusterConfigMapInterface {
+	return newMultiClusterConfigMaps(c, namespace)
+}
+
+func (c *ClustersV1alpha1Client) MultiClusterSecrets(namespace string) MultiClusterSecretInterface {
+	return newMultiClusterSecrets(c, namespace)
 }
 
 func (c *ClustersV1alpha1Client) VerrazzanoProjects(namespace string) VerrazzanoProjectInterface {
