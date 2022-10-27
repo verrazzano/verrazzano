@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	"os"
 	"sync"
 	"time"
@@ -48,7 +49,6 @@ import (
 	clusterscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	configmapcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
 	secretscontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
-	vzcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
