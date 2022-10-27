@@ -8,18 +8,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
+	"text/tabwriter"
+	"text/template"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	"os"
-	"strings"
-	"text/tabwriter"
-	"text/template"
 )
 
 // getUnstructuredData common utility to fetch unstructured data
@@ -99,7 +100,7 @@ func CreateVeleroBackupLocationObject(backupStorageName, backupSecretName string
 		VeleroBackupRegion:               BackupRegion,
 	}
 	template.Execute(&b, data)
-	err := pkg.CreateOrUpdateResourceFromBytes(b.Bytes())
+	err := resource.CreateOrUpdateResourceFromBytes(b.Bytes(), log)
 	if err != nil {
 		log.Errorf("Error creating velero backup location ", zap.Error(err))
 		return err

@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	appopconst "github.com/verrazzano/verrazzano/application-operator/constants"
@@ -52,7 +54,11 @@ var projectGvr = schema.GroupVersionResource{
 
 // DeployHelloHelidonProject deploys the hello-helidon example's VerrazzanoProject to the cluster with the given kubeConfigPath
 func DeployHelloHelidonProject(kubeconfigPath string, sourceDir string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir), kubeconfigPath); err != nil {
+	file, err := pkg.FindTestDataFile(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir))
+	if err != nil {
+		return err
+	}
+	if err := resource.CreateOrUpdateResourceFromFileInCluster(file, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to create %s project resource: %v", sourceDir, err)
 	}
 	return nil
@@ -60,10 +66,15 @@ func DeployHelloHelidonProject(kubeconfigPath string, sourceDir string) error {
 
 // DeployHelloHelidonApp deploys the hello-helidon example application to the cluster with the given kubeConfigPath
 func DeployHelloHelidonApp(kubeConfigPath string, sourceDir string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/hello-helidon-comp.yaml", sourceDir), kubeConfigPath); err != nil {
+	file, err := pkg.FindTestDataFile(fmt.Sprintf("examples/multicluster/%s/hello-helidon-comp.yaml", sourceDir))
+	if err != nil {
+		return err
+	}
+	if err := resource.CreateOrUpdateResourceFromFileInCluster(file, kubeConfigPath); err != nil {
 		return fmt.Errorf("failed to create multi-cluster %s component resources: %v", sourceDir, err)
 	}
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/mc-hello-helidon-app.yaml", sourceDir), kubeConfigPath); err != nil {
+	file, err = pkg.FindTestDataFile(fmt.Sprintf("examples/multicluster/%s/mc-hello-helidon-app.yaml", sourceDir))
+	if err := resource.CreateOrUpdateResourceFromFileInCluster(file, kubeConfigPath); err != nil {
 		return fmt.Errorf("failed to create multi-cluster %s application resource: %v", sourceDir, err)
 	}
 	return nil
@@ -87,10 +98,14 @@ func changePlacement(kubeConfigPath string, patchFile string) error {
 	mcAppGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.MultiClusterAppConfigResource)
 	vpGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.VerrazzanoProjectResource)
 
-	if err := pkg.PatchResourceFromFileInCluster(mcAppGvr, TestNamespace, appConfigName, patchFile, kubeConfigPath); err != nil {
+	file, err := pkg.FindTestDataFile(patchFile)
+	if err != nil {
+		return err
+	}
+	if err := resource.PatchResourceFromFileInCluster(mcAppGvr, TestNamespace, appConfigName, file, kubeConfigPath); err != nil {
 		return fmt.Errorf("failed to change placement of multicluster hello-helidon application resource: %v", err)
 	}
-	if err := pkg.PatchResourceFromFileInCluster(vpGvr, multiclusterNamespace, projectName, patchFile, kubeConfigPath); err != nil {
+	if err := resource.PatchResourceFromFileInCluster(vpGvr, multiclusterNamespace, projectName, file, kubeConfigPath); err != nil {
 		return fmt.Errorf("failed to create VerrazzanoProject resource: %v", err)
 	}
 	return nil
@@ -104,13 +119,17 @@ func ChangePlacementV100(kubeConfigPath string, patchFile string, namespace stri
 	mcAppGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.MultiClusterAppConfigResource)
 	vpGvr := clustersv1alpha1.SchemeGroupVersion.WithResource(clustersv1alpha1.VerrazzanoProjectResource)
 
-	if err := pkg.PatchResourceFromFileInCluster(mcCompGvr, namespace, componentName, patchFile, kubeConfigPath); err != nil {
+	file, err := pkg.FindTestDataFile(patchFile)
+	if err != nil {
+		return err
+	}
+	if err := resource.PatchResourceFromFileInCluster(mcCompGvr, namespace, componentName, file, kubeConfigPath); err != nil {
 		return fmt.Errorf("failed to change placement of multicluster hello-helidon component resource: %v", err)
 	}
-	if err := pkg.PatchResourceFromFileInCluster(mcAppGvr, namespace, appConfigName, patchFile, kubeConfigPath); err != nil {
+	if err := resource.PatchResourceFromFileInCluster(mcAppGvr, namespace, appConfigName, file, kubeConfigPath); err != nil {
 		return fmt.Errorf("failed to change placement of multicluster hello-helidon application resource: %v", err)
 	}
-	if err := pkg.PatchResourceFromFileInCluster(vpGvr, multiclusterNamespace, projName, patchFile, kubeConfigPath); err != nil {
+	if err := resource.PatchResourceFromFileInCluster(vpGvr, multiclusterNamespace, projName, file, kubeConfigPath); err != nil {
 		return fmt.Errorf("failed to create VerrazzanoProject resource: %v", err)
 	}
 	return nil

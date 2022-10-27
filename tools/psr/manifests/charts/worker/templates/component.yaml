@@ -15,7 +15,7 @@ spec:
       name: {{ .Release.Name}}
       namespace: {{ .Release.Namespace }}
       labels:
-        app: backend
+        app: psr-backend
         version: v1
     spec:
       {{- if .Values.imagePullSecrets }}
@@ -23,7 +23,7 @@ spec:
       {{ toYaml .Values.imagePullSecrets | indent 2 }}
       {{- end }}
       containers:
-        - name: backend-container
+        - name: psr-backend
           image: {{  .Values.imageName }}
           imagePullPolicy: {{  .Values.imagePullPolicy }}
           env:

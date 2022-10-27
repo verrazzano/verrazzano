@@ -119,7 +119,7 @@ func (r runner) GetMetricList() []prometheus.Metric {
 func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	startTimeSecs := time.Now().Unix()
 	for {
-		atomic.AddInt64(&r.runnerMetrics.loopCount.Val, 1)
+		loopCount := atomic.AddInt64(&r.runnerMetrics.loopCount.Val, 1)
 
 		// call the wrapped worker.  Log any error but keep working
 		startIteration := time.Now().UnixNano()
@@ -127,12 +127,12 @@ func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		if err != nil {
 			log.Errorf("Failed calling %s to do work: %v", r.Worker.GetWorkerDesc().EnvName, err)
 		}
-		if r.Worker.WantIterationInfoLogged() {
-			log.Infof("Loop Count: %v, Elapsed Secs: %v", r.runnerMetrics.loopCount, r.runnerMetrics.workerDurationTotalSeconds)
-		}
+		durationSecondsTotal := time.Now().Unix() - startTimeSecs
 		atomic.StoreInt64(&r.runnerMetrics.workerIterationNanoSeconds.Val, time.Now().UnixNano()-startIteration)
-		atomic.StoreInt64(&r.runnerMetrics.workerDurationTotalSeconds.Val, time.Now().Unix()-startTimeSecs)
-
+		atomic.StoreInt64(&r.runnerMetrics.workerDurationTotalSeconds.Val, durationSecondsTotal)
+		if r.Worker.WantIterationInfoLogged() {
+			log.Infof("Loop Count: %v, Total seconds from start of first work iteration until now: %v", loopCount, durationSecondsTotal)
+		}
 		time.Sleep(conf.IterationSleepNanos)
 	}
 }
