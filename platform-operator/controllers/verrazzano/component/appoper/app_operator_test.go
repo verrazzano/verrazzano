@@ -6,6 +6,7 @@ package appoper
 import (
 	"context"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -142,6 +143,22 @@ func TestLabelAnnotateTraitDefinitions(t *testing.T) {
 	_ = oam.AddToScheme(scheme)
 
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		testTraitObjects()...,
+	).Build()
+	assert.NoError(t, labelAnnotateTraitDefinitions(fakeClient))
+	trait := oamv1alpha2.TraitDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "ingresstraits.oam.verrazzano.io"}, &trait))
+	checkTraitDefinition(t, &trait)
+	trait = oamv1alpha2.TraitDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "loggingtraits.oam.verrazzano.io"}, &trait))
+	checkTraitDefinition(t, &trait)
+	trait = oamv1alpha2.TraitDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "metricstraits.oam.verrazzano.io"}, &trait))
+	checkTraitDefinition(t, &trait)
+}
+
+func testTraitObjects() []client.Object {
+	return []client.Object{
 		&oamv1alpha2.TraitDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ingresstraits.oam.verrazzano.io",
@@ -157,17 +174,7 @@ func TestLabelAnnotateTraitDefinitions(t *testing.T) {
 				Name: "metricstraits.oam.verrazzano.io",
 			},
 		},
-	).Build()
-	assert.NoError(t, labelAnnotateTraitDefinitions(fakeClient))
-	trait := oamv1alpha2.TraitDefinition{}
-	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "ingresstraits.oam.verrazzano.io"}, &trait))
-	checkTraitDefinition(t, &trait)
-	trait = oamv1alpha2.TraitDefinition{}
-	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "loggingtraits.oam.verrazzano.io"}, &trait))
-	checkTraitDefinition(t, &trait)
-	trait = oamv1alpha2.TraitDefinition{}
-	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "metricstraits.oam.verrazzano.io"}, &trait))
-	checkTraitDefinition(t, &trait)
+	}
 }
 
 // TestLabelAnnotateWorkloadDefinitions tests the labelAnnotateWorkloadDefinitions function
@@ -179,6 +186,31 @@ func TestLabelAnnotateWorkloadDefinitions(t *testing.T) {
 	_ = oam.AddToScheme(scheme)
 
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		testWorkloadDefinitionObjects()...,
+	).Build()
+	assert.NoError(t, labelAnnotateWorkloadDefinitions(fakeClient))
+	workload := oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "coherences.coherence.oracle.com"}, &workload))
+	checkWorkloadDefinition(t, &workload)
+	workload = oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "deployments.apps"}, &workload))
+	checkWorkloadDefinition(t, &workload)
+	workload = oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "domains.weblogic.oracle"}, &workload))
+	checkWorkloadDefinition(t, &workload)
+	workload = oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "verrazzanocoherenceworkloads.oam.verrazzano.io"}, &workload))
+	checkWorkloadDefinition(t, &workload)
+	workload = oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "verrazzanohelidonworkloads.oam.verrazzano.io"}, &workload))
+	checkWorkloadDefinition(t, &workload)
+	workload = oamv1alpha2.WorkloadDefinition{}
+	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "verrazzanoweblogicworkloads.oam.verrazzano.io"}, &workload))
+	checkWorkloadDefinition(t, &workload)
+}
+
+func testWorkloadDefinitionObjects() []client.Object {
+	return []client.Object{
 		&oamv1alpha2.WorkloadDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "coherences.coherence.oracle.com",
@@ -209,26 +241,7 @@ func TestLabelAnnotateWorkloadDefinitions(t *testing.T) {
 				Name: "verrazzanoweblogicworkloads.oam.verrazzano.io",
 			},
 		},
-	).Build()
-	assert.NoError(t, labelAnnotateWorkloadDefinitions(fakeClient))
-	workload := oamv1alpha2.WorkloadDefinition{}
-	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "coherences.coherence.oracle.com"}, &workload))
-	checkWorkloadDefinition(t, &workload)
-	workload = oamv1alpha2.WorkloadDefinition{}
-	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "deployments.apps"}, &workload))
-	checkWorkloadDefinition(t, &workload)
-	workload = oamv1alpha2.WorkloadDefinition{}
-	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "domains.weblogic.oracle"}, &workload))
-	checkWorkloadDefinition(t, &workload)
-	workload = oamv1alpha2.WorkloadDefinition{}
-	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "verrazzanocoherenceworkloads.oam.verrazzano.io"}, &workload))
-	checkWorkloadDefinition(t, &workload)
-	workload = oamv1alpha2.WorkloadDefinition{}
-	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "verrazzanohelidonworkloads.oam.verrazzano.io"}, &workload))
-	checkWorkloadDefinition(t, &workload)
-	workload = oamv1alpha2.WorkloadDefinition{}
-	assert.NoError(t, fakeClient.Get(context.TODO(), types.NamespacedName{Name: "verrazzanoweblogicworkloads.oam.verrazzano.io"}, &workload))
-	checkWorkloadDefinition(t, &workload)
+	}
 }
 
 func checkTraitDefinition(t *testing.T, trait *oamv1alpha2.TraitDefinition) {
