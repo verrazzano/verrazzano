@@ -23,7 +23,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: VerrazzanoProject is the Schema for the verrazzanoprojects API
+        description: VerrazzanoProject specifies the Verrazzano Projects API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -38,11 +38,10 @@ spec:
           metadata:
             type: object
           spec:
-            description: VerrazzanoProjectSpec defines the desired state of VerrazzanoProject
+            description: The desired state of a Verrazzano Project resource.
             properties:
               placement:
-                description: Clusters in which the namespaces in this project are
-                  to be placed
+                description: Clusters on which the namespaces are to be created.
                 properties:
                   clusters:
                     items:
@@ -59,19 +58,20 @@ spec:
                 - clusters
                 type: object
               template:
-                description: ProjectTemplate contains the resources for a project
+                description: The project template.
                 properties:
                   namespaces:
+                    description: The list of application namespaces to create for
+                      this project.
                     items:
-                      description: NamespaceTemplate has the metadata and spec of
-                        the underlying namespace
+                      description: NamespaceTemplate contains the metadata and specification
+                        of a Kubernetes namespace.
                       properties:
                         metadata:
                           type: object
                           x-kubernetes-preserve-unknown-fields: true
                         spec:
-                          description: NamespaceSpec describes the attributes on a
-                            Namespace.
+                          description: The specification of a namespace.
                           properties:
                             finalizers:
                               description: 'Finalizers is an opaque list of values
@@ -83,22 +83,19 @@ spec:
                                 type: string
                               type: array
                           type: object
-                      required:
-                      - metadata
                       type: object
                     type: array
                   networkPolicies:
-                    description: Network policies applied to namespaces in the project
+                    description: Network policies applied to namespaces in the project.
                     items:
-                      description: NetworkPolicyTemplate has the metadata and spec
-                        of the underlying NetworkPolicy
+                      description: NetworkPolicyTemplate contains the metadata and
+                        specification of a Kubernetes NetworkPolicy.
                       properties:
                         metadata:
                           type: object
                           x-kubernetes-preserve-unknown-fields: true
                         spec:
-                          description: NetworkPolicySpec specifies the NetworkPolicy
-                            for a specific namespace / pod combination.
+                          description: The specification of a network policy.
                           properties:
                             egress:
                               description: List of egress rules to be applied to the
@@ -636,16 +633,14 @@ spec:
                           required:
                           - podSelector
                           type: object
-                      required:
-                      - metadata
                       type: object
                     type: array
                   security:
-                    description: Security specifies the project security configuration
+                    description: The project security configuration.
                     properties:
                       projectAdminSubjects:
-                        description: ProjectAdminSubjects specifies the list of subjects
-                          that should be bound to the verrazzano-project-admin role
+                        description: The subjects to bind to the `verrazzano-project-admin`
+                          role.
                         items:
                           description: Subject contains a reference to the object
                             or user identities a role binding applies to.  This can
@@ -679,8 +674,8 @@ spec:
                           type: object
                         type: array
                       projectMonitorSubjects:
-                        description: ProjectMonitorBinding specifies the subject that
-                          should be bound to the verrazzano-project-monitor role
+                        description: The subjects to bind to the `verrazzano-project-monitoring`
+                          role.
                         items:
                           description: Subject contains a reference to the object
                             or user identities a role binding applies to.  This can
@@ -722,8 +717,7 @@ spec:
             - template
             type: object
           status:
-            description: MultiClusterResourceStatus represents the status of a multi-cluster
-              resource, including cluster-level status information
+            description: The observed state of a Verrazzano Project resource.
             properties:
               clusters:
                 items:

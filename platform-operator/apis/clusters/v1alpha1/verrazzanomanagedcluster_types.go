@@ -61,18 +61,18 @@ const (
 
 // Condition describes a condition that occurred on the Verrazzano Managed Cluster.
 type Condition struct {
-	// The condition of the multicluster resource which can be checked with a `kubectl wait` command. Condition values
-	// are case-sensitive and formatted as follows: `Ready`: the VerrazzanoManagedCluster is ready to be used and all
-	// resources needed have been generated.
-	Type ConditionType `json:"type"`
-	// Status of the condition: one of `True`, `False`, or `Unknown`.
-	Status corev1.ConditionStatus `json:"status"`
 	// Last time the condition transitioned from one status to another.
 	// +optional
 	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
 	// A message with details about the last transition.
 	// +optional
 	Message string `json:"message,omitempty"`
+	// Status of the condition: one of `True`, `False`, or `Unknown`.
+	Status corev1.ConditionStatus `json:"status"`
+	// The condition of the multicluster resource which can be checked with a `kubectl wait` command. Condition values
+	// are case-sensitive and formatted as follows: `Ready`: the VerrazzanoManagedCluster is ready to be used and all
+	// resources needed have been generated.
+	Type ConditionType `json:"type"`
 }
 
 // RancherRegistrationStatus identifies the status of a Rancher registration.
@@ -85,13 +85,13 @@ const (
 
 // RancherRegistration defines the Rancher registration state for a managed cluster.
 type RancherRegistration struct {
-	// The status of the Rancher registration.
-	Status RancherRegistrationStatus `json:"status"`
+	// The Rancher cluster ID for this cluster.
+	ClusterID string `json:"clusterID,omitempty"`
 	// A supporting message related to the Rancher registration status.
 	// +optional
 	Message string `json:"message,omitempty"`
-	// The Rancher cluster ID for this cluster.
-	ClusterID string `json:"clusterID,omitempty"`
+	// The status of the Rancher registration.
+	Status RancherRegistrationStatus `json:"status"`
 }
 
 // VerrazzanoManagedClusterStatus defines the observed state of a Verrazzano Managed Cluster.
