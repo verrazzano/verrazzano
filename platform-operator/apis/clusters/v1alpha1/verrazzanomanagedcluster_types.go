@@ -34,7 +34,7 @@ type VerrazzanoManagedClusterSpec struct {
 	ServiceAccount string `json:"serviceAccount,omitempty"`
 }
 
-// ConditionType identifies the condition of the VMC which can be checked with kubectl wait
+// ConditionType identifies the condition of the Verrazzano Managed Cluster which can be checked with `kubectl wait`.
 type ConditionType string
 
 const (
@@ -65,8 +65,7 @@ type Condition struct {
 	// are case-sensitive and formatted as follows: `Ready`: the VerrazzanoManagedCluster is ready to be used and all
 	// resources needed have been generated.
 	Type ConditionType `json:"type"`
-	// An instance of the type ConditionStatus that is defined in
-	// <a href="https://github.com/kubernetes/api/blob/master/core/v1/types.go">types.go</a>.
+	// Status of the condition: one of `True`, `False`, or `Unknown`.
 	Status corev1.ConditionStatus `json:"status"`
 	// Last time the condition transitioned from one status to another.
 	// +optional
