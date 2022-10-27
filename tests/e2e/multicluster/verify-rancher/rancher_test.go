@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"os"
 	"regexp"
 	"time"
@@ -32,6 +33,11 @@ const (
 	searchTimeWindow      = "1h"
 )
 
+const (
+	adminSecName = "verrazzano-cluster-admin"
+	regSecName   = "verrazzano-cluster-registration"
+)
+
 var t = framework.NewTestFramework("rancher_test")
 
 var _ = t.BeforeSuite(func() {})
@@ -54,21 +60,26 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 	})
 
 	t.Context("When the VMC is updated to the status of the managed cluster", func() {
-		var client *versioned.Clientset
+		var adminClient *versioned.Clientset
+		var managedClient *kubernetes.Clientset
 		BeforeEach(func() {
 			adminKubeconfig := os.Getenv("ADMIN_KUBECONFIG")
 			Expect(adminKubeconfig).To(Not(BeEmpty()))
+			managedKubeconfig := os.Getenv("MANAGED_KUBECONFIG")
+			Expect(managedKubeconfig).To(Not(BeEmpty()))
 
 			var err error
 
-			client, err = pkg.GetVerrazzanoClientsetInCluster(adminKubeconfig)
+			adminClient, err = pkg.GetVerrazzanoClientsetInCluster(adminKubeconfig)
+			Expect(err).ShouldNot(HaveOccurred())
+			managedClient, err = pkg.GetKubernetesClientsetForCluster(managedKubeconfig)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		t.It("the VMC status is updated that objects have been pushed to the managed cluster", func() {
 			Eventually(func() error {
 				pkg.Log(pkg.Info, "Waiting for all VMC to have status condition ManifestPushed = True")
-				vmcList, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
+				vmcList, err := adminClient.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
 				Expect(err).ShouldNot(HaveOccurred())
 
 				for _, vmc := range vmcList.Items {
@@ -86,6 +97,27 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 						return fmt.Errorf("failed to find expected condition, VMC %s/%s had no condition of type %s",
 							vmc.Name, vmc.Namespace, v1alpha1.ConditionManifestPushed)
 					}
+				}
+				return nil
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeNil())
+		})
+
+		t.It("the managed cluster should contain the pushed secrets", func() {
+			Eventually(func() error {
+				adminSec, err := managedClient.CoreV1().Secrets(constants.VerrazzanoSystemNamespace).Get(context.TODO(), adminSecName, metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				if adminSec == nil {
+					return fmt.Errorf("get admin secret %s returned nil on the managed cluster", adminSecName)
+				}
+
+				managedSec, err := managedClient.CoreV1().Secrets(constants.VerrazzanoSystemNamespace).Get(context.TODO(), regSecName, metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				if managedSec == nil {
+					return fmt.Errorf("get registration secret %s returned nil on the managed cluster", regSecName)
 				}
 				return nil
 			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeNil())
