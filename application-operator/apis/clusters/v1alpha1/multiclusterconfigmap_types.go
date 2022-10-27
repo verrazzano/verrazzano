@@ -10,48 +10,52 @@ import (
 const MultiClusterConfigMapKind = "MultiClusterConfigMap"
 const MultiClusterConfigMapResource = "multiclusterconfigmaps"
 
-// MultiClusterConfigMapSpec defines the desired state of MultiClusterConfigMap
+// MultiClusterConfigMapSpec defines the desired state of a Multi Cluster ConfigMap.
 type MultiClusterConfigMapSpec struct {
-	// The embedded Kubernetes ConfigMap
-	Template ConfigMapTemplate `json:"template"`
-
-	// Clusters in which the ConfigMap is to be placed
+	// Clusters in which the config map is to be created.
 	Placement Placement `json:"placement"`
+
+	// The embedded Kubernetes config map.
+	Template ConfigMapTemplate `json:"template"`
 }
 
-// ConfigMapTemplate has the metadata and spec of the underlying ConfigMap
-// Note that K8S does not define a "ConfigMapSpec" data type, so fields in ConfigMap are copied here
+// ConfigMapTemplate has the metadata and spec of the Kubernetes ConfigMap.
 type ConfigMapTemplate struct {
-	// +optional
+	// Metadata describing the config map.
 	Metadata EmbeddedObjectMeta `json:"metadata,omitempty"`
 
-	// Immutable corresponds to the Immutable field of K8S corev1.ConfigMap
+	// Corresponds to the `immutable` field of the `struct` ConfigMap defined in
+	// <a href="https://github.com/kubernetes/api/blob/master/core/v1/types.go">types.go</a>.
 	Immutable *bool `json:"immutable,omitempty"`
 
-	// Data corresponds to the Data field of K8S corev1.ConfigMap
+	// Corresponds to the `data` field of the `struct` ConfigMap defined in
+	// <a href="https://github.com/kubernetes/api/blob/master/core/v1/types.go">types.go</a>.
 	Data map[string]string `json:"data,omitempty"`
 
-	// BinaryData corresponds to the BinaryData field of K8S corev1.ConfigMap
+	// Corresponds to the `binaryData` field of the `struct` ConfigMap defined in
+	// <a href="https://github.com/kubernetes/api/blob/master/core/v1/types.go">types.go</a>.
 	BinaryData map[string][]byte `json:"binaryData,omitempty"`
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mccm;mccms
 // +kubebuilder:subresource:status
 
-// MultiClusterConfigMap is the Schema for the multiclusterconfigmaps API, which will be used in
-// the management cluster, to create a Kubernetes ConfigMap targeted at one or more managed clusters
+// MultiClusterConfigMap specifies the Multi Cluster ConfigMap API.
 type MultiClusterConfigMap struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MultiClusterConfigMapSpec  `json:"spec,omitempty"`
+	// The desired state of a Multi Cluster ConfigMap resource.
+	Spec MultiClusterConfigMapSpec `json:"spec,omitempty"`
+	// The observed state of a Multi Cluster ConfigMap resource.
 	Status MultiClusterResourceStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// MultiClusterConfigMapList contains a list of MultiClusterConfigMap
+// MultiClusterConfigMapList contains a list of MultiClusterConfigMap resources.
 type MultiClusterConfigMapList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -62,12 +66,12 @@ func init() {
 	SchemeBuilder.Register(&MultiClusterConfigMap{}, &MultiClusterConfigMapList{})
 }
 
-// GetStatus returns the MultiClusterResourceStatus of this resource
+// GetStatus returns the MultiClusterResourceStatus of this resource.
 func (in *MultiClusterConfigMap) GetStatus() MultiClusterResourceStatus {
 	return in.Status
 }
 
-// GetPlacement returns the Placement of this resource
+// GetPlacement returns the Placement of this resource.
 func (in *MultiClusterConfigMap) GetPlacement() Placement {
 	return in.Spec.Placement
 }
