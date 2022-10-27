@@ -65,7 +65,7 @@ func (r *RancherClusterSyncer) syncRancherClusters(log vzlog.VerrazzanoLogger) {
 		return
 	}
 
-	log.Progress("Synchronizing Rancher clusters and VMCs")
+	log.Debug("Synchronizing Rancher clusters and VMCs")
 
 	// call Rancher to get the list of clusters
 	rc, err := newRancherConfig(r.Client, log)
