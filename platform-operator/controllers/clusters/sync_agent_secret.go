@@ -32,7 +32,7 @@ func setConfigFunc(f func() (*rest.Config, error)) {
 // rancherBasedKubeConfigEnabled - feature flag for whether we support
 // Rancher based Kubeconfig - introduced for VZ-6448 Populate VMC with managed cluster data
 // Should be removed and enabled by default when story VZ-6449
-var rancherBasedKubeConfigEnabled = false
+var rancherBasedKubeConfigEnabled = true
 
 // Create an agent secret with a kubeconfig that has a token allowing access to the managed cluster
 // with restricted access as defined in the verrazzano-managed-cluster role.
