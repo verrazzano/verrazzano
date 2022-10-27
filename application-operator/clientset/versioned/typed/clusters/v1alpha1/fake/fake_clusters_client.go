@@ -15,6 +15,10 @@ type FakeClustersV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeClustersV1alpha1) MultiClusterComponents(namespace string) v1alpha1.MultiClusterComponentInterface {
+	return &FakeMultiClusterComponents{c, namespace}
+}
+
 func (c *FakeClustersV1alpha1) MultiClusterConfigMaps(namespace string) v1alpha1.MultiClusterConfigMapInterface {
 	return &FakeMultiClusterConfigMaps{c, namespace}
 }

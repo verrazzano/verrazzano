@@ -21,20 +21,20 @@ type MultiClusterConfigMapSpec struct {
 
 // ConfigMapTemplate has the metadata and spec of the Kubernetes ConfigMap.
 type ConfigMapTemplate struct {
-	// Metadata describing the config map.
-	Metadata EmbeddedObjectMeta `json:"metadata,omitempty"`
-
-	// Corresponds to the `immutable` field of the `struct` ConfigMap defined in
+	// Corresponds to the `binaryData` field of the `struct` ConfigMap defined in
 	// <a href="https://github.com/kubernetes/api/blob/master/core/v1/types.go">types.go</a>.
-	Immutable *bool `json:"immutable,omitempty"`
+	BinaryData map[string][]byte `json:"binaryData,omitempty"`
 
 	// Corresponds to the `data` field of the `struct` ConfigMap defined in
 	// <a href="https://github.com/kubernetes/api/blob/master/core/v1/types.go">types.go</a>.
 	Data map[string]string `json:"data,omitempty"`
 
-	// Corresponds to the `binaryData` field of the `struct` ConfigMap defined in
+	// Corresponds to the `immutable` field of the `struct` ConfigMap defined in
 	// <a href="https://github.com/kubernetes/api/blob/master/core/v1/types.go">types.go</a>.
-	BinaryData map[string][]byte `json:"binaryData,omitempty"`
+	Immutable *bool `json:"immutable,omitempty"`
+
+	// Metadata describing the config map.
+	Metadata EmbeddedObjectMeta `json:"metadata,omitempty"`
 }
 
 // +genclient
