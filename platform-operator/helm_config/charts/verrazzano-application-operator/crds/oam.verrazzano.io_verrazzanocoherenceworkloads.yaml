@@ -39,7 +39,7 @@ spec:
             description: The desired state of a Verrazzano Coherence workload.
             properties:
               template:
-                description: The metadata and spec for the underlying <a href="https://oracle.github.io/coherence-operator/docs/3.2.8/#/docs/about/04_coherence_spec">Coherence</a>
+                description: The metadata and spec for the underlying <a href="https://oracle.github.io/coherence-operator/docs/latest/#/docs/about/04_coherence_spec">Coherence</a>
                   resource.
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
