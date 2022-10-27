@@ -64,18 +64,18 @@ const BomVerrazzanoVersion = "VERRAZZANO_VERSION"
 // ClusterNameData - the field name in MCRegistrationSecret that contains this managed cluster's name
 const ClusterNameData = "managed-cluster-name"
 
-// ElasticsearchURLData - the field name in MCRegistrationSecret that contains the admin cluster's
-// Elasticsearch endpoint's URL
-const ElasticsearchURLData = "es-url"
+// OpensearchURLData - the field name in MCRegistrationSecret that contains the admin cluster's
+// Opensearch endpoint's URL
+const OpensearchURLData = "es-url"
 
 // ClusterNameEnvVar is the environment variable used to identify the managed cluster for fluentd
 const ClusterNameEnvVar = "CLUSTER_NAME"
 
-// ElasticsearchURLEnvVar is the environment variable used to identify the admin clusters Elasticsearch URL
-const ElasticsearchURLEnvVar = "ELASTICSEARCH_URL"
+// OpensearchURLEnvVar is the environment variable used to identify the admin clusters Opensearch URL
+const OpensearchURLEnvVar = "OPENSEARCH_URL"
 
-// ElasticsearchIngress is the name of the ingress for Elasticsearch
-const ElasticsearchIngress = "vmi-system-es-ingest"
+// OpensearchIngress is the name of the ingress for Opensearch
+const OpensearchIngress = "vmi-system-es-ingest"
 
 // GrafanaIngress is the name of the ingress for Grafana
 const GrafanaIngress = "vmi-system-grafana"
