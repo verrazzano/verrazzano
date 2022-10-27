@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 )
 
 // WorkerDesc contains basic information about a worker
@@ -27,7 +28,7 @@ type Worker interface {
 	GetWorkerDesc() WorkerDesc
 
 	// GetEnvDescList get the Environment variable descriptors used for worker configuration
-	GetEnvDescList() []config.EnvVarDesc
+	GetEnvDescList() []osenv.EnvVarDesc
 
 	// DoWork implements the worker use case
 	DoWork(config.CommonConfig, vzlog.VerrazzanoLogger) error

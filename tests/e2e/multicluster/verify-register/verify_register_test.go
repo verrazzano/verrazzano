@@ -9,6 +9,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -59,7 +61,11 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			}
 			// create a project
 			Eventually(func() error {
-				return pkg.CreateOrUpdateResourceFromFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
+				file, err := pkg.FindTestDataFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
+				if err != nil {
+					return err
+				}
+				return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 			Eventually(func() (bool, error) {
