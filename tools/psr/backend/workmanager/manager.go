@@ -37,7 +37,7 @@ func RunWorker(log vzlog.VerrazzanoLogger) error {
 		os.Exit(1)
 	}
 	// add the worker config
-	if err := config.AddEnvConfig(worker.GetEnvDescList()); err != nil {
+	if err := config.GetEnv().LoadFromEnv(worker.GetEnvDescList()); err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}

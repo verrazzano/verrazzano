@@ -12,14 +12,14 @@ metadata:
 spec:
   selector:
     matchLabels:
-      run: psr-backend
+      app: psr-backend
   replicas: {{ .Values.replicas }}
   template:
     metadata:
       labels:
-        run: psr-backend
+        app: psr-backend
     spec:
-      serviceAccount: psr
+      serviceAccountName: {{ .Release.Name}}
     {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.imagePullSecrets | indent 8 }}

@@ -9,6 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 	"io"
 	"net/http"
@@ -39,8 +40,8 @@ func (w LogGetter) GetWorkerDesc() spi.WorkerDesc {
 	}
 }
 
-func (w LogGetter) GetEnvDescList() []config.EnvVarDesc {
-	return []config.EnvVarDesc{}
+func (w LogGetter) GetEnvDescList() []osenv.EnvVarDesc {
+	return []osenv.EnvVarDesc{}
 }
 
 func (w LogGetter) WantIterationInfoLogged() bool {
