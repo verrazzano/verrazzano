@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/spf13/pflag"
-	"github.com/verrazzano/verrazzano/tools/psr/cli/cmd/root"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/root"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )

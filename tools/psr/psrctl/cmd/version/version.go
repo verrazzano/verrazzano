@@ -69,7 +69,7 @@ func GetEffectiveDocsVersion() string {
 	}
 	var re = regexp.MustCompile(`(?m)(\d.\d)(.*)`)
 	s := re.FindAllStringSubmatch(cliVersion, -1)[0][1] //This will get the group 1 of 1st match which is "1.4.0" to "1.4"
-	return fmt.Sprintf("v%s", s)                        //return v1.4 by appending prefex 'v'
+	return fmt.Sprintf("v%s", s)                        //return v1.4 by appending prefix 'v'
 }
 
 func GetCLIVersion() string {
