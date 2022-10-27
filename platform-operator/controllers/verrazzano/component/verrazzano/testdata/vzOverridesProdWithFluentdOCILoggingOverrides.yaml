@@ -14,7 +14,7 @@ elasticSearch:
 logging:
   configHash: a1c27fb0d69d8e274ad53c15bda62d925b77480ffc422e811b41cc4a3222ae24
   elasticsearchSecret: verrazzano-es-internal
-  elasticsearchURL: http://verrazzano-authproxy-elasticsearch:8775
+  elasticsearchURL: http://verrazzano-authproxy-opensearch:8775
 fluentd:
   enabled: true
   oci:

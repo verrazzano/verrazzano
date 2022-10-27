@@ -1754,7 +1754,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 	const externalPasswordData = "external-pw"
 	const externalCaData = "external-ca"
 
-	fluentdESURL := "http://verrazzano-authproxy-elasticsearch:8775"
+	fluentdESURL := "http://verrazzano-authproxy-opensearch:8775"
 	fluentdESSecret := "verrazzano"
 	esSecret := constants.VerrazzanoESInternal
 	if externalES {
