@@ -112,7 +112,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 // authproxy helm chart
 func GetHelmManagedResources() []common.HelmManagedResource {
 	return []common.HelmManagedResource{
-		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "verrazzano-authproxy-elasticsearch", Namespace: ComponentNamespace}},
+		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "verrazzano-authproxy-opensearch", Namespace: ComponentNamespace}},
 		{Obj: &corev1.Secret{}, NamespacedName: types.NamespacedName{Name: "verrazzano-authproxy-secret", Namespace: ComponentNamespace}},
 		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "verrazzano-authproxy-config", Namespace: ComponentNamespace}},
 		{Obj: &netv1.Ingress{}, NamespacedName: types.NamespacedName{Name: "verrazzano-ingress", Namespace: ComponentNamespace}},
@@ -283,7 +283,7 @@ func getAuthproxyManagedResources() []common.HelmManagedResource {
 		{Obj: &appsv1.Deployment{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 		{Obj: &corev1.Secret{}, NamespacedName: types.NamespacedName{Name: "verrazzano-authproxy-secret", Namespace: ComponentNamespace}},
 		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
-		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "verrazzano-authproxy-elasticsearch", Namespace: ComponentNamespace}},
+		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "verrazzano-authproxy-opensearch", Namespace: ComponentNamespace}},
 		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: "impersonate-api-user", Namespace: ComponentNamespace}},
 	}
 }

@@ -305,7 +305,7 @@ func TestUninstallResources(t *testing.T) {
 	ingress := &netv1.Ingress{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: "verrazzano-ingress"}}
 	secret := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: "verrazzano-authproxy-secret"}}
 	service1 := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: ComponentName}}
-	service2 := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: "verrazzano-authproxy-elasticsearch"}}
+	service2 := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: "verrazzano-authproxy-opensearch"}}
 	serviceAccount := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: "impersonate-api-user"}}
 
 	c := fake.NewClientBuilder().WithScheme(clientgoscheme.Scheme).WithObjects(
