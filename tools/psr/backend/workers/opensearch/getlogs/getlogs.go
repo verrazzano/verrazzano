@@ -29,7 +29,7 @@ const (
 	openSearchGetFailureCountHelp = "The total number of failed openSearch GET requests"
 
 	openSearchGetSuccessLatencyNanoSeconds     = "openSearch_get_success_latency_nanoseconds"
-	openSearchGetSuccessLatencyNanoSecondsHelp = "The latency of sucessful openSearch GET requests in nanoseconds"
+	openSearchGetSuccessLatencyNanoSecondsHelp = "The latency of successful openSearch GET requests in nanoseconds"
 
 	openSearchGetFailureLatencyNanoSeconds     = "openSearch_get_failure_latency_nanoseconds"
 	openSearchGetFailureLatencyNanoSecondsHelp = "The latency of failed openSearch GET requests in nanoseconds"

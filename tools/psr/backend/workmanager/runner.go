@@ -125,7 +125,7 @@ func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		startIteration := time.Now().UnixNano()
 		err := r.Worker.DoWork(conf, log)
 		if err != nil {
-			log.Errorf("Failed calling %s to do work: %v", r.Worker.GetWorkerDesc().MetricsName, err)
+			log.Errorf("Failed calling %s to do work: %v", r.Worker.GetWorkerDesc().EnvName, err)
 		}
 		durationSecondsTotal := time.Now().Unix() - startTimeSecs
 		atomic.StoreInt64(&r.runnerMetrics.workerIterationNanoSeconds.Val, time.Now().UnixNano()-startIteration)
