@@ -93,7 +93,6 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
-        booleanParam (description: 'Testing Flag', name: 'TEST_PIPELINE', defaultValue: false)
     }
 
     environment {
@@ -297,18 +296,6 @@ pipeline {
                 }
             }
         }
-
-        stage ("Wait for testing") {
-            when {
-                   expression {params.TEST_PIPELINE == true}
-                  }
-            steps {
-                sh """
-                    sleep 1200
-                  """
-            }
-        }
-
 
         stage('Prepare KinD environment') {
                 when { expression { return params.TEST_ENV == 'kind_oci_dns' } }
