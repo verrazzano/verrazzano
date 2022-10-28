@@ -127,14 +127,11 @@ func TestIsAuthProxyReady(t *testing.T) {
 			expectTrue: false,
 		},
 	}
+	authProxy := NewComponent().(authProxyComponent)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, nil, false)
-			if tt.expectTrue {
-				assert.True(t, isAuthProxyReady(ctx))
-			} else {
-				assert.False(t, isAuthProxyReady(ctx))
-			}
+			assert.Equal(t, tt.expectTrue, authProxy.isAuthProxyReady(ctx))
 		})
 	}
 }

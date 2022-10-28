@@ -1095,7 +1095,8 @@ func TestIsMySQLReady(t *testing.T) {
 			},
 		},
 	}
-	assert.True(t, isMySQLReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
+	mysql := NewComponent().(mysqlComponent)
+	assert.True(t, mysql.isMySQLReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
 }
 
 // TestIsMySQLNotReady tests the isMySQLReady function
@@ -1203,7 +1204,8 @@ func TestIsMySQLNotReady(t *testing.T) {
 			},
 		},
 	}
-	assert.False(t, isMySQLReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
+	mysql := NewComponent().(mysqlComponent)
+	assert.False(t, mysql.isMySQLReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
 }
 
 // TestIsMySQLReadyInnoDBClusterNotOnline tests the isMySQLReady function
@@ -1313,7 +1315,8 @@ func TestIsMySQLReadyInnoDBClusterNotOnline(t *testing.T) {
 			},
 		},
 	}
-	assert.False(t, isMySQLReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
+	mysql := NewComponent().(mysqlComponent)
+	assert.False(t, mysql.isMySQLReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
 }
 
 // TestPostUpgradeCleanup tests the PostUpgradeCleanup function

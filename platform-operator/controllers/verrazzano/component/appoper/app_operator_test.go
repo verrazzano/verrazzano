@@ -109,7 +109,9 @@ func TestIsApplicationOperatorReady(t *testing.T) {
 			},
 		},
 	).Build()
-	assert.True(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
+
+	a := NewComponent().(applicationOperatorComponent)
+	assert.True(t, a.isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
 }
 
 // TestIsApplicationOperatorNotReady tests the isApplicationOperatorReady function
@@ -118,7 +120,6 @@ func TestIsApplicationOperatorReady(t *testing.T) {
 //	WHEN the deployment object does NOT have enough replicas available
 //	THEN false is returned
 func TestIsApplicationOperatorNotReady(t *testing.T) {
-
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoSystemNamespace,
@@ -130,7 +131,8 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	assert.False(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
+	a := NewComponent().(applicationOperatorComponent)
+	assert.False(t, a.isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
 }
 
 // TestLabelAnnotateTraitDefinitions tests the labelAnnotateTraitDefinitions function
