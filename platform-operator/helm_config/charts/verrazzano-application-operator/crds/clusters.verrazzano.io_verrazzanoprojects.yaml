@@ -44,11 +44,12 @@ spec:
                 description: Clusters on which the namespaces are to be created.
                 properties:
                   clusters:
+                    description: List of clusters.
                     items:
-                      description: Cluster where multi cluster resources are placed
+                      description: Cluster contains the name of a single cluster.
                       properties:
                         name:
-                          description: the name of the cluster
+                          description: The name of a cluster.
                           type: string
                       required:
                       - name
@@ -720,21 +721,23 @@ spec:
             description: The observed state of a Verrazzano Project resource.
             properties:
               clusters:
+                description: Status information for each cluster.
                 items:
                   description: ClusterLevelStatus describes the status of the multi
-                    cluster resource in a specific cluster
+                    cluster resource in a specific cluster.
                   properties:
                     lastUpdateTime:
-                      description: LastUpdateTime of the resource state in this cluster
+                      description: Last update time of the resource state in this
+                        cluster.
                       type: string
                     message:
-                      description: Message with details about the status in this cluster
+                      description: Message details about the status in this cluster.
                       type: string
                     name:
-                      description: Name of the cluster
+                      description: Name of the cluster.
                       type: string
                     state:
-                      description: State of the resource in this cluster
+                      description: State of the resource in this cluster.
                       type: string
                   required:
                   - lastUpdateTime
@@ -743,8 +746,7 @@ spec:
                   type: object
                 type: array
               conditions:
-                description: The latest available observations of an object's current
-                  state.
+                description: The current state of a multicluster resource.
                 items:
                   description: Condition describes current state of a multi cluster
                     resource.
@@ -754,11 +756,11 @@ spec:
                         to another.
                       type: string
                     message:
-                      description: Human readable message indicating details about
-                        last transition.
+                      description: A message with details about the last transition.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: 'Status of the condition: one of `True`, `False`,
+                        or `Unknown`.'
                       type: string
                     type:
                       description: Type of condition.
@@ -769,7 +771,11 @@ spec:
                   type: object
                 type: array
               state:
-                description: State of the multi cluster resource
+                description: 'The state of the multicluster resource. State values
+                  are case-sensitive and formatted as follows: <ul><li>`Failed`: rdeployment
+                  to cluster failed</li><li>`Pending`: deployment to cluster is in
+                  progress</li><li>`Succeeded`: deployment to cluster successfully
+                  completed</li></ul>'
                 type: string
             type: object
         required:

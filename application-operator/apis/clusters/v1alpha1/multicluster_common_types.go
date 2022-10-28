@@ -7,99 +7,100 @@ import corev1 "k8s.io/api/core/v1"
 
 // This file contains common types and functions used by all MultiCluster Custom Resource Types
 
-// Placement information for multi cluster resources
+// Placement contains the name of each cluster where a resource will be located.
 type Placement struct {
+	// List of clusters.
 	Clusters []Cluster `json:"clusters"`
 }
 
-// Cluster where multi cluster resources are placed
+// Cluster contains the name of a single cluster.
 type Cluster struct {
-	// the name of the cluster
+	// The name of a cluster.
 	Name string `json:"name"`
 }
 
 // Condition describes current state of a multi cluster resource.
 type Condition struct {
-	// Type of condition.
-	Type ConditionType `json:"type"`
-	// Status of the condition, one of True, False, Unknown.
-	Status corev1.ConditionStatus `json:"status"`
 	// Last time the condition transitioned from one status to another.
 	// +optional
 	LastTransitionTime string `json:"lastTransitionTime,omitempty"`
-	// Human readable message indicating details about last transition.
+	// A message with details about the last transition.
 	// +optional
 	Message string `json:"message,omitempty"`
+	// Status of the condition: one of `True`, `False`, or `Unknown`.
+	Status corev1.ConditionStatus `json:"status"`
+	// Type of condition.
+	Type ConditionType `json:"type"`
 }
 
-// ClusterLevelStatus describes the status of the multi cluster resource in a specific cluster
+// ClusterLevelStatus describes the status of the multi cluster resource in a specific cluster.
 type ClusterLevelStatus struct {
-	// Name of the cluster
-	Name string `json:"name"`
-	// State of the resource in this cluster
-	State StateType `json:"state"`
-	// Message with details about the status in this cluster
-	Message string `json:"message,omitempty"`
-	// LastUpdateTime of the resource state in this cluster
+	// Last update time of the resource state in this cluster.
 	LastUpdateTime string `json:"lastUpdateTime"`
+	// Message details about the status in this cluster.
+	Message string `json:"message,omitempty"`
+	// Name of the cluster.
+	Name string `json:"name"`
+	// State of the resource in this cluster.
+	State StateType `json:"state"`
 }
 
-// ConditionType identifies the condition of the multi-cluster resource which can be checked with kubectl wait
+// ConditionType identifies the condition of the multi-cluster resource which can be checked with `kubectl wait`.
 type ConditionType string
 
 const (
-	// DeployPending means deployment to specified cluster is in progress.
-	DeployPending ConditionType = "DeployPending"
-
-	// DeployComplete means deployment to specified cluster completed successfully
+	// DeployComplete means deployment to specified cluster completed successfully.
 	DeployComplete ConditionType = "DeployComplete"
 
 	// DeployFailed means the deployment to specified cluster has failed.
 	DeployFailed ConditionType = "DeployFailed"
+
+	// DeployPending means deployment to specified cluster is in progress.
+	DeployPending ConditionType = "DeployPending"
 )
 
-// StateType identifies the state of a multi-cluster resource
+// StateType identifies the state of a multi-cluster resource.
 type StateType string
 
 const (
-	// Pending is the state when deploy to specified cluster is in progress
+	// Failed is the state when deploy to specified cluster has failed.
+	Failed StateType = "Failed"
+
+	// Pending is the state when deploy to specified cluster is in progress.
 	Pending StateType = "Pending"
 
-	// Succeeded is the state when deploy to specified cluster is completed
+	// Succeeded is the state when deploy to specified cluster is completed.
 	Succeeded StateType = "Succeeded"
-
-	// Failed is the state when deploy to specified cluster has failed
-	Failed StateType = "Failed"
 )
 
-// MultiClusterResourceStatus represents the status of a multi-cluster resource, including
-// cluster-level status information
+// MultiClusterResourceStatus is the runtime status of a multi-cluster resource.
 type MultiClusterResourceStatus struct {
-	// The latest available observations of an object's current state.
+	// Status information for each cluster.
+	Clusters []ClusterLevelStatus `json:"clusters,omitempty"`
+
+	// The current state of a multicluster resource.
 	Conditions []Condition `json:"conditions,omitempty"`
 
-	// State of the multi cluster resource
+	// The state of the multicluster resource. State values are case-sensitive and formatted as follows:
+	// <ul><li>`Failed`: rdeployment to cluster failed</li><li>`Pending`: deployment to cluster is in progress</li><li>`Succeeded`: deployment to cluster successfully completed</li></ul>
 	State StateType `json:"state,omitempty"`
-
-	Clusters []ClusterLevelStatus `json:"clusters,omitempty"`
 }
 
+// EmbeddedObjectMeta is metadata describing a resource.
 type EmbeddedObjectMeta struct {
-	// Name must be unique within a namespace.
+	// Name of the resource.
 	// +optional
 	Name string `json:"name,omitempty" protobuf:"bytes,1,opt,name=name"`
 
-	// Namespace defines the space within each name must be unique.
+	// Namespace of the resource.
 	// +optional
 	Namespace string `json:"namespace,omitempty" protobuf:"bytes,3,opt,name=namespace"`
 
-	// Map of string keys and values that can be used to organize and categorize
-	// (scope and select) objects.
+	// Labels for the resource.
 	// +optional
 	Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,11,rep,name=labels"`
 
-	// Annotations is an unstructured key value map stored with a resource that may be
-	// set by external tools to store and retrieve arbitrary metadata.
+	// Annotations for the resource.
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,rep,name=annotations"`
 }
