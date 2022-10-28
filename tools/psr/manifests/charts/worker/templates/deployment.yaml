@@ -13,12 +13,12 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: psr-backend
+      app: psr-worker-{{ .Values.envVars.PSR_WORKER_TYPE }}
   replicas: {{ .Values.replicas }}
   template:
     metadata:
       labels:
-        app: psr-backend
+        app: psr-worker-{{ .Values.envVars.PSR_WORKER_TYPE }}
     spec:
       serviceAccountName: {{ .Release.Name}}
     {{- if .Values.imagePullSecrets }}
@@ -26,7 +26,7 @@ spec:
 {{ toYaml .Values.imagePullSecrets | indent 8 }}
     {{- end }}
       containers:
-        - name: worker
+        - name: {{ .Release.Name}}-{{ .Values.envVars.PSR_WORKER_TYPE }}
           image: {{  .Values.imageName }}
           imagePullPolicy: {{  .Values.imagePullPolicy }}
           env:
