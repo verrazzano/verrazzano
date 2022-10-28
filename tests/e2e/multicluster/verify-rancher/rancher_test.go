@@ -34,7 +34,7 @@ const (
 )
 
 const (
-	adminSecName = "verrazzano-cluster-admin"
+	agentSecName = "verrazzano-cluster-agent"
 	regSecName   = "verrazzano-cluster-registration"
 )
 
@@ -50,7 +50,8 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the cattle-system namespace is retrieved
 		// THEN is has a limited number of bad socket messages
-		indexName, err := pkg.GetOpenSearchSystemIndex(cattleSystemNamespace)
+		adminKubeconfig := os.Getenv("ADMIN_KUBECONFIG")
+		indexName, err := pkg.GetOpenSearchSystemIndexWithKC(cattleSystemNamespace, adminKubeconfig)
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
@@ -77,6 +78,9 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 		})
 
 		t.It("the VMC status is updated that objects have been pushed to the managed cluster", func() {
+			// GIVEN the VMC has been registered
+			// WHEN the VMc is retrieved
+			// THEN the VMc should have a status condition of Type: Manifest Pushed and Status: True
 			Eventually(func() error {
 				pkg.Log(pkg.Info, "Waiting for all VMC to have status condition ManifestPushed = True")
 				vmcList, err := adminClient.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
@@ -105,13 +109,16 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 		})
 
 		t.It("the managed cluster should contain the pushed secrets", func() {
+			// GIVEN the VMC has a status of ManifestPushed = True
+			// WHEN we search for secrets on a managed cluster
+			// THEN we should see that the agent and registration secrets exist in the verrazzano-system namespace
 			Eventually(func() error {
-				adminSec, err := managedClient.CoreV1().Secrets(constants.VerrazzanoSystemNamespace).Get(context.TODO(), adminSecName, metav1.GetOptions{})
+				adminSec, err := managedClient.CoreV1().Secrets(constants.VerrazzanoSystemNamespace).Get(context.TODO(), agentSecName, metav1.GetOptions{})
 				if err != nil {
 					return err
 				}
 				if adminSec == nil {
-					return fmt.Errorf("get admin secret %s returned nil on the managed cluster", adminSecName)
+					return fmt.Errorf("get admin secret %s returned nil on the managed cluster", agentSecName)
 				}
 
 				managedSec, err := managedClient.CoreV1().Secrets(constants.VerrazzanoSystemNamespace).Get(context.TODO(), regSecName, metav1.GetOptions{})

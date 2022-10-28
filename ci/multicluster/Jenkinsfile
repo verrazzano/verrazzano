@@ -984,6 +984,7 @@ def runGinkgo(testSuitePath, clusterDumpDirectory) {
     script {
         int clusterCount = params.TOTAL_CLUSTERS.toInteger()
         sh """
+            export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export MANAGED_CLUSTER_NAME="managed1"
             export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/2/kube_config"
             export CLUSTER_COUNT=$clusterCount
