@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -148,7 +150,7 @@ func TestLabelNamespace(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: FleetSystemNamespace,
 			Labels: map[string]string{
-				namespaceLabelKey: FleetSystemNamespace,
+				constants.VerrazzanoManagedKey: FleetSystemNamespace,
 			},
 		},
 	}
@@ -156,7 +158,7 @@ func TestLabelNamespace(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: FleetSystemNamespace,
 			Labels: map[string]string{
-				namespaceLabelKey: FleetSystemNamespace,
+				constants.VerrazzanoManagedKey: FleetSystemNamespace,
 			},
 		},
 	}

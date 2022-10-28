@@ -52,7 +52,6 @@ const (
 	FleetSystemNamespace      = "cattle-fleet-system"
 	FleetLocalSystemNamespace = "cattle-fleet-local-system"
 	defaultSecretNamespace    = "cert-manager"
-	namespaceLabelKey         = "verrazzano.io/namespace"
 	rancherTLSSecretName      = "tls-ca"
 	defaultVerrazzanoName     = "verrazzano-ca-certificate-secret"
 	fleetAgentDeployment      = "fleet-agent"
