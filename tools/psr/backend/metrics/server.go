@@ -36,6 +36,7 @@ func StartMetricsServerOrDie(providers []spi.WorkerMetricsProvider) {
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		Addr:         "0.0.0.0:8080"}
+
 	if err := server.ListenAndServe(); err != nil {
 		zap.S().Errorf("Failed to start metrics server: %v", err)
 		os.Exit(1)
