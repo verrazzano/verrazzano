@@ -189,7 +189,7 @@ pipeline {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
                                 println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=GLOBAL : Nginx_LB=GLOBAL : Istio_LB=GLOBAL")
-                                build job: "/verrazzano-verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
@@ -209,7 +209,7 @@ pipeline {
                             script {
 
                                 println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=GLOBAL : Nginx_LB=GLOBAL : Istio_LB=PRIVATE")
-                                build job: "/verrazzano-verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'ISTIO_LB_SCOPE', value: 'PRIVATE'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -231,7 +231,7 @@ pipeline {
                             script {
 
                                 println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=GLOBAL : Nginx_LB=PRIVATE : Istio_LB=GLOBAL")
-                                build job: "/verrazzano-verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'NGINX_LB_SCOPE', value: 'PRIVATE'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
