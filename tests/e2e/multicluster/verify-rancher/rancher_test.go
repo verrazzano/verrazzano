@@ -20,8 +20,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -29,6 +31,11 @@ const (
 	pollingInterval       = 10 * time.Second
 	cattleSystemNamespace = "cattle-system"
 	searchTimeWindow      = "1h"
+)
+
+const (
+	agentSecName = "verrazzano-cluster-agent"
+	regSecName   = "verrazzano-cluster-registration"
 )
 
 var t = framework.NewTestFramework("rancher_test")
@@ -43,13 +50,87 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 		// GIVEN existing system logs
 		// WHEN the Elasticsearch index for the cattle-system namespace is retrieved
 		// THEN is has a limited number of bad socket messages
-		indexName, err := pkg.GetOpenSearchSystemIndex(cattleSystemNamespace)
+		adminKubeconfig := os.Getenv("ADMIN_KUBECONFIG")
+		indexName, err := pkg.GetOpenSearchSystemIndexWithKC(cattleSystemNamespace, adminKubeconfig)
 		Expect(err).ShouldNot(HaveOccurred())
 		Eventually(func() bool {
 			return pkg.LogIndexFound(indexName)
 		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-system")
 
 		Expect(getNumBadSocketMessages()).To(BeNumerically("<", 20))
+	})
+
+	t.Context("When the VMC is updated to the status of the managed cluster", func() {
+		var adminClient *versioned.Clientset
+		var managedClient *kubernetes.Clientset
+		BeforeEach(func() {
+			adminKubeconfig := os.Getenv("ADMIN_KUBECONFIG")
+			Expect(adminKubeconfig).To(Not(BeEmpty()))
+			managedKubeconfig := os.Getenv("MANAGED_KUBECONFIG")
+			Expect(managedKubeconfig).To(Not(BeEmpty()))
+
+			var err error
+
+			adminClient, err = pkg.GetVerrazzanoClientsetInCluster(adminKubeconfig)
+			Expect(err).ShouldNot(HaveOccurred())
+			managedClient, err = pkg.GetKubernetesClientsetForCluster(managedKubeconfig)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		t.It("the VMC status is updated that objects have been pushed to the managed cluster", func() {
+			// GIVEN the VMC has been registered
+			// WHEN the VMC is retrieved
+			// THEN the VMC should have a status condition of Type: Manifest Pushed and Status: True
+			Eventually(func() error {
+				pkg.Log(pkg.Info, "Waiting for all VMC to have status condition ManifestPushed = True")
+				vmcList, err := adminClient.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
+				if err != nil {
+					return err
+				}
+
+				for _, vmc := range vmcList.Items {
+					statusPushedFound := false
+					for _, condition := range vmc.Status.Conditions {
+						if condition.Type == v1alpha1.ConditionManifestPushed && condition.Status == corev1.ConditionFalse {
+							return fmt.Errorf("failed to find successful condition for ManifestPushed, VMC %s/%s has condition: %s = %s",
+								vmc.Name, vmc.Namespace, condition.Type, condition.Status)
+						}
+						if condition.Type == v1alpha1.ConditionManifestPushed && condition.Status == corev1.ConditionTrue {
+							statusPushedFound = true
+						}
+					}
+					if !statusPushedFound {
+						return fmt.Errorf("failed to find expected condition, VMC %s/%s had no condition of type %s",
+							vmc.Name, vmc.Namespace, v1alpha1.ConditionManifestPushed)
+					}
+				}
+				return nil
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeNil())
+		})
+
+		t.It("the managed cluster should contain the pushed secrets", func() {
+			// GIVEN the VMC has a status of ManifestPushed = True
+			// WHEN we search for secrets on a managed cluster
+			// THEN we should see that the agent and registration secrets exist in the verrazzano-system namespace
+			Eventually(func() error {
+				adminSec, err := managedClient.CoreV1().Secrets(constants.VerrazzanoSystemNamespace).Get(context.TODO(), agentSecName, metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				if adminSec == nil {
+					return fmt.Errorf("get admin secret %s returned nil on the managed cluster", agentSecName)
+				}
+
+				managedSec, err := managedClient.CoreV1().Secrets(constants.VerrazzanoSystemNamespace).Get(context.TODO(), regSecName, metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				if managedSec == nil {
+					return fmt.Errorf("get registration secret %s returned nil on the managed cluster", regSecName)
+				}
+				return nil
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeNil())
+		})
 	})
 
 	t.Context("When clusters are created and deleted in Rancher", func() {
