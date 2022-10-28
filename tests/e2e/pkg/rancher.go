@@ -12,8 +12,10 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"go.uber.org/zap"
@@ -22,14 +24,26 @@ import (
 )
 
 func EventuallyGetURLForIngress(log *zap.SugaredLogger, api *APIEndpoint, namespace string, name string, scheme string) string {
-	var ingressURL string
-	var err error
+	ingressHost := EventuallyGetIngressHost(log, api, namespace, name)
+	gomega.Expect(ingressHost).ToNot(gomega.BeEmpty())
+	return fmt.Sprintf("%s://%s", scheme, ingressHost)
+}
+
+func EventuallyGetIngressHost(log *zap.SugaredLogger, api *APIEndpoint, namespace string, name string) string {
+	var ingressHost string
 	gomega.Eventually(func() error {
-		ingressURL, err = GetURLForIngress(log, api, namespace, name, scheme)
-		return err
+		ingress, err := api.GetIngress(namespace, name)
+		if err != nil {
+			return err
+		}
+		if len(ingress.Spec.Rules) == 0 {
+			return fmt.Errorf("no rules found in ingress %s/%s", namespace, name)
+		}
+		ingressHost = ingress.Spec.Rules[0].Host
+		log.Info(fmt.Sprintf("Found ingress host: %s", ingressHost))
+		return nil
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil())
-	gomega.Expect(ingressURL).ToNot(gomega.BeEmpty())
-	return ingressURL
+	return ingressHost
 }
 
 func GetURLForIngress(log *zap.SugaredLogger, api *APIEndpoint, namespace string, name string, scheme string) (string, error) {
@@ -205,4 +219,43 @@ func verifyAuthConfigAttribute(name string, actual interface{}, expected interfa
 		return fmt.Errorf("keycloak auth config attribute %s not correctly configured, expected %v, actual %v", name, expected, actual)
 	}
 	return nil
+}
+
+func EventuallyGetRancherHost(log *zap.SugaredLogger, api *APIEndpoint) (string, error) {
+	rancherHost := EventuallyGetIngressHost(log, api, rancher.ComponentNamespace, common.RancherName)
+	if rancherHost == "" {
+		return "", fmt.Errorf("got empty Rancher ingress host")
+	}
+	return rancherHost, nil
+}
+
+func CreateNewRancherConfig(log *zap.SugaredLogger, kubeconfigPath string) (*clusters.RancherConfig, error) {
+	apiEndpoint := EventuallyGetAPIEndpoint(kubeconfigPath)
+	rancherHost, err := EventuallyGetRancherHost(log, apiEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	rancherURL := fmt.Sprintf("https://%s", rancherHost)
+	caCert, err := GetCACertFromSecret(common.RancherIngressCAName, constants.RancherSystemNamespace, "ca.crt", kubeconfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get caCert: %v", err)
+	}
+
+	// the tls-ca-additional secret is optional
+	additionalCA, _ := GetCACertFromSecret(constants.AdditionalTLS, constants.RancherSystemNamespace, constants.AdditionalTLSCAKey, kubeconfigPath)
+
+	httpClient, err := GetVerrazzanoHTTPClient(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	adminToken := GetRancherAdminToken(log, httpClient, rancherURL)
+	rc := clusters.RancherConfig{
+		// populate Rancher config from the functions available in this file,adding as necessary
+		BaseURL:                  rancherURL,
+		Host:                     rancherHost,
+		APIAccessToken:           adminToken,
+		CertificateAuthorityData: caCert,
+		AdditionalCA:             additionalCA,
+	}
+	return &rc, nil
 }

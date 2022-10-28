@@ -4,9 +4,8 @@
 package config
 
 import (
-	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"os"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"time"
 )
 
@@ -30,67 +29,43 @@ const (
 const (
 	WorkerTypeExample       = "WT_EXAMPLE"
 	WorkerTypeLogGen        = "WT_LOG_GEN"
-	WorkerTypeLogGet        = "WT_LOG_GET"
+	WorkerTypeGetLogs       = "WT_GET_LOGS"
 	WorkerTypePodTerminate  = "WT_POD_TERMINATE"
 	WorkerTypeWorkloadScale = "WT_WORKLOAD_SCALE"
 )
 
-type EnvVarDesc struct {
-	Key        string
-	DefaultVal string
-	Required   bool
-}
+var env = osenv.NewEnv()
 
 type CommonConfig struct {
 	WorkerType          string
 	IterationSleepNanos time.Duration
 }
 
-var EnvVars = make(map[string]string)
+func GetEnv() osenv.Environment {
+	return env
+}
 
 // GetCommonConfig loads the common config from env vars
 func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
-	dd := []EnvVarDesc{
+	dd := []osenv.EnvVarDesc{
 		{Key: PsrWorkerType, DefaultVal: "", Required: true},
 		{Key: PsrDuration, DefaultVal: "", Required: false},
 		{Key: PsrIterationSleep, DefaultVal: "1s", Required: false},
 	}
-	if err := AddEnvConfig(dd); err != nil {
+	if err := env.LoadFromEnv(dd); err != nil {
 		return CommonConfig{}, err
 	}
-	sleepDuration, err := time.ParseDuration(EnvVars[PsrIterationSleep])
+	sleepDuration, err := time.ParseDuration(env.GetEnv(PsrIterationSleep))
 	if err != nil {
 		return CommonConfig{}, log.ErrorfNewErr("Error parsing iteration sleep duration: %v", err)
 	}
-	// Sleep at least 100 nanos
-	if sleepDuration < (100 * time.Nanosecond) {
-		sleepDuration = 100 * time.Nanosecond
+	// Sleep at least 10 nanos
+	if sleepDuration < (10 * time.Nanosecond) {
+		sleepDuration = 10 * time.Nanosecond
 	}
 
 	return CommonConfig{
-		WorkerType:          EnvVars[PsrWorkerType],
+		WorkerType:          env.GetEnv(PsrWorkerType),
 		IterationSleepNanos: sleepDuration,
 	}, nil
-}
-
-// AddEnvConfig adds items to the config
-func AddEnvConfig(cc []EnvVarDesc) error {
-	for _, c := range cc {
-		if err := addItemConfig(c); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func addItemConfig(c EnvVarDesc) error {
-	val := os.Getenv(c.Key)
-	if len(val) == 0 {
-		if c.Required {
-			return fmt.Errorf("Failed, missing required Env var %s", c.Key)
-		}
-		val = c.DefaultVal
-	}
-	EnvVars[c.Key] = val
-	return nil
 }

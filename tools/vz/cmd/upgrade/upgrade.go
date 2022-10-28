@@ -127,6 +127,12 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return err
 	}
 
+	// Get the VPO timeout
+	vpoTimeout, err := cmdhelpers.GetWaitTimeout(cmd, constants.VPOTimeoutFlag)
+	if err != nil {
+		return err
+	}
+
 	// Get the kubernetes clientset.  This will validate that the kubeconfig and context are valid.
 	kubeClient, err := vzHelper.GetKubeClient(cmd)
 	if err != nil {
@@ -147,14 +153,8 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 			return err
 		}
 
-		// Get the VPO timeout
-		vpoTimeout, err := cmdhelpers.GetWaitTimeout(cmd, constants.VPOTimeoutFlag)
-		if err != nil {
-			return err
-		}
-
 		// Wait for the platform operator to be ready before we update the verrazzano install resource
-		vpoPodName, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondUpgradeComplete, vpoTimeout)
+		_, err = cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondUpgradeComplete, vpoTimeout)
 		if err != nil {
 			return err
 		}
@@ -183,18 +183,14 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		}
 
 		// Wait for the Verrazzano upgrade to complete
-		return waitForUpgradeToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat)
+		return waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
 	}
 
 	// If we already started the upgrade no need to apply the operator.yaml, wait for VPO, and update the verrazzano
 	// install resource. This could happen if the upgrade command was aborted and the rerun. We anly wait for the upgrade
 	// to complete.
 	if !vzStatusVersion.IsEqualTo(vzSpecVersion) {
-		vpoPodName, err := cmdhelpers.GetVerrazzanoPlatformOperatorPodName(client)
-		if err != nil {
-			return err
-		}
-		return waitForUpgradeToComplete(client, kubeClient, vzHelper, vpoPodName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat)
+		return waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
 	}
 
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Verrazzano has already been upgraded to version %s\n", vz.Status.Version))
@@ -203,6 +199,6 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 }
 
 // Wait for the upgrade operation to complete
-func waitForUpgradeToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat cmdhelpers.LogFormat) error {
-	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, vpoPodName, namespacedName, timeout, logFormat, v1beta1.CondUpgradeComplete)
+func waitForUpgradeToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, namespacedName types.NamespacedName, timeout time.Duration, vpoTimeout time.Duration, logFormat cmdhelpers.LogFormat) error {
+	return cmdhelpers.WaitForOperationToComplete(client, kubeClient, vzHelper, namespacedName, timeout, vpoTimeout, logFormat, v1beta1.CondUpgradeComplete)
 }

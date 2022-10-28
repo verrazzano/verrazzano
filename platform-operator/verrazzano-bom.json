@@ -79,7 +79,7 @@
     },
     {
       "name": "external-dns",
-      "version": "v0.10.2",
+      "version": "v0.12.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -87,7 +87,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.10.2-20220802001856-7bae1b96",
+              "tag": "v0.12.2-20221024163214-0abb76aa",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20221021152027-77e20c949",
-              "dashboard": "v2.6.8-20221021151212-17f643d6",
+              "tag": "v2.6.8-20221025200246-77e20c949",
+              "dashboard": "v2.6.8-20221025195440-1a78a0be",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20221021152027-77e20c949"
+              "tag": "v2.6.8-20221025200246-77e20c949"
             }
           ]
         },

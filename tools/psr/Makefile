@@ -62,9 +62,13 @@ docker-push: docker-build
 kind-load-image: docker-build
 	kind load docker-image --name kind ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 
+.PHONY: run-example-oam
+run-example-oam: kind-load-image
+	helm upgrade --install psr manifests/charts/worker --set imageName=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
+
 .PHONY: run-example-k8s
 run-example-k8s: kind-load-image
-	helm upgrade --install psr manifests/charts/k8s --set imageName=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
+	helm upgrade --install psr manifests/charts/worker --set appType=k8s --set imageName=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 
 .PHONY: unit-test
 unit-test: cli

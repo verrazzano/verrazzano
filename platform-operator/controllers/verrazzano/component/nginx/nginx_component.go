@@ -5,9 +5,11 @@ package nginx
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -62,6 +64,18 @@ func NewComponent() spi.Component {
 			PostInstallFunc:           PostInstall,
 			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ControllerName,
+						Namespace: ComponentNamespace,
+					},
+					{
+						Name:      backendName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -74,17 +88,9 @@ func (c nginxComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // IsReady component check
 func (c nginxComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isNginxReady(ctx)
+		return c.isNginxReady(ctx)
 	}
 	return false
-}
-
-func (c nginxComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = c.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", c.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated

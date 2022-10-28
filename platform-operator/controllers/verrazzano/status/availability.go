@@ -6,9 +6,11 @@ package status
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"go.uber.org/zap/zapcore"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -56,14 +58,15 @@ func (p *HealthChecker) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazza
 	}
 	for _, component := range components {
 		// If status is not fully initialized, do not check availability
-		if vz.Status.Components[component.Name()] == nil {
+		componentStatus, ok := vz.Status.Components[component.Name()]
+		if !ok {
 			return nil, nil
 		}
 		// determine a component's availability
 		if component.IsEnabled(ctx.EffectiveCR()) {
 			countEnabled++
 			// gets new availability for a given component
-			a := p.getComponentAvailability(component, ctx)
+			a := p.getComponentAvailability(component, componentStatus.State, ctx)
 			if a.available {
 				countAvailable++
 			}
@@ -90,10 +93,20 @@ func (p *HealthChecker) sendStatus(status *AvailabilityStatus) {
 }
 
 // getComponentAvailability calculates componentAvailability for a given Verrazzano component
-func (p *HealthChecker) getComponentAvailability(component spi.Component, ctx spi.ComponentContext) componentAvailability {
+func (p *HealthChecker) getComponentAvailability(component spi.Component, componentState vzapi.CompStateType, ctx spi.ComponentContext) componentAvailability {
 	name := component.Name()
 	ctx.Init(name)
-	reason, available := component.IsAvailable(ctx)
+	var available = true
+	var reason string
+	// if a component isn't ready, it's not available
+	if componentState != vzapi.CompStateReady {
+		available = false
+		reason = fmt.Sprintf("component is %s", componentState)
+	}
+	// if a component is ready, check if it's available
+	if available {
+		reason, available = component.IsAvailable(ctx)
+	}
 	return componentAvailability{
 		name:      name,
 		reason:    reason,
@@ -114,11 +127,15 @@ func getVerrazzanoResource(client clipkg.Client) (*vzapi.Verrazzano, error) {
 }
 
 func newLogger(vz *vzapi.Verrazzano) (vzlog.VerrazzanoLogger, error) {
-	return vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
+	zaplog, err := log.BuildZapLoggerWithLevel(2, zapcore.ErrorLevel)
+	if err != nil {
+		return nil, err
+	}
+	return vzlog.ForZapLogger(&vzlog.ResourceConfig{
 		Name:           vz.Name,
 		Namespace:      vz.Namespace,
 		ID:             string(vz.UID),
 		Generation:     vz.Generation,
 		ControllerName: "availability",
-	})
+	}, zaplog), nil
 }

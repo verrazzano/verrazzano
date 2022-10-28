@@ -473,7 +473,7 @@ pipeline {
                 }
                 stage('verify-rancher') {
                     steps {
-                        runGinkgoRandomizeAdmin('multicluster/verify-rancher')
+                        runGinkgoAdmin('multicluster/verify-rancher')
                     }
                 }
                 stage ('multicluster/verify-install') {

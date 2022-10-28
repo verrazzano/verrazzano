@@ -79,6 +79,11 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 				msg := fmt.Sprintf("Failed to register managed cluster with Rancher: %v", err)
 				r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, clusterID, msg)
 				r.log.Info("Failed to register managed cluster, manifest secret will not contain Rancher YAML")
+			} else if len(rancherYAML) == 0 {
+				// we successfully called the Rancher API but for some reason the returned registration manifest YAML is empty,
+				// set the status on the VMC and return an error so we reconcile again
+				r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, clusterID, "Empty Rancher manifest YAML")
+				return vzVMCWaitingForClusterID, r.log.ErrorNewErr("Failed retrieving Rancher manifest, YAML is an empty string")
 			} else {
 				msg := "Registration of managed cluster completed successfully"
 				r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationCompleted, clusterID, msg)
