@@ -128,7 +128,7 @@ const TestPrometheusScrapeJob = "test_job"
 const DefaultOpensearchURL = "http://verrazzano-authproxy-elasticsearch:8775"
 
 // Default Jaeger OpenSearch URL
-const DefaultJaegerOSURL = "http://verrazzano-authproxy-elasticsearch.verrazzano-system:8775"
+const DefaultJaegerOSURL = "http://verrazzano-authproxy-opensearch.verrazzano-system:8775"
 
 // DefaultJaegerSecretName is the Jaeger secret name used by the default Jaeger instance
 // #nosec
