@@ -6,6 +6,7 @@ package fluentd
 import (
 	"context"
 	"fmt"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -32,30 +33,18 @@ const (
 // checkSecretExists whether verrazzano-es-internal secret exists. Return error if secret does not exist.
 func checkSecretExists(ctx spi.ComponentContext) error {
 	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
-
 		secret := &corev1.Secret{}
+		// verrazzano-es-internal secret by default
+		secretName := globalconst.VerrazzanoESInternal
 		fluentdConfig := ctx.EffectiveCR().Spec.Components.Fluentd
-		// Check external-es-secret Secret if using external return error which will cause requeue
+		// Check external-es-secret secret if using external ES, return error which will cause requeue
 		if fluentdConfig != nil && len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoESInternal {
-			err := ctx.Client().Get(context.TODO(), clipkg.ObjectKey{
-				Namespace: constants.VerrazzanoSystemNamespace,
-				Name:      fluentdConfig.ElasticsearchSecret,
-			}, secret)
-			if err != nil {
-				if errors.IsNotFound(err) {
-					ctx.Log().Progressf("Component Fluentd waiting for the secret %s/%s to exist",
-						constants.VerrazzanoSystemNamespace, fluentdConfig.ElasticsearchSecret)
-					return ctrlerrors.RetryableError{Source: ComponentName}
-				}
-				ctx.Log().Errorf("Component Fluentd failed to get the secret %s/%s: %v",
-					constants.VerrazzanoSystemNamespace, "external-es-secret", err)
-				return err
-			}
+			secretName = fluentdConfig.ElasticsearchSecret
 		}
-		// Check verrazzano-es-internal Secret. return error which will cause requeue
+		// Check verrazzano-es secret, return error which will cause requeue
 		err := ctx.Client().Get(context.TODO(), clipkg.ObjectKey{
 			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      globalconst.VerrazzanoESInternal,
+			Name:      secretName,
 		}, secret)
 
 		if err != nil {
