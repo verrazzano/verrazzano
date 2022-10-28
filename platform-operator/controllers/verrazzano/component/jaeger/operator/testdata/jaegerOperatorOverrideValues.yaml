@@ -24,6 +24,6 @@ jaeger:
       type: elasticsearch
       options:
         es:
-          server-urls: "http://verrazzano-authproxy-elasticsearch.verrazzano-system:8775"
+          server-urls: "http://verrazzano-authproxy-opensearch.verrazzano-system:8775"
           num-replicas: 0
       secretName: "verrazzano-jaeger-secret"
