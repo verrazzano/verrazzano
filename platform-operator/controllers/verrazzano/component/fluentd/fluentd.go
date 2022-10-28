@@ -78,20 +78,9 @@ func loggingPreInstall(ctx spi.ComponentContext) error {
 }
 
 // isFluentdReady Fluentd component ready-check
-func isFluentdReady(ctx spi.ComponentContext) bool {
+func (c fluentdComponent) isFluentdReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-
-	// Check daemonsets
-	var daemonsets []types.NamespacedName
-	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
-		daemonsets = append(daemonsets,
-			types.NamespacedName{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-			})
-		return ready.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix)
-	}
-	return false
+	return ready.DaemonSetsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DaemonsetNames, 1, prefix)
 }
 
 // fluentdPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano Fluentd helm chart

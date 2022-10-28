@@ -31,17 +31,7 @@ const (
 	backendName    = "ingress-controller-ingress-nginx-defaultbackend"
 )
 
-func isNginxReady(context spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      ControllerName,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      backendName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c nginxComponent) isNginxReady(context spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	// Verify that the ingress-nginx service has an external IP before completing post-install
 	_, err := vzconfig.GetIngressIP(context.Client(), context.EffectiveCR())
@@ -50,7 +40,7 @@ func isNginxReady(context spi.ComponentContext) bool {
 	if err != nil && context.GetComponent() == ComponentName {
 		context.Log().Progressf("Ingress external IP pending for component %s: %s", ComponentName, err.Error())
 	}
-	return err == nil && ready.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+	return err == nil && ready.DeploymentsAreReady(context.Log(), context.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {

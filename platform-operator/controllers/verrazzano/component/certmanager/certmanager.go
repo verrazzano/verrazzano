@@ -397,23 +397,9 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 }
 
 // isCertManagerReady checks the state of the expected cert-manager deployments and returns true if they are in a ready state
-func isCertManagerReady(context spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      certManagerDeploymentName,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      cainjectorDeploymentName,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      webhookDeploymentName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c certManagerComponent) isCertManagerReady(context spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	return ready.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(context.Log(), context.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 // writeCRD writes out CertManager CRD manifests with OCI DNS specifications added
