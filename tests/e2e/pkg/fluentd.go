@@ -50,13 +50,13 @@ func AssertFluentdURLAndSecret(expectedURL, expectedSecret string) bool {
 	containers := fluentdDaemonset.Spec.Template.Spec.Containers
 	if len(containers) > 0 {
 		for _, env := range containers[0].Env {
-			if env.Name == "ELASTICSEARCH_URL" {
+			if env.Name == "OPENSEARCH_URL" {
 				urlFound = env.Value
 			}
-			if env.Name == "ELASTICSEARCH_USER" {
+			if env.Name == "OPENSEARCH_USER" {
 				usernameSecretFound = env.ValueFrom.SecretKeyRef.Name
 			}
-			if env.Name == "ELASTICSEARCH_PASSWORD" {
+			if env.Name == "OPENSEARCH_PASSWORD" {
 				passwordSecretFound = env.ValueFrom.SecretKeyRef.Name
 			}
 		}
