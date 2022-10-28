@@ -55,13 +55,13 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 }
 
 // isReady - component specific checks for being ready
-func isReady(ctx spi.ComponentContext) bool {
-	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), getDeploymentList(), 1, getPrefix(ctx))
+func (c mysqlOperatorComponent) isReady(ctx spi.ComponentContext) bool {
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, getPrefix(ctx))
 }
 
 // isInstalled checks that the deployment exists
-func isInstalled(ctx spi.ComponentContext) bool {
-	return ready.DoDeploymentsExist(ctx.Log(), ctx.Client(), getDeploymentList(), 1, getPrefix(ctx))
+func (c mysqlOperatorComponent) isInstalled(ctx spi.ComponentContext) bool {
+	return ready.DoDeploymentsExist(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, getPrefix(ctx))
 }
 
 func getPrefix(ctx spi.ComponentContext) string {

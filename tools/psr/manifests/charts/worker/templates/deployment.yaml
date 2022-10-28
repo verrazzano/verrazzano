@@ -13,12 +13,14 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: psr-{{ .Release.Namespace }}-{{ .Release.Name}}-{{ .Values.envVars.PSR_WORKER_TYPE }}
+      psr.verrazzano.io/worker: {{ .Release.Name}}-{{ .Values.envVars.PSR_WORKER_TYPE }}
   replicas: {{ .Values.replicas }}
   template:
     metadata:
       labels:
-        app: psr-{{ .Release.Namespace }}-{{ .Release.Name}}-{{ .Values.envVars.PSR_WORKER_TYPE }}
+        psr.verrazzano.io/worker: {{ .Release.Name}}-{{ .Values.envVars.PSR_WORKER_TYPE }}
+        app: psr-{{ .Values.envVars.PSR_WORKER_TYPE }}
+        version: v1
     spec:
       serviceAccountName: {{ .Release.Name}}
     {{- if .Values.imagePullSecrets }}

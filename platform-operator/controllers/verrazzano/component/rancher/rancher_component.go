@@ -6,6 +6,7 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -94,6 +95,30 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       AppendOverrides,
 			Certificates:              certificates,
 			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, certmanager.ComponentName},
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+					{
+						Name:      rancherWebhookDeployment,
+						Namespace: ComponentNamespace,
+					},
+					{
+						Name:      fleetAgentDeployment,
+						Namespace: FleetLocalSystemNamespace,
+					},
+					{
+						Name:      fleetControllerDeployment,
+						Namespace: FleetSystemNamespace,
+					},
+					{
+						Name:      gitjobDeployment,
+						Namespace: FleetSystemNamespace,
+					},
+				},
+			},
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
@@ -351,17 +376,9 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 // IsReady component check
 func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 	if r.HelmComponent.IsReady(ctx) {
-		return isRancherReady(ctx)
+		return r.isRancherReady(ctx)
 	}
 	return false
-}
-
-func (r rancherComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = r.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", r.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", r.Name()), false
 }
 
 // PostInstall

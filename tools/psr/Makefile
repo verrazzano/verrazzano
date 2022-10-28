@@ -6,6 +6,8 @@ include ../../make/retry.mk
 BACKEND_NAME:=psr-backend
 MAKEFILE_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 PSR_DIR:=${MAKEFILE_DIR}
+CLI_DIR:=github.com$(shell echo ${MAKEFILE_DIR} | sed 's/.*github.com//')/psrctl
+VERSION_DIR:=$(CLI_DIR)/cmd/version
 BACKEND_DIR:=$(PSR_DIR)/backend
 DOCKER_REPO:=ghcr.io
 DOCKER_REGISTRY=verrazzano
@@ -29,6 +31,7 @@ BUILD_DATE:=$(shell date +"%Y-%m-%dT%H:%M:%SZ")
 
 DIST_DIR:=dist
 GO=GO111MODULE=on GOPRIVATE=github.com/verrazzano/* CGO_ENABLED=0  go
+CLI_GO_LDFLAGS=-X '${VERSION_DIR}.gitCommit=${GIT_COMMIT}' -X '${VERSION_DIR}.buildDate=${BUILD_DATE}' -X '${VERSION_DIR}.cliVersion=${BUILD_VERSION}'
 
 #
 # Go build related tasks
@@ -41,6 +44,16 @@ go-build:
 		-ldflags "-X main.buildDate=${BUILD_DATE}" \
 		-o out/linux_amd64/psr-backend \
 		${BACKEND_DIR}/main.go
+
+#
+# Go build cli related tasks
+#
+.PHONY: go-build-cli
+go-build-cli:
+	GOOS=linux GOARCH=amd64 $(GO) build \
+    		-ldflags "${CLI_GO_LDFLAGS}" \
+    		-o out/linux_amd64/psrctl \
+    		${GOPATH}/src/${CLI_DIR}/main.go
 
 #
 # Docker-related tasks
@@ -70,6 +83,20 @@ run-example-oam: kind-load-image
 run-example-k8s: kind-load-image
 	helm upgrade --install psr manifests/charts/worker --set appType=k8s --set imageName=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 
+#
+# run the CLI
+#
+.PHONY: run-cli
+run-cli:
+	$(GO) run ${GOPATH}/src/${CLI_DIR}/main.go
+
+#
+# install the CLI
+#
+.PHONY: install-cli
+install-cli:
+	$(GO) install -ldflags "${CLI_GO_LDFLAGS}" ./...
+
 .PHONY: unit-test
-unit-test: cli
+unit-test:
 	$(GO) test -v  ./backend/...
