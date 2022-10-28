@@ -33,6 +33,7 @@ const (
 	WorkerTypeLogGet        = "WT_LOG_GET"
 	WorkerTypePodTerminate  = "WT_POD_TERMINATE"
 	WorkerTypeWorkloadScale = "WT_WORKLOAD_SCALE"
+	WorkerTypeHttpGet       = "WT_HTTP_GET"
 )
 
 type EnvVarDesc struct {
