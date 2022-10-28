@@ -6,7 +6,6 @@ package fluentd
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -73,14 +72,6 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       appendOverrides,
 			Dependencies:              []string{networkpolicies.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
-			AvailabilityObjects: &ready.AvailabilityObjects{
-				DaemonsetNames: []types.NamespacedName{
-					{
-						Name:      ComponentName,
-						Namespace: ComponentNamespace,
-					},
-				},
-			},
 		},
 	}
 }
@@ -226,6 +217,15 @@ func (c fluentdComponent) IsReady(ctx spi.ComponentContext) bool {
 		return c.isFluentdReady(ctx)
 	}
 	return false
+}
+
+func (c fluentdComponent) IsAvailable(ctx spi.ComponentContext) (string, bool) {
+	reason := ""
+	ready := c.HelmComponent.IsReady(ctx)
+	if !ready {
+		reason = "fluentd is not installed yet"
+	}
+	return reason, ready
 }
 
 // IsInstalled component check
