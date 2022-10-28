@@ -96,13 +96,13 @@ func (r runner) GetMetricList() []prometheus.Metric {
 
 	m := prometheus.MustNewConstMetric(
 		r.runnerMetrics.loopCount.Desc,
-		prometheus.GaugeValue,
+		prometheus.CounterValue,
 		float64(atomic.LoadInt64(&r.runnerMetrics.loopCount.Val)))
 	metrics = append(metrics, m)
 
 	m = prometheus.MustNewConstMetric(
 		r.runnerMetrics.workerDurationTotalSeconds.Desc,
-		prometheus.GaugeValue,
+		prometheus.CounterValue,
 		float64(atomic.LoadInt64(&r.runnerMetrics.workerDurationTotalSeconds.Val)))
 	metrics = append(metrics, m)
 
@@ -131,7 +131,7 @@ func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		atomic.StoreInt64(&r.runnerMetrics.workerIterationNanoSeconds.Val, time.Now().UnixNano()-startIteration)
 		atomic.StoreInt64(&r.runnerMetrics.workerDurationTotalSeconds.Val, durationSecondsTotal)
 		if r.Worker.WantIterationInfoLogged() {
-			log.Infof("Loop Count: %v, Total seconds from start of first work iteration until now: %v", loopCount, durationSecondsTotal)
+			log.Infof("Loop Count: %s, Total seconds from start of first work iteration until now: %s", loopCount, durationSecondsTotal)
 		}
 		time.Sleep(conf.IterationSleepNanos)
 	}

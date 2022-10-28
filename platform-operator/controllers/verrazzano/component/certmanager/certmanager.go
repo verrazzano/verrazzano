@@ -89,8 +89,6 @@ const (
 	// Uninstall resources
 	controllerConfigMap = "cert-manager-controller"
 	caInjectorConfigMap = "cert-manager-cainjector-leader-election"
-
-	vzNsLabel = "verrazzano.io/namespace"
 )
 
 type authenticationType string

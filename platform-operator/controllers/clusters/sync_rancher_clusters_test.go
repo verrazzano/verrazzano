@@ -14,6 +14,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/test/mockmatchers"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -76,7 +77,7 @@ func TestSyncRancherClusters(t *testing.T) {
 
 	// call the syncer
 	r := &RancherClusterSyncer{Client: k8sFake}
-	log := r.initLogger()
+	log := vzlog.DefaultLogger()
 	r.syncRancherClusters(log)
 
 	mocker.Finish()
@@ -134,7 +135,7 @@ func TestSyncRancherClustersWithPaging(t *testing.T) {
 
 	// call the syncer
 	r := &RancherClusterSyncer{Client: k8sFake}
-	log := r.initLogger()
+	log := vzlog.DefaultLogger()
 	r.syncRancherClusters(log)
 
 	mocker.Finish()
@@ -206,7 +207,7 @@ func TestEnsureVMCsWithError(t *testing.T) {
 
 	rancherClusters := []rancherCluster{{name: "test", id: "test"}}
 	r := &RancherClusterSyncer{Client: &erroringFakeClient{Client: k8sFake}}
-	log := r.initLogger()
+	log := vzlog.DefaultLogger()
 
 	// GIVEN a list of Rancher clusters fetched from the Rancher API
 	//  WHEN a call is made to ensureVMCs and the k8s client returns an error on a call to Create
