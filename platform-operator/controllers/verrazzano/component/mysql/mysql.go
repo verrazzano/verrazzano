@@ -197,7 +197,7 @@ func isMySQLReady(ctx spi.ComponentContext) bool {
 
 // isInnoDBClusterOnline returns true if the InnoDBCluster resource cluster status is online
 func isInnoDBClusterOnline(ctx spi.ComponentContext) bool {
-	ctx.Log().Progress("Waiting for InnoDBCluster to be online")
+	ctx.Log().Debug("Checking if the InnoDBCluster is online")
 
 	innoDBCluster := unstructured.Unstructured{}
 	innoDBCluster.SetGroupVersionKind(innoDBClusterGVK)
@@ -216,9 +216,10 @@ func isInnoDBClusterOnline(ctx spi.ComponentContext) bool {
 	}
 	if exists {
 		if clusterStatus == innoDBClusterStatusOnline {
+			ctx.Log().Debugf("InnoDBCluster %v is online", nsn)
 			return true
 		}
-		ctx.Log().Debugf("InnoDBCluster %v clusterStatus is: %s", nsn, clusterStatus)
+		ctx.Log().Progressf("Waiting for InnoDBCluster %v to be online, cluster status is: %s", nsn, clusterStatus)
 		return false
 	}
 
