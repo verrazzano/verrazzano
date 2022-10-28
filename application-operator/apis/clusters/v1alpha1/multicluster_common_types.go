@@ -88,6 +88,14 @@ type MultiClusterResourceStatus struct {
 
 // EmbeddedObjectMeta is metadata describing a resource.
 type EmbeddedObjectMeta struct {
+	// Annotations for the resource.
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,rep,name=annotations"`
+
+	// Labels for the resource.
+	// +optional
+	Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,11,rep,name=labels"`
+
 	// Name of the resource.
 	// +optional
 	Name string `json:"name,omitempty" protobuf:"bytes,1,opt,name=name"`
@@ -95,12 +103,4 @@ type EmbeddedObjectMeta struct {
 	// Namespace of the resource.
 	// +optional
 	Namespace string `json:"namespace,omitempty" protobuf:"bytes,3,opt,name=namespace"`
-
-	// Labels for the resource.
-	// +optional
-	Labels map[string]string `json:"labels,omitempty" protobuf:"bytes,11,rep,name=labels"`
-
-	// Annotations for the resource.
-	// +optional
-	Annotations map[string]string `json:"annotations,omitempty" protobuf:"bytes,12,rep,name=annotations"`
 }

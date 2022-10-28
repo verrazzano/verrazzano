@@ -13,9 +13,6 @@ const MultiClusterAppConfigResource = "multiclusterapplicationconfigurations"
 
 // MultiClusterApplicationConfigurationSpec defines the desired state of a Multi Cluster Application.
 type MultiClusterApplicationConfigurationSpec struct {
-	// Template containing the metadata and spec for an OAM applicationConfiguration resource.
-	Template ApplicationConfigurationTemplate `json:"template"`
-
 	// Clusters in which the application is to be created.
 	Placement Placement `json:"placement"`
 
@@ -23,6 +20,9 @@ type MultiClusterApplicationConfigurationSpec struct {
 	// deploying a MultiClusterApplicationConfiguration resource.
 	// +optional
 	Secrets []string `json:"secrets,omitempty"`
+
+	// Template containing the metadata and spec for an OAM applicationConfiguration resource.
+	Template ApplicationConfigurationTemplate `json:"template"`
 }
 
 // ApplicationConfigurationTemplate has the metadata and embedded spec of the OAM applicationConfiguration resource.
