@@ -215,8 +215,12 @@ func isInnoDBClusterOnline(ctx spi.ComponentContext) bool {
 		return false
 	}
 	if exists {
-		ctx.Log().Debugf("InnoDBCluster %v clusterStatus is: %s", nsn, clusterStatus)
-		return clusterStatus == innoDBClusterStatusOnline
+		if clusterStatus == innoDBClusterStatusOnline {
+			ctx.Log().Debugf("InnoDBCluster %v is online", nsn)
+			return true
+		}
+		ctx.Log().Progressf("Waiting for InnoDBCluster %v to be online, cluster status is: %s", nsn, clusterStatus)
+		return false
 	}
 
 	ctx.Log().Debugf("InnoDBCluster %v clusterStatus not found", nsn)
