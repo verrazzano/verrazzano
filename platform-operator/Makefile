@@ -166,7 +166,7 @@ endif
 unit-test: go-install
 	$(GO) test -v  ./internal/... ./controllers/... ./apis/...
 
-CLUSTER_NAME = verrazzano
+CLUSTER_NAME ?= verrazzano
 BUILD_DEPLOY = build/deploy
 OPERATOR_YAML ?= ${BUILD_DEPLOY}/operator.yaml
 
@@ -175,6 +175,21 @@ generate-operator-yaml:
 	OPERATOR_DIR=$$(dirname ${OPERATOR_YAML}) ; \
 	mkdir -p $${OPERATOR_DIR} ; \
 	env DOCKER_IMAGE=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG} IMAGE_PULL_SECRETS=${IMAGE_PULL_SECRETS} APP_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} ../tools/scripts/generate_operator_yaml.sh > ${OPERATOR_YAML}
+
+.PHONY: generate-local-operator-yaml
+generate-local-operator-yaml:
+	OPERATOR_DIR=$$(dirname ${OPERATOR_YAML}) ; \
+	mkdir -p $${OPERATOR_DIR} ; \
+	env DOCKER_IMAGE=${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} IMAGE_PULL_SECRETS=${IMAGE_PULL_SECRETS} APP_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} ../tools/scripts/generate_operator_yaml.sh > ${OPERATOR_YAML}
+
+.PHONY: load-local-operators
+load-local-operators: generate-local-operator-yaml
+	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+	if [ -n "${APP_OPERATOR_IMAGE}" ] && [[ "${APP_OPERATOR_IMAGE}" == *:* ]] ; then \
+		kind load docker-image --name ${CLUSTER_NAME} ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}; \
+	else \
+	  	kind load docker-image --name ${CLUSTER_NAME} ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}:${DOCKER_IMAGE_TAG}; \
+	fi
 
 .PHONY: delete-cluster
 delete-cluster:

@@ -5,7 +5,9 @@ package main
 
 import (
 	"flag"
+	"k8s.io/client-go/rest"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sync"
 	"time"
 
@@ -13,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 	"k8s.io/client-go/dynamic"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -103,8 +104,6 @@ func main() {
 		"Enable webhooks validation for the operator")
 	flag.BoolVar(&config.WebhooksEnabled, "webhooks-enabled", config.WebhooksEnabled,
 		"Enable webhooks for the operator")
-	flag.BoolVar(&config.InitWebhooks, "init-webhooks", config.InitWebhooks,
-		"Initialize webhooks for the operator")
 	flag.StringVar(&config.VerrazzanoRootDir, "vz-root-dir", config.VerrazzanoRootDir,
 		"Specify the root directory of Verrazzano (used for development)")
 	flag.StringVar(&bomOverride, "bom-path", "", "BOM file location")
@@ -146,19 +145,15 @@ func main() {
 
 	registry.InitRegistry()
 	//This allows separation of webhooks and operator
-	if config.InitWebhooks && !config.WebhooksEnabled {
-		initWebhookServers(config, log)
-	} else if config.WebhooksEnabled && !config.InitWebhooks {
+	if config.WebhooksEnabled {
 		startWebhookServers(config, log)
-	} else if !config.InitWebhooks && !config.WebhooksEnabled {
-		reconcilePlatformOperator(config, log)
 	} else {
-		os.Exit(1)
+		reconcilePlatformOperator(config, log)
 	}
 }
 
-// initWebhookServers uses the same image as the operator, but configured only to create Secrets for WebhookServers to use
-func initWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredLogger) {
+// initWebhookCertificates create Secrets for WebhookServers to use
+func initWebhookCertificates(config internalconfig.OperatorConfig, log *zap.SugaredLogger) {
 	log.Debug("Creating certificates used by webhooks")
 
 	conf, err := ctrl.GetConfig()
@@ -173,7 +168,7 @@ func initWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredLo
 		os.Exit(1)
 	}
 
-	err = certificate.CreateWebhookCertificates(kubeClient)
+	err = certificate.CreateWebhookCertificates(log, kubeClient, config.CertDir)
 	if err != nil {
 		log.Errorf("Failed to create certificates used by webhooks: %v", err)
 		os.Exit(1)
@@ -203,80 +198,52 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 		os.Exit(1)
 	}
 
-	log.Debug("Delete old VPO webhook configuration")
-	err = certificate.DeleteValidatingWebhookConfiguration(kubeClient, certificate.OldOperatorName)
-	if err != nil {
-		log.Errorf("Failed to delete old webhook configuration: %v", err)
-		os.Exit(1)
-	}
-
-	log.Debug("Updating VPO webhook configuration")
-	err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, certificate.OperatorName)
-	if err != nil {
-		log.Errorf("Failed to update validation webhook configuration: %v", err)
-		os.Exit(1)
-	}
-
-	log.Debug("Updating conversion webhook")
-	apixClient, err := apiextensionsv1client.NewForConfig(conf)
-	if err != nil {
-		log.Errorf("Failed to get apix clientset: %v", err)
-		os.Exit(1)
-	}
-	err = certificate.UpdateConversionWebhookConfiguration(apixClient, kubeClient)
-	if err != nil {
-		log.Errorf("Failed to update conversion webhook: %v", err)
-		os.Exit(1)
-	}
-
-	err = certificate.UpdateMutatingWebhookConfiguration(kubeClient, constants.MysqlBackupMutatingWebhookName)
-	if err != nil {
-		log.Errorf("Failed to update pod mutating webhook configuration: %v", err)
-		os.Exit(1)
-	}
-
-	log.Debug("Updating MySQL install values webhook configuration")
-	err = certificate.UpdateValidatingnWebhookConfiguration(kubeClient, webhooks.MysqlInstallValuesWebhook)
-	if err != nil {
-		log.Errorf("Failed to update validation webhook configuration: %v", err)
-		os.Exit(1)
-	}
-
-	c, err := client.New(conf, client.Options{})
-	if err != nil {
-		log.Errorf("Failed to get controller-runtime client: %v", err)
-		os.Exit(1)
-	}
-
-	log.Debug("Creating or updating network policies")
-	var errors []error
-	_, errors = netpolicy.CreateOrUpdateNetworkPolicies(kubeClient, c)
-	if len(errors) < 0 {
-		log.Errorf("Failed to create or update network policies: %v", err)
-		os.Exit(1)
-	}
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: config.MetricsAddr,
 		Port:               9443,
-		LeaderElection:     config.LeaderElectionEnabled,
+		LeaderElection:     true, //config.LeaderElectionEnabled,
 		LeaderElectionID:   "3ec4d295.verrazzano.io",
 	})
-	if err != nil {
-		log.Errorf("Failed to create a controller-runtime manager: %v", err)
+
+	log.Infof("Waiting for webhook leader election on host %s", os.Getenv("HOSTNAME"))
+	mgr.Elected()
+	log.Infof("Webhook leader election acquired on host %s", os.Getenv("HOSTNAME"))
+
+	log.Info("Initializing the webhook server certificates")
+	initWebhookCertificates(config, log)
+
+	updateWebhookConfigurations(kubeClient, log, conf)
+
+	createOrUpdateNetworkPolicies(conf, log, kubeClient)
+
+	setupWebhooksWithManager(log, mgr, kubeClient, dynamicClient)
+
+	// Set up the validation webhook for VMC
+	log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
+	if err = (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
+		log.Errorf("Failed to setup webhook with manager: %v", err)
+		os.Exit(1)
+	}
+	mgr.GetWebhookServer().CertDir = config.CertDir
+
+	// +kubebuilder:scaffold:builder
+	log.Info("Starting webhook controller-runtime manager")
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		log.Errorf("Failed starting webhook controller-runtime manager: %v", err)
 		os.Exit(1)
 	}
 
-	installv1alpha1.SetComponentValidator(validator.ComponentValidatorImpl{})
-	installv1beta1.SetComponentValidator(validator.ComponentValidatorImpl{})
+}
 
+func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeClient *kubernetes.Clientset, dynamicClient dynamic.Interface) {
 	// Setup the validation webhook
 	log.Debug("Setting up Verrazzano webhook with manager")
-	if err = (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
+	if err := (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
 		log.Errorf("Failed to setup install.v1alpha1.Verrazzano webhook with manager: %v", err)
 		os.Exit(1)
 	}
-	if err = (&installv1beta1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
+	if err := (&installv1beta1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
 		log.Errorf("Failed to setup install.v1beta1.Verrazzano webhook with manager: %v", err)
 		os.Exit(1)
 	}
@@ -293,26 +260,67 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 			},
 		},
 	)
-
 	// register MySQL install values webhooks
 	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1beta1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1beta1{}})
 	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1alpha1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1alpha1{}})
+}
 
-	// Set up the validation webhook for VMC
-	log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
-	if err = (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
-		log.Errorf("Failed to setup webhook with manager: %v", err)
-		os.Exit(1)
-	}
-	mgr.GetWebhookServer().CertDir = config.CertDir
-
-	// +kubebuilder:scaffold:builder
-	log.Info("Starting controller-runtime manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		log.Errorf("Failed starting controller-runtime manager: %v", err)
+func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.SugaredLogger, conf *rest.Config) {
+	log.Debug("Delete old VPO webhook configuration")
+	if err := certificate.DeleteValidatingWebhookConfiguration(kubeClient, certificate.OldOperatorName); err != nil {
+		log.Errorf("Failed to delete old webhook configuration: %v", err)
 		os.Exit(1)
 	}
 
+	log.Debug("Updating VPO webhook configuration")
+
+	if err := certificate.UpdateValidatingWebhookConfiguration(kubeClient, certificate.OperatorName); err != nil {
+		log.Errorf("Failed to update validation webhook configuration: %v", err)
+		os.Exit(1)
+	}
+
+	log.Debug("Updating conversion webhook")
+	apixClient, err := apiextensionsv1client.NewForConfig(conf)
+	if err != nil {
+		log.Errorf("Failed to get apix clientset: %v", err)
+		os.Exit(1)
+	}
+
+	if err := certificate.UpdateConversionWebhookConfiguration(apixClient, kubeClient); err != nil {
+		log.Errorf("Failed to update conversion webhook: %v", err)
+		os.Exit(1)
+	}
+
+	if err := certificate.UpdateMutatingWebhookConfiguration(kubeClient, constants.MysqlBackupMutatingWebhookName); err != nil {
+		log.Errorf("Failed to update pod mutating webhook configuration: %v", err)
+		os.Exit(1)
+	}
+
+	log.Debug("Updating MySQL install values webhook configuration")
+	if err := certificate.UpdateValidatingWebhookConfiguration(kubeClient, webhooks.MysqlInstallValuesWebhook); err != nil {
+		log.Errorf("Failed to update validation webhook configuration: %v", err)
+		os.Exit(1)
+	}
+}
+
+func createOrUpdateNetworkPolicies(conf *rest.Config, log *zap.SugaredLogger, kubeClient *kubernetes.Clientset) {
+	c, err := client.New(conf, client.Options{})
+	if err != nil {
+		log.Errorf("Failed to get controller-runtime client: %v", err)
+		os.Exit(1)
+	}
+
+	log.Debug("Creating or updating network policies")
+	var errors []error
+	_, errors = netpolicy.CreateOrUpdateNetworkPolicies(kubeClient, c)
+	if len(errors) < 0 {
+		log.Errorf("Failed to create or update network policies: %v", err)
+		os.Exit(1)
+	}
+	if err != nil {
+		log.Errorf("Failed to create a controller-runtime manager: %v", err)
+		os.Exit(1)
+	}
 }
 
 // reconcilePlatformOperator runs the Verrazzano Platform Operator without running webhooks servers

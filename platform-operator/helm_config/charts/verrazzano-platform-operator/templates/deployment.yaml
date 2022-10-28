@@ -23,15 +23,6 @@ spec:
     spec:
       terminationGracePeriodSeconds: 0
       initContainers:
-        - name: initwebhooks
-          imagePullPolicy: {{ .Values.imagePullPolicy }}
-          image: {{ .Values.image }}
-          args:
-            - --init-webhooks=true
-            - --webhooks-enabled=false
-          resources:
-            requests:
-              memory: 72Mi
         - name: webhookswait
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           image: {{ .Values.image }}
@@ -51,7 +42,7 @@ spec:
             - --zap-log-level=info
             - --health-check-period=60
             - --webhooks-enabled=false
-            - --init-webhooks=false
+            - --enable-leader-election=false
           env:
             - name: VERRAZZANO_KUBECONFIG
               value: /home/verrazzano/kubeconfig
@@ -117,13 +108,10 @@ spec:
           args:
             - --zap-log-level=info
             - --webhooks-enabled=true
-            - --init-webhooks=false
+            - --enable-leader-election=true
           resources:
             requests:
               memory: 72Mi
-          volumeMounts:
-            - mountPath: /etc/webhook/certs
-              name: webhook-server-certs
           ports:
             - containerPort: 9100
               name: http-metric
@@ -131,11 +119,4 @@ spec:
             - containerPort: 9443
               name: webhook
               protocol: TCP
-      volumes:
-        - name: webhook-ca-certs
-          secret:
-            secretName: verrazzano-platform-operator-ca
-        - name: webhook-server-certs
-          secret:
-            secretName: verrazzano-platform-operator-tls
       serviceAccountName: {{ .Values.name }}

@@ -23,7 +23,7 @@ import (
 func TestCreateWebhookCertificates(t *testing.T) {
 	asserts := assert.New(t)
 	client := fake.NewSimpleClientset()
-	_ = CreateWebhookCertificates(client)
+	_ = CreateWebhookCertificates(nil, client)
 	var secret *v1.Secret
 	secret, err := client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
 	_, err2 := client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
@@ -36,7 +36,7 @@ func TestCreateWebhookCertificates(t *testing.T) {
 // validatingWebhookConfiguration resource.
 // GIVEN a validatingWebhookConfiguration resource with the CA Bundle set
 //
-//	WHEN I call UpdateValidatingnWebhookConfiguration
+//	WHEN I call UpdateValidatingWebhookConfiguration
 //	THEN the validatingWebhookConfiguration resource set the CA Bundle as expected
 func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 	asserts := assert.New(t)
@@ -100,7 +100,7 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 	asserts.Nil(err, "error should not be returned creating validation webhook configuration")
 	asserts.NotEmpty(wh)
 
-	err = UpdateValidatingnWebhookConfiguration(kubeClient, OperatorName)
+	err = UpdateValidatingWebhookConfiguration(kubeClient, OperatorName)
 	asserts.Nil(err, "error should not be returned updating validation webhook configuration")
 
 	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), "verrazzano-platform-operator-webhook", metav1.GetOptions{})
@@ -111,7 +111,7 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 // verrazzano-platform-operator validatingWebhookConfiguration resource.
 // GIVEN an invalid validatingWebhookConfiguration resource with the CA Bundle set
 //
-//	WHEN I call UpdateValidatingnWebhookConfiguration
+//	WHEN I call UpdateValidatingWebhookConfiguration
 //	THEN the validatingWebhookConfiguration resource will fail to be updated
 func TestUpdateValidatingnWebhookConfigurationFail(t *testing.T) {
 	asserts := assert.New(t)
@@ -154,6 +154,6 @@ func TestUpdateValidatingnWebhookConfigurationFail(t *testing.T) {
 	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
 	asserts.Nil(err, "error should not be returned creating validation webhook configuration")
 
-	err = UpdateValidatingnWebhookConfiguration(kubeClient, OperatorName)
+	err = UpdateValidatingWebhookConfiguration(kubeClient, OperatorName)
 	asserts.Error(err, "error should be returned updating validation webhook configuration")
 }

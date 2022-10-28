@@ -12,11 +12,13 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"math/big"
+	"os"
 	"time"
 
 	adminv1 "k8s.io/api/admissionregistration/v1"
@@ -36,7 +38,7 @@ const (
 )
 
 // CreateWebhookCertificates creates the needed certificates for the validating webhook
-func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
+func CreateWebhookCertificates(log *zap.SugaredLogger, kubeClient kubernetes.Interface, certDir string) error {
 
 	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)
 	serialNumber, err := newSerialNumber()
@@ -135,6 +137,24 @@ func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
 		Bytes: x509.MarshalPKCS1PrivateKey(serverPrivKey),
 	})
 
+	err = os.MkdirAll(certDir, 0666)
+	if err != nil {
+		log.Errorf("Mkdir error %v", err)
+		return err
+	}
+
+	err = writeFile(fmt.Sprintf("%s/tls.crt", certDir), serverPEM)
+	if err != nil {
+		log.Errorf("Error 2 %v", err)
+		return err
+	}
+
+	err = writeFile(fmt.Sprintf("%s/tls.key", certDir), serverKeyPEM)
+	if err != nil {
+		log.Errorf("Error 3 %v", err)
+		return err
+	}
+
 	serverPEMBytes := serverPEM.Bytes()
 
 	serverKeyPEMBytes := serverKeyPEM.Bytes()
@@ -147,16 +167,7 @@ func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
 	webhookCA.Data["tls.crt"] = caPEMBytes
 	webhookCA.Data["tls.key"] = caKeyPEMBytes
 
-	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
-	if err != nil {
-		if errors.IsNotFound(err) {
-			_, errA := kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCA, metav1.CreateOptions{})
-			if errA != nil {
-				return errA
-			}
-		}
-	}
-	if err != nil && !errors.IsNotFound(err) {
+	if err := createOrUpdateSecret(kubeClient, &webhookCA); err != nil {
 		return err
 	}
 
@@ -168,26 +179,46 @@ func CreateWebhookCertificates(kubeClient kubernetes.Interface) error {
 	webhookCrt.Data["tls.crt"] = serverPEMBytes
 	webhookCrt.Data["tls.key"] = serverKeyPEMBytes
 
-	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
-	if err != nil {
-		if errors.IsNotFound(err) {
-			_, errX := kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
-			if errX != nil {
-				return errX
-			}
-		}
-	}
-	if err != nil && !errors.IsNotFound(err) {
+	if err := createOrUpdateSecret(kubeClient, &webhookCrt); err != nil {
 		return err
 	}
 
 	return nil
 }
 
+func createOrUpdateSecret(kubeClient kubernetes.Interface, certSecret *v1.Secret) error {
+	_, err := kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), certSecret.Name, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			_, createError := kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), certSecret, metav1.CreateOptions{})
+			return createError
+		}
+		return err
+	}
+	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Update(context.TODO(), certSecret, metav1.UpdateOptions{})
+	return err
+}
+
 // newSerialNumber returns a new random serial number suitable for use in a certificate.
 func newSerialNumber() (*big.Int, error) {
 	// A serial number can be up to 20 octets in size.
 	return cryptorand.Int(cryptorand.Reader, new(big.Int).Lsh(big.NewInt(1), 8*20))
+}
+
+// writeFile writes data in the file at the given path
+func writeFile(filepath string, pem *bytes.Buffer) error {
+	f, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.Write(pem.Bytes())
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // DeleteValidatingWebhookConfiguration deletes a validating webhook configuration
@@ -204,8 +235,8 @@ func DeleteValidatingWebhookConfiguration(kubeClient kubernetes.Interface, name 
 	return err
 }
 
-// UpdateValidatingnWebhookConfiguration sets the CABundle
-func UpdateValidatingnWebhookConfiguration(kubeClient kubernetes.Interface, name string) error {
+// UpdateValidatingWebhookConfiguration sets the CABundle
+func UpdateValidatingWebhookConfiguration(kubeClient kubernetes.Interface, name string) error {
 	validatingWebhook, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return err
