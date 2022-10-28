@@ -23,12 +23,13 @@ import (
 )
 
 const (
-	waitTimeout          = 3 * time.Minute
-	pollingInterval      = 10 * time.Second
-	documentFile         = "testdata/upgrade/grafana/dashboard.json"
-	grafanaErrMsgFmt     = "Failed to GET Grafana testDashboard: status=%d: body=%s"
-	testDashboardTitle   = "E2ETestDashboard"
-	systemDashboardTitle = "Host Metrics"
+	waitTimeout              = 3 * time.Minute
+	pollingInterval          = 10 * time.Second
+	documentFile             = "testdata/upgrade/grafana/dashboard.json"
+	grafanaErrMsgFmt         = "Failed to GET Grafana testDashboard: status=%d: body=%s"
+	testDashboardTitle       = "E2ETestDashboard"
+	systemDashboardTitle     = "Host Metrics"
+	openSearchMetricsDbTitle = "OpenSearch Summary Dashboard"
 )
 
 type DashboardMetadata struct {
@@ -156,6 +157,34 @@ var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.
 		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
 
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+
+	// GIVEN a running grafana instance
+	// WHEN a call is made to Grafana Dashboard with UID corresponding to OpenSearch Summary Dashboard
+	// THEN the dashboard metadata of the corresponding dashboard is returned
+	if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); ok {
+		t.It("Get details of the OpenSearch Grafana Dashboard", func() {
+			uid := "pIZicTl7z"
+			Eventually(func() bool {
+				resp, err := pkg.GetGrafanaDashboard(uid)
+				if err != nil {
+					pkg.Log(pkg.Error, err.Error())
+					return false
+				}
+				if resp.StatusCode != http.StatusOK {
+					pkg.Log(pkg.Error, fmt.Sprintf(grafanaErrMsgFmt, resp.StatusCode, string(resp.Body)))
+					return false
+				}
+				body := make(map[string]map[string]string)
+				json.Unmarshal(resp.Body, &body)
+				return strings.Contains(body["dashboard"]["title"], openSearchMetricsDbTitle)
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
+		})
+	}
+
 	// GIVEN a running grafana instance,
 	// WHEN the pod is deleted,
 	// THEN pod eventually comes back up.
@@ -240,6 +269,29 @@ var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.
 			return strings.Contains(body["dashboard"]["title"], systemDashboardTitle)
 		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
+
+	// GIVEN a running grafana instance
+	// WHEN a call is made to Grafana Dashboard with UID corresponding to OpenSearch Summary Dashboard
+	// THEN the dashboard metadata of the corresponding dashboard is returned
+	if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); ok {
+		t.It("Get details of the OpenSearch Grafana Dashboard", func() {
+			uid := "pIZicTl7z"
+			Eventually(func() bool {
+				resp, err := pkg.GetGrafanaDashboard(uid)
+				if err != nil {
+					pkg.Log(pkg.Error, err.Error())
+					return false
+				}
+				if resp.StatusCode != http.StatusOK {
+					pkg.Log(pkg.Error, fmt.Sprintf(grafanaErrMsgFmt, resp.StatusCode, string(resp.Body)))
+					return false
+				}
+				body := make(map[string]map[string]string)
+				json.Unmarshal(resp.Body, &body)
+				return strings.Contains(body["dashboard"]["title"], openSearchMetricsDbTitle)
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
+		})
+	}
 })
 
 func IsPodReadyOrCompleted(pod corev1.Pod) bool {
