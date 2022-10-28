@@ -79,8 +79,8 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 
 		t.It("the VMC status is updated that objects have been pushed to the managed cluster", func() {
 			// GIVEN the VMC has been registered
-			// WHEN the VMc is retrieved
-			// THEN the VMc should have a status condition of Type: Manifest Pushed and Status: True
+			// WHEN the VMC is retrieved
+			// THEN the VMC should have a status condition of Type: Manifest Pushed and Status: True
 			Eventually(func() error {
 				pkg.Log(pkg.Info, "Waiting for all VMC to have status condition ManifestPushed = True")
 				vmcList, err := adminClient.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
