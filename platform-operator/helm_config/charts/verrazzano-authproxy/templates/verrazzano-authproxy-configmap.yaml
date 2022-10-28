@@ -513,7 +513,7 @@ data:
         elseif backend == 'elasticsearch' then
             serverUrl = me.makeVmiBackendUrl('es-ingest', '9200')
         elseif backend == 'opensearch' then
-            serverUrl = me.makeVmiBackendUrl('os-ingest', '9200')    
+            serverUrl = me.makeVmiBackendUrl('es-ingest', '9200')    
         elseif backend == 'kiali' then
             serverUrl = me.makeVmiBackendUrl(backend, '20001')
         elseif backend == 'jaeger' then
