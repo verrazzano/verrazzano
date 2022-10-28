@@ -6,6 +6,8 @@ package rancher
 import (
 	"context"
 
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -25,11 +27,11 @@ func createCattleSystemNamespace(log vzlog.VerrazzanoLogger, c client.Client) er
 	}
 	log.Debugf("Creating %s namespace", common.CattleSystem)
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), c, namespace, func() error {
-		log.Debugf("Ensuring %s label is present on %s namespace", namespaceLabelKey, common.CattleSystem)
+		log.Debugf("Ensuring %s label is present on %s namespace", constants.VerrazzanoManagedKey, common.CattleSystem)
 		if namespace.Labels == nil {
 			namespace.Labels = map[string]string{}
 		}
-		namespace.Labels[namespaceLabelKey] = common.RancherName
+		namespace.Labels[constants.VerrazzanoManagedKey] = common.RancherName
 		return nil
 	}); err != nil {
 		return err

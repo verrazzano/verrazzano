@@ -2,7 +2,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 envVars:
-  PSR_WORKER_TYPE: WT_LOG_GET
+  PSR_WORKER_TYPE: WT_GET_LOGS
 
 istio:
   enabled: true

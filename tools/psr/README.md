@@ -183,14 +183,14 @@ no configuration overrides
 helm install psr-loggen manifests/charts/worker -f manifests/usecases/opensearch/loggen.yaml
 ```
 
-### LogGet
+### GetLogs
 #### Description
-The logget worker periodically get messages from OpenSearch, in-cluster.  This worker must run in the mesh.
+The GetLogs worker periodically get messages from OpenSearch, in-cluster.  This worker must run in the mesh.
 
 #### Configuration
 no configuration overrides
 
 #### Run
 ```
-helm install psr-logget manifests/charts/worker -f manifests/usecases/opensearch/logget.yaml
+helm install psr-getlogs manifests/charts/worker -f manifests/usecases/opensearch/getlogs.yaml
 ```

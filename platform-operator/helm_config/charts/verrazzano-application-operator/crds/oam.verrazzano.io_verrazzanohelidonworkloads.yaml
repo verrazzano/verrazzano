@@ -20,8 +20,8 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: VerrazzanoHelidonWorkload is the Schema for verrazzanohelidonworkloads
-          API
+        description: VerrazzanoHelidonWorkload specifies the Verrazzano Helidon workload
+          API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -36,16 +36,17 @@ spec:
           metadata:
             type: object
           spec:
-            description: VerrazzanoHelidonWorkloadSpec wraps meta/ObjectMeta & apps/DeploymentSpec.
+            description: The desired state of a Verrazzano Helidon workload.
             properties:
               deploymentTemplate:
-                description: The embedded apps/Deployment
+                description: An embedded Helidon application deployment.
                 properties:
                   metadata:
+                    description: Metadata about a Helidon application.
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
                   podSpec:
-                    description: PodSpec is a description of a pod.
+                    description: The pod spec of a Helidon application.
                     properties:
                       activeDeadlineSeconds:
                         description: Optional duration in seconds the pod may be active
@@ -7121,7 +7122,7 @@ spec:
                     - containers
                     type: object
                   selector:
-                    description: A label selector is a label query over a set of resources
+                    description: Label selector of a Helidon application.
                     properties:
                       matchExpressions:
                         description: matchExpressions is a list of label selector
@@ -7165,8 +7166,7 @@ spec:
                         type: object
                     type: object
                   strategy:
-                    description: The deployment strategy to use to replace existing
-                      pods with new ones.
+                    description: The replacement strategy of a Helidon application.
                     properties:
                       rollingUpdate:
                         description: 'Rolling update config params. Present only if
@@ -7223,8 +7223,7 @@ spec:
             - deploymentTemplate
             type: object
           status:
-            description: VerrazzanoHelidonWorkloadStatus defines the observed state
-              of VerrazzanoHelidonWorkload
+            description: The observed state of a Verrazzano Helidon workload.
             properties:
               conditions:
                 description: Conditions of the resource.
@@ -7260,7 +7259,7 @@ spec:
                   type: object
                 type: array
               resources:
-                description: Resources managed by this workload.
+                description: The resources managed by this Verrazzano Helidon workload.
                 items:
                   description: QualifiedResourceRelation identifies a specific related
                     resource.

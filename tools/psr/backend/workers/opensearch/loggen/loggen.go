@@ -96,13 +96,13 @@ func (w logGenerator) GetMetricList() []prometheus.Metric {
 
 	m := prometheus.MustNewConstMetric(
 		w.loggenMetrics.loggedLinesCount.Desc,
-		prometheus.GaugeValue,
+		prometheus.CounterValue,
 		float64(atomic.LoadInt64(&w.loggenMetrics.loggedLinesCount.Val)))
 	metrics = append(metrics, m)
 
 	m = prometheus.MustNewConstMetric(
 		w.loggenMetrics.loggedTotalChars.Desc,
-		prometheus.GaugeValue,
+		prometheus.CounterValue,
 		float64(atomic.LoadInt64(&w.loggenMetrics.loggedTotalChars.Val)))
 	metrics = append(metrics, m)
 

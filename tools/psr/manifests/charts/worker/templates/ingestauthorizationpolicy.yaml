@@ -5,7 +5,7 @@
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: {{ .Release.Namespace }}-ingest-authzpol
+  name: {{ .Release.Name }}-{{ .Release.Namespace }}-ingest-authzpol
   namespace: verrazzano-system
 spec:
   selector:
