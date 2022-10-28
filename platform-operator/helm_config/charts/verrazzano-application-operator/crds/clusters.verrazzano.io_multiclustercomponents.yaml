@@ -63,7 +63,7 @@ spec:
                   component.
                 properties:
                   metadata:
-                    description: Metadata describing the secret.
+                    description: Metadata describing the component.
                     properties:
                       annotations:
                         additionalProperties:

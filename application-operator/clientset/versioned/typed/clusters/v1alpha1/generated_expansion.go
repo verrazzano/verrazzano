@@ -5,6 +5,8 @@
 
 package v1alpha1
 
+type MultiClusterApplicationConfigurationExpansion interface{}
+
 type MultiClusterComponentExpansion interface{}
 
 type MultiClusterConfigMapExpansion interface{}

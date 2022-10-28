@@ -11,43 +11,47 @@ import (
 const MultiClusterAppConfigKind = "MultiClusterApplicationConfiguration"
 const MultiClusterAppConfigResource = "multiclusterapplicationconfigurations"
 
-// MultiClusterApplicationConfigurationSpec defines the desired state of MultiClusterApplicationConfiguration
+// MultiClusterApplicationConfigurationSpec defines the desired state of a Multi Cluster Application.
 type MultiClusterApplicationConfigurationSpec struct {
-	// The embedded OAM ApplicationConfiguration
+	// Template containing the metadata and spec for an OAM applicationConfiguration resource.
 	Template ApplicationConfigurationTemplate `json:"template"`
 
-	// Clusters in which the application is to be placed
+	// Clusters in which the application is to be created.
 	Placement Placement `json:"placement"`
 
-	// List of secrets used by the application
+	// List of secrets used by the application. These secrets must be created in the application’s namespace before
+	// deploying a MultiClusterApplicationConfiguration resource.
+	// +optional
 	Secrets []string `json:"secrets,omitempty"`
 }
 
-// ApplicationConfigurationTemplate has the metadata and spec of the underlying
-// OAM ApplicationConfiguration
+// ApplicationConfigurationTemplate has the metadata and embedded spec of the OAM applicationConfiguration resource.
 type ApplicationConfigurationTemplate struct {
-	// +optional
-	Metadata EmbeddedObjectMeta                    `json:"metadata,omitempty"`
-	Spec     v1alpha2.ApplicationConfigurationSpec `json:"spec,omitempty"`
+	// Metadata describing the application.
+	Metadata EmbeddedObjectMeta `json:"metadata,omitempty"`
+	// The embedded OAM application spec.
+	Spec v1alpha2.ApplicationConfigurationSpec `json:"spec,omitempty"`
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mcappconf;mcappconfs
 // +kubebuilder:subresource:status
 
-// MultiClusterApplicationConfiguration enables customization of ApplicationConfigurations
-// for deployment to multiple clusters.
+// MultiClusterApplicationConfiguration specifies the Multi Cluster Application API.
 type MultiClusterApplicationConfiguration struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MultiClusterApplicationConfigurationSpec `json:"spec,omitempty"`
-	Status MultiClusterResourceStatus               `json:"status,omitempty"`
+	// The desired state of a Multi Cluster Application resource.
+	Spec MultiClusterApplicationConfigurationSpec `json:"spec,omitempty"`
+	// The observed state of a Multi Cluster Application resource.
+	Status MultiClusterResourceStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// MultiClusterApplicationConfigurationList contains a list of MultiClusterApplicationConfiguration
+// MultiClusterApplicationConfigurationList contains a list of MultiClusterApplicationConfiguration resources.
 type MultiClusterApplicationConfigurationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

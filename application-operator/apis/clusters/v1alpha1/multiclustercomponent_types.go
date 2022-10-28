@@ -22,7 +22,7 @@ type MultiClusterComponentSpec struct {
 
 // ComponentTemplate has the metadata and embedded spec of the OAM component.
 type ComponentTemplate struct {
-	// Metadata describing the secret.
+	// Metadata describing the component.
 	Metadata EmbeddedObjectMeta `json:"metadata,omitempty"`
 
 	// The embedded OAM component spec.
