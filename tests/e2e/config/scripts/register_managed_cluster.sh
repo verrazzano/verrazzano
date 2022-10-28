@@ -127,9 +127,12 @@ if [ -z "${RANCHER_TOKEN}" ] ; then
 fi
 
 # Use the admin token to apply the manifest to the managed cluster
-RANCHER_CLUSTER_ID=$(curl -s -k -X GET -H "Authorization: Bearer ${RANCHER_TOKEN}" "${RANCHER_URL}/v3/clusters?name=${MANAGED_CLUSTER_NAME}" | jq '.data[0].id')
+RANCHER_CLUSTER_ID=$(curl -s -k -X GET -H "Authorization: Bearer ${RANCHER_TOKEN}" "${RANCHER_URL}/v3/clusters?name=${MANAGED_CLUSTER_NAME}" | jq -r '.data[0].id')
 echo "RANCHER_CLUSTER_ID: ${RANCHER_CLUSTER_ID}"
-curl -s -k -X GET -H "Authorization: Bearer ${RANCHER_TOKEN}" "${RANCHER_URL}/v3/import/${RANCHER_TOKEN}_${RANCHER_CLUSTER_ID}.yaml" > register-"${MANAGED_CLUSTER_NAME}".yaml
+MC_RANCHER_TOKEN=$(curl -s -k -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer ${RANCHER_TOKEN}" "${RANCHER_URL}/v3/clusterregistrationtoken" \
+                   -d "{\"type\":\"clusterRegistrationToken\", \"clusterId\":\"${RANCHER_CLUSTER_ID}\"}"| jq -r ".token")
+echo "MC_RANCHER_TOKEN: ${MC_RANCHER_TOKEN}"
+curl -s -k -X GET -H "Authorization: Bearer ${RANCHER_TOKEN}" "${RANCHER_URL}/v3/import/${MC_RANCHER_TOKEN}_${RANCHER_CLUSTER_ID}.yaml" > register-"${MANAGED_CLUSTER_NAME}".yaml
 
 echo "----------BEGIN register-${MANAGED_CLUSTER_NAME}.yaml contents----------"
 cat register-${MANAGED_CLUSTER_NAME}.yaml
