@@ -184,12 +184,12 @@ pipeline {
                 }
             }
             parallel {
-                stage('OCI_AUTH UserPrincipal DNS Test 1') {
+                stage('oci user principal with global dns') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
                                 println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=GLOBAL : Nginx_LB=GLOBAL : Istio_LB=GLOBAL")
-                                build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-verrazzano-oci-dns-kind-testss/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
@@ -203,13 +203,13 @@ pipeline {
                         }
                     }
                 }
-                stage('OCI_AUTH UserPrincipal DNS Test 2') {
+                stage('oci user principal with global dns and private istio lb') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
 
                                 println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=GLOBAL : Nginx_LB=GLOBAL : Istio_LB=PRIVATE")
-                                build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-verrazzano-oci-dns-kind-testss/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'ISTIO_LB_SCOPE', value: 'PRIVATE'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -225,13 +225,13 @@ pipeline {
                     }
                 }
 
-                stage('OCI_AUTH UserPrincipal DNS Test 3') {
+                stage('oci user principal with global dns and private nginx lb') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
 
                                 println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=GLOBAL : Nginx_LB=PRIVATE : Istio_LB=GLOBAL")
-                                build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-verrazzano-oci-dns-kind-testss/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'NGINX_LB_SCOPE', value: 'PRIVATE'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -247,13 +247,13 @@ pipeline {
                     }
                 }
 
-                stage('OCI_AUTH UserPrincipal DNS Test 4') {
+                stage('oci user principal with global dns and private istio and nginx lb') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
 
                                 println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=GLOBAL : Nginx_LB=PRIVATE : Istio_LB=PRIVATE")
-                                build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'NGINX_LB_SCOPE', value: 'PRIVATE'),
                                         string(name: 'ISTIO_LB_SCOPE', value: 'PRIVATE'),
@@ -270,13 +270,13 @@ pipeline {
                     }
                 }
 
-                stage('OCI_AUTH UserPrincipal DNS Test 5') {
+                stage('oci user principal with private dns') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
 
                                 println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=PRIVATE : Nginx_LB=GLOBAL : Istio_LB=GLOBAL")
-                                build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'DNS_SCOPE', value: 'PRIVATE'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -292,13 +292,13 @@ pipeline {
                     }
                 }
 
-                stage('OCI_AUTH UserPrincipal DNS Test 6') {
+                stage('oci user principal with private dns and private istio lb') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
 
                                 println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=PRIVATE : Nginx_LB=GLOBAL : Istio_LB=PRIVATE")
-                                build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'DNS_SCOPE', value: 'PRIVATE'),
                                         string(name: 'ISTIO_LB_SCOPE', value: 'PRIVATE'),
@@ -315,13 +315,13 @@ pipeline {
                     }
                 }
 
-                stage('OCI_AUTH UserPrincipal DNS Test 7') {
+                stage('oci user principal with private dns and private  nginx lb') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
 
                                 println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=PRIVATE : Nginx_LB=PRIVATE : Istio_LB=GLOBAL")
-                                build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'DNS_SCOPE', value: 'PRIVATE'),
                                         string(name: 'NGINX_LB_SCOPE', value: 'PRIVATE'),
@@ -338,12 +338,12 @@ pipeline {
                     }
                 }
 
-                stage('OCI_AUTH UserPrincipal DNS Test 8') {
+                stage('oci user principal with private dns and private istio and nginx lb') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
                                 println("AUTH_TYPE=UserPrincipal : DNS_SCOPE=PRIVATE : Nginx_LB=PRIVATE : Istio_LB=PRIVATE")
-                                build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'DNS_SCOPE', value: 'PRIVATE'),
                                         string(name: 'ISTIO_LB_SCOPE', value: 'PRIVATE'),
@@ -361,11 +361,12 @@ pipeline {
                     }
                 }
 
-                stage('OCI DNS/ACME-Staging Tests') {
+
+                stage('oci user principal with global dns cert-issuer acme and env as staging') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'CERT_ISSUER', value: "acme"),
@@ -399,12 +400,12 @@ pipeline {
             }
             parallel {
 
-               stage('OCI_AUTH InstancePrincipal DNS Test 1') {
+               stage('oci instance principal with global dns') {
                    steps {
                        retry(count: JOB_PROMOTION_RETRIES) {
                            script {
                                println("AUTH_TYPE=IP : DNS_SCOPE=GLOBAL : Nginx_LB=GLOBAL : Istio_LB=GLOBAL")
-                               build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                               build job: "/verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
                                    parameters: [
                                        string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
@@ -419,12 +420,12 @@ pipeline {
                        }
                    }
                }
-               stage('OCI_AUTH InstancePrincipal DNS Test 2') {
+               stage('oci instance principal with global dns and private istio lb') {
                    steps {
                        retry(count: JOB_PROMOTION_RETRIES) {
                            script {
                                println("AUTH_TYPE=IP : DNS_SCOPE=GLOBAL : Nginx_LB=GLOBAL : Istio_LB=PRIVATE")
-                               build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                               build job: "/verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
                                    parameters: [
                                        string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
                                        string(name: 'ISTIO_LB_SCOPE', value: 'PRIVATE'),
@@ -441,13 +442,13 @@ pipeline {
                    }
                }
 
-               stage('OCI_AUTH InstancePrincipal DNS Test 3') {
+               stage('oci instance principal with global dns and private nginx lb') {
                    steps {
                        retry(count: JOB_PROMOTION_RETRIES) {
                            script {
 
                                println("AUTH_TYPE=IP : DNS_SCOPE=GLOBAL : Nginx_LB=PRIVATE : Istio_LB=GLOBAL")
-                               build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                               build job: "/verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
                                    parameters: [
                                        string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
                                        string(name: 'NGINX_LB_SCOPE', value: 'PRIVATE'),
@@ -464,13 +465,13 @@ pipeline {
                    }
                }
 
-               stage('OCI_AUTH InstancePrincipal DNS Test 4') {
+               stage('oci instance principal with global dns and private istio and nginx lb') {
                    steps {
                        retry(count: JOB_PROMOTION_RETRIES) {
                            script {
 
                                println("AUTH_TYPE=IP : DNS_SCOPE=GLOBAL : Nginx_LB=PRIVATE : Istio_LB=PRIVATE")
-                               build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                               build job: "/verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
                                    parameters: [
                                        string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
                                        string(name: 'NGINX_LB_SCOPE', value: 'PRIVATE'),
@@ -488,13 +489,13 @@ pipeline {
                    }
                }
 
-               stage('OCI_AUTH InstancePrincipal DNS Test 5') {
+               stage('oci instance principal with private dns') {
                    steps {
                        retry(count: JOB_PROMOTION_RETRIES) {
                            script {
 
                                println("AUTH_TYPE=IP : DNS_SCOPE=PRIVATE : Nginx_LB=GLOBAL : Istio_LB=GLOBAL")
-                               build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                               build job: "/verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
                                    parameters: [
                                        string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
                                        string(name: 'DNS_SCOPE', value: 'PRIVATE'),
@@ -511,13 +512,13 @@ pipeline {
                    }
                }
 
-               stage('OCI_AUTH InstancePrincipal DNS Test 6') {
+               stage('oci instance principal with private dns and private istio lb') {
                    steps {
                        retry(count: JOB_PROMOTION_RETRIES) {
                            script {
 
                                println("AUTH_TYPE=IP : DNS_SCOPE=PRIVATE : Nginx_LB=GLOBAL : Istio_LB=PRIVATE")
-                               build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                               build job: "/verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
                                    parameters: [
                                        string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
                                        string(name: 'DNS_SCOPE', value: 'PRIVATE'),
@@ -535,12 +536,12 @@ pipeline {
                    }
                }
 
-               stage('OCI_AUTH InstancePrincipal DNS Test 7') {
+               stage('oci instance principal with private dns and private nginx lb') {
                    steps {
                        retry(count: JOB_PROMOTION_RETRIES) {
                            script {
                                println("AUTH_TYPE=IP : DNS_SCOPE=PRIVATE : Nginx_LB=PRIVATE : Istio_LB=GLOBAL")
-                               build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                               build job: "/verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
                                    parameters: [
                                        string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
                                        string(name: 'DNS_SCOPE', value: 'PRIVATE'),
@@ -558,12 +559,12 @@ pipeline {
                    }
                }
 
-               stage('OCI_AUTH InstancePrincipal DNS Test 8') {
+               stage('oci instance principal with private dns and private istio and nginx lb') {
                    steps {
                        retry(count: JOB_PROMOTION_RETRIES) {
                            script {
                                println("AUTH_TYPE=IP : DNS_SCOPE=PRIVATE : Nginx_LB=PRIVATE : Istio_LB=PRIVATE")
-                               build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
+                               build job: "/verrazzano-oci-dns-kind-tests/${CLEAN_BRANCH_NAME}",
                                    parameters: [
                                        string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
                                        string(name: 'DNS_SCOPE', value: 'PRIVATE'),
