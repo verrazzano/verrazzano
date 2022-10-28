@@ -292,7 +292,8 @@ func skipComponentFromReadyState(compContext spi.ComponentContext, comp spi.Comp
 
 func isUnavailableAndNeedsUpdate(vz *vzapi.Verrazzano, status *vzapi.ComponentStatusDetails) bool {
 	var needsUpdate = false
-	if vz.Status.State == vzapi.VzStateReady && status.Available != nil && !*status.Available {
+	// verrazzano/component is ready (finished reconciling), but component is unavailable
+	if vz.Status.State == vzapi.VzStateReady && status.State == vzapi.CompStateReady && status.Available != nil && !*status.Available {
 		needsUpdate = isOperatorSameVersionAsCR(vz.Status.Version)
 	}
 	return needsUpdate
