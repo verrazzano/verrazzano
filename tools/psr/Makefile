@@ -47,6 +47,16 @@ go-build:
 		${BACKEND_DIR}/main.go
 
 #
+# Go build cli related tasks
+#
+.PHONY: go-build-cli
+go-build-cli:
+	GOOS=linux GOARCH=amd64 $(GO) build \
+    		-ldflags "${CLI_GO_LDFLAGS}" \
+    		-o out/linux_amd64/psrctl \
+    		${GOPATH}/src/${CLI_DIR}/main.go
+
+#
 # Docker-related tasks
 #
 .PHONY: docker-clean
@@ -75,14 +85,17 @@ run-example-k8s: kind-load-image
 	helm upgrade --install psr manifests/charts/worker --set appType=k8s --set imageName=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 
 #
-# CLI
+# run the CLI
 #
 .PHONY: run
 run:
 	$(GO) run ${GOPATH}/src/${CLI_DIR}/main.go
 
+#
+# build the CLI
+#
 .PHONY: cli
-cli: ## build the CLI
+cli:
 	$(GO) install -ldflags "${CLI_GO_LDFLAGS}" ./...
 
 .PHONY: unit-test
