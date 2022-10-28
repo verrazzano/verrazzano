@@ -137,11 +137,13 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 			})
 		})
 
-		t.ItMinimumVersion("Verify sample OpenSearch metrics can be queried from Prometheus", "1.3.0", kubeConfig, func() {
-			eventuallyMetricsContainLabels(esClusterStatusMetric, map[string]string{
-				container: esMaster,
+		if !isManagedClusterProfile {
+			t.ItMinimumVersion("Verify sample OpenSearch metrics can be queried from Prometheus", "1.3.0", kubeConfig, func() {
+				eventuallyMetricsContainLabels(esClusterStatusMetric, map[string]string{
+					container: esMaster,
+				})
 			})
-		})
+		}
 
 		t.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
 			eventuallyMetricsContainLabels(containerStartTimeSeconds, map[string]string{})
