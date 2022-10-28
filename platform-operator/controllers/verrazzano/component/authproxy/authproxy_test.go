@@ -201,6 +201,14 @@ func TestAppendOverrides(t *testing.T) {
 			numKeyValues: 1,
 			expectedErr:  nil,
 		},
+		{
+			name:         "loadImageSettingsFailed",
+			description:  "Test AppendOverrides when loadImageSettings get failed",
+			expectedYAML: "testdata/enabledOverrideValues.yaml",
+			actualCR:     "testdata/enabledOverrideVz.yaml",
+			numKeyValues: 1,
+			expectedErr:  fmt.Errorf("path error"),
+		},
 	}
 	defer resetWriteFileFunc()
 	for _, test := range tests {
@@ -218,38 +226,16 @@ func TestAppendOverrides(t *testing.T) {
 			fakeClient := createFakeClientWithIngress()
 			fakeContext := spi.NewFakeContext(fakeClient, &testCR, nil, false, profileDir)
 
-			writeFileFunc = func(filename string, data []byte, perm fs.FileMode) error {
-				if test.expectedErr != nil {
-					return test.expectedErr
-				}
-				if err := os.WriteFile(filename, data, perm); err != nil {
-					asserts.Failf("Failure writing file %s: %s", filename, err)
-					return err
-				}
-				asserts.FileExists(filename)
-
-				// Unmarshal the actual generated helm values from code under test
-				actualValues := authProxyValues{}
-				err := yaml.Unmarshal(data, &actualValues)
-				asserts.NoError(err)
-
-				// read in the expected results' data from a file and unmarshal it into a values object
-				expectedData, err := os.ReadFile(test.expectedYAML)
-				asserts.NoError(err, "Error reading expected values yaml file %s", test.expectedYAML)
-				expectedValues := authProxyValues{}
-				err = yaml.Unmarshal(expectedData, &expectedValues)
-				asserts.NoError(err)
-
-				// Compare the actual and expected values objects
-				asserts.Equal(expectedValues, actualValues)
-				return nil
+			setWriteFileFunc(test.expectedErr, asserts, test.expectedYAML)
+			if test.name == "loadImageSettingsFailed" {
+				// setting invalid bom file path for loadImageSettingsFailed test case
+				config.SetDefaultBomFilePath("test")
 			}
-
 			var kvs []bom.KeyValue
 			kvs, err = AppendOverrides(fakeContext, "", "", "", kvs)
 			if test.expectedErr != nil {
 				asserts.Error(err)
-				asserts.Equal([]bom.KeyValue{}, kvs)
+				asserts.Equal([]bom.KeyValue(nil), kvs)
 				return
 			}
 			asserts.NoError(err)
@@ -448,5 +434,153 @@ func createFakeClientWithIngress() client.Client {
 func cleanTempFiles(ctx spi.ComponentContext) {
 	if err := vzos.RemoveTempFiles(ctx.Log().GetZapLogger(), tmpFileCleanPattern); err != nil {
 		ctx.Log().Errorf("Failed deleting temp files: %v", err)
+	}
+}
+
+// setWriteFileFunc sets the writeFileFunc variable for the test cases.
+func setWriteFileFunc(expectedErr error, asserts *assert.Assertions, expectedYAML string) {
+	writeFileFunc = func(filename string, data []byte, perm fs.FileMode) error {
+		if expectedErr != nil {
+			return expectedErr
+		}
+		if err := os.WriteFile(filename, data, perm); err != nil {
+			asserts.Failf("Failure writing file %s: %s", filename, err)
+			return err
+		}
+		asserts.FileExists(filename)
+
+		// Unmarshal the actual generated helm values from code under test
+		actualValues := authProxyValues{}
+		err := yaml.Unmarshal(data, &actualValues)
+		asserts.NoError(err)
+
+		// read in the expected results' data from a file and unmarshal it into a values object
+		expectedData, err := os.ReadFile(expectedYAML)
+		asserts.NoError(err, "Error reading expected values yaml file %s", expectedYAML)
+		expectedValues := authProxyValues{}
+		err = yaml.Unmarshal(expectedData, &expectedValues)
+		asserts.NoError(err)
+
+		// Compare the actual and expected values objects
+		asserts.Equal(expectedValues, actualValues)
+		return nil
+	}
+}
+
+// TestLoadImageSettings test the loadImageSettings to check images specified are loaded successfully
+// GIVEN a call to  loadImageSettings
+// WHEN I call loadImageSettings with valid BOM file with valid path
+// THEN it loads the override values for the image name and version
+//
+// WHEN I call loadImageSettings with invalid BOM file or invalid path
+// THEN error is returned
+func TestLoadImageSettings(t *testing.T) {
+	wantError := true
+	getAuthProxyValue := func() *authProxyValues { return &authProxyValues{} }
+	fakeContext := spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false)
+	tests := []struct {
+		name                string
+		ctx                 spi.ComponentContext
+		overrides           *authProxyValues
+		overrideBomPathFunc func()
+		wantErr             bool
+	}{
+		{
+			"IncorrectBOMFilePathTest",
+			fakeContext,
+			getAuthProxyValue(),
+			func() { config.SetDefaultBomFilePath("test") },
+			wantError,
+		},
+		{
+			"NoSubComponentBOMFileTest",
+			fakeContext,
+			getAuthProxyValue(),
+			func() { config.SetDefaultBomFilePath("testdata/noSubComponentTestBOM.json") },
+			wantError,
+		},
+		{
+			"NoImageNameBOMFileTest",
+			fakeContext,
+			getAuthProxyValue(),
+			func() { config.SetDefaultBomFilePath("testdata/noImageNameTestBOM.json") },
+			wantError,
+		},
+		{
+			"NoImageVersionBOMFileTest",
+			fakeContext,
+			getAuthProxyValue(),
+			func() { config.SetDefaultBomFilePath("testdata/noImageVersionTestBOM.json") },
+			wantError,
+		},
+		{
+			"NoMetricsImageBOMFileTest",
+			fakeContext,
+			getAuthProxyValue(),
+			func() { config.SetDefaultBomFilePath("testdata/noMetricsImageTestBOM.json") },
+			wantError,
+		},
+		{
+			"NoMetricsImageVersionBOMFileTest",
+			fakeContext,
+			&authProxyValues{},
+			func() { config.SetDefaultBomFilePath("testdata/noMetricsImageVersionTestBOM.json") },
+			wantError,
+		},
+	}
+	defer config.SetDefaultBomFilePath("")
+	for _, tt := range tests {
+		tt.overrideBomPathFunc()
+		t.Run(tt.name, func(t *testing.T) {
+			if err := loadImageSettings(tt.ctx, tt.overrides); (err != nil) != tt.wantErr {
+				t.Errorf("loadImageSettings() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// TestGetWildcardDNS test the getWildcardDNS
+// GIVEN a call to  getWildcardDNS
+// WHEN I call getWildcardDNS with DNS available Verrazzano Spec
+// THEN it returns the Wildcard DNS or false in case Wildcard DNS is not available
+func TestGetWildcardDNS(t *testing.T) {
+
+	tests := []struct {
+		name  string
+		vz    *vzapi.VerrazzanoSpec
+		want  bool
+		want1 string
+	}{
+		{
+			"test getWildcardDNS when wildcardDns is passed in Verrazzano spec",
+			&vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					DNS: &vzapi.DNSComponent{
+						Wildcard: &vzapi.Wildcard{Domain: "nip.io"},
+					},
+				},
+			},
+			true,
+			"nip.io",
+		},
+		{
+			"test getWildcardDNS when no DNS  is specified in Verrazzano spec",
+			&vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{},
+			},
+			false,
+			"",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1 := getWildcardDNS(tt.vz)
+			if got != tt.want {
+				t.Errorf("getWildcardDNS() got = %v, want %v", got, tt.want)
+			}
+			if got1 != tt.want1 {
+				t.Errorf("getWildcardDNS() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
 	}
 }

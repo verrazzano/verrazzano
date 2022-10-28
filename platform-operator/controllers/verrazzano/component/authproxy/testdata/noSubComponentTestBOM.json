@@ -1,0 +1,29 @@
+{
+  "registry": "ghcr.io",
+  "version": "VERRAZZANO_VERSION",
+  "components": [
+    {
+      "name": "verrazzano-platform-operator",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "verrazzano-platform-operator",
+          "images": [
+            {
+              "image": "VERRAZZANO_PLATFORM_OPERATOR_IMAGE",
+              "tag": "VERRAZZANO_PLATFORM_OPERATOR_TAG",
+              "helmFullImageKey": "image"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "supportedKubernetesVersions": [
+    "v1.20.0",
+    "v1.21.0",
+    "v1.22.0",
+    "v1.23.0",
+    "v1.24.0"
+  ]
+}
