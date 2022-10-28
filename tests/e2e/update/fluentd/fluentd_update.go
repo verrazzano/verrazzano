@@ -205,7 +205,7 @@ func checkExtraMountsV1beta1(cntr corev1.Container, extra ...v1beta1.VolumeMount
 func validateEsURL(cntr corev1.Container, esURL string) bool {
 	esURL = strings.TrimSpace(esURL)
 	if esURL != "" {
-		env := findEnv(cntr, "ELASTICSEARCH_URL")
+		env := findEnv(cntr, "OPENSEARCH_URL")
 		pkg.Log(pkg.Info, fmt.Sprintf("Expecting %v found env: %v", esURL, env))
 		if env == nil || env.Value != esURL {
 			return false
@@ -216,7 +216,7 @@ func validateEsURL(cntr corev1.Container, esURL string) bool {
 
 func validateEsSec(cntr corev1.Container, esSec string) bool {
 	if esSec != "" {
-		env := findEnv(cntr, "ELASTICSEARCH_USER")
+		env := findEnv(cntr, "OPENSEARCH_USER")
 		pkg.Log(pkg.Info, fmt.Sprintf("Found env: %v", env))
 		if env == nil || env.ValueFrom.SecretKeyRef.Name != esSec {
 			return false

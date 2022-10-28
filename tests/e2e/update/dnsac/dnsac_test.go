@@ -125,7 +125,7 @@ func findEsURL(fp *corev1.Pod) string {
 	for _, c := range fp.Spec.Containers {
 		if c.Name == fluentdName {
 			for _, env := range c.Env {
-				if env.Name == "ELASTICSEARCH_URL" {
+				if env.Name == "OPENSEARCH_URL" {
 					return env.Value
 				}
 			}
