@@ -14,10 +14,6 @@ const VerrazzanoProjectKind = "VerrazzanoProject"
 const VerrazzanoProjectResource = "verrazzanoprojects"
 
 // NamespaceTemplate contains the metadata and specification of a Kubernetes namespace.
-// <div class="alert alert-warning" role="alert">
-// <h4 class="alert-heading">NOTE</h4>
-// To add an application NetworkPolicy, see <a href="../../../../../docs/networking/security/net-security/#networkpolicies-for-applications">NetworkPolicies for applications</a>.
-// </div>
 type NamespaceTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +optional
@@ -27,6 +23,10 @@ type NamespaceTemplate struct {
 }
 
 // NetworkPolicyTemplate contains the metadata and specification of a Kubernetes NetworkPolicy.
+// <div class="alert alert-warning" role="alert">
+// <h4 class="alert-heading">NOTE</h4>
+// To add an application NetworkPolicy, see <a href="../../../../../docs/networking/security/net-security/#networkpolicies-for-applications">NetworkPolicies for applications</a>.
+// </div>
 type NetworkPolicyTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +optional
