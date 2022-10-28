@@ -22,6 +22,9 @@ func TestIsComponentAvailable(t *testing.T) {
 		namespace    = "bar"
 	)
 	emptyClient := fake.NewClientBuilder().WithScheme(getScheme()).Build()
+	selectors := []clipkg.ListOption{
+		clipkg.InNamespace(namespace),
+	}
 	nsn := types.NamespacedName{
 		Name:      name,
 		Namespace: namespace,
@@ -136,6 +139,30 @@ func TestIsComponentAvailable(t *testing.T) {
 				DeploymentNames:  []types.NamespacedName{nsn},
 				StatefulsetNames: []types.NamespacedName{nsn},
 				DaemonsetNames:   []types.NamespacedName{nsn},
+			},
+			readyAndAvailableClient,
+			true,
+		},
+		{
+			"(selectors) unavailable when deployment not ready",
+			&AvailabilityObjects{
+				DeploymentSelectors: selectors,
+			},
+			unreadyClient,
+			false,
+		},
+		{
+			"(selectors) unavailable when deployment not found",
+			&AvailabilityObjects{
+				DeploymentSelectors: selectors,
+			},
+			emptyClient,
+			false,
+		},
+		{
+			"(selectors) available when all objects present",
+			&AvailabilityObjects{
+				DeploymentSelectors: selectors,
 			},
 			readyAndAvailableClient,
 			true,

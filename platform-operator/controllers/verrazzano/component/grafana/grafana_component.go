@@ -5,6 +5,7 @@ package grafana
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -127,12 +128,8 @@ func (g grafanaComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return isGrafanaInstalled(ctx), nil
 }
 
-func (g grafanaComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = g.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", g.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", g.Name()), false
+func (g grafanaComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available bool) {
+	return (&ready.AvailabilityObjects{DeploymentNames: newDeployments()}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 // IsReady returns true if the Grafana component is ready

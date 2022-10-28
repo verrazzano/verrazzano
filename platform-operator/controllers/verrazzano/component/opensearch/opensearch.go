@@ -51,11 +51,39 @@ func isOSReady(ctx spi.ComponentContext) bool {
 	return common.IsVMISecretReady(ctx)
 }
 
+func nodesToObjectKeys(vz *vzapi.Verrazzano) *ready.AvailabilityObjects {
+	objects := &ready.AvailabilityObjects{}
+	if vzconfig.IsOpenSearchEnabled(vz) && vz.Spec.Components.Elasticsearch != nil {
+		for _, node := range vz.Spec.Components.Elasticsearch.Nodes {
+			if node.Replicas < 1 {
+				continue
+			}
+			nodeControllerName := getNodeControllerName(node)
+			if hasRole(node.Roles, vmov1.MasterRole) {
+				objects.StatefulsetNames = append(objects.StatefulsetNames, types.NamespacedName{
+					Name:      nodeControllerName,
+					Namespace: ComponentNamespace,
+				})
+				continue
+			}
+			if hasRole(node.Roles, vmov1.DataRole) {
+				objects.DeploymentNames = append(objects.DeploymentNames, dataDeploymentObjectKeys(node, nodeControllerName)...)
+				continue
+			}
+			objects.DeploymentNames = append(objects.DeploymentNames, types.NamespacedName{
+				Name:      nodeControllerName,
+				Namespace: ComponentNamespace,
+			})
+		}
+	}
+	return objects
+}
+
 func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix string) bool {
 	if node.Replicas < 1 {
 		return true
 	}
-	nodeControllerName := fmt.Sprintf(nodeNamePrefix, node.Name)
+	nodeControllerName := getNodeControllerName(node)
 
 	// If a node has the master role, it is a statefulset
 	if hasRole(node.Roles, vmov1.MasterRole) {
@@ -67,16 +95,7 @@ func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix s
 
 	// Data nodes have N = node.Replicas number of deployment objects.
 	if hasRole(node.Roles, vmov1.DataRole) {
-		var dataDeployments []types.NamespacedName
-		var i int32
-		for i = 0; i < node.Replicas; i++ {
-			dataDeploymentName := fmt.Sprintf("%s-%d", nodeControllerName, i)
-			dataDeployments = append(dataDeployments, types.NamespacedName{
-				Name:      dataDeploymentName,
-				Namespace: ComponentNamespace,
-			})
-		}
-		return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), dataDeployments, 1, prefix)
+		return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), dataDeploymentObjectKeys(node, nodeControllerName), 1, prefix)
 	}
 
 	// Ingest nodes can be handled like normal deployments
@@ -84,6 +103,23 @@ func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix s
 		Name:      nodeControllerName,
 		Namespace: ComponentNamespace,
 	}}, node.Replicas, prefix)
+}
+
+func getNodeControllerName(node vzapi.OpenSearchNode) string {
+	return fmt.Sprintf(nodeNamePrefix, node.Name)
+}
+
+func dataDeploymentObjectKeys(node vzapi.OpenSearchNode, nodeControllerName string) []types.NamespacedName {
+	var dataDeployments []types.NamespacedName
+	var i int32
+	for i = 0; i < node.Replicas; i++ {
+		dataDeploymentName := fmt.Sprintf("%s-%d", nodeControllerName, i)
+		dataDeployments = append(dataDeployments, types.NamespacedName{
+			Name:      dataDeploymentName,
+			Namespace: ComponentNamespace,
+		})
+	}
+	return dataDeployments
 }
 
 func hasRole(roles []vmov1.NodeRole, roleToHave vmov1.NodeRole) bool {
