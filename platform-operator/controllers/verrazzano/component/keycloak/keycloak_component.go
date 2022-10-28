@@ -6,6 +6,7 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 
@@ -68,6 +69,14 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			AppendOverridesFunc:       AppendKeycloakOverrides,
 			Certificates:              certificates,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				StatefulsetNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
@@ -84,7 +93,7 @@ func NewComponent() spi.Component {
 func (c KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
 	// If the Keycloak component is ready, confirm the configuration is working.
 	// If ephemeral storage is being used, the Keycloak configuration will be rebuilt if needed.
-	if isKeycloakReady(ctx) {
+	if c.isKeycloakReady(ctx) {
 		ctx.Log().Debugf("Component %s calling configureKeycloakRealms from Reconcile", ComponentName)
 		return configureKeycloakRealms(ctx)
 	}
@@ -183,17 +192,9 @@ func (c KeycloakComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // IsReady component check
 func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isKeycloakReady(ctx)
+		return c.isKeycloakReady(ctx)
 	}
 	return false
-}
-
-func (c KeycloakComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = c.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", c.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated

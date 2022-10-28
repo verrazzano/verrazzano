@@ -1,28 +1,32 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-apiVersion: core.oam.dev/v1alpha2
-kind: Component
+# This manifest is used for testing without OAM by native Kubernetes resources only
+#
+
+{{- if eq .Values.appType "k8s" }}
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: {{ .Release.Name}}
   namespace: {{ .Release.Namespace }}
 spec:
-  workload:
-    apiVersion: core.oam.dev/v1alpha2
-    kind: ContainerizedWorkload
+  selector:
+    matchLabels:
+      app: psr-backend
+  replicas: {{ .Values.replicas }}
+  template:
     metadata:
-      name: {{ .Release.Name}}
-      namespace: {{ .Release.Namespace }}
       labels:
-        app: backend
-        version: v1
+        app: psr-backend
     spec:
-      {{- if .Values.imagePullSecrets }}
+      serviceAccountName: {{ .Release.Name}}
+    {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-      {{ toYaml .Values.imagePullSecrets | indent 2 }}
-      {{- end }}
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+    {{- end }}
       containers:
-        - name: backend-container
+        - name: worker
           image: {{  .Values.imageName }}
           imagePullPolicy: {{  .Values.imagePullPolicy }}
           env:
@@ -32,4 +36,5 @@ spec:
               {{- end }}
           ports:
             - containerPort: 8080
-              name: backend
+              protocol: TCP
+{{- end }}

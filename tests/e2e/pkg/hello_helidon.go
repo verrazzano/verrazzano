@@ -5,8 +5,10 @@ package pkg
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
@@ -47,12 +49,20 @@ func DeployHelloHelidonApplication(namespace string, ociLogID string, istioInjec
 
 	Log(Info, "Create Hello Helidon component resource")
 	gomega.Eventually(func() error {
-		return CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
+		file, err := FindTestDataFile(helidonComponentYaml)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon component resource")
 
 	Log(Info, "Create Hello Helidon application resource")
 	gomega.Eventually(func() error {
-		return CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
+		file, err := FindTestDataFile(helidonAppYaml)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon application resource")
 }
 
@@ -66,12 +76,20 @@ func UndeployHelloHelidonApplication(namespace string, customAppConfig string) {
 	if exists, _ := DoesNamespaceExist(namespace); exists {
 		Log(Info, "Delete Hello Helidon application")
 		gomega.Eventually(func() error {
-			return DeleteResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
+			file, err := FindTestDataFile(helidonAppYaml)
+			if err != nil {
+				return err
+			}
+			return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 		}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon application resource")
 
 		Log(Info, "Delete Hello Helidon components")
 		gomega.Eventually(func() error {
-			return DeleteResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
+			file, err := FindTestDataFile(helidonComponentYaml)
+			if err != nil {
+				return err
+			}
+			return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 		}, helidonWaitTimeout, helidonPollingInterval).ShouldNot(gomega.HaveOccurred(), "Failed to create hello-helidon component resource")
 
 		Log(Info, "Wait for application pods to terminate")

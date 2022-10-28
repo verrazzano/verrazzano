@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -39,7 +41,11 @@ var (
 
 // DeployTodoListProject deploys the todo-list example's VerrazzanoProject to the cluster with the given kubeConfigPath
 func DeployTodoListProject(kubeconfigPath string, sourceDir string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir), kubeconfigPath); err != nil {
+	file, err := pkg.FindTestDataFile(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir))
+	if err != nil {
+		return err
+	}
+	if err := resource.CreateOrUpdateResourceFromFileInCluster(file, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to create %s project resource: %v", sourceDir, err)
 	}
 	return nil
@@ -53,10 +59,18 @@ func TodoListNamespaceExists(kubeconfigPath string, namespace string) bool {
 
 // DeployTodoListApp deploys the todo-list example application to the cluster with the given kubeConfigPath
 func DeployTodoListApp(kubeconfigPath string, sourceDir string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/todo-list-components.yaml", sourceDir), kubeconfigPath); err != nil {
+	file, err := pkg.FindTestDataFile(fmt.Sprintf("examples/multicluster/%s/todo-list-components.yaml", sourceDir))
+	if err != nil {
+		return err
+	}
+	if err := resource.CreateOrUpdateResourceFromFileInCluster(file, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to create multi-cluster %s component resources: %v", sourceDir, err)
 	}
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/mc-todo-list-application.yaml", sourceDir), kubeconfigPath); err != nil {
+	file, err = pkg.FindTestDataFile(fmt.Sprintf("examples/multicluster/%s/mc-todo-list-application.yaml", sourceDir))
+	if err != nil {
+		return err
+	}
+	if err := resource.CreateOrUpdateResourceFromFileInCluster(file, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to create multi-cluster %s application resource: %v", sourceDir, err)
 	}
 	return nil

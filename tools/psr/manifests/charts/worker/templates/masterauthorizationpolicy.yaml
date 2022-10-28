@@ -1,0 +1,23 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+{{- if .Values.istio.enabled }}
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ .Release.Name }}-{{ .Release.Namespace }}-master-authzpol
+  namespace: verrazzano-system
+spec:
+  selector:
+    matchLabels:
+      app: system-es-master
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["{{ .Release.Namespace }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Release.Name }}"]
+      to:
+        - operation:
+            ports: ["9200"]
+{{- end }}

@@ -43,7 +43,7 @@ var keycloakDisabledCR = &vzapi.Verrazzano{
 }
 
 func TestIsFluentdReady(t *testing.T) {
-	boolTrue, boolFalse := true, false
+	boolTrue := true
 	var tests = []struct {
 		testName string
 		spec     vzapi.Verrazzano
@@ -57,13 +57,6 @@ func TestIsFluentdReady(t *testing.T) {
 				}},
 			},
 		}, getFakeClient(1), true},
-		{"2", vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{Fluentd: &vzapi.FluentdComponent{
-					Enabled: &boolFalse,
-				}},
-			},
-		}, getFakeClient(1), false},
 		{"3", vzapi.Verrazzano{
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{Fluentd: &vzapi.FluentdComponent{
@@ -86,9 +79,10 @@ func TestIsFluentdReady(t *testing.T) {
 			},
 		}, getFakeClient(0), false},
 	}
+	fluentd := NewComponent().(fluentdComponent)
 	for _, test := range tests {
 		ctx := spi.NewFakeContext(test.client, &test.spec, nil, false)
-		if actual := isFluentdReady(ctx); actual != test.expected {
+		if actual := fluentd.isFluentdReady(ctx); actual != test.expected {
 			t.Errorf("test name %s: got fluent ready = %v, want %v", test.testName, actual, test.expected)
 		}
 	}
@@ -136,7 +130,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 									Value: "managed1",
 								},
 								{
-									Name:  vpoconst.ElasticsearchURLEnvVar,
+									Name:  vpoconst.OpensearchURLEnvVar,
 									Value: someURL,
 								},
 							},
@@ -164,7 +158,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	// create a secret with needed keys
 	data := make(map[string][]byte)
 	data[vpoconst.ClusterNameData] = []byte("managed1")
-	data[vpoconst.ElasticsearchURLData] = []byte(someURL)
+	data[vpoconst.OpensearchURLData] = []byte(someURL)
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: defNs,
@@ -189,7 +183,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: vpoconst.MCRegistrationSecret,
 			},
-			Key: vpoconst.ElasticsearchURLData,
+			Key: vpoconst.OpensearchURLData,
 		},
 	}
 	daemonSet.Spec.Template.Spec.Containers[0].Env[0].Value = ""

@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 	"sync/atomic"
 )
@@ -70,8 +71,8 @@ func (w logGenerator) GetWorkerDesc() spi.WorkerDesc {
 	}
 }
 
-func (w logGenerator) GetEnvDescList() []config.EnvVarDesc {
-	return []config.EnvVarDesc{}
+func (w logGenerator) GetEnvDescList() []osenv.EnvVarDesc {
+	return []osenv.EnvVarDesc{}
 }
 
 func (w logGenerator) WantIterationInfoLogged() bool {
@@ -95,13 +96,13 @@ func (w logGenerator) GetMetricList() []prometheus.Metric {
 
 	m := prometheus.MustNewConstMetric(
 		w.loggenMetrics.loggedLinesCount.Desc,
-		prometheus.GaugeValue,
+		prometheus.CounterValue,
 		float64(atomic.LoadInt64(&w.loggenMetrics.loggedLinesCount.Val)))
 	metrics = append(metrics, m)
 
 	m = prometheus.MustNewConstMetric(
 		w.loggenMetrics.loggedTotalChars.Desc,
-		prometheus.GaugeValue,
+		prometheus.CounterValue,
 		float64(atomic.LoadInt64(&w.loggenMetrics.loggedTotalChars.Val)))
 	metrics = append(metrics, m)
 

@@ -6,10 +6,15 @@ package certmanager
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"path/filepath"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -58,6 +63,22 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_0_0,
 			Dependencies:              []string{networkpolicies.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      certManagerDeploymentName,
+						Namespace: ComponentNamespace,
+					},
+					{
+						Name:      cainjectorDeploymentName,
+						Namespace: ComponentNamespace,
+					},
+					{
+						Name:      webhookDeploymentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -70,17 +91,9 @@ func (c certManagerComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // IsReady component check
 func (c certManagerComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isCertManagerReady(ctx)
+		return c.isCertManagerReady(ctx)
 	}
 	return false
-}
-
-func (c certManagerComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = c.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", c.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -119,6 +132,9 @@ func (c certManagerComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 
 // ValidateInstall checks if the specified new Verrazzano CR is valid for this component to be installed
 func (c certManagerComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
+	if err := checkExistingCertManager(vz); err != nil {
+		return err
+	}
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(vz) {
 		if _, err := validateConfiguration(vz.Spec.Components.CertManager); err != nil {
@@ -265,4 +281,30 @@ func (c certManagerComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 		return true
 	}
 	return false
+}
+
+func checkExistingCertManager(vz runtime.Object) error {
+	if !vzconfig.IsCertManagerEnabled(vz) {
+		return nil
+	}
+	client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return err
+	}
+	ns, err := client.Namespaces().Get(context.TODO(), ComponentNamespace, metav1.GetOptions{})
+	if err != nil {
+		if !kerrs.IsNotFound(err) {
+			return err
+		}
+		return nil
+	}
+	if err = common.CheckExistingNamespace([]v1.Namespace{*ns}, func(namespace *v1.Namespace) bool {
+		if namespace.Name == ComponentNamespace || namespace.Namespace == ComponentNamespace {
+			return true
+		}
+		return false
+	}); err != nil {
+		return err
+	}
+	return nil
 }

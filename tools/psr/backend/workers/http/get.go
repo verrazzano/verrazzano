@@ -6,6 +6,7 @@ package http
 import (
    "net/http"
    "os"
+   "io/ioutil"
 )
 
 import (
@@ -15,6 +16,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"sync/atomic"
 )
 
@@ -89,8 +91,8 @@ func (w httpGetWorker) GetWorkerDesc() spi.WorkerDesc {
 	}
 }
 
-func (w httpGetWorker) GetEnvDescList() []config.EnvVarDesc {
-	return []config.EnvVarDesc{}
+func (w httpGetWorker) GetEnvDescList() []osenv.EnvVarDesc {
+	return []osenv.EnvVarDesc{}
 }
 
 func (w httpGetWorker) GetMetricDescList() []prometheus.Desc {
@@ -127,20 +129,39 @@ func (w httpGetWorker) WantIterationInfoLogged() bool {
 
 func (w httpGetWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	var lc, ls, lf int64
-	log.Infof("HttpGet Worker doing work")
     var u string = os.Getenv("HTTP_GET_ENDPOINT")
     log.Infof("Endpoint %s", u)
+    log.Infof("HttpGet Worker doing work")
+
+    //increment totalGetRequestsCount
+    lc = atomic.AddInt64(&w.httpgetMetrics.totalGetRequestsCount.Val, 1)
     resp, err := http.Get(u)
     if err != nil {
-        lf = atomic.AddInt64(&w.httpgetMetrics.totalGetRequestsFailedCount.Val, 1)
-    } else {
-        fmt.Println("The status code of the get request is: ", resp.StatusCode)
-        ls = atomic.AddInt64(&w.httpgetMetrics.totalGetRequestsSucceededCount.Val, 1)
+        return err
     }
-    lc = atomic.AddInt64(&w.httpgetMetrics.totalGetRequestsCount.Val, 1)
+    if resp == nil {
+        return fmt.Errorf("GET request to endpoint %s received a nil response", u)
+    }
+    fmt.Println("The status code of the get request is: ", resp.StatusCode)
+    if resp.StatusCode == 200 {
+        ls = atomic.AddInt64(&w.httpgetMetrics.totalGetRequestsSucceededCount.Val, 1)
+    } else {
+        lf = atomic.AddInt64(&w.httpgetMetrics.totalGetRequestsFailedCount.Val, 1)
+    }
+
     logMsg := fmt.Sprintf("HttpGet worker total requests %v, " +
                 " successful requests %v, failed requests %v",
                 lc, ls,lf)
     log.Infof(logMsg)
+
+    //Read the response body on the line below.
+    body, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+      fmt.Println("Error reading response body: %v", err)
+    }
+    //Convert the body to type string
+    sb := string(body)
+    fmt.Println("The response body: ", sb)
+
     return nil
 }

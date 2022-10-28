@@ -126,22 +126,13 @@ type jaegerData struct {
 	OpenSearchReplicaCount int32
 }
 
-// isJaegerOperatorReady checks if the Jaeger Operator deployment is ready
-func isJaegerOperatorReady(ctx spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      deploymentName,
-			Namespace: ComponentNamespace,
-		},
+func isJaegerReady(ctx spi.ComponentContext) bool {
+	deploys, err := getAllComponentDeployments(ctx)
+	if err != nil {
+		return false
 	}
 	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
-	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
-}
-
-// isDefaultJaegerInstanceReady checks if the deployments of default Jaeger instance managed by VZ are in ready state
-func isDefaultJaegerInstanceReady(ctx spi.ComponentContext) bool {
-	prefix := fmt.Sprintf(componentPrefixFmt, ctx.GetComponent())
-	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), getJaegerComponentDeployments(), 1, prefix)
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deploys, 1, prefix)
 }
 
 // PreInstall implementation for the Jaeger Operator Component
@@ -662,6 +653,15 @@ func removeOldCertAndSecret(ctx spi.ComponentContext) error {
 	return nil
 }
 
+func getJaegerOperatorDeployments() []types.NamespacedName {
+	return []types.NamespacedName{
+		{
+			Name:      deploymentName,
+			Namespace: ComponentNamespace,
+		},
+	}
+}
+
 func getJaegerComponentDeployments() []types.NamespacedName {
 	return []types.NamespacedName{
 		{
@@ -673,6 +673,18 @@ func getJaegerComponentDeployments() []types.NamespacedName {
 			Namespace: ComponentNamespace,
 		},
 	}
+}
+
+func getAllComponentDeployments(ctx spi.ComponentContext) ([]types.NamespacedName, error) {
+	defaultJaegerEnabled, err := isJaegerCREnabled(ctx)
+	if err != nil {
+		return nil, err
+	}
+	deploys := getJaegerOperatorDeployments()
+	if defaultJaegerEnabled {
+		deploys = append(deploys, getJaegerComponentDeployments()...)
+	}
+	return deploys, nil
 }
 
 // GetHelmManagedResources returns a list of extra resource types and their namespaced names that are managed by the
