@@ -357,6 +357,33 @@ func TestCheckSecretExists(t *testing.T) {
 	}
 }
 
+// TestExternalSecretExists tests the Fluentd checkSecretExists call
+func TestExternalSecretExists(t *testing.T) {
+	// GIVEN a Fluentd component
+	//  WHEN I call checkSecretExists with fluentd overrides for ES and a custom ES secret
+	//  THEN no error is returned and external secret is checked and not the internal.
+	trueValue := true
+	secretName := "my-es-secret" //nolint:gosec //#gosec G101
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Namespace: vpoconst.VerrazzanoSystemNamespace, Name: secretName},
+	}).Build()
+
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Fluentd: &vzapi.FluentdComponent{
+					Enabled:             &trueValue,
+					ElasticsearchURL:    "https://myes.mydomain.com:9200",
+					ElasticsearchSecret: secretName,
+				},
+			},
+		},
+	}, nil, false)
+
+	err := checkSecretExists(ctx)
+	assert.NoError(t, err)
+}
+
 func getFakeClient(scheduled int32) clipkg.Client {
 	return fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&appsv1.DaemonSet{
