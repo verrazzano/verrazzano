@@ -29,7 +29,7 @@ const (
 const (
 	WorkerTypeExample       = "WT_EXAMPLE"
 	WorkerTypeLogGen        = "WT_LOG_GEN"
-	WorkerTypeLogGet        = "WT_LOG_GET"
+	WorkerTypeGetLogs       = "WT_GET_LOGS"
 	WorkerTypePodTerminate  = "WT_POD_TERMINATE"
 	WorkerTypeWorkloadScale = "WT_WORKLOAD_SCALE"
 )

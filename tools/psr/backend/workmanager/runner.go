@@ -96,13 +96,13 @@ func (r runner) GetMetricList() []prometheus.Metric {
 
 	m := prometheus.MustNewConstMetric(
 		r.runnerMetrics.loopCount.Desc,
-		prometheus.GaugeValue,
+		prometheus.CounterValue,
 		float64(atomic.LoadInt64(&r.runnerMetrics.loopCount.Val)))
 	metrics = append(metrics, m)
 
 	m = prometheus.MustNewConstMetric(
 		r.runnerMetrics.workerDurationTotalSeconds.Desc,
-		prometheus.GaugeValue,
+		prometheus.CounterValue,
 		float64(atomic.LoadInt64(&r.runnerMetrics.workerDurationTotalSeconds.Val)))
 	metrics = append(metrics, m)
 
