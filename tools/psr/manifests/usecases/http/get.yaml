@@ -3,4 +3,5 @@
 
 envVars:
   PSR_WORKER_TYPE: WT_HTTP_GET
-  HTTP_GET_ENDPOINT: http://jsonplaceholder.typicode.com/posts
+  HTTP_GET_ENDPOINT: http://neverssl.com
+  HTTP_PROXY: http://www-proxy-hqdc.us.oracle.com:80

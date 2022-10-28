@@ -133,10 +133,8 @@ func (w httpGetWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogg
     resp, err := http.Get(u)
     if err != nil {
         lf = atomic.AddInt64(&w.httpgetMetrics.totalGetRequestsFailedCount.Val, 1)
-        return err
     } else {
         fmt.Println("The status code of the get request is: ", resp.StatusCode)
-        // log.Infof(logMsg)
         ls = atomic.AddInt64(&w.httpgetMetrics.totalGetRequestsSucceededCount.Val, 1)
     }
     lc = atomic.AddInt64(&w.httpgetMetrics.totalGetRequestsCount.Val, 1)
