@@ -15,7 +15,6 @@ import (
 )
 
 func TestIsComponentAvailable(t *testing.T) {
-
 	const (
 		zeroReplicas = 0
 		oneReplica   = 1

@@ -129,6 +129,10 @@ func handleGetError(err error, nsn types.NamespacedName, objectType string) erro
 }
 
 func handleReplicasNotReady(ready, expected int32, nsn types.NamespacedName, objectType string) error {
+	if expected == 0 {
+		// an enabled component should have at least one expected replica
+		expected = 1
+	}
 	if ready != expected {
 		return fmt.Errorf("%s %v not available: %d/%d replicas ready", objectType, nsn, ready, expected)
 	}
