@@ -8,17 +8,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name}}
+  name: {{ .Release.Name}}-{{ .Values.envVars.PSR_WORKER_TYPE }}
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
-      app: psr-worker-{{ .Values.envVars.PSR_WORKER_TYPE }}
+      app: psr-{{ .Release.Namespace }}-{{ .Release.Name}}-{{ .Values.envVars.PSR_WORKER_TYPE }}
   replicas: {{ .Values.replicas }}
   template:
     metadata:
       labels:
-        app: psr-worker-{{ .Values.envVars.PSR_WORKER_TYPE }}
+        app: psr-{{ .Release.Namespace }}-{{ .Release.Name}}-{{ .Values.envVars.PSR_WORKER_TYPE }}
     spec:
       serviceAccountName: {{ .Release.Name}}
     {{- if .Values.imagePullSecrets }}
