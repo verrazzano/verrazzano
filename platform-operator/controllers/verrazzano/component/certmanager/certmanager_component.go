@@ -281,11 +281,14 @@ func checkExistingCertManager(vz runtime.Object) error {
 	if err != nil {
 		return err
 	}
-	ns, err := client.Namespaces().List(context.TODO(), metav1.ListOptions{})
-	if err != nil && !kerrs.IsNotFound(err) {
-		return err
+	ns, err := client.Namespaces().Get(context.TODO(), ComponentNamespace, metav1.GetOptions{})
+	if err != nil {
+		if !kerrs.IsNotFound(err) {
+			return err
+		}
+		return nil
 	}
-	if err = common.CheckExistingNamespace(ns.Items, func(namespace *v1.Namespace) bool {
+	if err = common.CheckExistingNamespace([]v1.Namespace{*ns}, func(namespace *v1.Namespace) bool {
 		if namespace.Name == ComponentNamespace || namespace.Namespace == ComponentNamespace {
 			return true
 		}
