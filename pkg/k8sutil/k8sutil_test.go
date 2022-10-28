@@ -585,3 +585,31 @@ func TestGetCertManagerClientset(t *testing.T) {
 	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
 	asserts.NoError(err)
 }
+
+// TestGetKubernetesNodeList tests getting a list of Kubernetes nodes
+func TestGetKubernetesNodeList(t *testing.T) {
+	asserts := assert.New(t)
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.Node{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Node",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "node1",
+			},
+		}, &v1.Node{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Node",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "node2",
+			},
+		}).Build()
+	nodeList, err := k8sutil.GetKubernetesNodeList(client)
+	asserts.NoError(err)
+	asserts.Equal(2, len(nodeList.Items))
+	asserts.Equal("node1", nodeList.Items[0].Name)
+	asserts.Equal("node2", nodeList.Items[1].Name)
+}
