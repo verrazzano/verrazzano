@@ -88,16 +88,16 @@ run-example-k8s: kind-load-image
 # run the CLI
 #
 .PHONY: run-cli
-run:
+run-cli: go-build-cli
 	$(GO) run ${GOPATH}/src/${CLI_DIR}/main.go
 
 #
 # install the CLI
 #
-.PHONY: build-cli
-cli:
+.PHONY: install-cli
+install-cli: go-build-cli
 	$(GO) install -ldflags "${CLI_GO_LDFLAGS}" ./...
 
 .PHONY: unit-test
-unit-test: cli
+unit-test: run-cli
 	$(GO) test -v  ./backend/...
