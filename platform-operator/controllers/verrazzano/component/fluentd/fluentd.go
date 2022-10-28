@@ -34,14 +34,15 @@ const (
 func checkSecretExists(ctx spi.ComponentContext) error {
 	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		secret := &corev1.Secret{}
-		// verrazzano-es-internal secret by default
+		// Check verrazzano-es-internal secret by default
 		secretName := globalconst.VerrazzanoESInternal
 		fluentdConfig := ctx.EffectiveCR().Spec.Components.Fluentd
-		// Check external-es-secret secret if using external ES, return error which will cause requeue
+
+		// Check external es secret if using external ES/OS
 		if fluentdConfig != nil && len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoESInternal {
 			secretName = fluentdConfig.ElasticsearchSecret
 		}
-		// Check verrazzano-es secret, return error which will cause requeue
+		// Wait for secret to be available, return error which will cause requeue
 		err := ctx.Client().Get(context.TODO(), clipkg.ObjectKey{
 			Namespace: constants.VerrazzanoSystemNamespace,
 			Name:      secretName,
@@ -50,11 +51,11 @@ func checkSecretExists(ctx spi.ComponentContext) error {
 		if err != nil {
 			if errors.IsNotFound(err) {
 				ctx.Log().Progressf("Component Fluentd waiting for the secret %s/%s to exist",
-					constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal)
+					constants.VerrazzanoSystemNamespace, secretName)
 				return ctrlerrors.RetryableError{Source: ComponentName}
 			}
 			ctx.Log().Errorf("Component Fluentd failed to get the secret %s/%s: %v",
-				constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal, err)
+				constants.VerrazzanoSystemNamespace, secretName, err)
 			return err
 		}
 	}
