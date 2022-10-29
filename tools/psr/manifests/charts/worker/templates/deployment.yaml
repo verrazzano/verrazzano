@@ -1,25 +1,22 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-# This manifest is used for testing without OAM by native Kubernetes resources only
-#
-
 {{- if eq .Values.appType "k8s" }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name}}-{{ .Values.envVars.PSR_WORKER_TYPE }}
+  name: {{ template "worker.fullName" .}}
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
-      psr.verrazzano.io/worker: {{ .Release.Name}}-{{ .Values.envVars.PSR_WORKER_TYPE }}
+      psr.verrazzano.io/worker: {{ template "worker.fullName" .}}
   replicas: {{ .Values.replicas }}
   template:
     metadata:
       labels:
-        psr.verrazzano.io/worker: {{ .Release.Name}}-{{ .Values.envVars.PSR_WORKER_TYPE }}
-        app: psr-{{ .Values.envVars.PSR_WORKER_TYPE }}
+        psr.verrazzano.io/worker: {{ template "worker.fullName" .}}
+        app: psr-{{ .Values.global.envVars.PSR_WORKER_TYPE }}
         version: v1
     spec:
       serviceAccountName: {{ .Release.Name}}
@@ -28,11 +25,11 @@ spec:
 {{ toYaml .Values.imagePullSecrets | indent 8 }}
     {{- end }}
       containers:
-        - name: {{ .Release.Name}}-{{ .Values.envVars.PSR_WORKER_TYPE }}
+        - name: {{ .Release.Name}}-{{ .Values.global.envVars.PSR_WORKER_TYPE }}
           image: {{  .Values.imageName }}
           imagePullPolicy: {{  .Values.imagePullPolicy }}
           env:
-            {{- range $key, $val := .Values.envVars }}
+            {{- range $key, $val := .Values.global.envVars }}
             - name: {{ $key }}
               value: {{ $val }}
               {{- end }}
