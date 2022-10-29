@@ -19,7 +19,7 @@ spec:
         app: psr-{{ .Values.global.envVars.PSR_WORKER_TYPE }}
         version: v1
     spec:
-      serviceAccountName: {{ .Release.Name}}
+      serviceAccountName: {{ template "worker.fullName" .}}
     {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.imagePullSecrets | indent 8 }}
