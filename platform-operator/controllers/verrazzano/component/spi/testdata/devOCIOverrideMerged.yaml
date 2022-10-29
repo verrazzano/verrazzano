@@ -277,3 +277,5 @@ spec:
       enabled: true
     weblogicOperator:
       enabled: true
+    argocd:
+      enabled: false

@@ -6,6 +6,7 @@ package argocd
 import (
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
@@ -13,6 +14,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
+)
+
+var (
+	falseValue = false
+	trueValue  = true
 )
 
 // TestIsReady verifies ArgoCD is enabled or disabled as expected
@@ -234,4 +240,72 @@ func newReplicaSet(namespace string, name string) *appsv1.ReplicaSet {
 			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 		},
 	}
+}
+
+// TestValidateUpdate tests the ArgoCD component ValidateUpdate function
+func TestValidateUpdate(t *testing.T) {
+	// GIVEN an old VZ with ArgoCD enabled and a new VZ with ArgoCD disabled
+	// WHEN we call the ValidateUpdate function
+	// THEN the function returns an error
+	oldVz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ArgoCD: &vzapi.ArgoCDComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+
+	newVz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				ArgoCD: &vzapi.ArgoCDComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}
+
+	assert.Error(t, NewComponent().ValidateUpdate(oldVz, newVz))
+
+	// GIVEN an old VZ with ArgoCD enabled and a new VZ with ArgoCD enabled
+	// WHEN we call the ValidateUpdate function
+	// THEN the function does not return an error
+	newVz.Spec.Components.ArgoCD.Enabled = &trueValue
+	assert.NoError(t, NewComponent().ValidateUpdate(oldVz, newVz))
+}
+
+// TestValidateUpdateV1beta1 tests the ArgoCD component ValidateUpdate function
+func TestValidateUpdateV1beta1(t *testing.T) {
+	// GIVEN an old VZ with ArgoCD enabled and a new VZ with ArgoCD disabled
+	// WHEN we call the ValidateUpdate function
+	// THEN the function returns an error
+	oldVz := &v1beta1.Verrazzano{
+		Spec: v1beta1.VerrazzanoSpec{
+			Components: v1beta1.ComponentSpec{
+				ArgoCD: &v1beta1.ArgoCDComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+
+	newVz := &v1beta1.Verrazzano{
+		Spec: v1beta1.VerrazzanoSpec{
+			Components: v1beta1.ComponentSpec{
+				ArgoCD: &v1beta1.ArgoCDComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}
+
+	assert.Error(t, NewComponent().ValidateUpdateV1Beta1(oldVz, newVz))
+
+	// GIVEN an old VZ with ArgoCD enabled and a new VZ with ArgoCD enabled
+	// WHEN we call the ValidateUpdate function
+	// THEN the function does not return an error
+	newVz.Spec.Components.ArgoCD.Enabled = &trueValue
+	assert.NoError(t, NewComponent().ValidateUpdateV1Beta1(oldVz, newVz))
 }

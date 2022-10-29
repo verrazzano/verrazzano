@@ -185,7 +185,7 @@ func TestCreateRancherNamespace(t *testing.T) {
 // GIVEN a call to CreateArgoCDNamespace
 // WHEN no error occurs
 // THEN no error is returned, the namespace is created, and the proper labels have been added
-func TestCreateArgoCDNamespace2(t *testing.T) {
+func TestCreateArgoCDNamespace(t *testing.T) {
 	runNamespaceTestWithIstioFlag(t, constants.ArgoCDNamespace,
 		createVZAndIstioLabels(constants.ArgoCDNamespace),
 		CreateArgoCDNamespace)
