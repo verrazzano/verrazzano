@@ -297,8 +297,8 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 		return err
 	}
 
-	re := regexp.MustCompile(cmdhelpers.VpoSimpleLogFormatRegexp)
-	go func(outputStream io.Writer, sc *bufio.Scanner) {
+	go func(outputStream io.Writer, sc *bufio.Scanner, useUninstallJob bool) {
+		re := regexp.MustCompile(cmdhelpers.VpoSimpleLogFormatRegexp)
 		var err error
 		secondsWaited := 0
 		maxSecondsToWait := int(vpoTimeout.Seconds())
@@ -337,7 +337,7 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 				_, _ = fmt.Fprintf(outputStream, fmt.Sprintf("%s\n", sc.Text()))
 			}
 		}
-	}(vzHelper.GetOutputStream(), rc)
+	}(vzHelper.GetOutputStream(), rc, useUninstallJob)
 
 	go func() {
 		for {
