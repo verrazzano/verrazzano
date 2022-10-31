@@ -892,7 +892,7 @@ data:
       reload_on_failure true
       slow_flush_log_threshold 120s
 
-      hosts "#{ENV['ELASTICSEARCH_URL']}"
+      hosts "#{ENV['OPENSEARCH_URL']}"
       ca_file "#{ENV['CA_FILE']}"
       # ssl_version TLSv1_2
       user "#{ENV['ELASTICSEARCH_USER']}"
@@ -932,7 +932,7 @@ data:
       reload_on_failure true
       slow_flush_log_threshold 120s
 
-      hosts "#{ENV['ELASTICSEARCH_URL']}"
+      hosts "#{ENV['OPENSEARCH_URL']}"
       ca_file "#{ENV['CA_FILE']}"
       # ssl_version TLSv1_2
       user "#{ENV['ELASTICSEARCH_USER']}"
