@@ -235,7 +235,7 @@
             },
             {
               "image": "prometheus",
-              "tag": "v2.34.0-20221006134013-1af10466",
+              "tag": "v2.38.0-20221027-1",
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
@@ -461,7 +461,7 @@
           "images": [
             {
               "image": "prometheus-operator",
-              "tag": "v0.55.1-20221006133233-f9453d30",
+              "tag": "v0.59.1-20221031-1",
               "helmFullImageKey": "prometheusOperator.image.repository",
               "helmTagKey": "prometheusOperator.image.tag"
             },
@@ -503,7 +503,7 @@
           "images": [
             {
               "image": "prometheus",
-              "tag": "v2.34.0-20221006134013-1af10466",
+              "tag": "v2.38.0-20221027-1",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
             }
