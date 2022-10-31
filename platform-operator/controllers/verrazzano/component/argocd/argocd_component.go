@@ -4,25 +4,24 @@
 package argocd
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"k8s.io/apimachinery/pkg/runtime"
-	"path/filepath"
-	"strconv"
-
+	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
 )
 
 // ComponentName is the name of the component
@@ -86,48 +85,6 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	return kvs, nil
 }
 
-// appendCAOverrides sets overrides for CA Issuers, ACME or CA.
-func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.ComponentContext) ([]bom.KeyValue, error) {
-	cm := ctx.EffectiveCR().Spec.Components.CertManager
-	if cm == nil {
-		return kvs, log.ErrorfThrottledNewErr("Failed to find certManager component in effective cr")
-	}
-
-	// Configure CA Issuer KVs
-	if (cm.Certificate.Acme != vzapi.Acme{}) {
-		kvs = append(kvs,
-			bom.KeyValue{
-				Key:   letsEncryptIngressClassKey,
-				Value: common.ArgoCDName,
-			}, bom.KeyValue{
-				Key:   letsEncryptEmailKey,
-				Value: cm.Certificate.Acme.EmailAddress,
-			}, bom.KeyValue{
-				Key:   letsEncryptEnvironmentKey,
-				Value: cm.Certificate.Acme.Environment,
-			}, bom.KeyValue{
-				Key:   ingressTLSSourceKey,
-				Value: letsEncryptTLSSource,
-			}, bom.KeyValue{
-				Key:   additionalTrustedCAsKey,
-				Value: strconv.FormatBool(useAdditionalCAs(cm.Certificate.Acme)),
-			})
-	} else { // Certificate issuer type is CA
-		kvs = append(kvs, bom.KeyValue{
-			Key:   ingressTLSSourceKey,
-			Value: caTLSSource,
-		})
-		if isUsingDefaultCACertificate(cm) {
-			kvs = append(kvs, bom.KeyValue{
-				Key:   privateCAKey,
-				Value: privateCAValue,
-			})
-		}
-	}
-
-	return kvs, nil
-}
-
 // IsEnabled ArgoCD is always enabled on admin clusters,
 // and is not enabled by default on managed clusters
 func (r argoCDComponent) IsEnabled(effectiveCR runtime.Object) bool {
@@ -160,6 +117,7 @@ func (r argoCDComponent) Install(ctx spi.ComponentContext) error {
 
 	return nil
 }
+
 
 // PostInstall
 /* Additional setup for ArgoCD after the component is installed
@@ -205,3 +163,22 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 
 	return nil
 }
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (r argoCDComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	// Block all changes for now, particularly around storage changes
+	if r.IsEnabled(old) && !r.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	return r.HelmComponent.ValidateUpdate(old, new)
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (r argoCDComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	// Block all changes for now, particularly around storage changes
+	if r.IsEnabled(old) && !r.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	return r.HelmComponent.ValidateUpdateV1Beta1(old, new)
+}
+
