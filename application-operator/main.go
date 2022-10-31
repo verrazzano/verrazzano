@@ -428,7 +428,7 @@ func main() {
 	// +kubebuilder:scaffold:builder
 
 	log.Debug("Starting agent for syncing multi-cluster objects")
-	go mcagent.StartAgent(mgr.GetClient(), agentChannel, log)
+	go mcagent.StartAgent(mgr.GetClient(), config, agentChannel, log)
 
 	log.Info("Starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

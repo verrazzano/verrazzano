@@ -65,7 +65,7 @@ func CreateOrUpdateResourceFromBytes(data []byte, log *zap.SugaredLogger) error 
 		return fmt.Errorf("failed to get kube config: %w", err)
 	}
 
-	return createOrUpdateResourceFromBytes(data, config)
+	return CreateOrUpdateResourceFromBytesUsingConfig(data, config)
 }
 
 // CreateOrUpdateResourceFromFileInCluster is identical to CreateOrUpdateResourceFromFile, except that
@@ -80,12 +80,12 @@ func CreateOrUpdateResourceFromFileInCluster(file string, kubeconfigPath string)
 	if err != nil {
 		return fmt.Errorf("failed to get kube config: %w", err)
 	}
-	return createOrUpdateResourceFromBytes(bytes, config)
+	return CreateOrUpdateResourceFromBytesUsingConfig(bytes, config)
 }
 
-// createOrUpdateResourceFromBytes creates or updates a Kubernetes resource from bytes.
+// CreateOrUpdateResourceFromBytesUsingConfig creates or updates a Kubernetes resource from bytes.
 // This is intended to be equivalent to `kubectl apply`
-func createOrUpdateResourceFromBytes(data []byte, config *rest.Config) error {
+func CreateOrUpdateResourceFromBytesUsingConfig(data []byte, config *rest.Config) error {
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return fmt.Errorf("failed to create dynamic client: %w", err)
@@ -111,21 +111,40 @@ func createOrUpdateResourceFromBytes(data []byte, config *rest.Config) error {
 			return nil
 		}
 
-		// Attempt to create the resource.
-		_, err = client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Create(context.TODO(), uns, metav1.CreateOptions{})
-		if err != nil && errors.IsAlreadyExists(err) {
-			// Get, read the resource version, and then update the resource.
-			resource, err := client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Get(context.TODO(), uns.GetName(), metav1.GetOptions{})
-			if err != nil {
-				return fmt.Errorf("failed to get resource for update: %w", err)
+		namespace := uns.GetNamespace()
+
+		if namespace != "" {
+			// Attempt to create the resource.
+			_, err = client.Resource(unsMap.Resource).Namespace(namespace).Create(context.TODO(), uns, metav1.CreateOptions{})
+			if err != nil && errors.IsAlreadyExists(err) {
+				// Get, read the resource version, and then update the resource.
+				resource, err := client.Resource(unsMap.Resource).Namespace(namespace).Get(context.TODO(), uns.GetName(), metav1.GetOptions{})
+				if err != nil {
+					return fmt.Errorf("failed to get resource for update: %w", err)
+				}
+				uns.SetResourceVersion(resource.GetResourceVersion())
+				_, err = client.Resource(unsMap.Resource).Namespace(namespace).Update(context.TODO(), uns, metav1.UpdateOptions{})
+				if err != nil {
+					return fmt.Errorf("failed to update resource: %w", err)
+				}
+			} else if err != nil {
+				return fmt.Errorf("failed to create resource: %w", err)
 			}
-			uns.SetResourceVersion(resource.GetResourceVersion())
-			_, err = client.Resource(unsMap.Resource).Namespace(uns.GetNamespace()).Update(context.TODO(), uns, metav1.UpdateOptions{})
-			if err != nil {
-				return fmt.Errorf("failed to update resource: %w", err)
+		} else {
+			_, err = client.Resource(unsMap.Resource).Create(context.TODO(), uns, metav1.CreateOptions{})
+			if err != nil && errors.IsAlreadyExists(err) {
+				resource, err := client.Resource(unsMap.Resource).Get(context.TODO(), uns.GetName(), metav1.GetOptions{})
+				if err != nil {
+					return fmt.Errorf("failed to get resource for update: %v", err)
+				}
+				uns.SetResourceVersion(resource.GetResourceVersion())
+				_, err = client.Resource(unsMap.Resource).Update(context.TODO(), uns, metav1.UpdateOptions{})
+				if err != nil {
+					return fmt.Errorf("failed to update resource: %v", err)
+				}
+			} else if err != nil {
+				return fmt.Errorf("failed to create resource: %v", err)
 			}
-		} else if err != nil {
-			return fmt.Errorf("failed to create resource: %w", err)
 		}
 	}
 	// no return since you can't get here
@@ -164,7 +183,7 @@ func CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file string, ku
 	return createOrUpdateResourceFromBytesInGeneratedNamespace(bytes, config, namespace)
 }
 
-// createOrUpdateResourceFromBytes creates or updates a Kubernetes resource from bytes.
+// createOrUpdateResourceFromBytesInGeneratedNamespace creates or updates a Kubernetes resource from bytes in the provided namespace.
 // This is intended to be equivalent to `kubectl apply`
 func createOrUpdateResourceFromBytesInGeneratedNamespace(data []byte, config *rest.Config, namespace string) error {
 	client, err := dynamic.NewForConfig(config)
@@ -228,14 +247,17 @@ func readNextResourceFromBytes(reader *utilyaml.YAMLReader, mapper *restmapper.D
 		return nil, fmt.Errorf("failed to unmarshal resource: %w", err)
 	}
 
-	// If namespace is nil, then get it from uns
+	// If namespace is nil, then try to get it from uns
 	if namespace == "" {
 		namespace = uns.GetNamespace()
 	}
-	// Check to make sure the namespace of the resource exists.
-	_, err = client.Resource(nsGvr).Get(context.TODO(), namespace, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to find resource namespace: %w", err)
+
+	// If the resource has a namespace, check to make sure the namespace exists.
+	if namespace != "" {
+		_, err = client.Resource(nsGvr).Get(context.TODO(), namespace, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to find resource namespace: %w", err)
+		}
 	}
 
 	// Map the object's GVK to a GVR

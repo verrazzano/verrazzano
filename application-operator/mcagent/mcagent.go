@@ -9,6 +9,8 @@ import (
 	"os"
 	"time"
 
+	"k8s.io/client-go/rest"
+
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
@@ -32,7 +34,7 @@ import (
 const registrationSecretVersion = "REGISTRATION_SECRET_VERSION"
 
 // StartAgent - start the agent thread for syncing multi-cluster objects
-func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUpdateMessage, log *zap.SugaredLogger) {
+func StartAgent(client client.Client, config *rest.Config, statusUpdateChannel chan clusters.StatusUpdateMessage, log *zap.SugaredLogger) {
 	// Wait for the existence of the verrazzano-cluster-agent secret.  It contains the credentials
 	// for connecting to a managed cluster.
 	log = log.With(vzlog.FieldAgent, "multi-cluster")
@@ -46,7 +48,9 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 		ProjectNamespaces:     []string{},
 		AgentSecretFound:      false,
 		SecretResourceVersion: "",
+		CattleAgentHash:       "",
 		StatusUpdateChannel:   statusUpdateChannel,
+		LocalConfig:           config,
 	}
 
 	for {
@@ -133,6 +137,11 @@ func (s *Syncer) ProcessAgentThread() error {
 	if err != nil {
 		// we couldn't sync the cluster CAs - but we should keep going with the rest of the work
 		s.Log.Errorf("Failed to synchronize cluster CA certificates: %v", err)
+	}
+
+	err = s.syncCattleClusterAgent()
+	if err != nil {
+		s.Log.Errorf("Failed to synchronize Cattle cluster agent: %v", err)
 	}
 
 	// if managed cluster information resulted in a change, the fluentd daemonset needs to be restarted and Jaeger CR
