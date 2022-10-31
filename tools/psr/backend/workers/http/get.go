@@ -147,21 +147,20 @@ func (w httpGetWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogg
         ls = atomic.AddInt64(&w.httpgetMetrics.totalGetRequestsSucceededCount.Val, 1)
     } else {
         lf = atomic.AddInt64(&w.httpgetMetrics.totalGetRequestsFailedCount.Val, 1)
+        //Read the response body on the line below.
+        body, err := ioutil.ReadAll(resp.Body)
+        if err != nil {
+          fmt.Println("Error reading response body: %v", err)
+        }
+        //Convert the body to type string
+        sb := string(body)
+        fmt.Println("The response body: ", sb)
     }
 
     logMsg := fmt.Sprintf("HttpGet worker total requests %v, " +
                 " successful requests %v, failed requests %v",
                 lc, ls,lf)
     log.Infof(logMsg)
-
-    //Read the response body on the line below.
-    body, err := ioutil.ReadAll(resp.Body)
-    if err != nil {
-      fmt.Println("Error reading response body: %v", err)
-    }
-    //Convert the body to type string
-    sb := string(body)
-    fmt.Println("The response body: ", sb)
 
     return nil
 }

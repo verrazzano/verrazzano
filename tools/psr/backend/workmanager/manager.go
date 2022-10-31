@@ -14,7 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/example"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/http"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/loggen"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/writelogs"
 )
 
 // RunWorker runs a worker to completion
@@ -38,7 +38,7 @@ func RunWorker(log vzlog.VerrazzanoLogger) error {
 		os.Exit(1)
 	}
 	// add the worker config
-	if err := config.GetEnv().LoadFromEnv(worker.GetEnvDescList()); err != nil {
+	if err := config.PsrEnv.LoadFromEnv(worker.GetEnvDescList()); err != nil {
 		log.Error(err)
 		os.Exit(1)
 	}
@@ -69,12 +69,12 @@ func getWorker(wt string) (spi.Worker, error) {
 	switch wt {
 	case config.WorkerTypeExample:
 		return example.NewExampleWorker()
-	case config.WorkerTypeLogGen:
-		return loggen.NewLogGenerator()
     case config.WorkerTypeHttpGet:
         return http.NewHttpGetWorker()
+	case config.WorkerTypeWriteLogs:
+		return writelogs.NewWriteLogsWorker()
 	case config.WorkerTypeGetLogs:
-		return getlogs.NewGetLogs()
+		return getlogs.NewGetLogsWorker()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}

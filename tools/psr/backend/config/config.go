@@ -27,23 +27,18 @@ const (
 
 // Define worker types
 const (
-	WorkerTypeExample       = "WT_EXAMPLE"
-	WorkerTypeLogGen        = "WT_LOG_GEN"
-	WorkerTypeGetLogs       = "WT_GET_LOGS"
-	WorkerTypePodTerminate  = "WT_POD_TERMINATE"
-	WorkerTypeWorkloadScale = "WT_WORKLOAD_SCALE"
-	WorkerTypeHttpGet       = "WT_HTTP_GET"
+	WorkerTypeExample   = "example"
+	WorkerTypeWriteLogs = "writelogs"
+	WorkerTypeGetLogs   = "getlogs"
+	WorkerTypeHttpGet   = "httpget"
+
 )
 
-var env = osenv.NewEnv()
+var PsrEnv = osenv.NewEnv()
 
 type CommonConfig struct {
 	WorkerType          string
 	IterationSleepNanos time.Duration
-}
-
-func GetEnv() osenv.Environment {
-	return env
 }
 
 // GetCommonConfig loads the common config from env vars
@@ -53,10 +48,10 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 		{Key: PsrDuration, DefaultVal: "", Required: false},
 		{Key: PsrIterationSleep, DefaultVal: "1s", Required: false},
 	}
-	if err := env.LoadFromEnv(dd); err != nil {
+	if err := PsrEnv.LoadFromEnv(dd); err != nil {
 		return CommonConfig{}, err
 	}
-	sleepDuration, err := time.ParseDuration(env.GetEnv(PsrIterationSleep))
+	sleepDuration, err := time.ParseDuration(PsrEnv.GetEnv(PsrIterationSleep))
 	if err != nil {
 		return CommonConfig{}, log.ErrorfNewErr("Error parsing iteration sleep duration: %v", err)
 	}
@@ -66,7 +61,7 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 	}
 
 	return CommonConfig{
-		WorkerType:          env.GetEnv(PsrWorkerType),
+		WorkerType:          PsrEnv.GetEnv(PsrWorkerType),
 		IterationSleepNanos: sleepDuration,
 	}, nil
 }

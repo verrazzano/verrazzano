@@ -8,6 +8,7 @@ def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 pipeline {
     options {
         skipDefaultCheckout true
+        timestamps ()
     }
 
     agent {

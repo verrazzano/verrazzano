@@ -9,12 +9,15 @@ imagePullPolicy: IfNotPresent
 replicas: 1
 
 # envVars contains default worker type and ENV vars common to all workers
-envVars:
-  PSR_WORKER_TYPE: WT_EXAMPLE
-  PSR_ITERATION_SLEEP: 1s
-
-istio:
-  enabled: false
+global:
+  envVars:
+    PSR_WORKER_TYPE: example
+    PSR_ITERATION_SLEEP: 1s
 
 # appType can be either oam or k8s, which are just Kubernetes deployments
 appType: oam
+
+# Each worker that has a subchart needs to override this property
+getlogs:
+  enabled: false
+

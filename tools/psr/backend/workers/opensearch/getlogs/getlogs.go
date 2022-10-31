@@ -46,13 +46,13 @@ var body = io.NopCloser(bytes.NewBuffer([]byte(bodyString)))
 type getLogs struct {
 	spi.Worker
 	metricDescList []prometheus.Desc
-	*getLogsMetrics
+	*workerMetrics
 }
 
 var _ spi.Worker = getLogs{}
 
-// getLogsMetrics holds the metrics produced by the worker. Metrics must be thread safe.
-type getLogsMetrics struct {
+// workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
+type workerMetrics struct {
 	openSearchGetSuccessCount              metrics.MetricItem
 	openSearchGetFailureCount              metrics.MetricItem
 	openSearchGetSuccessLatencyNanoSeconds metrics.MetricItem
@@ -60,10 +60,10 @@ type getLogsMetrics struct {
 	openSearchGetDataTotalChars            metrics.MetricItem
 }
 
-func NewGetLogs() (spi.Worker, error) {
+func NewGetLogsWorker() (spi.Worker, error) {
 	constLabels := prometheus.Labels{}
 
-	w := getLogs{getLogsMetrics: &getLogsMetrics{}}
+	w := getLogs{workerMetrics: &workerMetrics{}}
 
 	d := prometheus.NewDesc(
 		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, openSearchGetSuccessCount),
@@ -72,7 +72,7 @@ func NewGetLogs() (spi.Worker, error) {
 		constLabels,
 	)
 	w.metricDescList = append(w.metricDescList, *d)
-	w.getLogsMetrics.openSearchGetSuccessCount.Desc = d
+	w.workerMetrics.openSearchGetSuccessCount.Desc = d
 
 	d = prometheus.NewDesc(
 		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, openSearchGetFailureCount),
@@ -81,7 +81,7 @@ func NewGetLogs() (spi.Worker, error) {
 		constLabels,
 	)
 	w.metricDescList = append(w.metricDescList, *d)
-	w.getLogsMetrics.openSearchGetFailureCount.Desc = d
+	w.workerMetrics.openSearchGetFailureCount.Desc = d
 
 	d = prometheus.NewDesc(
 		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, openSearchGetSuccessLatencyNanoSeconds),
@@ -90,7 +90,7 @@ func NewGetLogs() (spi.Worker, error) {
 		constLabels,
 	)
 	w.metricDescList = append(w.metricDescList, *d)
-	w.getLogsMetrics.openSearchGetSuccessLatencyNanoSeconds.Desc = d
+	w.workerMetrics.openSearchGetSuccessLatencyNanoSeconds.Desc = d
 
 	d = prometheus.NewDesc(
 		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, openSearchGetFailureLatencyNanoSeconds),
@@ -99,7 +99,7 @@ func NewGetLogs() (spi.Worker, error) {
 		constLabels,
 	)
 	w.metricDescList = append(w.metricDescList, *d)
-	w.getLogsMetrics.openSearchGetFailureLatencyNanoSeconds.Desc = d
+	w.workerMetrics.openSearchGetFailureLatencyNanoSeconds.Desc = d
 
 	d = prometheus.NewDesc(
 		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, openSearchGetDataTotalChars),
@@ -108,7 +108,7 @@ func NewGetLogs() (spi.Worker, error) {
 		constLabels,
 	)
 	w.metricDescList = append(w.metricDescList, *d)
-	w.getLogsMetrics.openSearchGetDataTotalChars.Desc = d
+	w.workerMetrics.openSearchGetDataTotalChars.Desc = d
 
 	return w, nil
 }
@@ -150,19 +150,23 @@ func (w getLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) er
 		return fmt.Errorf("GET request to URI %s received a nil response", req.URL.RequestURI())
 	}
 	if resp.StatusCode == 200 {
-		atomic.StoreInt64(&w.getLogsMetrics.openSearchGetSuccessLatencyNanoSeconds.Val, time.Now().UnixNano()-startRequest)
-		atomic.AddInt64(&w.getLogsMetrics.openSearchGetSuccessCount.Val, 1)
+		atomic.StoreInt64(&w.workerMetrics.openSearchGetSuccessLatencyNanoSeconds.Val, time.Now().UnixNano()-startRequest)
+		atomic.AddInt64(&w.workerMetrics.openSearchGetSuccessCount.Val, 1)
 	} else {
-		atomic.StoreInt64(&w.getLogsMetrics.openSearchGetFailureLatencyNanoSeconds.Val, time.Now().UnixNano()-startRequest)
-		atomic.AddInt64(&w.getLogsMetrics.openSearchGetFailureCount.Val, 1)
+		atomic.StoreInt64(&w.workerMetrics.openSearchGetFailureLatencyNanoSeconds.Val, time.Now().UnixNano()-startRequest)
+		atomic.AddInt64(&w.workerMetrics.openSearchGetFailureCount.Val, 1)
 	}
 	respBody, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
 		return fmt.Errorf("Error reading response body: %v", err)
 	}
-	atomic.AddInt64(&w.getLogsMetrics.openSearchGetDataTotalChars.Val, int64(len(respBody)))
-	return nil
+	atomic.AddInt64(&w.workerMetrics.openSearchGetDataTotalChars.Val, int64(len(respBody)))
+
+	if resp.StatusCode == 200 {
+		return nil
+	}
+	return fmt.Errorf("Failed, GET response error status code %v", resp.StatusCode)
 }
 
 func (w getLogs) GetMetricDescList() []prometheus.Desc {
@@ -173,33 +177,33 @@ func (w getLogs) GetMetricList() []prometheus.Metric {
 	metrics := []prometheus.Metric{}
 
 	m := prometheus.MustNewConstMetric(
-		w.getLogsMetrics.openSearchGetSuccessCount.Desc,
+		w.workerMetrics.openSearchGetSuccessCount.Desc,
 		prometheus.CounterValue,
-		float64(atomic.LoadInt64(&w.getLogsMetrics.openSearchGetSuccessCount.Val)))
+		float64(atomic.LoadInt64(&w.workerMetrics.openSearchGetSuccessCount.Val)))
 	metrics = append(metrics, m)
 
 	m = prometheus.MustNewConstMetric(
-		w.getLogsMetrics.openSearchGetFailureCount.Desc,
+		w.workerMetrics.openSearchGetFailureCount.Desc,
 		prometheus.CounterValue,
-		float64(atomic.LoadInt64(&w.getLogsMetrics.openSearchGetFailureCount.Val)))
+		float64(atomic.LoadInt64(&w.workerMetrics.openSearchGetFailureCount.Val)))
 	metrics = append(metrics, m)
 
 	m = prometheus.MustNewConstMetric(
-		w.getLogsMetrics.openSearchGetSuccessLatencyNanoSeconds.Desc,
+		w.workerMetrics.openSearchGetSuccessLatencyNanoSeconds.Desc,
 		prometheus.GaugeValue,
-		float64(atomic.LoadInt64(&w.getLogsMetrics.openSearchGetSuccessLatencyNanoSeconds.Val)))
+		float64(atomic.LoadInt64(&w.workerMetrics.openSearchGetSuccessLatencyNanoSeconds.Val)))
 	metrics = append(metrics, m)
 
 	m = prometheus.MustNewConstMetric(
-		w.getLogsMetrics.openSearchGetFailureLatencyNanoSeconds.Desc,
+		w.workerMetrics.openSearchGetFailureLatencyNanoSeconds.Desc,
 		prometheus.GaugeValue,
-		float64(atomic.LoadInt64(&w.getLogsMetrics.openSearchGetFailureLatencyNanoSeconds.Val)))
+		float64(atomic.LoadInt64(&w.workerMetrics.openSearchGetFailureLatencyNanoSeconds.Val)))
 	metrics = append(metrics, m)
 
 	m = prometheus.MustNewConstMetric(
-		w.getLogsMetrics.openSearchGetDataTotalChars.Desc,
+		w.workerMetrics.openSearchGetDataTotalChars.Desc,
 		prometheus.CounterValue,
-		float64(atomic.LoadInt64(&w.getLogsMetrics.openSearchGetDataTotalChars.Val)))
+		float64(atomic.LoadInt64(&w.workerMetrics.openSearchGetDataTotalChars.Val)))
 	metrics = append(metrics, m)
 
 	return metrics

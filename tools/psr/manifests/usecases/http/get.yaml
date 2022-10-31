@@ -1,7 +1,9 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-envVars:
-  PSR_WORKER_TYPE: WT_HTTP_GET
-  HTTP_GET_ENDPOINT: http://sample-domain1-admin-server.sample-domain1-ns:7001/weblogic/ready
-  # HTTP_PROXY: http://www-proxy-hqdc.us.oracle.com:80
+
+global:
+  envVars:
+    PSR_WORKER_TYPE: httpget
+    HTTP_GET_ENDPOINT: http://sample-domain1-admin-server.sample-domain1-ns:7001/weblogic/ready
+    #HTTP_PROXY: http://www-proxy-hqdc.us.oracle.com:80
