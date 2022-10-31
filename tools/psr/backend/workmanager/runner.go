@@ -78,7 +78,7 @@ func NewRunner(worker spi.Worker, conf config.CommonConfig, log vzlog.Verrazzano
 		constLabels,
 	)
 	r.metricDescList = append(r.metricDescList, *d)
-	r.runnerMetrics.loopCount.Desc = d
+	r.runnerMetrics.workerThreadCount.Desc = d
 
 	// WorkerDurationSecondsTotal metric
 	d = prometheus.NewDesc(
@@ -145,6 +145,7 @@ func (r runner) GetMetricList() []prometheus.Metric {
 
 // RunWorker runs the worker in a loop
 func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+	r.incThreadCount()
 	startTimeSecs := time.Now().Unix()
 	for {
 		loopCount := atomic.AddInt64(&r.runnerMetrics.loopCount.Val, 1)
@@ -175,4 +176,8 @@ func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		}
 		time.Sleep(conf.IterationSleepNanos)
 	}
+}
+
+func (r runner) incThreadCount() {
+	atomic.AddInt64(&r.runnerMetrics.workerThreadCount.Val, 1)
 }
