@@ -93,6 +93,14 @@ if [ $((MAJOR_VERSION)) -eq 1 ] && [ $((MINOR_VERSION)) -lt 4 ] ; then
     description: "VerrazzanoManagedCluster object for ${MANAGED_CLUSTER_NAME}"
     caSecret: ca-secret-${MANAGED_CLUSTER_NAME}
 EOF
+
+  # wait for VMC to be ready - that means the manifest has been created
+  echo "Creating VMC for ${MANAGED_CLUSTER_NAME}"
+  kubectl --kubeconfig ${ADMIN_KUBECONFIG} wait --for=condition=Ready --timeout=60s vmc ${MANAGED_CLUSTER_NAME} -n verrazzano-mc
+  if [ $? -ne 0 ]; then
+    echo "VMC ${MANAGED_CLUSTER_NAME} not ready after 60 seconds. Registration failed."
+    exit 1
+  fi
 else
   # create VerrazzanoManagedCluster on admin, note caSecret is not specified and will be auto populated
   kubectl --kubeconfig ${ADMIN_KUBECONFIG} apply -f <<EOF -
@@ -104,15 +112,18 @@ else
   spec:
     description: "VerrazzanoManagedCluster object for ${MANAGED_CLUSTER_NAME}"
 EOF
+
+  retries=0
+  while [ ${retries} -lt 10 ] && [ "$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vmc -n verrazzano-mc ${MANAGED_CLUSTER_NAME} -o jsonpath='{.status.rancherRegistration.status}')" != 'Completed' ] ; do
+    echo "Verrazzano Rancher registration incomplete, checking again in 30s"
+    ((retries++))
+    sleep 30
+  done
 fi
 
-# wait for VMC to be ready - that means the manifest has been created
-echo "Creating VMC for ${MANAGED_CLUSTER_NAME}"
-kubectl --kubeconfig ${ADMIN_KUBECONFIG} wait --for=condition=Ready --timeout=60s vmc ${MANAGED_CLUSTER_NAME} -n verrazzano-mc
-if [ $? -ne 0 ]; then
-  echo "VMC ${MANAGED_CLUSTER_NAME} not ready after 60 seconds. Registration failed."
-  exit 1
-fi
+echo "----------BEGIN VMC ${MANAGED_CLUSTER_NAME} contents----------"
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vmc -n verrazzano-mc ${MANAGED_CLUSTER_NAME} -o yaml
+echo "----------END VMC ${MANAGED_CLUSTER_NAME} contents----------"
 
 if [ $((MAJOR_VERSION)) -eq 1 ] && [ $((MINOR_VERSION)) -lt 5 ] ; then
   kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-manifest -n verrazzano-mc -o jsonpath={.data.yaml} | base64 --decode > register-${MANAGED_CLUSTER_NAME}.yaml
