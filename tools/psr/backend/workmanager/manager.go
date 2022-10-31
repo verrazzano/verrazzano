@@ -42,7 +42,7 @@ func RunWorker(log vzlog.VerrazzanoLogger) error {
 		os.Exit(1)
 	}
 
-	// init the runner and wrapped worker
+	// init the runner with the worker that it will call repeatedly to DoWork
 	log.Infof("Initializing worker %s", wt)
 	runner, err := NewRunner(worker, conf, log)
 	if err != nil {
