@@ -134,6 +134,9 @@ func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 				// get is working just be looking at the pod log.
 				log.Info("Next call to DoWork from runner successful after previous DoWork failed")
 			}
+			if loopCount == 1 {
+				log.Info("First call to DoWork succeeded")
+			}
 			r.prevWorkFailed = false
 		}
 		log.GetZapLogger().Sync()
