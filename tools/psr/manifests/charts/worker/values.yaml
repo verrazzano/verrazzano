@@ -13,6 +13,7 @@ global:
   envVars:
     PSR_WORKER_TYPE: example
     PSR_ITERATION_SLEEP: 1s
+    PSR_WORKER_THREAD_COUNT: 1
 
 # appType can be either oam or k8s, which are just Kubernetes deployments
 appType: oam

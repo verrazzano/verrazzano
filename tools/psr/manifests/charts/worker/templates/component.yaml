@@ -29,7 +29,7 @@ spec:
           env:
             {{- range $key, $val := .Values.global.envVars }}
             - name: {{ $key }}
-              value: {{ $val }}
+              value: {{ $val | quote}}
               {{- end }}
           ports:
             - containerPort: 8080
