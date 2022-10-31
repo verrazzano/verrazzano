@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	loggedLinesCountTotal     = "logged_lines_count"
+	loggedLinesCountTotal     = "logged_lines_count_total"
 	loggedLinesCountTotalHelp = "The total number of lines logged"
 
 	loggedCharsCountTotal     = "logged_chars_total"
