@@ -24,7 +24,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	kerrs "k8s.io/apimachinery/pkg/api/errors"
 
 	appsv1 "k8s.io/api/apps/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -678,11 +677,11 @@ func getRancherVerrazzanoUserName(ctx spi.ComponentContext, vzUser *keycloak.Key
 	userPrincipalKeycloakID := UserPrincipalKeycloakPrefix + vzUser.ID
 	err := c.Get(context.TODO(), nsn, &resources)
 	if err != nil {
-		if kerrs.IsNotFound(err) {
+		if errors.IsNotFound(err) {
 			nsn.Name = getUserNameForPrincipal(userPrincipalKeycloakID)
 			err = c.Get(context.TODO(), nsn, &resources)
 		}
-		if err != nil && !kerrs.IsNotFound(err) {
+		if err != nil && !errors.IsNotFound(err) {
 			return "", err
 		}
 	}
