@@ -47,7 +47,6 @@ type getLogs struct {
 	spi.Worker
 	metricDescList []prometheus.Desc
 	*getLogsMetrics
-	lastGetReturnedError bool
 }
 
 var _ spi.Worker = getLogs{}
@@ -160,15 +159,7 @@ func (w getLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) er
 	respBody, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
-		w.lastGetReturnedError = true
 		return fmt.Errorf("Error reading response body: %v", err)
-	} else {
-		// If we had a failure on the prev call then log success so you can tell
-		// get is working just be looking at the pod log
-		if w.lastGetReturnedError {
-			log.Info("GET to OpenSearch successful after previous GET failed", err)
-		}
-		w.lastGetReturnedError = false
 	}
 	atomic.AddInt64(&w.getLogsMetrics.openSearchGetDataTotalChars.Val, int64(len(respBody)))
 	return nil

@@ -38,6 +38,7 @@ type runner struct {
 	spi.Worker
 	metricDescList []prometheus.Desc
 	*runnerMetrics
+	prevWorkFailed bool
 }
 
 var _ WorkerRunner = runner{}
@@ -125,8 +126,17 @@ func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		startIteration := time.Now().UnixNano()
 		err := r.Worker.DoWork(conf, log)
 		if err != nil {
+			r.prevWorkFailed = true
 			log.Errorf("Failed calling %s to do work: %v", r.Worker.GetWorkerDesc().EnvName, err)
+		} else {
+			if r.prevWorkFailed {
+				// If we had a failure on the prev call then log success so you can tell
+				// get is working just be looking at the pod log.
+				log.Info("Next call to DoWork from runner successful after previous DoWork failed")
+			}
+			r.prevWorkFailed = false
 		}
+		log.GetZapLogger().Sync()
 		durationSecondsTotal := time.Now().Unix() - startTimeSecs
 		atomic.StoreInt64(&r.runnerMetrics.workerIterationNanoSeconds.Val, time.Now().UnixNano()-startIteration)
 		atomic.StoreInt64(&r.runnerMetrics.workerDurationTotalSeconds.Val, durationSecondsTotal)
