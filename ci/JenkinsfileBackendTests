@@ -177,9 +177,6 @@ pipeline {
         }
     }
     post {
-        always {
-            archiveArtifacts artifacts: "**/prerelease_validation.out,**/release_status.out,**/${verrazzanoImagesFile},**/${verrazzanoDistributionsFile}", allowEmptyArchive: true
-        }
         failure {
             script {
                 if (isAlertingEnabled()) {
