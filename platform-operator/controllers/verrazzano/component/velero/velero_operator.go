@@ -6,6 +6,7 @@ package velero
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -60,10 +61,18 @@ func GetOverrides(object runtime.Object) interface{} {
 func ensureVeleroNamespace(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Creating namespace %s for Velero.", ComponentNamespace)
 	namespace := v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace}}
+	if namespace.Labels == nil {
+		namespace.Labels = make(map[string]string)
+	}
+	namespace.Labels["verrazzano.io/namespace"] = ComponentNamespace
+	istio := ctx.EffectiveCR().Spec.Components.Istio
+	if istio != nil && istio.IsInjectionEnabled() {
+		namespace.Labels["istio-injection"] = "enabled"
+	}
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &namespace, func() error {
 		return nil
 	}); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
+		return ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 	}
 	return nil
 }

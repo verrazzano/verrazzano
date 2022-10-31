@@ -43,6 +43,10 @@ if ! kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc get configmap ver
   kubectl --kubeconfig ${ADMIN_KUBECONFIG} -n verrazzano-mc create configmap verrazzano-admin-cluster --from-literal=server=${ADMIN_K8S_SERVER_ADDRESS}
 fi
 
+# 'kubectl get vz' occasionally fails with 'error: the server doesn't have a resource type "vz"' but it always works the second time, so run
+# it here to prevent the next invocation from failing
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vz 2> /dev/null || true
+
 VERSION=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vz -o jsonpath='{.items[0].status.version}')
 MAJOR_VERSION=$(echo ${VERSION} | cut -d. -f1)
 MINOR_VERSION=$(echo ${VERSION} | cut -d. -f2)
@@ -110,11 +114,25 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# export manifest on admin
-kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-manifest -n verrazzano-mc -o jsonpath={.data.yaml} | base64 --decode > register-${MANAGED_CLUSTER_NAME}.yaml
+# get the admin user token from the Rancher API
+RANCHER_URL=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vz -o jsonpath='{.items[0].status.instance.rancherUrl}')
+echo "RANCHER_URL: ${RANCHER_URL}"
+RANCHER_ADMIN_PASS=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret -n cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode)
+echo "RANCHER_ADMIN_PASS: ${RANCHER_ADMIN_PASS}"
+RANCHER_TOKEN=$(curl -s -k -X POST -H 'Content-Type: application/json' "${RANCHER_URL}/v3-public/localProviders/local?action=login"  -d "{\"username\":\"admin\", \"password\":\"${RANCHER_ADMIN_PASS}\"}"| jq -r ".token")
+echo "RANCHER_TOKEN: ${RANCHER_TOKEN}"
+if [ -z "${RANCHER_TOKEN}" ] ; then
+  echo "Rancher token for admin user not found"
+  exit 1
+fi
 
-# obtain permission-constrained version of kubeconfig to be used by managed cluster
-kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-agent -n verrazzano-mc -o jsonpath={.data.admin\-kubeconfig} | base64 --decode > ${MANAGED_CLUSTER_DIR}/managed_kube_config
+# Use the admin token to apply the manifest to the managed cluster
+RANCHER_CLUSTER_ID=$(curl -s -k -X GET -H "Authorization: Bearer ${RANCHER_TOKEN}" "${RANCHER_URL}/v3/clusters?name=${MANAGED_CLUSTER_NAME}" | jq -r '.data[0].id')
+echo "RANCHER_CLUSTER_ID: ${RANCHER_CLUSTER_ID}"
+MC_RANCHER_TOKEN=$(curl -s -k -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer ${RANCHER_TOKEN}" "${RANCHER_URL}/v3/clusterregistrationtoken" \
+                   -d "{\"type\":\"clusterRegistrationToken\", \"clusterId\":\"${RANCHER_CLUSTER_ID}\"}"| jq -r ".token")
+echo "MC_RANCHER_TOKEN: ${MC_RANCHER_TOKEN}"
+curl -s -k -X GET -H "Authorization: Bearer ${RANCHER_TOKEN}" "${RANCHER_URL}/v3/import/${MC_RANCHER_TOKEN}_${RANCHER_CLUSTER_ID}.yaml" > register-"${MANAGED_CLUSTER_NAME}".yaml
 
 echo "----------BEGIN register-${MANAGED_CLUSTER_NAME}.yaml contents----------"
 cat register-${MANAGED_CLUSTER_NAME}.yaml
@@ -123,3 +141,6 @@ echo "----------END register-${MANAGED_CLUSTER_NAME}.yaml contents----------"
 echo "Applying register-${MANAGED_CLUSTER_NAME}.yaml"
 # register using the manifest on managed
 kubectl --kubeconfig ${MANAGED_KUBECONFIG} apply -f register-${MANAGED_CLUSTER_NAME}.yaml
+
+# obtain permission-constrained version of kubeconfig to be used by managed cluster
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-agent -n verrazzano-mc -o jsonpath={.data.admin\-kubeconfig} | base64 --decode > ${MANAGED_CLUSTER_DIR}/managed_kube_config

@@ -52,7 +52,6 @@ const (
 	FleetSystemNamespace      = "cattle-fleet-system"
 	FleetLocalSystemNamespace = "cattle-fleet-local-system"
 	defaultSecretNamespace    = "cert-manager"
-	namespaceLabelKey         = "verrazzano.io/namespace"
 	rancherTLSSecretName      = "tls-ca"
 	defaultVerrazzanoName     = "verrazzano-ca-certificate-secret"
 	fleetAgentDeployment      = "fleet-agent"
@@ -88,7 +87,6 @@ const (
 
 const (
 	SettingServerURL               = "server-url"
-	SettingFirstLogin              = "first-login"
 	KontainerDriverOKE             = "oraclecontainerengine"
 	NodeDriverOCI                  = "oci"
 	ClusterLocal                   = "local"
@@ -172,7 +170,6 @@ const (
 	chartDefaultBranchName = "chart-default-branch"
 )
 
-var GVKSetting = common.GetRancherMgmtAPIGVKForKind("Setting")
 var GVKCluster = common.GetRancherMgmtAPIGVKForKind("Cluster")
 var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
 var GVKKontainerDriver = common.GetRancherMgmtAPIGVKForKind("KontainerDriver")
@@ -238,35 +235,11 @@ func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 
 // isRancherReady checks that the Rancher component is in a 'Ready' state, as defined
 // in the body of this function
-func isRancherReady(ctx spi.ComponentContext) bool {
+func (r rancherComponent) isRancherReady(ctx spi.ComponentContext) bool {
 	log := ctx.Log()
 	c := ctx.Client()
-
-	deployments := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      rancherWebhookDeployment,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      fleetAgentDeployment,
-			Namespace: FleetLocalSystemNamespace,
-		},
-		{
-			Name:      fleetControllerDeployment,
-			Namespace: FleetSystemNamespace,
-		},
-		{
-			Name:      gitjobDeployment,
-			Namespace: FleetSystemNamespace,
-		},
-	}
-
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return ready.DeploymentsAreReady(log, c, deployments, 1, prefix)
+	return ready.DeploymentsAreReady(log, c, r.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 // chartsNotUpdatedWorkaround - workaround for VZ-7053, where some of the Helm charts are not
@@ -457,7 +430,7 @@ func activatOKEDriver(log vzlog.VerrazzanoLogger, c client.Client) error {
 // putServerURL updates the server-url Setting
 func putServerURL(log vzlog.VerrazzanoLogger, c client.Client, serverURL string) error {
 	serverURLSetting := unstructured.Unstructured{}
-	serverURLSetting.SetGroupVersionKind(GVKSetting)
+	serverURLSetting.SetGroupVersionKind(common.GVKSetting)
 	serverURLSettingName := types.NamespacedName{Name: SettingServerURL}
 	err := c.Get(context.Background(), serverURLSettingName, &serverURLSetting)
 	if err != nil {
@@ -616,8 +589,8 @@ func disableFirstLogin(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 	c := ctx.Client()
 	firstLoginSetting := unstructured.Unstructured{}
-	firstLoginSetting.SetGroupVersionKind(GVKSetting)
-	firstLoginSettingName := types.NamespacedName{Name: SettingFirstLogin}
+	firstLoginSetting.SetGroupVersionKind(common.GVKSetting)
+	firstLoginSettingName := types.NamespacedName{Name: common.SettingFirstLogin}
 	err := c.Get(context.Background(), firstLoginSettingName, &firstLoginSetting)
 	if err != nil {
 		return log.ErrorfThrottledNewErr("Failed getting first-login setting: %s", err.Error())
@@ -634,7 +607,7 @@ func disableFirstLogin(ctx spi.ComponentContext) error {
 
 // createOrUpdateUIPlSetting creates/updates the ui-pl setting with value Verrazzano
 func createOrUpdateUIPlSetting(ctx spi.ComponentContext) error {
-	return createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUIPL}, GVKSetting, map[string]interface{}{"value": SettingUIPLValueVerrazzano})
+	return createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUIPL}, common.GVKSetting, map[string]interface{}{"value": SettingUIPLValueVerrazzano})
 }
 
 // createOrUpdateUILogoSetting updates the ui-logo-* settings
@@ -661,15 +634,15 @@ func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, l
 		return log.ErrorfThrottledNewErr("Invalid empty output from Rancher pod")
 	}
 
-	return createOrUpdateResource(ctx, types.NamespacedName{Name: settingName}, GVKSetting, map[string]interface{}{"value": fmt.Sprintf("%s%s", SettingUILogoValueprefix, stdout)})
+	return createOrUpdateResource(ctx, types.NamespacedName{Name: settingName}, common.GVKSetting, map[string]interface{}{"value": fmt.Sprintf("%s%s", SettingUILogoValueprefix, stdout)})
 }
 
 // createOrUpdateUIColorSettings creates/updates the ui-primary-color and ui-link-color settings
 func createOrUpdateUIColorSettings(ctx spi.ComponentContext) error {
-	err := createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUIPrimaryColor}, GVKSetting, map[string]interface{}{"value": SettingUIPrimaryColorValue})
+	err := createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUIPrimaryColor}, common.GVKSetting, map[string]interface{}{"value": SettingUIPrimaryColorValue})
 	if err != nil {
 		return err
 	}
 
-	return createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUILinkColor}, GVKSetting, map[string]interface{}{"value": SettingUILinkColorValue})
+	return createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUILinkColor}, common.GVKSetting, map[string]interface{}{"value": SettingUILinkColorValue})
 }

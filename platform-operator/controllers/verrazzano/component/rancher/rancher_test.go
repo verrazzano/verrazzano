@@ -14,6 +14,9 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	"github.com/stretchr/testify/assert"
 	admv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -127,10 +130,6 @@ func createRancherPodListWithAllRunning() v1.PodList {
 	}
 }
 
-func createClusterRoles(roleName string) rbacv1.ClusterRole {
-	return rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: roleName}}
-}
-
 func createRancherPodListWithNoneRunning() v1.PodList {
 	return v1.PodList{
 		Items: []v1.Pod{
@@ -198,18 +197,9 @@ func createServerURLSetting() unstructured.Unstructured {
 	serverURLSetting := unstructured.Unstructured{
 		Object: map[string]interface{}{},
 	}
-	serverURLSetting.SetGroupVersionKind(GVKSetting)
+	serverURLSetting.SetGroupVersionKind(common.GVKSetting)
 	serverURLSetting.SetName(SettingServerURL)
 	return serverURLSetting
-}
-
-func createFirstLoginSetting() unstructured.Unstructured {
-	firstLoginSetting := unstructured.Unstructured{
-		Object: map[string]interface{}{},
-	}
-	firstLoginSetting.SetGroupVersionKind(GVKSetting)
-	firstLoginSetting.SetName(SettingFirstLogin)
-	return firstLoginSetting
 }
 
 func createOciDriver() unstructured.Unstructured {
@@ -236,36 +226,6 @@ func createOkeDriver() unstructured.Unstructured {
 	okeDriver.SetGroupVersionKind(GVKKontainerDriver)
 	okeDriver.SetName(KontainerDriverOKE)
 	return okeDriver
-}
-
-func createKeycloakAuthConfig() unstructured.Unstructured {
-	authConfig := unstructured.Unstructured{
-		Object: map[string]interface{}{},
-	}
-	authConfig.SetGroupVersionKind(common.GVKAuthConfig)
-	authConfig.SetName(common.AuthConfigKeycloak)
-	return authConfig
-}
-
-func createLocalAuthConfig() unstructured.Unstructured {
-	authConfig := unstructured.Unstructured{
-		Object: map[string]interface{}{},
-	}
-	authConfig.SetGroupVersionKind(common.GVKAuthConfig)
-	authConfig.SetName(AuthConfigLocal)
-	return authConfig
-}
-
-func createKeycloakSecret() v1.Secret {
-	return v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "keycloak",
-			Name:      "keycloak-http",
-		},
-		Data: map[string][]byte{
-			"password": []byte("blahblah"),
-		},
-	}
 }
 
 // TestUseAdditionalCAs verifies that additional CAs should be used when specified in the Verrazzano CR
@@ -377,7 +337,7 @@ func TestChartsNotUpdatedWorkaround(t *testing.T) {
 // newClusterRepoResources creates resources that will be loaded into the dynamic k8s client
 func newClusterRepoResources() []runtime.Object {
 	cattleSettings := &unstructured.Unstructured{}
-	cattleSettings.SetGroupVersionKind(GVKSetting)
+	cattleSettings.SetGroupVersionKind(common.GVKSetting)
 	cattleSettings.SetName(chartDefaultBranchName)
 
 	gvk := schema.GroupVersionKind{Group: "catalog.cattle.io", Version: "v1", Kind: "ClusterRepo"}

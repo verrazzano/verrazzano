@@ -78,7 +78,7 @@ func TestIgnoreConflictWithLog(t *testing.T) {
 }
 
 func TestBuildZapperLog(t *testing.T) {
-	logger, err := BuildZapLogger(2)
+	logger, err := BuildZapInfoLogger(2)
 	assert.Nil(t, err)
 	assert.NotNil(t, logger)
 }

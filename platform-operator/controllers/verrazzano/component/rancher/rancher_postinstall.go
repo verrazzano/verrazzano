@@ -6,6 +6,7 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -148,4 +149,20 @@ func newAdminSecret(c client.Client, password string) error {
 		},
 	}
 	return c.Create(context.TODO(), adminSecret)
+}
+
+// addNameSpaceLabels labels the namespace created by rancher component
+func labelNamespace(c client.Client) error {
+	nsList := &v1.NamespaceList{}
+	err := c.List(context.TODO(), nsList, &client.ListOptions{})
+	if err != nil {
+		return err
+	}
+	for i := range nsList.Items {
+		if _, found := nsList.Items[i].Labels[constants.VerrazzanoManagedKey]; isRancherNamespace(&(nsList.Items[i])) && !found {
+			nsList.Items[i].Labels[constants.VerrazzanoManagedKey] = nsList.Items[i].Name
+			c.Update(context.TODO(), &(nsList.Items[i]), &client.UpdateOptions{})
+		}
+	}
+	return nil
 }

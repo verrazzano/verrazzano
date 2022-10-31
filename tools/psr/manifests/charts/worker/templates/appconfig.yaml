@@ -1,0 +1,28 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+{{- if eq .Values.appType "oam" }}
+apiVersion: core.oam.dev/v1alpha2
+kind: ApplicationConfiguration
+metadata:
+  name: {{ .Release.Name}}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    version: v1.0.0
+    description: "PSR backend application"
+spec:
+  components:
+    - componentName: {{ .Release.Name}}
+      traits:
+        - trait:
+            apiVersion: oam.verrazzano.io/v1alpha1
+            kind: MetricsTrait
+            spec:
+              scraper: verrazzano-system/vmi-system-prometheus-0
+              path: "/metrics"
+        - trait:
+            apiVersion: core.oam.dev/v1alpha2
+            kind: ManualScalerTrait
+            spec:
+              replicaCount: {{ .Values.replicas }}
+{{- end }}

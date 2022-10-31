@@ -20,7 +20,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: MetricsTemplate specifies the metrics template API
+        description: MetricsTemplate specifies the metrics template API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -36,25 +36,26 @@ spec:
             type: object
           spec:
             description: MetricsTemplateSpec specifies the desired state of a metrics
-              template
+              template.
             properties:
               prometheusConfig:
-                description: PrometheusConfig refers to the templated metrics scraping
-                  configuration
+                description: Prometheus configuration details.
                 properties:
                   scrapeConfigTemplate:
-                    description: ScrapeConfigTemplate is a template for the Prometheus
-                      scrape job to be added to the Prometheus Configmap
+                    description: Scrape configuration template to be added to the
+                      Prometheus configuration.
                     type: string
                   targetConfigMap:
-                    description: TargetConfigMap contains metadata about the Prometheus
-                      ConfigMap
+                    description: Identity of the ConfigMap to be updated with the
+                      scrape configuration specified in `scrapeConfigTemplate`.
                     properties:
                       name:
-                        description: Name of the Prometheus ConfigMap
+                        description: Name of the ConfigMap to be updated with the
+                          scrape target configuration.
                         type: string
                       namespace:
-                        description: Namespace containing the Prometheus ConfigMap
+                        description: Namespace of the ConfigMap to be updated with
+                          the scrape target configuration.
                         type: string
                     required:
                     - name
@@ -65,21 +66,20 @@ spec:
                 - targetConfigMap
                 type: object
               workloadSelector:
-                description: WorkloadSelector identifies the workloads to which this
-                  template applies
+                description: Selector for target workloads.
                 properties:
                   apiGroups:
-                    description: APIGroups scopes the template to listed APIGroups
+                    description: Scopes the template to given API Groups.
                     items:
                       type: string
                     type: array
                   apiVersions:
-                    description: APIVersions scopes the template to listed APIVersions
+                    description: Scopes the template to given API Versions.
                     items:
                       type: string
                     type: array
                   namespaceSelector:
-                    description: NamespaceSelector scopes the template to a namespace
+                    description: Scopes the template to a namespace.
                     properties:
                       matchExpressions:
                         description: matchExpressions is a list of label selector
@@ -124,8 +124,8 @@ spec:
                     type: object
                     x-kubernetes-map-type: atomic
                   objectSelector:
-                    description: ObjectSelector scopes the template to a specifically
-                      labelled object instance
+                    description: Scopes the template to a specifically labelled object
+                      instance.
                     properties:
                       matchExpressions:
                         description: matchExpressions is a list of label selector
@@ -170,7 +170,7 @@ spec:
                     type: object
                     x-kubernetes-map-type: atomic
                   resources:
-                    description: Resources scopes the template to listed object kind
+                    description: Scopes the template to given API Resources.
                     items:
                       type: string
                     type: array

@@ -39,6 +39,10 @@ const (
 	// ManagedCARetrieved = true means that the managed cluster CA cert has been retrieved and
 	// populated. This is done by the VMC controller via the Rancher API proxy for the managed cluster.
 	ConditionManagedCARetrieved ConditionType = "ManagedCARetrieved"
+
+	// ConditionManifestPushed = true means the the agent and registration secrets have been successfully transferred
+	// to the managed cluster on a multicluster install
+	ConditionManifestPushed ConditionType = "ManifestPushed"
 )
 
 // StateType identifies the state of the VMC which is shown in Verrazzano Dashboard.
