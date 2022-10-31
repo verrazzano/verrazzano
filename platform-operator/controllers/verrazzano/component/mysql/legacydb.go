@@ -4,14 +4,15 @@
 package mysql
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
@@ -20,9 +21,78 @@ import (
 	kblabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
+	"text/template"
+	"time"
 )
+
+// legacyDbLoadJob is the template for the db load job
+const legacyDbLoadJob = `
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: load-dump
+  namespace: keycloak
+  labels:
+    app: mysql
+    component: restore-keycloak-db
+spec:
+  backoffLimit: 6
+  template:
+    spec:
+      initContainers:
+        - command:
+            - bash
+            - -c
+            - chown -R 27:27 /var/lib/dump
+          image: {{.InitContainerImage}}
+          imagePullPolicy: IfNotPresent
+          name: fixdumpdir
+          resources: {}
+          securityContext:
+            runAsUser: 0
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /var/lib/dump
+              name: keycloak-dump
+      volumes:
+        - name: keycloak-dump
+          persistentVolumeClaim:
+            claimName: {{ .ClaimName }}
+      containers:
+        - command: ["bash"]
+          args:
+            - -c
+            - >-
+              while ! mysqladmin ping -h"mysql.keycloak.svc.cluster.local" --silent; do sleep 1; done &&
+              mysqlsh -u root -p{{ .RootPassword }} -h mysql.keycloak.svc.cluster.local -e 'util.loadDump("/var/lib/dump/{{ .DumpDir }}", {includeSchemas: ["keycloak"], includeUsers: ["keycloak"], loadUsers: true})'
+          env:
+            - name: MYSQL_HOST
+              value: mysql
+          image: {{ .ContainerImage }}
+          imagePullPolicy: IfNotPresent
+          name: mysqlsh-load-dump
+          resources: {}
+          securityContext:
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /var/lib/dump
+              name: keycloak-dump
+      restartPolicy: OnFailure
+`
+
+// loadJobValues provides the parameters for the db load job
+type loadJobValues struct {
+	InitContainerImage string
+	ContainerImage     string
+	ClaimName          string
+	DumpDir            string
+	RootPassword       string
+}
 
 // appendLegacyUpgradeBaseValues appends the MySQL helm values required for db migration
 func appendLegacyUpgradeBaseValues(compContext spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, []byte, error) {
@@ -191,12 +261,128 @@ func handleLegacyDatabasePreUpgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 	}
-	ctx.Log().Debugf("Updating PV/PVC %v", mysqlPVC)
-	if err := common.UpdateExistingVolumeClaims(ctx, mysqlPVC, legacyDBDumpClaim, ComponentName); err != nil {
-		ctx.Log().Debugf("Unable to update PV/PVC")
+	if !isDatabaseMigrationStageCompleted(ctx, pvcRecreatedStage) {
+		ctx.Log().Debugf("Updating PV/PVC %v", mysqlPVC)
+
+		if err := common.UpdateExistingVolumeClaims(ctx, mysqlPVC, legacyDBDumpClaim, ComponentName); err != nil {
+			ctx.Log().Debugf("Unable to update PV/PVC")
+			return err
+		}
+		err := updateDBMigrationInProgressSecret(ctx, pvcRecreatedStage)
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := createLegacyUpgradeJob(ctx); err != nil {
+		ctx.Log().Info("Unable to create legacy upgrade job")
 		return err
 	}
 
+	// wait till the pod shows up so that it is bound to the PV
+	if err := waitForJobPodRunning(ctx, time.Duration(60)*time.Second); err != nil {
+		ctx.Log().Infof("Error waiting for job pod start: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+// isJobPodRunning checks whether the job pod is in a running state
+func isJobPodRunning(ctx spi.ComponentContext, jobName string) wait.ConditionFunc {
+	return func() (bool, error) {
+
+		ctx.Log().Progress("Waiting for DB load job pod to start")
+
+		selector := &client.ListOptions{LabelSelector: kblabels.SelectorFromSet(kblabels.Set{"job-name": jobName})}
+		podList := &v1.PodList{}
+		if err := ctx.Client().List(context.TODO(), podList, &client.ListOptions{Namespace: ComponentNamespace}, selector); err != nil {
+			return false, err
+		}
+
+		if len(podList.Items) <= 0 {
+			return false, nil
+		}
+
+		switch podList.Items[0].Status.Phase {
+		case v1.PodRunning, v1.PodSucceeded:
+			ctx.Log().Infof("DB load job pod is running or has completed successfully")
+			return true, nil
+		case v1.PodFailed:
+			return false, fmt.Errorf("Job pod has completed with a failure")
+		}
+		return false, nil
+	}
+}
+
+// waitForPodRunning polls to discover when the job pod is running
+func waitForJobPodRunning(ctx spi.ComponentContext, timeout time.Duration) error {
+	return wait.PollImmediate(time.Second, timeout, isJobPodRunning(ctx, dbLoadJobName))
+}
+
+// createLegacyUpgradeJob creates the job that loads the new DB with the data from the old DB
+func createLegacyUpgradeJob(ctx spi.ComponentContext) error {
+	job := &batchv1.Job{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbLoadJobName}, job)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// create the job to load the DB data into new MySQL DB
+			var bomFile bom.Bom
+			var err error
+			if bomFile, err = bom.NewBom(config.GetDefaultBOMFilePath()); err != nil {
+				return err
+			}
+			var kvs []bom.KeyValue
+			if kvs, err = appendLegacyUpgradePersistenceValues(&bomFile, []bom.KeyValue{}); err != nil {
+				return err
+			}
+
+			values := loadJobValues{}
+			for _, kv := range kvs {
+				if kv.Key == "legacyUpgrade.container.image" {
+					values.ContainerImage = kv.Value
+					continue
+				}
+				if kv.Key == "legacyUpgrade.initContainer.image" {
+					values.InitContainerImage = kv.Value
+					continue
+				}
+				if kv.Key == "legacyUpgrade.dumpDir" {
+					values.DumpDir = kv.Value
+					continue
+				}
+
+				if kv.Key == "legacyUpgrade.claimName" {
+					values.ClaimName = kv.Value
+					continue
+				}
+			}
+			// add the root password
+			var rootPassword []byte
+			if rootPassword, err = getLegacyRootPassword(ctx); err != nil {
+				return err
+			}
+			values.RootPassword = string(rootPassword)
+
+			var b bytes.Buffer
+			template, _ := template.New("legacyUpgrade").Parse(legacyDbLoadJob)
+			if err = template.Execute(&b, values); err != nil {
+				return err
+			}
+
+			// create the job reference
+			if err = yaml.Unmarshal(b.Bytes(), job); err != nil {
+				return err
+			}
+
+			// create the job
+			if err = ctx.Client().Create(context.TODO(), job); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -246,12 +432,10 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	if isDatabaseMigrationStageCompleted(ctx, databaseDumpedStage) {
 		return nil
 	}
-	// retrieve root password for mysql
-	rootSecret := v1.Secret{}
-	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: ComponentNamespace, Name: secretName}, &rootSecret); err != nil {
+	rootPwd, err := getLegacyRootPassword(ctx)
+	if err != nil {
 		return err
 	}
-	rootPwd := rootSecret.Data[rootPasswordKey]
 
 	// Root priv
 	rootCmd := fmt.Sprintf(mySQLRootCommand, rootPwd)
@@ -306,6 +490,17 @@ func dumpDatabase(ctx spi.ComponentContext) error {
 	}
 
 	return nil
+}
+
+// getLegacyRootPassword returns the root password from the legacy DB secret
+func getLegacyRootPassword(ctx spi.ComponentContext) ([]byte, error) {
+	// retrieve root password for mysql
+	rootSecret := v1.Secret{}
+	if err := ctx.Client().Get(context.TODO(), client.ObjectKey{Namespace: ComponentNamespace, Name: secretName}, &rootSecret); err != nil {
+		return nil, err
+	}
+	rootPwd := rootSecret.Data[rootPasswordKey]
+	return rootPwd, nil
 }
 
 // deleteDbMigrationSecret deletes the secret tracing the db migration stages
