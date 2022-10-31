@@ -19,7 +19,7 @@ spec:
             kind: MetricsTrait
             spec:
               scraper: verrazzano-system/vmi-system-prometheus-0
-              path: "/actuator/prometheus"
+              path: "/metrics"
         - trait:
             apiVersion: core.oam.dev/v1alpha2
             kind: ManualScalerTrait

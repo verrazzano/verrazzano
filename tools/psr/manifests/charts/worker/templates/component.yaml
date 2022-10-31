@@ -12,10 +12,10 @@ spec:
     apiVersion: core.oam.dev/v1alpha2
     kind: ContainerizedWorkload
     metadata:
-      name: {{ .Release.Name}}
+      name: {{ .Release.Name}}-{{ .Values.envVars.PSR_WORKER_TYPE }}
       namespace: {{ .Release.Namespace }}
       labels:
-        app: psr-backend
+        app: psr-worker
         version: v1
     spec:
       {{- if .Values.imagePullSecrets }}
