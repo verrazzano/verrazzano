@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package loggen
+package writelogs
 
 import (
 	"fmt"
@@ -22,24 +22,24 @@ const (
 	loggedTotalCharsHelp = "The total number of characters logged"
 )
 
-type logGenerator struct {
+type logWriter struct {
 	spi.Worker
 	metricDescList []prometheus.Desc
-	*loggenMetrics
+	*workerMetrics
 }
 
-var _ spi.Worker = logGenerator{}
+var _ spi.Worker = logWriter{}
 
-// loggenMetrics holds the metrics produced by the worker. Metrics must be thread safe.
-type loggenMetrics struct {
+// workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
+type workerMetrics struct {
 	loggedLinesCount metrics.MetricItem
 	loggedTotalChars metrics.MetricItem
 }
 
-func NewLogGenerator() (spi.Worker, error) {
+func NewWriteLogsWorker() (spi.Worker, error) {
 	constLabels := prometheus.Labels{}
 
-	w := logGenerator{loggenMetrics: &loggenMetrics{}}
+	w := logWriter{workerMetrics: &workerMetrics{}}
 
 	d := prometheus.NewDesc(
 		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, loggedLinesCount),
@@ -48,7 +48,7 @@ func NewLogGenerator() (spi.Worker, error) {
 		constLabels,
 	)
 	w.metricDescList = append(w.metricDescList, *d)
-	w.loggenMetrics.loggedLinesCount.Desc = d
+	w.workerMetrics.loggedLinesCount.Desc = d
 
 	d = prometheus.NewDesc(
 		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, loggedTotalChars),
@@ -57,53 +57,53 @@ func NewLogGenerator() (spi.Worker, error) {
 		constLabels,
 	)
 	w.metricDescList = append(w.metricDescList, *d)
-	w.loggenMetrics.loggedTotalChars.Desc = d
+	w.workerMetrics.loggedTotalChars.Desc = d
 
 	return w, nil
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
-func (w logGenerator) GetWorkerDesc() spi.WorkerDesc {
+func (w logWriter) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		EnvName:     config.WorkerTypeLogGen,
-		Description: "The log generator worker generates logs to put a load on OpenSearch",
-		MetricsName: "loggen",
+		EnvName:     config.WorkerTypeWriteLogs,
+		Description: "The writelogs worker writes logs to STDOUT, putting a load on OpenSearch",
+		MetricsName: "writelogs",
 	}
 }
 
-func (w logGenerator) GetEnvDescList() []osenv.EnvVarDesc {
+func (w logWriter) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{}
 }
 
-func (w logGenerator) WantIterationInfoLogged() bool {
+func (w logWriter) WantIterationInfoLogged() bool {
 	return false
 }
 
-func (w logGenerator) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-	lc := atomic.AddInt64(&w.loggenMetrics.loggedLinesCount.Val, 1)
-	logMsg := fmt.Sprintf("Loggen worker logging line %v", lc)
+func (w logWriter) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+	lc := atomic.AddInt64(&w.workerMetrics.loggedLinesCount.Val, 1)
+	logMsg := fmt.Sprintf("Writelogs worker logging line %v", lc)
 	log.Infof(logMsg)
-	atomic.AddInt64(&w.loggenMetrics.loggedTotalChars.Val, int64(len(logMsg)))
+	atomic.AddInt64(&w.workerMetrics.loggedTotalChars.Val, int64(len(logMsg)))
 	return nil
 }
 
-func (w logGenerator) GetMetricDescList() []prometheus.Desc {
+func (w logWriter) GetMetricDescList() []prometheus.Desc {
 	return w.metricDescList
 }
 
-func (w logGenerator) GetMetricList() []prometheus.Metric {
+func (w logWriter) GetMetricList() []prometheus.Metric {
 	metrics := []prometheus.Metric{}
 
 	m := prometheus.MustNewConstMetric(
-		w.loggenMetrics.loggedLinesCount.Desc,
+		w.workerMetrics.loggedLinesCount.Desc,
 		prometheus.CounterValue,
-		float64(atomic.LoadInt64(&w.loggenMetrics.loggedLinesCount.Val)))
+		float64(atomic.LoadInt64(&w.workerMetrics.loggedLinesCount.Val)))
 	metrics = append(metrics, m)
 
 	m = prometheus.MustNewConstMetric(
-		w.loggenMetrics.loggedTotalChars.Desc,
+		w.workerMetrics.loggedTotalChars.Desc,
 		prometheus.CounterValue,
-		float64(atomic.LoadInt64(&w.loggenMetrics.loggedTotalChars.Val)))
+		float64(atomic.LoadInt64(&w.workerMetrics.loggedTotalChars.Val)))
 	metrics = append(metrics, m)
 
 	return metrics
