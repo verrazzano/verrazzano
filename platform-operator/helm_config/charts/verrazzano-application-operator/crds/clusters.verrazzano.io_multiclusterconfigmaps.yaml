@@ -23,9 +23,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: MultiClusterConfigMap is the Schema for the multiclusterconfigmaps
-          API, which will be used in the management cluster, to create a Kubernetes
-          ConfigMap targeted at one or more managed clusters
+        description: MultiClusterConfigMap specifies the Multi Cluster ConfigMap API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -40,17 +38,18 @@ spec:
           metadata:
             type: object
           spec:
-            description: MultiClusterConfigMapSpec defines the desired state of MultiClusterConfigMap
+            description: The desired state of a Multi Cluster ConfigMap resource.
             properties:
               placement:
-                description: Clusters in which the ConfigMap is to be placed
+                description: Clusters in which the config map is to be created.
                 properties:
                   clusters:
+                    description: List of clusters.
                     items:
-                      description: Cluster where multi cluster resources are placed
+                      description: Cluster contains the name of a single cluster.
                       properties:
                         name:
-                          description: the name of the cluster
+                          description: The name of a cluster.
                           type: string
                       required:
                       - name
@@ -60,45 +59,43 @@ spec:
                 - clusters
                 type: object
               template:
-                description: The embedded Kubernetes ConfigMap
+                description: The embedded Kubernetes config map.
                 properties:
                   binaryData:
                     additionalProperties:
                       format: byte
                       type: string
-                    description: BinaryData corresponds to the BinaryData field of
-                      K8S corev1.ConfigMap
+                    description: Corresponds to the `binaryData` field of the `struct`
+                      ConfigMap defined in <a href="https://github.com/kubernetes/api/blob/master/core/v1/types.go">types.go</a>.
                     type: object
                   data:
                     additionalProperties:
                       type: string
-                    description: Data corresponds to the Data field of K8S corev1.ConfigMap
+                    description: Corresponds to the `data` field of the `struct` ConfigMap
+                      defined in <a href="https://github.com/kubernetes/api/blob/master/core/v1/types.go">types.go</a>.
                     type: object
                   immutable:
-                    description: Immutable corresponds to the Immutable field of K8S
-                      corev1.ConfigMap
+                    description: Corresponds to the `immutable` field of the `struct`
+                      ConfigMap defined in <a href="https://github.com/kubernetes/api/blob/master/core/v1/types.go">types.go</a>.
                     type: boolean
                   metadata:
+                    description: Metadata describing the config map.
                     properties:
                       annotations:
                         additionalProperties:
                           type: string
-                        description: Annotations is an unstructured key value map
-                          stored with a resource that may be set by external tools
-                          to store and retrieve arbitrary metadata.
+                        description: Annotations for the resource.
                         type: object
                       labels:
                         additionalProperties:
                           type: string
-                        description: Map of string keys and values that can be used
-                          to organize and categorize (scope and select) objects.
+                        description: Labels for the resource.
                         type: object
                       name:
-                        description: Name must be unique within a namespace.
+                        description: Name of the resource.
                         type: string
                       namespace:
-                        description: Namespace defines the space within each name
-                          must be unique.
+                        description: Namespace of the resource.
                         type: string
                     type: object
                 type: object
@@ -107,25 +104,26 @@ spec:
             - template
             type: object
           status:
-            description: MultiClusterResourceStatus represents the status of a multi-cluster
-              resource, including cluster-level status information
+            description: The observed state of a Multi Cluster ConfigMap resource.
             properties:
               clusters:
+                description: Status information for each cluster.
                 items:
                   description: ClusterLevelStatus describes the status of the multi
-                    cluster resource in a specific cluster
+                    cluster resource in a specific cluster.
                   properties:
                     lastUpdateTime:
-                      description: LastUpdateTime of the resource state in this cluster
+                      description: Last update time of the resource state in this
+                        cluster.
                       type: string
                     message:
-                      description: Message with details about the status in this cluster
+                      description: Message details about the status in this cluster.
                       type: string
                     name:
-                      description: Name of the cluster
+                      description: Name of the cluster.
                       type: string
                     state:
-                      description: State of the resource in this cluster
+                      description: State of the resource in this cluster.
                       type: string
                   required:
                   - lastUpdateTime
@@ -134,8 +132,7 @@ spec:
                   type: object
                 type: array
               conditions:
-                description: The latest available observations of an object's current
-                  state.
+                description: The current state of a multicluster resource.
                 items:
                   description: Condition describes current state of a multi cluster
                     resource.
@@ -145,11 +142,11 @@ spec:
                         to another.
                       type: string
                     message:
-                      description: Human readable message indicating details about
-                        last transition.
+                      description: A message with details about the last transition.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: 'Status of the condition: one of `True`, `False`,
+                        or `Unknown`.'
                       type: string
                     type:
                       description: Type of condition.
@@ -160,7 +157,11 @@ spec:
                   type: object
                 type: array
               state:
-                description: State of the multi cluster resource
+                description: 'The state of the multicluster resource. State values
+                  are case-sensitive and formatted as follows: <ul><li>`Failed`: deployment
+                  to cluster failed</li><li>`Pending`: deployment to cluster is in
+                  progress</li><li>`Succeeded`: deployment to cluster successfully
+                  completed</li></ul>'
                 type: string
             type: object
         type: object
