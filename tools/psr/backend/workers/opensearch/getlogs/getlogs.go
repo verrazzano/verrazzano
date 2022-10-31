@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"sync/atomic"
@@ -40,66 +41,68 @@ const (
 
 const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
 
-var bodyString = `{
-  "query": {
-    "bool": {
-      "should": [
-        {
-          "match": {
-            "message": "a"
-          }
-        },
-        {
-          "match": {
-            "message": "e"
-          }
-        },
-        {
-          "match": {
-            "message": "i"
-          }
-        },
-        {
-          "match": {
-            "message": "o"
-          }
-        },
-                {
-          "match": {
-            "message": "u"
-          }
-        },
-        {
-          "match": {
-            "message": "t"
-          }
-        },
-        {
-          "match": {
-            "message": "f"
-          }
-        },
-        {
-          "match": {
-            "message": "s"
-          }
-        },
-        {
-          "match": {
-            "message": "d"
-          }
-        },
-                {
-          "match": {
-            "message": "m"
-          }
-        }
-      ]
-    }
-  }
-}`
+const letters = "abcdefghijklmnopqrstuvwxyz"
 
-var body = io.NopCloser(bytes.NewBuffer([]byte(bodyString)))
+//var bodyString = `{
+//  "query": {
+//    "bool": {
+//      "should": [
+//        {
+//          "match": {
+//            "message": "%s"
+//          }
+//        },
+//        {
+//          "match": {
+//            "message": "%s"
+//          }
+//        },
+//        {
+//          "match": {
+//            "message": "%s"
+//          }
+//        },
+//        {
+//          "match": {
+//            "message": "%s"
+//          }
+//        },
+//                {
+//          "match": {
+//            "message": "%s"
+//          }
+//        },
+//        {
+//          "match": {
+//            "message": "%s"
+//          }
+//        },
+//        {
+//          "match": {
+//            "message": "%s"
+//          }
+//        },
+//        {
+//          "match": {
+//            "message": "%s"
+//          }
+//        },
+//        {
+//          "match": {
+//            "message": "%s"
+//          }
+//        },
+//                {
+//          "match": {
+//            "message": "%s"
+//          }
+//        }
+//      ]
+//    }
+//  }
+//}`
+
+//var body = io.NopCloser(bytes.NewBuffer([]byte(bodyString)))
 
 type getLogs struct {
 	spi.Worker
@@ -197,7 +200,7 @@ func (w getLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) er
 			Path:   "/_search",
 		},
 		Header: http.Header{"Content-Type": {"application/json"}},
-		Body:   body,
+		Body:   getBody(),
 	}
 	startRequest := time.Now().UnixNano()
 	resp, err := c.Do(&req)
@@ -265,4 +268,77 @@ func (w getLogs) GetMetricList() []prometheus.Metric {
 	metrics = append(metrics, m)
 
 	return metrics
+}
+
+func getBody() io.ReadCloser {
+	body := fmt.Sprintf(`{
+  "query": {
+    "bool": {
+      "should": [
+        {
+          "match": {
+            "message": "%s"
+          }
+        },
+        {
+          "match": {
+            "message": "%s"
+          }
+        },
+        {
+          "match": {
+            "message": "%s"
+          }
+        },
+        {
+          "match": {
+            "message": "%s"
+          }
+        },
+                {
+          "match": {
+            "message": "%s"
+          }
+        },
+        {
+          "match": {
+            "message": "%s"
+          }
+        },
+        {
+          "match": {
+            "message": "%s"
+          }
+        },
+        {
+          "match": {
+            "message": "%s"
+          }
+        },
+        {
+          "match": {
+            "message": "%s"
+          }
+        },
+                {
+          "match": {
+            "message": "%s"
+          }
+        }
+      ]
+    }
+  }
+}`,
+		string(letters[rand.Intn(len(letters))]),
+		string(letters[rand.Intn(len(letters))]),
+		string(letters[rand.Intn(len(letters))]),
+		string(letters[rand.Intn(len(letters))]),
+		string(letters[rand.Intn(len(letters))]),
+		string(letters[rand.Intn(len(letters))]),
+		string(letters[rand.Intn(len(letters))]),
+		string(letters[rand.Intn(len(letters))]),
+		string(letters[rand.Intn(len(letters))]),
+		string(letters[rand.Intn(len(letters))]),
+	)
+	return io.NopCloser(bytes.NewBuffer([]byte(body)))
 }
