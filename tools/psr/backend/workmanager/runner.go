@@ -17,14 +17,14 @@ const (
 	LoopCount     = "loop_count"
 	LoopCountHelp = "The number of loop iterations executed"
 
-	WorkerThreadCount     = "worker_thread_count"
-	WorkerThreadCountHelp = "The number of worker threads (goroutines) running"
+	WorkerThreadCountTotal     = "worker_thread_count_total"
+	WorkerThreadCountTotalHelp = "The number of worker threads (goroutines) running"
 
 	WorkerIterationNanoSeconds     = "worker_last_iteration_nanoseconds"
-	WorkerIterationNanoSecondsHelp = "The total number of nanoseconds that the worker took to run the last iteration of doing work"
+	WorkerIterationNanoSecondsHelp = "The number of nanoseconds that the worker took to run the last iteration of doing work"
 
-	WorkerDurationTotalSeconds     = "worker_total_seconds"
-	WorkerDurationSecondsTotalHelp = "The total number of seconds that the worker has been running"
+	WorkerRunningSecondsTotal     = "worker_running_seconds_total"
+	WorkerRunningSecondsTotalHelp = "The total number of seconds that the worker has been running"
 )
 
 // WorkerRunner interface specifies a runner that loops calling a worker
@@ -70,20 +70,20 @@ func NewRunner(worker spi.Worker, conf config.CommonConfig, log vzlog.Verrazzano
 	r.metricDescList = append(r.metricDescList, *d)
 	r.runnerMetrics.loopCount.Desc = d
 
-	// WorkerThreadCount metric
+	// WorkerThreadCountTotal metric
 	d = prometheus.NewDesc(
-		prometheus.BuildFQName(metrics.PsrNamespace, worker.GetWorkerDesc().MetricsName, WorkerThreadCount),
-		WorkerThreadCountHelp,
+		prometheus.BuildFQName(metrics.PsrNamespace, worker.GetWorkerDesc().MetricsName, WorkerThreadCountTotal),
+		WorkerThreadCountTotalHelp,
 		nil,
 		constLabels,
 	)
 	r.metricDescList = append(r.metricDescList, *d)
 	r.runnerMetrics.workerThreadCount.Desc = d
 
-	// WorkerDurationSecondsTotal metric
+	// WorkerRunningSecondsTotal metric
 	d = prometheus.NewDesc(
-		prometheus.BuildFQName(metrics.PsrNamespace, worker.GetWorkerDesc().MetricsName, WorkerDurationTotalSeconds),
-		WorkerDurationSecondsTotalHelp,
+		prometheus.BuildFQName(metrics.PsrNamespace, worker.GetWorkerDesc().MetricsName, WorkerRunningSecondsTotal),
+		WorkerRunningSecondsTotalHelp,
 		nil,
 		constLabels,
 	)
@@ -119,14 +119,14 @@ func (r runner) GetMetricList() []prometheus.Metric {
 		float64(atomic.LoadInt64(&r.runnerMetrics.loopCount.Val)))
 	metrics = append(metrics, m)
 
-	// WorkerThreadCount
+	// WorkerThreadCountTotal
 	m = prometheus.MustNewConstMetric(
 		r.runnerMetrics.workerThreadCount.Desc,
 		prometheus.CounterValue,
 		float64(atomic.LoadInt64(&r.runnerMetrics.workerThreadCount.Val)))
 	metrics = append(metrics, m)
 
-	// WorkerDurationTotalSeconds
+	// WorkerRunningSecondsTotal
 	m = prometheus.MustNewConstMetric(
 		r.runnerMetrics.workerDurationTotalSeconds.Desc,
 		prometheus.CounterValue,
