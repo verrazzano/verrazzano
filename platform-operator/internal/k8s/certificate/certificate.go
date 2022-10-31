@@ -38,6 +38,8 @@ const (
 
 	certKey = "tls.crt"
 	privKey = "tls.key"
+
+	certYearsValid = 3
 )
 
 // CreateWebhookCertificates creates the needed certificates for the validating webhook
@@ -52,19 +54,24 @@ func CreateWebhookCertificates(log *zap.SugaredLogger, kubeClient kubernetes.Int
 
 	serverPEM, serverKeyPEM, err := createTLSCert(log, kubeClient, commonName, ca, caKey)
 
+	log.Debugf("Creating certs dir %s", certDir)
 	err = os.MkdirAll(certDir, 0666)
 	if err != nil {
 		log.Errorf("Mkdir error %v", err)
 		return err
 	}
 
-	err = writeFile(fmt.Sprintf("%s/tls.crt", certDir), serverPEM)
+	certFile := fmt.Sprintf("%s/tls.crt", certDir)
+	log.Debugf("Writing file %s", certFile)
+	err = writeFile(certFile, serverPEM)
 	if err != nil {
 		log.Errorf("Error 2 %v", err)
 		return err
 	}
 
-	err = writeFile(fmt.Sprintf("%s/tls.key", certDir), serverKeyPEM)
+	keyFile := fmt.Sprintf("%s/tls.key", certDir)
+	log.Debugf("Writing file %s", keyFile)
+	err = writeFile(keyFile, serverKeyPEM)
 	if err != nil {
 		log.Errorf("Error 3 %v", err)
 		return err
@@ -74,10 +81,11 @@ func CreateWebhookCertificates(log *zap.SugaredLogger, kubeClient kubernetes.Int
 }
 
 func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commonName string, ca *x509.Certificate, caKey *rsa.PrivateKey) ([]byte, []byte, error) {
+	const certName = OperatorTLS
 	secretsClient := kubeClient.CoreV1().Secrets(OperatorNamespace)
-	existingSecret, err := secretsClient.Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
+	existingSecret, err := secretsClient.Get(context.TODO(), certName, metav1.GetOptions{})
 	if err == nil {
-		log.Infof("Secret %s exists, using...", OperatorCA)
+		log.Infof("Secret %s exists, using...", certName)
 		return existingSecret.Data[certKey], existingSecret.Data[privKey], nil
 	}
 	if !errors.IsNotFound(err) {
@@ -97,7 +105,7 @@ func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, comm
 			CommonName: commonName,
 		},
 		NotBefore:    time.Now(),
-		NotAfter:     time.Now().AddDate(1, 0, 0),
+		NotAfter:     time.Now().AddDate(certYearsValid, 0, 0),
 		IsCA:         false,
 		SubjectKeyId: []byte{1, 2, 3, 4, 6},
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
@@ -136,7 +144,7 @@ func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, comm
 
 	var webhookCrt v1.Secret
 	webhookCrt.Namespace = OperatorNamespace
-	webhookCrt.Name = OperatorTLS
+	webhookCrt.Name = certName
 	webhookCrt.Type = v1.SecretTypeTLS
 	webhookCrt.Data = make(map[string][]byte)
 	webhookCrt.Data["tls.crt"] = serverPEMBytes
@@ -146,11 +154,11 @@ func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, comm
 	if createError != nil {
 		if errors.IsAlreadyExists(createError) {
 			log.Infof("Operator CA secret %s already exists, skipping", OperatorCA)
-			existingSecret, err := secretsClient.Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
+			existingSecret, err := secretsClient.Get(context.TODO(), certName, metav1.GetOptions{})
 			if err != nil {
 				return []byte{}, []byte{}, err
 			}
-			log.Infof("Secret %s exists, using...", OperatorCA)
+			log.Infof("Secret %s exists, using...", certName)
 			return existingSecret.Data[certKey], existingSecret.Data[privKey], nil
 		}
 	}
@@ -159,18 +167,20 @@ func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, comm
 }
 
 func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commonName string) (*x509.Certificate, *rsa.PrivateKey, error) {
+	const certName = OperatorCA
+
 	var webhookCA v1.Secret
 	caKeyPEMBytes := []byte{}
 	var ca *x509.Certificate
 
 	webhookCA.Namespace = OperatorNamespace
-	webhookCA.Name = OperatorCA
+	webhookCA.Name = certName
 	webhookCA.Type = v1.SecretTypeTLS
 
 	secretsClient := kubeClient.CoreV1().Secrets(OperatorNamespace)
-	existingSecret, err := secretsClient.Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+	existingSecret, err := secretsClient.Get(context.TODO(), certName, metav1.GetOptions{})
 	if err == nil {
-		log.Infof("CA secret %s exists, using...", OperatorCA)
+		log.Infof("CA secret %s exists, using...", certName)
 		cert, err := decodeCertificate(existingSecret.Data[certKey])
 		if err != nil {
 			return nil, nil, err
@@ -185,7 +195,7 @@ func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commo
 		return nil, nil, err
 	}
 
-	log.Infof("Creating CA secret %s", OperatorCA)
+	log.Infof("Creating CA secret %s", certName)
 	serialNumber, err := newSerialNumber()
 	if err != nil {
 		return nil, nil, err
@@ -199,7 +209,7 @@ func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commo
 			CommonName: commonName,
 		},
 		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(1, 0, 0),
+		NotAfter:              time.Now().AddDate(certYearsValid, 0, 0),
 		IsCA:                  true,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
@@ -243,8 +253,8 @@ func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commo
 	_, createError := secretsClient.Create(context.TODO(), &webhookCA, metav1.CreateOptions{})
 	if createError != nil {
 		if errors.IsAlreadyExists(createError) {
-			log.Infof("Operator CA secret %s already exists, skipping", OperatorCA)
-			existingSecret, err := secretsClient.Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+			log.Infof("Operator CA secret %s already exists, skipping", certName)
+			existingSecret, err := secretsClient.Get(context.TODO(), certName, metav1.GetOptions{})
 			if err != nil {
 				return nil, nil, err
 			}
@@ -288,22 +298,6 @@ func decodeKey(certBytes []byte) (*rsa.PrivateKey, error) {
 	}
 	return key, nil
 }
-
-//func createOrUpdateSecret(kubeClient kubernetes.Interface, certSecret *v1.Secret) error {
-//	_, createError := kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), certSecret, metav1.CreateOptions{})
-//	if errors.IsAlreadyExists(createError) {
-//
-//	}
-//	_, err := kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), certSecret.Name, metav1.GetOptions{})
-//	if err != nil {
-//		if errors.IsNotFound(err) {
-//			return createError
-//		}
-//		return err
-//	}
-//	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Update(context.TODO(), certSecret, metav1.UpdateOptions{})
-//	return err
-//}
 
 // newSerialNumber returns a new random serial number suitable for use in a certificate.
 func newSerialNumber() (*big.Int, error) {

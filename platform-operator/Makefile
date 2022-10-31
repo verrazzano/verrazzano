@@ -186,7 +186,7 @@ generate-local-operator-yaml:
 load-local-operators: generate-local-operator-yaml
 	kind load docker-image --name ${CLUSTER_NAME} ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	if [ -n "${APP_OPERATOR_IMAGE}" ] && [[ "${APP_OPERATOR_IMAGE}" == *:* ]] ; then \
-		kind load docker-image --name ${CLUSTER_NAME} ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}; \
+		kind load docker-image --name ${CLUSTER_NAME} ${APP_OPERATOR_IMAGE}; \
 	else \
 	  	kind load docker-image --name ${CLUSTER_NAME} ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}:${DOCKER_IMAGE_TAG}; \
 	fi

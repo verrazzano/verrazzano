@@ -43,9 +43,6 @@ type OperatorConfig struct {
 	// The CertDir directory containing tls.crt and tls.key
 	CertDir string
 
-	// InitWebhooks enables initialization of webhooks for the operator
-	InitWebhooks bool
-
 	// MetricsAddr is the address the metric endpoint binds to
 	MetricsAddr string
 
@@ -57,6 +54,9 @@ type OperatorConfig struct {
 
 	// WebhooksEnabled enables/disables Webhooks for the operator
 	WebhooksEnabled bool
+
+	// RunWebhookInit Inidicates the executable is running in the webhook init container mode
+	RunWebhookInit bool
 
 	// WebhookValidationEnabled enables/disables webhook validation without removing the webhook itself
 	WebhookValidationEnabled bool
@@ -71,11 +71,11 @@ type OperatorConfig struct {
 // The singleton instance of the operator config
 var instance = OperatorConfig{
 	CertDir:                  "/etc/webhook/certs",
-	InitWebhooks:             false,
 	MetricsAddr:              ":8080",
 	LeaderElectionEnabled:    false,
 	VersionCheckEnabled:      true,
-	WebhooksEnabled:          true,
+	RunWebhookInit:           false,
+	WebhooksEnabled:          false,
 	WebhookValidationEnabled: true,
 	VerrazzanoRootDir:        rootDir,
 }

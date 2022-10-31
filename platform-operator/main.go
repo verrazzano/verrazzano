@@ -4,7 +4,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"os"
 	"sync"
@@ -104,7 +103,9 @@ func main() {
 	flag.BoolVar(&config.WebhookValidationEnabled, "enable-webhook-validation", config.WebhookValidationEnabled,
 		"Enable webhooks validation for the operator")
 	flag.BoolVar(&config.WebhooksEnabled, "webhooks-enabled", config.WebhooksEnabled,
-		"Enable webhooks for the operator")
+		"Runs in webhook mode; if false, runs the main operator reconcile loop")
+	flag.BoolVar(&config.RunWebhookInit, "run-webhook-init", config.RunWebhookInit,
+		"Runs the webhook initialization code")
 	flag.StringVar(&config.VerrazzanoRootDir, "vz-root-dir", config.VerrazzanoRootDir,
 		"Specify the root directory of Verrazzano (used for development)")
 	flag.StringVar(&bomOverride, "bom-path", "", "BOM file location")
@@ -125,7 +126,6 @@ func main() {
 	log := zap.S()
 
 	log.Info("Starting Verrazzano Platform Operator")
-
 	// Set the BOM file path for the operator
 	if len(bomOverride) > 0 {
 		log.Infof("Using BOM override file %s", bomOverride)
@@ -146,15 +146,18 @@ func main() {
 
 	registry.InitRegistry()
 	//This allows separation of webhooks and operator
-	if config.WebhooksEnabled {
+	if config.RunWebhookInit {
+		webhookInit(config, log)
+	} else if config.WebhooksEnabled {
 		startWebhookServers(config, log)
 	} else {
 		reconcilePlatformOperator(config, log)
 	}
 }
 
-// initWebhookCertificates create Secrets for WebhookServers to use
-func initWebhookCertificates(config internalconfig.OperatorConfig, log *zap.SugaredLogger) {
+// webhookInit Runs the webhook init container logic
+// - create Secrets for WebhookServers to use
+func webhookInit(config internalconfig.OperatorConfig, log *zap.SugaredLogger) {
 	log.Debug("Creating certificates used by webhooks")
 
 	conf, err := ctrl.GetConfig()
@@ -177,36 +180,33 @@ func initWebhookCertificates(config internalconfig.OperatorConfig, log *zap.Suga
 
 }
 
-type webhookRunnable struct {
-	log *zap.SugaredLogger
-	mgr manager.Manager
-}
-
-func (r *webhookRunnable) Start(context.Context) error {
-	r.log.Infof("Start called for pod %s", os.Getenv("HOSTNAME"))
+func updateWebhooks(log *zap.SugaredLogger, mgr manager.Manager, certsDir string) error {
+	log.Infof("Start called for pod %s", os.Getenv("HOSTNAME"))
 	conf, err := ctrl.GetConfig()
 	if err != nil {
-		r.log.Errorf("Failed to get kubeconfig: %v", err)
+		log.Errorf("Failed to get kubeconfig: %v", err)
 		os.Exit(1)
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(conf)
 	if err != nil {
-		r.log.Errorf("Failed to get clientset: %v", err)
+		log.Errorf("Failed to get clientset: %v", err)
 		os.Exit(1)
 	}
 
 	dynamicClient, err := dynamic.NewForConfig(conf)
 	if err != nil {
-		r.log.Errorf("Failed to create Kubernetes dynamic client: %v", err)
+		log.Errorf("Failed to create Kubernetes dynamic client: %v", err)
 		os.Exit(1)
 	}
 
-	updateWebhookConfigurations(kubeClient, r.log, conf)
+	updateWebhookConfigurations(kubeClient, log, conf)
 
-	createOrUpdateNetworkPolicies(conf, r.log, kubeClient)
+	createOrUpdateNetworkPolicies(conf, log, kubeClient)
 
-	setupWebhooksWithManager(r.log, r.mgr, kubeClient, dynamicClient)
+	setupWebhooksWithManager(log, mgr, kubeClient, dynamicClient)
+
+	mgr.GetWebhookServer().CertDir = certsDir
 
 	return nil
 }
@@ -219,7 +219,7 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 		Scheme:                  scheme,
 		MetricsBindAddress:      config.MetricsAddr,
 		Port:                    9443,
-		LeaderElection:          true, //config.LeaderElectionEnabled,
+		LeaderElection:          config.LeaderElectionEnabled,
 		LeaderElectionNamespace: constants.VerrazzanoInstallNamespace,
 		LeaderElectionID:        "3ec4d295.verrazzano.io",
 	})
@@ -228,17 +228,7 @@ func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 		os.Exit(1)
 	}
 
-	mgr.Add(&webhookRunnable{
-		log: log,
-		mgr: mgr,
-	})
-	//log.Infof("Waiting for webhook leader election on host %s", os.Getenv("HOSTNAME"))
-	//<-mgr.Elected()
-	//log.Infof("Webhook leader election acquired on host %s", os.Getenv("HOSTNAME"))
-
-	log.Info("Initializing the webhook server certificates")
-	initWebhookCertificates(config, log)
-	mgr.GetWebhookServer().CertDir = config.CertDir
+	updateWebhooks(log, mgr, config.CertDir)
 
 	// +kubebuilder:scaffold:builder
 	log.Info("Starting webhook controller-runtime manager")

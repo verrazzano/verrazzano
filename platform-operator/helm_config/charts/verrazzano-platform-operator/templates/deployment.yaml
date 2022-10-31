@@ -41,8 +41,6 @@ spec:
           args:
             - --zap-log-level=info
             - --health-check-period=60
-            - --webhooks-enabled=false
-            - --enable-leader-election=false
           env:
             - name: VERRAZZANO_KUBECONFIG
               value: /home/verrazzano/kubeconfig
@@ -101,14 +99,26 @@ spec:
       {{- if .Values.webhookAffinity }}
       affinity: {{ toYaml .Values.webhookAffinity | nindent 8 }}
       {{- end }}
+      initContainers:
+        - name: initwebhooks
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ .Values.image }}
+          args:
+            - --zap-log-level=debug
+            - --run-webhook-init=true
+          resources:
+            requests:
+              memory: 72Mi
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
       containers:
         - name: webhook-run
           image: {{ .Values.image }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           args:
-            - --zap-log-level=info
+            - --zap-log-level=debug
             - --webhooks-enabled=true
-            - --enable-leader-election=true
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs
