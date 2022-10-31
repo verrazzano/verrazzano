@@ -14,24 +14,23 @@ import (
 
 const kibanaDeployment = "vmi-system-kibana"
 
+func getOSDDeployments() []types.NamespacedName {
+	return []types.NamespacedName{
+		{
+			Name:      kibanaDeployment,
+			Namespace: ComponentNamespace,
+		},
+	}
+}
+
 // isOSDReady checks if the OpenSearch-Dashboards resources are ready
 func isOSDReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-
-	var deployments []types.NamespacedName
-
 	if vzconfig.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR()) {
-		deployments = append(deployments,
-			types.NamespacedName{
-				Name:      kibanaDeployment,
-				Namespace: ComponentNamespace,
-			})
+		if !ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), getOSDDeployments(), 1, prefix) {
+			return false
+		}
 	}
-
-	if !ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix) {
-		return false
-	}
-
 	return common.IsVMISecretReady(ctx)
 }
 

@@ -1315,15 +1315,9 @@ func getClientID(keycloakClients KeycloakClients, clientName string) string {
 	return ""
 }
 
-func isKeycloakReady(ctx spi.ComponentContext) bool {
-	statefulset := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c KeycloakComponent) isKeycloakReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, 1, prefix)
+	return ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.StatefulsetNames, 1, prefix)
 }
 
 // isPodReady determines if the pod is running by checking for a Ready condition with Status equal True

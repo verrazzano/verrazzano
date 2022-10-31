@@ -8,17 +8,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Release.Name}}
+  name: {{ .Release.Name}}-{{ .Values.envVars.PSR_WORKER_TYPE }}
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
-      app: psr-backend
+      psr.verrazzano.io/worker: {{ .Release.Name}}-{{ .Values.envVars.PSR_WORKER_TYPE }}
   replicas: {{ .Values.replicas }}
   template:
     metadata:
       labels:
-        app: psr-backend
+        psr.verrazzano.io/worker: {{ .Release.Name}}-{{ .Values.envVars.PSR_WORKER_TYPE }}
+        app: psr-{{ .Values.envVars.PSR_WORKER_TYPE }}
+        version: v1
     spec:
       serviceAccountName: {{ .Release.Name}}
     {{- if .Values.imagePullSecrets }}
@@ -26,7 +28,7 @@ spec:
 {{ toYaml .Values.imagePullSecrets | indent 8 }}
     {{- end }}
       containers:
-        - name: worker
+        - name: {{ .Release.Name}}-{{ .Values.envVars.PSR_WORKER_TYPE }}
           image: {{  .Values.imageName }}
           imagePullPolicy: {{  .Values.imagePullPolicy }}
           env:

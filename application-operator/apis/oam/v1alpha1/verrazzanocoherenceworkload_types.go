@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -8,36 +8,40 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// VerrazzanoCoherenceWorkloadSpec wraps a Coherence resource. The Coherence object specified
-// in the template must contain a spec field and it may include a metadata field.
+// VerrazzanoCoherenceWorkloadSpec wraps a Coherence resource.
 type VerrazzanoCoherenceWorkloadSpec struct {
+	// The metadata and spec for the underlying
+	// <a href="https://oracle.github.io/coherence-operator/docs/latest/#/docs/about/04_coherence_spec">Coherence</a> resource.
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Template runtime.RawExtension `json:"template"`
 }
 
-// VerrazzanoCoherenceWorkloadStatus defines the observed state of VerrazzanoCoherenceWorkload
+// VerrazzanoCoherenceWorkloadStatus defines the observed state of a Verrazzano Coherence workload.
 type VerrazzanoCoherenceWorkloadStatus struct {
-	// LastGeneration is the last generation of the spec that was reconciled
+	// The last generation of the Verrazzano Coherence workload that was reconciled.
 	LastGeneration string `json:"lastGeneration,omitempty"`
-	// LastRestartVersion is the last value of the verrazzano.io/restart-version annotation
+	// The last value of the verrazzano.io/restart-version annotation.
 	LastRestartVersion string `json:"lastRestartVersion,omitempty"`
 }
 
+// +genclient
 // +kubebuilder:object:root=true
-
-// VerrazzanoCoherenceWorkload is the Schema for the verrazzanocoherenceworkloads API
 // +kubebuilder:subresource:status
+
+// VerrazzanoCoherenceWorkload specifies the Verrazzano Coherence workload API.
 type VerrazzanoCoherenceWorkload struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VerrazzanoCoherenceWorkloadSpec   `json:"spec,omitempty"`
+	// The desired state of a Verrazzano Coherence workload.
+	Spec VerrazzanoCoherenceWorkloadSpec `json:"spec,omitempty"`
+	// The observed state of a Verrazzano Coherence workload.
 	Status VerrazzanoCoherenceWorkloadStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// VerrazzanoCoherenceWorkloadList contains a list of VerrazzanoCoherenceWorkload
+// VerrazzanoCoherenceWorkloadList contains a list of Verrazzano Coherence workload resources.
 type VerrazzanoCoherenceWorkloadList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
