@@ -4,4 +4,4 @@
 
 global:
   envVars:
-    PSR_WORKER_TYPE: loggen
+    PSR_WORKER_TYPE: writelogs
