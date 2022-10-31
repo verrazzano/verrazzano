@@ -43,67 +43,6 @@ const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
 
 const letters = "abcdefghijklmnopqrstuvwxyz"
 
-//var bodyString = `{
-//  "query": {
-//    "bool": {
-//      "should": [
-//        {
-//          "match": {
-//            "message": "%s"
-//          }
-//        },
-//        {
-//          "match": {
-//            "message": "%s"
-//          }
-//        },
-//        {
-//          "match": {
-//            "message": "%s"
-//          }
-//        },
-//        {
-//          "match": {
-//            "message": "%s"
-//          }
-//        },
-//                {
-//          "match": {
-//            "message": "%s"
-//          }
-//        },
-//        {
-//          "match": {
-//            "message": "%s"
-//          }
-//        },
-//        {
-//          "match": {
-//            "message": "%s"
-//          }
-//        },
-//        {
-//          "match": {
-//            "message": "%s"
-//          }
-//        },
-//        {
-//          "match": {
-//            "message": "%s"
-//          }
-//        },
-//                {
-//          "match": {
-//            "message": "%s"
-//          }
-//        }
-//      ]
-//    }
-//  }
-//}`
-
-//var body = io.NopCloser(bytes.NewBuffer([]byte(bodyString)))
-
 type getLogs struct {
 	spi.Worker
 	metricDescList []prometheus.Desc
