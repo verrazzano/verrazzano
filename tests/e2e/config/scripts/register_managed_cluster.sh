@@ -117,7 +117,7 @@ fi
 if [ $((MAJOR_VERSION)) -eq 1 ] && [ $((MINOR_VERSION)) -lt 5 ] ; then
   kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-manifest -n verrazzano-mc -o jsonpath={.data.yaml} | base64 --decode > register-${MANAGED_CLUSTER_NAME}.yaml
 else
-   echo "Admin cluster VZ version is >= 1.5, getting the manifest directly form Rancher"
+   echo "Admin cluster VZ version is >= 1.5, getting the manifest directly from Rancher"
   # get the admin user token from the Rancher API
   RANCHER_URL=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vz -o jsonpath='{.items[0].status.instance.rancherUrl}')
   echo "RANCHER_URL: ${RANCHER_URL}"
