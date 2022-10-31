@@ -56,9 +56,9 @@ spec:
 {{ end }}
 {{ if (.Values).configurationFiles }}
     containers:
-{{ if (.Values).mysqlOperator.image }}
+{{- if .Values.mysqlOperator.image }}
       - name: sidecar
-        image: {{ (.Values).mysqlOperator.image  }}
+        image: {{ .Values.mysqlOperator.image  }}
 {{- end -}}
       - name: mysql
         volumeMounts:
@@ -70,11 +70,11 @@ spec:
 {{ end }}
 {{ if(.Values).initdbScripts }}
     initContainers:
-{{ if (.Values).mysqlOperator.image }}
+{{- if .Values.mysqlOperator.image }}
       - name: fixdatadir
-        image: {{ (.Values).mysqlOperator.image  }}
+        image: {{ .Values.mysqlOperator.image  }}
       - name: initconf
-        image: {{ (.Values).mysqlOperator.image  }}
+        image: {{ .Values.mysqlOperator.image  }}
 {{- end -}}
     - name: initmysql
 {{ if ((.Values).initDB) }}
