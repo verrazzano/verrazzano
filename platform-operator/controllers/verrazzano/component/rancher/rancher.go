@@ -11,9 +11,6 @@ import (
 	"reflect"
 	"strings"
 
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
-
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -25,6 +22,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
 
 	appsv1 "k8s.io/api/apps/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -95,6 +95,7 @@ const (
 	NodeDriverOCI                     = "oci"
 	ClusterLocal                      = "local"
 	AuthConfigLocal                   = "local"
+	UserVerrazzano                    = "u-verrazzano"
 	UserVerrazzanoDescription         = "Verrazzano Admin"
 	GlobalRoleBindingVerrazzanoPrefix = "grb-"
 	SettingUIPL                       = "ui-pl"
@@ -667,26 +668,39 @@ func createOrUpdateUIColorSettings(ctx spi.ComponentContext) error {
 }
 
 // getRancherVerrazzanoUserName fetches rancher user that is mapped to the ID of  key-clock user verrazzano
+// It checks only for u-verrazzano and u-<hash> users only
 func getRancherVerrazzanoUserName(ctx spi.ComponentContext, vzUser *keycloak.KeycloakUser) (string, error) {
 	c := ctx.Client()
-	resource := unstructured.UnstructuredList{}
-	resource.SetGroupVersionKind(GVKUser)
-	err := c.List(context.TODO(), &resource, &client.ListOptions{})
+	resources := unstructured.Unstructured{}
+	nsn := types.NamespacedName{Name: UserVerrazzano}
+	resources.SetGroupVersionKind(GVKUser)
+	resources.SetName(nsn.Name)
+	userPrincipalKeycloakID := UserPrincipalKeycloakPrefix + vzUser.ID
+	err := c.Get(context.TODO(), nsn, &resources)
 	if err != nil {
-		return "", err
+		if kerrs.IsNotFound(err) {
+			nsn.Name = userPrincipalKeycloakID
+			err = c.Get(context.TODO(), nsn, &resources)
+		}
+		if err != nil && !kerrs.IsNotFound(err) {
+			return "", err
+		}
 	}
-	for _, user := range resource.Items {
-		data := user.UnstructuredContent()
-		principleIDs, ok := data[UserAttributePrincipalIDs]
-		if ok {
-			switch reflect.TypeOf(principleIDs).Kind() {
-			case reflect.Slice:
-				listOfPrincipleIDs := reflect.ValueOf(principleIDs)
-				for i := 0; i < listOfPrincipleIDs.Len(); i++ {
-					principleID := listOfPrincipleIDs.Index(i).Interface().(string)
-					if strings.Contains(principleID, UserPrincipalKeycloakPrefix+vzUser.ID) {
-						return user.GetName(), nil
-					}
+	return getUserMappedToPrincipalID(resources, userPrincipalKeycloakID)
+}
+
+// getUserMappedToPrincipalID returns the  rancher username if the rancher user contains the specified principalStr
+func getUserMappedToPrincipalID(resource unstructured.Unstructured, principalStr string) (string, error) {
+	data := resource.UnstructuredContent()
+	principleIDs, ok := data[UserAttributePrincipalIDs]
+	if ok {
+		switch reflect.TypeOf(principleIDs).Kind() {
+		case reflect.Slice:
+			listOfPrincipleIDs := reflect.ValueOf(principleIDs)
+			for i := 0; i < listOfPrincipleIDs.Len(); i++ {
+				principleID := listOfPrincipleIDs.Index(i).Interface().(string)
+				if strings.Contains(principleID, principalStr) {
+					return resource.GetName(), nil
 				}
 			}
 		}
