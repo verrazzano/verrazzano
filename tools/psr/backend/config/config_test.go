@@ -15,85 +15,44 @@ type fakeEnv struct {
 	data map[string]string
 }
 
-// TestConfig tests the Config interface
-// GIVEN a config map with environment vars
+// TestWorkerType tests the Config interface
+// GIVEN a config map with environment vars related to worker type
 //
 //	WHEN the GetCommonConfig is called
 //	THEN ensure that the resulting configuration is correct
-func TestConfig(t *testing.T) {
+func TestWorkerType(t *testing.T) {
 	var tests = []struct {
-		name           string
-		envMap         map[string]string
-		envKey         string
-		workerType     string
-		iterationSleep time.Duration
-		expectErr      bool
+		name       string
+		envMap     map[string]string
+		envKey     string
+		workerType string
+		expectErr  bool
 	}{
 		{name: "ExampleWorker",
-			workerType:     WorkerTypeExample,
-			iterationSleep: time.Second,
-			expectErr:      false,
+			workerType: WorkerTypeExample,
+			expectErr:  false,
 			envMap: map[string]string{
 				PsrWorkerType: WorkerTypeExample,
 			},
 		},
 		{name: "GetLogs",
-			workerType:     WorkerTypeGetLogs,
-			iterationSleep: time.Second,
-			expectErr:      false,
+			workerType: WorkerTypeGetLogs,
+			expectErr:  false,
 			envMap: map[string]string{
 				PsrWorkerType: WorkerTypeGetLogs,
 			},
 		},
 		{name: "ExampleWorkerType",
-			workerType:     WorkerTypeWriteLogs,
-			iterationSleep: time.Second,
-			expectErr:      false,
+			workerType: WorkerTypeWriteLogs,
+			expectErr:  false,
 			envMap: map[string]string{
 				PsrWorkerType: WorkerTypeWriteLogs,
 			},
 		},
 		{name: "MissingWorkerType",
-			workerType:     WorkerTypeWriteLogs,
-			iterationSleep: time.Second,
-			expectErr:      true,
-			envMap:         map[string]string{},
-		},
-		{name: "DefaultSleep",
-			workerType:     WorkerTypeWriteLogs,
-			iterationSleep: time.Second,
-			expectErr:      false,
-			envMap: map[string]string{
-				PsrWorkerType: WorkerTypeWriteLogs,
-			},
-		},
-		{name: "TenMilliSleep",
-			workerType:     WorkerTypeWriteLogs,
-			iterationSleep: 10 * time.Millisecond,
-			expectErr:      false,
-			envMap: map[string]string{
-				PsrWorkerType:     WorkerTypeWriteLogs,
-				PsrIterationSleep: "10ms",
-			},
-		},
-		{name: "TenNanoSleep",
-			workerType:     WorkerTypeWriteLogs,
-			iterationSleep: 10 * time.Nanosecond,
-			expectErr:      false,
-			envMap: map[string]string{
-				PsrWorkerType:     WorkerTypeWriteLogs,
-				PsrIterationSleep: "10ns",
-			},
-		},
-		// Test min sleep of 10ns
-		{name: "TenNanoSleepMin",
-			workerType:     WorkerTypeWriteLogs,
-			iterationSleep: 10 * time.Nanosecond,
-			expectErr:      false,
-			envMap: map[string]string{
-				PsrWorkerType:     WorkerTypeWriteLogs,
-				PsrIterationSleep: "1ns",
-			},
+			workerType: WorkerTypeWriteLogs,
+			expectErr:  true,
+			envMap:     map[string]string{},
 		},
 	}
 	for _, test := range tests {
@@ -112,7 +71,146 @@ func TestConfig(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, test.workerType, cc.WorkerType)
+			}
+		})
+	}
+}
+
+// TestIterationSleep tests the Config interface
+// GIVEN a config map with environment vars iteration sleep
+//
+//	WHEN the GetCommonConfig is called
+//	THEN ensure that the resulting configuration is correct
+func TestIterationSleep(t *testing.T) {
+	var tests = []struct {
+		name           string
+		envMap         map[string]string
+		envKey         string
+		iterationSleep time.Duration
+		expectErr      bool
+	}{
+		{name: "DefaultSleep",
+			iterationSleep: time.Second,
+			expectErr:      false,
+			envMap: map[string]string{
+				PsrWorkerType: WorkerTypeWriteLogs,
+			},
+		},
+		{name: "TenMilliSleep",
+			iterationSleep: 10 * time.Millisecond,
+			expectErr:      false,
+			envMap: map[string]string{
+				PsrWorkerType:     WorkerTypeWriteLogs,
+				PsrIterationSleep: "10ms",
+			},
+		},
+		{name: "TenNanoSleep",
+			iterationSleep: 10 * time.Nanosecond,
+			expectErr:      false,
+			envMap: map[string]string{
+				PsrWorkerType:     WorkerTypeWriteLogs,
+				PsrIterationSleep: "10ns",
+			},
+		},
+		// Test min sleep of 10ns
+		{name: "TenNanoSleepMin",
+			iterationSleep: 10 * time.Nanosecond,
+			expectErr:      false,
+			envMap: map[string]string{
+				PsrWorkerType:     WorkerTypeWriteLogs,
+				PsrIterationSleep: "1ns",
+			},
+		},
+		{name: "BadNumericStringFormat",
+			expectErr: true,
+			envMap: map[string]string{
+				PsrWorkerType:     WorkerTypeWriteLogs,
+				PsrIterationSleep: "10xyz",
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Load the fake env
+			f := fakeEnv{data: test.envMap}
+			saveEnv := osenv.GetEnvFunc
+			osenv.GetEnvFunc = f.GetEnv
+			defer func() {
+				osenv.GetEnvFunc = saveEnv
+			}()
+
+			cc, err := GetCommonConfig(vzlog.DefaultLogger())
+			if test.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 				assert.Equal(t, test.iterationSleep, cc.IterationSleepNanos)
+			}
+		})
+	}
+}
+
+// TestThreadCount tests the Config interface
+// GIVEN a config map with environment vars related to thread count
+//
+//	WHEN the GetCommonConfig is called
+//	THEN ensure that the resulting configuration is correct
+func TestThreadCount(t *testing.T) {
+	var tests = []struct {
+		name          string
+		envMap        map[string]string
+		envKey        string
+		workerThreads int
+		expectErr     bool
+	}{
+		{name: "DefaultWorkerThreads",
+			workerThreads: 1,
+			expectErr:     false,
+			envMap: map[string]string{
+				PsrWorkerType: WorkerTypeWriteLogs,
+			},
+		},
+		{name: "MultipleWorkerThreads",
+			workerThreads: 50,
+			expectErr:     false,
+			envMap: map[string]string{
+				PsrWorkerType:        WorkerTypeWriteLogs,
+				PsrWorkerThreadCount: "50",
+			},
+		},
+		// Test max threads 100
+		{name: "MaxWorkerThreads",
+			workerThreads: 100,
+			expectErr:     false,
+			envMap: map[string]string{
+				PsrWorkerType:        WorkerTypeWriteLogs,
+				PsrWorkerThreadCount: "1000",
+			},
+		},
+		{name: "BadThreadCountFormat",
+			expectErr: true,
+			envMap: map[string]string{
+				PsrWorkerType:        WorkerTypeWriteLogs,
+				PsrWorkerThreadCount: "100n",
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Load the fake env
+			f := fakeEnv{data: test.envMap}
+			saveEnv := osenv.GetEnvFunc
+			osenv.GetEnvFunc = f.GetEnv
+			defer func() {
+				osenv.GetEnvFunc = saveEnv
+			}()
+
+			cc, err := GetCommonConfig(vzlog.DefaultLogger())
+			if test.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.workerThreads, cc.WorkerThreadCount)
 			}
 		})
 	}
