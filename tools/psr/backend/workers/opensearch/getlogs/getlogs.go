@@ -40,7 +40,65 @@ const (
 
 const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
 
-var bodyString = "{\"query\":{\"bool\":{\"filter\":[{\"match_phrase\":{\"kubernetes.container_name\":\"istio-proxy\"}}]}}}"
+var bodyString = `{
+  "query": {
+    "bool": {
+      "should": [
+        {
+          "match": {
+            "message": "a"
+          }
+        },
+        {
+          "match": {
+            "message": "e"
+          }
+        },
+        {
+          "match": {
+            "message": "i"
+          }
+        },
+        {
+          "match": {
+            "message": "o"
+          }
+        },
+                {
+          "match": {
+            "message": "u"
+          }
+        },
+        {
+          "match": {
+            "message": "t"
+          }
+        },
+        {
+          "match": {
+            "message": "f"
+          }
+        },
+        {
+          "match": {
+            "message": "s"
+          }
+        },
+        {
+          "match": {
+            "message": "d"
+          }
+        },
+                {
+          "match": {
+            "message": "m"
+          }
+        }
+      ]
+    }
+  }
+}`
+
 var body = io.NopCloser(bytes.NewBuffer([]byte(bodyString)))
 
 type getLogs struct {
@@ -136,7 +194,7 @@ func (w getLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) er
 		URL: &url.URL{
 			Scheme: "http",
 			Host:   osIngestService,
-			Path:   "/verrazzano-system",
+			Path:   "/_search",
 		},
 		Header: http.Header{"Content-Type": {"application/json"}},
 		Body:   body,
