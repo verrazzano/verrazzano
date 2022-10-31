@@ -15,12 +15,8 @@ import (
 )
 
 const (
-	waitTimeout              = 3 * time.Minute
-	pollingInterval          = 10 * time.Second
-	testDashboardTitle       = "E2ETestDashboard"
-	grafanaErrMsgFmt         = "Failed to GET Grafana testDashboard: status=%d: body=%s"
-	systemDashboardTitle     = "Host Metrics"
-	openSearchMetricsDbTitle = "OpenSearch Summary Dashboard"
+	waitTimeout     = 3 * time.Minute
+	pollingInterval = 10 * time.Second
 )
 
 var t = framework.NewTestFramework("grafana")

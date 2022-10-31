@@ -10,7 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"time"
 
-	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 	"strings"
@@ -144,7 +144,7 @@ func getGrafanaWithBasicAuth(url string, hostHeader string, username string, pas
 
 func TestOpenSearchGrafanaDashBoard(pollingInterval time.Duration, timeout time.Duration) {
 	uid := "pIZicTl7z"
-	Eventually(func() bool {
+	gomega.Eventually(func() bool {
 		resp, err := GetGrafanaDashboard(uid)
 		if err != nil {
 			Log(Error, err.Error())
@@ -157,13 +157,13 @@ func TestOpenSearchGrafanaDashBoard(pollingInterval time.Duration, timeout time.
 		body := make(map[string]map[string]string)
 		json.Unmarshal(resp.Body, &body)
 		return strings.Contains(body["dashboard"]["title"], openSearchMetricsDbTitle)
-	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(BeTrue())
+	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }
 
 func TestSystemGrafanaDashboard(pollingInterval time.Duration, timeout time.Duration) {
 	// UID of system testDashboard, which is created by the VMO on startup.
 	uid := "H0xWYyyik"
-	Eventually(func() bool {
+	gomega.Eventually(func() bool {
 		resp, err := GetGrafanaDashboard(uid)
 		if err != nil {
 			Log(Error, err.Error())
@@ -176,11 +176,11 @@ func TestSystemGrafanaDashboard(pollingInterval time.Duration, timeout time.Dura
 		body := make(map[string]map[string]string)
 		json.Unmarshal(resp.Body, &body)
 		return strings.Contains(body["dashboard"]["title"], systemDashboardTitle)
-	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(BeTrue())
+	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }
 
 func TestGrafanaTestDashboard(testDashboard DashboardMetadata, pollingInterval time.Duration, timeout time.Duration) {
-	Eventually(func() bool {
+	gomega.Eventually(func() bool {
 		// UID of testDashboard, which is created by the previous test.
 		uid := testDashboard.UID
 		if uid == "" {
@@ -198,11 +198,11 @@ func TestGrafanaTestDashboard(testDashboard DashboardMetadata, pollingInterval t
 		body := make(map[string]map[string]string)
 		json.Unmarshal(resp.Body, &body)
 		return strings.Contains(body["dashboard"]["title"], testDashboardTitle)
-	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(BeTrue())
+	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }
 
 func TestSearchGrafanaDashboard(pollingInterval time.Duration, timeout time.Duration) {
-	Eventually(func() bool {
+	gomega.Eventually(func() bool {
 		resp, err := SearchGrafanaDashboard(map[string]string{"query": testDashboardTitle})
 		if err != nil {
 			Log(Error, err.Error())
@@ -221,5 +221,5 @@ func TestSearchGrafanaDashboard(pollingInterval time.Duration, timeout time.Dura
 		}
 		return false
 
-	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(BeTrue())
+	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }
