@@ -29,7 +29,7 @@ var t = framework.NewTestFramework("grafana")
 var _ = t.BeforeSuite(func() {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		Fail(fmt.Sprintf(pkg.KubeConfigErrorFmt, err))
 	}
 	supported := pkg.IsGrafanaEnabled(kubeconfigPath)
 	// Only run tests if Grafana component is enabled in Verrazzano CR
@@ -88,7 +88,7 @@ var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.loggi
 
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		Expect(err).To(BeNil(), fmt.Sprintf(pkg.KubeConfigErrorFmt, err))
 	}
 
 	// GIVEN a running grafana instance
