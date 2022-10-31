@@ -413,8 +413,8 @@
           "name": "mysql-operator",
           "images": [
             {
-              "image": "mysql-operator",
-              "tag": "8.0.31-2.0.7",
+              "image": "mysql-operator-jenkins",
+              "tag": "8.0.31-2.0.7.1",
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",
               "helmTagKey": "image.tag"

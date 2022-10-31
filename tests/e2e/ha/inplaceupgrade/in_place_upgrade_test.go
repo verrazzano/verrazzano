@@ -167,10 +167,6 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 				}
 				Expect(err).ShouldNot(HaveOccurred())
 
-				// Handle the case where MySQL pods can be left dangling waiting for finalizers to be cleaned up
-				// - this is a workaround until we can perhaps get a fix from the MySQL team
-				cleanupDanglingMySQLPods(clientset)
-
 				// terminate the compute instance that the node is on, OKE will replace it with a new node
 				// running the upgraded Kubernetes version
 				t.Logs.Infof("Terminating compute instance: %s", node.Spec.ProviderID)
@@ -205,46 +201,6 @@ var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 		}
 	})
 })
-
-// cleanupDanglingMySQLPods - workaround to clean up any dangling MySQL pods, workaround for case where finalizers don't get cleaned up
-func cleanupDanglingMySQLPods(client *kubernetes.Clientset) {
-	Eventually(func() error {
-		t.Logs.Info("Cleaning up any dangling MySQL pods after node drain")
-		mysqldReq, err := labels.NewRequirement(mysqlComponentLabel, selection.Equals, []string{mysqldComponentName})
-		if err != nil {
-			return err
-		}
-		selector := labels.NewSelector().Add(*mysqldReq)
-
-		list, err := client.CoreV1().Pods(constants.KeycloakNamespace).List(context.TODO(), metav1.ListOptions{
-			LabelSelector: selector.String(),
-		})
-		if err != nil {
-			return err
-		}
-		if len(list.Items) == 0 {
-			return fmt.Errorf("no pods found matching selector %s", selector.String())
-		}
-		for i := range list.Items {
-			mysqlPod := list.Items[i]
-			deletionTimestamp := mysqlPod.ObjectMeta.DeletionTimestamp
-			if !deletionTimestamp.IsZero() {
-				diff := metav1.Now().Sub(deletionTimestamp.Time)
-				t.Logs.Infof("Pod %s/%s deletion time: %s, difference: %v", mysqlPod.Namespace, mysqlPod.Name, deletionTimestamp.String(), diff.Seconds())
-				if diff.Seconds() >= waitForDeleteTimeout.Seconds() {
-					t.Logs.Infof("Found dangling MySQL pod %s/%s, patching out finalizers %v", mysqlPod.Namespace, mysqlPod.Name, mysqlPod.Finalizers)
-					mysqlPod.Finalizers = []string{}
-					_, err := client.CoreV1().Pods(constants.KeycloakNamespace).Update(context.TODO(), &mysqlPod, metav1.UpdateOptions{})
-					if err != nil {
-						t.Logs.Errorf("Error occurred patching finalizers for %s/%s, %s", mysqlPod.Namespace, mysqlPod.Name, err.Error())
-						return err
-					}
-				}
-			}
-		}
-		return nil
-	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
-}
 
 // repairMySQLPodsWaitingReadinessGates - workaround to repair any MySQL pods that are stuck starting up due
 // to readiness gates not all true.
