@@ -642,7 +642,7 @@ func getProxyURL() string {
 }
 
 // createOrUpdateSecretRancherProxy simulates the controllerutil create or update function through the Rancher Proxy API for secrets
-func createOrUpdateSecretRancherProxy(secret *corev1.Secret, rc *rancherConfig, clusterID string, f controllerutil.MutateFn, log vzlog.VerrazzanoLogger) (controllerutil.OperationResult, error) {
+func createOrUpdateSecretRancherProxy(secret *corev1.Secret, rc *RancherConfig, clusterID string, f controllerutil.MutateFn, log vzlog.VerrazzanoLogger) (controllerutil.OperationResult, error) {
 	log.Debugf("Creating or Updating Secret %s/%s", secret.GetNamespace(), secret.GetName())
 	if err := rancherSecretGet(secret, rc, clusterID, log); err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -683,12 +683,12 @@ func rancherSecretMutate(f controllerutil.MutateFn, secret *corev1.Secret, log v
 }
 
 // rancherSecretGet simulates a client get request through the Rancher proxy for secrets
-func rancherSecretGet(secret *corev1.Secret, rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) error {
+func rancherSecretGet(secret *corev1.Secret, rc *RancherConfig, clusterID string, log vzlog.VerrazzanoLogger) error {
 	if secret == nil {
 		return log.ErrorNewErr("Failed to get secret, nil value passed to get request")
 	}
-	reqURL := constructSecretURL(secret, rc.host, clusterID, false)
-	headers := map[string]string{"Authorization": "Bearer " + rc.apiAccessToken}
+	reqURL := constructSecretURL(secret, rc.Host, clusterID, false)
+	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
 	resp, body, err := sendRequest(http.MethodGet, reqURL, headers, "", rc, log)
 	if err != nil && (resp == nil || resp.StatusCode != 404) {
 		return err
@@ -712,17 +712,17 @@ func rancherSecretGet(secret *corev1.Secret, rc *rancherConfig, clusterID string
 }
 
 // rancherSecretCreate simulates a client create request through the Rancher proxy for secrets
-func rancherSecretCreate(secret *corev1.Secret, rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) error {
+func rancherSecretCreate(secret *corev1.Secret, rc *RancherConfig, clusterID string, log vzlog.VerrazzanoLogger) error {
 	if secret == nil {
 		return log.ErrorNewErr("Failed to create secret, nil value passed to create request")
 	}
-	reqURL := constructSecretURL(secret, rc.host, clusterID, true)
+	reqURL := constructSecretURL(secret, rc.Host, clusterID, true)
 	payload, err := json.Marshal(secret)
 	if err != nil {
 		return log.ErrorfNewErr("Failed to marshall secret %s/%s: %v", secret.GetNamespace(), secret.GetName(), err)
 	}
 	headers := map[string]string{
-		"Authorization": "Bearer " + rc.apiAccessToken,
+		"Authorization": "Bearer " + rc.APIAccessToken,
 		"Content-Type":  "application/json",
 	}
 	resp, _, err := sendRequest(http.MethodPost, reqURL, headers, string(payload), rc, log)
@@ -740,17 +740,17 @@ func rancherSecretCreate(secret *corev1.Secret, rc *rancherConfig, clusterID str
 }
 
 // rancherSecretUpdate simulates a client update request through the Rancher proxy for secrets
-func rancherSecretUpdate(secret *corev1.Secret, rc *rancherConfig, clusterID string, log vzlog.VerrazzanoLogger) error {
+func rancherSecretUpdate(secret *corev1.Secret, rc *RancherConfig, clusterID string, log vzlog.VerrazzanoLogger) error {
 	if secret == nil {
 		return log.ErrorNewErr("Failed to update secret, nil value passed to update request")
 	}
-	reqURL := constructSecretURL(secret, rc.host, clusterID, false)
+	reqURL := constructSecretURL(secret, rc.Host, clusterID, false)
 	payload, err := json.Marshal(secret)
 	if err != nil {
 		return log.ErrorfNewErr("Failed to marshall secret %s/%s: %v", secret.GetNamespace(), secret.GetName(), err)
 	}
 	headers := map[string]string{
-		"Authorization": "Bearer " + rc.apiAccessToken,
+		"Authorization": "Bearer " + rc.APIAccessToken,
 		"Content-Type":  "application/json",
 	}
 	resp, _, err := sendRequest(http.MethodPut, reqURL, headers, string(payload), rc, log)

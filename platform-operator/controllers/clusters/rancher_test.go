@@ -89,7 +89,7 @@ func TestCreateOrUpdateSecretRancherProxy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rancherHTTPClient = tt.mock
-			result, err := createOrUpdateSecretRancherProxy(&secret, &rancherConfig{}, clusterID, tt.f, vzlog.DefaultLogger())
+			result, err := createOrUpdateSecretRancherProxy(&secret, &RancherConfig{}, clusterID, tt.f, vzlog.DefaultLogger())
 			a.Nil(err)
 			a.Equal(tt.result, result)
 		})

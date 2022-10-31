@@ -306,12 +306,6 @@ pipeline {
                                 configureVerrazzanoInstallers(INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
                             }
                         }
-                        stage("Configure OKE/MagicDNS") {
-                            when { expression { return params.TEST_ENV == 'magicdns_oke' } }
-                            steps {
-                                configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_NIPIO, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
-                            }
-                        }
                     }
                 }
                 stage ('Install Verrazzano') {
@@ -355,6 +349,13 @@ pipeline {
                         stage('Verify register managed clusters') {
                             steps {
                                 verifyRegisterManagedClusters(true)
+                            }
+                            post {
+                                failure {
+                                    script {
+                                        dumpK8sCluster("${WORKSPACE}/multicluster-verify-managed-clusters-snapshot")
+                                    }
+                                }
                             }
                         }
                     }
@@ -1144,6 +1145,8 @@ def verifyDeregisterManagedCluster(count) {
             sh """
                 export MANAGED_CLUSTER_NAME="managed${count-1}"
                 export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+                kubectl -n verrazzano-mc delete vmc "managed${count-1}"
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 kubectl -n verrazzano-system delete secret verrazzano-cluster-registration
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
