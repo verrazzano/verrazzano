@@ -4,10 +4,9 @@
 package main
 
 import (
+	"context"
 	"flag"
-	"k8s.io/client-go/rest"
 	"os"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sync"
 	"time"
 
@@ -16,6 +15,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -176,55 +177,67 @@ func initWebhookCertificates(config internalconfig.OperatorConfig, log *zap.Suga
 
 }
 
-// startWebhookServers uses the same image as operator, but configured only to run Webhooks for the platform.
-func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredLogger) {
-	log.Debug("Creating certificates used by webhooks")
+type webhookRunnable struct {
+	log *zap.SugaredLogger
+	mgr manager.Manager
+}
 
+func (r *webhookRunnable) Start(context.Context) error {
+	r.log.Infof("Start called for pod %s", os.Getenv("HOSTNAME"))
 	conf, err := ctrl.GetConfig()
 	if err != nil {
-		log.Errorf("Failed to get kubeconfig: %v", err)
+		r.log.Errorf("Failed to get kubeconfig: %v", err)
 		os.Exit(1)
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(conf)
 	if err != nil {
-		log.Errorf("Failed to get clientset: %v", err)
+		r.log.Errorf("Failed to get clientset: %v", err)
 		os.Exit(1)
 	}
 
 	dynamicClient, err := dynamic.NewForConfig(conf)
 	if err != nil {
-		log.Errorf("Failed to create Kubernetes dynamic client: %v", err)
+		r.log.Errorf("Failed to create Kubernetes dynamic client: %v", err)
 		os.Exit(1)
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: config.MetricsAddr,
-		Port:               9443,
-		LeaderElection:     true, //config.LeaderElectionEnabled,
-		LeaderElectionID:   "3ec4d295.verrazzano.io",
-	})
+	updateWebhookConfigurations(kubeClient, r.log, conf)
 
-	log.Infof("Waiting for webhook leader election on host %s", os.Getenv("HOSTNAME"))
-	mgr.Elected()
-	log.Infof("Webhook leader election acquired on host %s", os.Getenv("HOSTNAME"))
+	createOrUpdateNetworkPolicies(conf, r.log, kubeClient)
+
+	setupWebhooksWithManager(r.log, r.mgr, kubeClient, dynamicClient)
+
+	return nil
+}
+
+// startWebhookServers uses the same image as operator, but configured only to run Webhooks for the platform.
+func startWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredLogger) {
+	log.Debug("Creating certificates used by webhooks")
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Scheme:                  scheme,
+		MetricsBindAddress:      config.MetricsAddr,
+		Port:                    9443,
+		LeaderElection:          true, //config.LeaderElectionEnabled,
+		LeaderElectionNamespace: constants.VerrazzanoInstallNamespace,
+		LeaderElectionID:        "3ec4d295.verrazzano.io",
+	})
+	if err != nil {
+		log.Errorf("Error creating controller runtime manager: %v", err)
+		os.Exit(1)
+	}
+
+	mgr.Add(&webhookRunnable{
+		log: log,
+		mgr: mgr,
+	})
+	//log.Infof("Waiting for webhook leader election on host %s", os.Getenv("HOSTNAME"))
+	//<-mgr.Elected()
+	//log.Infof("Webhook leader election acquired on host %s", os.Getenv("HOSTNAME"))
 
 	log.Info("Initializing the webhook server certificates")
 	initWebhookCertificates(config, log)
-
-	updateWebhookConfigurations(kubeClient, log, conf)
-
-	createOrUpdateNetworkPolicies(conf, log, kubeClient)
-
-	setupWebhooksWithManager(log, mgr, kubeClient, dynamicClient)
-
-	// Set up the validation webhook for VMC
-	log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
-	if err = (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
-		log.Errorf("Failed to setup webhook with manager: %v", err)
-		os.Exit(1)
-	}
 	mgr.GetWebhookServer().CertDir = config.CertDir
 
 	// +kubebuilder:scaffold:builder
@@ -263,6 +276,13 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 	// register MySQL install values webhooks
 	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1beta1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1beta1{}})
 	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1alpha1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1alpha1{}})
+
+	// Set up the validation webhook for VMC
+	log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
+	if err := (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
+		log.Errorf("Failed to setup webhook with manager: %v", err)
+		os.Exit(1)
+	}
 }
 
 func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.SugaredLogger, conf *rest.Config) {

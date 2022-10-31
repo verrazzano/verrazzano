@@ -109,6 +109,9 @@ spec:
             - --zap-log-level=info
             - --webhooks-enabled=true
             - --enable-leader-election=true
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
           resources:
             requests:
               memory: 72Mi
@@ -119,4 +122,7 @@ spec:
             - containerPort: 9443
               name: webhook
               protocol: TCP
+      volumes:
+        - name: webhook-certs
+          emptyDir: {}
       serviceAccountName: {{ .Values.name }}

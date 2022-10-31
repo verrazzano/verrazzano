@@ -35,107 +35,22 @@ const (
 	// OperatorNamespace is the resource namespace for the Verrazzano platform operator
 	OperatorNamespace = "verrazzano-install"
 	CRDName           = "verrazzanos.install.verrazzano.io"
+
+	certKey = "tls.crt"
+	privKey = "tls.key"
 )
 
 // CreateWebhookCertificates creates the needed certificates for the validating webhook
 func CreateWebhookCertificates(log *zap.SugaredLogger, kubeClient kubernetes.Interface, certDir string) error {
 
 	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)
-	serialNumber, err := newSerialNumber()
+
+	ca, caKey, err := createCACert(log, kubeClient, commonName)
 	if err != nil {
 		return err
 	}
 
-	// CA config
-	ca := &x509.Certificate{
-		DNSNames:     []string{commonName},
-		SerialNumber: serialNumber,
-		Subject: pkix.Name{
-			CommonName: commonName,
-		},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(1, 0, 0),
-		IsCA:                  true,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		BasicConstraintsValid: true,
-	}
-
-	// CA private key
-	caPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
-	if err != nil {
-		return err
-	}
-
-	// Self signed CA certificate
-	caBytes, err := x509.CreateCertificate(cryptorand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
-	if err != nil {
-		return err
-	}
-
-	// PEM encode CA cert
-	caPEM := new(bytes.Buffer)
-	_ = pem.Encode(caPEM, &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: caBytes,
-	})
-
-	// PEM encode CA cert
-	caKeyPEM := new(bytes.Buffer)
-	_ = pem.Encode(caKeyPEM, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(caPrivKey),
-	})
-
-	caPEMBytes := caPEM.Bytes()
-
-	caKeyPEMBytes := caKeyPEM.Bytes()
-
-	serialNumber, err = newSerialNumber()
-	if err != nil {
-		return err
-	}
-
-	// server cert config
-	cert := &x509.Certificate{
-		DNSNames:     []string{commonName},
-		SerialNumber: serialNumber,
-		Subject: pkix.Name{
-			CommonName: commonName,
-		},
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().AddDate(1, 0, 0),
-		IsCA:         true,
-		SubjectKeyId: []byte{1, 2, 3, 4, 6},
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		KeyUsage:     x509.KeyUsageDigitalSignature,
-	}
-
-	// server private key
-	serverPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
-	if err != nil {
-		return err
-	}
-
-	// sign the server cert
-	serverCertBytes, err := x509.CreateCertificate(cryptorand.Reader, cert, ca, &serverPrivKey.PublicKey, caPrivKey)
-	if err != nil {
-		return err
-	}
-
-	// PEM encode Server cert
-	serverPEM := new(bytes.Buffer)
-	_ = pem.Encode(serverPEM, &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: serverCertBytes,
-	})
-
-	// PEM encode Server cert
-	serverKeyPEM := new(bytes.Buffer)
-	_ = pem.Encode(serverKeyPEM, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(serverPrivKey),
-	})
+	serverPEM, serverKeyPEM, err := createTLSCert(log, kubeClient, commonName, ca, caKey)
 
 	err = os.MkdirAll(certDir, 0666)
 	if err != nil {
@@ -155,21 +70,69 @@ func CreateWebhookCertificates(log *zap.SugaredLogger, kubeClient kubernetes.Int
 		return err
 	}
 
+	return nil
+}
+
+func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commonName string, ca *x509.Certificate, caKey *rsa.PrivateKey) ([]byte, []byte, error) {
+	secretsClient := kubeClient.CoreV1().Secrets(OperatorNamespace)
+	existingSecret, err := secretsClient.Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
+	if err == nil {
+		log.Infof("Secret %s exists, using...", OperatorCA)
+		return existingSecret.Data[certKey], existingSecret.Data[privKey], nil
+	}
+	if !errors.IsNotFound(err) {
+		return []byte{}, []byte{}, err
+	}
+
+	serialNumber, err := newSerialNumber()
+	if err != nil {
+		return []byte{}, []byte{}, err
+	}
+
+	// server cert config
+	cert := &x509.Certificate{
+		DNSNames:     []string{commonName},
+		SerialNumber: serialNumber,
+		Subject: pkix.Name{
+			CommonName: commonName,
+		},
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().AddDate(1, 0, 0),
+		IsCA:         false,
+		SubjectKeyId: []byte{1, 2, 3, 4, 6},
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+	}
+
+	// server private key
+	serverPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
+	if err != nil {
+		return []byte{}, []byte{}, err
+	}
+
+	// sign the server cert
+	serverCertBytes, err := x509.CreateCertificate(cryptorand.Reader, cert, ca, &serverPrivKey.PublicKey, caKey)
+	if err != nil {
+		return []byte{}, []byte{}, err
+	}
+
+	// PEM encode Server cert
+	serverPEM := new(bytes.Buffer)
+	_ = pem.Encode(serverPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: serverCertBytes,
+	})
+
+	// PEM encode Server cert
+	serverKeyPEM := new(bytes.Buffer)
+	_ = pem.Encode(serverKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(serverPrivKey),
+	})
+
 	serverPEMBytes := serverPEM.Bytes()
 
 	serverKeyPEMBytes := serverKeyPEM.Bytes()
-
-	var webhookCA v1.Secret
-	webhookCA.Namespace = OperatorNamespace
-	webhookCA.Name = OperatorCA
-	webhookCA.Type = v1.SecretTypeTLS
-	webhookCA.Data = make(map[string][]byte)
-	webhookCA.Data["tls.crt"] = caPEMBytes
-	webhookCA.Data["tls.key"] = caKeyPEMBytes
-
-	if err := createOrUpdateSecret(kubeClient, &webhookCA); err != nil {
-		return err
-	}
 
 	var webhookCrt v1.Secret
 	webhookCrt.Namespace = OperatorNamespace
@@ -177,27 +140,170 @@ func CreateWebhookCertificates(log *zap.SugaredLogger, kubeClient kubernetes.Int
 	webhookCrt.Type = v1.SecretTypeTLS
 	webhookCrt.Data = make(map[string][]byte)
 	webhookCrt.Data["tls.crt"] = serverPEMBytes
-	webhookCrt.Data["tls.key"] = serverKeyPEMBytes
+	webhookCrt.Data[privKey] = serverKeyPEMBytes
 
-	if err := createOrUpdateSecret(kubeClient, &webhookCrt); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func createOrUpdateSecret(kubeClient kubernetes.Interface, certSecret *v1.Secret) error {
-	_, err := kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), certSecret.Name, metav1.GetOptions{})
-	if err != nil {
-		if errors.IsNotFound(err) {
-			_, createError := kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), certSecret, metav1.CreateOptions{})
-			return createError
+	_, createError := secretsClient.Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
+	if createError != nil {
+		if errors.IsAlreadyExists(createError) {
+			log.Infof("Operator CA secret %s already exists, skipping", OperatorCA)
+			existingSecret, err := secretsClient.Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
+			if err != nil {
+				return []byte{}, []byte{}, err
+			}
+			log.Infof("Secret %s exists, using...", OperatorCA)
+			return existingSecret.Data[certKey], existingSecret.Data[privKey], nil
 		}
-		return err
 	}
-	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Update(context.TODO(), certSecret, metav1.UpdateOptions{})
-	return err
+
+	return serverPEMBytes, serverKeyPEMBytes, nil
 }
+
+func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commonName string) (*x509.Certificate, *rsa.PrivateKey, error) {
+	var webhookCA v1.Secret
+	caKeyPEMBytes := []byte{}
+	var ca *x509.Certificate
+
+	webhookCA.Namespace = OperatorNamespace
+	webhookCA.Name = OperatorCA
+	webhookCA.Type = v1.SecretTypeTLS
+
+	secretsClient := kubeClient.CoreV1().Secrets(OperatorNamespace)
+	existingSecret, err := secretsClient.Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+	if err == nil {
+		log.Infof("CA secret %s exists, using...", OperatorCA)
+		cert, err := decodeCertificate(existingSecret.Data[certKey])
+		if err != nil {
+			return nil, nil, err
+		}
+		key, err := decodeKey(existingSecret.Data[privKey])
+		if err != nil {
+			return nil, nil, err
+		}
+		return cert, key, err
+	}
+	if !errors.IsNotFound(err) {
+		return nil, nil, err
+	}
+
+	log.Infof("Creating CA secret %s", OperatorCA)
+	serialNumber, err := newSerialNumber()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// CA config
+	ca = &x509.Certificate{
+		DNSNames:     []string{commonName},
+		SerialNumber: serialNumber,
+		Subject: pkix.Name{
+			CommonName: commonName,
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(1, 0, 0),
+		IsCA:                  true,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+
+	// CA private key
+	caPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Self signed CA certificate
+	caBytes, err := x509.CreateCertificate(cryptorand.Reader, ca, ca, &caPrivKey.PublicKey, caPrivKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// PEM encode CA cert
+	caPEM := new(bytes.Buffer)
+	_ = pem.Encode(caPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: caBytes,
+	})
+
+	// PEM encode CA cert
+	caKeyPEM := new(bytes.Buffer)
+	_ = pem.Encode(caKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(caPrivKey),
+	})
+
+	caPEMBytes := caPEM.Bytes()
+
+	caKeyPEMBytes = caKeyPEM.Bytes()
+
+	webhookCA.Data = make(map[string][]byte)
+	webhookCA.Data[certKey] = caPEMBytes
+	webhookCA.Data[privKey] = caKeyPEMBytes
+
+	_, createError := secretsClient.Create(context.TODO(), &webhookCA, metav1.CreateOptions{})
+	if createError != nil {
+		if errors.IsAlreadyExists(createError) {
+			log.Infof("Operator CA secret %s already exists, skipping", OperatorCA)
+			existingSecret, err := secretsClient.Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+			if err != nil {
+				return nil, nil, err
+			}
+			caPEMBytes = existingSecret.Data[certKey]
+			cert, err := decodeCertificate(caPEMBytes)
+			caKeyPEMBytes = existingSecret.Data[privKey]
+			if err != nil {
+				return nil, nil, err
+			}
+			key, err := decodeKey(existingSecret.Data[privKey])
+			if err != nil {
+				return nil, nil, err
+			}
+			return cert, key, nil
+		}
+		return nil, nil, err
+	}
+	return ca, caPrivKey, nil
+}
+
+func decodeCertificate(certBytes []byte) (*x509.Certificate, error) {
+	p, _ := pem.Decode(certBytes)
+	if p == nil {
+		return nil, fmt.Errorf("Unable to decode certificate")
+	}
+	certificate, err := x509.ParseCertificate(p.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	return certificate, nil
+}
+
+func decodeKey(certBytes []byte) (*rsa.PrivateKey, error) {
+	p, _ := pem.Decode(certBytes)
+	if p == nil {
+		return nil, fmt.Errorf("Unable to decode certificate")
+	}
+	key, err := x509.ParsePKCS1PrivateKey(p.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	return key, nil
+}
+
+//func createOrUpdateSecret(kubeClient kubernetes.Interface, certSecret *v1.Secret) error {
+//	_, createError := kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), certSecret, metav1.CreateOptions{})
+//	if errors.IsAlreadyExists(createError) {
+//
+//	}
+//	_, err := kubeClient.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), certSecret.Name, metav1.GetOptions{})
+//	if err != nil {
+//		if errors.IsNotFound(err) {
+//			return createError
+//		}
+//		return err
+//	}
+//	_, err = kubeClient.CoreV1().Secrets(OperatorNamespace).Update(context.TODO(), certSecret, metav1.UpdateOptions{})
+//	return err
+//}
 
 // newSerialNumber returns a new random serial number suitable for use in a certificate.
 func newSerialNumber() (*big.Int, error) {
@@ -206,14 +312,14 @@ func newSerialNumber() (*big.Int, error) {
 }
 
 // writeFile writes data in the file at the given path
-func writeFile(filepath string, pem *bytes.Buffer) error {
+func writeFile(filepath string, pemData []byte) error {
 	f, err := os.Create(filepath)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	_, err = f.Write(pem.Bytes())
+	_, err = f.Write(pemData)
 	if err != nil {
 		return err
 	}
