@@ -198,6 +198,10 @@ func (s *Syncer) SyncMultiClusterResources() {
 		if err != nil {
 			s.Log.Errorf("Failed to sync MultiClusterApplicationConfiguration objects: %v", err)
 		}
+		err = s.syncMCAgentDelete(namespace)
+		if err != nil {
+			s.Log.Errorf("Failed to sync the MC Agent deletion process: %v", err)
+		}
 
 		s.processStatusUpdates()
 
