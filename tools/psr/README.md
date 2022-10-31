@@ -35,7 +35,7 @@ that define the configuration. For example, to deploy a use case to
 generate logs using 10 replicas, you would run the following command:
 
 ```
-helm install psr-log-gen manifests/charts/k8s -f manifests/usecases/loggen.yaml --set replicas=10
+helm install psr-log-gen manifests/charts/k8s -f manifests/usecases/writelogs.yaml --set replicas=10
 ```
 
 **NOTE** The worker code for a use case expects all dependencies to exist at the
@@ -56,7 +56,7 @@ To run a scenario, you install two Helm releases as follows (note some use cases
 might not exist yet):
 
 ```
-helm install psr-log-gen manifests/charts/k8s -f manifests/usecases/opensearch/loggen.yaml --set replicas=5
+helm install psr-log-gen manifests/charts/k8s -f manifests/usecases/opensearch/writelogs.yaml --set replicas=5
 helm install psr-scale-out manifests/charts/k8s -f manifests/usecases/opensearch/scale-out-in.yaml --set replicas=1
 ```
 
@@ -150,7 +150,7 @@ helm install psr-example manifests/charts/worker --set imagePullSecrets[0].name=
 
 Install the logging generator worker as a Kubernetes deployment using the default image in the helm chart.  Note the appType must be supplied:
 ```
-helm install psr-loggen manifests/charts/worker --set appType=k8s -f manifests/usecases/opensearch/loggen.yaml
+helm install psr-writelogs manifests/charts/worker --set appType=k8s -f manifests/usecases/opensearch/writelogs.yaml
 ```
 
 ## Workers
@@ -170,9 +170,9 @@ no configuration overrides
 helm install psr-example manifests/charts/worker 
 ```
 
-### LogGen
+### writelogs
 #### Description
-The loggen worker periodically logs messages.  The goal is to put a load on OpenSearch since fluentd collects the container logs and
+The writelogs worker periodically logs messages.  The goal is to put a load on OpenSearch since fluentd collects the container logs and
 sends them to OpenSearch.
 
 #### Configuration
@@ -180,7 +180,7 @@ no configuration overrides
 
 #### Run
 ```
-helm install psr-loggen manifests/charts/worker -f manifests/usecases/opensearch/loggen.yaml
+helm install psr-writelogs manifests/charts/worker -f manifests/usecases/opensearch/writelogs.yaml
 ```
 
 ### GetLogs
