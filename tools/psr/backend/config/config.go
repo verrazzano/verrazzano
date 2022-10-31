@@ -27,11 +27,9 @@ const (
 
 // Define worker types
 const (
-	WorkerTypeExample       = "WT_EXAMPLE"
-	WorkerTypeLogGen        = "WT_LOG_GEN"
-	WorkerTypeGetLogs       = "WT_GET_LOGS"
-	WorkerTypePodTerminate  = "WT_POD_TERMINATE"
-	WorkerTypeWorkloadScale = "WT_WORKLOAD_SCALE"
+	WorkerTypeExample = "example"
+	WorkerTypeLogGen  = "loggen"
+	WorkerTypeGetLogs = "getlogs"
 )
 
 var env = osenv.NewEnv()
