@@ -116,7 +116,7 @@ EOF
   retries=0
   while [ ${retries} -lt 10 ] && [ "$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vmc -n verrazzano-mc ${MANAGED_CLUSTER_NAME} -o jsonpath='{.status.rancherRegistration.status}')" != 'Completed' ] ; do
     echo "Verrazzano Rancher registration incomplete, checking again in 30s"
-    ((retries++))
+    ((retries=retries+1))
     sleep 30
   done
 fi
