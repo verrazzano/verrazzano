@@ -679,7 +679,7 @@ func getRancherVerrazzanoUserName(ctx spi.ComponentContext, vzUser *keycloak.Key
 	err := c.Get(context.TODO(), nsn, &resources)
 	if err != nil {
 		if kerrs.IsNotFound(err) {
-			nsn.Name = userPrincipalKeycloakID
+			nsn.Name = getUserNameForPrincipal(userPrincipalKeycloakID)
 			err = c.Get(context.TODO(), nsn, &resources)
 		}
 		if err != nil && !kerrs.IsNotFound(err) {
