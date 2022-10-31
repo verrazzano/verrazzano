@@ -121,6 +121,13 @@ func TestIterationSleep(t *testing.T) {
 				PsrIterationSleep: "1ns",
 			},
 		},
+		{name: "BadNumericStringFormat",
+			expectErr: true,
+			envMap: map[string]string{
+				PsrWorkerType:     WorkerTypeWriteLogs,
+				PsrIterationSleep: "10xyz",
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -164,11 +171,27 @@ func TestThreadCount(t *testing.T) {
 			},
 		},
 		{name: "MultipleWorkerThreads",
+			workerThreads: 50,
+			expectErr:     false,
+			envMap: map[string]string{
+				PsrWorkerType:        WorkerTypeWriteLogs,
+				PsrWorkerThreadCount: "50",
+			},
+		},
+		// Test max threads 100
+		{name: "MaxWorkerThreads",
 			workerThreads: 100,
 			expectErr:     false,
 			envMap: map[string]string{
 				PsrWorkerType:        WorkerTypeWriteLogs,
-				PsrWorkerThreadCount: "100",
+				PsrWorkerThreadCount: "1000",
+			},
+		},
+		{name: "BadThreadCountFormat",
+			expectErr: true,
+			envMap: map[string]string{
+				PsrWorkerType:        WorkerTypeWriteLogs,
+				PsrWorkerThreadCount: "100n",
 			},
 		},
 	}
