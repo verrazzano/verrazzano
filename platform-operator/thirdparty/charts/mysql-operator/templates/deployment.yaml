@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: mysql-operator
-          image: {{ if .Values.image.registry }}{{ .Values.image.registry }}/{{- end }}{{- if .Values.image.repository }}{{ .Values.image.repository }}/{{ end }}{{ .Values.image.name }}:{{ .Values.image.tag | default .Chart.AppVersion }}
+          image: {{ if .Values.image.registry }}{{ .Values.image.registry }}/{{- end }}{{- if .Values.image.repository }}{{ .Values.image.repository }}/{{ end }}{{ .Values.image.image }}:{{ .Values.image.tag | default .Chart.AppVersion }}
           imagePullPolicy: {{ required "image.pullPolicy is required" .Values.image.pullPolicy }}
           args: ["mysqlsh", "--log-level=@INFO", "--pym", "mysqloperator", "operator"]
           env:
