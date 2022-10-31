@@ -25,7 +25,7 @@ type ComponentTemplate struct {
 	// Metadata describing the component.
 	Metadata EmbeddedObjectMeta `json:"metadata,omitempty"`
 
-	// The embedded OAM component spec.
+	// The embedded OAM component specification.
 	Spec v1alpha2.ComponentSpec `json:"spec,omitempty"`
 }
 

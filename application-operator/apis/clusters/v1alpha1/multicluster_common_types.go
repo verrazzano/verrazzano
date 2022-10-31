@@ -49,13 +49,13 @@ type ClusterLevelStatus struct {
 type ConditionType string
 
 const (
-	// DeployComplete means deployment to specified cluster completed successfully.
+	// DeployComplete means deployment to the specified cluster completed successfully.
 	DeployComplete ConditionType = "DeployComplete"
 
-	// DeployFailed means the deployment to specified cluster has failed.
+	// DeployFailed means the deployment to the specified cluster has failed.
 	DeployFailed ConditionType = "DeployFailed"
 
-	// DeployPending means deployment to specified cluster is in progress.
+	// DeployPending means deployment to the specified cluster is in progress.
 	DeployPending ConditionType = "DeployPending"
 )
 
@@ -82,7 +82,7 @@ type MultiClusterResourceStatus struct {
 	Conditions []Condition `json:"conditions,omitempty"`
 
 	// The state of the multicluster resource. State values are case-sensitive and formatted as follows:
-	// <ul><li>`Failed`: rdeployment to cluster failed</li><li>`Pending`: deployment to cluster is in progress</li><li>`Succeeded`: deployment to cluster successfully completed</li></ul>
+	// <ul><li>`Failed`: deployment to cluster failed</li><li>`Pending`: deployment to cluster is in progress</li><li>`Succeeded`: deployment to cluster successfully completed</li></ul>
 	State StateType `json:"state,omitempty"`
 }
 

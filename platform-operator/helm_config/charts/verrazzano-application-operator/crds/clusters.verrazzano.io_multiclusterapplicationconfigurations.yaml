@@ -91,7 +91,7 @@ spec:
                         type: string
                     type: object
                   spec:
-                    description: The embedded OAM application spec.
+                    description: The embedded OAM application specification.
                     properties:
                       components:
                         description: Components of which this ApplicationConfiguration
@@ -416,7 +416,7 @@ spec:
                 type: array
               state:
                 description: 'The state of the multicluster resource. State values
-                  are case-sensitive and formatted as follows: <ul><li>`Failed`: rdeployment
+                  are case-sensitive and formatted as follows: <ul><li>`Failed`: deployment
                   to cluster failed</li><li>`Pending`: deployment to cluster is in
                   progress</li><li>`Succeeded`: deployment to cluster successfully
                   completed</li></ul>'

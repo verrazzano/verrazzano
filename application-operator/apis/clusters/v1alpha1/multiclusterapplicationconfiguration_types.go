@@ -29,7 +29,7 @@ type MultiClusterApplicationConfigurationSpec struct {
 type ApplicationConfigurationTemplate struct {
 	// Metadata describing the application.
 	Metadata EmbeddedObjectMeta `json:"metadata,omitempty"`
-	// The embedded OAM application spec.
+	// The embedded OAM application specification.
 	Spec v1alpha2.ApplicationConfigurationSpec `json:"spec,omitempty"`
 }
 

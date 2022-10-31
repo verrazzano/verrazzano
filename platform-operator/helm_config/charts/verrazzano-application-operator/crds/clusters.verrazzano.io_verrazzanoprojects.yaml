@@ -775,7 +775,7 @@ spec:
                 type: array
               state:
                 description: 'The state of the multicluster resource. State values
-                  are case-sensitive and formatted as follows: <ul><li>`Failed`: rdeployment
+                  are case-sensitive and formatted as follows: <ul><li>`Failed`: deployment
                   to cluster failed</li><li>`Pending`: deployment to cluster is in
                   progress</li><li>`Succeeded`: deployment to cluster successfully
                   completed</li></ul>'
