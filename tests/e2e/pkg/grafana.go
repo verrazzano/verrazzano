@@ -5,11 +5,32 @@ package pkg
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"time"
+
+	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"net/http"
 	"strings"
 )
+
+const (
+	grafanaErrMsgFmt         = "Failed to GET Grafana testDashboard: status=%d: body=%s"
+	testDashboardTitle       = "E2ETestDashboard"
+	systemDashboardTitle     = "Host Metrics"
+	openSearchMetricsDbTitle = "OpenSearch Summary Dashboard"
+)
+
+type DashboardMetadata struct {
+	ID      int    `json:"id"`
+	Slug    string `json:"slug"`
+	Status  string `json:"status"`
+	UID     string `json:"uid"`
+	URL     string `json:"url"`
+	Version int    `json:"version"`
+}
 
 // CreateGrafanaDashboard creates a grafana dashboard using the JSON string provided
 func CreateGrafanaDashboard(body string) (*HTTPResponse, error) {
@@ -119,4 +140,86 @@ func getGrafanaWithBasicAuth(url string, hostHeader string, username string, pas
 		return nil, err
 	}
 	return doReq(url, "GET", "", hostHeader, username, password, nil, retryableClient)
+}
+
+func TestOpenSearchGrafanaDashBoard(pollingInterval time.Duration, timeout time.Duration) {
+	uid := "pIZicTl7z"
+	Eventually(func() bool {
+		resp, err := GetGrafanaDashboard(uid)
+		if err != nil {
+			Log(Error, err.Error())
+			return false
+		}
+		if resp.StatusCode != http.StatusOK {
+			Log(Error, fmt.Sprintf(grafanaErrMsgFmt, resp.StatusCode, string(resp.Body)))
+			return false
+		}
+		body := make(map[string]map[string]string)
+		json.Unmarshal(resp.Body, &body)
+		return strings.Contains(body["dashboard"]["title"], openSearchMetricsDbTitle)
+	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(BeTrue())
+}
+
+func TestSystemGrafanaDashboard(pollingInterval time.Duration, timeout time.Duration) {
+	// UID of system testDashboard, which is created by the VMO on startup.
+	uid := "H0xWYyyik"
+	Eventually(func() bool {
+		resp, err := GetGrafanaDashboard(uid)
+		if err != nil {
+			Log(Error, err.Error())
+			return false
+		}
+		if resp.StatusCode != http.StatusOK {
+			Log(Error, fmt.Sprintf(grafanaErrMsgFmt, resp.StatusCode, string(resp.Body)))
+			return false
+		}
+		body := make(map[string]map[string]string)
+		json.Unmarshal(resp.Body, &body)
+		return strings.Contains(body["dashboard"]["title"], systemDashboardTitle)
+	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(BeTrue())
+}
+
+func TestGrafanaTestDashboard(testDashboard DashboardMetadata, pollingInterval time.Duration, timeout time.Duration) {
+	Eventually(func() bool {
+		// UID of testDashboard, which is created by the previous test.
+		uid := testDashboard.UID
+		if uid == "" {
+			return false
+		}
+		resp, err := GetGrafanaDashboard(uid)
+		if err != nil {
+			Log(Error, err.Error())
+			return false
+		}
+		if resp.StatusCode != http.StatusOK {
+			Log(Error, fmt.Sprintf(grafanaErrMsgFmt, resp.StatusCode, string(resp.Body)))
+			return false
+		}
+		body := make(map[string]map[string]string)
+		json.Unmarshal(resp.Body, &body)
+		return strings.Contains(body["dashboard"]["title"], testDashboardTitle)
+	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(BeTrue())
+}
+
+func TestSearchGrafanaDashboard(pollingInterval time.Duration, timeout time.Duration) {
+	Eventually(func() bool {
+		resp, err := SearchGrafanaDashboard(map[string]string{"query": testDashboardTitle})
+		if err != nil {
+			Log(Error, err.Error())
+			return false
+		}
+		if resp.StatusCode != http.StatusOK {
+			Log(Error, fmt.Sprintf(grafanaErrMsgFmt, resp.StatusCode, string(resp.Body)))
+			return false
+		}
+		var body []map[string]string
+		json.Unmarshal(resp.Body, &body)
+		for _, dashboard := range body {
+			if dashboard["title"] == "E2ETestDashboard" {
+				return true
+			}
+		}
+		return false
+
+	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(BeTrue())
 }

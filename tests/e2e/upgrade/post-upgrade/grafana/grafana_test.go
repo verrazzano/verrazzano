@@ -4,11 +4,8 @@
 package grafana
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"net/http"
-	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -46,49 +43,16 @@ var _ = t.Describe("Post Upgrade Grafana Dashboard", Label("f:observability.logg
 	// WHEN a search is made for the dashboard using its title,
 	// THEN the dashboard metadata is returned.
 	t.It("Search the test Grafana Dashboard using its title", func() {
-		Eventually(func() bool {
-			resp, err := pkg.SearchGrafanaDashboard(map[string]string{"query": testDashboardTitle})
-			if err != nil {
-				pkg.Log(pkg.Error, err.Error())
-				return false
-			}
-			if resp.StatusCode != http.StatusOK {
-				pkg.Log(pkg.Error, fmt.Sprintf(grafanaErrMsgFmt, resp.StatusCode, string(resp.Body)))
-				return false
-			}
-			var body []map[string]string
-			json.Unmarshal(resp.Body, &body)
-			for _, dashboard := range body {
-				if dashboard["title"] == testDashboardTitle {
-					return true
-				}
-			}
-			return false
-
-		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
+		pkg.TestSearchGrafanaDashboard(pollingInterval, waitTimeout)
 	})
 
 	// GIVEN a running grafana instance,
 	// WHEN a GET call is made  to Grafana with the UID of the system dashboard,
 	// THEN the dashboard metadata of the corresponding System dashboard is returned.
 	t.It("Get details of the system Grafana dashboard", func() {
-		// UID of system testDashboard, which is created by the VMO on startup.
-		uid := "H0xWYyyik"
-		Eventually(func() bool {
-			resp, err := pkg.GetGrafanaDashboard(uid)
-			if err != nil {
-				pkg.Log(pkg.Error, err.Error())
-				return false
-			}
-			if resp.StatusCode != http.StatusOK {
-				pkg.Log(pkg.Error, fmt.Sprintf(grafanaErrMsgFmt, resp.StatusCode, string(resp.Body)))
-				return false
-			}
-			body := make(map[string]map[string]string)
-			json.Unmarshal(resp.Body, &body)
-			return strings.Contains(body["dashboard"]["title"], systemDashboardTitle)
-		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
+		pkg.TestSystemGrafanaDashboard(pollingInterval, waitTimeout)
 	})
+
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
@@ -99,21 +63,7 @@ var _ = t.Describe("Post Upgrade Grafana Dashboard", Label("f:observability.logg
 	// THEN the dashboard metadata of the corresponding dashboard is returned
 	if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); ok {
 		t.It("Get details of the OpenSearch Grafana Dashboard", func() {
-			uid := "pIZicTl7z"
-			Eventually(func() bool {
-				resp, err := pkg.GetGrafanaDashboard(uid)
-				if err != nil {
-					pkg.Log(pkg.Error, err.Error())
-					return false
-				}
-				if resp.StatusCode != http.StatusOK {
-					pkg.Log(pkg.Error, fmt.Sprintf(grafanaErrMsgFmt, resp.StatusCode, string(resp.Body)))
-					return false
-				}
-				body := make(map[string]map[string]string)
-				json.Unmarshal(resp.Body, &body)
-				return strings.Contains(body["dashboard"]["title"], openSearchMetricsDbTitle)
-			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
+			pkg.TestOpenSearchGrafanaDashBoard(pollingInterval, waitTimeout)
 		})
 	}
 })
