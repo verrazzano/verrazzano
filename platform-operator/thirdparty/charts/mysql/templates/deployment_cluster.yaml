@@ -56,8 +56,10 @@ spec:
 {{ end }}
 {{ if (.Values).configurationFiles }}
     containers:
+{{ if (.Values).mysqlOperator.image }}
       - name: sidecar
-        image: ghcr.io/verrazzano/mysql-operator-jenkins:8.0.31-2.0.7.1
+        image: {{ (.Values).mysqlOperator.image  }}
+{{- end -}}
       - name: mysql
         volumeMounts:
 {{- range $key, $val := .Values.configurationFiles }}
@@ -68,10 +70,12 @@ spec:
 {{ end }}
 {{ if(.Values).initdbScripts }}
     initContainers:
-    - name: fixdatadir
-      image: ghcr.io/verrazzano/mysql-operator-jenkins:8.0.31-2.0.7.1
-    - name: initconf
-      image: ghcr.io/verrazzano/mysql-operator-jenkins:8.0.31-2.0.7.1
+{{ if (.Values).mysqlOperator.image }}
+      - name: fixdatadir
+        image: {{ (.Values).mysqlOperator.image  }}
+      - name: initconf
+        image: {{ (.Values).mysqlOperator.image  }}
+{{- end -}}
     - name: initmysql
 {{ if ((.Values).initDB) }}
       env:

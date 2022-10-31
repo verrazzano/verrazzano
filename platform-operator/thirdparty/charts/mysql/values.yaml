@@ -6,6 +6,8 @@ image:
     enabled: false
     secretName:
 
+mysqlOperator:
+  image:
 
 credentials:
   root:
