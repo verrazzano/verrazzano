@@ -127,6 +127,7 @@ func (s *Syncer) ProcessAgentThread() error {
 	// Delete the managed cluster resources if de-registration occurs
 	err = s.syncMCAgentDeleteResources()
 	if err != nil {
+		// we couldn't delete the managed cluster resources - but we should keep going with the rest of the work
 		s.Log.Errorf("Failed to sync the MC Agent resource deletion process: %v", err)
 	}
 
