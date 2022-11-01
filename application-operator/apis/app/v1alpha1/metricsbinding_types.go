@@ -73,6 +73,6 @@ type Workload struct {
 	// Name of the resource.
 	Name string `json:"name"`
 
-	// TypeMeta of a resource.
+	// TypeMeta of the resource.
 	TypeMeta metav1.TypeMeta `json:"typeMeta"`
 }
