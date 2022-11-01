@@ -17,6 +17,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"math/big"
 	"os"
 	"time"
@@ -84,11 +85,10 @@ func CreateWebhookCertificates(log *zap.SugaredLogger, kubeClient kubernetes.Int
 }
 
 func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commonName string, ca *x509.Certificate, caKey *rsa.PrivateKey) ([]byte, []byte, error) {
-	const certName = OperatorTLS
 	secretsClient := kubeClient.CoreV1().Secrets(OperatorNamespace)
-	existingSecret, err := secretsClient.Get(context.TODO(), certName, metav1.GetOptions{})
+	existingSecret, err := secretsClient.Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
 	if err == nil {
-		log.Infof("Secret %s exists, using...", certName)
+		log.Infof("Secret %s exists, using...", OperatorTLS)
 		return existingSecret.Data[certKey], existingSecret.Data[privKey], nil
 	}
 	if !errors.IsNotFound(err) {
@@ -127,6 +127,11 @@ func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, comm
 		return []byte{}, []byte{}, err
 	}
 
+	return createTLSCertSecretIfNecesary(log, secretsClient, serverCertBytes, serverPrivKey)
+}
+
+func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.SecretInterface,
+	serverCertBytes []byte, serverPrivKey *rsa.PrivateKey) ([]byte, []byte, error) {
 	// PEM encode Server cert
 	serverPEM := new(bytes.Buffer)
 	_ = pem.Encode(serverPEM, &pem.Block{
@@ -147,7 +152,7 @@ func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, comm
 
 	var webhookCrt v1.Secret
 	webhookCrt.Namespace = OperatorNamespace
-	webhookCrt.Name = certName
+	webhookCrt.Name = OperatorTLS
 	webhookCrt.Type = v1.SecretTypeTLS
 	webhookCrt.Data = make(map[string][]byte)
 	webhookCrt.Data[certKey] = serverPEMBytes
@@ -157,45 +162,31 @@ func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, comm
 	if createError != nil {
 		if errors.IsAlreadyExists(createError) {
 			log.Infof("Operator CA secret %s already exists, skipping", OperatorCA)
-			existingSecret, err := secretsClient.Get(context.TODO(), certName, metav1.GetOptions{})
+			existingSecret, err := secretsClient.Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
 			if err != nil {
 				return []byte{}, []byte{}, err
 			}
-			log.Infof("Secret %s exists, using...", certName)
+			log.Infof("Secret %s exists, using...", OperatorTLS)
 			return existingSecret.Data[certKey], existingSecret.Data[privKey], nil
 		}
+		return []byte{}, []byte{}, createError
 	}
 
 	return serverPEMBytes, serverKeyPEMBytes, nil
 }
 
 func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commonName string) (*x509.Certificate, *rsa.PrivateKey, error) {
-	const certName = OperatorCA
-
-	webhookCA := v1.Secret{}
-	webhookCA.Namespace = OperatorNamespace
-	webhookCA.Name = certName
-	webhookCA.Type = v1.SecretTypeTLS
-
 	secretsClient := kubeClient.CoreV1().Secrets(OperatorNamespace)
-	existingSecret, err := secretsClient.Get(context.TODO(), certName, metav1.GetOptions{})
+	existingSecret, err := secretsClient.Get(context.TODO(), OperatorCA, metav1.GetOptions{})
 	if err == nil {
-		log.Infof("CA secret %s exists, using...", certName)
-		cert, err := decodeCertificate(existingSecret.Data[certKey])
-		if err != nil {
-			return nil, nil, err
-		}
-		key, err := decodeKey(existingSecret.Data[privKey])
-		if err != nil {
-			return nil, nil, err
-		}
-		return cert, key, err
+		log.Infof("CA secret %s exists, using...", OperatorCA)
+		return decodeExistingSecretData(existingSecret)
 	}
 	if !errors.IsNotFound(err) {
 		return nil, nil, err
 	}
 
-	log.Infof("Creating CA secret %s", certName)
+	log.Infof("Creating CA secret %s", OperatorCA)
 	serialNumber, err := newSerialNumber()
 	if err != nil {
 		return nil, nil, err
@@ -228,6 +219,11 @@ func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commo
 		return nil, nil, err
 	}
 
+	return createCACertSecretIfNecessary(log, secretsClient, ca, caPrivKey, caBytes)
+}
+
+func createCACertSecretIfNecessary(log *zap.SugaredLogger, secretsClient corev1.SecretInterface, ca *x509.Certificate,
+	caPrivKey *rsa.PrivateKey, caBytes []byte) (*x509.Certificate, *rsa.PrivateKey, error) {
 	// PEM encode CA cert
 	caPEM := new(bytes.Buffer)
 	_ = pem.Encode(caPEM, &pem.Block{
@@ -244,6 +240,12 @@ func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commo
 
 	caPEMBytes := caPEM.Bytes()
 	caKeyPEMBytes := caKeyPEM.Bytes()
+
+	webhookCA := v1.Secret{}
+	webhookCA.Namespace = OperatorNamespace
+	webhookCA.Name = OperatorCA
+	webhookCA.Type = v1.SecretTypeTLS
+
 	webhookCA.Data = make(map[string][]byte)
 	webhookCA.Data[certKey] = caPEMBytes
 	webhookCA.Data[privKey] = caKeyPEMBytes
@@ -251,25 +253,28 @@ func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commo
 	_, createError := secretsClient.Create(context.TODO(), &webhookCA, metav1.CreateOptions{})
 	if createError != nil {
 		if errors.IsAlreadyExists(createError) {
-			log.Infof("Operator CA secret %s already exists, skipping", certName)
-			existingSecret, err := secretsClient.Get(context.TODO(), certName, metav1.GetOptions{})
+			log.Infof("Operator CA secret %s already exists, using existing secret", OperatorCA)
+			existingSecret, err := secretsClient.Get(context.TODO(), OperatorCA, metav1.GetOptions{})
 			if err != nil {
 				return nil, nil, err
 			}
-			caPEMBytes = existingSecret.Data[certKey]
-			cert, err := decodeCertificate(caPEMBytes)
-			if err != nil {
-				return nil, nil, err
-			}
-			key, err := decodeKey(existingSecret.Data[privKey])
-			if err != nil {
-				return nil, nil, err
-			}
-			return cert, key, nil
+			return decodeExistingSecretData(existingSecret)
 		}
-		return nil, nil, err
+		return nil, nil, createError
 	}
 	return ca, caPrivKey, nil
+}
+
+func decodeExistingSecretData(secret *v1.Secret) (*x509.Certificate, *rsa.PrivateKey, error) {
+	cert, err := decodeCertificate(secret.Data[certKey])
+	if err != nil {
+		return nil, nil, err
+	}
+	key, err := decodeKey(secret.Data[privKey])
+	if err != nil {
+		return nil, nil, err
+	}
+	return cert, key, err
 }
 
 func decodeCertificate(certBytes []byte) (*x509.Certificate, error) {
