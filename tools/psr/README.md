@@ -158,6 +158,20 @@ All of the worker are deployed using the same worker Helm chart.  Every worker, 
 * must emit metrics
 * must not log while doing work, unless that is the purpose of the worker
 
+### Common Configuration
+```
+global:
+  envVars:
+    PSR_WORKER_TYPE - type of worker
+    default: `example`
+    
+    PSR_ITERATION_SLEEP - duration to sleep between work iterations
+    default: 1s
+
+    PSR_WORKER_THREAD_COUNT - threads per worker
+    default: 1
+```
+
 ### Example
 #### Description
 The example worker periodically logs messages, it doesn't provide metrics.

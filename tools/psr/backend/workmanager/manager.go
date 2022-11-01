@@ -5,15 +5,15 @@ package workmanager
 
 import (
 	"fmt"
-	metrics2 "github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/getlogs"
-	"os"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
+	metrics2 "github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/example"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/getlogs"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/writelogs"
+	"os"
+	"sync"
 )
 
 // RunWorker runs a worker to completion
@@ -42,7 +42,7 @@ func RunWorker(log vzlog.VerrazzanoLogger) error {
 		os.Exit(1)
 	}
 
-	// init the runner and wrapped worker
+	// init the runner with the worker that it will call repeatedly to DoWork
 	log.Infof("Initializing worker %s", wt)
 	runner, err := NewRunner(worker, conf, log)
 	if err != nil {
@@ -57,10 +57,17 @@ func RunWorker(log vzlog.VerrazzanoLogger) error {
 	mProviders = append(mProviders, worker)
 	go metrics2.StartMetricsServerOrDie(mProviders)
 
-	// run the worker to completion (usually forever)
-	log.Infof("Running worker %s", wt)
-	err = runner.RunWorker(conf, log)
-	return err
+	// run the worker in go-routine to completion (usually forever)
+	var wg sync.WaitGroup
+	for i := 1; i <= conf.WorkerThreadCount; i++ {
+		wg.Add(1)
+		log.Infof("Running worker %s in thread %v", wt, i)
+		go func() {
+			runner.RunWorker(conf, log)
+		}()
+	}
+	wg.Wait()
+	return nil
 }
 
 // getWorker returns a worker given the	 name of the worker

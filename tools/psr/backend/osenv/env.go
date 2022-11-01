@@ -19,7 +19,7 @@ type envData struct {
 
 var _ Environment = &envData{}
 
-var genEnvFunc = os.Getenv
+var GetEnvFunc = os.Getenv
 
 type EnvVarDesc struct {
 	Key        string
@@ -50,7 +50,7 @@ func (e *envData) GetEnv(key string) string {
 // If the env var is missing and required then return an error
 // If the env var is missing and not required then return the default
 func (e *envData) addItemConfig(c EnvVarDesc) error {
-	val := genEnvFunc(c.Key)
+	val := GetEnvFunc(c.Key)
 	if len(val) == 0 {
 		if c.Required {
 			return fmt.Errorf("Failed, missing required Env var %s", c.Key)
