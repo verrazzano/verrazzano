@@ -129,7 +129,7 @@ func main() {
 	} else if config.WebhooksEnabled {
 		exitErr = operatorinit.StartWebhookServers(config, log, scheme)
 	} else {
-		exitErr = operatorinit.ReconcilePlatformOperator(config, log, scheme)
+		exitErr = operatorinit.StartPlatformOperator(config, log, scheme)
 	}
 	if exitErr != nil {
 		log.Errorf("Error occurred during execution: %v", exitErr)
