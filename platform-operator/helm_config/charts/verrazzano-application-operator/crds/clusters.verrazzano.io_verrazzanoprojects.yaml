@@ -140,9 +140,7 @@ spec:
                                             is not defined or if the port field is
                                             defined as a named (string) port. The
                                             endPort must be equal or greater than
-                                            port. This feature is in Beta state and
-                                            is enabled by default. It can be disabled
-                                            using the Feature Gate "NetworkPolicyEndPort".
+                                            port.
                                           format: int32
                                           type: integer
                                         port:
@@ -534,9 +532,7 @@ spec:
                                             is not defined or if the port field is
                                             defined as a named (string) port. The
                                             endPort must be equal or greater than
-                                            port. This feature is in Beta state and
-                                            is enabled by default. It can be disabled
-                                            using the Feature Gate "NetworkPolicyEndPort".
+                                            port.
                                           format: int32
                                           type: integer
                                         port:

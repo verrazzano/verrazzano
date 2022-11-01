@@ -215,7 +215,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 29)
+	assert.Len(t, kvs, 26)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
 
