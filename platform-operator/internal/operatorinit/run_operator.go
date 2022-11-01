@@ -1,7 +1,6 @@
 package operatorinit
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
 	"sync"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/runtime"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
