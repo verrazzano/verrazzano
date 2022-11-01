@@ -22,34 +22,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-var getLogsMetrics = workerMetrics{
-	openSearchGetSuccessCountTotal: metrics.MetricItem{
-		Name: "opensearch_get_success_count_total",
-		Help: "The total number of successful openSearch GET requests",
-		Type: prometheus.CounterValue,
-	},
-	openSearchGetFailureCountTotal: metrics.MetricItem{
-		Name: "opensearch_get_failure_count_total",
-		Help: "The total number of successful openSearch GET requests",
-		Type: prometheus.CounterValue,
-	},
-	openSearchGetSuccessLatencyNanoSeconds: metrics.MetricItem{
-		Name: "opensearch_get_success_latency_nanoseconds",
-		Help: "The latency of successful openSearch GET requests in nanoseconds",
-		Type: prometheus.GaugeValue,
-	},
-	openSearchGetFailureLatencyNanoSeconds: metrics.MetricItem{
-		Name: "opensearch_get_failure_latency_nanoseconds",
-		Help: "The latency of failed openSearch GET requests in nanoseconds",
-		Type: prometheus.GaugeValue,
-	},
-	openSearchGetDataCharsTotal: metrics.MetricItem{
-		Name: "opensearch_get_data_chars_total",
-		Help: "The total number of characters return from openSearch get request",
-		Type: prometheus.CounterValue,
-	},
-}
-
 const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
 
 const letters = "abcdefghijklmnopqrstuvwxyz"
@@ -72,7 +44,33 @@ type workerMetrics struct {
 }
 
 func NewGetLogsWorker() (spi.Worker, error) {
-	w := getLogs{workerMetrics: &getLogsMetrics}
+	w := getLogs{workerMetrics: &workerMetrics{
+		openSearchGetSuccessCountTotal: metrics.MetricItem{
+			Name: "opensearch_get_success_count_total",
+			Help: "The total number of successful openSearch GET requests",
+			Type: prometheus.CounterValue,
+		},
+		openSearchGetFailureCountTotal: metrics.MetricItem{
+			Name: "opensearch_get_failure_count_total",
+			Help: "The total number of successful openSearch GET requests",
+			Type: prometheus.CounterValue,
+		},
+		openSearchGetSuccessLatencyNanoSeconds: metrics.MetricItem{
+			Name: "opensearch_get_success_latency_nanoseconds",
+			Help: "The latency of successful openSearch GET requests in nanoseconds",
+			Type: prometheus.GaugeValue,
+		},
+		openSearchGetFailureLatencyNanoSeconds: metrics.MetricItem{
+			Name: "opensearch_get_failure_latency_nanoseconds",
+			Help: "The latency of failed openSearch GET requests in nanoseconds",
+			Type: prometheus.GaugeValue,
+		},
+		openSearchGetDataCharsTotal: metrics.MetricItem{
+			Name: "opensearch_get_data_chars_total",
+			Help: "The total number of characters return from openSearch get request",
+			Type: prometheus.CounterValue,
+		},
+	}}
 
 	w.metricDescList = []prometheus.Desc{
 		*w.openSearchGetSuccessCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),

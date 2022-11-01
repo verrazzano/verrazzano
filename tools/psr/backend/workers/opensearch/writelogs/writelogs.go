@@ -14,19 +14,6 @@ import (
 	"sync/atomic"
 )
 
-var writeLogsMetrics = workerMetrics{
-	loggedLinesCountTotal: metrics.MetricItem{
-		Name: "logged_lines_count_total",
-		Help: "The total number of lines logged",
-		Type: prometheus.CounterValue,
-	},
-	loggedCharsCountTotal: metrics.MetricItem{
-		Name: "logged_chars_total",
-		Help: "The total number of characters logged",
-		Type: prometheus.CounterValue,
-	},
-}
-
 type logWriter struct {
 	spi.Worker
 	metricDescList []prometheus.Desc
@@ -42,7 +29,18 @@ type workerMetrics struct {
 }
 
 func NewWriteLogsWorker() (spi.Worker, error) {
-	w := logWriter{workerMetrics: &writeLogsMetrics}
+	w := logWriter{workerMetrics: &workerMetrics{
+		loggedLinesCountTotal: metrics.MetricItem{
+			Name: "logged_lines_count_total",
+			Help: "The total number of lines logged",
+			Type: prometheus.CounterValue,
+		},
+		loggedCharsCountTotal: metrics.MetricItem{
+			Name: "logged_chars_total",
+			Help: "The total number of characters logged",
+			Type: prometheus.CounterValue,
+		},
+	}}
 
 	w.metricDescList = []prometheus.Desc{
 		*w.loggedLinesCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),

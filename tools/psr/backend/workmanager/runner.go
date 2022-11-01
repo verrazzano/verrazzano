@@ -13,29 +13,6 @@ import (
 	"time"
 )
 
-var defaultRunnerMetrics = runnerMetrics{
-	loopCount: metrics.MetricItem{
-		Name: "loop_count_total",
-		Help: "The total number of loop iterations executed",
-		Type: prometheus.CounterValue,
-	},
-	workerThreadCount: metrics.MetricItem{
-		Name: "worker_thread_count_total",
-		Help: "The total number of worker threads (goroutines) running",
-		Type: prometheus.CounterValue,
-	},
-	workerIterationNanoSeconds: metrics.MetricItem{
-		Name: "worker_last_iteration_nanoseconds",
-		Help: "The number of nanoseconds that the worker took to run the last iteration of doing work",
-		Type: prometheus.GaugeValue,
-	},
-	workerDurationTotalSeconds: metrics.MetricItem{
-		Name: "worker_running_seconds_total",
-		Help: "The total number of seconds that the worker has been running",
-		Type: prometheus.CounterValue,
-	},
-}
-
 // WorkerRunner interface specifies a runner that loops calling a worker
 type WorkerRunner interface {
 	// StartWorkerRunners runs the worker use case in a loop
@@ -65,7 +42,28 @@ type runnerMetrics struct {
 
 // NewRunner creates a new runner
 func NewRunner(worker spi.Worker, conf config.CommonConfig, log vzlog.VerrazzanoLogger) (WorkerRunner, error) {
-	r := runner{Worker: worker, runnerMetrics: &defaultRunnerMetrics}
+	r := runner{Worker: worker, runnerMetrics: &runnerMetrics{
+		loopCount: metrics.MetricItem{
+			Name: "loop_count_total",
+			Help: "The total number of loop iterations executed",
+			Type: prometheus.CounterValue,
+		},
+		workerThreadCount: metrics.MetricItem{
+			Name: "worker_thread_count_total",
+			Help: "The total number of worker threads (goroutines) running",
+			Type: prometheus.CounterValue,
+		},
+		workerIterationNanoSeconds: metrics.MetricItem{
+			Name: "worker_last_iteration_nanoseconds",
+			Help: "The number of nanoseconds that the worker took to run the last iteration of doing work",
+			Type: prometheus.GaugeValue,
+		},
+		workerDurationTotalSeconds: metrics.MetricItem{
+			Name: "worker_running_seconds_total",
+			Help: "The total number of seconds that the worker has been running",
+			Type: prometheus.CounterValue,
+		},
+	}}
 
 	r.metricDescList = []prometheus.Desc{
 		*r.loopCount.BuildMetricDesc(r.GetWorkerDesc().MetricsName),
