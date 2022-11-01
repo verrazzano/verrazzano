@@ -56,15 +56,6 @@ func QueryMetric(metricsName string, kubeconfigPath string) (string, error) {
 		return "", fmt.Errorf("error retrieving metric %s, status %d", metricsName, resp.StatusCode)
 	}
 	Log(Info, fmt.Sprintf("metric: %s", resp.Body))
-	targetURL := fmt.Sprintf("https://%s/api/v1/targets?state=active", GetPrometheusIngressHost(kubeconfigPath))
-	resp1, err1 := GetWebPageWithBasicAuth(targetURL, "", "verrazzano", password, kubeconfigPath)
-	if err1 != nil {
-		return "", err1
-	}
-	if resp1.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("error retrieving target, status %d", resp.StatusCode)
-	}
-	Log(Info, fmt.Sprintf("target: %s", resp1.Body))
 	return string(resp.Body), nil
 }
 
@@ -93,7 +84,6 @@ func MetricsExistInCluster(metricsName string, keyMap map[string]string, kubecon
 	}
 	metrics := JTq(metric, "data", "result").([]interface{})
 	if metrics != nil {
-		Log(Info, fmt.Sprintf("Debug: Metrics: %v", metrics))
 		return findMetric(metrics, keyMap)
 	}
 	return false
@@ -172,9 +162,9 @@ func ScrapeTargetsUp() bool {
 	}
 	allUp := true
 	for _, target := range targets {
-		// allUp only remains true if all targets status is success
+		// allUp only remains true if all targets health is up
 		if Jq(target, "health") != "up" {
-			Log(Info, fmt.Sprintf("target: %s is not up yet", target))
+			Log(Info, fmt.Sprintf("target: %v is not up yet", target))
 			allUp = false
 		}
 	}
