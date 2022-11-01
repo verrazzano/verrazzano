@@ -53,6 +53,9 @@ func CreateWebhookCertificates(log *zap.SugaredLogger, kubeClient kubernetes.Int
 	}
 
 	serverPEM, serverKeyPEM, err := createTLSCert(log, kubeClient, commonName, ca, caKey)
+	if err != nil {
+		return err
+	}
 
 	log.Debugf("Creating certs dir %s", certDir)
 	err = os.MkdirAll(certDir, 0666)
@@ -169,10 +172,7 @@ func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, comm
 func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commonName string) (*x509.Certificate, *rsa.PrivateKey, error) {
 	const certName = OperatorCA
 
-	var webhookCA v1.Secret
-	caKeyPEMBytes := []byte{}
-	var ca *x509.Certificate
-
+	webhookCA := v1.Secret{}
 	webhookCA.Namespace = OperatorNamespace
 	webhookCA.Name = certName
 	webhookCA.Type = v1.SecretTypeTLS
@@ -202,7 +202,7 @@ func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commo
 	}
 
 	// CA config
-	ca = &x509.Certificate{
+	ca := &x509.Certificate{
 		DNSNames:     []string{commonName},
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
@@ -243,9 +243,7 @@ func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commo
 	})
 
 	caPEMBytes := caPEM.Bytes()
-
-	caKeyPEMBytes = caKeyPEM.Bytes()
-
+	caKeyPEMBytes := caKeyPEM.Bytes()
 	webhookCA.Data = make(map[string][]byte)
 	webhookCA.Data[certKey] = caPEMBytes
 	webhookCA.Data[privKey] = caKeyPEMBytes
@@ -260,7 +258,6 @@ func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commo
 			}
 			caPEMBytes = existingSecret.Data[certKey]
 			cert, err := decodeCertificate(caPEMBytes)
-			caKeyPEMBytes = existingSecret.Data[privKey]
 			if err != nil {
 				return nil, nil, err
 			}

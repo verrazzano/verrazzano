@@ -63,8 +63,6 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
-var healthCheckPeriodSeconds int64
-
 func main() {
 
 	// config will hold the entire operator config
@@ -79,7 +77,7 @@ func main() {
 	flag.BoolVar(&config.DryRun, "dry-run", config.DryRun, "Run operator in dry run mode.")
 	flag.BoolVar(&config.WebhookValidationEnabled, "enable-webhook-validation", config.WebhookValidationEnabled,
 		"Enable webhooks validation for the operator")
-	flag.BoolVar(&config.WebhooksEnabled, "webhooks-enabled", config.WebhooksEnabled,
+	flag.BoolVar(&config.RunWebhooks, "run-webhooks", config.RunWebhooks,
 		"Runs in webhook mode; if false, runs the main operator reconcile loop")
 	flag.BoolVar(&config.RunWebhookInit, "run-webhook-init", config.RunWebhookInit,
 		"Runs the webhook initialization code")
@@ -126,7 +124,7 @@ func main() {
 	var exitErr error
 	if config.RunWebhookInit {
 		exitErr = operatorinit.WebhookInit(config, log)
-	} else if config.WebhooksEnabled {
+	} else if config.RunWebhooks {
 		exitErr = operatorinit.StartWebhookServers(config, log, scheme)
 	} else {
 		exitErr = operatorinit.StartPlatformOperator(config, log, scheme)

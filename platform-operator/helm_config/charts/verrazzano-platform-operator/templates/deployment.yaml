@@ -118,7 +118,7 @@ spec:
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           args:
             - --zap-log-level=info
-            - --webhooks-enabled=true
+            - --run-webhooks=true
           volumeMounts:
             - name: webhook-certs
               mountPath: /etc/webhook/certs

@@ -52,8 +52,8 @@ type OperatorConfig struct {
 	// VersionCheckEnabled enables/disables version checking for upgrade.
 	VersionCheckEnabled bool
 
-	// WebhooksEnabled enables/disables Webhooks for the operator
-	WebhooksEnabled bool
+	// RunWebhooks Inidicates the executable the operator code is executing the webhooks path
+	RunWebhooks bool
 
 	// RunWebhookInit Inidicates the executable is running in the webhook init container mode
 	RunWebhookInit bool
@@ -76,7 +76,7 @@ var instance = OperatorConfig{
 	LeaderElectionEnabled:    false,
 	VersionCheckEnabled:      true,
 	RunWebhookInit:           false,
-	WebhooksEnabled:          false,
+	RunWebhooks:              false,
 	WebhookValidationEnabled: true,
 	VerrazzanoRootDir:        rootDir,
 	HealthCheckPeriodSeconds: 60,

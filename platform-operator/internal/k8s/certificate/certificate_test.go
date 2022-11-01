@@ -6,6 +6,7 @@ package certificate
 import (
 	"bytes"
 	"context"
+	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	"testing"
 
@@ -23,7 +24,7 @@ import (
 func TestCreateWebhookCertificates(t *testing.T) {
 	asserts := assert.New(t)
 	client := fake.NewSimpleClientset()
-	_ = CreateWebhookCertificates(nil, client)
+	_ = CreateWebhookCertificates(zap.S(), client, "/etc/webhook/certs")
 	var secret *v1.Secret
 	secret, err := client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
 	_, err2 := client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
