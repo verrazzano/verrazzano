@@ -14,13 +14,18 @@ import (
 	"sync/atomic"
 )
 
-const (
-	loggedLinesCountTotal     = "logged_lines_count_total"
-	loggedLinesCountTotalHelp = "The total number of lines logged"
-
-	loggedCharsCountTotal     = "logged_chars_total"
-	loggedCharsCountTotalHelp = "The total number of characters logged"
-)
+var writeLogsMetrics = workerMetrics{
+	loggedLinesCountTotal: metrics.MetricItem{
+		Name: "logged_lines_count_total",
+		Help: "The total number of lines logged",
+		Type: prometheus.CounterValue,
+	},
+	loggedCharsCountTotal: metrics.MetricItem{
+		Name: "logged_chars_total",
+		Help: "The total number of characters logged",
+		Type: prometheus.CounterValue,
+	},
+}
 
 type logWriter struct {
 	spi.Worker
@@ -37,28 +42,12 @@ type workerMetrics struct {
 }
 
 func NewWriteLogsWorker() (spi.Worker, error) {
-	constLabels := prometheus.Labels{}
+	w := logWriter{workerMetrics: &writeLogsMetrics}
 
-	w := logWriter{workerMetrics: &workerMetrics{}}
-
-	d := prometheus.NewDesc(
-		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, loggedLinesCountTotal),
-		loggedLinesCountTotalHelp,
-		nil,
-		constLabels,
-	)
-	w.metricDescList = append(w.metricDescList, *d)
-	w.workerMetrics.loggedLinesCountTotal.Desc = d
-
-	d = prometheus.NewDesc(
-		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, loggedCharsCountTotal),
-		loggedCharsCountTotalHelp,
-		nil,
-		constLabels,
-	)
-	w.metricDescList = append(w.metricDescList, *d)
-	w.workerMetrics.loggedCharsCountTotal.Desc = d
-
+	w.metricDescList = []prometheus.Desc{
+		*w.loggedLinesCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.loggedCharsCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+	}
 	return w, nil
 }
 
@@ -92,19 +81,8 @@ func (w logWriter) GetMetricDescList() []prometheus.Desc {
 }
 
 func (w logWriter) GetMetricList() []prometheus.Metric {
-	metrics := []prometheus.Metric{}
-
-	m := prometheus.MustNewConstMetric(
-		w.workerMetrics.loggedLinesCountTotal.Desc,
-		prometheus.CounterValue,
-		float64(atomic.LoadInt64(&w.workerMetrics.loggedLinesCountTotal.Val)))
-	metrics = append(metrics, m)
-
-	m = prometheus.MustNewConstMetric(
-		w.workerMetrics.loggedCharsCountTotal.Desc,
-		prometheus.CounterValue,
-		float64(atomic.LoadInt64(&w.workerMetrics.loggedCharsCountTotal.Val)))
-	metrics = append(metrics, m)
-
-	return metrics
+	return []prometheus.Metric{
+		w.loggedLinesCountTotal.BuildMetric(),
+		w.loggedCharsCountTotal.BuildMetric(),
+	}
 }

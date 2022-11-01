@@ -204,7 +204,7 @@ func getBody() io.ReadCloser {
             "message": "%s"
           }
         },
-                {
+		{
           "match": {
             "message": "%s"
           }
