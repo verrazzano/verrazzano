@@ -178,10 +178,7 @@ func ScrapeTargetsUp() bool {
 			allUp = false
 		}
 	}
-	if allUp {
-		return true
-	}
-	return false
+	return allUp
 }
 
 // ScrapeTargets queries Prometheus API /api/v1/targets to list scrape targets
