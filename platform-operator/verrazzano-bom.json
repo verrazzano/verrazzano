@@ -234,8 +234,8 @@
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
-              "image": "prometheus",
-              "tag": "v2.38.0-20221027-1",
+              "image": "prometheus-jenkins",
+              "tag": "v2.38.0-2022103101",
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
@@ -460,8 +460,8 @@
           "name": "prometheus-operator",
           "images": [
             {
-              "image": "prometheus-operator",
-              "tag": "v0.59.1-20221031-1",
+              "image": "prometheus-operator-jenkins",
+              "tag": "v0.59.1-2022103101",
               "helmFullImageKey": "prometheusOperator.image.repository",
               "helmTagKey": "prometheusOperator.image.tag"
             },
@@ -502,8 +502,8 @@
           "name": "prometheus",
           "images": [
             {
-              "image": "prometheus",
-              "tag": "v2.38.0-20221027-1",
+              "image": "prometheus-jenkins",
+              "tag": "v2.38.0-2022103101",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
             }
