@@ -275,13 +275,11 @@ func handleLegacyDatabasePreUpgrade(ctx spi.ComponentContext) error {
 	}
 
 	if err := createLegacyUpgradeJob(ctx); err != nil {
-		ctx.Log().Info("Unable to create legacy upgrade job")
 		return err
 	}
 
 	// wait till the pod shows up so that it is bound to the PV
 	if err := waitForJobPodRunning(ctx, time.Duration(60)*time.Second); err != nil {
-		ctx.Log().Infof("Error waiting for job pod start: %v", err)
 		return err
 	}
 
