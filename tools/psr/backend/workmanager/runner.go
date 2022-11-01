@@ -178,7 +178,7 @@ func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		if r.Worker.WantIterationInfoLogged() {
 			log.Infof("Loop Count: %v, Total seconds from start of first work iteration until now: %v", loopCount, durationSecondsTotal)
 		}
-		if loopCount == conf.NumIterations {
+		if loopCount == conf.NumIterations && conf.NumIterations != config.UnlimitedWorkerIterations {
 			return nil
 		}
 		time.Sleep(conf.IterationSleepNanos)

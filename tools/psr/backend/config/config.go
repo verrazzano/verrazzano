@@ -43,7 +43,7 @@ const (
 )
 
 const (
-	maxWorkIterations = -1
+	UnlimitedWorkerIterations = -1
 )
 
 var PsrEnv = osenv.NewEnv()
@@ -88,7 +88,7 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 	return CommonConfig{
 		WorkerType:          PsrEnv.GetEnv(PsrWorkerType),
 		IterationSleepNanos: sleepDuration,
-		NumIterations:       maxWorkIterations,
+		NumIterations:       UnlimitedWorkerIterations,
 		WorkerThreadCount:   threadCount,
 	}, nil
 }
