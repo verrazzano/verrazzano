@@ -470,11 +470,16 @@ data:
                 able_to_redirect = false
             end
         end
+        if backend_name == "opensearchdashboards" then
+            if not (uri == "/" or uri:find("/app/opensearchdashboards") == 1) then
+                able_to_redirect = false
+            end
+        end
         if backend_name == "kibana" then
             if not (uri == "/" or uri:find("/app/kibana") == 1) then
                 able_to_redirect = false
             end
-        end
+        end    
         if able_to_redirect == true then
             me.debug("returning backend_name '"..backend_name.."', able_to_redirect is true")
         else
@@ -510,6 +515,8 @@ data:
             serverUrl = me.makeMonitoringComponentBackendUrl('prometheus-operator-kube-p-prometheus', '9090')
         elseif backend == 'kibana' then
             serverUrl = me.makeVmiBackendUrl(backend, '5601')
+        elseif backend == 'opensearchdashboards' then
+            serverUrl = me.makeVmiBackendUrl(backend, '5601')    
         elseif backend == 'elasticsearch' then
             serverUrl = me.makeVmiBackendUrl('es-ingest', '9200')
         elseif backend == 'opensearch' then
@@ -1190,6 +1197,8 @@ data:
         elseif backend == 'prometheus' then
             allowedOrigins = os.getenv("VZ_PROMETHEUS_ALLOWED_ORIGINS")
         elseif backend == 'kibana' then
+            allowedOrigins = os.getenv("VZ_KIBANA_ALLOWED_ORIGINS")
+        elseif backend == 'opensearchdashboards' then
             allowedOrigins = os.getenv("VZ_KIBANA_ALLOWED_ORIGINS")
         elseif backend == 'elasticsearch' then
             allowedOrigins = os.getenv("VZ_ES_ALLOWED_ORIGINS")
