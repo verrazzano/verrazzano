@@ -246,7 +246,7 @@
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "1.2.0-20220721221818-c206c8b25f",
+              "tag": "1.2.0-20221011085109-c206c8b25f",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
