@@ -24,7 +24,7 @@ var _ spi.Worker = &fakeWorker{}
 // GIVEN a Runner
 //
 //	WHEN GetMetricDescList is called
-//	THEN ensure that all of the descriptors are correct
+//	THEN ensure that all the descriptors are correct
 func TestMetricDesc(t *testing.T) {
 	log := vzlog.DefaultLogger()
 	r, err := NewRunner(&fakeWorker{}, config.CommonConfig{}, log)

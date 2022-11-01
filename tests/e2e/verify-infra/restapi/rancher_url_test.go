@@ -6,6 +6,7 @@ package restapi_test
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -128,23 +129,27 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 
 					start = time.Now()
 					t.Logs.Info("Verify Verrazzano rancher user")
+					var rancherUsername string
 					Eventually(func() (bool, error) {
-						userData, err := k8sClient.Resource(pkg.GvkToGvr(rancher.GVKUser)).Get(context.Background(), rancher.UserVerrazzano, v1.GetOptions{})
+						userList, err := k8sClient.Resource(pkg.GvkToGvr(rancher.GVKUser)).List(context.Background(), v1.ListOptions{})
 						if err != nil {
 							t.Logs.Error(fmt.Sprintf("error getting rancher verrazzano user: %v", err))
 							return false, err
 						}
-
-						userPrincipals, ok := userData.UnstructuredContent()[rancher.UserAttributePrincipalIDs].([]interface{})
-						if !ok {
-							err = fmt.Errorf("rancher verrazzano user configured incorrectly,principalIds empty")
-							t.Logs.Error(err.Error())
-							return false, err
-						}
-
-						for _, userPrincipal := range userPrincipals {
-							if strings.Contains(userPrincipal.(string), rancher.UserPrincipalKeycloakPrefix) {
-								return true, nil
+						for _, userData := range userList.Items {
+							userPrincipals, ok := userData.UnstructuredContent()[rancher.UserAttributePrincipalIDs].([]interface{})
+							if ok {
+								switch reflect.TypeOf(userPrincipals).Kind() {
+								case reflect.Slice:
+									listOfPrincipleIDs := reflect.ValueOf(userPrincipals)
+									for i := 0; i < listOfPrincipleIDs.Len(); i++ {
+										principleID := listOfPrincipleIDs.Index(i).Interface().(string)
+										if strings.Contains(principleID, rancher.UserPrincipalKeycloakPrefix) {
+											rancherUsername = userData.GetName()
+											return true, nil
+										}
+									}
+								}
 							}
 						}
 						return false, fmt.Errorf("Verrazzano rancher user is not mapped in keycloak")
@@ -154,14 +159,14 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					start = time.Now()
 					t.Logs.Info("Verify Verrazzano rancher user admin GlobalRoleBinding")
 					Eventually(func() (bool, error) {
-						grbData, err := k8sClient.Resource(pkg.GvkToGvr(rancher.GVKGlobalRoleBinding)).Get(context.Background(), rancher.GlobalRoleBindingVerrazzano, v1.GetOptions{})
+						grbData, err := k8sClient.Resource(pkg.GvkToGvr(rancher.GVKGlobalRoleBinding)).Get(context.Background(), rancher.GlobalRoleBindingVerrazzanoPrefix+rancherUsername, v1.GetOptions{})
 						if err != nil {
-							t.Logs.Error(fmt.Sprintf("error getting rancher verrazzano user global role binding: %v", err))
+							t.Logs.Error(fmt.Sprintf("error getting rancher verrazzano user global role binding for rancher user %s : %v", rancherUsername, err))
 							return false, err
 						}
 
 						grbAttributes := grbData.UnstructuredContent()
-						if grbAttributes[rancher.GlobalRoleBindingAttributeUserName].(string) != rancher.UserVerrazzano {
+						if grbAttributes[rancher.GlobalRoleBindingAttributeUserName].(string) != rancherUsername {
 							return false, fmt.Errorf("verrazzano rancher user global role binding user is invalid")
 						}
 

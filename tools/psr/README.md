@@ -153,6 +153,11 @@ Install the logging generator worker as a Kubernetes deployment using the defaul
 helm install psr-writelogs manifests/charts/worker --set appType=k8s -f manifests/usecases/opensearch/writelogs.yaml
 ```
 
+Install the logging generator worker as a OAM application with 5 worker threads and the default 1 replica.
+```
+helm install psr-writelogs manifests/charts/worker --set global.envVars.PSR_WORKER_THREAD_COUNT=5 -f manifests/usecases/opensearch/writelogs.yaml
+```
+
 ## Workers
 All of the worker are deployed using the same worker Helm chart.  Every worker, except the example, have the following requirements: 
 * must emit metrics
@@ -163,13 +168,17 @@ All of the worker are deployed using the same worker Helm chart.  Every worker, 
 global:
   envVars:
     PSR_WORKER_TYPE - type of worker
-    default: `example`
+    default: example
     
     PSR_ITERATION_SLEEP - duration to sleep between work iterations
     default: 1s
 
+    PSR_NUM_ITERATIONS - number of iterations per worker thread
+    default: -1 (run forever)
+    
     PSR_WORKER_THREAD_COUNT - threads per worker
     default: 1
+    
 ```
 
 ### Example

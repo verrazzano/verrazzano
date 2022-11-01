@@ -38,7 +38,7 @@ var defaultRunnerMetrics = runnerMetrics{
 
 // WorkerRunner interface specifies a runner that loops calling a worker
 type WorkerRunner interface {
-	// RunWorker runs the worker use case in a loop
+	// StartWorkerRunners runs the worker use case in a loop
 	RunWorker(config.CommonConfig, vzlog.VerrazzanoLogger) error
 
 	// WorkerMetricsProvider is an interface to get prometheus metrics information for the worker to do work
@@ -92,7 +92,7 @@ func (r runner) GetMetricList() []prometheus.Metric {
 	}
 }
 
-// RunWorker runs the worker in a loop
+// StartWorkerRunners runs the worker in a loop
 func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	if conf.NumIterations == 0 {
 		return nil
