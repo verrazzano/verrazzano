@@ -24,27 +24,27 @@ import (
 
 var getLogsMetrics = workerMetrics{
 	openSearchGetSuccessCountTotal: metrics.MetricItem{
-		Name: "openSearch_get_success_count_total",
+		Name: "opensearch_get_success_count_total",
 		Help: "The total number of successful openSearch GET requests",
 		Type: prometheus.CounterValue,
 	},
 	openSearchGetFailureCountTotal: metrics.MetricItem{
-		Name: "openSearch_get_success_count_total",
+		Name: "opensearch_get_success_count_total",
 		Help: "The total number of successful openSearch GET requests",
 		Type: prometheus.CounterValue,
 	},
 	openSearchGetSuccessLatencyNanoSeconds: metrics.MetricItem{
-		Name: "openSearch_get_success_latency_nanoseconds",
+		Name: "opensearch_get_success_latency_nanoseconds",
 		Help: "The latency of successful openSearch GET requests in nanoseconds",
 		Type: prometheus.GaugeValue,
 	},
 	openSearchGetFailureLatencyNanoSeconds: metrics.MetricItem{
-		Name: "openSearch_get_failure_latency_nanoseconds",
+		Name: "opensearch_get_failure_latency_nanoseconds",
 		Help: "The latency of failed openSearch GET requests in nanoseconds",
 		Type: prometheus.GaugeValue,
 	},
 	openSearchGetDataCharsTotal: metrics.MetricItem{
-		Name: "openSearch_get_data_chars_total",
+		Name: "opensearch_get_data_chars_total",
 		Help: "The total number of characters return from openSearch get request",
 		Type: prometheus.CounterValue,
 	},
