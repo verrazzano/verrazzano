@@ -21,11 +21,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-// TestSyncMCAgentDeleteResources tests the synchronization method for the following use case.
-// GIVEN a request to sync Secret objects with a single MultiClusterApplicationConfiguration object
-// WHEN the new object exists
-// THEN ensure that the Secret objects are created
-func TestSyncMCAgentDeleteResources(t *testing.T) {
+// TestSyncDeregistration tests the synchronization method for the following use case.
+// GIVEN objects on the managed cluster used for managed cluster synchronization
+// WHEN tthe VMC is deleted
+// THEN ensure that the managed cluster resources are cleaned up
+func TestSyncDeregistration(t *testing.T) {
 	a := asserts.New(t)
 
 	vmcDeleted := v1alpha1.VerrazzanoManagedCluster{
@@ -111,7 +111,7 @@ func TestSyncMCAgentDeleteResources(t *testing.T) {
 				ManagedClusterName: testClusterName,
 				Context:            context.TODO(),
 			}
-			err = s.syncMCAgentDeleteResources()
+			err = s.syncDeregistration()
 			a.NoError(err)
 
 			// Verify that the objects have been deleted

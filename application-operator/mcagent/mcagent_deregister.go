@@ -14,7 +14,7 @@ import (
 )
 
 // syncMCAgentDeleteResources deletes the managed cluster resources if the correlating admin VMC gets deleted
-func (s *Syncer) syncMCAgentDeleteResources() error {
+func (s *Syncer) syncDeregistration() error {
 	vmcName := client.ObjectKey{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
 	vmc := platformopclusters.VerrazzanoManagedCluster{}
 	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
@@ -23,7 +23,7 @@ func (s *Syncer) syncMCAgentDeleteResources() error {
 		return err
 	}
 	if err == nil && vmc.DeletionTimestamp.IsZero() {
-		s.Log.Debugf("VMC resource %s/%s has been found and is not being deleted, skipping the MC Agent deletion process")
+		s.Log.Debugf("VMC resource %s/%s has been found and is not being deleted, skipping the MC Agent deregistration", constants.VerrazzanoMultiClusterNamespace, s.ManagedClusterName)
 		return nil
 	}
 

@@ -124,11 +124,11 @@ func (s *Syncer) ProcessAgentThread() error {
 	// Sync multi-cluster objects
 	s.SyncMultiClusterResources()
 
-	// Delete the managed cluster resources if de-registration occurs
-	err = s.syncMCAgentDeleteResources()
+	// Delete the managed cluster resources if deregistration occurs
+	err = s.syncDeregistration()
 	if err != nil {
 		// we couldn't delete the managed cluster resources - but we should keep going with the rest of the work
-		s.Log.Errorf("Failed to sync the MC Agent resource deletion process: %v", err)
+		s.Log.Errorf("Failed to sync the deregistration process: %v", err)
 	}
 
 	// Check whether the admin or local clusters' CA certs have rolled, and sync as necessary
