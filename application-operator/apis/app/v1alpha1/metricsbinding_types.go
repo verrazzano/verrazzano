@@ -70,7 +70,7 @@ type SecretKey struct {
 
 // Workload identifies the name and type of workload.
 type Workload struct {
-	// Name of a resource.
+	// Name of the resource.
 	Name string `json:"name"`
 
 	// TypeMeta of a resource.
