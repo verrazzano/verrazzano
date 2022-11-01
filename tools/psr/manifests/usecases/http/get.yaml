@@ -7,5 +7,3 @@ global:
     PSR_WORKER_TYPE: httpget
     # PSR_ENDPOINT is required, specify the endpoint URL to access
     PSR_ENDPOINT:
-    # HTTP_PROXY is required to access external endpoint
-    # HTTP_PROXY: http://www-proxy-hqdc.us.oracle.com:80
