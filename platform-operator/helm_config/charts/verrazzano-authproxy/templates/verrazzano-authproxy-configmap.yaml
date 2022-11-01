@@ -516,7 +516,7 @@ data:
         elseif backend == 'kibana' then
             serverUrl = me.makeVmiBackendUrl(backend, '5601')
         elseif backend == 'opensearchdashboards' then
-            serverUrl = me.makeVmiBackendUrl(backend, '5601')    
+            serverUrl = me.makeVmiBackendUrl('kibana', '5601')    
         elseif backend == 'elasticsearch' then
             serverUrl = me.makeVmiBackendUrl('es-ingest', '9200')
         elseif backend == 'opensearch' then
