@@ -4,23 +4,51 @@
 package mcagent
 
 import (
+	ctx "context"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (s *Syncer) syncMCAgentDelete(namespace string) error {
+// syncMCAgentDeleteResources deletes the managed cluster resources if the correlating admin VMC gets deleted
+func (s *Syncer) syncMCAgentDeleteResources() error {
 	vmcName := client.ObjectKey{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
 	vmc := platformopclusters.VerrazzanoManagedCluster{}
 	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
-	if !apierrors.IsNotFound(err) {
-		s.Log.Debugf("VMC still found on the managed cluster, skipping the deletion process")
+	if client.IgnoreNotFound(err) != nil {
+		s.Log.Errorf("Failed to get the VMC resources %s/%s from the admin cluster: %v", constants.VerrazzanoMultiClusterNamespace, s.ManagedClusterName, err)
+		return err
+	}
+	if !apierrors.IsNotFound(err) && vmc.DeletionTimestamp.IsZero() {
+		s.Log.Debugf("VMC resource %s/%s has been found and is not being deleted, skipping the MC Agent deletion process")
 		return nil
 	}
 
-	// TODO: delete all resources on the cluster
-	// Delete the manifest secrets (agent, registration)
-	// Delete the Rancher
+	mcAgentSec := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.MCAgentSecret,
+			Namespace: constants.VerrazzanoSystemNamespace,
+		},
+	}
+	err = s.LocalClient.Delete(ctx.TODO(), &mcAgentSec)
+	if client.IgnoreNotFound(err) != nil {
+		s.Log.Errorf("Failed to delete the managed cluster agent secret %s/%s: %v", constants.MCAgentSecret, constants.VerrazzanoSystemNamespace, err)
+		return err
+	}
 
+	mcRegSec := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.MCRegistrationSecret,
+			Namespace: constants.VerrazzanoSystemNamespace,
+		},
+	}
+	err = s.LocalClient.Delete(ctx.TODO(), &mcRegSec)
+	if client.IgnoreNotFound(err) != nil {
+		s.Log.Errorf("Failed to delete the managed cluster agent secret %s/%s: %v", constants.MCRegistrationSecret, constants.VerrazzanoSystemNamespace, err)
+		return err
+	}
+	return nil
 }

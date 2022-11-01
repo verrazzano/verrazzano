@@ -124,6 +124,12 @@ func (s *Syncer) ProcessAgentThread() error {
 	// Sync multi-cluster objects
 	s.SyncMultiClusterResources()
 
+	// Delete the managed cluster resources if de-registration occurs
+	err = s.syncMCAgentDeleteResources()
+	if err != nil {
+		s.Log.Errorf("Failed to sync the MC Agent resource deletion process: %v", err)
+	}
+
 	// Check whether the admin or local clusters' CA certs have rolled, and sync as necessary
 	managedClusterResult, err := s.syncClusterCAs()
 	if err != nil {
@@ -197,10 +203,6 @@ func (s *Syncer) SyncMultiClusterResources() {
 		err = s.syncMCApplicationConfigurationObjects(namespace)
 		if err != nil {
 			s.Log.Errorf("Failed to sync MultiClusterApplicationConfiguration objects: %v", err)
-		}
-		err = s.syncMCAgentDelete(namespace)
-		if err != nil {
-			s.Log.Errorf("Failed to sync the MC Agent deletion process: %v", err)
 		}
 
 		s.processStatusUpdates()
