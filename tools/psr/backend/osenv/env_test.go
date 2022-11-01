@@ -25,10 +25,10 @@ func TestEnv(t *testing.T) {
 		missingVal = "missingDefault"
 	)
 	f := fakeEnv{data: map[string]string{fooKey: fooVal}}
-	gf := genEnvFunc
-	genEnvFunc = f.getEnv
+	gf := GetEnvFunc
+	GetEnvFunc = f.getEnv
 	defer func() {
-		genEnvFunc = gf
+		GetEnvFunc = gf
 	}()
 
 	var tests = []struct {
