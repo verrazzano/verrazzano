@@ -666,7 +666,7 @@ func createOrUpdateUIColorSettings(ctx spi.ComponentContext) error {
 	return createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUILinkColor}, common.GVKSetting, map[string]interface{}{"value": SettingUILinkColorValue})
 }
 
-// getRancherVerrazzanoUserName fetches rancher user that is mapped to the ID of  key-clock user verrazzano
+// getRancherVerrazzanoUserName fetches Rancher user that is mapped to the ID of  Keycloak user verrazzano
 // It checks only for u-verrazzano and u-<hash> users only
 func getRancherVerrazzanoUserName(ctx spi.ComponentContext, vzUser *keycloak.KeycloakUser) (string, error) {
 	c := ctx.Client()
@@ -674,8 +674,10 @@ func getRancherVerrazzanoUserName(ctx spi.ComponentContext, vzUser *keycloak.Key
 	nsn := types.NamespacedName{Name: UserVerrazzano}
 	resources.SetGroupVersionKind(GVKUser)
 	resources.SetName(nsn.Name)
+	resources.SetNamespace(nsn.Namespace)
 	userPrincipalKeycloakID := UserPrincipalKeycloakPrefix + vzUser.ID
-	err := c.Get(context.TODO(), nsn, &resources)
+	key := client.ObjectKeyFromObject(&resources)
+	err := c.Get(context.TODO(), key, &resources)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			nsn.Name = getUserNameForPrincipal(userPrincipalKeycloakID)
@@ -688,7 +690,7 @@ func getRancherVerrazzanoUserName(ctx spi.ComponentContext, vzUser *keycloak.Key
 	return getUserMappedToPrincipalID(resources, userPrincipalKeycloakID)
 }
 
-// getUserMappedToPrincipalID returns the  rancher username if the rancher user contains the specified principalStr
+// getUserMappedToPrincipalID returns the  Rancher username if the Rancher user contains the specified principalStr
 func getUserMappedToPrincipalID(resource unstructured.Unstructured, principalStr string) (string, error) {
 	data := resource.UnstructuredContent()
 	principleIDs, ok := data[UserAttributePrincipalIDs]
@@ -717,13 +719,13 @@ func getRancherUsername(ctx spi.ComponentContext, vzUser *keycloak.KeycloakUser)
 	existingUser, err := getRancherVerrazzanoUserName(ctx, vzUser)
 	if err != nil {
 		return "", log.ErrorfThrottledNewErr("failed to check if Rancher user mapped to Keycloak user verrazzano exists or not: %s", err.Error())
-	} else if existingUser != "" { // If rancher user already exists that is mapped to keycloak user Verrazzano
+	} else if existingUser != "" { // If Rancher user already exists that is mapped to Keycloak user verrazzano
 		rancherUserName = existingUser
 	}
 	return rancherUserName, nil
 }
 
-// getUserNameForPrincipal return the rancher username created from principal
+// getUserNameForPrincipal return the Rancher username created from principal
 func getUserNameForPrincipal(principal string) string {
 	hasher := sha256.New()
 	hasher.Write([]byte(principal))
