@@ -164,7 +164,7 @@ func ScrapeTargetsUp() bool {
 	for _, target := range targets {
 		// allUp only remains true if all targets health is up
 		if Jq(target, "health") != "up" {
-			Log(Info, fmt.Sprintf("target: %v is not up yet", target))
+			Log(Info, fmt.Sprintf("target: %s is not up yet", Jq(target, "scrapeUrl")))
 			allUp = false
 		}
 	}
