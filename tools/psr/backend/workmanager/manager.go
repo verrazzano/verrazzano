@@ -16,8 +16,8 @@ import (
 	"sync"
 )
 
-// RunWorker runs a worker to completion
-func RunWorker(log vzlog.VerrazzanoLogger) error {
+// StartWorkerRunners starts the runner threads, each which runs a worker in a loop
+func StartWorkerRunners(log vzlog.VerrazzanoLogger) error {
 	// Get the common config for all the workers
 	conf, err := config.GetCommonConfig(log)
 	if err != nil {

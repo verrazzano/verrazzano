@@ -24,7 +24,7 @@ var _ spi.Worker = &fakeWorker{}
 // GIVEN a Runner
 //
 //	WHEN GetMetricDescList is called
-//	THEN ensure that all of the descriptors are correct
+//	THEN ensure that all the descriptors are correct
 func TestMetricDesc(t *testing.T) {
 	log := vzlog.DefaultLogger()
 	r, err := NewRunner(&fakeWorker{}, config.CommonConfig{}, log)
@@ -71,10 +71,10 @@ func assertMetricDescList(t *testing.T, mdList []prometheus.Desc) {
 	assert.Len(t, mdSet, 0)
 }
 
-// TestRunWorker tests the Runner.RunWorker method
+// TestRunWorker tests the Runner.StartWorkerRunners method
 // GIVEN a Runner
 //
-//	WHEN RunWorker is called for the correct number of iterations
+//	WHEN StartWorkerRunners is called for the correct number of iterations
 //	THEN ensure that the worker is called
 func TestRunWorker(t *testing.T) {
 	var tests = []struct {
