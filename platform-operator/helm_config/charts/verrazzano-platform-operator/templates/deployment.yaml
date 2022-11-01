@@ -104,7 +104,7 @@ spec:
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           image: {{ .Values.image }}
           args:
-            - --zap-log-level=debug
+            - --zap-log-level=info
             - --run-webhook-init=true
           resources:
             requests:
@@ -117,7 +117,7 @@ spec:
           image: {{ .Values.image }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           args:
-            - --zap-log-level=debug
+            - --zap-log-level=info
             - --webhooks-enabled=true
           volumeMounts:
             - name: webhook-certs

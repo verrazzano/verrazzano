@@ -65,7 +65,8 @@ type OperatorConfig struct {
 	VerrazzanoRootDir string
 
 	// DryRun Run installs in a dry-run mode
-	DryRun bool
+	DryRun                   bool
+	HealthCheckPeriodSeconds int64
 }
 
 // The singleton instance of the operator config
@@ -78,6 +79,7 @@ var instance = OperatorConfig{
 	WebhooksEnabled:          false,
 	WebhookValidationEnabled: true,
 	VerrazzanoRootDir:        rootDir,
+	HealthCheckPeriodSeconds: 60,
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests
