@@ -4,6 +4,7 @@
 package string
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
@@ -207,8 +208,8 @@ func TestCompareTwoSlices(t *testing.T) {
 	slice3 := []string{"s1", "s2", "s4"}
 	slice4 := []string{"s1", "s2"}
 
-	assert.True(CompareTwoSlices(slice1, slice2))
-	assert.False(CompareTwoSlices(slice1, slice3))
-	assert.False(CompareTwoSlices(slice2, slice3))
-	assert.False(CompareTwoSlices(slice1, slice4))
+	assert.True(CompareTwoSlices(vzlog.DefaultLogger(), slice1, slice2))
+	assert.False(CompareTwoSlices(vzlog.DefaultLogger(), slice1, slice3))
+	assert.False(CompareTwoSlices(vzlog.DefaultLogger(), slice2, slice3))
+	assert.False(CompareTwoSlices(vzlog.DefaultLogger(), slice1, slice4))
 }

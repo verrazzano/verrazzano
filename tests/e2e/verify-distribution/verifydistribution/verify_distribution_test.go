@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/onsi/gomega"
 	. "github.com/verrazzano/verrazzano/pkg/files"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	. "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -82,7 +83,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				for _, each := range filesInfo {
 					filesList = append(filesList, each.Name())
 				}
-				gomega.Expect(CompareTwoSlices(filesList, liteBundleZipContents)).To(gomega.BeTrue())
+				gomega.Expect(CompareTwoSlices(vzlog.DefaultLogger(), filesList, liteBundleZipContents)).To(gomega.BeTrue())
 			})
 
 			t.It("Verify Lite bundle extracted contents", func() {
@@ -149,7 +150,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 					imagesList = append(imagesList, eachName)
 				}
 
-				gomega.Expect(CompareTwoSlices(componentsList, imagesList)).To(gomega.BeTrue())
+				gomega.Expect(CompareTwoSlices(vzlog.DefaultLogger(), componentsList, imagesList)).To(gomega.BeTrue())
 			})
 		})
 	}
@@ -171,7 +172,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				eachName := re1.ReplaceAllString(each, "")
 				chartsFilesListFiltered = append(chartsFilesListFiltered, eachName)
 			}
-			gomega.Expect(CompareTwoSlices(sourcesFilesFilteredList, chartsFilesListFiltered)).To(gomega.BeTrue())
+			gomega.Expect(CompareTwoSlices(vzlog.DefaultLogger(), sourcesFilesFilteredList, chartsFilesListFiltered)).To(gomega.BeTrue())
 		})
 	})
 })
@@ -190,10 +191,10 @@ func verifyDistributionByDirectory(inputDir string, key string, variant string) 
 	}
 	if variant == liteDistribution {
 		fmt.Println("Provided variant is: ", variant)
-		gomega.Expect(CompareTwoSlices(filesList, opensourcefileslistbydir[key])).To(gomega.BeTrue())
+		gomega.Expect(CompareTwoSlices(vzlog.DefaultLogger(), filesList, opensourcefileslistbydir[key])).To(gomega.BeTrue())
 	} else {
 		fmt.Println("Provided variant is: Full")
-		gomega.Expect(CompareTwoSlices(filesList, fullBundleFileslistbydir[key])).To(gomega.BeTrue())
+		gomega.Expect(CompareTwoSlices(vzlog.DefaultLogger(), filesList, fullBundleFileslistbydir[key])).To(gomega.BeTrue())
 	}
 	fmt.Printf("All files found for %s \n", key)
 }
