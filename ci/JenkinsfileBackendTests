@@ -223,7 +223,7 @@ def preliminaryChecks() {
         backendTestsUpToDate = true
     } else {
         // Check if we are still at the same commit previously run (if so we know it wasn't clean and it failed in some way)
-        LAST_BACKEND_RUN_COMMIT=getLastPeriodicRunCommit()
+        LAST_BACKEND_RUN_COMMIT=getLastBackendRunCommit()
         if (LAST_BACKEND_RUN_COMMIT != null && LAST_BACKEND_RUN_COMMIT == GIT_COMMIT_TO_USE) {
             backendTestsUpToDateFailed = true
         }
