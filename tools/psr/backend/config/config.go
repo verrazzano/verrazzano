@@ -35,6 +35,7 @@ const (
 	PsrWorkerThreadCount = "PSR_WORKER_THREAD_COUNT"
 
 	// PsrEndpoint specifies the endpoint to access
+	// By default, the endpoint is not specified
 	PsrEndpoint = "PSR_ENDPOINT"
 )
 

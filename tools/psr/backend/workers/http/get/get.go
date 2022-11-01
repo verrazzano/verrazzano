@@ -129,7 +129,7 @@ func (w httpGetWorker) WantIterationInfoLogged() bool {
 }
 
 func (w httpGetWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-	var lc, ls, lf int64
+    var lc, ls, lf int64
     var u string = config.PsrEnv.GetEnv(config.PsrEndpoint)
     log.Infof("Endpoint %s", u)
     log.Infof("HttpGet Worker doing work")
