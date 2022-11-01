@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"sync/atomic"
@@ -40,8 +41,7 @@ const (
 
 const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
 
-var bodyString = "{\"query\":{\"bool\":{\"filter\":[{\"match_phrase\":{\"kubernetes.container_name\":\"istio-proxy\"}}]}}}"
-var body = io.NopCloser(bytes.NewBuffer([]byte(bodyString)))
+const letters = "abcdefghijklmnopqrstuvwxyz"
 
 type getLogs struct {
 	spi.Worker
@@ -136,10 +136,10 @@ func (w getLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) er
 		URL: &url.URL{
 			Scheme: "http",
 			Host:   osIngestService,
-			Path:   "/verrazzano-system",
+			Path:   "/_search",
 		},
 		Header: http.Header{"Content-Type": {"application/json"}},
-		Body:   body,
+		Body:   getBody(),
 	}
 	startRequest := time.Now().UnixNano()
 	resp, err := c.Do(&req)
@@ -207,4 +207,82 @@ func (w getLogs) GetMetricList() []prometheus.Metric {
 	metrics = append(metrics, m)
 
 	return metrics
+}
+
+func getBody() io.ReadCloser {
+	body := fmt.Sprintf(`{
+  "query": {
+    "bool": {
+      "should": [
+        {
+          "match": {
+            "message": "%s"
+          }
+        },
+        {
+          "match": {
+            "message": "%s"
+          }
+        },
+        {
+          "match": {
+            "message": "%s"
+          }
+        },
+        {
+          "match": {
+            "message": "%s"
+          }
+        },
+                {
+          "match": {
+            "message": "%s"
+          }
+        },
+        {
+          "match": {
+            "message": "%s"
+          }
+        },
+        {
+          "match": {
+            "message": "%s"
+          }
+        },
+        {
+          "match": {
+            "message": "%s"
+          }
+        },
+        {
+          "match": {
+            "message": "%s"
+          }
+        },
+                {
+          "match": {
+            "message": "%s"
+          }
+        }
+      ]
+    }
+  }
+}`,
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
+	)
+	return io.NopCloser(bytes.NewBuffer([]byte(body)))
+}
+
+func GetRandomLowerAlpha() string {
+	rand.Seed(time.Now().UnixNano())
+	return string(letters[rand.Intn(len(letters))]) //nolint:gosec //#gosec G404
 }
