@@ -545,6 +545,20 @@ func checkDbMigrationJobCompletion(ctx spi.ComponentContext) bool {
 	if err != nil {
 		return errors.IsNotFound(err)
 	}
+	// check to see if job has failed and re-submit
+	if loadJob.Status.Failed == 1 {
+		ctx.Log().Errorf("DB load job has failed and will be retried.")
+		// delete the job
+		if err := cleanupDbMigrationJob(ctx); err != nil {
+			return false
+		}
+		// resubmit
+		if err := createLegacyUpgradeJob(ctx); err != nil {
+			return false
+		}
+
+		return false
+	}
 	// get the associated pod
 	dbMigrationPod, err := getDbMigrationPod(ctx)
 	if err != nil {

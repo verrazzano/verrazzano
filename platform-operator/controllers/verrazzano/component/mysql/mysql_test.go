@@ -1571,11 +1571,91 @@ func TestCreateLegacyUpgradeJob(t *testing.T) {
 	err := createLegacyUpgradeJob(ctx)
 	assert.NoError(t, err)
 	job := &batchv1.Job{}
-	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Name: "load-dump", Namespace: "keycloak"}, job)
+	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Name: dbLoadJobName, Namespace: ComponentNamespace}, job)
 	assert.NoError(t, err)
 	assert.NotNil(t, job)
 	assert.True(t, len(job.Spec.Template.Spec.Containers) == 1)
 	assert.True(t, len(job.Spec.Template.Spec.InitContainers) == 1)
+}
+
+// TestCheckDbMigrationJobCompletionForFailedJob tests the checkDbMigrationJobCompletion function
+// GIVEN a call to checkDbMigrationJobCompletion for a failed job
+// WHEN I pass in a component context
+// THEN a new job instance is created
+func TestCheckDbMigrationJobCompletionForFailedJob(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	vz := &vzapi.Verrazzano{}
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      dbLoadJobName,
+			Namespace: ComponentNamespace,
+		},
+		Status: batchv1.JobStatus{
+			Failed: 1,
+		},
+	}
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: ComponentNamespace,
+		},
+		Data: map[string][]byte{secretKey: []byte("test-user-key")},
+	}
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(job, secret).Build()
+	ctx := spi.NewFakeContext(fakeClient, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
+	result := checkDbMigrationJobCompletion(ctx)
+	assert.False(t, result)
+	newJob := &batchv1.Job{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: dbLoadJobName, Namespace: ComponentNamespace}, newJob)
+	assert.NoError(t, err)
+	assert.NotNil(t, newJob)
+	assert.True(t, len(newJob.Spec.Template.Spec.Containers) == 1)
+	assert.True(t, len(newJob.Spec.Template.Spec.InitContainers) == 1)
+}
+
+// TestCheckDbMigrationJobCompletionForSuccessfulJob tests the checkDbMigrationJobCompletion function
+// GIVEN a call to checkDbMigrationJobCompletion for a succesful job
+// WHEN I pass in a component context
+// THEN the check is successful (true)
+func TestCheckDbMigrationJobCompletionForSuccessfulJob(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	vz := &vzapi.Verrazzano{}
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      dbLoadJobName,
+			Namespace: ComponentNamespace,
+		},
+		Status: batchv1.JobStatus{
+			Succeeded: 1,
+		},
+	}
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{"job-name": dbLoadJobName},
+		},
+		Status: v1.PodStatus{
+			ContainerStatuses: []v1.ContainerStatus{
+				{
+					Name: dbLoadContainerName,
+					State: v1.ContainerState{
+						Terminated: &v1.ContainerStateTerminated{
+							ExitCode: 0,
+						},
+					},
+				},
+			},
+		},
+	}
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(job, pod).Build()
+	ctx := spi.NewFakeContext(fakeClient, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
+	result := checkDbMigrationJobCompletion(ctx)
+	assert.True(t, result)
 }
 
 func getBoolPtr(b bool) *bool {
