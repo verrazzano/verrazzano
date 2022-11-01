@@ -64,7 +64,7 @@ func CreateWebhookCertificates(log *zap.SugaredLogger, kubeClient kubernetes.Int
 		return err
 	}
 
-	certFile := fmt.Sprintf("%s/tls.crt", certDir)
+	certFile := fmt.Sprintf("%s/%s", certDir, certKey)
 	log.Debugf("Writing file %s", certFile)
 	err = writeFile(certFile, serverPEM)
 	if err != nil {
@@ -72,7 +72,7 @@ func CreateWebhookCertificates(log *zap.SugaredLogger, kubeClient kubernetes.Int
 		return err
 	}
 
-	keyFile := fmt.Sprintf("%s/tls.key", certDir)
+	keyFile := fmt.Sprintf("%s/%s", certDir, privKey)
 	log.Debugf("Writing file %s", keyFile)
 	err = writeFile(keyFile, serverKeyPEM)
 	if err != nil {
@@ -150,7 +150,7 @@ func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, comm
 	webhookCrt.Name = certName
 	webhookCrt.Type = v1.SecretTypeTLS
 	webhookCrt.Data = make(map[string][]byte)
-	webhookCrt.Data["tls.crt"] = serverPEMBytes
+	webhookCrt.Data[certKey] = serverPEMBytes
 	webhookCrt.Data[privKey] = serverKeyPEMBytes
 
 	_, createError := secretsClient.Create(context.TODO(), &webhookCrt, metav1.CreateOptions{})
@@ -342,7 +342,7 @@ func UpdateValidatingWebhookConfiguration(kubeClient kubernetes.Interface, name 
 	if errX != nil {
 		return errX
 	}
-	crt := caSecret.Data["tls.crt"]
+	crt := caSecret.Data[certKey]
 
 	for i := range validatingWebhook.Webhooks {
 		validatingWebhook.Webhooks[i].ClientConfig.CABundle = crt
@@ -364,7 +364,7 @@ func UpdateConversionWebhookConfiguration(apiextClient *apiextensionsv1client.Ap
 	if err != nil {
 		return err
 	}
-	crt := caSecret.Data["tls.crt"]
+	crt := caSecret.Data[certKey]
 
 	crd.Spec.Conversion = &apiextensionsv1.CustomResourceConversion{
 		Strategy: apiextensionsv1.WebhookConverter,
@@ -396,7 +396,7 @@ func UpdateMutatingWebhookConfiguration(kubeClient kubernetes.Interface, name st
 	if err != nil {
 		return err
 	}
-	crt := caSecret.Data["tls.crt"]
+	crt := caSecret.Data[certKey]
 	if err != nil {
 		return err
 	}

@@ -30,7 +30,7 @@ func TestCreateWebhookCertificates(t *testing.T) {
 	_, err2 := client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
 	asserts.Nil(err, "error should not be returned setting up certificates")
 	asserts.Nil(err2, "error should not be returned setting up certificates")
-	asserts.NotEmpty(string(secret.Data["tls.crt"]))
+	asserts.NotEmpty(string(secret.Data[certKey]))
 }
 
 // TestUpdateValidatingnWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-platform-operator
@@ -52,8 +52,8 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 	caSecret.Type = v1.SecretTypeTLS
 	caSecret.Namespace = OperatorNamespace
 	caSecret.Data = make(map[string][]byte)
-	caSecret.Data["tls.crt"] = caCert.Bytes()
-	caSecret.Data["tls.key"] = caCert.Bytes()
+	caSecret.Data[certKey] = caCert.Bytes()
+	caSecret.Data[privKey] = caCert.Bytes()
 
 	kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &caSecret, metav1.CreateOptions{})
 
@@ -126,8 +126,8 @@ func TestUpdateValidatingnWebhookConfigurationFail(t *testing.T) {
 	caSecret.Type = v1.SecretTypeTLS
 	caSecret.Namespace = OperatorNamespace
 	caSecret.Data = make(map[string][]byte)
-	caSecret.Data["tls.crt"] = caCert.Bytes()
-	caSecret.Data["tls.key"] = caCert.Bytes()
+	caSecret.Data[certKey] = caCert.Bytes()
+	caSecret.Data[privKey] = caCert.Bytes()
 
 	kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), &caSecret, metav1.CreateOptions{})
 
