@@ -28,6 +28,10 @@ const (
 	// PsrWorkerThreadCount specifies the number of worker threads to run.
 	// By default, there is one thread per worker
 	PsrWorkerThreadCount = "PSR_WORKER_THREAD_COUNT"
+
+	// PsrWorkerDataStreamTemplate is the name of the PSR datastream template
+	// this is created by default when an OAM app is deployed
+	PsrWorkerDataStreamTemplate = "PSR_WORKER_DATASTREAM_TEMPLATE"
 )
 
 // Define worker types
@@ -35,6 +39,7 @@ const (
 	WorkerTypeExample   = "example"
 	WorkerTypeWriteLogs = "writelogs"
 	WorkerTypeGetLogs   = "getlogs"
+	WorkerTypePostLogs  = "postlogs"
 )
 
 var PsrEnv = osenv.NewEnv()
@@ -43,6 +48,7 @@ type CommonConfig struct {
 	WorkerType          string
 	IterationSleepNanos time.Duration
 	WorkerThreadCount   int
+	DataStreamTemplate  string
 }
 
 // GetCommonConfig loads the common config from env vars
@@ -52,6 +58,7 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 		{Key: PsrDuration, DefaultVal: "", Required: false},
 		{Key: PsrIterationSleep, DefaultVal: "1s", Required: false},
 		{Key: PsrWorkerThreadCount, DefaultVal: "1", Required: false},
+		{Key: PsrWorkerDataStreamTemplate, DefaultVal: "", Required: false},
 	}
 	if err := PsrEnv.LoadFromEnv(dd); err != nil {
 		return CommonConfig{}, err
@@ -78,5 +85,6 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 		WorkerType:          PsrEnv.GetEnv(PsrWorkerType),
 		IterationSleepNanos: sleepDuration,
 		WorkerThreadCount:   threadCount,
+		DataStreamTemplate:  PsrEnv.GetEnv(PsrWorkerDataStreamTemplate),
 	}, nil
 }

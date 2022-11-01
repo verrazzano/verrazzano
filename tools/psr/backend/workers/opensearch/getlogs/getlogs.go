@@ -267,22 +267,15 @@ func getBody() io.ReadCloser {
       ]
     }
   }
-}`,
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-	)
+}`, GetRandomLowerAlpha(10)...)
 	return io.NopCloser(bytes.NewBuffer([]byte(body)))
 }
 
-func GetRandomLowerAlpha() string {
-	rand.Seed(time.Now().UnixNano())
-	return string(letters[rand.Intn(len(letters))])
+// GetRandomLowerAlpha returns an array of len n of random lowercase letters
+func GetRandomLowerAlpha(n int) []interface{} {
+	var str []interface{}
+	for i := 0; i < n; i++ {
+		str = append(str, string(letters[rand.Intn(len(letters))])) //nolint:gosec //#gosec G404
+	}
+	return str
 }
