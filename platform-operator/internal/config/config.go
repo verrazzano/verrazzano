@@ -64,9 +64,11 @@ type OperatorConfig struct {
 	// VerrazzanoRootDir is the root Verrazzano directory in the image
 	VerrazzanoRootDir string
 
-	// DryRun Run installs in a dry-run mode
-	DryRun                   bool
+	// HealthCheckPeriodSeconds period for health check background task in seconds; a value of 0 disables health checks
 	HealthCheckPeriodSeconds int64
+
+	// DryRun Run installs in a dry-run mode
+	DryRun bool
 }
 
 // The singleton instance of the operator config
