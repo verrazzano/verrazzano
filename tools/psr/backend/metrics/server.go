@@ -30,12 +30,12 @@ func StartMetricsServerOrDie(providers []spi.WorkerMetricsProvider) {
 	// Instrument the default metrics
 	h1 := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
 	h2 := promhttp.InstrumentMetricHandler(reg, h1)
-	http.Handle("/metrics", h2)
+	http.Handle("/actuator/prometheus", h2)
 
 	server := http.Server{
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
-		Addr:         "0.0.0.0:8080"}
+		Addr:         "0.0.0.0:9090"}
 
 	if err := server.ListenAndServe(); err != nil {
 		zap.S().Errorf("Failed to start metrics server: %v", err)
