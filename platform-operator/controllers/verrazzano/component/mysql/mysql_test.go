@@ -1617,7 +1617,7 @@ func TestCheckDbMigrationJobCompletionForFailedJob(t *testing.T) {
 }
 
 // TestCheckDbMigrationJobCompletionForSuccessfulJob tests the checkDbMigrationJobCompletion function
-// GIVEN a call to checkDbMigrationJobCompletion for a succesful job
+// GIVEN a call to checkDbMigrationJobCompletion for a successful job
 // WHEN I pass in a component context
 // THEN the check is successful (true)
 func TestCheckDbMigrationJobCompletionForSuccessfulJob(t *testing.T) {
