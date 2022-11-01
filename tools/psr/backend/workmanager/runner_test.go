@@ -99,8 +99,8 @@ func TestRunWorker(t *testing.T) {
 			}, log)
 
 			assert.NoError(t, err)
-			assert.Equal(t, f.doWorkCount, test.iterations)
-			assert.Equal(t, actualRunner.loopCount.Val, test.iterations)
+			assert.Equal(t, test.iterations, f.doWorkCount)
+			assert.Equal(t, test.iterations, actualRunner.loopCount.Val)
 		})
 	}
 }
