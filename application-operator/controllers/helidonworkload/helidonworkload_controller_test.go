@@ -5,6 +5,7 @@ package helidonworkload
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"os"
 	"strconv"
 	"strings"
@@ -979,4 +980,27 @@ func TestReconcileFailed(t *testing.T) {
 	reconciler.Reconcile(context.TODO(), request)
 	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
 	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
+}
+
+func TestAddMetrics(t *testing.T) {
+	assert := asserts.New(t)
+
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+
+	// create a request and reconcile it
+	request := newRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
+	reconciler := newReconciler(cli)
+	// Fetch the workload
+	var workload vzapi.VerrazzanoHelidonWorkload
+	err := reconciler.Get(context.TODO(), request.NamespacedName, &workload)
+	assert.NoError(err)
+	mocker.Finish()
+	log, err := clusters.GetResourceLogger("verrazzanohelidonworkload", request.NamespacedName, &workload)
+	assert.NoError(err)
+	// Unwrap the apps/DeploymentSpec and meta/ObjectMeta
+	deploy, err := reconciler.convertWorkloadToDeployment(&workload, log)
+	assert.NoError(err)
+	err = reconciler.addMetrics(context.TODO(),log,workload.Namespace, &workload, deploy)
+	assert.NoError(err)
 }
