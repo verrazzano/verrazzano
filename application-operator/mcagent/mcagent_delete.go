@@ -18,11 +18,11 @@ func (s *Syncer) syncMCAgentDeleteResources() error {
 	vmcName := client.ObjectKey{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
 	vmc := platformopclusters.VerrazzanoManagedCluster{}
 	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
-	if client.IgnoreNotFound(err) != nil {
+	if client.IgnoreNotFound(err) != nil && !apierrors.IsUnauthorized(err) {
 		s.Log.Errorf("Failed to get the VMC resources %s/%s from the admin cluster: %v", constants.VerrazzanoMultiClusterNamespace, s.ManagedClusterName, err)
 		return err
 	}
-	if !apierrors.IsNotFound(err) && vmc.DeletionTimestamp.IsZero() {
+	if err == nil && vmc.DeletionTimestamp.IsZero() {
 		s.Log.Debugf("VMC resource %s/%s has been found and is not being deleted, skipping the MC Agent deletion process")
 		return nil
 	}

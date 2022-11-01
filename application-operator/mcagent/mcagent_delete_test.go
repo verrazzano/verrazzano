@@ -5,6 +5,9 @@ package mcagent
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
@@ -16,8 +19,6 @@ import (
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
-	"time"
 )
 
 // TestSyncMCAgentDeleteResources tests the synchronization method for the following use case.
