@@ -6,6 +6,7 @@ package velero
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	prometheusOperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"path/filepath"
@@ -75,6 +76,10 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 			Dependencies:              []string{networkpolicies.ComponentName, prometheusOperator.ComponentName},
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DaemonsetNames:  daemonSets,
+				DeploymentNames: deployments,
+			},
 		},
 	}
 }

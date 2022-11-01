@@ -4,8 +4,10 @@
 package adapter
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -44,6 +46,14 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "prometheus-adapter-values.yaml"),
 			Dependencies:              []string{},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -57,7 +67,7 @@ func (c prometheusAdapterComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // IsReady checks if the Prometheus Adapter deployment is ready
 func (c prometheusAdapterComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isPrometheusAdapterReady(ctx)
+		return c.isPrometheusAdapterReady(ctx)
 	}
 	return false
 }

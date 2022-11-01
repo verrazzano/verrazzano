@@ -5,6 +5,7 @@ package grafana
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -125,6 +126,10 @@ func (g grafanaComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // IsInstalled returns true if the Grafana component is installed
 func (g grafanaComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return isGrafanaInstalled(ctx), nil
+}
+
+func (g grafanaComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available bool) {
+	return (&ready.AvailabilityObjects{DeploymentNames: newDeployments()}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 // IsReady returns true if the Grafana component is ready

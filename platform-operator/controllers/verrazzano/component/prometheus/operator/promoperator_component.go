@@ -5,8 +5,10 @@ package operator
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -81,6 +83,14 @@ func (c prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isPrometheusOperatorReady(ctx)
 	}
 	return false
+}
+
+func (c prometheusComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available bool) {
+	listOptions, err := prometheusOperatorListOptions()
+	if err != nil {
+		return err.Error(), false
+	}
+	return (&ready.AvailabilityObjects{DeploymentSelectors: []clipkg.ListOption{listOptions}}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 // MonitorOverrides checks whether monitoring is enabled for install overrides sources

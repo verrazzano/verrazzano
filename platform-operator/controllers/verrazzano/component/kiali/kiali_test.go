@@ -93,7 +93,8 @@ func TestIsKialiReady(t *testing.T) {
 		},
 	).Build()
 
-	assert.True(t, isKialiReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
+	kiali := NewComponent().(kialiComponent)
+	assert.True(t, kiali.isKialiReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsKialiNotReady tests the isKialiReady function
@@ -118,7 +119,8 @@ func TestIsKialiNotReady(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	assert.False(t, isKialiReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
+	kiali := NewComponent().(kialiComponent)
+	assert.False(t, kiali.isKialiReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsKialiNotReadyChartNotFound tests the isKialiReady function
@@ -133,5 +135,6 @@ func TestIsKialiNotReadyChartNotFound(t *testing.T) {
 	defer helm.SetDefaultChartStatusFunction()
 
 	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	assert.False(t, isKialiReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
+	kiali := NewComponent().(kialiComponent)
+	assert.False(t, kiali.isKialiReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }

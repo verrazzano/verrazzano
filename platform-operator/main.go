@@ -5,14 +5,17 @@ package main
 
 import (
 	"flag"
+	"os"
+	"sync"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 	"k8s.io/client-go/dynamic"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
-	"sync"
 
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
@@ -82,6 +85,8 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 }
 
+var healthCheckPeriodSeconds int64
+
 func main() {
 
 	// config will hold the entire operator config
@@ -102,6 +107,8 @@ func main() {
 		"Specify the root directory of Verrazzano (used for development)")
 	flag.StringVar(&bomOverride, "bom-path", "", "BOM file location")
 	flag.BoolVar(&helm.Debug, "helm-debug", helm.Debug, "Add the --debug flag to helm commands")
+	// Set to 0 to disable the health check routine.
+	flag.Int64Var(&healthCheckPeriodSeconds, "health-check-period", 60, "Health check period seconds")
 
 	// Add the zap logger flag set to the CLI.
 	opts := kzap.Options{}
@@ -300,16 +307,22 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 	metricsexporter.StartMetricsServer(log)
 
 	// Set up the reconciler
+	statusUpdater := vzstatus.NewStatusUpdater(mgr.GetClient())
+	healthCheck := vzstatus.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(healthCheckPeriodSeconds)*time.Second)
 	reconciler := vzcontroller.Reconciler{
 		Client:            mgr.GetClient(),
 		Scheme:            mgr.GetScheme(),
 		DryRun:            config.DryRun,
 		WatchedComponents: map[string]bool{},
 		WatchMutex:        &sync.RWMutex{},
+		StatusUpdater:     statusUpdater,
 	}
 	if err = reconciler.SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "Verrazzano")
 		os.Exit(1)
+	}
+	if healthCheckPeriodSeconds > 0 {
+		healthCheck.Start()
 	}
 
 	// Set up the reconciler for VerrazzanoManagedCluster objects
@@ -321,10 +334,18 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 		os.Exit(1)
 	}
 
+	// Start the goroutine to sync Rancher clusters and VerrazzanoManagedCluster objects
+	rancherClusterSyncer := &clusterscontroller.RancherClusterSyncer{
+		Client: mgr.GetClient(),
+		Log:    log,
+	}
+	go rancherClusterSyncer.StartSyncing()
+
 	// Setup secrets reconciler
 	if err = (&secretscontroller.VerrazzanoSecretsReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:        mgr.GetClient(),
+		Scheme:        mgr.GetScheme(),
+		StatusUpdater: statusUpdater,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoSecrets")
 		os.Exit(1)
@@ -332,8 +353,9 @@ func reconcilePlatformOperator(config internalconfig.OperatorConfig, log *zap.Su
 
 	// Setup configMaps reconciler
 	if err = (&configmapcontroller.VerrazzanoConfigMapsReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		Client:        mgr.GetClient(),
+		Scheme:        mgr.GetScheme(),
+		StatusUpdater: statusUpdater,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error(err, "Failed to setup controller", vzlog.FieldController, "VerrazzanoConfigMaps")
 		os.Exit(1)

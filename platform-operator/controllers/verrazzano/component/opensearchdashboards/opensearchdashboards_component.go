@@ -5,6 +5,7 @@ package opensearchdashboards
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -141,6 +142,10 @@ func (d opensearchDashboardsComponent) PreUpgrade(ctx spi.ComponentContext) erro
 // Upgrade OpenSearch-Dashboards component upgrade processing
 func (d opensearchDashboardsComponent) Upgrade(ctx spi.ComponentContext) error {
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
+}
+
+func (d opensearchDashboardsComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available bool) {
+	return (&ready.AvailabilityObjects{DeploymentNames: getOSDDeployments()}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 // IsReady component check

@@ -27,7 +27,7 @@ func CreateAndLabelNamespace(client client.Client, ns string, isVerrazzanoManage
 
 // CreateCertManagerNamespace - Create/Update and label the cert-manager namespace
 func CreateCertManagerNamespace(client client.Client) error {
-	return CreateAndLabelNamespace(client, globalconst.CertManagerNamespace, false, false)
+	return CreateAndLabelNamespace(client, globalconst.CertManagerNamespace, true, false)
 }
 
 // CreateIngressNginxNamespace - Create/Update and label the ingres-nginx namespace
@@ -67,7 +67,12 @@ func CreateVerrazzanoSystemNamespace(client client.Client, istioInjectionEnabled
 
 // CreateVerrazzanoMultiClusterNamespace - Create/Update and label the Verrazzano multi-cluster namespace
 func CreateVerrazzanoMultiClusterNamespace(client client.Client) error {
-	return CreateAndLabelNamespace(client, globalconst.VerrazzanoMultiClusterNamespace, false, false)
+	return CreateAndLabelNamespace(client, globalconst.VerrazzanoMultiClusterNamespace, true, false)
+}
+
+// CreateVeleroNamespace - Create/Update and label the Velero namespace
+func CreateVeleroNamespace(client client.Client) error {
+	return CreateAndLabelNamespace(client, constants.VeleroNameSpace, true, true)
 }
 
 // MergeMaps Merge one map into another, creating new one if necessary; returns the updated map and true if it was modified

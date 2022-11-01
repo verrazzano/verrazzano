@@ -4,12 +4,17 @@
 package rancher
 
 import (
+	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"os"
 	"path/filepath"
 	"strconv"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,6 +47,31 @@ const ComponentJSONName = "rancher"
 
 const rancherIngressClassNameKey = "ingress.ingressClassName"
 
+// rancherImageSubcomponent is the name of the subcomponent for the additional Rancher images
+const rancherImageSubcomponent = "additional-rancher"
+
+// cattleShellImageName is the name of the shell image used for the shell override special case
+const cattleShellImageName = "shell"
+
+// cattleUIEnvName is the environment variable name to set for the Rancher dashboard
+const cattleUIEnvName = "CATTLE_UI_OFFLINE_PREFERRED"
+
+// Environment variables for the Rancher images
+// format: imageName: baseEnvVar
+var imageEnvVars = map[string]string{
+	"fleet":           "FLEET_IMAGE",
+	"fleet-agent":     "FLEET_AGENT_IMAGE",
+	"shell":           "CATTLE_SHELL_IMAGE",
+	"rancher-webhook": "RANCHER_WEBHOOK_IMAGE",
+	"gitjob":          "GITJOB_IMAGE",
+}
+
+type envVar struct {
+	Name      string
+	Value     string
+	SetString bool
+}
+
 type rancherComponent struct {
 	helm.HelmComponent
 }
@@ -65,6 +95,30 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       AppendOverrides,
 			Certificates:              certificates,
 			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, certmanager.ComponentName},
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+					{
+						Name:      rancherWebhookDeployment,
+						Namespace: ComponentNamespace,
+					},
+					{
+						Name:      fleetAgentDeployment,
+						Namespace: FleetLocalSystemNamespace,
+					},
+					{
+						Name:      fleetControllerDeployment,
+						Namespace: FleetSystemNamespace,
+					},
+					{
+						Name:      gitjobDeployment,
+						Namespace: FleetSystemNamespace,
+					},
+				},
+			},
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
@@ -92,6 +146,10 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Key:   useBundledSystemChartKey,
 		Value: useBundledSystemChartValue,
 	})
+	kvs, err = appendImageOverrides(ctx, kvs)
+	if err != nil {
+		return kvs, err
+	}
 	kvs = appendRegistryOverrides(kvs)
 	kvs = append(kvs, bom.KeyValue{
 		Key:   rancherIngressClassNameKey,
@@ -162,10 +220,83 @@ func appendCAOverrides(log vzlog.VerrazzanoLogger, kvs []bom.KeyValue, ctx spi.C
 	return kvs, nil
 }
 
+// appendImageOverrides creates overrides to set the pod environment variables for the image overrides
+func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to get the bom file for the Rancher image overrides: %v", err)
+	}
+
+	// Set the Rancher default registry, if registry overrides are not present
+	registry := os.Getenv(constants.RegistryOverrideEnvVar)
+	if registry == "" {
+		kvs = append(kvs, bom.KeyValue{Key: systemDefaultRegistryKey, Value: bomFile.GetRegistry()})
+	}
+
+	subcomponent, err := bomFile.GetSubcomponent(rancherImageSubcomponent)
+	if err != nil {
+		return kvs, ctx.Log().ErrorfNewErr("Failed to get the subcomponent %s from the bom: %v", rancherImageSubcomponent, err)
+	}
+	repo := subcomponent.Repository
+	images := subcomponent.Images
+
+	var envList []envVar
+	for _, image := range images {
+		imEnvVar, ok := imageEnvVars[image.ImageName]
+		// skip the images that are not included in the override map
+		if !ok {
+			continue
+		}
+		fullImageName := fmt.Sprintf("%s/%s", repo, image.ImageName)
+		// For the shell image, we need to combine to one env var
+		if image.ImageName == cattleShellImageName {
+			envList = append(envList, envVar{Name: imEnvVar, Value: fmt.Sprintf("%s:%s", fullImageName, image.ImageTag), SetString: false})
+			continue
+		}
+		tagEnvVar := imEnvVar + "_TAG"
+		envList = append(envList, envVar{Name: imEnvVar, Value: fullImageName, SetString: false})
+		envList = append(envList, envVar{Name: tagEnvVar, Value: image.ImageTag, SetString: false})
+	}
+
+	// For the Rancher UI, we need to update this final env var
+	envList = append(envList, envVar{Name: cattleUIEnvName, Value: "true", SetString: true})
+
+	return createEnvVars(kvs, envList), nil
+}
+
+// createEnvVars takes in a list of env arguments and creates the extraEnv override arguments
+func createEnvVars(kvs []bom.KeyValue, envList []envVar) []bom.KeyValue {
+	envPos := 0
+	for _, env := range envList {
+		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].name", envPos), Value: env.Name})
+		kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].value", envPos), Value: env.Value, SetString: env.SetString})
+		envPos++
+	}
+	return kvs
+}
+
 // IsEnabled Rancher is always enabled on admin clusters,
 // and is not enabled by default on managed clusters
 func (r rancherComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzconfig.IsRancherEnabled(effectiveCR)
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+// and also if the rancher is already installed by some other source by checking the namespace labels.
+func (r rancherComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	if err := checkExistingRancher(vz); err != nil {
+		return err
+	}
+	return r.HelmComponent.ValidateInstall(vz)
+}
+
+// ValidateInstallV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
+// and also if the rancher is already installed by some other source by checking the namespace labels.
+func (r rancherComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	if err := checkExistingRancher(vz); err != nil {
+		return err
+	}
+	return r.HelmComponent.ValidateInstallV1Beta1(vz)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -245,13 +376,14 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 // IsReady component check
 func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 	if r.HelmComponent.IsReady(ctx) {
-		return isRancherReady(ctx)
+		return r.isRancherReady(ctx)
 	}
 	return false
 }
 
 // PostInstall
 /* Additional setup for Rancher after the component is installed
+- Label Rancher Component Namespaces
 - Create the Rancher admin secret if it does not already exist
 - Retrieve the Rancher admin password
 - Retrieve the Rancher hostname
@@ -261,6 +393,11 @@ func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	c := ctx.Client()
 	log := ctx.Log()
+
+	if err := labelNamespace(c); err != nil {
+		return log.ErrorfThrottledNewErr("failed labelling namespace the for Rancher component: %s", err.Error())
+	}
+	log.Debugf("Rancher component namespaces labelled")
 
 	if err := createAdminSecretIfNotExists(log, c); err != nil {
 		return log.ErrorfThrottledNewErr("Failed creating Rancher admin secret: %s", err.Error())
@@ -283,10 +420,6 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 
 	if err := removeBootstrapSecretIfExists(log, c); err != nil {
 		return log.ErrorfThrottledNewErr("Failed removing Rancher bootstrap secret: %s", err.Error())
-	}
-
-	if err := configureAuthProviders(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring rancher auth providers: %s", err.Error())
 	}
 
 	if err := configureUISettings(ctx); err != nil {
@@ -328,10 +461,6 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if err := configureAuthProviders(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring rancher auth providers: %s", err.Error())
-	}
-
 	if err := configureUISettings(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring rancher UI settings: %s", err.Error())
 	}
@@ -358,17 +487,20 @@ func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
 	return nil
 }
 
-// configureAuthProviders
+// ConfigureAuthProviders
 // +configures Keycloak as OIDC provider for Rancher.
 // +creates or updates default user verrazzano.
 // +creates or updates admin clusterRole binding for  user verrazzano.
 // +disables first login setting to disable prompting for password on first login.
 // +enables or disables Keycloak Auth provider.
-func configureAuthProviders(ctx spi.ComponentContext) error {
-	log := ctx.Log()
-	if vzconfig.IsKeycloakEnabled(ctx.ActualCR()) && isKeycloakAuthEnabled(ctx.ActualCR()) {
+func ConfigureAuthProviders(ctx spi.ComponentContext) error {
+	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) &&
+		isKeycloakAuthEnabled(ctx.EffectiveCR()) &&
+		vzconfig.IsRancherEnabled(ctx.EffectiveCR()) {
+
+		ctx.Log().Oncef("Configuring Keycloak as a Rancher authentication provider")
 		if err := configureKeycloakOIDC(ctx); err != nil {
-			return log.ErrorfThrottledNewErr("failed configuring keycloak oidc provider: %s", err.Error())
+			return err
 		}
 
 		if err := createOrUpdateRancherVerrazzanoUser(ctx); err != nil {
@@ -388,10 +520,9 @@ func configureAuthProviders(ctx spi.ComponentContext) error {
 		}
 
 		if err := disableFirstLogin(ctx); err != nil {
-			return log.ErrorfThrottledNewErr("failed disabling first login setting: %s", err.Error())
+			return err
 		}
 	}
-
 	return nil
 }
 
@@ -450,5 +581,24 @@ func configureUISettings(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring ui color settings: %s", err.Error())
 	}
 
+	return nil
+}
+
+// checkExistingRancher checks if there is already an existing Rancher or not
+func checkExistingRancher(vz runtime.Object) error {
+	if !vzconfig.IsRancherEnabled(vz) {
+		return nil
+	}
+	client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return err
+	}
+	ns, err := client.Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil && !kerrs.IsNotFound(err) {
+		return err
+	}
+	if err = common.CheckExistingNamespace(ns.Items, isRancherNamespace); err != nil {
+		return err
+	}
 	return nil
 }

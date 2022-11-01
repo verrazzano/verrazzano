@@ -140,6 +140,10 @@ func (o opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
+func (o opensearchComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available bool) {
+	return nodesToObjectKeys(ctx.EffectiveCR()).IsAvailable(ctx.Log(), ctx.Client())
+}
+
 // IsReady component check
 func (o opensearchComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isOSReady(ctx)
@@ -155,14 +159,6 @@ func (o opensearchComponent) PostInstall(ctx spi.ComponentContext) error {
 func (o opensearchComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("OpenSearch component post-upgrade")
 	if err := common.CheckIngressesAndCerts(ctx, o); err != nil {
-		return err
-	}
-	return o.updateElasticsearchResources(ctx)
-}
-
-// updateElasticsearchResources updates elasticsearch resources
-func (o opensearchComponent) updateElasticsearchResources(ctx spi.ComponentContext) error {
-	if err := fixupElasticSearchReplicaCount(ctx, ComponentNamespace); err != nil {
 		return err
 	}
 	return nil
@@ -235,7 +231,7 @@ func (o opensearchComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
-			Name:      constants.ElasticsearchIngress,
+			Name:      constants.OpensearchIngress,
 		})
 	}
 

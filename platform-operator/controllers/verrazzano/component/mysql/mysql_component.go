@@ -5,6 +5,8 @@ package mysql
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -65,6 +67,14 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       appendMySQLOverrides,
 			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, MySQLOperatorComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				StatefulsetNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -72,7 +82,7 @@ func NewComponent() spi.Component {
 // IsReady calls MySQL isMySQLReady function
 func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
-		return isMySQLReady(context)
+		return c.isMySQLReady(context)
 	}
 	return false
 }

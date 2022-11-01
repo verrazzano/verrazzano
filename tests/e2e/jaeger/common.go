@@ -6,6 +6,8 @@ package jaeger
 import (
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -50,11 +52,19 @@ func DeployApplication(namespace, testAppComponentFilePath, testAppConfiguration
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(gomega.BeNil())
 
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(testAppComponentFilePath, namespace)
+		file, err := pkg.FindTestDataFile(testAppComponentFilePath)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(gomega.HaveOccurred())
 
 	gomega.Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(testAppConfigurationFilePath, namespace)
+		file, err := pkg.FindTestDataFile(testAppConfigurationFilePath)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(gomega.HaveOccurred())
 
 	gomega.Eventually(func() bool {
@@ -78,11 +88,19 @@ func UndeployApplication(namespace, testAppComponentFilePath, testAppConfigurati
 	}
 
 	gomega.Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(testAppComponentFilePath, namespace)
+		file, err := pkg.FindTestDataFile(testAppComponentFilePath)
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(gomega.HaveOccurred())
 
 	gomega.Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(testAppConfigurationFilePath, namespace)
+		file, err := pkg.FindTestDataFile(testAppConfigurationFilePath)
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(gomega.HaveOccurred())
 
 	gomega.Eventually(func() bool {

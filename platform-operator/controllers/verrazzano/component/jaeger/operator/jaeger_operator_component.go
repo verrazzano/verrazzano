@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 
@@ -103,13 +104,17 @@ func (c jaegerOperatorComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // IsReady checks if the Jaeger Operator deployment is ready
 func (c jaegerOperatorComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		defaultJaegerEnabled, err := isJaegerCREnabled(ctx)
-		if err == nil && defaultJaegerEnabled {
-			return isJaegerOperatorReady(ctx) && isDefaultJaegerInstanceReady(ctx)
-		}
-		return isJaegerOperatorReady(ctx)
+		return isJaegerReady(ctx)
 	}
 	return false
+}
+
+func (c jaegerOperatorComponent) IsAvailable(ctx spi.ComponentContext) (string, bool) {
+	deploys, err := getAllComponentDeployments(ctx)
+	if err != nil {
+		return err.Error(), false
+	}
+	return (&ready.AvailabilityObjects{DeploymentNames: deploys}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 // MonitorOverrides checks whether monitoring is enabled for install overrides sources

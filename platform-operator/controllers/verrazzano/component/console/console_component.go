@@ -5,7 +5,9 @@ package console
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -49,6 +51,14 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_4_0,
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Namespace: ComponentNamespace,
+						Name:      ComponentName,
+					},
+				},
+			},
 		},
 	}
 }
@@ -79,7 +89,7 @@ func (c consoleComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, 
 // IsReady component check
 func (c consoleComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isConsoleReady(ctx)
+		return c.isConsoleReady(ctx)
 	}
 	return false
 }
