@@ -392,7 +392,7 @@ func testUpdate(t *testing.T,
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = "../../../manifests/profiles"
 
 	// Create and make the request
 	request := newRequest(namespace, name)
