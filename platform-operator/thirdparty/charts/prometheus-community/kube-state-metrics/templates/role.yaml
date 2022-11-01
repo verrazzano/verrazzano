@@ -183,8 +183,5 @@ rules:
     - verticalpodautoscalers
   verbs: ["list", "watch"]
 {{ end -}}
-{{ if $.Values.rbac.extraRules }}
-{{ toYaml $.Values.rbac.extraRules }}
-{{ end }}
 {{- end -}}
 {{- end -}}

@@ -6,10 +6,6 @@ image:
   # Overrides the image tag whose default is {{ printf "v%s" .Chart.AppVersion }}
   tag: ""
   pullPolicy: IfNotPresent
-  sha: ""
-
-imagePullSecrets: []
-# - name: "image-pull-secret"
 
 service:
   type: ClusterIP
@@ -35,7 +31,6 @@ prometheus:
     jobLabel: ""
 
     scheme: http
-    basicAuth: {}
     bearerTokenFile:
     tlsConfig: {}
 
@@ -51,8 +46,6 @@ prometheus:
     metricRelabelings: []
     interval: ""
     scrapeTimeout: 10s
-    ## prometheus.monitor.apiVersion ApiVersion for the serviceMonitor Resource(defaults to "monitoring.coreos.com/v1")
-    apiVersion: ""
 
 ## Customize the updateStrategy if set
 updateStrategy:
@@ -142,9 +135,6 @@ podAnnotations:
 # Extra labels to be added to node exporter pods
 podLabels: {}
 
-## set to true to add the release label so scraping of the servicemonitor with kube-prometheus-stack works out of the box
-releaseLabel: false
-
 # Custom DNS configuration to be added to prometheus-node-exporter pods
 dnsConfig: {}
 # nameservers:
@@ -176,7 +166,7 @@ extraArgs: []
 #   - --collector.diskstats.ignored-devices=^(ram|loop|fd|(h|s|v)d[a-z]|nvme\\d+n\\d+p)\\d+$
 #   - --collector.textfile.directory=/run/prometheus
 
-## Additional mounts from the host to node-exporter container
+## Additional mounts from the host
 ##
 extraHostVolumeMounts: []
 #  - name: <mountName>
@@ -210,39 +200,6 @@ sidecarVolumeMount: []
 ##    mountPath: /run/prometheus
 ##    readOnly: false
 
-## Additional mounts from the host to sidecar containers
-##
-sidecarHostVolumeMounts: []
-#  - name: <mountName>
-#    hostPath: <hostPath>
-#    mountPath: <mountPath>
-#    readOnly: true|false
-#    mountPropagation: None|HostToContainer|Bidirectional
-
 ## Additional InitContainers to initialize the pod
 ##
 extraInitContainers: []
-
-## Liveness probe
-##
-livenessProbe:
-  failureThreshold: 3
-  httpGet:
-    httpHeaders: []
-    scheme: http
-  initialDelaySeconds: 0
-  periodSeconds: 10
-  successThreshold: 1
-  timeoutSeconds: 1
-
-## Readiness probe
-##
-readinessProbe:
-  failureThreshold: 3
-  httpGet:
-    httpHeaders: []
-    scheme: http
-  initialDelaySeconds: 0
-  periodSeconds: 10
-  successThreshold: 1
-  timeoutSeconds: 1

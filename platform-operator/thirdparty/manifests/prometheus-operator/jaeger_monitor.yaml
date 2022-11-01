@@ -22,6 +22,7 @@ spec:
       certFile: /etc/istio-certs/cert-chain.pem
       keyFile: /etc/istio-certs/key.pem
       insecureSkipVerify: true
+    enableHttp2: false
 {{ else }}
     scheme: http
 {{ end }}

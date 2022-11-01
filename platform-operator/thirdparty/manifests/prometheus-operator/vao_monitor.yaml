@@ -27,5 +27,6 @@ spec:
         targetLabel: app
       - action: replace
         targetLabel: verrazzano_cluster
-        replacement: local  
+        replacement: local
+    enableHttp2: false  
         

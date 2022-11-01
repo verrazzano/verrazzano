@@ -16,6 +16,7 @@ spec:
   endpoints:
   - path: /metrics
     scheme: http
+    enableHttp2: false
     relabelings:
     - action: replace
       replacement: local

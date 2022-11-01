@@ -1,5 +1,5 @@
 {{- if .Values.prometheus.monitor.enabled }}
-apiVersion: {{ .Values.prometheus.monitor.apiVersion | default "monitoring.coreos.com/v1" }}
+apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
   name: {{ template "prometheus-node-exporter.fullname" . }}
@@ -15,15 +15,12 @@ spec:
     {{- if .Values.prometheus.monitor.selectorOverride }}
       {{ toYaml .Values.prometheus.monitor.selectorOverride | indent 6 }}
     {{ else }}
-      {{ include "prometheus-node-exporter.selectorLabels" . | indent 6 }}
+      app: {{ template "prometheus-node-exporter.name" . }}
+      release: {{ .Release.Name }}
     {{- end }}
   endpoints:
     - port: {{ .Values.service.portName }}
       scheme: {{ .Values.prometheus.monitor.scheme }}
-    {{- with .Values.prometheus.monitor.basicAuth }}
-      basicAuth:
-        {{- toYaml . | nindent 8 }}
-    {{- end }}
     {{- with .Values.prometheus.monitor.bearerTokenFile }}
       bearerTokenFile: {{ . }}
     {{- end }}

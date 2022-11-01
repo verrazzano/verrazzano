@@ -40,13 +40,6 @@ spec:
       relabelings:
         {{- toYaml .Values.prometheus.monitor.relabelings | nindent 8 }}
     {{- end }}
-    {{- if .Values.prometheus.monitor.scheme }}
-      scheme: {{ .Values.prometheus.monitor.scheme }}
-    {{- end }}
-    {{- if .Values.prometheus.monitor.tlsConfig }}
-      tlsConfig:
-        {{- toYaml .Values.prometheus.monitor.tlsConfig | nindent 8 }}
-    {{- end }}
   {{- if .Values.selfMonitor.enabled }}
     - port: metrics
     {{- if .Values.prometheus.monitor.interval }}
@@ -68,13 +61,6 @@ spec:
     {{- if .Values.prometheus.monitor.relabelings }}
       relabelings:
         {{- toYaml .Values.prometheus.monitor.relabelings | nindent 8 }}
-    {{- end }}
-    {{- if .Values.prometheus.monitor.scheme }}
-      scheme: {{ .Values.prometheus.monitor.scheme }}
-    {{- end }}
-    {{- if .Values.prometheus.monitor.tlsConfig }}
-      tlsConfig:
-        {{- toYaml .Values.prometheus.monitor.tlsConfig | nindent 8 }}
     {{- end }}
   {{- end }}
 {{- end }}
