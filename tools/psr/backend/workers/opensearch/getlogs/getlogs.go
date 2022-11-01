@@ -284,5 +284,5 @@ func getBody() io.ReadCloser {
 
 func GetRandomLowerAlpha() string {
 	rand.Seed(time.Now().UnixNano())
-	return string(letters[rand.Intn(len(letters))])
+	return string(letters[rand.Intn(len(letters))]) //nolint:gosec //#gosec G404
 }
