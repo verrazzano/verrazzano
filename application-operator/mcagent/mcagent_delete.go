@@ -27,6 +27,7 @@ func (s *Syncer) syncMCAgentDeleteResources() error {
 		return nil
 	}
 
+	s.Log.Infof("Verrazzano Managed Cluster %s/%s has been deleted, cleaning up managed cluster resources", constants.VerrazzanoMultiClusterNamespace, s.ManagedClusterName)
 	mcAgentSec := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.MCAgentSecret,
@@ -47,7 +48,7 @@ func (s *Syncer) syncMCAgentDeleteResources() error {
 	}
 	err = s.LocalClient.Delete(ctx.TODO(), &mcRegSec)
 	if client.IgnoreNotFound(err) != nil {
-		s.Log.Errorf("Failed to delete the managed cluster agent secret %s/%s: %v", constants.MCRegistrationSecret, constants.VerrazzanoSystemNamespace, err)
+		s.Log.Errorf("Failed to delete the managed cluster registration secret %s/%s: %v", constants.MCRegistrationSecret, constants.VerrazzanoSystemNamespace, err)
 		return err
 	}
 	return nil
