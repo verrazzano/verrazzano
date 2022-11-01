@@ -29,7 +29,7 @@ var getLogsMetrics = workerMetrics{
 		Type: prometheus.CounterValue,
 	},
 	openSearchGetFailureCountTotal: metrics.MetricItem{
-		Name: "opensearch_get_success_count_total",
+		Name: "opensearch_get_failure_count_total",
 		Help: "The total number of successful openSearch GET requests",
 		Type: prometheus.CounterValue,
 	},

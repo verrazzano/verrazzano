@@ -51,7 +51,8 @@ func (m *MetricItem) BuildMetric() prometheus.Metric {
 	return prometheus.MustNewConstMetric(
 		m.Desc,
 		m.Type,
-		float64(atomic.LoadInt64(&m.Val)))
+		float64(atomic.LoadInt64(&m.Val)),
+	)
 }
 
 // BuildMetricDesc builds the MetricItem description from info about the metric and worker
