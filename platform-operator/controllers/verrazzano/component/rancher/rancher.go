@@ -52,7 +52,6 @@ const (
 	FleetSystemNamespace      = "cattle-fleet-system"
 	FleetLocalSystemNamespace = "cattle-fleet-local-system"
 	defaultSecretNamespace    = "cert-manager"
-	namespaceLabelKey         = "verrazzano.io/namespace"
 	rancherTLSSecretName      = "tls-ca"
 	defaultVerrazzanoName     = "verrazzano-ca-certificate-secret"
 	fleetAgentDeployment      = "fleet-agent"
@@ -236,35 +235,11 @@ func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 
 // isRancherReady checks that the Rancher component is in a 'Ready' state, as defined
 // in the body of this function
-func isRancherReady(ctx spi.ComponentContext) bool {
+func (r rancherComponent) isRancherReady(ctx spi.ComponentContext) bool {
 	log := ctx.Log()
 	c := ctx.Client()
-
-	deployments := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      rancherWebhookDeployment,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      fleetAgentDeployment,
-			Namespace: FleetLocalSystemNamespace,
-		},
-		{
-			Name:      fleetControllerDeployment,
-			Namespace: FleetSystemNamespace,
-		},
-		{
-			Name:      gitjobDeployment,
-			Namespace: FleetSystemNamespace,
-		},
-	}
-
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return ready.DeploymentsAreReady(log, c, deployments, 1, prefix)
+	return ready.DeploymentsAreReady(log, c, r.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 // chartsNotUpdatedWorkaround - workaround for VZ-7053, where some of the Helm charts are not

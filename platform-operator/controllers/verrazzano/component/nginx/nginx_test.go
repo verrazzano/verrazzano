@@ -221,7 +221,8 @@ func TestIsNGINXReady(t *testing.T) {
 			},
 		},
 	}
-	assert.True(t, isNginxReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
+	nginx := NewComponent().(nginxComponent)
+	assert.True(t, nginx.isNginxReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
 }
 
 // TestIsNGINXNotReadyWithoutIP tests the IsReady function
@@ -316,7 +317,8 @@ func TestIsNGINXNotReadyWithoutIP(t *testing.T) {
 			},
 		},
 	}
-	assert.False(t, isNginxReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
+	nginx := NewComponent().(nginxComponent)
+	assert.False(t, nginx.isNginxReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
 }
 
 // TestIsNGINXNotReady tests the IsReady function
@@ -358,7 +360,8 @@ func TestIsNGINXNotReady(t *testing.T) {
 			},
 		},
 	}
-	assert.False(t, isNginxReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
+	nginx := NewComponent().(nginxComponent)
+	assert.False(t, nginx.isNginxReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
 }
 
 // TestPostInstallWithPorts tests the PostInstall function

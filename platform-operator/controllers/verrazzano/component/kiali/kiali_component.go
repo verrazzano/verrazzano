@@ -6,6 +6,7 @@ package kiali
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 
@@ -64,7 +65,15 @@ func NewComponent() spi.Component {
 			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_1_0,
-			Certificates:              certificates,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      kialiSystemName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
+			Certificates: certificates,
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
@@ -138,17 +147,9 @@ func (c kialiComponent) PostUpgrade(ctx spi.ComponentContext) error {
 // IsReady Kiali-specific ready-check
 func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
-		return isKialiReady(context)
+		return c.isKialiReady(context)
 	}
 	return false
-}
-
-func (c kialiComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = c.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", c.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // IsEnabled Kiali-specific enabled check for installation

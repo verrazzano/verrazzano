@@ -103,10 +103,11 @@ func TestIsPushgatewayReady(t *testing.T) {
 			expectTrue: false,
 		},
 	}
+	pushGateway := NewComponent().(prometheusPushgatewayComponent)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, nil, false)
-			assert.Equal(t, tt.expectTrue, isPushgatewayReady(ctx))
+			assert.Equal(t, tt.expectTrue, pushGateway.isPushgatewayReady(ctx))
 		})
 	}
 }

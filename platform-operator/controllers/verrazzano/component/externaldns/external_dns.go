@@ -112,15 +112,9 @@ func postUninstall(log vzlog.VerrazzanoLogger, cli client.Client) error {
 	}.Delete()
 }
 
-func isExternalDNSReady(compContext spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c externalDNSComponent) isExternalDNSReady(compContext spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", compContext.GetComponent())
-	return ready.DeploymentsAreReady(compContext.Log(), compContext.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(compContext.Log(), compContext.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 // AppendOverrides builds the set of external-dns overrides for the helm install

@@ -59,7 +59,8 @@ func TestIsCoherenceOperatorReady(t *testing.T) {
 			},
 		},
 	).Build()
-	assert.True(t, isCoherenceOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
+	coherence := NewComponent().(coherenceComponent)
+	assert.True(t, coherence.isCoherenceOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
 }
 
 // TestIsCoherenceOperatorNotReady tests the isCoherenceOperatorReady function
@@ -79,7 +80,8 @@ func TestIsCoherenceOperatorNotReady(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	assert.False(t, isCoherenceOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
+	coherence := NewComponent().(coherenceComponent)
+	assert.False(t, coherence.isCoherenceOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
 }
 
 func TestGetOverrides(t *testing.T) {

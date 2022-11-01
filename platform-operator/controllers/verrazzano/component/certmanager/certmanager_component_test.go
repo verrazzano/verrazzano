@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
 	cmutil "github.com/jetstack/cert-manager/pkg/api/util"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
@@ -46,13 +48,11 @@ const (
 
 var (
 	mockNamespaceCoreV1Client = common.MockGetCoreV1(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
-		Name:      ComponentName,
-		Namespace: ComponentNamespace,
-		Labels:    map[string]string{vzNsLabel: ComponentNamespace},
+		Name:   ComponentName,
+		Labels: map[string]string{constants.VerrazzanoManagedKey: ComponentNamespace},
 	}})
 	mockNamespaceWithoutLabelClient = common.MockGetCoreV1(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
-		Name:      ComponentName,
-		Namespace: ComponentNamespace,
+		Name: ComponentName,
 	}})
 )
 

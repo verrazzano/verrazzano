@@ -26,7 +26,6 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -43,15 +42,9 @@ const (
 )
 
 // isKialiReady checks if the Kiali deployment is ready
-func isKialiReady(ctx spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      kialiSystemName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c kialiComponent) isKialiReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 // AppendOverrides Build the set of Kiali overrides for the helm install
