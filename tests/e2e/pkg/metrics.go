@@ -146,6 +146,10 @@ func findMetric(metrics []interface{}, keyMap map[string]string) bool {
 
 // MetricsExist is identical to MetricsExistInCluster, except that it uses the cluster specified in the environment
 func MetricsExist(metricsName, key, value string) bool {
+	targetsUP := ScrapeTargetsUp()
+	if !targetsUP {
+		return false
+	}
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
@@ -157,6 +161,27 @@ func MetricsExist(metricsName, key, value string) bool {
 	m[key] = value
 
 	return MetricsExistInCluster(metricsName, m, kubeconfigPath)
+}
+
+// ScrapeTargetsUp checks all the active targets if their status is success
+func ScrapeTargetsUp() bool {
+	targets, err := ScrapeTargets()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig, error: %v", err))
+		return false
+	}
+	allUp := true
+	for _, target := range targets {
+		// allUp only remains true if all targets status is success
+		if Jq(target, "health") != "up" {
+			Log(Info, fmt.Sprintf("target: %s is not up yet", target))
+			allUp = false
+		}
+	}
+	if allUp {
+		return true
+	}
+	return false
 }
 
 // ScrapeTargets queries Prometheus API /api/v1/targets to list scrape targets
