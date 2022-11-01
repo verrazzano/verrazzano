@@ -5,7 +5,6 @@ package http
 
 import (
    "net/http"
-   "os"
    "io/ioutil"
 )
 
@@ -92,7 +91,9 @@ func (w httpGetWorker) GetWorkerDesc() spi.WorkerDesc {
 }
 
 func (w httpGetWorker) GetEnvDescList() []osenv.EnvVarDesc {
-	return []osenv.EnvVarDesc{}
+	return []osenv.EnvVarDesc{
+        {Key: config.PsrEndpoint, DefaultVal: "", Required: true},
+        }
 }
 
 func (w httpGetWorker) GetMetricDescList() []prometheus.Desc {
@@ -129,7 +130,7 @@ func (w httpGetWorker) WantIterationInfoLogged() bool {
 
 func (w httpGetWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	var lc, ls, lf int64
-    var u string = os.Getenv("HTTP_GET_ENDPOINT")
+    var u string = config.PsrEnv.GetEnv(config.PsrEndpoint)
     log.Infof("Endpoint %s", u)
     log.Infof("HttpGet Worker doing work")
 

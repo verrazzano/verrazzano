@@ -15,11 +15,11 @@ import (
 )
 
 const (
-	loggedLinesCount     = "logged_lines_count"
-	loggedLinesCountHelp = "The total number of lines logged"
+	loggedLinesCountTotal     = "logged_lines_count_total"
+	loggedLinesCountTotalHelp = "The total number of lines logged"
 
-	loggedTotalChars     = "logged_total_chars"
-	loggedTotalCharsHelp = "The total number of characters logged"
+	loggedCharsCountTotal     = "logged_chars_total"
+	loggedCharsCountTotalHelp = "The total number of characters logged"
 )
 
 type logWriter struct {
@@ -32,8 +32,8 @@ var _ spi.Worker = logWriter{}
 
 // workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
 type workerMetrics struct {
-	loggedLinesCount metrics.MetricItem
-	loggedTotalChars metrics.MetricItem
+	loggedLinesCountTotal metrics.MetricItem
+	loggedCharsCountTotal metrics.MetricItem
 }
 
 func NewWriteLogsWorker() (spi.Worker, error) {
@@ -42,22 +42,22 @@ func NewWriteLogsWorker() (spi.Worker, error) {
 	w := logWriter{workerMetrics: &workerMetrics{}}
 
 	d := prometheus.NewDesc(
-		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, loggedLinesCount),
-		loggedLinesCountHelp,
+		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, loggedLinesCountTotal),
+		loggedLinesCountTotalHelp,
 		nil,
 		constLabels,
 	)
 	w.metricDescList = append(w.metricDescList, *d)
-	w.workerMetrics.loggedLinesCount.Desc = d
+	w.workerMetrics.loggedLinesCountTotal.Desc = d
 
 	d = prometheus.NewDesc(
-		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, loggedTotalChars),
-		loggedTotalCharsHelp,
+		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, loggedCharsCountTotal),
+		loggedCharsCountTotalHelp,
 		nil,
 		constLabels,
 	)
 	w.metricDescList = append(w.metricDescList, *d)
-	w.workerMetrics.loggedTotalChars.Desc = d
+	w.workerMetrics.loggedCharsCountTotal.Desc = d
 
 	return w, nil
 }
@@ -80,10 +80,10 @@ func (w logWriter) WantIterationInfoLogged() bool {
 }
 
 func (w logWriter) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-	lc := atomic.AddInt64(&w.workerMetrics.loggedLinesCount.Val, 1)
+	lc := atomic.AddInt64(&w.workerMetrics.loggedLinesCountTotal.Val, 1)
 	logMsg := fmt.Sprintf("Writelogs worker logging line %v", lc)
 	log.Infof(logMsg)
-	atomic.AddInt64(&w.workerMetrics.loggedTotalChars.Val, int64(len(logMsg)))
+	atomic.AddInt64(&w.workerMetrics.loggedCharsCountTotal.Val, int64(len(logMsg)))
 	return nil
 }
 
@@ -95,15 +95,15 @@ func (w logWriter) GetMetricList() []prometheus.Metric {
 	metrics := []prometheus.Metric{}
 
 	m := prometheus.MustNewConstMetric(
-		w.workerMetrics.loggedLinesCount.Desc,
+		w.workerMetrics.loggedLinesCountTotal.Desc,
 		prometheus.CounterValue,
-		float64(atomic.LoadInt64(&w.workerMetrics.loggedLinesCount.Val)))
+		float64(atomic.LoadInt64(&w.workerMetrics.loggedLinesCountTotal.Val)))
 	metrics = append(metrics, m)
 
 	m = prometheus.MustNewConstMetric(
-		w.workerMetrics.loggedTotalChars.Desc,
+		w.workerMetrics.loggedCharsCountTotal.Desc,
 		prometheus.CounterValue,
-		float64(atomic.LoadInt64(&w.workerMetrics.loggedTotalChars.Val)))
+		float64(atomic.LoadInt64(&w.workerMetrics.loggedCharsCountTotal.Val)))
 	metrics = append(metrics, m)
 
 	return metrics
