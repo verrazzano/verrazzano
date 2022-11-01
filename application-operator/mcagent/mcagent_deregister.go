@@ -4,7 +4,8 @@
 package mcagent
 
 import (
-	ctx "context"
+	"context"
+
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -34,7 +35,7 @@ func (s *Syncer) syncDeregistration() error {
 			Namespace: constants.VerrazzanoSystemNamespace,
 		},
 	}
-	err = s.LocalClient.Delete(ctx.TODO(), &mcAgentSec)
+	err = s.LocalClient.Delete(context.TODO(), &mcAgentSec)
 	if client.IgnoreNotFound(err) != nil {
 		s.Log.Errorf("Failed to delete the managed cluster agent secret %s/%s: %v", constants.MCAgentSecret, constants.VerrazzanoSystemNamespace, err)
 		return err
@@ -46,7 +47,7 @@ func (s *Syncer) syncDeregistration() error {
 			Namespace: constants.VerrazzanoSystemNamespace,
 		},
 	}
-	err = s.LocalClient.Delete(ctx.TODO(), &mcRegSec)
+	err = s.LocalClient.Delete(context.TODO(), &mcRegSec)
 	if client.IgnoreNotFound(err) != nil {
 		s.Log.Errorf("Failed to delete the managed cluster registration secret %s/%s: %v", constants.MCRegistrationSecret, constants.VerrazzanoSystemNamespace, err)
 		return err
