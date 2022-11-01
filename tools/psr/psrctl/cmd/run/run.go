@@ -29,5 +29,8 @@ func NewCmdRun(vzHelper helpers.VZHelper) *cobra.Command {
 
 // runCmdRun - run the "psrctl run" command
 func runCmdRun(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+
+	//	helmcli.Upgrade(vzlog.DefaultLogger(), "psrcli", "default", )
+
 	return nil
 }
