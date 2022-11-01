@@ -268,16 +268,21 @@ func getBody() io.ReadCloser {
     }
   }
 }`,
-		string(letters[rand.Intn(len(letters))]),
-		string(letters[rand.Intn(len(letters))]),
-		string(letters[rand.Intn(len(letters))]),
-		string(letters[rand.Intn(len(letters))]),
-		string(letters[rand.Intn(len(letters))]),
-		string(letters[rand.Intn(len(letters))]),
-		string(letters[rand.Intn(len(letters))]),
-		string(letters[rand.Intn(len(letters))]),
-		string(letters[rand.Intn(len(letters))]),
-		string(letters[rand.Intn(len(letters))]),
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
+		GetRandomLowerAlpha(),
 	)
 	return io.NopCloser(bytes.NewBuffer([]byte(body)))
+}
+
+func GetRandomLowerAlpha() string {
+	rand.Seed(time.Now().UnixNano())
+	return string(letters[rand.Intn(len(letters))])
 }
