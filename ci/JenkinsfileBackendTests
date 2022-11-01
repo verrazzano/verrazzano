@@ -186,7 +186,7 @@ pipeline {
                 sh """
                     # Update the last backend commit
                     echo "git-commit=${env.GIT_COMMIT}" > commit-used.txt
-                    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name LAST_BACKEND_OS_LOCATION --file commit-used.txt
+                    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${LAST_BACKEND_OS_LOCATION} --file commit-used.txt
                 """
             }
         }
