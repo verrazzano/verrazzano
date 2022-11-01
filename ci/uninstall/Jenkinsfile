@@ -5,8 +5,7 @@ def DOCKER_IMAGE_TAG
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 // pulling "ap-*" from the test regions given discovery of image pull issues
-def availableRegions = [ "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
-                          "sa-saopaulo-1", "uk-london-1" ]
+def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
 def OKE_CLUSTER_PREFIX = ""
 Collections.shuffle(availableRegions)
 
