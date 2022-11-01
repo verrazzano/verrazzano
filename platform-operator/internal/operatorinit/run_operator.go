@@ -1,4 +1,4 @@
-package init
+package operatorinit
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,8 +17,8 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
-// ReconcilePlatformOperator Platform operator execution entry point
-func ReconcilePlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
+// StartPlatformOperator Platform operator execution entry point
+func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
 	mgr, err := controllerruntime.NewManager(controllerruntime.GetConfigOrDie(), controllerruntime.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: config.MetricsAddr,
