@@ -13,7 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/example"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/http"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/http/get"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/writelogs"
 )
 
