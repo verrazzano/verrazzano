@@ -5,6 +5,7 @@ package workmanager
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
@@ -13,7 +14,15 @@ import (
 	"testing"
 )
 
-var _ spi.Worker = &fakeWorker{2}
+type fakeManagerWorker struct {
+	doWorkCount int64
+}
+
+var _ spi.Worker = &fakeManagerWorker{2}
+
+type fakeEnv struct {
+	data map[string]string
+}
 
 // TestStartWorkerRunners tests the manager
 // GIVEN a manager
@@ -32,45 +41,67 @@ func TestStartWorkerRunners(t *testing.T) {
 			workerType: config.WorkerTypeExample,
 			expectErr:  false,
 			envMap: map[string]string{
-				config.PsrWorkerType: config.WorkerTypeExample,
+				config.PsrWorkerType:    config.WorkerTypeExample,
+				config.PsrNumIterations: "1",
+			},
+		},
+		{name: "WorkerTypeWriteLogs",
+			workerType: config.WorkerTypeWriteLogs,
+			expectErr:  false,
+			envMap: map[string]string{
+				config.PsrWorkerType:    config.WorkerTypeWriteLogs,
+				config.PsrNumIterations: "1",
+			},
+		},
+		{name: "WorkerTypeGetLogs",
+			workerType: config.WorkerTypeGetLogs,
+			expectErr:  false,
+			envMap: map[string]string{
+				config.PsrWorkerType:    config.WorkerTypeGetLogs,
+				config.PsrNumIterations: "1",
+			},
+		},
+		{name: "MissingWorkerType",
+			expectErr: true,
+			envMap: map[string]string{
+				config.PsrNumIterations: "1",
+			},
+		},
+		{name: "InvalidWorkerType",
+			expectErr: true,
+			envMap: map[string]string{
+				config.PsrWorkerType:    "InvalidWorker",
+				config.PsrNumIterations: "1",
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			type fakeEnv struct {
-				data map[string]string
-			}
 			f := fakeEnv{data: test.envMap}
+			saveEnv := osenv.GetEnvFunc
+			osenv.GetEnvFunc = f.GetEnv
+			defer func() {
+				osenv.GetEnvFunc = saveEnv
+			}()
 
-			func (f *fakeEnv) GetEnv(key string) string {
-				return f.data[key]
+			saveStartMetrics := startMetricsFunc
+			startMetricsFunc = fakeStartMetrics
+			defer func() {
+				startMetricsFunc = saveStartMetrics
+			}()
+
+			err := StartWorkerRunners(vzlog.DefaultLogger())
+			if test.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
-
-
-			config.CommonConfig{}
-
 		})
-		//	log := vzlog.DefaultLogger()
-		//	f := fakeWorker{}
-		//	r, err := StartWorkerRunners(config.CommonConfig{}, log)
-		//	actualRunner := r.(runner)
-		//	assert.NoError(t, err)
-		//
-		//	err = r.RunWorker(config.CommonConfig{
-		//		WorkerType:    "Fake",
-		//		NumIterations: test.iterations,
-		//	}, log)
-		//
-		//	assert.NoError(t, err)
-		//	assert.Equal(t, f.doWorkCount, test.iterations)
-		//	assert.Equal(t, actualRunner.loopCount.Val, test.iterations)
-		//})
 	}
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
-func (w fakeWorker) GetWorkerDesc() spi.WorkerDesc {
+func (w fakeManagerWorker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
 		EnvName:     config.WorkerTypeExample,
 		Description: "Example worker that demonstrates executing a fake use case",
@@ -78,23 +109,30 @@ func (w fakeWorker) GetWorkerDesc() spi.WorkerDesc {
 	}
 }
 
-func (w *fakeWorker) GetEnvDescList() []osenv.EnvVarDesc {
+func (w *fakeManagerWorker) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{}
 }
 
-func (w *fakeWorker) GetMetricDescList() []prometheus.Desc {
+func (w *fakeManagerWorker) GetMetricDescList() []prometheus.Desc {
 	return nil
 }
 
-func (w *fakeWorker) GetMetricList() []prometheus.Metric {
+func (w *fakeManagerWorker) GetMetricList() []prometheus.Metric {
 	return nil
 }
 
-func (w *fakeWorker) WantIterationInfoLogged() bool {
+func (w *fakeManagerWorker) WantIterationInfoLogged() bool {
 	return true
 }
 
-func (w *fakeWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+func (w *fakeManagerWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	w.doWorkCount = w.doWorkCount + 1
 	return nil
+}
+
+func (f *fakeEnv) GetEnv(key string) string {
+	return f.data[key]
+}
+
+func fakeStartMetrics(_ []spi.WorkerMetricsProvider) {
 }
