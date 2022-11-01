@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -503,11 +504,7 @@ func ConfigureAuthProviders(ctx spi.ComponentContext) error {
 			return err
 		}
 
-		if err := createOrUpdateRancherVerrazzanoUser(ctx); err != nil {
-			return err
-		}
-
-		if err := createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx); err != nil {
+		if err := createOrUpdateRancherUser(ctx); err != nil {
 			return err
 		}
 
@@ -598,6 +595,26 @@ func checkExistingRancher(vz runtime.Object) error {
 		return err
 	}
 	if err = common.CheckExistingNamespace(ns.Items, isRancherNamespace); err != nil {
+		return err
+	}
+	return nil
+}
+
+// createOrUpdateRancherUser create or update the new Rancher user mapped to Keycloak user verrazzano
+func createOrUpdateRancherUser(ctx spi.ComponentContext) error {
+	vzUser, err := keycloak.GetVerrazzanoUserFromKeycloak(ctx)
+	if err != nil {
+		return ctx.Log().ErrorfThrottledNewErr("failed configuring Rancher user, unable to fetch verrazzano user id from Keycloak: %s", err.Error())
+	}
+	rancherUsername, err := getRancherUsername(ctx, vzUser)
+	if err != nil {
+		return err
+	}
+	if err = createOrUpdateRancherVerrazzanoUser(ctx, vzUser, rancherUsername); err != nil {
+		return err
+	}
+
+	if err = createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx, rancherUsername); err != nil {
 		return err
 	}
 	return nil
