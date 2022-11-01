@@ -14,8 +14,9 @@ spec:
       - {{ .systemNamespace }}
   selector: {}
   endpoints:
-  - path: /_prometheus/metrics
-{{ if .isIstioEnabled }}
+  - path: /_prometheus/
+    enableHttp2: false
+  {{ if .isIstioEnabled }}
     scheme: https
 {{ else }}
     scheme: http
