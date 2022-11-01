@@ -1144,10 +1144,8 @@ def verifyDeregisterManagedCluster(count) {
             sh """
                 export MANAGED_CLUSTER_NAME="managed${count-1}"
                 export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                export KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
-                kubectl -n verrazzano-mc delete vmc "managed${count-1}"
-                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                kubectl -n verrazzano-system delete secret verrazzano-cluster-registration
+                export ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+                ./tests/e2e/config/scripts/deregister_managed_cluster.sh
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
                 ginkgo build multicluster/verify-deregister/
                 ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-deregister/*.test
