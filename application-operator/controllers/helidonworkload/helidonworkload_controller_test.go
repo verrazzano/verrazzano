@@ -1001,6 +1001,6 @@ func TestAddMetrics(t *testing.T) {
 	// Unwrap the apps/DeploymentSpec and meta/ObjectMeta
 	deploy, err := reconciler.convertWorkloadToDeployment(&workload, log)
 	assert.NoError(err)
-	err = reconciler.addMetrics(context.TODO(),log,workload.Namespace, &workload, deploy)
+	err = reconciler.addMetrics(context.TODO(), log, workload.Namespace, &workload, deploy)
 	assert.NoError(err)
 }
