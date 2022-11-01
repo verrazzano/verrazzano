@@ -73,12 +73,6 @@ spec:
               replicas: 2
     opensearch:
       nodes:
-        - name: es-master
-          roles:
-            - master
-        - name: es-data
-          roles:
-            - data
         - name: es-ingest
           replicas: 2
           roles:
