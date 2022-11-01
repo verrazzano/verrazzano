@@ -5,21 +5,21 @@
 apiVersion: core.oam.dev/v1alpha2
 kind: ApplicationConfiguration
 metadata:
-  name: {{ .Release.Name}}
+  name: {{ template "worker.fullName" .}}
   namespace: {{ .Release.Namespace }}
   annotations:
     version: v1.0.0
     description: "PSR backend application"
 spec:
   components:
-    - componentName: {{ .Release.Name}}
+    - componentName: {{ template "worker.fullName" .}}
       traits:
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1
             kind: MetricsTrait
             spec:
               scraper: verrazzano-system/vmi-system-prometheus-0
-              path: "/actuator/prometheus"
+              path: "/metrics"
         - trait:
             apiVersion: core.oam.dev/v1alpha2
             kind: ManualScalerTrait
