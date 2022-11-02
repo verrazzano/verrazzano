@@ -239,11 +239,11 @@ func TestUninstallHelmChartNotInstalled(t *testing.T) {
 }
 
 // TestIsAvailable tests the AuthProxy is available and ready
-// GIVEN a AuthProxy component
-// WHEN IsAvailable is called
-// THEN (reason and true) is returned if AuthProxy is Available & ready  and
 //
-//	(reason and false) is returned if AuthProxy is not Available or not ready.
+//	GIVEN a AuthProxy component
+//	WHEN IsAvailable is called
+//	THEN (reason and true) is returned if AuthProxy is Available & ready  and
+//	    (reason and false) is returned if AuthProxy is not Available or not ready.
 func TestIsAvailable(t *testing.T) {
 	objectMeta := metav1.ObjectMeta{
 		Name:      ComponentName,
@@ -329,10 +329,9 @@ func TestIsAvailable(t *testing.T) {
 
 // TestIsAvailableWithHelmError tests IsAvailable
 //
-//	 GIVEN a AuthProxy component
-//		WHEN IsAvailable is called
-//		THEN (reason and true) is returned if AuthProxy is Available & ready  and
-//		(reason and false) is returned if AuthProxy is not Available or not ready.
+//	  GIVEN a AuthProxy component
+//	  WHEN IsAvailable is called
+//	  THEN (reason and false) is returned if helm CLI throws error
 func TestIsAvailableWithHelmError(t *testing.T) {
 	client := fake.NewClientBuilder().Build()
 	tests := []struct {
@@ -365,9 +364,10 @@ func TestIsAvailableWithHelmError(t *testing.T) {
 }
 
 // TestMonitorOverrides test the MonitorOverrides to confirm monitoring of install overrides is enabled or not
-// GIVEN a default VZ CR with auth proxy component
-// WHEN  MonitorOverrides is called
-// THEN  returns True if monitoring of install overrides is enabled and False otherwise
+//
+//	GIVEN a default VZ CR with auth proxy component
+// 	WHEN  MonitorOverrides is called
+// 	THEN  returns True if monitoring of install overrides is enabled and False otherwise
 func TestMonitorOverrides(t *testing.T) {
 	disabled := false
 	enabled := true
@@ -429,9 +429,9 @@ func TestMonitorOverrides(t *testing.T) {
 // TestPreInstall test the PreInstall to check all the
 // pre-install operations are successful executed or not.
 //
-//	 GIVEN an Authproxy component
-//		WHEN I call PreInstall with defaults
-//		THEN no error is returned
+//	GIVEN an Authproxy component
+//	WHEN I call PreInstall with defaults
+//	THEN no error is returned
 func TestPreInstall(t *testing.T) {
 	defer helmcli.SetDefaultRunner()
 	helmCliNoError := func() {
@@ -487,9 +487,9 @@ func TestPreInstall(t *testing.T) {
 // TestPreUpgrade test the PreUpgrade to check all the pre upgrade operations
 // are successful executed or not.
 //
-//	 GIVEN an Authproxy component
-//		WHEN I call PreUpgrade with defaults
-//		THEN no error is returned
+//	GIVEN an Authproxy component
+//	WHEN I call PreUpgrade with defaults
+//	THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
 	tests := []struct {
 		name       string
