@@ -5,6 +5,7 @@ package root
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/explain"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/start"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/version"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
@@ -40,6 +41,7 @@ func NewRootCmd(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
 
 	// Add commands
+	cmd.AddCommand(explain.NewCmdExplain(vzHelper))
 	cmd.AddCommand(start.NewCmdStart(vzHelper))
 	cmd.AddCommand(version.NewCmdVersion(vzHelper))
 

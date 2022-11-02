@@ -8,11 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/embedded"
 	"os"
-	"sigs.k8s.io/yaml"
 	"testing"
 )
 
-func Test(t *testing.T) {
+func TestPossibleScenarios(t *testing.T) {
 	// Extract the manifests and write them to a temp directory
 	man, err := embedded.ExtractManifests()
 	if err != nil {
@@ -21,11 +20,13 @@ func Test(t *testing.T) {
 	}
 	defer os.RemoveAll(man.RootTmpDir)
 
-	dir := embedded.Manifests.ScenarioAbsDir
-
-	data, err := os.ReadFile(dir + "/opensearch/s1/scenario.yaml")
+	sList, err := ListAvailableScenarios("./testdata")
 	assert.NoError(t, err)
-	var sc Scenario
-	yaml.Unmarshal(data, &sc)
-	assert.Equal(t, sc.Name, "OpenSearch-S1")
+	assert.Equal(t, "OpenSearch-S1", sList[0].Name)
+	assert.Equal(t, "ops-s1", sList[0].ID)
+	assert.Equal(t, "ops-s1 description", sList[0].Description)
+
+	assert.Equal(t, "OpenSearch-S2", sList[1].Name)
+	assert.Equal(t, "ops-s2", sList[1].ID)
+	assert.Equal(t, "ops-s2 description", sList[1].Description)
 }

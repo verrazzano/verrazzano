@@ -6,7 +6,7 @@ package start
 import (
 	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/helm"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
@@ -33,7 +33,7 @@ func NewCmdStart(vzHelper helpers.VZHelper) *cobra.Command {
 func startCmdStart(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	fmt.Println("Starting example scenario...")
 
-	msg, err := helm.InstallScenario()
+	msg, err := scenario.InstallScenario()
 
 	fmt.Println("Helm results...")
 	fmt.Println()

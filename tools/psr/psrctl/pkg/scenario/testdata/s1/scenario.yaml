@@ -3,9 +3,7 @@
 
 name: OpenSearch-S1
 ID: ops-s1
-description: |
-  This is a scenario that writes logs to STDOUT and gets logs from OpenSearch at a moderated rate. 
-  The purpose of the scenario is to test a concurrent read/write load on OpenSearch logging records.
+description: ops-s1 description
 usecases:
   - usecasePath: opensearch/getlogs/getlogs.yaml
     overrideFile: getlogs-slow.yaml
