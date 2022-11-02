@@ -5,11 +5,11 @@ package rancher
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base32"
 	"fmt"
+	"reflect"
 	"strings"
-
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -22,6 +22,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	appsv1 "k8s.io/api/apps/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -86,25 +88,25 @@ const (
 )
 
 const (
-	SettingServerURL               = "server-url"
-	KontainerDriverOKE             = "oraclecontainerengine"
-	NodeDriverOCI                  = "oci"
-	ClusterLocal                   = "local"
-	AuthConfigLocal                = "local"
-	UserVerrazzano                 = "u-verrazzano"
-	UserVerrazzanoDescription      = "Verrazzano Admin"
-	GlobalRoleBindingVerrazzano    = "grb-" + UserVerrazzano
-	SettingUIPL                    = "ui-pl"
-	SettingUIPLValueVerrazzano     = "Verrazzano"
-	SettingUILogoLight             = "ui-logo-light"
-	SettingUILogoLightLogoFilePath = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-light.svg"
-	SettingUILogoDark              = "ui-logo-dark"
-	SettingUILogoDarkLogoFilePath  = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-dark.svg"
-	SettingUILogoValueprefix       = "data:image/svg+xml;base64,"
-	SettingUIPrimaryColor          = "ui-primary-color"
-	SettingUIPrimaryColorValue     = "rgb(48, 99, 142)"
-	SettingUILinkColor             = "ui-link-color"
-	SettingUILinkColorValue        = "rgb(49, 118, 217)"
+	SettingServerURL                  = "server-url"
+	KontainerDriverOKE                = "oraclecontainerengine"
+	NodeDriverOCI                     = "oci"
+	ClusterLocal                      = "local"
+	AuthConfigLocal                   = "local"
+	UserVerrazzano                    = "u-verrazzano"
+	UserVerrazzanoDescription         = "Verrazzano Admin"
+	GlobalRoleBindingVerrazzanoPrefix = "grb-"
+	SettingUIPL                       = "ui-pl"
+	SettingUIPLValueVerrazzano        = "Verrazzano"
+	SettingUILogoLight                = "ui-logo-light"
+	SettingUILogoLightLogoFilePath    = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-light.svg"
+	SettingUILogoDark                 = "ui-logo-dark"
+	SettingUILogoDarkLogoFilePath     = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-dark.svg"
+	SettingUILogoValueprefix          = "data:image/svg+xml;base64,"
+	SettingUIPrimaryColor             = "ui-primary-color"
+	SettingUIPrimaryColorValue        = "rgb(48, 99, 142)"
+	SettingUILinkColor                = "ui-link-color"
+	SettingUILinkColorValue           = "rgb(49, 118, 217)"
 )
 
 // auth config
@@ -235,35 +237,11 @@ func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 
 // isRancherReady checks that the Rancher component is in a 'Ready' state, as defined
 // in the body of this function
-func isRancherReady(ctx spi.ComponentContext) bool {
+func (r rancherComponent) isRancherReady(ctx spi.ComponentContext) bool {
 	log := ctx.Log()
 	c := ctx.Client()
-
-	deployments := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      rancherWebhookDeployment,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      fleetAgentDeployment,
-			Namespace: FleetLocalSystemNamespace,
-		},
-		{
-			Name:      fleetControllerDeployment,
-			Namespace: FleetSystemNamespace,
-		},
-		{
-			Name:      gitjobDeployment,
-			Namespace: FleetSystemNamespace,
-		},
-	}
-
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return ready.DeploymentsAreReady(log, c, deployments, 1, prefix)
+	return ready.DeploymentsAreReady(log, c, r.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 // chartsNotUpdatedWorkaround - workaround for VZ-7053, where some of the Helm charts are not
@@ -537,33 +515,25 @@ func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, 
 }
 
 // createOrUpdateRancherVerrazzanoUser creates or updates the verrazzano user in Rancher
-func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
-	log := ctx.Log()
-
-	nsn := types.NamespacedName{Name: UserVerrazzano}
-
-	vzUser, err := keycloak.GetVerrazzanoUserFromKeycloak(ctx)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user, unable to fetch verrazzano user id from keycloak: %s", err.Error())
-	}
-
+func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext, vzUser *keycloak.KeycloakUser, rancherUsername string) error {
+	nsn := types.NamespacedName{Name: rancherUsername}
 	data := map[string]interface{}{}
 	data[UserAttributeUserName] = vzUser.Username
 	caser := cases.Title(language.English)
 	data[UserAttributeDisplayName] = caser.String(vzUser.Username)
 	data[UserAttributeDescription] = caser.String(UserVerrazzanoDescription)
-	data[UserAttributePrincipalIDs] = []interface{}{UserPrincipalKeycloakPrefix + vzUser.ID, UserPrincipalLocalPrefix + UserVerrazzano}
+	data[UserAttributePrincipalIDs] = []interface{}{UserPrincipalKeycloakPrefix + vzUser.ID, UserPrincipalLocalPrefix + rancherUsername}
 
 	return createOrUpdateResource(ctx, nsn, GVKUser, data)
 }
 
 // createOrUpdateRancherVerrazzanoUserGlobalRoleBinding used to make the verrazzano user admin
-func createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx spi.ComponentContext) error {
-	nsn := types.NamespacedName{Name: GlobalRoleBindingVerrazzano}
+func createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx spi.ComponentContext, rancherUsername string) error {
+	nsn := types.NamespacedName{Name: GlobalRoleBindingVerrazzanoPrefix + rancherUsername}
 
 	data := map[string]interface{}{}
 	data[GlobalRoleBindingAttributeRoleName] = AdminRoleName
-	data[GlobalRoleBindingAttributeUserName] = UserVerrazzano
+	data[GlobalRoleBindingAttributeUserName] = rancherUsername
 
 	return createOrUpdateResource(ctx, nsn, GVKGlobalRoleBinding, data)
 }
@@ -669,4 +639,71 @@ func createOrUpdateUIColorSettings(ctx spi.ComponentContext) error {
 	}
 
 	return createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUILinkColor}, common.GVKSetting, map[string]interface{}{"value": SettingUILinkColorValue})
+}
+
+// getRancherVerrazzanoUserName fetches Rancher user that is mapped to the ID of  Keycloak user verrazzano
+// It checks only for u-verrazzano and u-<hash> users only
+func getRancherVerrazzanoUserName(ctx spi.ComponentContext, vzUser *keycloak.KeycloakUser) (string, error) {
+	c := ctx.Client()
+	resources := unstructured.Unstructured{}
+	nsn := types.NamespacedName{Name: UserVerrazzano}
+	resources.SetGroupVersionKind(GVKUser)
+	resources.SetName(nsn.Name)
+	resources.SetNamespace(nsn.Namespace)
+	userPrincipalKeycloakID := UserPrincipalKeycloakPrefix + vzUser.ID
+	key := client.ObjectKeyFromObject(&resources)
+	err := c.Get(context.TODO(), key, &resources)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			nsn.Name = getUserNameForPrincipal(userPrincipalKeycloakID)
+			err = c.Get(context.TODO(), nsn, &resources)
+		}
+		if err != nil && !errors.IsNotFound(err) {
+			return "", err
+		}
+	}
+	return getUserMappedToPrincipalID(resources, userPrincipalKeycloakID)
+}
+
+// getUserMappedToPrincipalID returns the  Rancher username if the Rancher user contains the specified principalStr
+func getUserMappedToPrincipalID(resource unstructured.Unstructured, principalStr string) (string, error) {
+	data := resource.UnstructuredContent()
+	principleIDs, ok := data[UserAttributePrincipalIDs]
+	if ok {
+		switch reflect.TypeOf(principleIDs).Kind() {
+		case reflect.Slice:
+			listOfPrincipleIDs := reflect.ValueOf(principleIDs)
+			for i := 0; i < listOfPrincipleIDs.Len(); i++ {
+				principleID := listOfPrincipleIDs.Index(i).Interface().(string)
+				if strings.Contains(principleID, principalStr) {
+					return resource.GetName(), nil
+				}
+			}
+		}
+	}
+	return "", nil
+}
+
+// getRancherUsername returns the Rancher username.
+// If there is already Rancher user exists mapped to Keycloak user verrazzano, it will return that existing Rancher username
+// else new Rancher username(created from principal) will be returned.
+func getRancherUsername(ctx spi.ComponentContext, vzUser *keycloak.KeycloakUser) (string, error) {
+	log := ctx.Log()
+	keycloakPrincipal := UserPrincipalKeycloakPrefix + vzUser.ID
+	rancherUserName := getUserNameForPrincipal(keycloakPrincipal)
+	existingUser, err := getRancherVerrazzanoUserName(ctx, vzUser)
+	if err != nil {
+		return "", log.ErrorfThrottledNewErr("failed to check if Rancher user mapped to Keycloak user verrazzano exists or not: %s", err.Error())
+	} else if existingUser != "" { // If Rancher user already exists that is mapped to Keycloak user verrazzano
+		rancherUserName = existingUser
+	}
+	return rancherUserName, nil
+}
+
+// getUserNameForPrincipal return the Rancher username created from principal
+func getUserNameForPrincipal(principal string) string {
+	hasher := sha256.New()
+	hasher.Write([]byte(principal))
+	sha := base32.StdEncoding.WithPadding(-1).EncodeToString(hasher.Sum(nil))[:10]
+	return "u-" + strings.ToLower(sha)
 }

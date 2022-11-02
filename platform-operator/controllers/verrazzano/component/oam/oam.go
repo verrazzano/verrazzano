@@ -17,7 +17,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
@@ -29,15 +28,9 @@ const (
 )
 
 // isOAMReady checks if the OAM operator deployment is ready
-func isOAMReady(context spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c oamComponent) isOAMReady(context spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	return ready.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(context.Log(), context.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 // ensureClusterRoles creates or updates additional OAM cluster roles during install and upgrade

@@ -22,14 +22,18 @@ const (
 type (
 	isObjectAvailableSig func(client clipkg.Client, nsn types.NamespacedName) error
 	AvailabilityObjects  struct {
-		StatefulsetNames []types.NamespacedName
-		DeploymentNames  []types.NamespacedName
-		DaemonsetNames   []types.NamespacedName
+		StatefulsetNames    []types.NamespacedName
+		DeploymentNames     []types.NamespacedName
+		DeploymentSelectors []clipkg.ListOption
+		DaemonsetNames      []types.NamespacedName
 	}
 )
 
 func (c *AvailabilityObjects) IsAvailable(log vzlog.VerrazzanoLogger, client clipkg.Client) (string, bool) {
 	if err := DeploymentsAreAvailable(client, c.DeploymentNames); err != nil {
+		return handleNotAvailableError(log, err)
+	}
+	if err := DeploymentsAreAvailableBySelector(client, c.DeploymentSelectors); err != nil {
 		return handleNotAvailableError(log, err)
 	}
 	if err := StatefulsetsAreAvailable(client, c.StatefulsetNames); err != nil {
@@ -61,9 +65,32 @@ func DaemonsetsAreAvailable(client clipkg.Client, daemonsets []types.NamespacedN
 	return objectsAreAvailable(client, daemonsets, isDaemonsetAvailable)
 }
 
-func objectsAreAvailable(client clipkg.Client, objectKeys []types.NamespacedName, objectReadyFunc isObjectAvailableSig) error {
+func DeploymentsAreAvailableBySelector(client clipkg.Client, selectors []clipkg.ListOption) error {
+	if len(selectors) < 1 {
+		return nil
+	}
+	deploymentList := &appsv1.DeploymentList{}
+	if err := client.List(context.TODO(), deploymentList, selectors...); err != nil {
+		return handleListFailure(typeDeployment, err)
+	}
+	if deploymentList.Items == nil || len(deploymentList.Items) < 1 {
+		return handleListNotFound(typeDeployment, selectors)
+	}
+	for _, deploy := range deploymentList.Items {
+		nsn := types.NamespacedName{
+			Namespace: deploy.Namespace,
+			Name:      deploy.Name,
+		}
+		if err := handleReplicasNotReady(deploy.Status.ReadyReplicas, deploy.Status.Replicas, nsn, typeDeployment); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func objectsAreAvailable(client clipkg.Client, objectKeys []types.NamespacedName, objectAvailableFunc isObjectAvailableSig) error {
 	for _, nsn := range objectKeys {
-		if err := objectReadyFunc(client, nsn); err != nil {
+		if err := objectAvailableFunc(client, nsn); err != nil {
 			return err
 		}
 	}
@@ -102,8 +129,20 @@ func handleGetError(err error, nsn types.NamespacedName, objectType string) erro
 }
 
 func handleReplicasNotReady(ready, expected int32, nsn types.NamespacedName, objectType string) error {
+	if expected == 0 {
+		// an enabled component should have at least one expected replica
+		expected = 1
+	}
 	if ready != expected {
 		return fmt.Errorf("%s %v not available: %d/%d replicas ready", objectType, nsn, ready, expected)
 	}
 	return nil
+}
+
+func handleListFailure(objectType string, err error) error {
+	return fmt.Errorf("failed getting %s: %v", objectType, err)
+}
+
+func handleListNotFound(objectType string, selectors []clipkg.ListOption) error {
+	return fmt.Errorf("waiting for %s matching selectors %v to exist", objectType, selectors)
 }

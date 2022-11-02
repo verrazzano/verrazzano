@@ -215,16 +215,6 @@ spec:
       enabled: true
     opensearch:
       enabled: true
-      nodes:
-        - name: es-master
-          roles:
-            - master
-        - name: es-data
-          roles:
-            - data
-        - name: es-ingest
-          roles:
-            - ingest
     opensearchDashboards:
       enabled: true
       replicas: 1

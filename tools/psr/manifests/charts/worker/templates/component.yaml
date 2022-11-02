@@ -5,17 +5,17 @@
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
-  name: {{ .Release.Name}}
+  name: {{ template "worker.fullName" .}}
   namespace: {{ .Release.Namespace }}
 spec:
   workload:
     apiVersion: core.oam.dev/v1alpha2
     kind: ContainerizedWorkload
     metadata:
-      name: {{ .Release.Name}}
+      name: {{ template "worker.fullName" .}}
       namespace: {{ .Release.Namespace }}
       labels:
-        app: psr-backend
+        app: psr-worker
         version: v1
     spec:
       {{- if .Values.imagePullSecrets }}
@@ -27,9 +27,9 @@ spec:
           image: {{  .Values.imageName }}
           imagePullPolicy: {{  .Values.imagePullPolicy }}
           env:
-            {{- range $key, $val := .Values.envVars }}
+            {{- range $key, $val := .Values.global.envVars }}
             - name: {{ $key }}
-              value: {{ $val }}
+              value: {{ $val | quote}}
               {{- end }}
           ports:
             - containerPort: 8080
