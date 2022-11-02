@@ -6,8 +6,9 @@ package operator
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -105,6 +106,363 @@ func TestIsEnabled(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, nil, false, profilesRelativePath)
 			assert.Equal(t, tt.expectTrue, NewComponent().IsEnabled(ctx.EffectiveCR()))
+		})
+	}
+}
+
+// TestIsInstalled tests the IsEnabled function for the Jaeger Operator component
+func TestIsInstalled(t *testing.T) {
+	falseValue := false
+	tests := []struct {
+		name       string
+		client     client.Client
+		actualCR   vzapi.Verrazzano
+		expectTrue bool
+	}{
+		{
+			// GIVEN a default Verrazzano custom resource
+			// WHEN we call IsInstalled on the Jaeger Operator component
+			// THEN the call returns false
+			name:       "Test IsInstalled when using default Verrazzano CR",
+			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
+			actualCR:   vzapi.Verrazzano{},
+			expectTrue: false,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			// WHEN we call IsInstalled on the Jaeger Operator component
+			// THEN the call returns true
+			name: "Test IsInstalled when Jaeger Operator component set to enabled",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getJaegerOperatorObjects(1)...,
+			).Build(),
+			actualCR:   *jaegerEnabledCR,
+			expectTrue: true,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       and Jaeger operator pod is not available
+			// WHEN we call IsInstalled on the Jaeger Operator component
+			// THEN the call returns false
+			name:       "Test IsInstalled when Jaeger Operator component set to enabled",
+			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
+			actualCR:   *jaegerEnabledCR,
+			expectTrue: false,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator disabled
+			// WHEN we call IsInstalled on the Jaeger Operator component
+			// THEN the call returns false
+			name:   "Test IsInstalled when Jaeger Operator component set to disabled",
+			client: fake.NewClientBuilder().WithScheme(testScheme).Build(),
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							Enabled: &falseValue,
+						},
+					},
+				},
+			},
+			expectTrue: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, &tt.actualCR, nil, false, profilesRelativePath)
+			isInstalled, err := NewComponent().IsInstalled(ctx)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectTrue, isInstalled)
+		})
+	}
+}
+
+// TestIsInstalled tests the IsEnabled function for the Jaeger Operator component
+func TestPreUpgrade(t *testing.T) {
+	falseValue := false
+	tests := []struct {
+		name         string
+		client       client.Client
+		actualCR     vzapi.Verrazzano
+		expectError  bool
+		expectErrMsg string
+	}{
+		{
+			// GIVEN a default Verrazzano custom resource
+			// WHEN we call IsInstalled on the Jaeger Operator component
+			// THEN the call returns false
+			name: "Test IsInstalled when using default Verrazzano CR",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 1, 1)...,
+			).Build(),
+			actualCR:     vzapi.Verrazzano{},
+			expectError:  true,
+			expectErrMsg: "",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			// WHEN we call IsInstalled on the Jaeger Operator component
+			// THEN the call returns true
+			name:         "Test IsInstalled when Jaeger Operator component set to enabled",
+			client:       fake.NewClientBuilder().WithScheme(testScheme).Build(),
+			actualCR:     *jaegerEnabledCR,
+			expectError:  true,
+			expectErrMsg: "",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       and Jaeger operator pod is not available
+			// WHEN we call IsInstalled on the Jaeger Operator component
+			// THEN the call returns false
+			name: "Test IsInstalled when Jaeger Operator component set to enabled",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getJaegerOperatorObjects(1)...,
+			).Build(),
+			actualCR:     *jaegerEnabledCR,
+			expectError:  false,
+			expectErrMsg: "",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator disabled
+			// WHEN we call IsInstalled on the Jaeger Operator component
+			// THEN the call returns false
+			name: "Test IsInstalled when Jaeger Operator component set to disabled",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getJaegerOperatorObjects(1)...,
+			).Build(),
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							Enabled: &falseValue,
+						},
+					},
+				},
+			},
+			expectError:  false,
+			expectErrMsg: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, &tt.actualCR, nil, false, profilesRelativePath)
+			err := NewComponent().PreUpgrade(ctx)
+			if tt.expectError {
+				assert.NotNil(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestUpgrade tests the IsEnabled function for the Jaeger Operator component
+func TestUpgrade(t *testing.T) {
+	tests := []struct {
+		name         string
+		client       client.Client
+		actualCR     vzapi.Verrazzano
+		expectError  bool
+		expectErrMsg string
+	}{
+		{
+			// GIVEN a default Verrazzano custom resource
+			// WHEN we call IsInstalled on the Jaeger Operator component
+			// THEN the call returns false
+			name: "Test IsInstalled when using default Verrazzano CR",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 1, 1)...,
+			).Build(),
+			actualCR:     vzapi.Verrazzano{},
+			expectError:  true,
+			expectErrMsg: "",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			// WHEN we call IsInstalled on the Jaeger Operator component
+			// THEN the call returns true
+			name:         "Test IsInstalled when Jaeger Operator component set to enabled",
+			client:       fake.NewClientBuilder().WithScheme(testScheme).Build(),
+			actualCR:     *jaegerEnabledCR,
+			expectError:  true,
+			expectErrMsg: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, &tt.actualCR, nil, false, profilesRelativePath)
+			err := NewComponent().Upgrade(ctx)
+			if tt.expectError {
+				assert.NotNil(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestIsAvailable tests the IsAvailable function for the Jaeger Operator component
+func TestIsAvailable(t *testing.T) {
+	tests := []struct {
+		name       string
+		client     client.Client
+		cr         *vzapi.Verrazzano
+		expectTrue bool
+		dryRun     bool
+	}{
+		{
+			// GIVEN the Jaeger Operator deployment does not exist
+			// WHEN we call IsAvailable
+			// THEN the call returns false
+			name:       "Test IsAvailable when Jaeger Operator deployment does not exist",
+			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
+			cr:         &vzapi.Verrazzano{},
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN the Jaeger Operator deployment does not exist, and dry run is false
+			// WHEN we call IsAvailable
+			// THEN the call returns false
+			name:       "Test IsAvailable when Jaeger Operator deployment does not exist",
+			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
+			cr:         &vzapi.Verrazzano{},
+			expectTrue: false,
+			dryRun:     false,
+		},
+		//0XX
+		{
+			// GIVEN Jaeger operator, collector and query have no available pods,
+			// WHEN we call IsAvailable,
+			// THEN the call returns false.
+			name: "Test IsAvailable when Jaeger Operator, Collector and Query are not available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(0, 0, 0)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator and collector have no available pods, but query has available pods,
+			// WHEN we call IsAvailable,
+			// THEN the call returns false.
+			name: "Test IsAvailable when Jaeger Operator and Collector are not available but Query is available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(0, 0, 1)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator and query have no available pods, but collector has available pods
+			// WHEN we call IsAvailable
+			// THEN the call returns false
+			name: "Test IsAvailable when Jaeger Operator and Query are not available but Collector is available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(0, 1, 0)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator has no available pods, but collector and query have available pods
+			// WHEN we call IsAvailable,
+			// THEN the call returns false.
+			name: "Test IsAvailable when Jaeger Operator is not available but Query and Collector are available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(0, 1, 1)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: false,
+			dryRun:     true,
+		},
+		//1XX
+		{
+			// GIVEN Jaeger operator has available pods but collector and query have no available pods,
+			// WHEN we call IsAvailable,
+			// THEN the call returns false.
+			name: "Test IsAvailable when Jaeger Operator is available but Collector and Query are not available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 0, 0)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator and query have available pods but collector has no available pods,
+			// WHEN we call IsAvailable,
+			// THEN the call returns false.
+			name: "Test IsAvailable when Jaeger Operator and Query are available but Collector is not available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 0, 1)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator and collector have available pods but query has no available pods,
+			// WHEN we call IsAvailable,
+			// THEN the call returns false.
+			name: "Test IsAvailable when Jaeger Operator and Collector are available but Query is not available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 1, 0)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator, collector and query have available pods,
+			// WHEN we call IsAvailable,
+			// THEN the call returns false.
+			name: "Test IsAvailable when Jaeger Operator, Collector and Query pods are available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 1, 1)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: true,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator has available pods and VZ managed default jaeger CR is disabled,
+			// WHEN we call IsAvailable,
+			// THEN the call returns true.
+			name: "Test IsAvailable when Jaeger Operator is available but default Jaeger CR is disabled",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 1, 1)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: true,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator has available pods and VZ managed default jaeger CR is explicitly enabled without
+			//       deployments for collector and query components,
+			// WHEN we call IsReady,
+			// THEN the call returns false.
+			name: "Test IsReady when Jaeger Operator is available and default Jaeger CR is enabled without query and collector deployments",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getJaegerOperatorObjects(1)...,
+			).Build(),
+			cr:         getSingleOverrideCRAlpha(defaultJaegerEnabledJSON),
+			expectTrue: false,
+			dryRun:     true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, tt.cr, nil, tt.dryRun, profilesRelativePath)
+			_, isAvailable := NewComponent().IsAvailable(ctx)
+			assert.Equal(t, tt.expectTrue, isAvailable)
 		})
 	}
 }
@@ -745,6 +1103,34 @@ func getAllJaegerObjects(operatorReplicas, collectorReplicas, queryReplicas int3
 // getJaegerOperatorObjects returns the K8S objects for the Jaeger Operator component.
 func getJaegerOperatorObjects(availableReplicas int32) []client.Object {
 	return []client.Object{
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentServiceName,
+			},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentWebhookServiceName,
+			},
+		},
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentSecretName,
+			},
+		},
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.VerrazzanoSystemNamespace,
+				Name:      globalconst.VerrazzanoESInternal,
+			},
+			StringData: map[string]string{
+				"ES_USERNAME": "abcd",
+				"ES_PASSWORD": "xyz",
+			},
+		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
