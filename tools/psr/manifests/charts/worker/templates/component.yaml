@@ -29,10 +29,12 @@ spec:
           env:
             {{- range $key, $val := .Values.global.envVars }}
             - name: {{ $key }}
-              value: {{ $val | quote}}
+              value: {{ $val }}
               {{- end }}
             - name: NAMESPACE
-              value: {{ .Release.Namespace }}
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
           ports:
             - containerPort: 8080
               name: backend

@@ -34,8 +34,7 @@ const (
 	// By default, there is one thread per worker
 	PsrWorkerThreadCount = "PSR_WORKER_THREAD_COUNT"
 
-	// PsrWorkerDataStreamTemplate is the name of the PSR datastream template
-	// this is created by default when an OAM app is deployed
+	// PsrWorkerNamespace is the namespace of the PSR release
 	PsrWorkerNamespace = "NAMESPACE"
 )
 
