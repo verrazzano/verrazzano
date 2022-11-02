@@ -19,77 +19,59 @@ import (
 	"sync/atomic"
 )
 
-const (
-	totalGetRequestsCount     = "total_get_requests"
-	totalGetRequestsCountHelp = "The total number of get requests logged"
-
-	totalGetRequestsSucceededCount     = "total_get_requests_succeeded"
-	totalGetRequestsSucceededCountHelp = "The total number of get requests that are successful"
-
-	totalGetRequestsFailedCount     = "total_get_requests_failed"
-	totalGetRequestsFailedCountHelp = "The total number of get requests that have failed"
-)
-
-type httpGetWorker struct {
+type get struct {
 	spi.Worker
 	metricDescList []prometheus.Desc
-	*httpgetMetrics
+	*workerMetrics
 }
 
-var _ spi.Worker = httpGetWorker{}
+var _ spi.Worker = get{}
 
-// httpgetMetrics holds the metrics produced by the worker. Metrics must be thread safe.
-type httpgetMetrics struct {
-	totalGetRequestsCount          metrics.MetricItem
-	totalGetRequestsSucceededCount metrics.MetricItem
-	totalGetRequestsFailedCount    metrics.MetricItem
+// workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
+type workerMetrics struct {
+	getRequestsCountTotal          metrics.MetricItem
+	getRequestsSucceededCountTotal metrics.MetricItem
+	getRequestsFailedCountTotal    metrics.MetricItem
 }
 
 func NewHTTPGetWorker() (spi.Worker, error) {
-	constLabels := prometheus.Labels{}
+    w := get{workerMetrics: &workerMetrics{
+            getRequestsCountTotal: metrics.MetricItem{
+                Name: "get_request_count_total",
+                Help: "The total number of GET requests",
+                Type: prometheus.CounterValue,
+            },
+            getRequestsSucceededCountTotal: metrics.MetricItem{
+                Name: "get_request_succeeded_count_total",
+                Help: "The total number of successful GET requests",
+                Type: prometheus.CounterValue,
+            },
+            getRequestsFailedCountTotal: metrics.MetricItem{
+                Name: "get_request_failed_count_total",
+                Help: "The total number of failed GET requests",
+                Type: prometheus.CounterValue,
+            },
 
-	w := httpGetWorker{httpgetMetrics: &httpgetMetrics{}}
+    }}
 
-	d := prometheus.NewDesc(
-		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, totalGetRequestsCount),
-		totalGetRequestsCountHelp,
-		nil,
-		constLabels,
-	)
-	w.metricDescList = append(w.metricDescList, *d)
-	w.httpgetMetrics.totalGetRequestsCount.Desc = d
-
-	d = prometheus.NewDesc(
-		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, totalGetRequestsSucceededCount),
-		totalGetRequestsSucceededCountHelp,
-		nil,
-		constLabels,
-	)
-	w.metricDescList = append(w.metricDescList, *d)
-	w.httpgetMetrics.totalGetRequestsSucceededCount.Desc = d
-
-	d = prometheus.NewDesc(
-		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, totalGetRequestsFailedCount),
-		totalGetRequestsFailedCountHelp,
-		nil,
-		constLabels,
-	)
-	w.metricDescList = append(w.metricDescList, *d)
-	w.httpgetMetrics.totalGetRequestsFailedCount.Desc = d
-
+	w.metricDescList = []prometheus.Desc{
+	        *w.getRequestsCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+	        *w.getRequestsSucceededCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+	        *w.getRequestsFailedCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+	}
 	return w, nil
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
-func (w httpGetWorker) GetWorkerDesc() spi.WorkerDesc {
+func (w get) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
 		EnvName:     config.WorkerTypeHTTPGet,
-		Description: "Http get worker to make a GET request on the given endpoint",
+		Description: "The get worker makes GET request on the given endpoint",
 		MetricsName: "httpget",
 	}
 }
 
-func (w httpGetWorker) GetEnvDescList() []osenv.EnvVarDesc {
+func (w get) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{
 		{Key: config.ServiceName, DefaultVal: "", Required: true},
 		{Key: config.ServiceNamespace, DefaultVal: "", Required: true},
@@ -98,42 +80,26 @@ func (w httpGetWorker) GetEnvDescList() []osenv.EnvVarDesc {
 	}
 }
 
-func (w httpGetWorker) GetMetricDescList() []prometheus.Desc {
+func (w get) GetMetricDescList() []prometheus.Desc {
 	return w.metricDescList
 }
 
-func (w httpGetWorker) GetMetricList() []prometheus.Metric {
-	metrics := []prometheus.Metric{}
-
-	m := prometheus.MustNewConstMetric(
-		w.httpgetMetrics.totalGetRequestsCount.Desc,
-		prometheus.GaugeValue,
-		float64(atomic.LoadInt64(&w.httpgetMetrics.totalGetRequestsCount.Val)))
-	metrics = append(metrics, m)
-
-	m = prometheus.MustNewConstMetric(
-		w.httpgetMetrics.totalGetRequestsSucceededCount.Desc,
-		prometheus.GaugeValue,
-		float64(atomic.LoadInt64(&w.httpgetMetrics.totalGetRequestsSucceededCount.Val)))
-	metrics = append(metrics, m)
-
-	m = prometheus.MustNewConstMetric(
-		w.httpgetMetrics.totalGetRequestsFailedCount.Desc,
-		prometheus.GaugeValue,
-		float64(atomic.LoadInt64(&w.httpgetMetrics.totalGetRequestsFailedCount.Val)))
-	metrics = append(metrics, m)
-
-	return metrics
+func (w get) GetMetricList() []prometheus.Metric {
+	return []prometheus.Metric{
+	        w.getRequestsCountTotal.BuildMetric(),
+	        w.getRequestsSucceededCountTotal.BuildMetric(),
+	        w.getRequestsFailedCountTotal.BuildMetric(),
+	}
 }
 
-func (w httpGetWorker) WantIterationInfoLogged() bool {
+func (w get) WantIterationInfoLogged() bool {
 	return false
 }
 
-func (w httpGetWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+func (w get) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	var lc, ls, lf int64
-	//increment totalGetRequestsCount
-	lc = atomic.AddInt64(&w.httpgetMetrics.totalGetRequestsCount.Val, 1)
+	//increment getRequestsCountTotal
+	lc = atomic.AddInt64(&w.workerMetrics.getRequestsCountTotal.Val, 1)
 	resp, err := http.Get("http://" + config.PsrEnv.GetEnv(config.ServiceName) +
 		"." + config.PsrEnv.GetEnv(config.ServiceNamespace) +
 		".svc.cluster.local:" +
@@ -146,9 +112,9 @@ func (w httpGetWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogg
 		return fmt.Errorf("GET request to endpoint received a nil response")
 	}
 	if resp.StatusCode == 200 {
-		ls = atomic.AddInt64(&w.httpgetMetrics.totalGetRequestsSucceededCount.Val, 1)
+		ls = atomic.AddInt64(&w.workerMetrics.getRequestsSucceededCountTotal.Val, 1)
 	} else {
-		lf = atomic.AddInt64(&w.httpgetMetrics.totalGetRequestsFailedCount.Val, 1)
+		lf = atomic.AddInt64(&w.workerMetrics.getRequestsFailedCountTotal.Val, 1)
 		//Read the response body on the line below.
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
@@ -158,11 +124,9 @@ func (w httpGetWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogg
 		sb := string(body)
 		log.Errorf("The response body: ", sb)
 	}
-
 	logMsg := fmt.Sprintf("HttpGet worker total requests %v, "+
-		" successful requests %v, failed requests %v",
+		" total successful requests %v, total failed requests %v",
 		lc, ls, lf)
 	log.Debugf(logMsg)
-
 	return nil
 }
