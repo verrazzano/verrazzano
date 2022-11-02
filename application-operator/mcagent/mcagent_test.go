@@ -102,6 +102,18 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 
 	expectCASyncSuccess(mcMock, adminMock, assert, "cluster1")
 
+	// expect the VMC to be retrieved to check for deletion
+	clusterCASecret := "clusterCASecret"
+	adminMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: "cluster1"}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *platformopclusters.VerrazzanoManagedCluster) error {
+			vmc.DeletionTimestamp = nil
+			vmc.Name = vmcName.Name
+			vmc.Namespace = vmcName.Namespace
+			vmc.Spec.CASecret = clusterCASecret
+			return nil
+		})
+
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
