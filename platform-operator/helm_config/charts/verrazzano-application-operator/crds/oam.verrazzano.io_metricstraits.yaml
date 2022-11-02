@@ -54,7 +54,7 @@ spec:
                 description: The HTTP ports for the related metrics trait. Defaults
                   to `8080`.
                 items:
-                  description: PortSpec defines an HTTP port and path combination
+                  description: PortSpec defines an HTTP port and path combination.
                   properties:
                     path:
                       description: The HTTP path for the related metrics endpoint.
@@ -72,8 +72,9 @@ spec:
                   component is used to scrape the endpoint.
                 type: string
               secret:
-                description: The name of an opaque secret (for example, username and
-                  password) within the workload’s namespace for metrics endpoint access.
+                description: The name of an opaque secret (for example, `username`
+                  and `password`) within the workload’s namespace for metrics endpoint
+                  access.
                 type: string
               workloadRef:
                 description: The WorkloadReference of the workload to which this trait
@@ -160,7 +161,7 @@ spec:
                       description: Namespace of the related resource.
                       type: string
                     role:
-                      description: Role of the related resource.  For example, `Deployment`.
+                      description: Role of the related resource, for example, `Deployment`.
                       type: string
                   required:
                   - apiversion

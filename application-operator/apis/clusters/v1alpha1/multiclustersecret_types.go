@@ -11,7 +11,7 @@ import (
 const MultiClusterSecretKind = "MultiClusterSecret"
 const MultiClusterSecretResource = "multiclustersecrets"
 
-// MultiClusterSecretSpec defines the desired state of a Multi Cluster Secret.
+// MultiClusterSecretSpec defines the desired state of a MultiCluster Secret.
 type MultiClusterSecretSpec struct {
 	// Clusters in which the secret is to be created.
 	Placement Placement `json:"placement"`
@@ -42,14 +42,14 @@ type SecretTemplate struct {
 // +kubebuilder:resource:shortName=mcsecret;mcsecrets
 // +kubebuilder:subresource:status
 
-// MultiClusterSecret specifies the Multi Cluster Secret API.
+// MultiClusterSecret specifies the MultiCluster Secret API.
 type MultiClusterSecret struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// The desired state of a Multi Cluster Secret resource.
+	// The desired state of a MultiCluster Secret resource.
 	Spec MultiClusterSecretSpec `json:"spec,omitempty"`
-	// The observed state of a Multi Cluster Secret resource.
+	// The observed state of a MultiCluster Secret resource.
 	Status MultiClusterResourceStatus `json:"status,omitempty"`
 }
 
