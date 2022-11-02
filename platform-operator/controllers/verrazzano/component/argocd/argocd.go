@@ -41,7 +41,7 @@ func GetOverrides(object runtime.Object) interface{} {
 func isArgoCDReady(ctx spi.ComponentContext) bool {
 	deployments := []types.NamespacedName{
 		{
-			Name:      common.ArgoCDApplicationController,
+			Name:      common.ArgoCDApplicationSetController,
 			Namespace: ComponentNamespace,
 		},
 		{

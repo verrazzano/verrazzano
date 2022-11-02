@@ -99,7 +99,7 @@ func (r argoCDComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
-//PostInstall
+//Install
 /* Installs the Helm chart, and patches the resulting objects
 - ensure Helm chart is installed
 - Patch ArgoCD ingress with NGINX/TLS annotations
@@ -114,52 +114,6 @@ func (r argoCDComponent) Install(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed patching ArgoCD ingress: %s", err.Error())
 	}
 	log.Debugf("Patched ArgoCD ingress")
-
-	return nil
-}
-
-
-// PostInstall
-/* Additional setup for ArgoCD after the component is installed
-- Patch argocd-rbac-cm by providing role admin to verrazzano-admins group
-- Patch argocd-cm with tls-argocd-ingress secret root ca
-- Patch argocd-secret with the keycloak client secret
-*/
-func (r argoCDComponent) PostInstall(ctx spi.ComponentContext) error {
-	log := ctx.Log()
-	if err := r.HelmComponent.PostInstall(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("Failed retrieving ArgoCD post install component: %s", err.Error())
-	}
-	if err := configureKeycloakOIDC(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring ArgoCD keycloak oidc provider: %s", err.Error())
-	}
-
-	return nil
-}
-
-// configureKeycloakOIDC
-// +configures Keycloak as OIDC provider for ArgoCD.
-// - Patch argocd-secret with the keycloak client secret.
-// - Patch argocd-cm with the oidc configuration to enable keycloak authentication.
-// - Patch argocd-rbac-cm by providing role admin to verrazzano-admins group
-func configureKeycloakOIDC(ctx spi.ComponentContext) error {
-	log := ctx.Log()
-	if vzconfig.IsKeycloakEnabled(ctx.ActualCR()) {
-		if err := patchArgoCDSecret(ctx); err != nil {
-			return log.ErrorfThrottledNewErr("Failed patching ArgoCD secret: %s", err.Error())
-		}
-		log.Debugf("Patched ArgoCD secret")
-
-		if err := patchArgoCDConfigMap(ctx); err != nil {
-			return log.ErrorfThrottledNewErr("Failed patching ArgoCD configmap: %s", err.Error())
-		}
-		log.Debugf("Patched ArgoCD configmap")
-
-		if err := patchArgoCDRbacConfigMap(ctx); err != nil {
-			return log.ErrorfThrottledNewErr("Failed patching ArgoCD Rbac configmap: %s", err.Error())
-		}
-		log.Debugf("Patched ArgoCD RBac configmap")
-	}
 
 	return nil
 }
@@ -181,4 +135,3 @@ func (r argoCDComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, n
 	}
 	return r.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
-
