@@ -77,6 +77,12 @@ const ElasticsearchURLEnvVar = "ELASTICSEARCH_URL"
 // ElasticsearchIngress is the name of the ingress for Elasticsearch
 const ElasticsearchIngress = "vmi-system-es-ingest"
 
+// OpensearchIngress is the name of the ingress for Opensearch
+const OpensearchIngress = "vmi-system-os-ingest"
+
+// OpensearchdashboardsIngress is the name of the ingress for Opensearchdashboards
+const OpensearchDashboardsIngress = "vmi-system-opensearchdashboards"
+
 // GrafanaIngress is the name of the ingress for Grafana
 const GrafanaIngress = "vmi-system-grafana"
 
