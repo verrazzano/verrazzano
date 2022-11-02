@@ -20,6 +20,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"moul.io/http2curl"
 )
 
 const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
@@ -112,6 +113,8 @@ func (w postLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) e
 		Header: http.Header{"Content-Type": {"application/json"}},
 		Body:   body,
 	}
+	cmd, _ := http2curl.GetCurlCommand(&req)
+	log.Info(cmd.String())
 	startRequest := time.Now().UnixNano()
 	resp, err := c.Do(&req)
 	if err != nil {
@@ -120,6 +123,12 @@ func (w postLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) e
 	if resp == nil {
 		return fmt.Errorf("POST request to URI %s received a nil response", req.URL.RequestURI())
 	}
+	log.Infof("STATUS: ", resp.Status)
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	log.Infof("BODY: %v", string(b))
 	if resp.StatusCode != 200 {
 		atomic.StoreInt64(&w.workerMetrics.openSearchPostFailureLatencyNanoSeconds.Val, time.Now().UnixNano()-startRequest)
 		atomic.AddInt64(&w.workerMetrics.openSearchPostFailureCountTotal.Val, 1)
