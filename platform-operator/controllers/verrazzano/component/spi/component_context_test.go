@@ -3,7 +3,6 @@
 package spi
 
 import (
-	"fmt"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"path/filepath"
@@ -168,8 +167,6 @@ func TestContextProfilesMerge(t *testing.T) {
 			a.NotNil(context.ActualCR(), "Actual CR was nil")
 			a.Equal(test.actualCR, *context.ActualCR(), "Actual CR unexpectedly modified")
 			a.NotNil(context.EffectiveCR(), "Effective CR was nil")
-			dat, _ := yaml.Marshal(context.EffectiveCR())
-			fmt.Println(dat)
 			a.Equal(v1alpha1.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
 			a.True(equality.Semantic.DeepEqual(expectedVZ, context.EffectiveCR()), "Effective CR did not match expected results")
 		})
