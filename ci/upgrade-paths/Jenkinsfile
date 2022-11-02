@@ -1973,7 +1973,7 @@ def setInitValues() {
         DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
         // update the description with some meaningful info
         setDisplayName()
-        currentBuild.description = "from ${params.VERSION_FOR_INSTALL}\n${SHORT_COMMIT_HASH} : ${env.GIT_COMMIT} : ${params.GIT_COMMIT_TO_USE}"
+        currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
         if (params.TEST_ENV != "KIND") {
             // derive the prefix for the OKE cluster
             OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${GO_REPO_PATH}/verrazzano/ci/scripts/derive_oke_cluster_name.sh").trim()
