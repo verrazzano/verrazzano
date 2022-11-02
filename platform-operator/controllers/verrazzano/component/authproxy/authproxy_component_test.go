@@ -5,6 +5,10 @@ package authproxy
 
 import (
 	"fmt"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
@@ -230,7 +234,285 @@ func TestUninstallHelmChartNotInstalled(t *testing.T) {
 		Err:    fmt.Errorf("Not installed"),
 	})
 	defer helmcli.SetDefaultRunner()
-
 	err := NewComponent().Uninstall(spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
+}
+
+// TestIsAvailable tests the AuthProxy is available and ready
+// GIVEN a AuthProxy component
+// WHEN IsAvailable is called
+// THEN (reason and true) is returned if AuthProxy is Available & ready  and
+//
+//	(reason and false) is returned if AuthProxy is not Available or not ready.
+func TestIsAvailable(t *testing.T) {
+	objectMeta := metav1.ObjectMeta{
+		Name:      ComponentName,
+		Namespace: ComponentNamespace,
+	}
+	readyAndAvailableClient := fake.NewClientBuilder().
+		WithObjects(&appsv1.Deployment{
+			ObjectMeta: objectMeta,
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": ComponentName},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				Replicas:          1,
+				ReadyReplicas:     1,
+				UpdatedReplicas:   1,
+				AvailableReplicas: 1,
+			},
+		},
+			&corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: ComponentNamespace,
+					Name:      ComponentName + "-19e3je32-m6mbr",
+					Labels: map[string]string{
+						"pod-template-hash": "19e3je32",
+						"app":               ComponentName,
+					},
+				},
+			},
+			&appsv1.ReplicaSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace:   ComponentNamespace,
+					Name:        ComponentName + "-19e3je32",
+					Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				},
+			},
+		).Build()
+	notAvailableClient := fake.NewClientBuilder().
+		WithObjects(&appsv1.Deployment{
+			ObjectMeta: objectMeta,
+			Status: appsv1.DeploymentStatus{
+				Replicas:        1,
+				ReadyReplicas:   0,
+				UpdatedReplicas: 0,
+			},
+		}).Build()
+	tests := []struct {
+		name       string
+		client     clipkg.Client
+		actualCR   vzapi.Verrazzano
+		expectTrue bool
+		reason     string
+	}{
+		{
+			name:       "Test IsAvailable when AuthProxy component pod is ready",
+			client:     readyAndAvailableClient,
+			actualCR:   vzapi.Verrazzano{},
+			expectTrue: true,
+			reason:     fmt.Sprintf("%s is available", ComponentName),
+		},
+		{
+			name:       "Test IsAvailable when AuthProxy component pod is not ready",
+			client:     notAvailableClient,
+			actualCR:   vzapi.Verrazzano{},
+			expectTrue: false,
+			reason:     fmt.Sprintf("%s is unavailable: failed readiness checks", ComponentName),
+		},
+	}
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, &tests[i].actualCR, nil, true, profilesRelativePath)
+			reason, isAvailable := NewComponent().IsAvailable(ctx)
+			if tt.expectTrue {
+				assert.True(t, isAvailable)
+			} else {
+				assert.False(t, isAvailable)
+			}
+			assert.Equal(t, tt.reason, reason)
+		})
+	}
+}
+
+// TestIsAvailableWithHelmError tests IsAvailable
+//
+//	 GIVEN a AuthProxy component
+//		WHEN IsAvailable is called
+//		THEN (reason and true) is returned if AuthProxy is Available & ready  and
+//		(reason and false) is returned if AuthProxy is not Available or not ready.
+func TestIsAvailableWithHelmError(t *testing.T) {
+	client := fake.NewClientBuilder().Build()
+	tests := []struct {
+		name       string
+		client     clipkg.Client
+		actualCR   vzapi.Verrazzano
+		expectTrue bool
+		reason     string
+	}{
+		{
+			name:       "Test IsAvailable when HelmComponent throw errors",
+			client:     client,
+			actualCR:   vzapi.Verrazzano{},
+			expectTrue: false,
+			reason:     fmt.Sprintf("%s is unavailable: failed readiness checks", ComponentName),
+		},
+	}
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, &tests[i].actualCR, nil, false, profilesRelativePath)
+			reason, isAvailable := NewComponent().IsAvailable(ctx)
+			if tt.expectTrue {
+				assert.True(t, isAvailable)
+			} else {
+				assert.False(t, isAvailable)
+			}
+			assert.Equal(t, tt.reason, reason)
+		})
+	}
+}
+
+// TestMonitorOverrides test the MonitorOverrides to confirm monitoring of install overrides is enabled or not
+// GIVEN a default VZ CR with auth proxy component
+// WHEN  MonitorOverrides is called
+// THEN  returns True if monitoring of install overrides is enabled and False otherwise
+func TestMonitorOverrides(t *testing.T) {
+	disabled := false
+	enabled := true
+	tests := []struct {
+		name     string
+		actualCR *vzapi.Verrazzano
+		want     bool
+	}{
+		{
+			name: "Test MonitorOverrides when Authproxy is disabled in the spec",
+			actualCR: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						AuthProxy: &vzapi.AuthProxyComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Test MonitorOverrides when Authproxy is nil",
+			actualCR: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						AuthProxy: nil,
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "Test MonitorOverrides when MonitorOverrides is enabled in the spec",
+			actualCR: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						AuthProxy: &vzapi.AuthProxyComponent{
+							Enabled:          &enabled,
+							InstallOverrides: vzapi.InstallOverrides{MonitorChanges: &enabled},
+						},
+					},
+				},
+			},
+			want: true,
+		},
+	}
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			ctx := spi.NewFakeContext(nil, tests[i].actualCR, nil, true)
+			if got := c.MonitorOverrides(ctx); got != tt.want {
+				t.Errorf("MonitorOverrides() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestPreInstall test the PreInstall to check all the
+// pre-install operations are successful executed or not.
+//
+//	 GIVEN an Authproxy component
+//		WHEN I call PreInstall with defaults
+//		THEN no error is returned
+func TestPreInstall(t *testing.T) {
+	defer helmcli.SetDefaultRunner()
+	helmCliNoError := func() {
+		helmcli.SetCmdRunner(os.GenericTestRunner{
+			StdOut: []byte(""),
+			StdErr: []byte{},
+			Err:    nil,
+		})
+	}
+	helmCliError := func() {
+		helmcli.SetCmdRunner(os.GenericTestRunner{
+			StdOut: []byte(""),
+			StdErr: []byte{},
+			Err:    fmt.Errorf("not found"),
+		})
+	}
+	tests := []struct {
+		name        string
+		client      clipkg.Client
+		helmcliFunc func()
+		actualCR    vzapi.Verrazzano
+		expectTrue  bool
+	}{
+		{
+			name:        "Test PreInstall when AuthProxy is already installed and no error",
+			client:      fake.NewClientBuilder().Build(),
+			actualCR:    vzapi.Verrazzano{},
+			expectTrue:  false,
+			helmcliFunc: helmCliNoError,
+		},
+		{
+			name:        "Test PreInstall when AuthProxy is not installed and no error",
+			client:      fake.NewClientBuilder().Build(),
+			actualCR:    vzapi.Verrazzano{},
+			expectTrue:  false,
+			helmcliFunc: helmCliError,
+		},
+	}
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.helmcliFunc()
+			ctx := spi.NewFakeContext(tt.client, &tests[i].actualCR, nil, false, profilesRelativePath)
+			err := NewComponent().PreInstall(ctx)
+			if tt.expectTrue {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestPreUpgrade test the PreUpgrade to check all the pre upgrade operations
+// are successful executed or not.
+//
+//	 GIVEN an Authproxy component
+//		WHEN I call PreUpgrade with defaults
+//		THEN no error is returned
+func TestPreUpgrade(t *testing.T) {
+	tests := []struct {
+		name       string
+		client     clipkg.Client
+		actualCR   vzapi.Verrazzano
+		expectTrue bool
+	}{
+		{
+			name:       "Test PreUpgrade when there is no error",
+			client:     fake.NewClientBuilder().Build(),
+			actualCR:   vzapi.Verrazzano{},
+			expectTrue: false,
+		},
+	}
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, &tests[i].actualCR, nil, false, profilesRelativePath)
+			err := NewComponent().PreUpgrade(ctx)
+			if tt.expectTrue {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
