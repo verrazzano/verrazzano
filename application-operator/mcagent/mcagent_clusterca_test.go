@@ -13,7 +13,6 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
-	constants2 "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -32,8 +31,6 @@ const (
 	adminRegNewSecretPath      = "testdata/clusterca-adminregsecret-new.yaml"
 	clusterCAAdminSecretPath   = "testdata/clusterca-admincasecret.yaml"
 	mcCASecretPath             = "testdata/clusterca-mccasecret.yaml"
-	adminAgentSecretPath       = "testdata/admin-agent-secret.yaml"
-	adminAgentNewSecretPath    = "testdata/admin-agent-secret-new.yaml"
 	vzTLSSecretPathNew         = "testdata/clusterca-mctlssecret-new.yaml"
 	vzTLSSecretPath            = "testdata/clusterca-mctlssecret.yaml"
 	vmcPath                    = "testdata/clusterca-vmc.yaml"
@@ -45,7 +42,6 @@ const (
 	sampleVMCReadErrMsg        = "failed to read sample VMC"
 	regSecChangedErrMsg        = "registration secret was changed"
 	mcCASecChangedErrMsg       = "MC CA secret was changed"
-	sampleAdminAgentReadErrMsg = "failed to read sample Admin agent Secret"
 )
 
 // TestSyncAdminCANoDifference tests the synchronization method for the following use case.
@@ -360,8 +356,8 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 			&testAdminCASecret,
 			createSecretWithOverrides(adminRegSecretPath, map[string]string{
 				mcconstants.ESURLKey: "new OS url",
-			}, "", ""),
-			createSecretWithOverrides(clusterRegSecretPath, nil, "", ""),
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
 			controllerutil.OperationResultUpdated,
 			nil,
 		},
@@ -370,8 +366,8 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 			&testAdminCASecret,
 			createSecretWithOverrides(adminRegSecretPath, map[string]string{
 				mcconstants.ESCaBundleKey: "new CA bundle",
-			}, "", ""),
-			createSecretWithOverrides(clusterRegSecretPath, nil, "", ""),
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
 			controllerutil.OperationResultUpdated,
 			nil,
 		},
@@ -380,8 +376,8 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 			&testAdminCASecret,
 			createSecretWithOverrides(adminRegSecretPath, map[string]string{
 				mcconstants.RegistrationUsernameKey: "new user",
-			}, "", ""),
-			createSecretWithOverrides(clusterRegSecretPath, nil, "", ""),
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
 			controllerutil.OperationResultUpdated,
 			nil,
 		},
@@ -390,8 +386,8 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 			&testAdminCASecret,
 			createSecretWithOverrides(adminRegSecretPath, map[string]string{
 				mcconstants.RegistrationPasswordKey: "new password",
-			}, "", ""),
-			createSecretWithOverrides(clusterRegSecretPath, nil, "", ""),
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
 			controllerutil.OperationResultUpdated,
 			nil,
 		},
@@ -400,8 +396,8 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 			&testAdminCASecret,
 			createSecretWithOverrides(adminRegSecretPath, map[string]string{
 				mcconstants.KeycloakURLKey: "new keycloak url",
-			}, "", ""),
-			createSecretWithOverrides(clusterRegSecretPath, nil, "", ""),
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
 			controllerutil.OperationResultUpdated,
 			nil,
 		},
@@ -410,8 +406,8 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 			&testAdminCASecret,
 			createSecretWithOverrides(adminRegSecretPath, map[string]string{
 				mcconstants.JaegerOSURLKey: "new value",
-			}, "", ""),
-			createSecretWithOverrides(clusterRegSecretPath, nil, "", ""),
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
 			controllerutil.OperationResultUpdated,
 			nil,
 		},
@@ -420,8 +416,8 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 			&testAdminCASecret,
 			createSecretWithOverrides(adminRegSecretPath, map[string]string{
 				mcconstants.JaegerOSUsernameKey: "newuser",
-			}, "", ""),
-			createSecretWithOverrides(clusterRegSecretPath, nil, "", ""),
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
 			controllerutil.OperationResultUpdated,
 			nil,
 		},
@@ -430,8 +426,8 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 			&testAdminCASecret,
 			createSecretWithOverrides(adminRegSecretPath, map[string]string{
 				mcconstants.JaegerOSPasswordKey: "newpassword",
-			}, "", ""),
-			createSecretWithOverrides(clusterRegSecretPath, nil, "", ""),
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
 			controllerutil.OperationResultUpdated,
 			nil,
 		},
@@ -440,8 +436,8 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 			&testAdminCASecret,
 			createSecretWithOverrides(adminRegSecretPath, map[string]string{
 				mcconstants.JaegerOSTLSCAKey: "newCAKey",
-			}, "", ""),
-			createSecretWithOverrides(clusterRegSecretPath, nil, "", ""),
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
 			controllerutil.OperationResultUpdated,
 			nil,
 		},
@@ -450,8 +446,8 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 			&testAdminCASecret,
 			createSecretWithOverrides(adminRegSecretPath, map[string]string{
 				mcconstants.JaegerOSTLSCertKey: "newTLSCertKey",
-			}, "", ""),
-			createSecretWithOverrides(clusterRegSecretPath, nil, "", ""),
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
 			controllerutil.OperationResultUpdated,
 			nil,
 		},
@@ -460,26 +456,26 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 			&testAdminCASecret,
 			createSecretWithOverrides(adminRegSecretPath, map[string]string{
 				mcconstants.JaegerOSTLSKey: "newTLSKey",
-			}, "", ""),
-			createSecretWithOverrides(clusterRegSecretPath, nil, "", ""),
+			}),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
 			controllerutil.OperationResultUpdated,
 			nil,
 		},
 		{
 			"Admin CA bundle is different in managed cluster",
 			&testAdminCASecret,
-			createSecretWithOverrides(adminRegSecretPath, nil, "", ""),
+			createSecretWithOverrides(adminRegSecretPath, nil),
 			createSecretWithOverrides(clusterRegSecretPath, map[string]string{
 				mcconstants.AdminCaBundleKey: "new CA bundle",
-			}, "", ""),
+			}),
 			controllerutil.OperationResultUpdated,
 			nil,
 		},
 		{
 			"All values are in sync between admin and managed1 cluster",
 			&testAdminCASecret,
-			createSecretWithOverrides(adminRegSecretPath, nil, "", ""),
-			createSecretWithOverrides(clusterRegSecretPath, nil, "", ""),
+			createSecretWithOverrides(adminRegSecretPath, nil),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
 			controllerutil.OperationResultNone,
 			nil,
 		},
@@ -487,14 +483,14 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 			"When registration secret is missing in admin cluster, then it should return error",
 			&testAdminCASecret,
 			nil,
-			createSecretWithOverrides(clusterRegSecretPath, nil, "", ""),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
 			controllerutil.OperationResultNone,
 			fmt.Errorf("secrets \"verrazzano-cluster-managed1-registration\" not found"),
 		},
 		{
 			"When registration secret is missing in local cluster, then it should return error",
 			&testAdminCASecret,
-			createSecretWithOverrides(adminRegSecretPath, nil, "", ""),
+			createSecretWithOverrides(adminRegSecretPath, nil),
 			nil,
 			controllerutil.OperationResultNone,
 			fmt.Errorf("secrets \"verrazzano-cluster-registration\" not found"),
@@ -502,8 +498,8 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 		{
 			"When CA cert secret is missing in admin cluster, then it should return error",
 			nil,
-			createSecretWithOverrides(adminRegSecretPath, nil, "", ""),
-			createSecretWithOverrides(clusterRegSecretPath, nil, "", ""),
+			createSecretWithOverrides(adminRegSecretPath, nil),
+			createSecretWithOverrides(clusterRegSecretPath, nil),
 			controllerutil.OperationResultNone,
 			fmt.Errorf("secrets \"verrazzano-local-ca-bundle\" not found"),
 		},
@@ -555,104 +551,6 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 	}
 }
 
-// TestSyncAgentSecretFromAdminCluster tests the synchronization method for the following use case.
-// GIVEN a request to sync Admin agent secret
-// WHEN the agent secret info is different in either admin-kubeconfig or managed-cluster-name
-// THEN ensure that managed cluster agent secret is updated, but not otherwise.
-func TestSyncAgentSecretFromAdminCluster(t *testing.T) {
-	testAdminAgentSecret := createSecretWithOverrides(adminAgentSecretPath, nil, "", getAgentSecretName(testClusterName))
-	testUnchangedLocalAgentSecret := createSecretWithOverrides(adminAgentSecretPath, nil, constants.VerrazzanoSystemNamespace, constants2.MCAgentSecret)
-	testNewAdminAgentSecret := createSecretWithOverrides(adminAgentNewSecretPath, nil, "", getAgentSecretName(testClusterName))
-	log := zap.S().With("test")
-	tests := []struct {
-		name                 string
-		testAdminAgentSecret *corev1.Secret
-		localAgentSecret     *corev1.Secret
-		otherAdminSecret     *corev1.Secret // some other unrelated secret present on admin cluster
-		expectedOperation    controllerutil.OperationResult
-		expectedError        error
-	}{
-		{
-			"admin agent secret identical to managed",
-			testAdminAgentSecret,
-			testUnchangedLocalAgentSecret,
-			nil,
-			controllerutil.OperationResultNone,
-			nil,
-		},
-		{
-			"admin agent secret kubeconfig changed",
-			testNewAdminAgentSecret,
-			testUnchangedLocalAgentSecret,
-			nil,
-			controllerutil.OperationResultUpdated,
-			nil,
-		},
-		{
-			"admin agent secret cluster name changed",
-			testAdminAgentSecret,
-			createSecretWithOverrides(adminAgentSecretPath, map[string]string{
-				mcconstants.ManagedClusterNameKey: "newmanagedclustername",
-			}, constants.VerrazzanoSystemNamespace, constants2.MCAgentSecret),
-			nil,
-			controllerutil.OperationResultUpdated,
-			nil,
-		},
-		{
-			"admin agent secret some unused field added",
-			createSecretWithOverrides(adminAgentSecretPath, map[string]string{
-				"somekeynotused": "somevalue",
-			}, "", getAgentSecretName(testClusterName)),
-			testUnchangedLocalAgentSecret,
-			nil,
-			controllerutil.OperationResultNone,
-			nil,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			adminRuntimeObjects := []runtime.Object{}
-			if tt.testAdminAgentSecret != nil {
-				adminRuntimeObjects = append(adminRuntimeObjects, tt.testAdminAgentSecret)
-			}
-			adminClient := fake.NewClientBuilder().
-				WithScheme(newClusterCAScheme()).
-				WithRuntimeObjects(adminRuntimeObjects...).
-				Build()
-
-			localRuntimeObjects := []runtime.Object{}
-			if tt.localAgentSecret != nil {
-				localRuntimeObjects = append(localRuntimeObjects, tt.localAgentSecret)
-			}
-			localClient := fake.NewClientBuilder().
-				WithScheme(newClusterCAScheme()).
-				WithRuntimeObjects(localRuntimeObjects...).
-				Build()
-
-			s := &Syncer{
-				AdminClient:        adminClient,
-				LocalClient:        localClient,
-				Log:                log,
-				ManagedClusterName: testClusterName,
-				Context:            context.TODO(),
-			}
-			actualOperationResult, err := s.syncAgentSecretFromAdminCluster()
-			if tt.expectedError != nil {
-				asserts.Equal(t, err.Error(), tt.expectedError.Error())
-				return
-			}
-			asserts.NoError(t, err)
-			asserts.Equal(t, tt.expectedOperation, actualOperationResult)
-			// post sync call both the secrets should have the same values of registration secrets
-			// and calling sync again should be a no-op (unchanged).
-			reSyncOperationResult, err := s.syncAgentSecretFromAdminCluster()
-			asserts.NoError(t, err)
-			asserts.Equal(t, controllerutil.OperationResultNone, reSyncOperationResult)
-
-		})
-	}
-}
-
 // getSampleClusterCAVMC creates and returns a sample VMC
 func getSampleClusterCAVMC(filePath string) (platformopclusters.VerrazzanoManagedCluster, error) {
 	vmc := platformopclusters.VerrazzanoManagedCluster{}
@@ -691,7 +589,7 @@ func assertRegistrationInfoEqual(t *testing.T, regSecret1 *corev1.Secret, regSec
 	asserts.Equal(t, regSecret1.Data[mcconstants.JaegerOSTLSKey], regSecret2.Data[mcconstants.JaegerOSTLSKey], "Jaeger OS TLS Key is different")
 }
 
-func createSecretWithOverrides(filepath string, overrides map[string]string, newNamespace string, newName string) *corev1.Secret {
+func createSecretWithOverrides(filepath string, overrides map[string]string) *corev1.Secret {
 	secret, err := getSampleSecret(filepath)
 	if err != nil {
 		pkg.Log(pkg.Error, err.Error())
@@ -699,12 +597,6 @@ func createSecretWithOverrides(filepath string, overrides map[string]string, new
 	}
 	for key, value := range overrides {
 		secret.Data[key] = []byte(value)
-	}
-	if newName != "" {
-		secret.Name = newName
-	}
-	if newNamespace != "" {
-		secret.Namespace = newNamespace
 	}
 	return &secret
 }
