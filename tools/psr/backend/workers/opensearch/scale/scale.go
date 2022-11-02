@@ -13,29 +13,51 @@ import (
 )
 
 const (
-	totalScaleInCount     = "total_scale_in_count"
-	totalScaleInCountHelp = "The total number of times OpenSearch has been scaled in"
+	scaleInCountTotal     = "total_scale_in_count"
+	scaleInCountTotalHelp = "The total number of times OpenSearch has been scaled in"
 
-	totalScaleOutCount     = "total_scale_out_count"
-	totalScaleOutCountHelp = "The total number of times OpenSearch has been scaled out"
+	scaleOutCountTotal     = "total_scale_out_count"
+	scaleOutCountTotalHelp = "The total number of times OpenSearch has been scaled out"
 )
 
 type scaleWorker struct {
 	spi.Worker
 	metricDescList []prometheus.Desc
-	*scaleMetrics
+	*workerMetrics
 }
 
 var _ spi.Worker = scaleWorker{}
 
 // scaleMetrics holds the metrics produced by the worker. Metrics must be thread safe.
-type scaleMetrics struct {
-	totalScaleInCount           metrics.MetricItem
-	totalScaleOutCount          metrics.MetricItem
-	totalGetRequestsFailedCount metrics.MetricItem
+type workerMetrics struct {
+	scaleInCountTotal  metrics.MetricItem
+	scaleOutCountTotal metrics.MetricItem
 }
 
 func NewScaleWorker() (spi.Worker, error) {
+
+	constLabels := prometheus.Labels{}
+
+	w := scaleWorker{workerMetrics: &workerMetrics{}}
+
+	d := prometheus.NewDesc(
+		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, scaleInCountTotal),
+		scaleInCountTotalHelp,
+		nil,
+		constLabels,
+	)
+	w.metricDescList = append(w.metricDescList, *d)
+	w.workerMetrics.scaleInCountTotal.Desc = d
+
+	d = prometheus.NewDesc(
+		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, scaleOutCountTotal),
+		scaleOutCountTotalHelp,
+		nil,
+		constLabels,
+	)
+	w.metricDescList = append(w.metricDescList, *d)
+	w.workerMetrics.scaleOutCountTotal.Desc = d
+
 	return nil, nil
 }
 
