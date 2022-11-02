@@ -14,6 +14,7 @@ import (
 
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -136,6 +137,9 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	if err := createOrUpdateNetworkPolicies(ctx); err != nil {
+		return err
+	}
+	if err := createOrUpdateServiceMonitors(ctx); err != nil {
 		return err
 	}
 	if err := common.UpdatePrometheusAnnotations(ctx, ComponentNamespace, ComponentName); err != nil {
@@ -659,6 +663,47 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed creating/updating Prometheus auth policy: %v", err)
 	}
 	return err
+}
+
+// createOrUpdateServiceMonitors creates or updates service monitors to meet operator requirements
+func createOrUpdateServiceMonitors(ctx spi.ComponentContext) error {
+	smList := &promoperapi.ServiceMonitorList{}
+	enableHTTP2 := false
+	err := ctx.Client().List(context.TODO(), smList)
+	if err != nil {
+		return err
+	}
+	for _, sm := range smList.Items {
+		var endPoints []promoperapi.Endpoint
+		for _, ep := range sm.Spec.Endpoints {
+			if ep.Scheme == "https" {
+				ep.EnableHttp2 = &enableHTTP2
+			}
+			endPoints = append(endPoints, ep)
+		}
+		sm.Spec.Endpoints = endPoints
+		smSpec := sm.Spec.DeepCopy()
+		_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), sm, func() error {
+			sm.Spec = promoperapi.ServiceMonitorSpec{
+				JobLabel:              smSpec.JobLabel,
+				TargetLabels:          smSpec.TargetLabels,
+				PodTargetLabels:       smSpec.PodTargetLabels,
+				Endpoints:             smSpec.Endpoints,
+				Selector:              smSpec.Selector,
+				NamespaceSelector:     smSpec.NamespaceSelector,
+				SampleLimit:           smSpec.SampleLimit,
+				TargetLimit:           smSpec.TargetLimit,
+				LabelLimit:            smSpec.LabelLimit,
+				LabelNameLengthLimit:  smSpec.LabelNameLengthLimit,
+				LabelValueLengthLimit: smSpec.LabelValueLengthLimit,
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // createOrUpdateNetworkPolicies creates or updates network policies for this component
