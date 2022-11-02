@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconciler
@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-//UpdateStatus configures the Module's status based on the passed in state and then updates the Module on the cluster
+// UpdateStatus configures the Module's status based on the passed in state and then updates the Module on the cluster
 func (r *Reconciler) UpdateStatus(ctx spi.ComponentContext, condition modulesv1alpha1.ModuleCondition) error {
 	module := ctx.Module()
 	state := modulesv1alpha1.State(condition)
@@ -83,7 +83,7 @@ func appendCondition(module *modulesv1alpha1.Module, message string, condition m
 	}
 }
 
-//needsConditionUpdate checks if the condition needs an update
+// needsConditionUpdate checks if the condition needs an update
 func needsConditionUpdate(last, new *modulesv1alpha1.Condition) bool {
 	if last == nil {
 		return true

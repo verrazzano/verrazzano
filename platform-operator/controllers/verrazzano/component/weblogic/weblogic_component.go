@@ -1,16 +1,12 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package weblogic
 
 import (
 	"fmt"
-	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	"k8s.io/apimachinery/pkg/types"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,7 +21,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -50,31 +45,37 @@ type weblogicComponent struct {
 }
 
 func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
-	h := weblogicComponent{
-		helm.HelmComponent{
-			ReleaseName:               ComponentName,
-			JSONName:                  ComponentJSONName,
-			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
-			ChartNamespace:            ComponentNamespace,
-			IgnoreNamespaceOverride:   true,
-			SupportsOperatorInstall:   true,
-			SupportsOperatorUninstall: true,
-			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
-			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "weblogic-values.yaml"),
-			PreInstallFunc:            WeblogicOperatorPreInstall,
-			AppendOverridesFunc:       AppendWeblogicOperatorOverrides,
-			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName},
-			GetInstallOverridesFunc:   GetOverrides,
-			AvailabilityObjects: &ready.AvailabilityObjects{
-				DeploymentNames: []types.NamespacedName{
-					{
-						Name:      ComponentName,
-						Namespace: ComponentNamespace,
-					},
-				},
-			},
-		},
+	h := helm.HelmComponent{
+		ChartDir:               config.GetThirdPartyDir(),
+		ImagePullSecretKeyname: secret.DefaultImagePullSecretKeyName,
+		PreInstallFunc:         WeblogicOperatorPreInstall,
+		AppendOverridesFunc:    AppendWeblogicOperatorOverrides,
 	}
+	//h := weblogicComponent{
+	//	helm.HelmComponent{
+	//		ReleaseName:               ComponentName,
+	//		JSONName:                  ComponentJSONName,
+	//		ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
+	//		ChartNamespace:            ComponentNamespace,
+	//		IgnoreNamespaceOverride:   true,
+	//		SupportsOperatorInstall:   true,
+	//		SupportsOperatorUninstall: true,
+	//		ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
+	//		ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "weblogic-values.yaml"),
+	//		PreInstallFunc:            WeblogicOperatorPreInstall,
+	//		AppendOverridesFunc:       AppendWeblogicOperatorOverrides,
+	//		Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName},
+	//		GetInstallOverridesFunc:   GetOverrides,
+	//		AvailabilityObjects: &ready.AvailabilityObjects{
+	//			DeploymentNames: []types.NamespacedName{
+	//				{
+	//					Name:      ComponentName,
+	//					Namespace: ComponentNamespace,
+	//				},
+	//			},
+	//		},
+	//	},
+	//}
 	helm.SetForModule(&h, module)
 
 	return &reconciler.Reconciler{

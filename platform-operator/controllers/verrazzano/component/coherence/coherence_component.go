@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package coherence
@@ -44,7 +44,7 @@ func NewComponent(module *modulesv1alpha1.Module) modules.DelegateReconciler {
 	helm.SetForModule(&h, module)
 	return &reconciler.Reconciler{
 		ModuleComponent: coherenceComponent{
-			h,
+			HelmComponent: h,
 		},
 	}
 	//return coherenceComponent{

@@ -1,13 +1,13 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package adapter
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -25,7 +25,7 @@ func ApplyComponentAsModule(client clipkg.Client, vz *vzapi.Verrazzano, componen
 var componentAdapters = map[string]func(*vzapi.Verrazzano) *componentAdapter{
 	// Keycloak Adapter
 	keycloak.ComponentName: func(vz *vzapi.Verrazzano) *componentAdapter {
-		adapter := NewAdapter(vzconfig.IsKeycloakEnabled(vz))
+		adapter := NewAdapter(vzcr.IsKeycloakEnabled(vz))
 		if adapter.IsEnabled {
 			adapter.Name = keycloak.ComponentName
 			adapter.Namespace = vz.Namespace
@@ -50,7 +50,7 @@ var componentAdapters = map[string]func(*vzapi.Verrazzano) *componentAdapter{
 
 	// Weblogic Operator Adapter
 	weblogic.ComponentName: func(vz *vzapi.Verrazzano) *componentAdapter {
-		adapter := NewAdapter(vzconfig.IsWeblogicOperatorEnabled(vz))
+		adapter := NewAdapter(vzcr.IsWeblogicOperatorEnabled(vz))
 		if adapter.IsEnabled {
 			wko := vz.Spec.Components.WebLogicOperator
 			adapter.Name = weblogic.ComponentName

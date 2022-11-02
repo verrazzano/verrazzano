@@ -17,10 +17,9 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/yaml"
+	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -29,6 +28,7 @@ import (
 
 	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -305,12 +305,6 @@ func (h HelmComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	return true
 }
 
-func (h HelmComponent) Uninstall(ctx spi.ComponentContext) error {
-	resolvedNamespace := h.resolveNamespace(ctx.EffectiveCR().Namespace)
-	_, _, err := uninstallFunc(ctx.Log(), h.ReleaseName, resolvedNamespace, ctx.IsDryRun())
-	return err
-}
-
 func SetForModule(h *HelmComponent, module *modulesv1alpha1.Module) {
 	if module != nil {
 		chart := module.Spec.Installer.HelmChart
@@ -320,7 +314,7 @@ func SetForModule(h *HelmComponent, module *modulesv1alpha1.Module) {
 			h.ChartDir = filepath.Join(h.ChartDir, chart.Repository.Path)
 			h.ChartNamespace = chart.Namespace
 			h.IgnoreNamespaceOverride = true
-			h.GetInstallOverridesFunc = func(_ *vzapi.Verrazzano) []vzapi.Overrides {
+			h.GetInstallOverridesFunc = func(object runtime.Object) interface{} {
 				return chart.InstallOverrides.ValueOverrides
 			}
 		}
