@@ -11,7 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr"
 )
 
-func unpackWorkerChartToDir() (string, error) {
+func createTempChartDir() (string, error) {
 	u, err := user.Current()
 	if err != nil {
 		return "", err
@@ -30,10 +30,16 @@ func unpackWorkerChartToDir() (string, error) {
 		return "", err
 	}
 	err = writeDirDeep(topDir, "manifests/charts/worker")
-	if err != nil {
-		return "", err
-	}
+
 	return topDir, nil
+}
+
+func copyWorkerChartToTempDir(chartDir string) error {
+	err := writeDirDeep(chartDir, "manifests/charts/worker")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func writeDirDeep(destDir string, embeddedParent string) error {

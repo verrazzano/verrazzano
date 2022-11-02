@@ -10,14 +10,18 @@ import (
 )
 
 func InstallScenario() (string, error) {
-	chartDir, err := unpackWorkerChartToDir()
+	chartDir, err := createTempChartDir()
 	if err != nil {
 		return "", err
 	}
 	defer os.RemoveAll(chartDir)
 
-	var stdout []byte
-	var stderr []byte
+	err = copyWorkerChartToTempDir(chartDir)
+	if err != nil {
+		return "", err
+	}
+
+	var stdout, stderr []byte
 	stdout, stderr, err = helmcli.Upgrade(vzlog.DefaultLogger(), "psrcli", "default", chartDir, true, false, nil)
 	if err != nil {
 		return string(stderr), err
