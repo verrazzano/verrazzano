@@ -52,10 +52,10 @@ type OperatorConfig struct {
 	// VersionCheckEnabled enables/disables version checking for upgrade.
 	VersionCheckEnabled bool
 
-	// RunWebhooks Runs the webhooks
+	// RunWebhooks Runs the webhooks instead of the operator instead of the operator reconciler
 	RunWebhooks bool
 
-	// RunWebhookInit Runs the webhook init container
+	// RunWebhookInit Runs the webhook init path instead of the operator reconciler
 	RunWebhookInit bool
 
 	// WebhookValidationEnabled enables/disables webhook validation without removing the webhook itself
