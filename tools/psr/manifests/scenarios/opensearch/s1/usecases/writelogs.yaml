@@ -1,6 +1,4 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-# Optional Scenario Description
-# This is a my new scenario ...
-
+PSR_ITERNATION_SLEEP: 100ms
