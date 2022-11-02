@@ -1859,12 +1859,11 @@ def runMulticlusterVerifyRegistry() {
     int clusterCount = params.TOTAL_CLUSTERS.toInteger()
     for(int count=1; count<=clusterCount; count++) {
         verifyRegistryStages["${count} - Verify registry"] = verifyRegistry(count)
-                sh """
-                    export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                    cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo build registry/
-                """
     }
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+        ginkgo build registry/
+    """   
     parallel verifyRegistryStages
 }
 
