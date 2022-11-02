@@ -199,16 +199,34 @@ func DeleteRancherUsers(rancherURL string) bool {
 		return false
 	}
 	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	rancherDeletedIds := make([]int, 0)
 	for i := 0; i < len(common.RancherUserNameList); i++ {
 		rancherUserDeleteURL := fmt.Sprintf("%s/v3/users/%s", rancherURL, common.RancherUserIDList[i])
 		_, err := common.HTTPHelper(httpClient, "DELETE", rancherUserDeleteURL, token, "Bearer", http.StatusOK, nil, t.Logs)
 		if err != nil {
 			t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
+			updatedUserLists(rancherDeletedIds)
 			return false
 		}
 		t.Logs.Infof("Successfully deleted rancher user '%v' with id '%v' ", common.RancherUserNameList[i], common.RancherUserIDList[i])
+		rancherDeletedIds = append(rancherDeletedIds, i)
 	}
 	return true
+}
+
+// updateUserLists updates the rancher user lists by removing those users that have already been deleted
+func updatedUserLists(ids []int) {
+	for _, id := range ids {
+		common.RancherUserNameList = removeItem(common.RancherUserNameList, id)
+		common.RancherUserIDList = removeItem(common.RancherUserIDList, id)
+	}
+}
+
+// removeItem returns a slice with the item specified by the index removed
+func removeItem(s []string, index int) []string {
+	ret := make([]string, 0)
+	ret = append(ret, s[:index]...)
+	return append(ret, s[index+1:]...)
 }
 
 // VerifyRancherUsers gets an existing rancher user
