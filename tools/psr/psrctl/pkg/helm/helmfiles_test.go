@@ -16,6 +16,10 @@ func Test(t *testing.T) {
 	chartDir, err := unpackWorkerChartToDir()
 	assert.NoError(t, err)
 	helmcli.Upgrade(vzlog.DefaultLogger(), "psrcli", "default", chartDir, true, false, nil)
+
+	// TODO - MUST DELETE Temp Dir after Helm called
+	// TODO - Split this function out and call before installing chart
+	
 	os.RemoveAll(chartDir)
 
 }

@@ -4,15 +4,28 @@
 package helm
 
 import (
-	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/tools/psr"
 )
 
 func unpackWorkerChartToDir() (string, error) {
-	topDir, err := os.MkdirTemp("", "psr-worker-chart")
+	u, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	// Use homedir for temp files since root might own temp dir on OSX and we get
+	// errors trying to create temp files
+	hidden := filepath.Join(u.HomeDir, ".psr-temp")
+	err = os.Mkdir(hidden, 0700)
+	if err != nil && !os.IsExist(err) {
+		return "", err
+	}
+	// TODO - MUST DELETE Temp Dir after Helm called
+	// TODO - Split this function out and call before installing chart
+	topDir, err := os.MkdirTemp(hidden, "psr-worker-chart")
 	if err != nil {
 		return "", err
 	}
@@ -28,12 +41,11 @@ func writeDirDeep(destDir string, embeddedParent string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%v\n", dirEntries)
 	for _, d := range dirEntries {
 		if d.IsDir() {
 			dir := filepath.Join(destDir, d.Name())
-			err := os.Mkdir(dir, 0766)
-			if err != nil && os.IsExist(err) {
+			err := os.Mkdir(dir, 0700)
+			if err != nil && !os.IsExist(err) {
 				return err
 			}
 			embeddedChild := filepath.Join(embeddedParent, d.Name())
@@ -49,7 +61,7 @@ func writeDirDeep(destDir string, embeddedParent string) error {
 			return err
 		}
 		outPath := filepath.Join(destDir, d.Name())
-		err = os.WriteFile(outPath, f, 0766)
+		err = os.WriteFile(outPath, f, 0600)
 		if err != nil {
 			return err
 		}
