@@ -4,7 +4,9 @@
 package run
 
 import (
+	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/helm"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
@@ -29,8 +31,17 @@ func NewCmdRun(vzHelper helpers.VZHelper) *cobra.Command {
 
 // runCmdRun - run the "psrctl run" command
 func runCmdRun(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+	fmt.Println("Running example scenario...")
 
-	//	helmcli.Upgrade(vzlog.DefaultLogger(), "psrcli", "default", )
+	msg, err := helm.InstallScenario()
+	if err != nil {
+		fmt.Printf("%v", err)
+	}
+	fmt.Println("Helm results...")
+	fmt.Println()
+	fmt.Println(msg)
+	fmt.Println()
+	fmt.Println("Example Scenario successfully installed")
 
 	return nil
 }
