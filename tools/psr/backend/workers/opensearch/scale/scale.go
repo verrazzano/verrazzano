@@ -18,6 +18,11 @@ const (
 
 	scaleOutCountTotal     = "total_scale_out_count"
 	scaleOutCountTotalHelp = "The total number of times OpenSearch has been scaled out"
+
+	openSearchTier    = "OPEN_SEARCH_TIER"
+	scaleDelayPerTier = "SCALE_DELAY_PER_TIER"
+	minReplicaCount   = "MIN_REPLICA_COUNT"
+	maxReplicaCount   = "MAX_REPLICA_COUNT"
 )
 
 type scaleWorker struct {
@@ -75,7 +80,12 @@ func (w scaleWorker) GetWorkerDesc() spi.WorkerDesc {
 }
 
 func (w scaleWorker) GetEnvDescList() []osenv.EnvVarDesc {
-	return []osenv.EnvVarDesc{}
+	return []osenv.EnvVarDesc{
+		{Key: openSearchTier, DefaultVal: "", Required: true},
+		{Key: scaleDelayPerTier, DefaultVal: "5s", Required: false},
+		{Key: minReplicaCount, DefaultVal: "3", Required: false},
+		{Key: maxReplicaCount, DefaultVal: "5", Required: false},
+	}
 }
 
 func (w scaleWorker) GetMetricDescList() []prometheus.Desc {

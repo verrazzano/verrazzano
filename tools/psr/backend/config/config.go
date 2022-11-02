@@ -87,10 +87,15 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 		threadCount = 100
 	}
 
+	numIterations, err := strconv.Atoi(PsrEnv.GetEnv(PsrNumIterations))
+	if err != nil {
+		return CommonConfig{}, log.ErrorfNewErr("Failed to convert ENV var %s to integer", PsrNumIterations)
+	}
+
 	return CommonConfig{
 		WorkerType:          PsrEnv.GetEnv(PsrWorkerType),
 		IterationSleepNanos: sleepDuration,
-		NumIterations:       UnlimitedWorkerIterations,
+		NumIterations:       int64(numIterations),
 		WorkerThreadCount:   threadCount,
 	}, nil
 }
