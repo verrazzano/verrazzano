@@ -251,5 +251,5 @@ const ServiceMonitorNameKubelet = "prometheus-operator-kube-p-kubelet"
 // ServiceMonitorNameKubeStateMetrics indicates the name of serviceMonitor resource for kube-state-metrics monitoring
 const ServiceMonitorNameKubeStateMetrics = "kube-state-metrics"
 
-//VerrazzanoModuleConfigLabel is the label used to denote if an object is Verrazzano managed
+// VerrazzanoModuleConfigLabel is the label used to denote if an object is Verrazzano managed
 const VerrazzanoModuleConfigLabel = "verrazzano.io/module-config"

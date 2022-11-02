@@ -16,13 +16,17 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-var kcComponent = NewComponent()
+var (
+	kcComponent = NewComponent(nil)
+	testScheme  = runtime.NewScheme()
+)
 
 // TestIsEnabled tests the Keycloak IsEnabled call
 // GIVEN a Keycloak component
@@ -128,7 +132,7 @@ func TestPreinstall(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, testVZ, nil, false)
-			err := NewComponent().PreInstall(ctx)
+			err := NewComponent(nil).PreInstall(ctx)
 			if tt.isErr {
 				assert.Error(t, err)
 			} else {
@@ -202,7 +206,7 @@ func TestKeycloakComponentValidateUpdate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewComponent()
+			c := NewComponent(nil)
 			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -278,7 +282,7 @@ func TestKeycloakComponentValidateUpdateV1Beta1(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewComponent()
+			c := NewComponent(nil)
 			if err := c.ValidateUpdateV1Beta1(tt.old, tt.new); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -306,7 +310,7 @@ func TestKeycloakComponent_GetCertificateNames(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	ctx := spi.NewFakeContext(c, vz, nil, false)
-	names := NewComponent().GetCertificateNames(ctx)
+	names := NewComponent(nil).GetCertificateNames(ctx)
 	assert.Len(t, names, 1)
 	assert.Equal(t, types.NamespacedName{Name: keycloakCertificateName, Namespace: ComponentNamespace}, names[0])
 }

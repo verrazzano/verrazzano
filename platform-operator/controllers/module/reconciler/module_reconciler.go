@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconciler
@@ -92,7 +92,7 @@ func (r *Reconciler) doReconcile(ctx spi.ComponentContext) error {
 	return nil
 }
 
-//ReadyState reconciles put the Module back to pending state if the generation has changed
+// ReadyState reconciles put the Module back to pending state if the generation has changed
 func (r *Reconciler) ReadyState(ctx spi.ComponentContext) error {
 	if NeedsReconcile(ctx) {
 		return r.UpdateStatus(ctx, modulesv1alpha1.CondPreUpgrade)
@@ -100,7 +100,7 @@ func (r *Reconciler) ReadyState(ctx spi.ComponentContext) error {
 	return nil
 }
 
-//Uninstall cleans up the Helm Chart and removes the Module finalizer so Kubernetes can clean the resource
+// Uninstall cleans up the Helm Chart and removes the Module finalizer so Kubernetes can clean the resource
 func (r *Reconciler) Uninstall(ctx spi.ComponentContext) error {
 	if err := r.ModuleComponent.Uninstall(ctx); err != nil {
 		return err

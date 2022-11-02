@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helm
@@ -12,7 +12,6 @@ import (
 	"sort"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -20,15 +19,15 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/yaml"
+	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	modulesv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/modules/v1alpha1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -305,12 +304,6 @@ func (h HelmComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	return true
 }
 
-func (h HelmComponent) Uninstall(ctx spi.ComponentContext) error {
-	resolvedNamespace := h.resolveNamespace(ctx.EffectiveCR().Namespace)
-	_, _, err := uninstallFunc(ctx.Log(), h.ReleaseName, resolvedNamespace, ctx.IsDryRun())
-	return err
-}
-
 func SetForModule(h *HelmComponent, module *modulesv1alpha1.Module) {
 	if module != nil {
 		chart := module.Spec.Installer.HelmChart
@@ -320,7 +313,7 @@ func SetForModule(h *HelmComponent, module *modulesv1alpha1.Module) {
 			h.ChartDir = filepath.Join(h.ChartDir, chart.Repository.Path)
 			h.ChartNamespace = chart.Namespace
 			h.IgnoreNamespaceOverride = true
-			h.GetInstallOverridesFunc = func(_ *vzapi.Verrazzano) []vzapi.Overrides {
+			h.GetInstallOverridesFunc = func(object runtime.Object) interface{} {
 				return chart.InstallOverrides.ValueOverrides
 			}
 		}
