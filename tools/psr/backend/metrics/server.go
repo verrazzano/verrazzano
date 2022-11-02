@@ -30,7 +30,7 @@ func StartMetricsServerOrDie(providers []spi.WorkerMetricsProvider) {
 	// Instrument the default metrics
 	h1 := promhttp.HandlerFor(reg, promhttp.HandlerOpts{})
 	h2 := promhttp.InstrumentMetricHandler(reg, h1)
-	http.Handle("/actuator/prometheus", h2)
+	http.Handle("/metrics", h2)
 
 	server := http.Server{
 		ReadTimeout:  10 * time.Second,
