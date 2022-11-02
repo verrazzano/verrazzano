@@ -72,12 +72,14 @@ func AreSlicesEqualWithoutOrder(slice1 []string, slice2 []string) bool {
 	s2 := make([]string, len(slice2))
 	copy(s1, slice1)
 	copy(s2, slice2)
-	sort.Strings(s1)
-	sort.Strings(s2)
 
 	if len(s1) != len(s2) {
 		return false
 	}
+
+	sort.Strings(s1)
+	sort.Strings(s2)
+
 	for i, v := range s1 {
 		if v != s2[i] {
 			return false
