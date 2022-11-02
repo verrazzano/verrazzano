@@ -55,11 +55,11 @@ const unitTestBomFile = "../../verrazzano-bom.json"
 // ingress list constants
 const dnsDomain = "myenv.testverrazzano.com"
 const keycloakURL = "keycloak." + dnsDomain
-const esURL = "elasticsearch." + dnsDomain
+const esURL = "opensearch." + dnsDomain
 const promURL = "prometheus." + dnsDomain
 const grafanaURL = "grafana." + dnsDomain
 const kialiURL = "kiali." + dnsDomain
-const kibanaURL = "kibana." + dnsDomain
+const kibanaURL = "opensearchdashboards." + dnsDomain
 const rancherURL = "rancher." + dnsDomain
 const consoleURL = "verrazzano." + dnsDomain
 const jaegerURL = "jaeger." + dnsDomain
@@ -1540,7 +1540,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 			},
 		},
 		&networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-es-ingest"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-os-ingest"},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
 					{Host: esURL},
@@ -1572,7 +1572,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 			},
 		},
 		&networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-kibana"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-opensearchdashboards"},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
 					{Host: kibanaURL},
@@ -1657,6 +1657,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
 	assert.Equal(t, "https://"+rancherURL, *instanceInfo.RancherURL)
 	assert.Equal(t, "https://"+keycloakURL, *instanceInfo.KeyCloakURL)
+	fmt.Println("https://"+esURL+" "+"-----", *instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+esURL, *instanceInfo.ElasticURL)
 	assert.Equal(t, "https://"+grafanaURL, *instanceInfo.GrafanaURL)
 	assert.Equal(t, "https://"+kialiURL, *instanceInfo.KialiURL)
