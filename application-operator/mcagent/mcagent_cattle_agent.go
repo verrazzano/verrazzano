@@ -19,9 +19,9 @@ import (
 
 func (s *Syncer) syncCattleClusterAgent() error {
 	// Get the manifest secret from the admin cluster
-	// Decode and Parse it however
-	// If first time, store the values that need to be compared and apply the yaml
-	// Else compare the values and if different apply the yaml
+	// Parse and separate out the cattle-agent and the cattle-credential
+	// If first time, create a hash and apply the yaml for the resources
+	// Else compare the hash and if different apply the yaml
 	s.Log.Infof("Starting to sync the cattle-cluster-agent")
 
 	manifestSecret := corev1.Secret{}
@@ -31,7 +31,7 @@ func (s *Syncer) syncCattleClusterAgent() error {
 	}, &manifestSecret)
 
 	if err != nil {
-		return fmt.Errorf("Failed to fetch manifest secret for %s cluster: %v", s.ManagedClusterName, err)
+		return fmt.Errorf("failed to fetch manifest secret for %s cluster: %v", s.ManagedClusterName, err)
 	}
 	s.Log.Infof(fmt.Sprintf("Found manifest secret for %s cluster: %s", s.ManagedClusterName, manifestSecret.Name))
 
@@ -42,22 +42,21 @@ func (s *Syncer) syncCattleClusterAgent() error {
 
 	cattleAgentHash := createHash(cattleAgentSlice)
 
-	// We have a previous manifest secret to compare to
+	// We have a previous hash to compare to
 	if len(s.CattleAgentHash) > 0 {
-		// Compare the current hash to previous one
-		// If different apply the manifest
-		// else do nothing
+		// If they are the same, do nothing
 		if s.CattleAgentHash == cattleAgentHash {
+			s.Log.Infof("Cattle Hash hasn't changed. Nothing to update")
 			return nil
 		}
 	}
 
 	// No previous hash or change in hash
 	// Apply the manifest secret and store the hash for next iterations
-	s.Log.Infof("No previous cattle hash found. Applying manifest and updating hash")
-	err = s.applyManifest(yamlSlices, s.Log)
+	s.Log.Infof("No previous cattle hash found or cattle hash has changed. Updating the cattle-cluster-agent")
+	err = updateCattleAgent(yamlSlices, s.Log)
 	if err != nil {
-		return fmt.Errorf("Failed to apply the updated manifest on %s cluster: %v", s.ManagedClusterName, err)
+		return fmt.Errorf("failed to update the cattle-cluster-agent on %s cluster: %v", s.ManagedClusterName, err)
 	}
 
 	s.Log.Infof("Updating cattle hash")
@@ -66,25 +65,30 @@ func (s *Syncer) syncCattleClusterAgent() error {
 	return nil
 }
 
-func (s *Syncer) applyManifest(data [][]byte, log *zap.SugaredLogger) error {
+func updateCattleAgent(data [][]byte, log *zap.SugaredLogger) error {
 
 	config, err := k8sutil.BuildKubeConfig("")
 	if err != nil {
 		log.Errorf("failed to create incluster config: %v", err)
 	}
-	s.Log.Infof("Built Incluster config: %s, now applying manifest", config.Host)
+	log.Infof("Built Incluster config: %s, now applying manifest", config.Host)
 
-	var retErr error
-	for i, each := range data {
-		err = resource.CreateOrUpdateResourceFromBytesUsingConfig(each, config)
-		if err != nil {
-			log.Errorf("failed to apply resource %d: %v", i, err)
-			retErr = err
-		} else {
-			log.Infof("Successfully applied resource %d", i)
-		}
+	// Data[8] contains the yaml for the cattle-credential used by the cattle-cluster-agent
+	err = resource.CreateOrUpdateResourceFromBytesUsingConfig(data[8], config)
+	if err != nil {
+		log.Errorf("failed to apply resource: %v", err)
+		return err
 	}
-	return retErr
+	log.Infof("Successfully applied resource")
+
+	// Data[10] contains the yaml for the cattle-cluster-agent
+	err = resource.CreateOrUpdateResourceFromBytesUsingConfig(data[10], config)
+	if err != nil {
+		log.Errorf("failed to apply resource: %v", err)
+		return err
+	}
+
+	return nil
 }
 
 func createHash(data []byte) string {
