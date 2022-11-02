@@ -205,7 +205,7 @@ func DeleteRancherUsers(rancherURL string) bool {
 		_, err := common.HTTPHelper(httpClient, "DELETE", rancherUserDeleteURL, token, "Bearer", http.StatusOK, nil, t.Logs)
 		if err != nil {
 			t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
-			updatedUserLists(rancherDeletedIds)
+			updateUserLists(rancherDeletedIds)
 			return false
 		}
 		t.Logs.Infof("Successfully deleted rancher user '%v' with id '%v' ", common.RancherUserNameList[i], common.RancherUserIDList[i])
@@ -215,7 +215,7 @@ func DeleteRancherUsers(rancherURL string) bool {
 }
 
 // updateUserLists updates the rancher user lists by removing those users that have already been deleted
-func updatedUserLists(ids []int) {
+func updateUserLists(ids []int) {
 	for _, id := range ids {
 		common.RancherUserNameList = removeItem(common.RancherUserNameList, id)
 		common.RancherUserIDList = removeItem(common.RancherUserIDList, id)
