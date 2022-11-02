@@ -5,15 +5,17 @@ package workmanager
 
 import (
 	"fmt"
+	"os"
+	"sync"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	metrics2 "github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/example"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/getlogs"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/scale"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/writelogs"
-	"os"
-	"sync"
 )
 
 // RunWorker runs a worker to completion
@@ -79,6 +81,8 @@ func getWorker(wt string) (spi.Worker, error) {
 		return writelogs.NewWriteLogsWorker()
 	case config.WorkerTypeGetLogs:
 		return getlogs.NewGetLogsWorker()
+	case config.WorkerTypeScale:
+		return scale.NewScaleWorker()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}

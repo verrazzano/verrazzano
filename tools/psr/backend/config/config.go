@@ -4,10 +4,11 @@
 package config
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"strconv"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 )
 
 // Define common worker configuration params
@@ -40,6 +41,7 @@ const (
 	WorkerTypeExample   = "example"
 	WorkerTypeWriteLogs = "writelogs"
 	WorkerTypeGetLogs   = "getlogs"
+	WorkerTypeScale     = "scale"
 )
 
 const (

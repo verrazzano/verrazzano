@@ -3,4 +3,4 @@
 
 global:
   envVars:
-    PSR_WORKER_TYPE: writelogs
+    PSR_WORKER_TYPE: scale
