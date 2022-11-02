@@ -10,8 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/client-go/rest"
-
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
@@ -35,7 +33,6 @@ type Syncer struct {
 	AgentSecretValid      bool
 	SecretResourceVersion string
 	CattleAgentHash       string
-	LocalConfig           *rest.Config
 
 	// List of namespaces to watch for multi-cluster objects.
 	ProjectNamespaces   []string

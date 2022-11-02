@@ -8,6 +8,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
@@ -20,6 +22,7 @@ func (s *Syncer) syncCattleClusterAgent() error {
 	// Decode and Parse it however
 	// If first time, store the values that need to be compared and apply the yaml
 	// Else compare the values and if different apply the yaml
+	s.Log.Infof("Starting to sync the cattle-cluster-agent")
 
 	manifestSecret := corev1.Secret{}
 	err := s.AdminClient.Get(s.Context, client.ObjectKey{
@@ -30,7 +33,7 @@ func (s *Syncer) syncCattleClusterAgent() error {
 	if err != nil {
 		return fmt.Errorf("Failed to fetch manifest secret for %s cluster: %v", s.ManagedClusterName, err)
 	}
-	s.Log.Debugf(fmt.Sprintf("Found manifest secret for %s cluster: %s", s.ManagedClusterName, manifestSecret.Name))
+	s.Log.Infof(fmt.Sprintf("Found manifest secret for %s cluster: %s", s.ManagedClusterName, manifestSecret.Name))
 
 	manifestData := manifestSecret.Data["yaml"]
 
@@ -51,7 +54,8 @@ func (s *Syncer) syncCattleClusterAgent() error {
 
 	// No previous hash or change in hash
 	// Apply the manifest secret and store the hash for next iterations
-	err = s.applyManifest(manifestData, s.Log)
+	s.Log.Infof("No previous cattle has found. Applying manifest and updating hash")
+	err = s.applyManifest(yamlSlices, s.Log)
 	if err != nil {
 		return fmt.Errorf("Failed to apply the updated manifest on %s cluster: %v", s.ManagedClusterName, err)
 	}
@@ -61,11 +65,21 @@ func (s *Syncer) syncCattleClusterAgent() error {
 	return nil
 }
 
-func (s *Syncer) applyManifest(data []byte, log *zap.SugaredLogger) error {
+func (s *Syncer) applyManifest(data [][]byte, log *zap.SugaredLogger) error {
 
-	err := resource.CreateOrUpdateResourceFromBytesUsingConfig(data, s.LocalConfig)
+	config, err := k8sutil.BuildKubeConfig("")
 	if err != nil {
-		log.Errorf("%v", err)
+		log.Errorf("failed to create incluster config: %v", err)
+	}
+	s.Log.Infof("Built Incluster config: %s, now applying manifest", config.Host)
+
+	for i, each := range data {
+		err = resource.CreateOrUpdateResourceFromBytesUsingConfig(each, config)
+		if err != nil {
+			log.Errorf("failed to apply resource %d: %v", i, err)
+			return err
+		}
+		log.Infof("Successfully applied resource %d", i)
 	}
 	return nil
 }
