@@ -53,12 +53,9 @@ func (s *Syncer) syncAgentSecretFromAdminCluster() (controllerutil.OperationResu
 	agentSecret.Name = constants.MCAgentSecret
 	agentSecret.Namespace = constants.VerrazzanoSystemNamespace
 	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &agentSecret, func() error {
-		// Update the local cluster agent secret if the admin-kubeconfig or managed-cluster-name have changed
-		if !agentSecretsEqual(agentSecret, adminAgentSecret) {
-			// Get info from admin agent secret
-			agentSecret.Data[mcconstants.KubeconfigKey] = adminAgentSecret.Data[mcconstants.KubeconfigKey]
-			agentSecret.Data[mcconstants.ManagedClusterNameKey] = adminAgentSecret.Data[mcconstants.ManagedClusterNameKey]
-		}
+		// Set info from admin agent secret
+		agentSecret.Data[mcconstants.KubeconfigKey] = adminAgentSecret.Data[mcconstants.KubeconfigKey]
+		agentSecret.Data[mcconstants.ManagedClusterNameKey] = adminAgentSecret.Data[mcconstants.ManagedClusterNameKey]
 		return nil
 	})
 }
