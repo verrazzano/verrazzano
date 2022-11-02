@@ -5,9 +5,7 @@ package argocd
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -17,8 +15,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // patchArgoCDSecret
@@ -36,7 +34,7 @@ func patchArgoCDSecret(ctx spi.ComponentContext) error {
 		},
 	}
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), secret, func() error {
-		secret.Data["oidc.keycloak.clientSecret"] = []byte(base64.StdEncoding.EncodeToString([]byte(clientSecret)))
+		secret.Data["oidc.keycloak.clientSecret"] = []byte(clientSecret)
 		return nil
 	}); err != nil {
 		return err
@@ -53,79 +51,61 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed getting ArgoCD host name: %v", err)
 	}
 
-	argocm := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
-			Kind:       "ConfigMap",
-		},
+	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "argocd-cm",
 			Namespace: constants.ArgoCDNamespace,
 		},
 	}
 
-	var oidcString = fmt.Sprintf(`
-    data:
-      url: "https://%s"
-      oidc.config: |
+	var oidcString = fmt.Sprintf(`|
         name: Keycloak
         issuer: "https://%s/%s"
         clientID: argocd
         clientSecret: $oidc.keycloak.clientSecret
-        requestedScopes: ["openid", "profile", "email", "groups"]`, argocdHostName, argocdHostName, "auth/realms/verrazzano-system")
-
-	type data struct {
-		Data map[string]string `yaml:"data"`
-	}
-	t := data{}
+        requestedScopes: ["openid", "profile", "email", "groups"]`, argocdHostName, "auth/realms/verrazzano-system")
 
 	// Add the oidc configuration to enable our keycloak authentication.
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), argocm, func() error {
-		err := yaml.Unmarshal([]byte(oidcString), &t)
-		if err != nil {
-			ctx.Log().ErrorfNewErr("error: %v", err)
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), cm, func() error {
+		if cm.Data == nil {
+			cm.Data = make(map[string]string)
 		}
-		argocm.Data = t.Data
+		cm.Data["url"] = fmt.Sprintf("https://%s", argocdHostName)
+		cm.Data["oidc.config"] = oidcString
 		return nil
 	}); err != nil {
 		return err
 	}
 
+	ctx.Log().Debugf("patchArgoCDConfigMap: ArgoCD cm operation result: %v", err)
 	return err
 }
 
 // patchArgoCDConfigMap
 func patchArgoCDRbacConfigMap(ctx spi.ComponentContext) error {
-	configMap := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
-			Kind:       "ConfigMap",
-		},
+	rbaccm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "argocd-rbac-cm",
 			Namespace: constants.ArgoCDNamespace,
 		},
 	}
 
-	var policyString = `
-    data:
-      policy.csv: |
+	var policyString = `|
         g, verrazzano-admins, role:admin`
-
-	type data struct {
-		Data map[string]string `yaml:"data"`
-	}
-	t := data{}
+	var err error
 
 	// Disable the built-in admin user. Grant admin (role:admin) to verrazzano-admins group
-	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), configMap, func() error {
-		err := yaml.Unmarshal([]byte(policyString), &t)
-		if err != nil {
-			ctx.Log().ErrorfNewErr("error: %v", err)
+	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), rbaccm, func() error {
+		if rbaccm.Data == nil {
+			rbaccm.Data = make(map[string]string)
 		}
-        configMap.Data = t.Data
+		rbaccm.Data["policy.csv"] = policyString
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+
+	ctx.Log().Debugf("patchArgoCDRbacConfigMap: ArgoCD rbac cm operation result: %v", err)
 	return err
 }
 
@@ -138,6 +118,6 @@ func getArgoCDHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 	if len(env) == 0 {
 		env = constants.DefaultEnvironmentName
 	}
-	rancherHostname := fmt.Sprintf("%s.%s.%s", common.ArgoCDName, env, dnsSuffix)
-	return rancherHostname, nil
+	argocdHostname := fmt.Sprintf("%s.%s.%s", common.ArgoCDName, env, dnsSuffix)
+	return argocdHostname, nil
 }
