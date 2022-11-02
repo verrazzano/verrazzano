@@ -130,11 +130,6 @@ func (s *Syncer) syncRegistrationFromAdminCluster() (controllerutil.OperationRes
 	return opResult, nil
 }
 
-func agentSecretsEqual(agentSecret1 corev1.Secret, agentSecret2 corev1.Secret) bool {
-	return byteSlicesEqualTrimmedWhitespace(agentSecret1.Data[mcconstants.KubeconfigKey], agentSecret2.Data[mcconstants.KubeconfigKey]) &&
-		byteSlicesEqualTrimmedWhitespace(agentSecret1.Data[mcconstants.ManagedClusterNameKey], agentSecret2.Data[mcconstants.ManagedClusterNameKey])
-}
-
 func registrationInfoEqual(regSecret1 corev1.Secret, regSecret2 corev1.Secret) bool {
 	return byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.ESURLKey],
 		regSecret2.Data[mcconstants.ESURLKey]) &&
