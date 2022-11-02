@@ -19,7 +19,7 @@ type Cluster struct {
 	Name string `json:"name"`
 }
 
-// Condition describes current state of a multicluster resource.
+// Condition describes current state of a multi cluster resource.
 type Condition struct {
 	// Last time the condition transitioned from one status to another.
 	// +optional
@@ -33,7 +33,7 @@ type Condition struct {
 	Type ConditionType `json:"type"`
 }
 
-// ClusterLevelStatus describes the status of the multicluster resource in a specific cluster.
+// ClusterLevelStatus describes the status of the multi cluster resource in a specific cluster.
 type ClusterLevelStatus struct {
 	// Last update time of the resource state in this cluster.
 	LastUpdateTime string `json:"lastUpdateTime"`
@@ -45,7 +45,7 @@ type ClusterLevelStatus struct {
 	State StateType `json:"state"`
 }
 
-// ConditionType identifies the condition of the multicluster resource which can be checked with `kubectl wait`.
+// ConditionType identifies the condition of the multi-cluster resource which can be checked with `kubectl wait`.
 type ConditionType string
 
 const (
@@ -59,7 +59,7 @@ const (
 	DeployPending ConditionType = "DeployPending"
 )
 
-// StateType identifies the state of a multicluster resource.
+// StateType identifies the state of a multi-cluster resource.
 type StateType string
 
 const (
@@ -73,7 +73,7 @@ const (
 	Succeeded StateType = "Succeeded"
 )
 
-// MultiClusterResourceStatus is the runtime status of a multicluster resource.
+// MultiClusterResourceStatus is the runtime status of a multi-cluster resource.
 type MultiClusterResourceStatus struct {
 	// Status information for each cluster.
 	Clusters []ClusterLevelStatus `json:"clusters,omitempty"`

@@ -10,12 +10,12 @@ import (
 const MultiClusterConfigMapKind = "MultiClusterConfigMap"
 const MultiClusterConfigMapResource = "multiclusterconfigmaps"
 
-// MultiClusterConfigMapSpec defines the desired state of a MultiCluster ConfigMap.
+// MultiClusterConfigMapSpec defines the desired state of a Multi Cluster ConfigMap.
 type MultiClusterConfigMapSpec struct {
-	// Clusters in which the ConfigMap is to be created.
+	// Clusters in which the config map is to be created.
 	Placement Placement `json:"placement"`
 
-	// The embedded Kubernetes ConfigMap.
+	// The embedded Kubernetes config map.
 	Template ConfigMapTemplate `json:"template"`
 }
 
@@ -33,7 +33,7 @@ type ConfigMapTemplate struct {
 	// <a href="https://github.com/kubernetes/api/blob/master/core/v1/types.go">types.go</a>.
 	Immutable *bool `json:"immutable,omitempty"`
 
-	// Metadata describing the ConfigMap.
+	// Metadata describing the config map.
 	Metadata EmbeddedObjectMeta `json:"metadata,omitempty"`
 }
 
@@ -42,14 +42,14 @@ type ConfigMapTemplate struct {
 // +kubebuilder:resource:shortName=mccm;mccms
 // +kubebuilder:subresource:status
 
-// MultiClusterConfigMap specifies the MultiCluster ConfigMap API.
+// MultiClusterConfigMap specifies the Multi Cluster ConfigMap API.
 type MultiClusterConfigMap struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// The desired state of a MultiCluster ConfigMap resource.
+	// The desired state of a Multi Cluster ConfigMap resource.
 	Spec MultiClusterConfigMapSpec `json:"spec,omitempty"`
-	// The observed state of a MultiCluster ConfigMap resource.
+	// The observed state of a Multi Cluster ConfigMap resource.
 	Status MultiClusterResourceStatus `json:"status,omitempty"`
 }
 

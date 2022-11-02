@@ -11,7 +11,7 @@ import (
 const MultiClusterAppConfigKind = "MultiClusterApplicationConfiguration"
 const MultiClusterAppConfigResource = "multiclusterapplicationconfigurations"
 
-// MultiClusterApplicationConfigurationSpec defines the desired state of a multicluster application.
+// MultiClusterApplicationConfigurationSpec defines the desired state of a Multi Cluster Application.
 type MultiClusterApplicationConfigurationSpec struct {
 	// Clusters in which the application is to be created.
 	Placement Placement `json:"placement"`
@@ -38,14 +38,14 @@ type ApplicationConfigurationTemplate struct {
 // +kubebuilder:resource:shortName=mcappconf;mcappconfs
 // +kubebuilder:subresource:status
 
-// MultiClusterApplicationConfiguration specifies the multicluster application API.
+// MultiClusterApplicationConfiguration specifies the Multi Cluster Application API.
 type MultiClusterApplicationConfiguration struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// The desired state of a multicluster application resource.
+	// The desired state of a Multi Cluster Application resource.
 	Spec MultiClusterApplicationConfigurationSpec `json:"spec,omitempty"`
-	// The observed state of a multicluster application resource.
+	// The observed state of a Multi Cluster Application resource.
 	Status MultiClusterResourceStatus `json:"status,omitempty"`
 }
 

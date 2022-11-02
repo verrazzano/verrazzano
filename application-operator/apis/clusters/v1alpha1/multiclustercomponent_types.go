@@ -11,7 +11,7 @@ import (
 const MultiClusterComponentKind = "MultiClusterComponent"
 const MultiClusterComponentResource = "multiclustercomponents"
 
-// MultiClusterComponentSpec defines the desired state of a MultiCluster Component.
+// MultiClusterComponentSpec defines the desired state of a Multi Cluster Component.
 type MultiClusterComponentSpec struct {
 	// Clusters in which the component is to be created.
 	Placement Placement `json:"placement"`
@@ -34,14 +34,14 @@ type ComponentTemplate struct {
 // +kubebuilder:resource:shortName=mccomp;mccomps
 // +kubebuilder:subresource:status
 
-// MultiClusterComponent specifies the MultiCluster Component API.
+// MultiClusterComponent specifies the Multi Cluster Component API.
 type MultiClusterComponent struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// The desired state of a MultiCluster Component resource.
+	// The desired state of a Multi Cluster Component resource.
 	Spec MultiClusterComponentSpec `json:"spec,omitempty"`
-	// The observed state of a MultiCluster Component resource.
+	// The observed state of a Multi Cluster Component resource.
 	Status MultiClusterResourceStatus `json:"status,omitempty"`
 }
 
