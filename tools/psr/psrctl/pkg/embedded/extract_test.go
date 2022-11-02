@@ -24,5 +24,6 @@ func Test(t *testing.T) {
 }
 
 func assertDirExists(t *testing.T, dir string) {
-
+	_, err := os.Stat(dir)
+	assert.NoError(t, err)
 }

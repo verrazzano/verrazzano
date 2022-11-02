@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package helm
+package scenario
 
 import (
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
@@ -11,19 +11,19 @@ import (
 )
 
 func InstallScenario() (string, error) {
-	chartDir, err := embedded.CreateTempChartDir()
+	tmpDir, err := embedded.CreatePsrTempDir()
 	if err != nil {
 		return "", err
 	}
-	defer os.RemoveAll(chartDir)
+	defer os.RemoveAll(tmpDir)
 
-	err = embedded.CopyWorkerChartToTempDir(chartDir)
+	man, err := embedded.NewPsrManifests(tmpDir)
 	if err != nil {
 		return "", err
 	}
 
 	var stdout, stderr []byte
-	stdout, stderr, err = helmcli.Upgrade(vzlog.DefaultLogger(), "psrcli", "default", chartDir, true, false, nil)
+	stdout, stderr, err = helmcli.Upgrade(vzlog.DefaultLogger(), "psrcli", "default", man.WorkerChartAbsDir, true, false, nil)
 	if err != nil {
 		return string(stderr), err
 	}

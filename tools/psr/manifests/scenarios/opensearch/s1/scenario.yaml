@@ -5,15 +5,15 @@ name: OpenSearch-S1
 ID: ops-s1
 description: |
   This is a scenario that writes logs to STDOUT and gets logs from OpenSearch. |
-  The purpose of the scenario is to test a simulataneous read/write load on OpenSearch
+  The purpose of the scenario is to test a concurrent read/write load on OpenSearch
   logging records.
 usecases:
-  - usecasePath: opensearch/getlogs
-    scenarioOverride: getlogs-slow.yaml
-    description: getlogs from Opensearch with long iteration delay
-  - usecasePath: opensearch/getlogs
-    scenarioOverride: getlogs-fast.yaml
-    description: getlogs from Opensearch with short iteration delay
-  - usecasePath: opensearch/writelogs
-    scenarioOverride: writelogs.yaml
+  - usecasePath: opensearch/getlogs/getlogs.yaml
+    overrideFile: getlogs-slow.yaml
+    description: getlogs from Opensearch with long iteration sleep
+  - usecasePath: opensearch/getlogs/getlogs.yaml
+    overrideFile: getlogs-fast.yaml
+    description: getlogs from Opensearch with short iteration sleep
+  - usecasePath: opensearch/writelogs/writelogs.yaml
+    overrideFile: writelogs.yaml
     description: write logs to STDOUT at default rate

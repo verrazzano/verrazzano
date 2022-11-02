@@ -18,11 +18,30 @@ type PsrManifests struct {
 	ScenarioAbsDir    string
 }
 
+var Manifests *PsrManifests
+
+// ExtractManifests extracts the manifests in the binary and writes them to a tmep file.
+// The package Manifests var is set if this function succeeds
+func ExtractManifests() (PsrManifests, error) {
+	tmpDir, err := CreatePsrTempDir()
+	if err != nil {
+		return PsrManifests{}, err
+	}
+
+	man, err := NewPsrManifests(tmpDir)
+	if err != nil {
+		return PsrManifests{}, err
+	}
+	Manifests = &man
+	return man, nil
+}
+
 func CreatePsrTempDir() (string, error) {
 	u, err := user.Current()
 	if err != nil {
 		return "", err
 	}
+
 	// Use homedir for temp files since root might own temp dir on OSX and we get
 	// errors trying to create temp files
 	hidden := filepath.Join(u.HomeDir, ".psr-temp")
@@ -30,8 +49,7 @@ func CreatePsrTempDir() (string, error) {
 	if err != nil && !os.IsExist(err) {
 		return "", err
 	}
-	// TODO - MUST DELETE Temp Dir after Helm called
-	// TODO - Split this function out and call before installing chart
+
 	topDir, err := os.MkdirTemp(hidden, "psr")
 	return topDir, nil
 }
@@ -41,9 +59,9 @@ func NewPsrManifests(tmpRootDir string) (PsrManifests, error) {
 
 	man := PsrManifests{
 		RootTmpDir:        tmpRootDir,
-		WorkerChartAbsDir: filepath.Join(tmpRootDir, "manifests/charts/worker"),
-		UseCasesAbsDir:    filepath.Join(tmpRootDir, "manifests/usecases"),
-		ScenarioAbsDir:    filepath.Join(tmpRootDir, "manifests/scenarios"),
+		WorkerChartAbsDir: filepath.Join(tmpRootDir, "charts/worker"),
+		UseCasesAbsDir:    filepath.Join(tmpRootDir, "usecases"),
+		ScenarioAbsDir:    filepath.Join(tmpRootDir, "scenarios"),
 	}
 	return man, nil
 }
