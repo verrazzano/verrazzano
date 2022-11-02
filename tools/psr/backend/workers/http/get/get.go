@@ -19,6 +19,24 @@ import (
 	"sync/atomic"
 )
 
+const (
+	// ServiceName specifies the name of the service in the local cluster
+	// By default, the ServiceName is not specified
+	ServiceName = "SERVICE_NAME"
+
+	// ServiceNamespace specifies the namespace of the service in the local cluster
+	// By default, the ServiceNamespace is not specified
+	ServiceNamespace = "SERVICE_NAMESPACE"
+
+	// ServicePort specifies the port of the service in the local cluster
+	// By default, the ServicePort is not specified
+	ServicePort = "SERVICE_PORT"
+
+	// Path specifies the path in the URL
+	// By default, the path is not specified
+	Path = "PATH"
+)
+
 type get struct {
 	spi.Worker
 	metricDescList []prometheus.Desc
@@ -72,10 +90,10 @@ func (w get) GetWorkerDesc() spi.WorkerDesc {
 
 func (w get) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{
-		{Key: config.ServiceName, DefaultVal: "", Required: true},
-		{Key: config.ServiceNamespace, DefaultVal: "", Required: true},
-		{Key: config.ServicePort, DefaultVal: "", Required: true},
-		{Key: config.Path, DefaultVal: "", Required: true},
+		{Key: ServiceName, DefaultVal: "", Required: true},
+		{Key: ServiceNamespace, DefaultVal: "", Required: true},
+		{Key: ServicePort, DefaultVal: "", Required: true},
+		{Key: Path, DefaultVal: "", Required: true},
 	}
 }
 
@@ -99,11 +117,11 @@ func (w get) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error 
 	var lc, ls, lf int64
 	//increment getRequestsCountTotal
 	lc = atomic.AddInt64(&w.workerMetrics.getRequestsCountTotal.Val, 1)
-	resp, err := http.Get("http://" + config.PsrEnv.GetEnv(config.ServiceName) +
-		"." + config.PsrEnv.GetEnv(config.ServiceNamespace) +
+	resp, err := http.Get("http://" + config.PsrEnv.GetEnv(ServiceName) +
+		"." + config.PsrEnv.GetEnv(ServiceNamespace) +
 		".svc.cluster.local:" +
-		config.PsrEnv.GetEnv(config.ServicePort) +
-		"/" + config.PsrEnv.GetEnv(config.Path))
+		config.PsrEnv.GetEnv(ServicePort) +
+		"/" + config.PsrEnv.GetEnv(Path))
 	if err != nil {
 		return err
 	}

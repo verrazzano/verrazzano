@@ -33,22 +33,6 @@ const (
 	// PsrWorkerThreadCount specifies the number of worker threads to run.
 	// By default, there is one thread per worker
 	PsrWorkerThreadCount = "PSR_WORKER_THREAD_COUNT"
-
-	// ServiceName specifies the name of the service in the local cluster
-	// By default, the ServiceName is not specified
-	ServiceName = "SERVICE_NAME"
-
-	// ServiceNamespace specifies the namespace of the service in the local cluster
-	// By default, the ServiceNamespace is not specified
-	ServiceNamespace = "SERVICE_NAMESPACE"
-
-	// ServicePort specifies the port of the service in the local cluster
-	// By default, the ServicePort is not specified
-	ServicePort = "SERVICE_PORT"
-
-	// Path specifies the path in the URL
-	// By default, the path is not specified
-	Path = "PATH"
 )
 
 // Define worker types
