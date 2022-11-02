@@ -13,12 +13,6 @@ import (
 )
 
 const (
-	scaleInCountTotal     = "total_scale_in_count"
-	scaleInCountTotalHelp = "The total number of times OpenSearch has been scaled in"
-
-	scaleOutCountTotal     = "total_scale_out_count"
-	scaleOutCountTotalHelp = "The total number of times OpenSearch has been scaled out"
-
 	openSearchTier    = "OPEN_SEARCH_TIER"
 	scaleDelayPerTier = "SCALE_DELAY_PER_TIER"
 	minReplicaCount   = "MIN_REPLICA_COUNT"
@@ -41,33 +35,25 @@ type workerMetrics struct {
 
 func NewScaleWorker() (spi.Worker, error) {
 
-	constLabels := prometheus.Labels{}
+	w := scaleWorker{workerMetrics: &workerMetrics{
+		scaleInCountTotal: metrics.MetricItem{
+			Name: "scale_in_count_total",
+			Help: "The total number of times OpenSearch has been scaled in",
+			Type: prometheus.CounterValue,
+		},
+		scaleOutCountTotal: metrics.MetricItem{
+			Name: "scale_out_count_total",
+			Help: "The total number of times OpenSearch has been scaled out",
+			Type: prometheus.CounterValue,
+		},
+	}}
 
-	w := scaleWorker{workerMetrics: &workerMetrics{}}
+	w.metricDescList = []prometheus.Desc{
+		*w.scaleInCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.scaleOutCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+	}
 
-	d := prometheus.NewDesc(
-		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, scaleInCountTotal),
-		scaleInCountTotalHelp,
-		nil,
-		constLabels,
-	)
-	w.metricDescList = append(w.metricDescList, *d)
-	w.workerMetrics.scaleInCountTotal.Desc = d
-
-	d = prometheus.NewDesc(
-		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, scaleOutCountTotal),
-		scaleOutCountTotalHelp,
-		nil,
-		constLabels,
-	)
-	w.metricDescList = append(w.metricDescList, *d)
-	w.workerMetrics.scaleOutCountTotal.Desc = d
-
-	return nil, nil
-}
-
-func (w scaleWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-	return nil
+	return w, nil
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
@@ -88,14 +74,21 @@ func (w scaleWorker) GetEnvDescList() []osenv.EnvVarDesc {
 	}
 }
 
+func (w scaleWorker) WantIterationInfoLogged() bool {
+	return false
+}
+
+func (w scaleWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+	return nil
+}
+
 func (w scaleWorker) GetMetricDescList() []prometheus.Desc {
 	return w.metricDescList
 }
 
 func (w scaleWorker) GetMetricList() []prometheus.Metric {
-	return nil
-}
-
-func (w scaleWorker) WantIterationInfoLogged() bool {
-	return false
+	return []prometheus.Metric{
+		w.scaleOutCountTotal.BuildMetric(),
+		w.scaleOutCountTotal.BuildMetric(),
+	}
 }
