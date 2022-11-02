@@ -5,9 +5,8 @@ package bom
 
 import (
 	"fmt"
-	"testing"
 	"github.com/stretchr/testify/assert"
-
+	"testing"
 )
 
 const (
@@ -332,13 +331,13 @@ func TestGetSubcomponentImageCount(t *testing.T) {
 	assert.NoError(t, err)
 
 	imageNum := bom.GetSubcomponentImageCount("foo")
-	if(imageNum!=0) {
-	  t.Errorf("The number of counted images is incorrect")
+	if imageNum != 0 {
+		t.Errorf("The number of counted images is incorrect")
 	}
 
 	imageNum = bom.GetSubcomponentImageCount(ingressControllerComponent)
-	if(imageNum!=2) {
-       t.Errorf("The number of counted images is incorrect")
-    }
+	if imageNum != 2 {
+		t.Errorf("The number of counted images is incorrect")
+	}
 
 }
