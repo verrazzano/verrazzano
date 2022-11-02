@@ -117,36 +117,49 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 
 			// Create the VMC resource in the cluster
 			Eventually(func() (*v1alpha1.VerrazzanoManagedCluster, error) {
+				pkg.Log(pkg.Info, fmt.Sprintf("Attempting to create VMC %s", vmcClusterName))
 				vmc := v1alpha1.VerrazzanoManagedCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: vmcClusterName,
 					},
 				}
 				return client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Create(context.TODO(), &vmc, metav1.CreateOptions{})
-			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeNil())
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).ShouldNot(BeNil())
 
-			// Eventually, a VMC with that cluster name should be created
+			// Verify the cluster is created in Rancher
 			Eventually(func() bool {
-				clusters, _, err := clusters.GetAllClustersInRancher(rc, vzlog.DefaultLogger())
-				if err != nil {
-					pkg.Log(pkg.Error, fmt.Sprintf("Failed to get all clusters in Rancher: %v", err))
-					return false
-				}
-				pkg.Log(pkg.Info, "Waiting for the cluster to exist in Rancher")
-				for _, cluster := range clusters {
-					if cluster.Name == vmcClusterName {
-						return true
-					}
-				}
-				return false
+				return clusterExistsInRancher(rc, vmcClusterName)
 			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 		})
-		t.It("a Rancher cluster is automatically deleted", func() {
-			// GIVEN a VMC is deleted for a cluster
-			// WHEN the Rancher clusters are prompted to sync with the VMC
-			// THEN the Rancher cluster is deleted
 
-			// TODO delete the Rancher cluster when the process is available
+		// Delete the VMC resource and check if it is deleted in Rancher
+		t.It("a Rancher cluster is automatically deleted", func() {
+
+			// Delete the VMC resource in the cluster
+			Eventually(func() error {
+				pkg.Log(pkg.Info, fmt.Sprintf("Attempting to delete VMC %s", vmcClusterName))
+				return client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Delete(context.TODO(), vmcClusterName, metav1.DeleteOptions{})
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeNil())
+
+			Eventually(func() bool {
+				return clusterExistsInRancher(rc, vmcClusterName)
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeFalse())
 		})
 	})
 })
+
+// clusterExistsInRancher returns true if the cluster is listed by the Rancher API
+func clusterExistsInRancher(rc *clusters.RancherConfig, clusterName string) bool {
+	ranchClusters, _, err := clusters.GetAllClustersInRancher(rc, vzlog.DefaultLogger())
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get all clusters in Rancher: %v", err))
+		return false
+	}
+	pkg.Log(pkg.Info, "Waiting for the cluster to exist in Rancher")
+	for _, cluster := range ranchClusters {
+		if cluster.Name == clusterName {
+			return true
+		}
+	}
+	return false
+}
