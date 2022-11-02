@@ -5,7 +5,6 @@ package http
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"sync/atomic"
 
@@ -130,14 +129,6 @@ func (w get) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error 
 		ls = atomic.AddInt64(&w.workerMetrics.getRequestsSucceededCountTotal.Val, 1)
 	} else {
 		lf = atomic.AddInt64(&w.workerMetrics.getRequestsFailedCountTotal.Val, 1)
-		//Read the response body on the line below.
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			log.Errorf("Error reading response body: %v", err)
-		}
-		//Convert the body to type string
-		sb := string(body)
-		log.Errorf("The response body: ", sb)
 	}
 	logMsg := fmt.Sprintf("HttpGet worker total requests %v, "+
 		" total successful requests %v, total failed requests %v",
