@@ -4,22 +4,16 @@
 package scenario
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/embedded"
-	"os"
 	"testing"
 )
 
+// TestPossibleScenarios tests the ListAvailableScenarios function
+// GIVEN a directory with more than one scenario
+//
+//	WHEN the ListAvailableScenarios function is called
+//	THEN ensure that the resulting scenario list is correct
 func TestPossibleScenarios(t *testing.T) {
-	// Extract the manifests and write them to a temp directory
-	man, err := embedded.ExtractManifests()
-	if err != nil {
-		fmt.Printf("Unable to extract manifests from psrctl binary %v", err)
-		os.Exit(1)
-	}
-	defer os.RemoveAll(man.RootTmpDir)
-
 	sList, err := ListAvailableScenarios("./testdata")
 	assert.NoError(t, err)
 	assert.Equal(t, "OpenSearch-S1", sList[0].Name)

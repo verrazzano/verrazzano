@@ -9,7 +9,12 @@ import (
 	"testing"
 )
 
-func Test(t *testing.T) {
+// TestEmbeddedManifests tests the CreatePsrTempDir and NewPsrManifests functions
+// GIVEN a binary with the embedded manifests
+//
+//	WHEN the PsrManifest is created
+//	THEN ensure that the resulting directories exist
+func TestEmbeddedManifests(t *testing.T) {
 	tmpDir, err := CreatePsrTempDir()
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
