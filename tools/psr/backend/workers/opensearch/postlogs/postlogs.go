@@ -107,7 +107,7 @@ func (w postLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) e
 		URL: &url.URL{
 			Scheme: "http",
 			Host:   osIngestService,
-			Path:   "/" + conf.DataStreamTemplate,
+			Path:   "/" + conf.DataStreamTemplate + "/_doc",
 		},
 		Header: http.Header{"Content-Type": {"application/json"}},
 		Body:   body,
