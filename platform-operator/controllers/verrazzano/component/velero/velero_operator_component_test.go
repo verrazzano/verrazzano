@@ -201,14 +201,13 @@ func TestPostUninstall(t *testing.T) {
 	assert.True(t, errors.IsNotFound(err))
 }
 
-// TestValidateMethods tests ValidateInstall, ValidateUpdate, ValidateInstallV1Beta1 and  ValidateInstallV1Beta1
+// TestValidateMethods tests ValidateInstall, ValidateUpdate, ValidateInstallV1Beta1 and  ValidateUpdateV1Beta1
 //
 //		GIVEN VZ CR with install single and multi overrides
 //
-//	 WHEN ValidateInstall, ValidateUpdate, ValidateInstallV1Beta1 and  ValidateInstallV1Beta1 are called
+//	 WHEN ValidateInstall, ValidateUpdate, ValidateInstallV1Beta1 and  ValidateUpdateV1Beta1 are called
 //	 THEN  if install overrides are not invalid, error is returned else no error is returned
 func TestValidateMethods(t *testing.T) {
-	disabled := false
 	tests := []struct {
 		name    string
 		vz      *v1alpha1.Verrazzano
@@ -234,6 +233,40 @@ func TestValidateMethods(t *testing.T) {
 			if err := c.ValidateUpdate(&v1alpha1.Verrazzano{}, tt.vz); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
+			v1beta1Vz := &v1beta1.Verrazzano{}
+			err := tt.vz.ConvertTo(v1beta1Vz)
+			assert.NoError(t, err)
+			if err := c.ValidateInstallV1Beta1(v1beta1Vz); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err := c.ValidateUpdateV1Beta1(&v1beta1.Verrazzano{}, v1beta1Vz); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// TestValidateUpdate tests the ValidateUpdate and ValidateUpdateV1Beta1
+func TestValidateUpdate(t *testing.T) {
+	disabled := false
+	tests := []struct {
+		name    string
+		vz      *v1alpha1.Verrazzano
+		wantErr bool
+	}{
+		//   GIVEN VZ CR with install single overrides
+		//	 WHEN ValidateUpdate and ValidateUpdateV1Beta1 are called
+		//	 THEN  if Velero is disabled in the new CR, ValidateUpdate and ValidateUpdateV1Beta1
+		//         will throw error
+		{
+			name:    "singleOverride",
+			vz:      getSingleOverrideCR(),
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
 			// test ValidateUpdate when Velero is disabled in the new CR
 			if err := c.ValidateUpdate(tt.vz, &v1alpha1.Verrazzano{
 				Spec: v1alpha1.VerrazzanoSpec{
@@ -244,17 +277,11 @@ func TestValidateMethods(t *testing.T) {
 					},
 				},
 			}); err == nil {
-				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, true)
+				t.Errorf("TestValidateUpdate: ValidateUpdate() error = %v, wantErr %v", err, true)
 			}
 			v1beta1Vz := &v1beta1.Verrazzano{}
 			err := tt.vz.ConvertTo(v1beta1Vz)
 			assert.NoError(t, err)
-			if err := c.ValidateInstallV1Beta1(v1beta1Vz); (err != nil) != tt.wantErr {
-				t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if err := c.ValidateUpdateV1Beta1(&v1beta1.Verrazzano{}, v1beta1Vz); (err != nil) != tt.wantErr {
-				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
-			}
 			// test ValidateUpdateV1Beta1 when Velero is disabled in the new CR
 			if err = c.ValidateUpdateV1Beta1(v1beta1Vz, &v1beta1.Verrazzano{
 				Spec: v1beta1.VerrazzanoSpec{
@@ -265,48 +292,7 @@ func TestValidateMethods(t *testing.T) {
 					},
 				},
 			}); err == nil {
-				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, true)
-			}
-		})
-	}
-}
-
-// TestValidateInstallOrUpdate tests the ValidateUpdate and ValidateUpdateV1Beta1
-// GIVEN VZ CR with Velero Disabled
-func TestValidateInstallOrUpdate(t *testing.T) {
-	tests := []struct {
-		name    string
-		vz      *v1alpha1.Verrazzano
-		wantErr bool
-	}{
-		{
-			name:    "singleOverride",
-			vz:      getSingleOverrideCR(),
-			wantErr: false,
-		},
-		{
-			name:    "multipleOverrides",
-			vz:      getMultipleOverrideCR(),
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := NewComponent()
-			if err := c.ValidateInstall(tt.vz); (err != nil) != tt.wantErr {
-				t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if err := c.ValidateUpdate(&v1alpha1.Verrazzano{}, tt.vz); (err != nil) != tt.wantErr {
-				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			v1beta1Vz := &v1beta1.Verrazzano{}
-			err := tt.vz.ConvertTo(v1beta1Vz)
-			assert.NoError(t, err)
-			if err := c.ValidateInstallV1Beta1(v1beta1Vz); (err != nil) != tt.wantErr {
-				t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
-			}
-			if err := c.ValidateUpdateV1Beta1(&v1beta1.Verrazzano{}, v1beta1Vz); (err != nil) != tt.wantErr {
-				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("TestValidateUpdate: ValidateUpdateV1Beta1() error = %v, wantErr %v", err, true)
 			}
 		})
 	}
