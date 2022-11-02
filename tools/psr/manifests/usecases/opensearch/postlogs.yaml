@@ -4,7 +4,6 @@
 global:
   envVars:
     PSR_WORKER_TYPE: postlogs
-    PSR_WORKER_DATASTREAM_TEMPLATE: verrazzano-application-{{ .Release.Namespace }}
 
 # activate subchart
 opensearchauthpol:

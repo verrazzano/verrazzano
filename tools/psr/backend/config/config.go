@@ -36,7 +36,7 @@ const (
 
 	// PsrWorkerDataStreamTemplate is the name of the PSR datastream template
 	// this is created by default when an OAM app is deployed
-	PsrWorkerDataStreamTemplate = "PSR_WORKER_DATASTREAM_TEMPLATE"
+	PsrWorkerNamespace = "NAMESPACE"
 )
 
 // Define worker types
@@ -58,7 +58,7 @@ type CommonConfig struct {
 	IterationSleepNanos time.Duration
 	NumIterations       int64
 	WorkerThreadCount   int
-	DataStreamTemplate  string
+	Namespace           string
 }
 
 // GetCommonConfig loads the common config from env vars
@@ -69,7 +69,7 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 		{Key: PsrIterationSleep, DefaultVal: "1s", Required: false},
 		{Key: PsrNumIterations, DefaultVal: "-1", Required: false},
 		{Key: PsrWorkerThreadCount, DefaultVal: "1", Required: false},
-		{Key: PsrWorkerDataStreamTemplate, DefaultVal: "", Required: false},
+		{Key: PsrWorkerNamespace, DefaultVal: "", Required: false},
 	}
 	if err := PsrEnv.LoadFromEnv(dd); err != nil {
 		return CommonConfig{}, err
@@ -102,6 +102,6 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 		IterationSleepNanos: sleepDuration,
 		NumIterations:       int64(numIterations),
 		WorkerThreadCount:   threadCount,
-		DataStreamTemplate:  PsrEnv.GetEnv(PsrWorkerDataStreamTemplate),
+		Namespace:           PsrEnv.GetEnv(PsrWorkerNamespace),
 	}, nil
 }
