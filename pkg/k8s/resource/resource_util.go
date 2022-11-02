@@ -417,12 +417,12 @@ func PatchResourceFromFileInCluster(gvr schema.GroupVersionResource, namespace s
 		return fmt.Errorf("failed to get kube config: %w", err)
 	}
 
-	return patchResourceFromBytes(gvr, namespace, name, patchBytes, config)
+	return PatchResourceFromBytes(gvr, namespace, name, patchBytes, config)
 }
 
-// patchResourceFromBytes patches a Kubernetes resource from bytes. The contents of the byte slice must be in
+// PatchResourceFromBytes patches a Kubernetes resource from bytes. The contents of the byte slice must be in
 // JSON format. This is intended to be equivalent to `kubectl patch`.
-func patchResourceFromBytes(gvr schema.GroupVersionResource, namespace string, name string, patchDataJSON []byte, config *rest.Config) error {
+func PatchResourceFromBytes(gvr schema.GroupVersionResource, namespace string, name string, patchDataJSON []byte, config *rest.Config) error {
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return fmt.Errorf("failed to create dynamic client: %w", err)

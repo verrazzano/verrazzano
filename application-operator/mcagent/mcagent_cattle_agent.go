@@ -10,6 +10,10 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 
+	"k8s.io/apimachinery/pkg/util/yaml"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
@@ -79,10 +83,17 @@ func updateCattleAgent(data [][]byte, log *zap.SugaredLogger) error {
 		log.Errorf("failed to apply resource: %v", err)
 		return err
 	}
-	log.Infof("Successfully applied resource")
+	log.Infof("Successfully created new cattle-credential")
 
 	// Data[10] contains the yaml for the cattle-cluster-agent
-	err = resource.CreateOrUpdateResourceFromBytesUsingConfig(data[10], config)
+	//err := resource.CreateOrUpdateResourceFromBytes(data[10], log)
+	patch, err := yaml.ToJSON(data[10])
+	if err != nil {
+		log.Errorf("failed to convert cattle-agent yaml to json: %v", err)
+	}
+
+	gvr := schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
+	err = resource.PatchResourceFromBytes(gvr, "cattle-system", "cattle-cluster-agent", patch, config)
 	if err != nil {
 		log.Errorf("failed to apply resource: %v", err)
 		return err
