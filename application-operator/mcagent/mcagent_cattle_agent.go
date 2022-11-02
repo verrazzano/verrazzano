@@ -54,12 +54,13 @@ func (s *Syncer) syncCattleClusterAgent() error {
 
 	// No previous hash or change in hash
 	// Apply the manifest secret and store the hash for next iterations
-	s.Log.Infof("No previous cattle has found. Applying manifest and updating hash")
+	s.Log.Infof("No previous cattle hash found. Applying manifest and updating hash")
 	err = s.applyManifest(yamlSlices, s.Log)
 	if err != nil {
 		return fmt.Errorf("Failed to apply the updated manifest on %s cluster: %v", s.ManagedClusterName, err)
 	}
 
+	s.Log.Infof("Updating cattle hash")
 	s.CattleAgentHash = cattleAgentHash
 
 	return nil
@@ -73,15 +74,17 @@ func (s *Syncer) applyManifest(data [][]byte, log *zap.SugaredLogger) error {
 	}
 	s.Log.Infof("Built Incluster config: %s, now applying manifest", config.Host)
 
+	var retErr error
 	for i, each := range data {
 		err = resource.CreateOrUpdateResourceFromBytesUsingConfig(each, config)
 		if err != nil {
 			log.Errorf("failed to apply resource %d: %v", i, err)
-			return err
+			retErr = err
+		} else {
+			log.Infof("Successfully applied resource %d", i)
 		}
-		log.Infof("Successfully applied resource %d", i)
 	}
-	return nil
+	return retErr
 }
 
 func createHash(data []byte) string {
