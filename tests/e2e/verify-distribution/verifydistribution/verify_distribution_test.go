@@ -202,7 +202,6 @@ func verifyDistributionByDirectory(inputDir string, key string, variant string) 
 func compareContents(slice1 []string, slice2 []string) {
 	areSame := AreSlicesEqualWithoutOrder(slice1, slice2)
 	if !areSame {
-
 		//Copy and sort for finding diff
 		s1 := make([]string, len(slice1))
 		s2 := make([]string, len(slice2))
@@ -210,7 +209,6 @@ func compareContents(slice1 []string, slice2 []string) {
 		copy(s2, slice2)
 		sort.Strings(s1)
 		sort.Strings(s2)
-
 		t.Logs.Errorf("Found mismatch; %s", cmp.Diff(s1, s2))
 	}
 	gomega.Expect(areSame).To(gomega.BeTrue())
