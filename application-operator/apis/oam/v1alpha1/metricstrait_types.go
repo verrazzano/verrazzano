@@ -60,7 +60,7 @@ type MetricsTraitSpec struct {
 	// +optional
 	Scraper *string `json:"scraper,omitempty"`
 
-	// The name of an opaque secret (for example, `username` and `password`) within the workload’s namespace for metrics
+	// The name of an opaque secret (for example, username and password) within the workload’s namespace for metrics
 	// endpoint access.
 	// +optional
 	Secret *string `json:"secret,omitempty"`
@@ -75,7 +75,7 @@ type MetricsTraitSpec struct {
 	WorkloadReference oamrt.TypedReference `json:"workloadRef"`
 }
 
-// PortSpec defines an HTTP port and path combination.
+// PortSpec defines an HTTP port and path combination
 type PortSpec struct {
 	// The HTTP path for the related metrics endpoint. Defaults to `/metrics`.
 	// +optional
