@@ -6,8 +6,8 @@ package postlogs
 import (
 	"bytes"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/getlogs"
 	"io"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"sync/atomic"
@@ -20,23 +20,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 
 	"github.com/prometheus/client_golang/prometheus"
-)
-
-const (
-	openSearchPostSuccessCountTotal     = "openSearch_post_success_count_total"
-	openSearchPostSuccessCountTotalHelp = "The total number of successful openSearch POST requests"
-
-	openSearchPostFailureCountTotal     = "openSearch_post_failure_count_total"
-	openSearchPostFailureCountTotalHelp = "The total number of failed openSearch POST requests"
-
-	openSearchPostSuccessLatencyNanoSeconds     = "openSearch_post_success_latency_nanoseconds"
-	openSearchPostSuccessLatencyNanoSecondsHelp = "The latency of successful openSearch POST requests in nanoseconds"
-
-	openSearchPostFailureLatencyNanoSeconds     = "openSearch_post_failure_latency_nanoseconds"
-	openSearchPostFailureLatencyNanoSecondsHelp = "The latency of failed openSearch POST requests in nanoseconds"
-
-	openSearchPostDataCharsTotal     = "openSearch_post_data_chars_total"
-	openSearchPostDataCharsTotalHelp = "The total number of characters return from openSearch post request"
 )
 
 const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
@@ -61,55 +44,41 @@ type workerMetrics struct {
 }
 
 func NewPostLogsWorker() (spi.Worker, error) {
-	constLabels := prometheus.Labels{}
+	w := postLogs{workerMetrics: &workerMetrics{
+		openSearchPostSuccessCountTotal: metrics.MetricItem{
+			Name: "opensearch_post_success_count_total",
+			Help: "The total number of successful OpenSearch POST requests",
+			Type: prometheus.CounterValue,
+		},
+		openSearchPostFailureCountTotal: metrics.MetricItem{
+			Name: "opensearch_post_failure_count_total",
+			Help: "The total number of successful OpenSearch POST requests",
+			Type: prometheus.CounterValue,
+		},
+		openSearchPostSuccessLatencyNanoSeconds: metrics.MetricItem{
+			Name: "opensearch_post_success_latency_nanoseconds",
+			Help: "The latency of successful OpenSearch POST requests in nanoseconds",
+			Type: prometheus.GaugeValue,
+		},
+		openSearchPostFailureLatencyNanoSeconds: metrics.MetricItem{
+			Name: "opensearch_post_failure_latency_nanoseconds",
+			Help: "The latency of failed OpenSearch POST requests in nanoseconds",
+			Type: prometheus.GaugeValue,
+		},
+		openSearchPostDataCharsTotal: metrics.MetricItem{
+			Name: "opensearch_post_data_chars_total",
+			Help: "The total number of characters posted to OpenSearch",
+			Type: prometheus.CounterValue,
+		},
+	}}
 
-	w := postLogs{workerMetrics: &workerMetrics{}}
-
-	d := prometheus.NewDesc(
-		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, openSearchPostSuccessCountTotal),
-		openSearchPostSuccessCountTotalHelp,
-		nil,
-		constLabels,
-	)
-	w.metricDescList = append(w.metricDescList, *d)
-	w.workerMetrics.openSearchPostSuccessCountTotal.Desc = d
-
-	d = prometheus.NewDesc(
-		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, openSearchPostFailureCountTotal),
-		openSearchPostFailureCountTotalHelp,
-		nil,
-		constLabels,
-	)
-	w.metricDescList = append(w.metricDescList, *d)
-	w.workerMetrics.openSearchPostFailureCountTotal.Desc = d
-
-	d = prometheus.NewDesc(
-		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, openSearchPostSuccessLatencyNanoSeconds),
-		openSearchPostSuccessLatencyNanoSecondsHelp,
-		nil,
-		constLabels,
-	)
-	w.metricDescList = append(w.metricDescList, *d)
-	w.workerMetrics.openSearchPostSuccessLatencyNanoSeconds.Desc = d
-
-	d = prometheus.NewDesc(
-		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, openSearchPostFailureLatencyNanoSeconds),
-		openSearchPostFailureLatencyNanoSecondsHelp,
-		nil,
-		constLabels,
-	)
-	w.metricDescList = append(w.metricDescList, *d)
-	w.workerMetrics.openSearchPostFailureLatencyNanoSeconds.Desc = d
-
-	d = prometheus.NewDesc(
-		prometheus.BuildFQName(metrics.PsrNamespace, w.GetWorkerDesc().MetricsName, openSearchPostDataCharsTotal),
-		openSearchPostDataCharsTotalHelp,
-		nil,
-		constLabels,
-	)
-	w.metricDescList = append(w.metricDescList, *d)
-	w.workerMetrics.openSearchPostDataCharsTotal.Desc = d
-
+	w.metricDescList = []prometheus.Desc{
+		*w.openSearchPostSuccessCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.openSearchPostFailureCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.openSearchPostSuccessLatencyNanoSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.openSearchPostFailureLatencyNanoSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.openSearchPostDataCharsTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+	}
 	return w, nil
 }
 
@@ -132,14 +101,16 @@ func (w postLogs) WantIterationInfoLogged() bool {
 
 func (w postLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	c := http.Client{}
+	body, bodyChars := getBody()
 	req := http.Request{
+		Method: "POST",
 		URL: &url.URL{
 			Scheme: "http",
 			Host:   osIngestService,
 			Path:   "/" + conf.DataStreamTemplate,
 		},
 		Header: http.Header{"Content-Type": {"application/json"}},
-		Body:   postBody(),
+		Body:   body,
 	}
 	startRequest := time.Now().UnixNano()
 	resp, err := c.Do(&req)
@@ -149,140 +120,32 @@ func (w postLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) e
 	if resp == nil {
 		return fmt.Errorf("POST request to URI %s received a nil response", req.URL.RequestURI())
 	}
-	if resp.StatusCode == 200 {
-		atomic.StoreInt64(&w.workerMetrics.openSearchPostSuccessLatencyNanoSeconds.Val, time.Now().UnixNano()-startRequest)
-		atomic.AddInt64(&w.workerMetrics.openSearchPostSuccessCountTotal.Val, 1)
-	} else {
+	if resp.StatusCode != 200 {
 		atomic.StoreInt64(&w.workerMetrics.openSearchPostFailureLatencyNanoSeconds.Val, time.Now().UnixNano()-startRequest)
 		atomic.AddInt64(&w.workerMetrics.openSearchPostFailureCountTotal.Val, 1)
+		return fmt.Errorf("OpenSearch POST request failed, returned %v status code", resp.StatusCode)
 	}
-	respBody, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		return fmt.Errorf("Error reading response body: %v", err)
-	}
-	atomic.AddInt64(&w.workerMetrics.openSearchPostDataCharsTotal.Val, int64(len(respBody)))
-
-	if resp.StatusCode == 200 {
-		return nil
-	}
-	return fmt.Errorf("Failed, POST response error status code %v", resp.StatusCode)
+	atomic.StoreInt64(&w.workerMetrics.openSearchPostSuccessLatencyNanoSeconds.Val, time.Now().UnixNano()-startRequest)
+	atomic.AddInt64(&w.workerMetrics.openSearchPostSuccessCountTotal.Val, 1)
+	atomic.AddInt64(&w.workerMetrics.openSearchPostDataCharsTotal.Val, bodyChars)
+	return nil
 }
 
-func (w postLogs) PostMetricDescList() []prometheus.Desc {
+func (w postLogs) GetMetricDescList() []prometheus.Desc {
 	return w.metricDescList
 }
 
-func (w postLogs) PostMetricList() []prometheus.Metric {
-	metrics := []prometheus.Metric{}
-
-	m := prometheus.MustNewConstMetric(
-		w.workerMetrics.openSearchPostSuccessCountTotal.Desc,
-		prometheus.CounterValue,
-		float64(atomic.LoadInt64(&w.workerMetrics.openSearchPostSuccessCountTotal.Val)))
-	metrics = append(metrics, m)
-
-	m = prometheus.MustNewConstMetric(
-		w.workerMetrics.openSearchPostFailureCountTotal.Desc,
-		prometheus.CounterValue,
-		float64(atomic.LoadInt64(&w.workerMetrics.openSearchPostFailureCountTotal.Val)))
-	metrics = append(metrics, m)
-
-	m = prometheus.MustNewConstMetric(
-		w.workerMetrics.openSearchPostSuccessLatencyNanoSeconds.Desc,
-		prometheus.GaugeValue,
-		float64(atomic.LoadInt64(&w.workerMetrics.openSearchPostSuccessLatencyNanoSeconds.Val)))
-	metrics = append(metrics, m)
-
-	m = prometheus.MustNewConstMetric(
-		w.workerMetrics.openSearchPostFailureLatencyNanoSeconds.Desc,
-		prometheus.GaugeValue,
-		float64(atomic.LoadInt64(&w.workerMetrics.openSearchPostFailureLatencyNanoSeconds.Val)))
-	metrics = append(metrics, m)
-
-	m = prometheus.MustNewConstMetric(
-		w.workerMetrics.openSearchPostDataCharsTotal.Desc,
-		prometheus.CounterValue,
-		float64(atomic.LoadInt64(&w.workerMetrics.openSearchPostDataCharsTotal.Val)))
-	metrics = append(metrics, m)
-
-	return metrics
+func (w postLogs) GetMetricList() []prometheus.Metric {
+	return []prometheus.Metric{
+		w.openSearchPostSuccessCountTotal.BuildMetric(),
+		w.openSearchPostFailureCountTotal.BuildMetric(),
+		w.openSearchPostSuccessLatencyNanoSeconds.BuildMetric(),
+		w.openSearchPostFailureLatencyNanoSeconds.BuildMetric(),
+		w.openSearchPostDataCharsTotal.BuildMetric(),
+	}
 }
 
-func postBody() io.ReadCloser {
-	body := fmt.Sprintf(`{
-  "query": {
-    "bool": {
-      "should": [
-        {
-          "match": {
-            "message": "%s"
-          }
-        },
-        {
-          "match": {
-            "message": "%s"
-          }
-        },
-        {
-          "match": {
-            "message": "%s"
-          }
-        },
-        {
-          "match": {
-            "message": "%s"
-          }
-        },
-                {
-          "match": {
-            "message": "%s"
-          }
-        },
-        {
-          "match": {
-            "message": "%s"
-          }
-        },
-        {
-          "match": {
-            "message": "%s"
-          }
-        },
-        {
-          "match": {
-            "message": "%s"
-          }
-        },
-        {
-          "match": {
-            "message": "%s"
-          }
-        },
-                {
-          "match": {
-            "message": "%s"
-          }
-        }
-      ]
-    }
-  }
-}`,
-		PostRandomLowerAlpha(),
-		PostRandomLowerAlpha(),
-		PostRandomLowerAlpha(),
-		PostRandomLowerAlpha(),
-		PostRandomLowerAlpha(),
-		PostRandomLowerAlpha(),
-		PostRandomLowerAlpha(),
-		PostRandomLowerAlpha(),
-		PostRandomLowerAlpha(),
-		PostRandomLowerAlpha(),
-	)
-	return io.NopCloser(bytes.NewBuffer([]byte(body)))
-}
-
-func PostRandomLowerAlpha() string {
-	rand.Seed(time.Now().UnixNano())
-	return string(letters[rand.Intn(len(letters))])
+func getBody() (io.ReadCloser, int64) {
+	body := fmt.Sprintf(`{"field1": "%s", "field2": "%s", "field3": "%s", "field4": "%s",}`, getlogs.GetRandomLowerAlpha(4)...)
+	return io.NopCloser(bytes.NewBuffer([]byte(body))), int64(len(body))
 }
