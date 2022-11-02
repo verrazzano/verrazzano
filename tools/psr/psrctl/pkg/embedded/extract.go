@@ -51,6 +51,9 @@ func CreatePsrTempDir() (string, error) {
 	}
 
 	topDir, err := os.MkdirTemp(hidden, "psr")
+	if err != nil {
+		return "", err
+	}
 	return topDir, nil
 }
 
