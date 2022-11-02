@@ -17,7 +17,6 @@ spec:
   - path: /metrics
     enableHttp2: false
     scheme: http
-    enableHttp2: false
     relabelings:
     - action: replace
       replacement: local
