@@ -151,7 +151,7 @@ func getBody() (io.ReadCloser, int64) {
 }
 
 func getTimestamp() interface{} {
-	return fmt.Sprintf("%V-%v-%vT%V:%v:%v",
+	return fmt.Sprintf("%v-%v-%vT%v:%v:%v",
 		time.Now().Year(),
 		int(time.Now().Month()),
 		time.Now().Day(),
