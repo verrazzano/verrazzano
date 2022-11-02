@@ -129,10 +129,10 @@ func (w postLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) e
 		return err
 	}
 	log.Infof("BODY: %v", string(b))
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != 201 {
 		atomic.StoreInt64(&w.workerMetrics.openSearchPostFailureLatencyNanoSeconds.Val, time.Now().UnixNano()-startRequest)
 		atomic.AddInt64(&w.workerMetrics.openSearchPostFailureCountTotal.Val, 1)
-		return fmt.Errorf("OpenSearch POST request failed, returned %v status code", resp.StatusCode)
+		return fmt.Errorf("OpenSearch POST request failed, returned %v status code with status: %s", resp.StatusCode, resp.Status)
 	}
 	atomic.StoreInt64(&w.workerMetrics.openSearchPostSuccessLatencyNanoSeconds.Val, time.Now().UnixNano()-startRequest)
 	atomic.AddInt64(&w.workerMetrics.openSearchPostSuccessCountTotal.Val, 1)
@@ -155,7 +155,8 @@ func (w postLogs) GetMetricList() []prometheus.Metric {
 }
 
 func getBody() (io.ReadCloser, int64) {
-	body := fmt.Sprintf(`{"field1": "%s", "field2": "%s", "field3": "%s", "field4": "%s", "@timestamp": "%v"}`, append(getlogs.GetRandomLowerAlpha(4), getTimestamp())...)
+	body := fmt.Sprintf(`{"field1": "%s", "field2": "%s", "field3": "%s", "field4": "%s", "@timestamp": "%v"}`,
+		append(getlogs.GetRandomLowerAlpha(4), getTimestamp())...)
 	return io.NopCloser(bytes.NewBuffer([]byte(body))), int64(len(body))
 }
 
