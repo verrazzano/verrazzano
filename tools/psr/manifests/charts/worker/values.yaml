@@ -19,6 +19,6 @@ global:
 appType: oam
 
 # Each worker that has a subchart needs to override this property
-getlogs:
+opensearchauthpol:
   enabled: false
 

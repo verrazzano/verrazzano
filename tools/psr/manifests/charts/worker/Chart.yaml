@@ -6,7 +6,7 @@ name: psr-backend-k8s
 version: 0.1.0
 appVersion: 0.1.0
 dependencies:
-  - name: getlogs
-    repository: file://../getlogs
+  - name: opensearchauthpol
+    repository: file://../opensearchauthpol
     version: 0.1.0
-    condition: getlogs.enabled
+    condition: opensearchauthpol.enabled
