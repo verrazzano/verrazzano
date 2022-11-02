@@ -6,7 +6,6 @@ package postlogs
 import (
 	"bytes"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/getlogs"
 	"io"
 	"net/http"
 	"net/url"
@@ -18,14 +17,12 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/getlogs"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"moul.io/http2curl"
 )
 
 const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
-
-const letters = "abcdefghijklmnopqrstuvwxyz"
 
 type postLogs struct {
 	spi.Worker
@@ -102,19 +99,20 @@ func (w postLogs) WantIterationInfoLogged() bool {
 
 func (w postLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	c := http.Client{}
+
 	body, bodyChars := getBody()
+
 	req := http.Request{
 		Method: "POST",
 		URL: &url.URL{
 			Scheme: "http",
 			Host:   osIngestService,
-			Path:   "/verrazzano-application-" + conf.Namespace + "/_doc",
+			Path:   fmt.Sprintf("/verrazzano-application-%s/_doc", conf.Namespace),
 		},
 		Header: http.Header{"Content-Type": {"application/json"}},
 		Body:   body,
 	}
-	cmd, _ := http2curl.GetCurlCommand(&req)
-	log.Info(cmd.String())
+
 	startRequest := time.Now().UnixNano()
 	resp, err := c.Do(&req)
 	if err != nil {
@@ -123,12 +121,7 @@ func (w postLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) e
 	if resp == nil {
 		return fmt.Errorf("POST request to URI %s received a nil response", req.URL.RequestURI())
 	}
-	log.Infof("STATUS: ", resp.Status)
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-	log.Infof("BODY: %v", string(b))
+
 	if resp.StatusCode != 201 {
 		atomic.StoreInt64(&w.workerMetrics.openSearchPostFailureLatencyNanoSeconds.Val, time.Now().UnixNano()-startRequest)
 		atomic.AddInt64(&w.workerMetrics.openSearchPostFailureCountTotal.Val, 1)
