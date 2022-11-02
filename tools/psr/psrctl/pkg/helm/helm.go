@@ -6,17 +6,18 @@ package helm
 import (
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/embedded"
 	"os"
 )
 
 func InstallScenario() (string, error) {
-	chartDir, err := createTempChartDir()
+	chartDir, err := embedded.CreateTempChartDir()
 	if err != nil {
 		return "", err
 	}
 	defer os.RemoveAll(chartDir)
 
-	err = copyWorkerChartToTempDir(chartDir)
+	err = embedded.CopyWorkerChartToTempDir(chartDir)
 	if err != nil {
 		return "", err
 	}

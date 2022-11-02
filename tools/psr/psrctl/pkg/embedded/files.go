@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package helm
+package embedded
 
 import (
 	"os"
@@ -11,7 +11,14 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr"
 )
 
-func createTempChartDir() (string, error) {
+type PsrManifests struct {
+	RootTmpDir        string
+	WorkerChartAbsDir string
+	UseCasesAbsDir    string
+	ScenarioAbsDir    string
+}
+
+func CreatePsrTempDir() (string, error) {
 	u, err := user.Current()
 	if err != nil {
 		return "", err
@@ -25,17 +32,24 @@ func createTempChartDir() (string, error) {
 	}
 	// TODO - MUST DELETE Temp Dir after Helm called
 	// TODO - Split this function out and call before installing chart
-	topDir, err := os.MkdirTemp(hidden, "psr-worker-chart")
-	if err != nil {
-		return "", err
-	}
-	err = writeDirDeep(topDir, "manifests/charts/worker")
-
+	topDir, err := os.MkdirTemp(hidden, "psr")
 	return topDir, nil
 }
 
-func copyWorkerChartToTempDir(chartDir string) error {
-	err := writeDirDeep(chartDir, "manifests/charts/worker")
+func NewPsrManifests(tmpRootDir string) (PsrManifests, error) {
+	CopyManifestsToTempDir(tmpRootDir)
+
+	man := PsrManifests{
+		RootTmpDir:        tmpRootDir,
+		WorkerChartAbsDir: filepath.Join(tmpRootDir, "manifests/charts/worker"),
+		UseCasesAbsDir:    filepath.Join(tmpRootDir, "manifests/usecases"),
+		ScenarioAbsDir:    filepath.Join(tmpRootDir, "manifests/scenarios"),
+	}
+	return man, nil
+}
+
+func CopyManifestsToTempDir(tempRootDir string) error {
+	err := writeDirDeep(tempRootDir, "manifests")
 	if err != nil {
 		return err
 	}
