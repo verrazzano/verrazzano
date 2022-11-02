@@ -68,9 +68,9 @@ type RancherConfig struct {
 	AdditionalCA             []byte
 }
 
-type rancherCluster struct {
-	name string
-	id   string
+type RancherCluster struct {
+	Name string
+	ID   string
 }
 
 var defaultRetry = wait.Backoff{
@@ -235,13 +235,13 @@ func getClusterIDFromRancher(rc *RancherConfig, clusterName string, log vzlog.Ve
 	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "data.0.id", "unable to find clusterId in Rancher response")
 }
 
-// getAllClustersInRancher returns cluster information for every cluster registered with Rancher
-func getAllClustersInRancher(rc *RancherConfig, log vzlog.VerrazzanoLogger) ([]rancherCluster, []byte, error) {
+// GetAllClustersInRancher returns cluster information for every cluster registered with Rancher
+func GetAllClustersInRancher(rc *RancherConfig, log vzlog.VerrazzanoLogger) ([]RancherCluster, []byte, error) {
 	reqURL := rc.BaseURL + clustersPath
 	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
 
 	hash := md5.New() //nolint:gosec //#gosec G401
-	clusters := []rancherCluster{}
+	clusters := []RancherCluster{}
 	for {
 		response, responseBody, err := sendRequest(http.MethodGet, reqURL, headers, "", rc, log)
 		if response != nil && response.StatusCode != http.StatusOK {
@@ -280,7 +280,7 @@ func getAllClustersInRancher(rc *RancherConfig, log vzlog.VerrazzanoLogger) ([]r
 				log.Infof("Expected to find 'id' field in Rancher cluster data: %s", responseBody)
 				continue
 			}
-			cluster := rancherCluster{name: name.(string), id: id.(string)}
+			cluster := RancherCluster{Name: name.(string), ID: id.(string)}
 			clusters = append(clusters, cluster)
 		}
 
