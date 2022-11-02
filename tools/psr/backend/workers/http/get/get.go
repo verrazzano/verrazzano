@@ -35,29 +35,28 @@ type workerMetrics struct {
 }
 
 func NewHTTPGetWorker() (spi.Worker, error) {
-    w := get{workerMetrics: &workerMetrics{
-            getRequestsCountTotal: metrics.MetricItem{
-                Name: "get_request_count_total",
-                Help: "The total number of GET requests",
-                Type: prometheus.CounterValue,
-            },
-            getRequestsSucceededCountTotal: metrics.MetricItem{
-                Name: "get_request_succeeded_count_total",
-                Help: "The total number of successful GET requests",
-                Type: prometheus.CounterValue,
-            },
-            getRequestsFailedCountTotal: metrics.MetricItem{
-                Name: "get_request_failed_count_total",
-                Help: "The total number of failed GET requests",
-                Type: prometheus.CounterValue,
-            },
-
-    }}
+	w := get{workerMetrics: &workerMetrics{
+		getRequestsCountTotal: metrics.MetricItem{
+			Name: "get_request_count_total",
+			Help: "The total number of GET requests",
+			Type: prometheus.CounterValue,
+		},
+		getRequestsSucceededCountTotal: metrics.MetricItem{
+			Name: "get_request_succeeded_count_total",
+			Help: "The total number of successful GET requests",
+			Type: prometheus.CounterValue,
+		},
+		getRequestsFailedCountTotal: metrics.MetricItem{
+			Name: "get_request_failed_count_total",
+			Help: "The total number of failed GET requests",
+			Type: prometheus.CounterValue,
+		},
+	}}
 
 	w.metricDescList = []prometheus.Desc{
-	        *w.getRequestsCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-	        *w.getRequestsSucceededCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-	        *w.getRequestsFailedCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.getRequestsCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.getRequestsSucceededCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.getRequestsFailedCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
 	}
 	return w, nil
 }
@@ -86,9 +85,9 @@ func (w get) GetMetricDescList() []prometheus.Desc {
 
 func (w get) GetMetricList() []prometheus.Metric {
 	return []prometheus.Metric{
-	        w.getRequestsCountTotal.BuildMetric(),
-	        w.getRequestsSucceededCountTotal.BuildMetric(),
-	        w.getRequestsFailedCountTotal.BuildMetric(),
+		w.getRequestsCountTotal.BuildMetric(),
+		w.getRequestsSucceededCountTotal.BuildMetric(),
+		w.getRequestsFailedCountTotal.BuildMetric(),
 	}
 }
 
