@@ -76,8 +76,8 @@ func getWorker(wt string) (spi.Worker, error) {
 	switch wt {
 	case config.WorkerTypeExample:
 		return example.NewExampleWorker()
-    case config.WorkerTypeHttpGet:
-        return http.NewHttpGetWorker()
+	case config.WorkerTypeHTTPGet:
+		return http.NewHTTPGetWorker()
 	case config.WorkerTypeWriteLogs:
 		return writelogs.NewWriteLogsWorker()
 	case config.WorkerTypeGetLogs:

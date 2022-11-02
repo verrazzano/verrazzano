@@ -5,5 +5,8 @@
 global:
   envVars:
     PSR_WORKER_TYPE: httpget
-    # PSR_ENDPOINT is required, specify the endpoint URL to access
-    PSR_ENDPOINT:
+    # SERVICE_NAME, SERVICE_NAMESPACE, SERVICE_PORT and PATH are required to form HTTP endpoint URL to access. HTTPS is not supported.
+    SERVICE_NAME:
+    SERVICE_NAMESPACE:
+    SERVICE_PORT:
+    PATH:
