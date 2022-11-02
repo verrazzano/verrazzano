@@ -5,6 +5,7 @@ package argocd
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -83,9 +84,9 @@ func TestIsReady(t *testing.T) {
 		newReadyDeployment(ComponentNamespace, ComponentName),
 		newPod(ComponentNamespace, ComponentName),
 		newReplicaSet(ComponentNamespace, ComponentName),
-		newReadyDeployment(ComponentNamespace, common.ArgoCDApplicationController),
-		newPod(ComponentNamespace, common.ArgoCDApplicationController),
-		newReplicaSet(ComponentNamespace, common.ArgoCDApplicationController),
+		newReadyDeployment(ComponentNamespace, common.ArgoCDApplicationSetController),
+		newPod(ComponentNamespace, common.ArgoCDApplicationSetController),
+		newReplicaSet(ComponentNamespace, common.ArgoCDApplicationSetController),
 		newReadyDeployment(ComponentNamespace, common.ArgoCDDexServer),
 		newPod(ComponentNamespace, common.ArgoCDDexServer),
 		newReplicaSet(ComponentNamespace, common.ArgoCDDexServer),
@@ -116,7 +117,7 @@ func TestIsReady(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
-				Name:      common.ArgoCDApplicationController,
+				Name:      common.ArgoCDApplicationSetController,
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 0,
@@ -308,4 +309,51 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 	// THEN the function does not return an error
 	newVz.Spec.Components.ArgoCD.Enabled = &trueValue
 	assert.NoError(t, NewComponent().ValidateUpdateV1Beta1(oldVz, newVz))
+}
+
+func TestValidateInstall(t *testing.T) {
+	tests := []struct {
+		name    string
+		vz      *vzapi.Verrazzano
+		wantErr bool
+	}{
+		{
+			name: "ArgoCDComponent empty",
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						ArgoCD: &v1alpha1.ArgoCDComponent{},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "ArgoCDComponent enabled",
+			vz: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						ArgoCD: &v1alpha1.ArgoCDComponent{
+							Enabled: &trueValue,
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			if err := c.ValidateInstall(tt.vz); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			v1beta1Vz := &v1beta1.Verrazzano{}
+			err := tt.vz.ConvertTo(v1beta1Vz)
+			assert.NoError(t, err)
+			if err := c.ValidateInstallV1Beta1(v1beta1Vz); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateInstallV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }

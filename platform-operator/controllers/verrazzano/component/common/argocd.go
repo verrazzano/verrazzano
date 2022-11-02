@@ -15,10 +15,10 @@ const (
 
 // ArgoCD deployments
 const (
-	ArgoCDApplicationController  = "argocd-applicationset-controller"
-	ArgoCDDexServer              = "argocd-dex-server"
-	ArgoCDNotificationController = "argocd-notifications-controller"
-	ArgoCDRedis                  = "argocd-redis"
-	ArgoCDRepoServer             = "argocd-repo-server"
-	ArgoCDServer                 = "argocd-server"
+	ArgoCDApplicationSetController = "argocd-applicationset-controller"
+	ArgoCDDexServer                = "argocd-dex-server"
+	ArgoCDNotificationController   = "argocd-notifications-controller"
+	ArgoCDRedis                    = "argocd-redis"
+	ArgoCDRepoServer               = "argocd-repo-server"
+	ArgoCDServer                   = "argocd-server"
 )
