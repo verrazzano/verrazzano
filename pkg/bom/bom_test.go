@@ -302,8 +302,7 @@ func TestBomComponentVersion(t *testing.T) {
 	assert.NotNil(t, c.Version)
 }
 //Added
-func TestBomGetComponentVersion(t *testing.T)
-{
+func TestBomGetComponentVersion(t *testing.T) {
     bom,err := NewBom(testBomFilePath)
     assert.NoError(t,err)
 
@@ -315,8 +314,7 @@ func TestBomGetComponentVersion(t *testing.T)
 }
 
 //Added
-func TestGetSubcomponentImages(t *testing.T)
-{
+func TestGetSubcomponentImages(t *testing.T) {
     bom,err := NewBom(testBomFilePath)
     assert.NoError(t,err)
 
@@ -328,8 +326,7 @@ func TestGetSubcomponentImages(t *testing.T)
 }
 
 //Added
-func TestGetSubcomponentImageCount( t *testing.T)
-{
+func TestGetSubcomponentImageCount( t *testing.T) {
     bom,err := NewBom(testBomFilePath)
     assert.NoError(t,err)
 
