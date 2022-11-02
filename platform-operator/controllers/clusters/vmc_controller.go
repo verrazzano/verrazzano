@@ -7,6 +7,7 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
 	"time"
 
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
@@ -407,8 +408,20 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 			vmc.Status.State = clustersv1alpha1.StateActive
 		}
 	}
+
+	// Fetch the existing VMC to avoid conflicts in the status update
+	existingVMC := &clustersv1alpha1.VerrazzanoManagedCluster{}
+	err := r.Get(context.TODO(), types.NamespacedName{Namespace: vmc.Namespace, Name: vmc.Name}, existingVMC)
+	if err != nil {
+		return err
+	}
+
+	// Replace the existing status conditions and state with the conditions generated from this reconcile
+	existingVMC.Status.Conditions = vmc.Status.Conditions
+	existingVMC.Status.State = vmc.Status.State
+
 	r.log.Debugf("Updating Status of VMC %s: %v", vmc.Name, vmc.Status.Conditions)
-	return r.Status().Update(ctx, vmc)
+	return r.Status().Update(ctx, existingVMC)
 }
 
 // getVerrazzanoResource gets the installed Verrazzano resource in the cluster (of which only one is expected)

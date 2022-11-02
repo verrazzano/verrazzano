@@ -1389,6 +1389,12 @@ func TestUpateStatus(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
+	// Expect the requests for the existing VMC resource
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			return nil
+		}).AnyTimes()
+
 	// GIVEN a VMC with a status state unset and the last agent connect time set
 	// WHEN the updateStatus function is called
 	// THEN the status state is updated to pending
@@ -2229,6 +2235,11 @@ func getCaCrt() string {
 }
 
 func expectStatusUpdateReadyCondition(asserts *assert.Assertions, mock *mocks.MockClient, mockStatus *mocks.MockStatusWriter, expectReady corev1.ConditionStatus, msg string, assertManagedCACondition bool) {
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			return nil
+		})
+
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
