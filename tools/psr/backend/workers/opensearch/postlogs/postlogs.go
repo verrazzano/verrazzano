@@ -146,6 +146,17 @@ func (w postLogs) GetMetricList() []prometheus.Metric {
 }
 
 func getBody() (io.ReadCloser, int64) {
-	body := fmt.Sprintf(`{"field1": "%s", "field2": "%s", "field3": "%s", "field4": "%s",}`, getlogs.GetRandomLowerAlpha(4)...)
+	body := fmt.Sprintf(`{"field1": "%s", "field2": "%s", "field3": "%s", "field4": "%s", "@timestamp": "%v"}`, append(getlogs.GetRandomLowerAlpha(4), getTimestamp())...)
 	return io.NopCloser(bytes.NewBuffer([]byte(body))), int64(len(body))
+}
+
+func getTimestamp() interface{} {
+	return fmt.Sprintf("%V-%v-%vT%V:%v:%v",
+		time.Now().Year(),
+		int(time.Now().Month()),
+		time.Now().Day(),
+		time.Now().Hour(),
+		time.Now().Minute(),
+		time.Now().Second(),
+	)
 }
