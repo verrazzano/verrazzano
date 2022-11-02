@@ -4,6 +4,7 @@
 package string
 
 import (
+	"github.com/google/go-cmp/cmp"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"sort"
 )
@@ -74,11 +75,13 @@ func CompareTwoSlices(log vzlog.VerrazzanoLogger, slice1 []string, slice2 []stri
 
 	if len(slice1) != len(slice2) {
 		log.Errorf("%s doesn't match with %s", slice1, slice2)
+		log.Infof(cmp.Diff(slice1, slice2))
 		return false
 	}
 	for i, v := range slice1 {
 		if v != slice2[i] {
 			log.Errorf("%s doesn't match with %s", slice1, slice2)
+			log.Infof(cmp.Diff(slice1, slice2))
 			return false
 		}
 	}
