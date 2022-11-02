@@ -203,38 +203,7 @@ spec:
                             weight: 100
     keycloak:
       enabled: true
-      mysql:
-        overrides:
-          - values:
-              image:
-                pullPolicy: IfNotPresent
-                pullSecrets:
-                  enabled: false
-              podSpec:
-                affinity:
-                  podAntiAffinity:
-                    preferredDuringSchedulingIgnoredDuringExecution:
-                      - podAffinityTerm:
-                          labelSelector:
-                            matchLabels:
-                              app.kubernetes.io/instance: mysql-innodbcluster-mysql-mysql-server
-                              app.kubernetes.io/name: mysql-innodbcluster-mysql-server
-                          topologyKey: kubernetes.io/hostname
-                        weight: 100
-              router:
-                podSpec:
-                  affinity:
-                    podAntiAffinity:
-                      preferredDuringSchedulingIgnoredDuringExecution:
-                        - podAffinityTerm:
-                            labelSelector:
-                              matchLabels:
-                                app.kubernetes.io/instance: mysql-innodbcluster-mysql-router
-                                app.kubernetes.io/name: mysql-router
-                            topologyKey: kubernetes.io/hostname
-                          weight: 100
-              routerInstances: 1
-              serverInstances: 1
+      mysql: {}
       overrides:
         - values:
             affinity: |
@@ -266,8 +235,6 @@ spec:
     kibana:
       enabled: true
       replicas: 1
-    mySQLOperator:
-      enabled: true
     oam:
       enabled: true
     prometheus:
