@@ -7,18 +7,18 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"gopkg.in/yaml.v2"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // patchArgoCDSecret
@@ -123,7 +123,7 @@ func patchArgoCDRbacConfigMap(ctx spi.ComponentContext) error {
 		if err != nil {
 			ctx.Log().ErrorfNewErr("error: %v", err)
 		}
-        configMap.Data = t.Data
+		configMap.Data = t.Data
 		return nil
 	})
 	return err
@@ -138,6 +138,6 @@ func getArgoCDHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 	if len(env) == 0 {
 		env = constants.DefaultEnvironmentName
 	}
-	rancherHostname := fmt.Sprintf("%s.%s.%s", common.ArgoCDName, env, dnsSuffix)
-	return rancherHostname, nil
+	argoCDHostname := fmt.Sprintf("%s.%s.%s", common.ArgoCDName, env, dnsSuffix)
+	return argoCDHostname, nil
 }
