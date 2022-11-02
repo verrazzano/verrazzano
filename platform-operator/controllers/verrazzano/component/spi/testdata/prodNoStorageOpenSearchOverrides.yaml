@@ -1,49 +1,28 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-apiVersion: install.verrazzano.io/v1beta1
-kind: Verrazzano
 metadata:
-  name: verrazzano
+  creationTimestamp: null
+  name: prod-no-storage-os-overrides
 spec:
-  profile: dev
-  version: 1.4.0
-  environmentName: env
-  security:
-    monitorSubjects:
-      - kind: test
-        apiGroup: test.io
-        name: testuser
-        namespace: default
-    adminSubjects:
-      - kind: test
-        apiGroup: test.io
-        name: testuser
-        namespace: default
   components:
     applicationOperator:
       enabled: true
-      overrides:
-        - values:
-            frobber: frob
     authProxy:
       enabled: true
-      overrides:
-        - values:
-            frobber: frob
-        - values:
-            affinity: |
-              podAntiAffinity:
-                preferredDuringSchedulingIgnoredDuringExecution:
-                - podAffinityTerm:
-                    labelSelector:
-                      matchExpressions:
+      kubernetes:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
                       - key: app
                         operator: In
                         values:
-                        - verrazzano-authproxy
-                    topologyKey: kubernetes.io/hostname
-                  weight: 100
-            replicas: 1
+                          - verrazzano-authproxy
+                  topologyKey: kubernetes.io/hostname
+                weight: 100
+        replicas: 1
     certManager:
       certificate:
         acme:
@@ -88,9 +67,6 @@ spec:
               replicaCount: 1
     coherenceOperator:
       enabled: true
-      overrides:
-        - values:
-            frobber: frob
     console:
       enabled: true
       overrides:
@@ -106,25 +82,46 @@ spec:
                     weight: 100
             replicas: 1
     dns:
-      overrides:
-        - values:
-            frobber: frob
       wildcard:
         domain: nip.io
-    fluentd:
+    elasticsearch:
       enabled: true
-      opensearchSecret: verrazzano-es-internal
-      opensearchURL: http://verrazzano-authproxy-elasticsearch:8775
-      overrides:
-        - values:
-            frobber: frob
+      nodes:
+        - name: es-master
+          resources:
+            requests:
+              memory: 1503238553600m
+          roles:
+            - master
+          storage:
+            size: 50Gi
+        - name: es-data
+          resources:
+            requests:
+              memory: 5153960755200m
+          roles:
+            - data
+          storage:
+            size: 50Gi
+        - name: es-ingest
+          resources:
+            requests:
+              memory: 2560Mi
+          roles:
+            - ingest
+        - name: custom
+          replicas: 3
+          roles:
+            - data
+            - ingest
+            - master
+    fluentd:
+      elasticsearchSecret: verrazzano-es-internal
+      elasticsearchURL: http://verrazzano-authproxy-elasticsearch:8775
+      enabled: true
     grafana:
       enabled: true
-      replicas: 1
-      database:
-        host: host
-        name: name
-    ingressNGINX:
+    ingress:
       enabled: true
       overrides:
         - values:
@@ -156,49 +153,43 @@ spec:
               replicaCount: 1
       type: LoadBalancer
     istio:
+      egress:
+        kubernetes:
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-egressgateway
+                    topologyKey: kubernetes.io/hostname
+                  weight: 100
+          replicas: 1
       enabled: true
+      ingress:
+        kubernetes:
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-ingressgateway
+                    topologyKey: kubernetes.io/hostname
+                  weight: 100
+          replicas: 1
       overrides:
         - values:
             apiVersion: install.istio.io/v1alpha1
             kind: IstioOperator
             spec:
               components:
-                egressGateways:
-                  - enabled: true
-                    k8s:
-                      affinity:
-                        podAntiAffinity:
-                          preferredDuringSchedulingIgnoredDuringExecution:
-                            - podAffinityTerm:
-                                labelSelector:
-                                  matchExpressions:
-                                    - key: app
-                                      operator: In
-                                      values:
-                                        - istio-egressgateway
-                                topologyKey: kubernetes.io/hostname
-                              weight: 100
-                      replicaCount: 1
-                    name: istio-egressgateway
-                ingressGateways:
-                  - enabled: true
-                    k8s:
-                      affinity:
-                        podAntiAffinity:
-                          preferredDuringSchedulingIgnoredDuringExecution:
-                            - podAffinityTerm:
-                                labelSelector:
-                                  matchExpressions:
-                                    - key: app
-                                      operator: In
-                                      values:
-                                        - istio-ingressgateway
-                                topologyKey: kubernetes.io/hostname
-                              weight: 100
-                      replicaCount: 1
-                      service:
-                        type: LoadBalancer
-                    name: istio-ingressgateway
                 pilot:
                   k8s:
                     affinity:
@@ -210,17 +201,40 @@ spec:
                                   app: istiod
                               topologyKey: kubernetes.io/hostname
                             weight: 100
-    jaegerOperator:
-      enabled: true
-      overrides:
-        - values:
-            frobber: frob
     keycloak:
       enabled: true
       mysql:
         overrides:
           - values:
-              frobber: frob
+              image:
+                pullPolicy: IfNotPresent
+                pullSecrets:
+                  enabled: false
+              podSpec:
+                affinity:
+                  podAntiAffinity:
+                    preferredDuringSchedulingIgnoredDuringExecution:
+                      - podAffinityTerm:
+                          labelSelector:
+                            matchLabels:
+                              app.kubernetes.io/instance: mysql-innodbcluster-mysql-mysql-server
+                              app.kubernetes.io/name: mysql-innodbcluster-mysql-server
+                          topologyKey: kubernetes.io/hostname
+                        weight: 100
+              router:
+                podSpec:
+                  affinity:
+                    podAntiAffinity:
+                      preferredDuringSchedulingIgnoredDuringExecution:
+                        - podAffinityTerm:
+                            labelSelector:
+                              matchLabels:
+                                app.kubernetes.io/instance: mysql-innodbcluster-mysql-router
+                                app.kubernetes.io/name: mysql-router
+                            topologyKey: kubernetes.io/hostname
+                          weight: 100
+              routerInstances: 1
+              serverInstances: 1
       overrides:
         - values:
             affinity: |
@@ -234,11 +248,6 @@ spec:
                           app.kubernetes.io/name: keycloak
                       topologyKey: kubernetes.io/hostname
             replicas: 1
-    mysql-operator:
-      enabled: true
-      overrides:
-        - values:
-            frobber: frob
     kiali:
       enabled: true
       overrides:
@@ -254,36 +263,24 @@ spec:
                         topologyKey: kubernetes.io/hostname
                       weight: 100
               replicas: 1
-    kubeStateMetrics:
-      enabled: true
-      overrides:
-        - values:
-            frobber: frob
-    oam:
-      enabled: true
-      overrides:
-        - values:
-            frobber: frob
-    opensearch:
-      enabled: true
-    opensearchDashboards:
+    kibana:
       enabled: true
       replicas: 1
+    mySQLOperator:
+      enabled: true
+    oam:
+      enabled: true
     prometheus:
       enabled: true
-    prometheusAdapter:
-      enabled: true
-      overrides:
-        - values:
-            frobber: frob
-    prometheusNodeExporter:
-      enabled: true
-      overrides:
-        - values:
-            frobber: frob
     prometheusOperator:
       enabled: true
       overrides:
+        - values:
+            prometheus:
+              prometheusSpec:
+                resources:
+                  requests:
+                    memory: 128Mi
         - values:
             prometheus:
               prometheusSpec:
@@ -297,33 +294,15 @@ spec:
                           topologyKey: kubernetes.io/hostname
                         weight: 100
                 replicas: 1
-    prometheusPushgateway:
-      enabled: true
-      overrides:
-        - values:
-            frobber: frob
     rancher:
       enabled: true
-      overrides:
-        - values:
-            frobber: frob
-    rancherBackup:
-      enabled: true
-      overrides:
-        - values:
-            frobber: frob
-    velero:
-      enabled: true
-      overrides:
-        - values:
-            frobber: frob
     verrazzano:
       enabled: true
-      overrides:
-        - values:
-            frobber: frob
     weblogicOperator:
       enabled: true
-      overrides:
-        - values:
-            frobber: frob
+  defaultVolumeSource:
+    emptyDir: {}
+  environmentName: default
+  profile: prod
+  security: {}
+status: {}

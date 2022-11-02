@@ -98,6 +98,11 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 			Eventually(func() bool {
 				vmc, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(multiclusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
+				if vmc.Status.LastAgentConnectTime == nil {
+					pkg.Log(pkg.Info, "Last agent connect time is nil")
+				} else {
+					pkg.Log(pkg.Info, fmt.Sprintf("Last agent connect time: %v", vmc.Status.LastAgentConnectTime))
+				}
 				return err == nil &&
 					vmcStatusCheckOkay(vmc, regVersion14) &&
 					vmcRancherStatusCheckOkay(vmc, curAdminVersion14) &&

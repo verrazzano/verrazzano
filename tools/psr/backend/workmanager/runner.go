@@ -14,11 +14,11 @@ import (
 )
 
 const (
-	LoopCount     = "loop_count"
-	LoopCountHelp = "The number of loop iterations executed"
+	LoopCountTotal     = "loop_count_total"
+	LoopCountTotalHelp = "The total number of loop iterations executed"
 
 	WorkerThreadCountTotal     = "worker_thread_count_total"
-	WorkerThreadCountTotalHelp = "The number of worker threads (goroutines) running"
+	WorkerThreadCountTotalHelp = "The total number of worker threads (goroutines) running"
 
 	WorkerIterationNanoSeconds     = "worker_last_iteration_nanoseconds"
 	WorkerIterationNanoSecondsHelp = "The number of nanoseconds that the worker took to run the last iteration of doing work"
@@ -29,7 +29,7 @@ const (
 
 // WorkerRunner interface specifies a runner that loops calling a worker
 type WorkerRunner interface {
-	// RunWorker runs the worker use case in a loop
+	// StartWorkerRunners runs the worker use case in a loop
 	RunWorker(config.CommonConfig, vzlog.VerrazzanoLogger) error
 
 	// WorkerMetricsProvider is an interface to get prometheus metrics information for the worker to do work
@@ -60,10 +60,10 @@ func NewRunner(worker spi.Worker, conf config.CommonConfig, log vzlog.Verrazzano
 
 	r := runner{Worker: worker, runnerMetrics: &runnerMetrics{}}
 
-	// LoopCount metric
+	// LoopCountTotal metric
 	d := prometheus.NewDesc(
-		prometheus.BuildFQName(metrics.PsrNamespace, worker.GetWorkerDesc().MetricsName, LoopCount),
-		LoopCountHelp,
+		prometheus.BuildFQName(metrics.PsrNamespace, worker.GetWorkerDesc().MetricsName, LoopCountTotal),
+		LoopCountTotalHelp,
 		nil,
 		constLabels,
 	)
@@ -112,7 +112,7 @@ func (r runner) GetMetricDescList() []prometheus.Desc {
 func (r runner) GetMetricList() []prometheus.Metric {
 	metrics := []prometheus.Metric{}
 
-	// LoopCount
+	// LoopCountTotal
 	m := prometheus.MustNewConstMetric(
 		r.runnerMetrics.loopCount.Desc,
 		prometheus.CounterValue,
@@ -122,7 +122,7 @@ func (r runner) GetMetricList() []prometheus.Metric {
 	// WorkerThreadCountTotal
 	m = prometheus.MustNewConstMetric(
 		r.runnerMetrics.workerThreadCount.Desc,
-		prometheus.CounterValue,
+		prometheus.GaugeValue,
 		float64(atomic.LoadInt64(&r.runnerMetrics.workerThreadCount.Val)))
 	metrics = append(metrics, m)
 
@@ -136,15 +136,19 @@ func (r runner) GetMetricList() []prometheus.Metric {
 	// WorkerIterationNanoSeconds
 	m = prometheus.MustNewConstMetric(
 		r.runnerMetrics.workerIterationNanoSeconds.Desc,
-		prometheus.CounterValue,
+		prometheus.GaugeValue,
 		float64(atomic.LoadInt64(&r.runnerMetrics.workerIterationNanoSeconds.Val)))
 	metrics = append(metrics, m)
 
 	return metrics
 }
 
-// RunWorker runs the worker in a loop
+// StartWorkerRunners runs the worker in a loop
 func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+	if conf.NumIterations == 0 {
+		return nil
+	}
+
 	r.incThreadCount()
 	startTimeSecs := time.Now().Unix()
 	for {
@@ -173,6 +177,9 @@ func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		atomic.StoreInt64(&r.runnerMetrics.workerDurationTotalSeconds.Val, durationSecondsTotal)
 		if r.Worker.WantIterationInfoLogged() {
 			log.Infof("Loop Count: %v, Total seconds from start of first work iteration until now: %v", loopCount, durationSecondsTotal)
+		}
+		if loopCount == conf.NumIterations && conf.NumIterations != config.UnlimitedWorkerIterations {
+			return nil
 		}
 		time.Sleep(conf.IterationSleepNanos)
 	}

@@ -110,11 +110,3 @@ configurationFilesPath: /etc/mysql/conf.d/
 
 # Custom mysql configuration files
 # configurationFiles: {}
-
-#legacyUpgrade:
-#  initContainer:
-#    image:
-#  container:
-#    image:
-#  claimName: dump-claim
-#  dumpDir: dump
