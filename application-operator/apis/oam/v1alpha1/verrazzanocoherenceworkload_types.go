@@ -20,7 +20,7 @@ type VerrazzanoCoherenceWorkloadSpec struct {
 type VerrazzanoCoherenceWorkloadStatus struct {
 	// The last generation of the Verrazzano Coherence workload that was reconciled.
 	LastGeneration string `json:"lastGeneration,omitempty"`
-	// The last value of the verrazzano.io/restart-version annotation.
+	// The last value of the `verrazzano.io/restart-version` annotation.
 	LastRestartVersion string `json:"lastRestartVersion,omitempty"`
 }
 
