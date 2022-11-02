@@ -370,6 +370,87 @@ const rancherClientTmpl = `
 }
 `
 
+const argocdClientTmpl = `
+{
+      "clientId": "argocd",
+      "name": "argocd",
+      //
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      ` + rancherClientUrisTemplate + `,
+      //
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      //saml
+      "attributes": {
+        "id.token.as.detached.signature": "false",
+        "saml.assertion.signature": "false",
+        "saml.force.post.binding": "false",
+        "saml.multivalued.roles": "false",
+        "saml.encrypt": "false",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "saml.server.signature": "false",
+        "saml.server.signature.keyinfo.ext": "false",
+        "use.refresh.tokens": "true",
+        "exclude.session.state.from.auth.response": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "saml.artifact.binding": "false",
+        "backchannel.logout.session.required": "true",
+        "client_credentials.use_refresh_token": "false",
+        "saml_force_name_id_format": "false",
+        "require.pushed.authorization.requests": "false",
+        "saml.client.signature": "false",
+        "tls.client.certificate.bound.access.tokens": "false",
+        "saml.authnstatement": "false",
+        "display.on.consent.screen": "false",
+        "saml.onetimeuse.condition": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "protocolMappers": [
+        {
+          "name": "Groups Mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          // argocd mandated values
+          "config": {
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "groups",
+            "userinfo.token.claim": "true"
+          }
+		}
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "roles",
+        "profile",
+        "groups",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ]
+}
+`
+
 const pkceClientUrisTemplate = `
 	"redirectUris": [
 	  "https://verrazzano.{{.DNSSubDomain}}/*",
@@ -403,6 +484,24 @@ const rancherClientUrisTemplate = `
     ],
 	"webOrigins": [
 		"https://rancher.{{.DNSSubDomain}}"
+	]
+`
+
+const argocdClientUrisTemplate = `
+    "rootURL": [
+        "https://argocd.{{.DNSSubDomain}}"
+    ],
+	"redirectUris": [
+        "https://argocd.{{.DNSSubDomain}}/auth/callback"
+    ],
+    "baseURL": [
+        "/applications"
+    ],
+    "adminURL": [
+        "https://argocd.{{.DNSSubDomain}}"
+    ],
+	"webOrigins": [
+		"https://argocd.{{.DNSSubDomain}}"
 	]
 `
 
@@ -756,6 +855,26 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	if vzconfig.IsRancherEnabled(ctx.ActualCR()) {
 		// Creating rancher client
 		err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
+		if err != nil {
+			return err
+		}
+
+		// Update Keycloak AuthConfig for Rancher with client secret
+		err = updateRancherClientSecretForKeycloakAuthConfig(ctx)
+		if err != nil {
+			return err
+		}
+
+		// Add view-users role to verrazzano user
+		err = addClientRoleToUser(ctx, cfg, cli, vzUserName, realmManagement, vzSysRealm, viewUsersRole)
+		if err != nil {
+			return err
+		}
+	}
+
+	if vzconfig.IsArgoCDEnabled(ctx.ActualCR()) {
+		// Creating rancher client
+		err = createOrUpdateClient(ctx, cfg, cli, "argocd", argocdClientTmpl, argocdClientUrisTemplate, true)
 		if err != nil {
 			return err
 		}
@@ -1480,6 +1599,62 @@ func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error
 	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get clients/"+id+"/client-secret -r "+vzSysRealm))
 	if err != nil {
 		ctx.Log().Errorf("failed retrieving rancher client secret from keycloak: %s", err)
+		return "", err
+	}
+	if len(out) == 0 {
+		err = errors.New("client secret json from keycloak is zero length")
+		ctx.Log().Error(err)
+		return "", err
+	}
+
+	err = json.Unmarshal([]byte(out), &clientSecret)
+	if err != nil {
+		ctx.Log().Errorf("failed ummarshalling client secret json: %v", err)
+		return "", err
+	}
+
+	if clientSecret.Value == "" {
+		return "", ctx.Log().ErrorNewErr("client secret is empty")
+	}
+
+	return clientSecret.Value, nil
+}
+
+// GetRancherClientSecretFromKeycloak returns the secret from rancher client in Keycloak
+func GetArgoCDClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error) {
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return "", err
+	}
+
+	// Login to Keycloak
+	err = loginKeycloak(ctx, cfg, cli)
+	if err != nil {
+		return "", err
+	}
+
+	kcClients, err := getKeycloakClients(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	id := ""
+	for _, kcClient := range kcClients {
+		if kcClient.ClientID == "argocd" {
+			id = kcClient.ID
+		}
+	}
+
+	if id == "" {
+		ctx.Log().Debugf("GetArgoCDClientSecretFromKeycloak: argocd client does not exist")
+		return "", nil
+	}
+
+	var clientSecret KeycloakClientSecret
+	// Get the Client secret JSON array
+	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get clients/"+id+"/client-secret -r "+vzSysRealm))
+	if err != nil {
+		ctx.Log().Errorf("failed retrieving argocd client secret from keycloak: %s", err)
 		return "", err
 	}
 	if len(out) == 0 {

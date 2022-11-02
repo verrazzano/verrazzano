@@ -6,7 +6,6 @@ package argocd
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -100,7 +99,7 @@ func (r argoCDComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
-//PostInstall
+//Install
 /* Installs the Helm chart, and patches the resulting objects
 - ensure Helm chart is installed
 - Patch ArgoCD ingress with NGINX/TLS annotations
@@ -135,20 +134,4 @@ func (r argoCDComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, n
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
 	return r.HelmComponent.ValidateUpdateV1Beta1(old, new)
-}
-
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (f argoCDComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
-	vzV1Beta1 := &installv1beta1.Verrazzano{}
-
-	if err := vz.ConvertTo(vzV1Beta1); err != nil {
-		return err
-	}
-
-	return f.ValidateInstallV1Beta1(vzV1Beta1)
-}
-
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (f argoCDComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return f.HelmComponent.ValidateInstallV1Beta1(vz)
 }
