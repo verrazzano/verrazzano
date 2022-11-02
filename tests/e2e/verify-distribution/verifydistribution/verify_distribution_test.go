@@ -6,9 +6,9 @@ package verifydistribution
 import (
 	"bufio"
 	"fmt"
+	"github.com/google/go-cmp/cmp"
 	"github.com/onsi/gomega"
 	. "github.com/verrazzano/verrazzano/pkg/files"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	. "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -83,7 +83,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				for _, each := range filesInfo {
 					filesList = append(filesList, each.Name())
 				}
-				gomega.Expect(CompareTwoSlices(vzlog.DefaultLogger(), filesList, liteBundleZipContents)).To(gomega.BeTrue())
+				compareContents(filesList, liteBundleZipContents)
 			})
 
 			t.It("Verify Lite bundle extracted contents", func() {
@@ -149,8 +149,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 					eachName = regexTar.ReplaceAllString(eachName, "")
 					imagesList = append(imagesList, eachName)
 				}
-
-				gomega.Expect(CompareTwoSlices(vzlog.DefaultLogger(), componentsList, imagesList)).To(gomega.BeTrue())
+				compareContents(componentsList, imagesList)
 			})
 		})
 	}
@@ -172,7 +171,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 				eachName := re1.ReplaceAllString(each, "")
 				chartsFilesListFiltered = append(chartsFilesListFiltered, eachName)
 			}
-			gomega.Expect(CompareTwoSlices(vzlog.DefaultLogger(), sourcesFilesFilteredList, chartsFilesListFiltered)).To(gomega.BeTrue())
+			compareContents(sourcesFilesFilteredList, chartsFilesListFiltered)
 		})
 	})
 })
@@ -191,10 +190,18 @@ func verifyDistributionByDirectory(inputDir string, key string, variant string) 
 	}
 	if variant == liteDistribution {
 		fmt.Println("Provided variant is: ", variant)
-		gomega.Expect(CompareTwoSlices(vzlog.DefaultLogger(), filesList, opensourcefileslistbydir[key])).To(gomega.BeTrue())
+		compareContents(filesList, opensourcefileslistbydir[key])
 	} else {
 		fmt.Println("Provided variant is: Full")
-		gomega.Expect(CompareTwoSlices(vzlog.DefaultLogger(), filesList, fullBundleFileslistbydir[key])).To(gomega.BeTrue())
+		compareContents(filesList, fullBundleFileslistbydir[key])
 	}
 	fmt.Printf("All files found for %s \n", key)
+}
+
+func compareContents(slice1 []string, slice2 []string) {
+	areSame := AreSlicesEqualWithoutOrder(slice1, slice2)
+	if !areSame {
+		t.Logs.Errorf("Found mismatch; %s", cmp.Diff(slice1, slice2))
+	}
+	gomega.Expect(areSame).To(gomega.BeTrue())
 }
