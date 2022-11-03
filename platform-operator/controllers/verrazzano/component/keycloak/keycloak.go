@@ -82,7 +82,7 @@ const kcInitContainerValueTemplate = `
           mountPath: /cacerts
 `
 
-const pkceTmpl = `
+var pkceTmpl = `
 {
       "clientId" : "verrazzano-pkce",
       "enabled": true,
@@ -370,7 +370,7 @@ const rancherClientTmpl = `
 }
 `
 
-const pkceClientUrisTemplate = `
+var pkceClientUrisTemplate = `
 	"redirectUris": [
 	  "https://verrazzano.{{.DNSSubDomain}}/*",
 	  "https://verrazzano.{{.DNSSubDomain}}/verrazzano/authcallback",
@@ -397,8 +397,7 @@ const pkceClientUrisTemplate = `
 	]
 `
 
-/*
-const pkceClientUrisTemplateForDeprecatedESIngress = `
+var pkceClientUrisTemplateForDeprecatedESHosts = `
 
 		"redirectUris": [
 		  "https://verrazzano.{{.DNSSubDomain}}/*",
@@ -430,9 +429,8 @@ const pkceClientUrisTemplateForDeprecatedESIngress = `
 		  "https://kiali.vmi.system.{{.DNSSubDomain}}",
 		  "https://jaeger.{{.DNSSubDomain}}"
 		]
-
 `
-*/
+
 const rancherClientUrisTemplate = `
 	"redirectUris": [
         "https://rancher.{{.DNSSubDomain}}/verify-auth"

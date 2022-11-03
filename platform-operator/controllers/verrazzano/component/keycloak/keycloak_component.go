@@ -171,12 +171,12 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 	}
-	/*	osIngest, _ := pkg.GetIngress(constants.VerrazzanoSystemNamespace, constants.OpensearchIngress)
+	/*
+		osIngest, _ := pkg.GetIngress(constants.VerrazzanoSystemNamespace, constants.OpensearchIngress)
 		if osIngest != nil && osIngest.Spec.Rules[0].Size() > 1{
 			for _, rule := range osIngest.Spec.Rules {
 				if rule.Host = constants.
-			}
-		}
+			}}
 		osdIngest, _ := pkg.GetIngress(constants.VerrazzanoSystemNamespace, constants.OpensearchDashboardsIngress)
 	*/
 	return configureKeycloakRealms(ctx)
