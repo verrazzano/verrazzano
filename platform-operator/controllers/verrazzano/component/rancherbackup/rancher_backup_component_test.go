@@ -161,6 +161,42 @@ func TestInstallUpgrade(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestValidateUpdate(t *testing.T) {
+	//We expect error if rancher backup is disabled in new CR
+	err := NewComponent().ValidateUpdate(rancherBackupEnabledCR, &vzapi.Verrazzano{})
+	assert.Error(t, err)
+
+	//We should not get any error if rancher backup does not have any install overrides
+	err = NewComponent().ValidateUpdate(rancherBackupEnabledCR, rancherBackupEnabledCR)
+	assert.NoError(t, err)
+}
+
+func TestMonitorOverrides(t *testing.T) {
+	//Returns false if Backup component is not enabled
+	ctx := spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false)
+	assert.False(t, NewComponent().MonitorOverrides(ctx))
+
+	//Returns true if Backup component is enabled
+	ctx = spi.NewFakeContext(nil, rancherBackupEnabledCR, nil, false)
+	assert.True(t, NewComponent().MonitorOverrides(ctx))
+
+	//Check if Monitoring changes value is returned as set
+	ctx = spi.NewFakeContext(nil, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				RancherBackup: &vzapi.RancherBackupComponent{
+					Enabled: &enabled,
+					InstallOverrides: vzapi.InstallOverrides{
+						MonitorChanges: &enabled,
+						ValueOverrides: nil,
+					},
+				},
+			},
+		},
+	}, nil, false)
+	assert.True(t, NewComponent().MonitorOverrides(ctx))
+}
+
 func TestGetName(t *testing.T) {
 	v := NewComponent()
 	assert.Equal(t, ComponentName, v.Name())
