@@ -453,15 +453,15 @@
     },
     {
       "name": "prometheus-operator",
-      "version": "0.55.1",
+      "version": "0.59.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "prometheus-operator",
           "images": [
             {
-              "image": "prometheus-operator-jenkins",
-              "tag": "v0.59.1-20221101194250-98a1c0b7",
+              "image": "prometheus-operator",
+              "tag": "v0.59.1-20221103170209-f37505b5",
               "helmFullImageKey": "prometheusOperator.image.repository",
               "helmTagKey": "prometheusOperator.image.tag"
             },
@@ -478,8 +478,8 @@
           "name": "prometheus-config-reloader",
           "images": [
             {
-              "image": "prometheus-config-reloader-jenkins",
-              "tag": "v0.59.1-20221101194250-98a1c0b7",
+              "image": "prometheus-config-reloader",
+              "tag": "v0.59.1-20221103170209-f37505b5",
               "helmFullImageKey": "prometheusOperator.prometheusConfigReloader.image.repository",
               "helmTagKey": "prometheusOperator.prometheusConfigReloader.image.tag"
             }
