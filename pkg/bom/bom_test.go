@@ -302,14 +302,16 @@ func TestBomComponentVersion(t *testing.T) {
 // WHEN I ask for the version of that component
 // THEN the correct version is returned if found, or an error if not found
 func TestBomGetComponentVersion(t *testing.T) {
-	bom, err := NewBom(realBomFilePath)
+	bom, err := NewBom(testBomFilePath)
 	assert.NoError(t, err)
 
-	_, err = bom.GetComponentVersion("cert-manager")
+	ver, err := bom.GetComponentVersion("cert-manager")
 	assert.NoError(t, err)
+	assert.Equal(t, ver, "v1.7.1")
 
-	_, err = bom.GetComponentVersion("foo")
+	ver, err = bom.GetComponentVersion("foo")
 	assert.Error(t, err)
+	assert.Equal(t, ver, "")
 }
 
 // TestGetSubcomponentImages tests the GetSubcomponentImages method
@@ -319,12 +321,15 @@ func TestBomGetComponentVersion(t *testing.T) {
 func TestGetSubcomponentImages(t *testing.T) {
 	bom, err := NewBom(testBomFilePath)
 	assert.NoError(t, err)
-
-	_, err = bom.GetSubcomponentImages(ingressControllerComponent)
+	subComponentImageforNil := []BomImage([]BomImage(nil))
+	subComponentImage := []BomImage([]BomImage{{ImageName: "external-dns", ImageTag: "v0.7.1-20201016205338-516bc8b2", Registry: "", Repository: "", HelmRegistryKey: "image.registry", HelmRepoKey: "", HelmImageKey: "", HelmTagKey: "image.tag", HelmFullImageKey: "image.repository", HelmRegistryAndRepoKey: ""}})
+	scImages, err := bom.GetSubcomponentImages("external-dns")
 	assert.NoError(t, err)
+	assert.Equal(t, scImages, subComponentImage)
 
-	_, err = bom.GetSubcomponentImages("foo")
+	scImages, err = bom.GetSubcomponentImages("foo")
 	assert.Error(t, err)
+	assert.Equal(t, scImages, subComponentImageforNil)
 }
 
 // TestBomGetSubcomponentImageCount tests the GetSubcomponentImageCount method
