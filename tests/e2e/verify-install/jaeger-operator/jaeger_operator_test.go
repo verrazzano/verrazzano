@@ -57,113 +57,114 @@ func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) {
 }
 
 var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
-	t.Context("Jaeger Operator Verify Install", func() {
-		t.It("Verify Jaeger Post-install", func() {
-			// GIVEN the Jaeger Operator is installed
-			// WHEN we check to make sure the namespace exists
-			// THEN we successfully find the namespace
-			WhenJaegerOperatorEnabledIt("should have a verrazzano-monitoring namespace", func() {
-				Eventually(func() (bool, error) {
-					return pkg.DoesNamespaceExist(constants.VerrazzanoMonitoringNamespace)
-				}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
-			})
+	t.Context("Verify Jaeger Install", func() {
 
-			// GIVEN the Jaeger Operator is installed
-			// WHEN we check to make sure the Jaeger pods are running
-			// THEN we successfully find the running pods
-			// For 1.3.0, only the jaeger-operator pod gets created and its status is validated
-			// For 1.4.0 and later, jaeger-operator, jaeger-operator-jaeger-query, jaeger-operator-jaeger-collector
-			//     pods gets created and their status is validated.
-			WhenJaegerOperatorEnabledIt("should have running pods", func() {
-				jaegerOperatorPodsRunning := func() bool {
-					result, err := pkg.PodsRunning(constants.VerrazzanoMonitoringNamespace, []string{jaegerOperatorName})
-					if err != nil {
-						AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", jaegerOperatorName, constants.VerrazzanoMonitoringNamespace, err))
-					}
-					return result
+		It("Run Validator Negative Test", runValidatorTest)
+
+		// GIVEN the Jaeger Operator is installed
+		// WHEN we check to make sure the namespace exists
+		// THEN we successfully find the namespace
+		WhenJaegerOperatorEnabledIt("should have a verrazzano-monitoring namespace", func() {
+			Eventually(func() (bool, error) {
+				return pkg.DoesNamespaceExist(constants.VerrazzanoMonitoringNamespace)
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
+		})
+
+		// GIVEN the Jaeger Operator is installed
+		// WHEN we check to make sure the Jaeger pods are running
+		// THEN we successfully find the running pods
+		// For 1.3.0, only the jaeger-operator pod gets created and its status is validated
+		// For 1.4.0 and later, jaeger-operator, jaeger-operator-jaeger-query, jaeger-operator-jaeger-collector
+		//     pods gets created and their status is validated.
+		WhenJaegerOperatorEnabledIt("should have running pods", func() {
+			jaegerOperatorPodsRunning := func() bool {
+				result, err := pkg.PodsRunning(constants.VerrazzanoMonitoringNamespace, []string{jaegerOperatorName})
+				if err != nil {
+					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", jaegerOperatorName, constants.VerrazzanoMonitoringNamespace, err))
 				}
-				Eventually(jaegerOperatorPodsRunning).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
-			})
+				return result
+			}
+			Eventually(jaegerOperatorPodsRunning).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
+		})
 
-			// GIVEN the Jaeger Operator is installed
-			// WHEN we check to make sure the default Jaeger images are from Verrazzano
-			// THEN we see that the env is correctly populated
-			WhenJaegerOperatorEnabledIt("should have the correct default Jaeger images", func() {
-				verifyImages := func() bool {
-					// Check if Jaeger operator is running with the expected Verrazzano Jaeger Operator image
-					image, err := pkg.GetContainerImage(constants.VerrazzanoMonitoringNamespace, jaegerOperatorName, jaegerOperatorName)
-					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("Container %s is not running in the namespace: %s, error: %v", jaegerOperatorName, constants.VerrazzanoMonitoringNamespace, err))
-						return false
-					}
-					if !strings.HasPrefix(image, operatorImage) {
-						pkg.Log(pkg.Error, fmt.Sprintf("Container %s image %s is not running with the expected image %s in the namespace: %s", jaegerOperatorName, image, operatorImage, constants.VerrazzanoMonitoringNamespace))
-						return false
-					}
-					// Check if Jaeger operator env has been set to use Verrazzano Jaeger images
-					containerEnv, err := pkg.GetContainerEnv(constants.VerrazzanoMonitoringNamespace, jaegerOperatorName, jaegerOperatorName)
-					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("Not able to get the environment variables in the container %s, error: %v", jaegerOperatorName, err))
-						return false
-					}
-					for name, val := range expectedJaegerImages {
-						found := false
-						for _, actualEnv := range containerEnv {
-							if actualEnv.Name == name {
-								if !strings.HasPrefix(actualEnv.Value, val) {
-									pkg.Log(pkg.Error, fmt.Sprintf("The value %s of the env %s for the container %s does not have the image %s as expected",
-										actualEnv.Value, actualEnv.Name, jaegerOperatorName, val))
-									return false
-								}
-								found = true
+		// GIVEN the Jaeger Operator is installed
+		// WHEN we check to make sure the default Jaeger images are from Verrazzano
+		// THEN we see that the env is correctly populated
+		WhenJaegerOperatorEnabledIt("should have the correct default Jaeger images", func() {
+			verifyImages := func() bool {
+				// Check if Jaeger operator is running with the expected Verrazzano Jaeger Operator image
+				image, err := pkg.GetContainerImage(constants.VerrazzanoMonitoringNamespace, jaegerOperatorName, jaegerOperatorName)
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Container %s is not running in the namespace: %s, error: %v", jaegerOperatorName, constants.VerrazzanoMonitoringNamespace, err))
+					return false
+				}
+				if !strings.HasPrefix(image, operatorImage) {
+					pkg.Log(pkg.Error, fmt.Sprintf("Container %s image %s is not running with the expected image %s in the namespace: %s", jaegerOperatorName, image, operatorImage, constants.VerrazzanoMonitoringNamespace))
+					return false
+				}
+				// Check if Jaeger operator env has been set to use Verrazzano Jaeger images
+				containerEnv, err := pkg.GetContainerEnv(constants.VerrazzanoMonitoringNamespace, jaegerOperatorName, jaegerOperatorName)
+				if err != nil {
+					pkg.Log(pkg.Error, fmt.Sprintf("Not able to get the environment variables in the container %s, error: %v", jaegerOperatorName, err))
+					return false
+				}
+				for name, val := range expectedJaegerImages {
+					found := false
+					for _, actualEnv := range containerEnv {
+						if actualEnv.Name == name {
+							if !strings.HasPrefix(actualEnv.Value, val) {
+								pkg.Log(pkg.Error, fmt.Sprintf("The value %s of the env %s for the container %s does not have the image %s as expected",
+									actualEnv.Value, actualEnv.Name, jaegerOperatorName, val))
+								return false
 							}
-						}
-						if !found {
-							pkg.Log(pkg.Error, fmt.Sprintf("The env %s not set for the container %s", name, jaegerOperatorName))
-							return false
+							found = true
 						}
 					}
-					return true
-				}
-				Eventually(verifyImages).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
-			})
-
-			// GIVEN the Jaeger Operator is installed
-			// WHEN we check the CRDs created by Jaeger Operator
-			// THEN we successfully find the Jaeger CRDs
-			WhenJaegerOperatorEnabledIt("should have the correct Jaeger Operator CRDs", func() {
-				verifyCRDList := func() (bool, error) {
-					for _, crd := range jaegerOperatorCrds {
-						exists, err := pkg.DoesCRDExist(crd)
-						if err != nil || !exists {
-							return exists, err
-						}
+					if !found {
+						pkg.Log(pkg.Error, fmt.Sprintf("The env %s not set for the container %s", name, jaegerOperatorName))
+						return false
 					}
-					return true, nil
 				}
-				Eventually(verifyCRDList).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
-			})
+				return true
+			}
+			Eventually(verifyImages).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
+		})
 
-			// GIVEN the Jaeger Operator is installed
-			// WHEN we check to make sure the Jaeger OpenSearch Index Cleaner cron job exists
-			// THEN we successfully find the expected cron job
-			WhenJaegerOperatorEnabledIt("should have a Jaeger OpenSearch Index Cleaner cron job", func() {
-				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-				if err != nil {
-					Fail(err.Error())
+		// GIVEN the Jaeger Operator is installed
+		// WHEN we check the CRDs created by Jaeger Operator
+		// THEN we successfully find the Jaeger CRDs
+		WhenJaegerOperatorEnabledIt("should have the correct Jaeger Operator CRDs", func() {
+			verifyCRDList := func() (bool, error) {
+				for _, crd := range jaegerOperatorCrds {
+					exists, err := pkg.DoesCRDExist(crd)
+					if err != nil || !exists {
+						return exists, err
+					}
 				}
-				create, err := pkg.IsJaegerInstanceCreated(kubeconfigPath)
-				if err != nil {
-					Fail(err.Error())
-				}
-				if !create {
-					Skip("Default Jaeger instance is not created in this cluster")
-				}
-				Eventually(func() (bool, error) {
-					pkg.Log(pkg.Info, fmt.Sprintf("Default Jaeger instance exists, checking if %s cron job exists", jaegerESIndexCleanerJob))
-					return pkg.DoesCronJobExist(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, jaegerESIndexCleanerJob)
-				}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
-			})
+				return true, nil
+			}
+			Eventually(verifyCRDList).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
+		})
+
+		// GIVEN the Jaeger Operator is installed
+		// WHEN we check to make sure the Jaeger OpenSearch Index Cleaner cron job exists
+		// THEN we successfully find the expected cron job
+		WhenJaegerOperatorEnabledIt("should have a Jaeger OpenSearch Index Cleaner cron job", func() {
+			kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+			if err != nil {
+				Fail(err.Error())
+			}
+			create, err := pkg.IsJaegerInstanceCreated(kubeconfigPath)
+			if err != nil {
+				Fail(err.Error())
+			}
+			if !create {
+				Skip("Default Jaeger instance is not created in this cluster")
+			}
+			Eventually(func() (bool, error) {
+				pkg.Log(pkg.Info, fmt.Sprintf("Default Jaeger instance exists, checking if %s cron job exists", jaegerESIndexCleanerJob))
+				return pkg.DoesCronJobExist(kubeconfigPath, constants.VerrazzanoMonitoringNamespace, jaegerESIndexCleanerJob)
+			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 		})
 	})
 })
