@@ -66,7 +66,7 @@ var mySQLSecret = v1.Secret{
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 const (
-	minExpectedHelmOverridesCount = 4
+	minExpectedHelmOverridesCount = 5
 	testBomFilePath               = "../../testdata/test_bom.json"
 )
 
@@ -398,6 +398,13 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 		})
 	// UpdateExistingVolumeClaims
 	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+			secret.Name = name.Name
+			secret.Namespace = name.Namespace
+			return nil
+		})
+	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *v1.PersistentVolumeList, opts ...client.ListOption) error {
 			pv := v1.PersistentVolume{
@@ -435,6 +442,52 @@ func TestPreUpgradeProdProfile(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, pvc *v1.PersistentVolumeClaim, opts ...client.UpdateOption) error {
 			assert.Equal(t, legacyDBDumpClaim, pvc.Name)
 			assert.Equal(t, "volumeName", pvc.Spec.VolumeName)
+			return nil
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+			secret.Name = name.Name
+			secret.Namespace = name.Namespace
+			return nil
+		})
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, secret *v1.Secret, opts ...client.UpdateOption) error {
+			assert.Equal(t, dbMigrationSecret, secret.Name)
+			return nil
+		})
+	// Expect a calls to get and create the load job
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbLoadJobName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, job *batchv1.Job) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "batchv1", Resource: "Job"}, name.Name)
+		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: ComponentNamespace, Name: secretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *v1.Secret) error {
+			secret.Name = secretName
+			secret.Data = map[string][]byte{}
+			secret.Data["mysql-root-password"] = []byte("test-root-key")
+			return nil
+		})
+	mock.EXPECT().
+		Create(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, job *batchv1.Job, opts ...client.CreateOption) error {
+			return nil
+		})
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *v1.PodList, opts ...client.ListOption) error {
+			pod := v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: dbLoadJobName,
+				},
+				Status: v1.PodStatus{
+					Phase: v1.PodRunning,
+				},
+			}
+			list.Items = []v1.Pod{pod}
 			return nil
 		})
 
@@ -842,7 +895,7 @@ func TestAppendMySQLOverridesUpgradeDevProfile(t *testing.T) {
 	ctx := spi.NewFakeContext(mock, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 2)
+	assert.Len(t, kvs, 3)
 }
 
 // TestAppendMySQLOverridesUpgradeLegacyProdProfile tests the appendMySQLOverrides function
@@ -943,7 +996,7 @@ func TestAppendMySQLOverridesUpgradeLegacyProdProfile(t *testing.T) {
 	ctx := spi.NewFakeContext(mock, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 7+minExpectedHelmOverridesCount)
+	assert.Len(t, kvs, 3+minExpectedHelmOverridesCount)
 	assert.Equal(t, "test-root-key", bom.FindKV(kvs, helmRootPwd))
 }
 
@@ -1494,6 +1547,115 @@ func TestConvertOldInstallArgs(t *testing.T) {
 	assert.Contains(t, newPersistenceVals, bom.KeyValue{Key: "datadirVolumeClaimTemplate.storageClassName", Value: "standard"})
 	assert.Contains(t, newPersistenceVals, bom.KeyValue{Key: "datadirVolumeClaimTemplate.resources.requests.storage", Value: "10Gi"})
 	assert.Contains(t, newPersistenceVals, bom.KeyValue{Key: "datadirVolumeClaimTemplate.accessModes", Value: "ReadWriteOnce"})
+}
+
+// TestCreateLegacyUpgradeJob tests the createLegacyUpgradeJob function
+// GIVEN a call to createLegacyUpgradeJob
+// WHEN I pass in a component context
+// THEN an upgrade job is created
+func TestCreateLegacyUpgradeJob(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	vz := &vzapi.Verrazzano{}
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: ComponentNamespace,
+		},
+		Data: map[string][]byte{secretKey: []byte("test-user-key")},
+	}
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(secret).Build()
+	ctx := spi.NewFakeContext(fakeClient, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
+	err := createLegacyUpgradeJob(ctx)
+	assert.NoError(t, err)
+	job := &batchv1.Job{}
+	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Name: dbLoadJobName, Namespace: ComponentNamespace}, job)
+	assert.NoError(t, err)
+	assert.NotNil(t, job)
+	assert.True(t, len(job.Spec.Template.Spec.Containers) == 1)
+	assert.True(t, len(job.Spec.Template.Spec.InitContainers) == 1)
+}
+
+// TestCheckDbMigrationJobCompletionForFailedJob tests the checkDbMigrationJobCompletion function
+// GIVEN a call to checkDbMigrationJobCompletion for a failed job
+// WHEN I pass in a component context
+// THEN a new job instance is created
+func TestCheckDbMigrationJobCompletionForFailedJob(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	vz := &vzapi.Verrazzano{}
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      dbLoadJobName,
+			Namespace: ComponentNamespace,
+		},
+		Status: batchv1.JobStatus{
+			Failed: 1,
+		},
+	}
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: ComponentNamespace,
+		},
+		Data: map[string][]byte{secretKey: []byte("test-user-key")},
+	}
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(job, secret).Build()
+	ctx := spi.NewFakeContext(fakeClient, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
+	result := checkDbMigrationJobCompletion(ctx)
+	assert.False(t, result)
+	newJob := &batchv1.Job{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: dbLoadJobName, Namespace: ComponentNamespace}, newJob)
+	assert.NoError(t, err)
+	assert.NotNil(t, newJob)
+	assert.True(t, len(newJob.Spec.Template.Spec.Containers) == 1)
+	assert.True(t, len(newJob.Spec.Template.Spec.InitContainers) == 1)
+}
+
+// TestCheckDbMigrationJobCompletionForSuccessfulJob tests the checkDbMigrationJobCompletion function
+// GIVEN a call to checkDbMigrationJobCompletion for a successful job
+// WHEN I pass in a component context
+// THEN the check is successful (true)
+func TestCheckDbMigrationJobCompletionForSuccessfulJob(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	vz := &vzapi.Verrazzano{}
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      dbLoadJobName,
+			Namespace: ComponentNamespace,
+		},
+		Status: batchv1.JobStatus{
+			Succeeded: 1,
+		},
+	}
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels: map[string]string{"job-name": dbLoadJobName},
+		},
+		Status: v1.PodStatus{
+			ContainerStatuses: []v1.ContainerStatus{
+				{
+					Name: dbLoadContainerName,
+					State: v1.ContainerState{
+						Terminated: &v1.ContainerStateTerminated{
+							ExitCode: 0,
+						},
+					},
+				},
+			},
+		},
+	}
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(job, pod).Build()
+	ctx := spi.NewFakeContext(fakeClient, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
+	result := checkDbMigrationJobCompletion(ctx)
+	assert.True(t, result)
 }
 
 func getBoolPtr(b bool) *bool {

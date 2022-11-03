@@ -23,7 +23,7 @@ type VerrazzanoManagedClusterSpec struct {
 	// +optional
 	Description string `json:"description,omitempty"`
 
-	// The name of the Secret containing generated YAML manifest file to be applied by the user to the managed cluster.
+	// The name of the Secret containing the generated YAML manifest file to be applied by the user to the managed cluster.
 	// This field is managed by a Verrazzano Kubernetes operator.
 	// +optional
 	ManagedClusterManifestSecret string `json:"managedClusterManifestSecret,omitempty"`
@@ -44,6 +44,10 @@ const (
 	// ManagedCARetrieved = true means that the managed cluster CA cert has been retrieved and
 	// populated. This is done by the VMC controller via the Rancher API proxy for the managed cluster.
 	ConditionManagedCARetrieved ConditionType = "ManagedCARetrieved"
+
+	// ConditionManifestPushed = true means the the agent and registration secrets have been successfully transferred
+	// to the managed cluster on a multicluster install
+	ConditionManifestPushed ConditionType = "ManifestPushed"
 )
 
 // StateType identifies the state of the Verrazzano Managed Cluster.

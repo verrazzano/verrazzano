@@ -23,7 +23,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: MultiClusterComponent specifies the Multi Cluster Component API.
+        description: MultiClusterComponent specifies the MultiCluster Component API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -38,7 +38,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: The desired state of a Multi Cluster Component resource.
+            description: The desired state of a MultiCluster Component resource.
             properties:
               placement:
                 description: Clusters in which the component is to be created.
@@ -141,13 +141,13 @@ spec:
             - template
             type: object
           status:
-            description: The observed state of a Multi Cluster Component resource.
+            description: The observed state of a MultiCluster Component resource.
             properties:
               clusters:
                 description: Status information for each cluster.
                 items:
-                  description: ClusterLevelStatus describes the status of the multi
-                    cluster resource in a specific cluster.
+                  description: ClusterLevelStatus describes the status of the multicluster
+                    resource in a specific cluster.
                   properties:
                     lastUpdateTime:
                       description: Last update time of the resource state in this
@@ -171,7 +171,7 @@ spec:
               conditions:
                 description: The current state of a multicluster resource.
                 items:
-                  description: Condition describes current state of a multi cluster
+                  description: Condition describes current state of a multicluster
                     resource.
                   properties:
                     lastTransitionTime:
