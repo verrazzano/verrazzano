@@ -304,16 +304,19 @@ func GetIngress(namespace string, ingressName string) (*netv1.Ingress, error) {
 	return ingress, nil
 }
 
-func DoesIngressHostExist(namespace string, ingressName string) bool {
-	osIngest, _ := GetIngress(namespace, ingressName)
+func DoesIngressHostExist(namespace string, ingressName string) (bool, error) {
+	osIngest, err := GetIngress(namespace, ingressName)
+	if err != nil {
+		return false, err
+	}
 	if osIngest != nil && osIngest.Spec.Rules[0].Size() > 1 {
 		for _, rule := range osIngest.Spec.Rules {
 			if strings.HasPrefix(rule.Host, "elasticsearch") {
-				return true
+				return true, nil
 			}
 		}
 	}
-	return false
+	return false, nil
 }
 
 // GetVirtualServiceList returns a list of virtual services in the given namespace
