@@ -168,7 +168,7 @@ func TestInstallUpgrade(t *testing.T) {
 
 func TestValidateUpdate(t *testing.T) {
 	//We expect error if rancher backup is disabled in new CR
-	err := NewComponent().ValidateUpdate(rancherBackupEnabledCR, &vzapi.Verrazzano{})
+	err := NewComponent().ValidateUpdate(rancherBackupEnabledCR, &v1alpha1.Verrazzano{})
 	assert.Error(t, err)
 
 	//We should not get any error if rancher backup does not have any install overrides
@@ -178,7 +178,7 @@ func TestValidateUpdate(t *testing.T) {
 
 func TestMonitorOverrides(t *testing.T) {
 	//Returns false if Backup component is not enabled
-	ctx := spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false)
+	ctx := spi.NewFakeContext(nil, &v1alpha1.Verrazzano{}, nil, false)
 	assert.False(t, NewComponent().MonitorOverrides(ctx))
 
 	//Returns true if Backup component is enabled
@@ -186,12 +186,12 @@ func TestMonitorOverrides(t *testing.T) {
 	assert.True(t, NewComponent().MonitorOverrides(ctx))
 
 	//Check if Monitoring changes value is returned as set
-	ctx = spi.NewFakeContext(nil, &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				RancherBackup: &vzapi.RancherBackupComponent{
+	ctx = spi.NewFakeContext(nil, &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				RancherBackup: &v1alpha1.RancherBackupComponent{
 					Enabled: &enabled,
-					InstallOverrides: vzapi.InstallOverrides{
+					InstallOverrides: v1alpha1.InstallOverrides{
 						MonitorChanges: &enabled,
 						ValueOverrides: nil,
 					},
