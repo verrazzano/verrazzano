@@ -10,11 +10,14 @@ import (
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"io/fs"
 	"os"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
@@ -32,10 +35,13 @@ type fluentdComponentValues struct {
 }
 
 type loggingValues struct {
-	Name                string `json:"name,omitempty"`
-	ElasticsearchURL    string `json:"elasticsearchURL,omitempty"`
-	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
-	ConfigHash          string `json:"configHash,omitempty"`
+	Name              string `json:"name,omitempty"`
+	OpenSearchURL     string `json:"osURL,omitempty"`
+	CredentialsSecret string `json:"credentialsSecret,omitempty"`
+	ClusterName       string `json:"clusterName"`
+	UsernameKey       string `json:"usernameKey"`
+	PasswordKey       string `json:"passwordKey"`
+	ConfigHash        string `json:"configHash,omitempty"`
 }
 
 type fluentdValues struct {
@@ -103,19 +109,32 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	return kvs, nil
 }
 
+func appendManagedClusterOverrides(client clipkg.Client, overrides *fluentdComponentValues) error {
+	registrationSecret, err := common.GetManagedClusterRegistrationSecret(client)
+	if err != nil {
+		return err
+	}
+	if registrationSecret == nil {
+		return nil
+	}
+	overrides.Logging.OpenSearchURL = string(registrationSecret.Data[vzconst.OpensearchURLData])
+	overrides.Logging.ClusterName = string(registrationSecret.Data[vzconst.ClusterNameData])
+	overrides.Logging.CredentialsSecret = vzconst.MCRegistrationSecret
+	return nil
+}
+
 func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *fluentdComponentValues) {
 	overrides.Fluentd = &fluentdValues{
 		Enabled: vzconfig.IsFluentdEnabled(effectiveCR),
 	}
-
 	fluentd := effectiveCR.Spec.Components.Fluentd
 	if fluentd != nil {
 		overrides.Logging = &loggingValues{ConfigHash: HashSum(fluentd)}
 		if len(fluentd.ElasticsearchURL) > 0 {
-			overrides.Logging.ElasticsearchURL = fluentd.ElasticsearchURL
+			overrides.Logging.OpenSearchURL = fluentd.ElasticsearchURL
 		}
 		if len(fluentd.ElasticsearchSecret) > 0 {
-			overrides.Logging.ElasticsearchSecret = fluentd.ElasticsearchSecret
+			overrides.Logging.CredentialsSecret = fluentd.ElasticsearchSecret
 		}
 		if len(fluentd.ExtraVolumeMounts) > 0 {
 			for _, vm := range fluentd.ExtraVolumeMounts {
@@ -144,8 +163,8 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *fluentdCom
 	// Force the override to be the internal ES secret if the legacy ES secret is being used.
 	// This may be the case during an upgrade from a version that was not using the ES internal password for Fluentd.
 	if overrides.Logging != nil {
-		if overrides.Logging.ElasticsearchSecret == globalconst.LegacyElasticsearchSecretName {
-			overrides.Logging.ElasticsearchSecret = globalconst.VerrazzanoESInternal
+		if overrides.Logging.OpenSearchURL == globalconst.LegacyElasticsearchSecretName {
+			overrides.Logging.CredentialsSecret = globalconst.VerrazzanoESInternal
 		}
 	}
 

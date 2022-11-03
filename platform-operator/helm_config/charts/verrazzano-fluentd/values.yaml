@@ -10,6 +10,11 @@ image:
   terminationGracePeriodSeconds: 60
 
 logging:
+  credentialsSecret: verrazzano-es-internal
+  usernameKey: username
+  passwordKey: password
+  clusterName: local
+  osURL: 'http://verrazzano-authproxy-elasticsearch:8775'
   name: fluentd
   # NOTE: The fluentd-kubernetes-daemonset image now comes from the bill of materials file (verrazzano-bom.json).
 
