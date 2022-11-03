@@ -640,9 +640,7 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 // updateKeycloakUris invokes kcadm.sh in Keycloak pod to update the client with Keycloak rewrite and weborigin uris
 func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, kcPod *corev1.Pod, clientID string, uriTemplate string) error {
 	data, err := populateSubdomainInTemplate(ctx, "{"+uriTemplate+"}")
-	ctx.Log().Info("After populateSubdomainInTemplate -----> Data %v", data)
 	if err != nil {
-		ctx.Log().Info("ERROR: After populateSubdomainInTemplate")
 		return err
 	}
 
@@ -650,14 +648,14 @@ func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli ku
 	updateClientCmd := "/opt/jboss/keycloak/bin/kcadm.sh update clients/" + clientID + " -r " + vzSysRealm + " -b '" +
 		strings.TrimSpace(data) +
 		"'"
-	ctx.Log().Info("updateKeycloakUris: Update client with Id = %s, Cmd = %s", clientID, updateClientCmd)
+	ctx.Log().Debugf("updateKeycloakUris: Update client with Id = %s, Cmd = %s", clientID, updateClientCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(updateClientCmd))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed updating client with Id = %s stdout = %s, stderr = %s", clientID, stdout, stderr)
 		return err
 	}
 
-	ctx.Log().Info("Component Keycloak successfully updated Keycloak URIs")
+	ctx.Log().Debug("Component Keycloak successfully updated Keycloak URIs")
 	return nil
 }
 
@@ -778,11 +776,8 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Create verrazzano-pkce client
-	ctx.Log().Info("Before Update of verrazzano-pkce client ---->  %v", pkceClientUrisTemplate)
 	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pkce", pkceTmpl, pkceClientUrisTemplate, false)
-	ctx.Log().Info("After Update of verrazzano-pkce client")
 	if err != nil {
-		ctx.Log().Info("Error: After Update of verrazzano-pkce client")
 		return err
 	}
 
@@ -1101,24 +1096,19 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 }
 func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, clientTemplate string, uriTemplate string, generateSecret bool) error {
 	keycloakClients, err := getKeycloakClients(ctx)
-	ctx.Log().Info("After getKeycloakClients")
 	if err != nil {
-		ctx.Log().Info("ERROR: After getKeycloakClients")
 		return err
 	}
 
 	kcPod := keycloakPod()
 	if clientID := getClientID(keycloakClients, clientName); clientID != "" {
-		ctx.Log().Info("After getClientID")
 		if uriTemplate != "" {
-			ctx.Log().Info("After uriTemplate != condition ")
 			err := updateKeycloakUris(ctx, cfg, cli, kcPod, clientID, uriTemplate)
-			ctx.Log().Info("After updateKeycloakUris")
 			if err != nil {
-				ctx.Log().Info("ERROR: After updateKeycloakUris")
 				return err
 			}
 		}
+
 		return nil
 	}
 
@@ -1132,7 +1122,7 @@ func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 		data +
 		"END"
 
-	ctx.Log().Info("createOrUpdateClient: Create %s client Cmd = %s", clientName, clientCreateCmd)
+	ctx.Log().Debugf("createOrUpdateClient: Create %s client Cmd = %s", clientName, clientCreateCmd)
 	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(clientCreateCmd))
 	if err != nil {
 		ctx.Log().Errorf("Component Keycloak failed creating %s client: stdout = %s, stderr = %s", clientName, stdout, stderr)
@@ -1147,7 +1137,7 @@ func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli 
 		}
 	}
 
-	ctx.Log().Info("createOrUpdateClient: Created %s client", clientName)
+	ctx.Log().Debugf("createOrUpdateClient: Created %s client", clientName)
 	ctx.Log().Oncef("Component Keycloak successfully created client %s", clientName)
 	return nil
 }
