@@ -20,7 +20,7 @@ type LoggingTraitSpec struct {
 	ImagePullPolicy string `json:"imagePullPolicy,omitempty"`
 
 	// The configuration provided by the user for the Fluentd configuration that consists of
-	// fluentd.conf: "<source>\n ... and so on ...\n".
+	// fluentd.conf: `<source>\n ... and so on ...\n`.
 	LoggingConfig string `json:"loggingConfig,omitempty"`
 
 	// The name of the custom Fluentd image.
