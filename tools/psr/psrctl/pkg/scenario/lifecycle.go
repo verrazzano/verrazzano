@@ -49,11 +49,13 @@ func InstallScenario(man *embedded.PsrManifests, sc *Scenario) (string, error) {
 			return "nil", fmt.Errorf("Failed to find global.envVars.PSR_WORKER_TYPE in %s", ucOverride)
 		}
 		// Build release name psr-<scenarioID>-workertype-<index>
-		rname := fmt.Sprintf("psr-%s-%s-%v", wt.Global.EnvVars.PSR_WORKER_TYPE, sc.ID, i)
+		rname := fmt.Sprintf("psr-%s-%s-%v", sc.ID, wt.Global.EnvVars.PSR_WORKER_TYPE, i)
 		_, stderr, err := helmcli.Upgrade(vzlog.DefaultLogger(), rname, "default", man.WorkerChartAbsDir, true, false, helmOverrides)
 		if err != nil {
 			return string(stderr), err
 		}
+
+		i = i + 1
 	}
 	return "", nil
 }
