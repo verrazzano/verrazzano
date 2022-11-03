@@ -42,8 +42,6 @@ func NewCmdRun(vzHelper helpers.VZHelper) *cobra.Command {
 
 // runCmdRun - run the "psrctl run" command
 func runCmdRun(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	fmt.Println("Starting example scenario...")
-
 	sc, err := scenario.FindScenarioByID(embedded.Manifests.ScenarioAbsDir, scenarioID)
 	if err != nil {
 		fmt.Printf("Failed to find scenario %s: %v", scenarioID, err)
@@ -54,9 +52,11 @@ func runCmdRun(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return err
 	}
 
+	fmt.Printf("Starting scenario %s\n", sc.ID)
+
 	_, err = scenario.InstallScenario(embedded.Manifests, sc)
 	if err != nil {
-		fmt.Printf("Failed to run scenario %s: %v", scenarioID, err)
+		fmt.Printf("Failed to run scenario %s: %v\n", scenarioID, err)
 		return err
 	}
 
@@ -65,7 +65,7 @@ func runCmdRun(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return err
 	}
 
-	fmt.Println("Example Scenario successfully installed")
+	fmt.Printf("Scenario %s successfully installed\n", sc.ID)
 
 	return nil
 }

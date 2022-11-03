@@ -1,7 +1,7 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-name: OpenSearch-s3
+name: opensearch-s3
 ID: ops-s3
 description: |
   This is a scenario that writes logs to STDOUT and gets logs from OpenSearch at a fast rate.
