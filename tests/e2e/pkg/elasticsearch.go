@@ -197,13 +197,6 @@ type IndexListData struct {
 	PriStoreSize string `json:"priStoreSize"`
 }
 
-// Plugins represents the result of /_cat/plugins?format=json output
-type Plugins struct {
-	Name      string `json:"name"`
-	Component string `json:"component"`
-	Version   string `json:"version"`
-}
-
 type ElasticSearchISMPolicyAddModifier struct{}
 
 type ElasticSearchISMPolicyRemoveModifier struct{}
@@ -236,32 +229,34 @@ func (u ElasticSearchISMPolicyRemoveModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 }
 
+// VerifyOpenSearchPlugins checks that the OpenSearch plugins are installed
 func VerifyOpenSearchPlugins() error {
 	resp, err := doGetElasticSearchURL("%s/_cat/plugins?format=json")
 	if err != nil {
 		return err
 	}
 	if resp.StatusCode == http.StatusOK {
-		var pluginsData []Plugins
-		err := json.Unmarshal(resp.Body, &pluginsData)
-		if err != nil {
-			return err
-		}
-		expectedPluginCount := 0
-		installedPluginStr := ""
-		expectedPluginStr := fmt.Sprintf("%s %s %s", opensearchIndexManagement, opensearchJobScheduler, opensearchPrometheusExporter)
-		for _, plugin := range pluginsData {
-			Log(Info, plugin.Component)
-			if plugin.Component == opensearchIndexManagement || plugin.Component == opensearchJobScheduler || plugin.Component == opensearchPrometheusExporter {
-				installedPluginStr = installedPluginStr + plugin.Component + " "
-				expectedPluginCount++
-			}
-		}
-		if expectedPluginCount != 3 {
-			return fmt.Errorf("expected %s OS plugins to be installed, but only %s are installed", expectedPluginStr, installedPluginStr)
+		out := string(resp.Body)
+		missingPluginsStr := ""
+		missingPlugins := false
+
+		missingPlugins = checkMissingPlugin(out, opensearchJobScheduler, &missingPluginsStr)
+		missingPlugins = checkMissingPlugin(out, opensearchIndexManagement, &missingPluginsStr)
+		missingPlugins = checkMissingPlugin(out, opensearchPrometheusExporter, &missingPluginsStr)
+
+		if missingPlugins {
+			return fmt.Errorf("missing OpenSearch plugins that were not installed: %s", missingPluginsStr)
 		}
 	}
 	return nil
+}
+
+func checkMissingPlugin(response string, plugin string, missingPluginsStr *string) bool {
+	if !strings.Contains(response, plugin) {
+		*missingPluginsStr = *missingPluginsStr + plugin + " "
+		return true
+	}
+	return false
 }
 
 // GetOpenSearchAppIndex in Verrazzano 1.3.0, application indices have been migrated to data streams
