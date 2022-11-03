@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 
+	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	oamapi "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/golang/mock/gomock"
@@ -984,23 +985,72 @@ func TestReconcileFailed(t *testing.T) {
 
 func TestAddMetrics(t *testing.T) {
 	assert := asserts.New(t)
-
 	var mocker = gomock.NewController(t)
 	var cli = mocks.NewMockClient(mocker)
+	appConfigName := "test-appconf"
+	componentName := "test-component"
+	testNamespace := "test-namespace"
+	loggingSecretName := "test-secret-name"
+	params := map[string]string{
+		"##APPCONF_NAME##":          appConfigName,
+		"##APPCONF_NAMESPACE##":     testNamespace,
+		"##COMPONENT_NAME##":        componentName,
+		"##SCOPE_NAME##":            "test-scope",
+		"##SCOPE_NAMESPACE##":       testNamespace,
+		"##INGEST_URL##":            "http://test-ingest-host:9200",
+		"##INGEST_SECRET_NAME##":    loggingSecretName,
+		"##FLUENTD_IMAGE##":         "test-fluentd-image-name",
+		"##WORKLOAD_APIVER##":       "oam.verrazzano.io/v1alpha1",
+		"##WORKLOAD_KIND##":         "VerrazzanoHelidonWorkload",
+		"##WORKLOAD_NAME##":         "test-workload-name",
+		"##WORKLOAD_NAMESPACE##":    testNamespace,
+		"##DEPLOYMENT_NAME##":       "test-deployment",
+		"##CONTAINER_NAME##":        "test-container",
+		"##CONTAINER_IMAGE##":       "test-container-image",
+		"##CONTAINER_PORT_NAME##":   "http",
+		"##CONTAINER_PORT_NUMBER##": "8080",
+		"##LOGGING_SCOPE_NAME##":    "test-logging-scope",
+		"##INGRESS_TRAIT_NAME##":    "test-ingress-trait",
+		"##INGRESS_TRAIT_PATH##":    "/test-ingress-path",
+	}
 
-	// create a request and reconcile it
-	request := newRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: componentName}
+	annotations := map[string]string{vzconst.RestartVersionAnnotation: testRestartVersion}
+	request := types.NamespacedName{
+		Namespace: testNamespace,
+		Name:      componentName,
+	}
 	reconciler := newReconciler(cli)
 	// Fetch the workload
 	var workload vzapi.VerrazzanoHelidonWorkload
-	err := reconciler.Get(context.TODO(), request.NamespacedName, &workload)
+	cli.EXPECT().
+		Get(gomock.Any(), request, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload1 *vzapi.VerrazzanoHelidonWorkload) error {
+			assert.NoError(updateObjectFromYAMLTemplate(workload1, "testdata/templates/helidon_workload.yaml", params))
+			workload1.ObjectMeta.Labels = labels
+			workload1.ObjectMeta.Annotations = annotations
+			return nil
+		})
+
+	cli.EXPECT().
+		Get(gomock.Any(), request, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload1 *v1alpha2.ApplicationConfiguration) error {
+			assert.NoError(updateObjectFromYAMLTemplate(workload1, "testdata/templates/helidon_workload.yaml", params))
+			workload1.ObjectMeta.Labels = labels
+			workload1.ObjectMeta.Annotations = annotations
+			workload1.Spec.Components = []v1alpha2.ApplicationConfigurationComponent{{ComponentName: componentName, Traits: []v1alpha2.ComponentTrait{{Trait: runtime.RawExtension{Raw: []byte(`{"app":"hello"}`)}}}}}
+			return nil
+		})
+
+	err := reconciler.Get(context.TODO(), request, &workload)
 	assert.NoError(err)
-	mocker.Finish()
-	log, err := clusters.GetResourceLogger("verrazzanohelidonworkload", request.NamespacedName, &workload)
+
+	log, err := clusters.GetResourceLogger("verrazzanohelidonworkload", request, &workload)
 	assert.NoError(err)
 	// Unwrap the apps/DeploymentSpec and meta/ObjectMeta
 	deploy, err := reconciler.convertWorkloadToDeployment(&workload, log)
 	assert.NoError(err)
 	err = reconciler.addMetrics(context.TODO(), log, workload.Namespace, &workload, deploy)
 	assert.NoError(err)
+	mocker.Finish()
 }
