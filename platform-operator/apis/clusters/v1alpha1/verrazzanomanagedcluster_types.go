@@ -81,7 +81,6 @@ type RancherRegistrationStatus string
 const (
 	RegistrationCompleted RancherRegistrationStatus = "Completed"
 	RegistrationFailed    RancherRegistrationStatus = "Failed"
-	DeleteFailed          RancherRegistrationStatus = "DeleteFailed"
 )
 
 // RancherRegistration defines the Rancher registration state for a managed cluster.
