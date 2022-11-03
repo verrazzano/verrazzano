@@ -225,8 +225,8 @@ func DoesMetricsTemplateExist(namespacedName types.NamespacedName) bool {
 	return false
 }
 
-// getPromOperatorClient returns a client for fetching ServiceMonitor resources
-func getPromOperatorClient() (client.Client, error) {
+// GetPromOperatorClient returns a client for fetching ServiceMonitor resources
+func GetPromOperatorClient() (client.Client, error) {
 	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
 		return nil, err
@@ -264,7 +264,7 @@ func GetAppServiceMonitorName(namespace string, appName string, component string
 
 // GetServiceMonitor returns the ServiceMonitor identified by namespace and name
 func GetServiceMonitor(namespace, name string) (*promoperapi.ServiceMonitor, error) {
-	cli, err := getPromOperatorClient()
+	cli, err := GetPromOperatorClient()
 	if err != nil {
 		return nil, err
 	}

@@ -72,7 +72,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 		},
 	}).Build()
 	ctx := spi.NewFakeContext(c, vz, nil, false)
-	assert.False(t, isOSReady(ctx))
+	assert.False(t, IsOSReady(ctx))
 }
 
 // TestIsReadyNotInstalled tests the OpenSearch isOpenSearchReady call
@@ -83,7 +83,7 @@ func TestIsReadySecretNotReady(t *testing.T) {
 func TestIsReadyNotInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
-	assert.False(t, isOSReady(ctx))
+	assert.False(t, IsOSReady(ctx))
 }
 
 // TestIsReady tests the isOpenSearchReady call
@@ -275,7 +275,7 @@ func TestIsReady(t *testing.T) {
 		},
 	}
 	ctx := spi.NewFakeContext(c, vz, nil, false)
-	assert.True(t, isOSReady(ctx))
+	assert.True(t, IsOSReady(ctx))
 }
 
 // TestIsReadyDeploymentNotAvailable tests the OpenSearch isOpenSearchReady call
@@ -357,7 +357,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 		},
 	}
 	ctx := spi.NewFakeContext(c, vz, nil, false)
-	assert.False(t, isOSReady(ctx))
+	assert.False(t, IsOSReady(ctx))
 }
 
 // TestIsReadyDeploymentVMIDisabled tests the OpenSearch isOpenSearchReady call
@@ -384,7 +384,7 @@ func TestIsReadyDeploymentVMIDisabled(t *testing.T) {
 		Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
 	}
 	ctx := spi.NewFakeContext(c, vz, nil, false)
-	assert.True(t, isOSReady(ctx))
+	assert.True(t, IsOSReady(ctx))
 }
 
 // TestIsinstalled tests the OpenSearch doesOSExist call

@@ -11,6 +11,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/verrazzano/verrazzano/pkg/k8s/update"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	oscomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
+	spicomponent "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/update/opensearch"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
@@ -49,22 +52,22 @@ var _ spi.Worker = scaleWorker{}
 
 // scaleMetrics holds the metrics produced by the worker. Metrics must be thread safe.
 type workerMetrics struct {
-	scaleInCountTotal  metrics.MetricItem
 	scaleOutCountTotal metrics.MetricItem
+	scaleInCountTotal  metrics.MetricItem
 }
 
 func NewScaleWorker() (spi.Worker, error) {
 
 	w := scaleWorker{
 		workerMetrics: &workerMetrics{
-			scaleInCountTotal: metrics.MetricItem{
-				Name: "scale_in_count_total",
-				Help: "The total number of times OpenSearch has been scaled in",
-				Type: prometheus.CounterValue,
-			},
 			scaleOutCountTotal: metrics.MetricItem{
 				Name: "scale_out_count_total",
 				Help: "The total number of times OpenSearch has been scaled out",
+				Type: prometheus.CounterValue,
+			},
+			scaleInCountTotal: metrics.MetricItem{
+				Name: "scale_in_count_total",
+				Help: "The total number of times OpenSearch has been scaled in",
 				Type: prometheus.CounterValue,
 			},
 		},
@@ -74,8 +77,8 @@ func NewScaleWorker() (spi.Worker, error) {
 	}
 
 	w.metricDescList = []prometheus.Desc{
-		*w.scaleInCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
 		*w.scaleOutCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.scaleInCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
 	}
 
 	return w, nil
@@ -138,33 +141,40 @@ func (w scaleWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger
 		delta = -1
 	}
 
-	// TODO check if OpenSearch is ready
+	var m update.CRModifierV1beta1
 
 	switch tier {
 	case masterTier:
-		m := opensearch.OpensearchMasterNodeGroupModifier{NodeReplicas: replicas}
-		err := update.UpdateCRV1beta1(m)
-		if err != nil {
-			return fmt.Errorf("failed to scale OpenSearch %s replicas: %f", tier, err)
-		}
+		m = opensearch.OpensearchMasterNodeGroupModifier{NodeReplicas: replicas}
 	case dataTier:
-		m := opensearch.OpensearchDataNodeGroupModifier{NodeReplicas: replicas}
-		err := update.UpdateCRV1beta1(m)
-		if err != nil {
-			return fmt.Errorf("failed to scale OpenSearch %s replicas: %f", tier, err)
-		}
+		m = opensearch.OpensearchDataNodeGroupModifier{NodeReplicas: replicas}
 	case ingestTier:
-		m := opensearch.OpensearchIngestNodeGroupModifier{NodeReplicas: replicas}
-		err := update.UpdateCRV1beta1(m)
-		if err != nil {
-			return fmt.Errorf("failed to scale OpenSearch %s replicas: %f", tier, err)
-		}
+		m = opensearch.OpensearchIngestNodeGroupModifier{NodeReplicas: replicas}
 	}
-	atomic.AddInt64(&metric.Val, delta)
 
-	// TODO check replica count == expected
-	if true {
+	err := update.UpdateCRV1beta1(m)
+	if err != nil {
+		return fmt.Errorf("failed to scale OpenSearch %s replicas: %f", tier, err)
+	}
+
+	// get the VZ CR
+	vz, err := pkg.GetVerrazzanoV1beta1()
+	if err != nil {
+		return err
+	}
+
+	// get controller runtime client
+	client, err := pkg.GetPromOperatorClient()
+	if err != nil {
+		return err
+	}
+
+	// check if actual number of replicas is equal to the expected number
+	ctx, _ := spicomponent.NewContext(log, client, nil, vz, false)
+	if oscomp.IsOSReady(ctx) {
 		finishWork(nextScale, metric, delta)
+		logMsg := fmt.Sprintf("OpenSearch %s tier scaled to %b replicas", tier, replicas)
+		log.Infof(logMsg)
 	}
 	return nil
 }
@@ -180,6 +190,8 @@ func (w scaleWorker) GetMetricList() []prometheus.Metric {
 	}
 }
 
+// finishWork switches the nextScale value and pushes the scale metric
+// once OpenSearch has finished scaling to the desired replica count
 func finishWork(next *string, metric *metrics.MetricItem, delta int64) {
 	// Alternate between scale out and in
 	if *next == OUT {

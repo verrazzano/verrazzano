@@ -146,7 +146,7 @@ func (o opensearchComponent) IsAvailable(ctx spi.ComponentContext) (reason strin
 
 // IsReady component check
 func (o opensearchComponent) IsReady(ctx spi.ComponentContext) bool {
-	return isOSReady(ctx)
+	return IsOSReady(ctx)
 }
 
 // PostInstall OpenSearch post-install processing

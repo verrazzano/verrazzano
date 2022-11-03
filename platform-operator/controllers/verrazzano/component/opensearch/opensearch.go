@@ -37,8 +37,8 @@ func IsSingleDataNodeCluster(ctx spi.ComponentContext) bool {
 	return findESReplicas(ctx, "data") <= 1
 }
 
-// isOSReady checks if the OpenSearch resources are ready
-func isOSReady(ctx spi.ComponentContext) bool {
+// IsOSReady checks if the OpenSearch resources are ready
+func IsOSReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	if vzconfig.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
 		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
