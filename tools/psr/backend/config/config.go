@@ -43,6 +43,7 @@ const (
 	WorkerTypeExample   = "example"
 	WorkerTypeWriteLogs = "writelogs"
 	WorkerTypeGetLogs   = "getlogs"
+	WorkerTypeHTTPGet   = "httpget"
 	WorkerTypePostLogs  = "postlogs"
 )
 
