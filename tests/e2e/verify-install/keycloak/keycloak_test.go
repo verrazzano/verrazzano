@@ -468,23 +468,23 @@ func verifyVerrazzanoPKCEClientURIs(keycloakClient *Client, env string) bool {
 	}
 
 	// Elasticsearch
-	if !verifyURIs(keycloakClient.RedirectUris, "elasticsearch.vmi.system."+env, 2) {
+	if !verifyURIs(keycloakClient.RedirectUris, "opensearch.vmi.system."+env, 2) {
 		t.Logs.Error(fmt.Printf("Expected 2 Elasticsearch redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, "elasticsearch.vmi.system."+env, 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, "opensearch.vmi.system."+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Elasticsearch weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Kibana
-	if !verifyURIs(keycloakClient.RedirectUris, "kibana.vmi.system."+env, 2) {
+	if !verifyURIs(keycloakClient.RedirectUris, "opensearchdashboards.vmi.system."+env, 2) {
 		t.Logs.Error(fmt.Printf("Expected 2 Kibana redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, "kibana.vmi.system."+env, 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, "opensearchdashboards.vmi.system."+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Kibana weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
