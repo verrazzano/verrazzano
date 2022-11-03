@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"reflect"
 	"strings"
 	"text/template"
@@ -777,7 +776,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Update verrazzano-pkce client redirect and web origin uris if deprecated OS host exists in the ingress
-	osHostExists, err := pkg.DoesIngressHostExist(constants.VerrazzanoSystemNamespace, constants.OpensearchIngress)
+	osHostExists, err := k8sutil.DoesIngressHostExist(constants.VerrazzanoSystemNamespace, constants.OpensearchIngress)
 	if err != nil {
 		return err
 	}

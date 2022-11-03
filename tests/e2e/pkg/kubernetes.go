@@ -304,21 +304,6 @@ func GetIngress(namespace string, ingressName string) (*netv1.Ingress, error) {
 	return ingress, nil
 }
 
-func DoesIngressHostExist(namespace string, ingressName string) (bool, error) {
-	osIngest, err := GetIngress(namespace, ingressName)
-	if err != nil {
-		return false, err
-	}
-	if osIngest != nil && osIngest.Spec.Rules[0].Size() > 1 {
-		for _, rule := range osIngest.Spec.Rules {
-			if strings.HasPrefix(rule.Host, "elasticsearch") {
-				return true, nil
-			}
-		}
-	}
-	return false, nil
-}
-
 // GetVirtualServiceList returns a list of virtual services in the given namespace
 func GetVirtualServiceList(namespace string) (*istionetv1beta1.VirtualServiceList, error) {
 	// Get the Istio clientset
