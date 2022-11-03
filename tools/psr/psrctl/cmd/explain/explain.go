@@ -15,7 +15,7 @@ import (
 const (
 	CommandName = "explain"
 	helpShort   = "Explain a PSR test scenario"
-	helpLong    = `The command 'explain' explains a available scenario that can be started`
+	helpLong    = `The command 'explain' explains available scenarios that can be started`
 	helpExample = `
 psrctl explain scenario-1`
 )
