@@ -33,21 +33,29 @@ const (
 // checkSecretExists whether verrazzano-es-internal secret exists. Return error if secret does not exist.
 func checkSecretExists(ctx spi.ComponentContext) error {
 	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
-		// Check verrazzano-es-internal Secret. return error which will cause requeue
 		secret := &corev1.Secret{}
+		// Check verrazzano-es-internal secret by default
+		secretName := globalconst.VerrazzanoESInternal
+		fluentdConfig := ctx.EffectiveCR().Spec.Components.Fluentd
+
+		// Check external es secret if using external ES/OS
+		if fluentdConfig != nil && len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoESInternal {
+			secretName = fluentdConfig.ElasticsearchSecret
+		}
+		// Wait for secret to be available, return error which will cause requeue
 		err := ctx.Client().Get(context.TODO(), clipkg.ObjectKey{
 			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      globalconst.VerrazzanoESInternal,
+			Name:      secretName,
 		}, secret)
 
 		if err != nil {
 			if errors.IsNotFound(err) {
 				ctx.Log().Progressf("Component Fluentd waiting for the secret %s/%s to exist",
-					constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal)
+					constants.VerrazzanoSystemNamespace, secretName)
 				return ctrlerrors.RetryableError{Source: ComponentName}
 			}
 			ctx.Log().Errorf("Component Fluentd failed to get the secret %s/%s: %v",
-				constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal, err)
+				constants.VerrazzanoSystemNamespace, secretName, err)
 			return err
 		}
 	}
@@ -78,20 +86,9 @@ func loggingPreInstall(ctx spi.ComponentContext) error {
 }
 
 // isFluentdReady Fluentd component ready-check
-func isFluentdReady(ctx spi.ComponentContext) bool {
+func (c fluentdComponent) isFluentdReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-
-	// Check daemonsets
-	var daemonsets []types.NamespacedName
-	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
-		daemonsets = append(daemonsets,
-			types.NamespacedName{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-			})
-		return ready.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix)
-	}
-	return false
+	return ready.DaemonSetsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DaemonsetNames, 1, prefix)
 }
 
 // fluentdPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano Fluentd helm chart

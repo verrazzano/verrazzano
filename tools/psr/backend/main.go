@@ -17,7 +17,7 @@ func main() {
 	log.Info("Starting PSR backend")
 
 	// Run the worker forever or until it quits
-	err := workmanager.RunWorker(log)
+	err := workmanager.StartWorkerRunners(log)
 	if err != nil {
 		log.Error("Failed running worker: %v", err)
 	}

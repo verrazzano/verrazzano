@@ -7,14 +7,11 @@ package example
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 	"sync/atomic"
-)
-
-import (
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 )
 
 type exampleWorker struct {

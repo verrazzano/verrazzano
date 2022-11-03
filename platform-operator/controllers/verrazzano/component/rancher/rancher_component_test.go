@@ -556,7 +556,7 @@ func TestValidateInstall(t *testing.T) {
 	labelledNamespace := &corev1.Namespace{}
 	labelledNamespace.Name = FleetSystemNamespace
 	labelledNamespace.Namespace = FleetSystemNamespace
-	labelledNamespace.Labels = map[string]string{namespaceLabelKey: FleetSystemNamespace}
+	labelledNamespace.Labels = map[string]string{constants.VerrazzanoManagedKey: FleetSystemNamespace}
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{

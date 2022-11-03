@@ -19,6 +19,7 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -52,6 +53,7 @@ const (
 	deploymentFoundStage  = "deployment-found"
 	databaseDumpedStage   = "database-dumped"
 	pvcDeletedStage       = "pvc-deleted"
+	pvcRecreatedStage     = "pvc-recreated"
 	initdbScriptsFile     = "initdbScripts.create-db\\.sh"
 	backupHookScriptsFile = "configurationFiles.mysql-hook\\.sh"
 	dbMigrationSecret     = "db-migration"
@@ -151,13 +153,7 @@ var (
 )
 
 // isMySQLReady checks to see if the MySQL component is in ready state
-func isMySQLReady(ctx spi.ComponentContext) bool {
-	statefulset := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c mysqlComponent) isMySQLReady(ctx spi.ComponentContext) bool {
 	deployment := []types.NamespacedName{
 		{
 			Name:      fmt.Sprintf("%s-router", ComponentName),
@@ -187,7 +183,7 @@ func isMySQLReady(ctx spi.ComponentContext) bool {
 			routerReplicas = int(value.(float64))
 		}
 	}
-	ready := k8sready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, int32(serverReplicas), prefix)
+	ready := k8sready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.StatefulsetNames, int32(serverReplicas), prefix)
 	if ready && routerReplicas > 0 {
 		ready = k8sready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployment, int32(routerReplicas), prefix)
 	}
@@ -197,7 +193,7 @@ func isMySQLReady(ctx spi.ComponentContext) bool {
 
 // isInnoDBClusterOnline returns true if the InnoDBCluster resource cluster status is online
 func isInnoDBClusterOnline(ctx spi.ComponentContext) bool {
-	ctx.Log().Progress("Waiting for InnoDBCluster to be online")
+	ctx.Log().Debug("Checking if the InnoDBCluster is online")
 
 	innoDBCluster := unstructured.Unstructured{}
 	innoDBCluster.SetGroupVersionKind(innoDBClusterGVK)
@@ -216,9 +212,10 @@ func isInnoDBClusterOnline(ctx spi.ComponentContext) bool {
 	}
 	if exists {
 		if clusterStatus == innoDBClusterStatusOnline {
+			ctx.Log().Debugf("InnoDBCluster %v is online", nsn)
 			return true
 		}
-		ctx.Log().Debugf("InnoDBCluster %v clusterStatus is: %s", nsn, clusterStatus)
+		ctx.Log().Progressf("Waiting for InnoDBCluster %v to be online, cluster status is: %s", nsn, clusterStatus)
 		return false
 	}
 
@@ -245,12 +242,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 			if err != nil {
 				return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 			}
-			if isLegacyPersistentDatabase(compContext) {
-				kvs, err = appendLegacyUpgradePersistenceValues(&bomFile, kvs)
-				if err != nil {
-					return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-				}
-			} else {
+			if !isLegacyPersistentDatabase(compContext) {
 				// we are in the process of upgrading from a MySQL deployment using ephemeral storage, so we need to
 				// provide the sql initialization file
 				kvs, err = appendDatabaseInitializationValues(compContext, userPwd, kvs)
@@ -289,6 +281,12 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		return kvs, err
 	}
 	kvs = append(kvs, mySQLVersion)
+
+	// Apply overrides for which mysql-operator image to use in containers
+	kvs, err = generateMySQLOperatorOverrides(&bomFile, kvs)
+	if err != nil {
+		return kvs, err
+	}
 
 	repositorySetting, err := getRegistrySettings(&bomFile)
 	if err != nil {
@@ -329,6 +327,18 @@ func getMySQLVersion(bomFile *bom.Bom) (bom.KeyValue, error) {
 		return bom.KeyValue{}, err
 	}
 	return bom.KeyValue{Key: serverVersionKey, Value: version}, nil
+}
+
+func generateMySQLOperatorOverrides(bomFile *bom.Bom, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	_, images, err := bomFile.BuildImageStrings(mysqloperator.ComponentName)
+	if err != nil {
+		return kvs, err
+	}
+	if len(images) != 1 {
+		return kvs, fmt.Errorf("expected one image for %s, found %d", mysqloperator.ComponentName, len(images))
+	}
+	kvs = append(kvs, bom.KeyValue{Key: "mysqlOperator.image", Value: images[0]})
+	return kvs, nil
 }
 
 // preInstall creates and label the MySQL namespace

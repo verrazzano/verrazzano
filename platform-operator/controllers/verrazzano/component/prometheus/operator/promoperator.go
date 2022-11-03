@@ -56,22 +56,30 @@ const (
 	defaultPrometheusStorage = "50Gi"
 )
 
-// isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
-func isPrometheusOperatorReady(ctx spi.ComponentContext) bool {
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+func prometheusOperatorListOptions() (*client.ListOptions, error) {
 	selector, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			constants.VerrazzanoComponentLabelKey: ComponentName,
 		},
 	})
 	if err != nil {
+		return nil, err
+	}
+	return &client.ListOptions{
+		Namespace:     ComponentNamespace,
+		LabelSelector: selector,
+	}, nil
+}
+
+// isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
+func isPrometheusOperatorReady(ctx spi.ComponentContext) bool {
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	listOptions, err := prometheusOperatorListOptions()
+	if err != nil {
 		ctx.Log().Errorf("Failed to create selector for %s: %v", ComponentName, err)
 		return false
 	}
-	return ready.DeploymentsReadyBySelectors(ctx.Log(), ctx.Client(), 1, prefix, &client.ListOptions{
-		Namespace:     ComponentNamespace,
-		LabelSelector: selector,
-	})
+	return ready.DeploymentsReadyBySelectors(ctx.Log(), ctx.Client(), 1, prefix, listOptions)
 }
 
 // preInstallUpgrade handles pre-install and pre-upgrade processing for the Prometheus Operator Component

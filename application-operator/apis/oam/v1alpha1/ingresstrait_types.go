@@ -55,13 +55,12 @@ type IngressSecurity struct {
 
 // IngressPath specifies a specific path to be exposed for an ingress trait.
 type IngressPath struct {
-	// If no path is provided, then it defaults to forward slash (/).
+	// If no path is provided, then it defaults to forward slash (`/`).
 	// +optional
 	Path string `json:"path,omitempty"`
 	// Path type values are case-sensitive and formatted as follows:
 	// <ul><li>`exact`: exact string match</li><li>`prefix`: prefix-based match</li><li>`regex`: regex-based match</li></ul>
 	// Defaults to `prefix` if `path` specified is `/`; otherwise, defaults to `exact`.
-	// otherwise.
 	// +optional
 	PathType string `json:"pathType,omitempty"`
 	// Defines the set of rules for authorizing a request.
