@@ -323,7 +323,35 @@ func (r *VerrazzanoManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager) 
 
 // reconcileManagedClusterDelete performs all necessary cleanup during cluster deletion
 func (r *VerrazzanoManagedClusterReconciler) reconcileManagedClusterDelete(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	return r.deleteClusterPrometheusConfiguration(ctx, vmc)
+	if err := r.deleteClusterPrometheusConfiguration(ctx, vmc); err != nil {
+		return err
+	}
+	return r.deleteClusterFromRancher(ctx, vmc)
+}
+
+// deleteClusterFromRancher calls the Rancher API to delete the cluster associated with the VMC if the VMC has a cluster id set in the status.
+func (r *VerrazzanoManagedClusterReconciler) deleteClusterFromRancher(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	clusterID := vmc.Status.RancherRegistration.ClusterID
+	if clusterID == "" {
+		r.log.Debugf("VMC %s/%s has no Rancher cluster id, skipping delete", vmc.Namespace, vmc.Name)
+		return nil
+	}
+
+	rc, err := newRancherConfig(r.Client, r.log)
+	if err != nil {
+		msg := "Failed to create Rancher API client"
+		r.updateRancherStatus(ctx, vmc, clustersv1alpha1.DeleteFailed, clusterID, msg)
+		r.log.Errorf("Unable to connect to Rancher API on admin cluster while attempting delete operation: %v", err)
+		return err
+	}
+	if _, err = DeleteClusterFromRancher(rc, clusterID, r.log); err != nil {
+		msg := "Failed deleting cluster"
+		r.updateRancherStatus(ctx, vmc, clustersv1alpha1.DeleteFailed, clusterID, msg)
+		r.log.Errorf("Unable to delete Rancher cluster %s/%s: %v", vmc.Namespace, vmc.Name, err)
+		return err
+	}
+
+	return nil
 }
 
 func (r *VerrazzanoManagedClusterReconciler) setStatusConditionManagedCARetrieved(vmc *clustersv1alpha1.VerrazzanoManagedCluster, value corev1.ConditionStatus, msg string) {
