@@ -861,6 +861,9 @@ func (r *Reconciler) watchResources(namespace string, name string, log vzlog.Ver
 			CreateFunc: func(e event.CreateEvent) bool {
 				return r.isManagedClusterRegistrationSecret(e.Object)
 			},
+			DeleteFunc: func(e event.DeleteEvent) bool {
+				return r.isManagedClusterRegistrationSecret(e.Object)
+			},
 			UpdateFunc: func(e event.UpdateEvent) bool {
 				return r.isManagedClusterRegistrationSecret(e.ObjectNew)
 			},
