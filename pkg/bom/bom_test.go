@@ -297,6 +297,7 @@ func TestBomComponentVersion(t *testing.T) {
 	assert.NotNil(t, c.Version)
 }
 
+// TestBomGetComponentVersion tests if GetComponentVersion is able to fetch the component version
 func TestBomGetComponentVersion(t *testing.T) {
 	bom, err := NewBom(realBomFilePath)
 	assert.NoError(t, err)
@@ -308,6 +309,7 @@ func TestBomGetComponentVersion(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// TestGetSubcomponentImages tests if the GetSubcomponentImages is able to get the images of a subcomponent
 func TestGetSubcomponentImages(t *testing.T) {
 	bom, err := NewBom(testBomFilePath)
 	assert.NoError(t, err)
@@ -319,18 +321,15 @@ func TestGetSubcomponentImages(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// TestGetSubcomponentImageCount tests if the GetSubcomponentImageCount is returning the correct number of images or not
 func TestGetSubcomponentImageCount(t *testing.T) {
 	bom, err := NewBom(testBomFilePath)
 	assert.NoError(t, err)
 
 	imageNum := bom.GetSubcomponentImageCount("foo")
-	if imageNum != 0 {
-		t.Errorf("The number of counted images is incorrect")
-	}
+	assert.Equal(t, imageNum, 0)
 
 	imageNum = bom.GetSubcomponentImageCount(ingressControllerComponent)
-	if imageNum != 2 {
-		t.Errorf("The number of counted images is incorrect")
-	}
+	assert.Equal(t, imageNum, 2)
 
 }
