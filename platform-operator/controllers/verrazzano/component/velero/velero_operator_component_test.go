@@ -206,7 +206,7 @@ func TestPostUninstall(t *testing.T) {
 //		GIVEN VZ CR with install single and multi overrides
 //
 //	 WHEN ValidateInstall, ValidateUpdate, ValidateInstallV1Beta1 and  ValidateUpdateV1Beta1 are called
-//	 THEN  if install overrides are not invalid, error is returned else no error is returned
+//	 THEN  if install overrides are invalid, error is returned else no error is returned
 func TestValidateMethods(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -261,7 +261,7 @@ func TestValidateUpdate(t *testing.T) {
 		{
 			name:    "singleOverride",
 			vz:      getSingleOverrideCR(),
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -276,8 +276,8 @@ func TestValidateUpdate(t *testing.T) {
 						},
 					},
 				},
-			}); err == nil {
-				t.Errorf("TestValidateUpdate: ValidateUpdate() error = %v, wantErr %v", err, true)
+			}); (err != nil) != tt.wantErr {
+				t.Errorf("TestValidateUpdate: ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			v1beta1Vz := &v1beta1.Verrazzano{}
 			err := tt.vz.ConvertTo(v1beta1Vz)
@@ -291,8 +291,8 @@ func TestValidateUpdate(t *testing.T) {
 						},
 					},
 				},
-			}); err == nil {
-				t.Errorf("TestValidateUpdate: ValidateUpdateV1Beta1() error = %v, wantErr %v", err, true)
+			}); (err != nil) != tt.wantErr {
+				t.Errorf("TestValidateUpdate: ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
