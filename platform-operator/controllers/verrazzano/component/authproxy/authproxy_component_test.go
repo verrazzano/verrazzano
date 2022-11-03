@@ -238,13 +238,13 @@ func TestUninstallHelmChartNotInstalled(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestIsAvailable tests the AuthProxy is available and ready
+// TestIsReady tests the IsReady is available and ready
 //
 //	GIVEN a AuthProxy component
 //	WHEN IsAvailable is called
-//	THEN (reason and true) is returned if AuthProxy is Available & ready  and
-//	    (reason and false) is returned if AuthProxy is not Available or not ready.
-func TestIsAvailable(t *testing.T) {
+//	THEN True is returned if AuthProxy is ready  and
+//	    False is returned if AuthProxy  is ready.
+func TestIsReady(t *testing.T) {
 	objectMeta := metav1.ObjectMeta{
 		Name:      ComponentName,
 		Namespace: ComponentNamespace,
@@ -299,66 +299,60 @@ func TestIsAvailable(t *testing.T) {
 		reason     string
 	}{
 		{
-			name:       "Test IsAvailable when AuthProxy component pod is ready",
+			name:       "Test IsReady when AuthProxy component pod is ready",
 			client:     readyAndAvailableClient,
 			actualCR:   vzapi.Verrazzano{},
 			expectTrue: true,
-			reason:     fmt.Sprintf("%s is available", ComponentName),
 		},
 		{
-			name:       "Test IsAvailable when AuthProxy component pod is not ready",
+			name:       "Test IsReady when AuthProxy component pod is not ready",
 			client:     notAvailableClient,
 			actualCR:   vzapi.Verrazzano{},
 			expectTrue: false,
-			reason:     fmt.Sprintf("%s is unavailable: failed readiness checks", ComponentName),
 		},
 	}
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, &tests[i].actualCR, nil, true, profilesRelativePath)
-			reason, isAvailable := NewComponent().IsAvailable(ctx)
+			isAvailable := NewComponent().IsReady(ctx)
 			if tt.expectTrue {
 				assert.True(t, isAvailable)
 			} else {
 				assert.False(t, isAvailable)
 			}
-			assert.Equal(t, tt.reason, reason)
 		})
 	}
 }
 
-// TestIsAvailableWithHelmError tests IsAvailable
+// TestIsReadyHelmError tests IsReady
 //
-//	  GIVEN a AuthProxy component
-//	  WHEN IsAvailable is called
-//	  THEN (reason and false) is returned if helm CLI throws error
-func TestIsAvailableWithHelmError(t *testing.T) {
+//	GIVEN a AuthProxy component
+//	WHEN IsReady is called
+//	THEN False is returned if helm CLI throws error
+func TestIsReadyHelmError(t *testing.T) {
 	client := fake.NewClientBuilder().Build()
 	tests := []struct {
 		name       string
 		client     clipkg.Client
 		actualCR   vzapi.Verrazzano
 		expectTrue bool
-		reason     string
 	}{
 		{
-			name:       "Test IsAvailable when HelmComponent throw errors",
+			name:       "Test IsReady when HelmComponent throw errors",
 			client:     client,
 			actualCR:   vzapi.Verrazzano{},
 			expectTrue: false,
-			reason:     fmt.Sprintf("%s is unavailable: failed readiness checks", ComponentName),
 		},
 	}
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, &tests[i].actualCR, nil, false, profilesRelativePath)
-			reason, isAvailable := NewComponent().IsAvailable(ctx)
+			isAvailable := NewComponent().IsReady(ctx)
 			if tt.expectTrue {
 				assert.True(t, isAvailable)
 			} else {
 				assert.False(t, isAvailable)
 			}
-			assert.Equal(t, tt.reason, reason)
 		})
 	}
 }
@@ -366,8 +360,8 @@ func TestIsAvailableWithHelmError(t *testing.T) {
 // TestMonitorOverrides test the MonitorOverrides to confirm monitoring of install overrides is enabled or not
 //
 //	GIVEN a default VZ CR with auth proxy component
-// 	WHEN  MonitorOverrides is called
-// 	THEN  returns True if monitoring of install overrides is enabled and False otherwise
+//	WHEN  MonitorOverrides is called
+//	THEN  returns True if monitoring of install overrides is enabled and False otherwise
 func TestMonitorOverrides(t *testing.T) {
 	disabled := false
 	enabled := true
