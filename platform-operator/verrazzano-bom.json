@@ -235,7 +235,7 @@
             },
             {
               "image": "prometheus-jenkins",
-              "tag": "v2.38.0-2022103101",
+              "tag": "v2.38.0-20221103155306-8d0a2ef9",
               "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
@@ -503,7 +503,7 @@
           "images": [
             {
               "image": "prometheus-jenkins",
-              "tag": "v2.38.0-2022103101",
+              "tag": "v2.38.0-20221103155306-8d0a2ef9",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
             }
