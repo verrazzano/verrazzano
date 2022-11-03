@@ -5,12 +5,18 @@ package velero
 
 import (
 	"context"
+	"fmt"
+	"os/exec"
+	"testing"
+
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -18,10 +24,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"os/exec"
 	crtclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const (
@@ -197,6 +201,12 @@ func TestPostUninstall(t *testing.T) {
 	assert.True(t, errors.IsNotFound(err))
 }
 
+// TestValidateMethods tests ValidateInstall, ValidateUpdate, ValidateInstallV1Beta1 and  ValidateUpdateV1Beta1
+//
+//		GIVEN VZ CR with install single and multi overrides
+//
+//	 WHEN ValidateInstall, ValidateUpdate, ValidateInstallV1Beta1 and  ValidateUpdateV1Beta1 are called
+//	 THEN  if install overrides are invalid, error is returned else no error is returned
 func TestValidateMethods(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -231,6 +241,177 @@ func TestValidateMethods(t *testing.T) {
 			}
 			if err := c.ValidateUpdateV1Beta1(&v1beta1.Verrazzano{}, v1beta1Vz); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// TestValidateUpdate tests the ValidateUpdate and ValidateUpdateV1Beta1
+func TestValidateUpdate(t *testing.T) {
+	disabled := false
+	tests := []struct {
+		name    string
+		vz      *v1alpha1.Verrazzano
+		wantErr bool
+	}{
+		//   GIVEN VZ CR with install single overrides
+		//	 WHEN ValidateUpdate and ValidateUpdateV1Beta1 are called
+		//	 THEN  if Velero is disabled in the new CR, ValidateUpdate and ValidateUpdateV1Beta1
+		//         will throw error
+		{
+			name:    "singleOverride",
+			vz:      getSingleOverrideCR(),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			// test ValidateUpdate when Velero is disabled in the new CR
+			if err := c.ValidateUpdate(tt.vz, &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Velero: &v1alpha1.VeleroComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			}); (err != nil) != tt.wantErr {
+				t.Errorf("TestValidateUpdate: ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			v1beta1Vz := &v1beta1.Verrazzano{}
+			err := tt.vz.ConvertTo(v1beta1Vz)
+			assert.NoError(t, err)
+			// test ValidateUpdateV1Beta1 when Velero is disabled in the new CR
+			if err = c.ValidateUpdateV1Beta1(v1beta1Vz, &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Velero: &v1beta1.VeleroComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			}); (err != nil) != tt.wantErr {
+				t.Errorf("TestValidateUpdate: ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// TestPreInstall tests the PreInstall function for the Velero Operator
+func TestPreInstall(t *testing.T) {
+	enable := true
+	mocker := gomock.NewController(t)
+	mockClient := mocks.NewMockClient(mocker)
+	// Expect a failed call to fetch the Velero namespace
+	mockClient.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: ComponentNamespace}, gomock.Not(gomock.Nil())).
+		Return(fmt.Errorf("internal server error"))
+	tests := []struct {
+		name    string
+		ctx     spi.ComponentContext
+		wantErr bool
+	}{
+		// GIVEN default VZ CR
+		// WHEN PreInstall is called
+		// THEN Velero component namespace is created and no error is thrown
+		{
+			"PreInstallWithNoError",
+			spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false),
+			false,
+		},
+		// GIVEN default VZ CR with istio sidecar injection enabled
+		// WHEN PreInstall is called
+		// THEN Velero component namespace is created and no error is thrown
+		{
+			"PreInstallIstioInjectionEnabledWithNoError",
+			spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Istio: &v1alpha1.IstioComponent{
+							Enabled:          &enable,
+							InjectionEnabled: &enable,
+						},
+					},
+				},
+			}, nil, false),
+			false,
+		},
+		// GIVEN default VZ CR
+		// WHEN PreInstall is called
+		// THEN error is thrown if there is any error from the client
+		{
+			"PreInstallWithError",
+			spi.NewFakeContext(mockClient, &v1alpha1.Verrazzano{}, nil, false),
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := NewComponent().PreInstall(tt.ctx); (err != nil) != tt.wantErr {
+				t.Errorf("PreInstall error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// TestMonitorOverrides test the MonitorOverrides to confirm monitoring of install overrides is enabled or not
+//
+//	GIVEN a default VZ CR with Velero component
+//	WHEN  MonitorOverrides is called
+//	THEN  returns True if monitoring of install overrides is enabled and False otherwise
+func TestMonitorOverrides(t *testing.T) {
+	disabled := false
+	tests := []struct {
+		name     string
+		actualCR *v1alpha1.Verrazzano
+		want     bool
+	}{
+		{
+			name: "Test MonitorOverrides when Velero is disabled in the spec",
+			actualCR: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Velero: &v1alpha1.VeleroComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Test MonitorOverrides when Velero component is nil",
+			actualCR: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Velero: nil,
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "Test MonitorOverrides when MonitorOverrides is enabled in the spec",
+			actualCR: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Velero: &v1alpha1.VeleroComponent{
+							Enabled:          &enabled,
+							InstallOverrides: v1alpha1.InstallOverrides{MonitorChanges: &enabled},
+						},
+					},
+				},
+			},
+			want: true,
+		},
+	}
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			ctx := spi.NewFakeContext(nil, tests[i].actualCR, nil, true)
+			if got := c.MonitorOverrides(ctx); got != tt.want {
+				t.Errorf("MonitorOverrides() = %v, want %v", got, tt.want)
 			}
 		})
 	}

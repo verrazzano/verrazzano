@@ -4,6 +4,8 @@
 package main
 
 import (
+	"fmt"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/embedded"
 	"os"
 
 	"github.com/spf13/pflag"
@@ -13,6 +15,14 @@ import (
 )
 
 func main() {
+	// Extract the manifests and write them to a temp directory
+	man, err := embedded.ExtractManifests()
+	if err != nil {
+		fmt.Printf("Unable to extract manifests from psrctl binary %v", err)
+		os.Exit(1)
+	}
+	defer os.RemoveAll(man.RootTmpDir)
+
 	flags := pflag.NewFlagSet("psrctl", pflag.ExitOnError)
 	pflag.CommandLine = flags
 

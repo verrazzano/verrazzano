@@ -4,9 +4,7 @@
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def availableRegions = [ "ap-chuncheon-1", "ap-hyderabad-1", "ap-melbourne-1", "ap-mumbai-1", "ap-osaka-1", "ap-seoul-1", "ap-sydney-1",
-                         "ap-tokyo-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
-                         "sa-saopaulo-1", "uk-london-1" ]
+def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
 def acmeEnvironments = [ "staging", "production" ]
 Collections.shuffle(availableRegions)
 def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
@@ -45,7 +43,7 @@ pipeline {
                 choices: availableRegions )
         choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
                 // 1st choice is the default value
-                choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2" ])
+                choices: [ "VM.Standard.E3.Flex-4-2", "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2" ])
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
@@ -1860,6 +1858,10 @@ def runMulticlusterVerifyRegistry() {
     for(int count=1; count<=clusterCount; count++) {
         verifyRegistryStages["${count} - Verify registry"] = verifyRegistry(count)
     }
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+        ginkgo build registry/
+    """   
     parallel verifyRegistryStages
 }
 
@@ -1870,7 +1872,7 @@ def verifyRegistry(count) {
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" registry/...
+                ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" registry/*.test
             """
         }
     }

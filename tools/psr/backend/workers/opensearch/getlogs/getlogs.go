@@ -46,27 +46,27 @@ func NewGetLogsWorker() (spi.Worker, error) {
 	w := getLogs{workerMetrics: &workerMetrics{
 		openSearchGetSuccessCountTotal: metrics.MetricItem{
 			Name: "opensearch_get_success_count_total",
-			Help: "The total number of successful openSearch GET requests",
+			Help: "The total number of successful OpenSearch GET requests",
 			Type: prometheus.CounterValue,
 		},
 		openSearchGetFailureCountTotal: metrics.MetricItem{
 			Name: "opensearch_get_failure_count_total",
-			Help: "The total number of successful openSearch GET requests",
+			Help: "The total number of successful OpenSearch GET requests",
 			Type: prometheus.CounterValue,
 		},
 		openSearchGetSuccessLatencyNanoSeconds: metrics.MetricItem{
 			Name: "opensearch_get_success_latency_nanoseconds",
-			Help: "The latency of successful openSearch GET requests in nanoseconds",
+			Help: "The latency of successful OpenSearch GET requests in nanoseconds",
 			Type: prometheus.GaugeValue,
 		},
 		openSearchGetFailureLatencyNanoSeconds: metrics.MetricItem{
 			Name: "opensearch_get_failure_latency_nanoseconds",
-			Help: "The latency of failed openSearch GET requests in nanoseconds",
+			Help: "The latency of failed OpenSearch GET requests in nanoseconds",
 			Type: prometheus.GaugeValue,
 		},
 		openSearchGetDataCharsTotal: metrics.MetricItem{
 			Name: "opensearch_get_data_chars_total",
-			Help: "The total number of characters return from openSearch get request",
+			Help: "The total number of characters return from OpenSearch get request",
 			Type: prometheus.CounterValue,
 		},
 	}}
@@ -123,6 +123,7 @@ func (w getLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) er
 	} else {
 		atomic.StoreInt64(&w.workerMetrics.openSearchGetFailureLatencyNanoSeconds.Val, time.Now().UnixNano()-startRequest)
 		atomic.AddInt64(&w.workerMetrics.openSearchGetFailureCountTotal.Val, 1)
+		return fmt.Errorf("OpenSearch GET request failed, returned %v status code", resp.StatusCode)
 	}
 	respBody, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
@@ -130,11 +131,7 @@ func (w getLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) er
 		return fmt.Errorf("Error reading response body: %v", err)
 	}
 	atomic.AddInt64(&w.workerMetrics.openSearchGetDataCharsTotal.Val, int64(len(respBody)))
-
-	if resp.StatusCode == 200 {
-		return nil
-	}
-	return fmt.Errorf("Failed, GET response error status code %v", resp.StatusCode)
+	return nil
 }
 
 func (w getLogs) GetMetricDescList() []prometheus.Desc {
@@ -152,7 +149,8 @@ func (w getLogs) GetMetricList() []prometheus.Metric {
 }
 
 func getBody() io.ReadCloser {
-	body := fmt.Sprintf(`{
+	body := fmt.Sprintf(`
+{
   "query": {
     "bool": {
       "should": [
@@ -209,22 +207,15 @@ func getBody() io.ReadCloser {
       ]
     }
   }
-}`,
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-		GetRandomLowerAlpha(),
-	)
+}`, GetRandomLowerAlpha(10)...)
 	return io.NopCloser(bytes.NewBuffer([]byte(body)))
 }
 
-func GetRandomLowerAlpha() string {
-	rand.Seed(time.Now().UnixNano())
-	return string(letters[rand.Intn(len(letters))]) //nolint:gosec //#gosec G404
+// GetRandomLowerAlpha returns an array of len n of random lowercase letters
+func GetRandomLowerAlpha(n int) []interface{} {
+	var str []interface{}
+	for i := 0; i < n; i++ {
+		str = append(str, string(letters[rand.Intn(len(letters))])) //nolint:gosec //#gosec G404
+	}
+	return str
 }
