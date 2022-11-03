@@ -18,7 +18,7 @@ import (
 type WorkerType struct {
 	Global struct {
 		EnvVars struct {
-			PSR_WORKER_TYPE string
+			WorkerType string `json:"PSR_WORKER_TYPE"`
 		}
 	}
 }
@@ -45,11 +45,11 @@ func InstallScenario(man *embedded.PsrManifests, sc *Scenario) (string, error) {
 		if err := yaml.Unmarshal(data, &wt); err != nil {
 			return "nil", fmt.Errorf("Failed to parse use case override file %s: %v", ucOverride, err)
 		}
-		if len(wt.Global.EnvVars.PSR_WORKER_TYPE) == 0 {
+		if len(wt.Global.EnvVars.WorkerType) == 0 {
 			return "nil", fmt.Errorf("Failed to find global.envVars.PSR_WORKER_TYPE in %s", ucOverride)
 		}
 		// Build release name psr-<scenarioID>-workertype-<index>
-		rname := fmt.Sprintf("psr-%s-%s-%v", sc.ID, wt.Global.EnvVars.PSR_WORKER_TYPE, i)
+		rname := fmt.Sprintf("psr-%s-%s-%v", sc.ID, wt.Global.EnvVars.WorkerType, i)
 		_, stderr, err := helmcli.Upgrade(vzlog.DefaultLogger(), rname, "default", man.WorkerChartAbsDir, true, false, helmOverrides)
 		if err != nil {
 			return string(stderr), err

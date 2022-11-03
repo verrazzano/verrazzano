@@ -5,8 +5,8 @@ package scenario
 
 import "strings"
 
-// FindScenarioById finds a Scenario by ID
-func FindScenarioById(scenarioAbsDir string, ID string) (*Scenario, error) {
+// FindScenarioByID finds a Scenario by ID
+func FindScenarioByID(scenarioAbsDir string, ID string) (*Scenario, error) {
 	return findScenario(scenarioAbsDir, func(scenario Scenario) bool {
 		return strings.EqualFold(scenario.ID, ID)
 	})
