@@ -1,5 +1,6 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package spi
 
 import (
@@ -31,7 +32,7 @@ var _ error = RetryableError{}
 // Error implements the basic Go error contract
 func (r RetryableError) Error() string {
 	var builder strings.Builder
-	builder.WriteString(fmt.Sprintf("Retryable error, source: %s, operation: %s", r.Operation, r.Source))
+	builder.WriteString(fmt.Sprintf("Retryable error, source: %s, operation: %s", r.Source, r.Operation))
 	if r.Cause != nil {
 		builder.WriteString(fmt.Sprintf(", cause %s", r.Cause))
 	}
@@ -41,7 +42,7 @@ func (r RetryableError) Error() string {
 	return builder.String()
 }
 
-// IsUpdateConflict returns true if the error is an update confict error.  This is occurs when the controller-runtime cache
+// IsUpdateConflict returns true if the error is an update conflict error. This is occurs when the controller-runtime cache
 // is out of sync with the etc database
 func IsUpdateConflict(err error) bool {
 	return strings.Contains(err.Error(), "the object has been modified; please apply your changes to the latest version")
