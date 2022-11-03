@@ -251,6 +251,7 @@ func VerifyOpenSearchPlugins() error {
 		installedPluginStr := ""
 		expectedPluginStr := fmt.Sprintf("%s %s %s", opensearchIndexManagement, opensearchJobScheduler, opensearchPrometheusExporter)
 		for _, plugin := range pluginsData {
+			Log(Info, plugin.Component)
 			if plugin.Component == opensearchIndexManagement || plugin.Component == opensearchJobScheduler || plugin.Component == opensearchPrometheusExporter {
 				installedPluginStr = installedPluginStr + plugin.Component + " "
 				expectedPluginCount++
