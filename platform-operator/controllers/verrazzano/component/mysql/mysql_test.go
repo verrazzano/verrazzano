@@ -66,7 +66,7 @@ var mySQLSecret = v1.Secret{
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 const (
-	minExpectedHelmOverridesCount = 4
+	minExpectedHelmOverridesCount = 5
 	testBomFilePath               = "../../testdata/test_bom.json"
 )
 
@@ -895,7 +895,7 @@ func TestAppendMySQLOverridesUpgradeDevProfile(t *testing.T) {
 	ctx := spi.NewFakeContext(mock, vz, nil, false, profilesDir).Init(ComponentName).Operation(vzconst.UpgradeOperation)
 	kvs, err := appendMySQLOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 2)
+	assert.Len(t, kvs, 3)
 }
 
 // TestAppendMySQLOverridesUpgradeLegacyProdProfile tests the appendMySQLOverrides function
