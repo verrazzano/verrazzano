@@ -6,10 +6,11 @@ package scale
 import (
 	"fmt"
 	"strconv"
+	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/verrazzano/verrazzano/pkg/k8s/update"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	"github.com/verrazzano/verrazzano/tests/e2e/update/opensearch"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
@@ -36,12 +37,12 @@ type scaleWorker struct {
 }
 
 type nextScale struct {
-	nextScale string
+	val string
 }
 
 const (
-	UP   string = "UP"
-	DOWN string = "DOWN"
+	OUT string = "OUT"
+	IN  string = "IN"
 )
 
 var _ spi.Worker = scaleWorker{}
@@ -68,7 +69,7 @@ func NewScaleWorker() (spi.Worker, error) {
 			},
 		},
 		nextScale: &nextScale{
-			nextScale: UP,
+			val: OUT,
 		},
 	}
 
@@ -104,51 +105,65 @@ func (w scaleWorker) WantIterationInfoLogged() bool {
 
 func (w scaleWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 
-	nextScale := w.nextScale.nextScale
+	nextScale := &w.nextScale.val
 	tier := config.PsrEnv.GetEnv(openSearchTier)
 
-	// validate tier
+	// validate OS tier
 	if tier != masterTier && tier != dataTier && tier != ingestTier {
 		return fmt.Errorf("error, not a valid OpenSearch tier to scale")
 	}
 
-	// validate replicas
 	var replicas int
+	var delta int64
 	var err error
-	if nextScale == UP {
+	var metric *metrics.MetricItem
+	// validate replicas
+	if *nextScale == OUT {
 		replicas, err = strconv.Atoi(config.PsrEnv.GetEnv(maxReplicaCount))
 		if err != nil {
 			return fmt.Errorf("maxReplicaCount can not be parsed to an integer: %f", err)
 		}
+		metric = &w.workerMetrics.scaleOutCountTotal
+		delta = 1
 	} else {
 		replicas, err = strconv.Atoi(config.PsrEnv.GetEnv(minReplicaCount))
 		if err != nil {
 			return fmt.Errorf("minReplicaCount can not be parsed to an integer: %f", err)
 		}
+		if replicas < 1 {
+			return fmt.Errorf("minReplicaCount can not be less than 1")
+		}
+		metric = &w.workerMetrics.scaleInCountTotal
+		delta = -1
 	}
 
-	// check OpenSearch is ready
+	// TODO check if OpenSearch is ready
 
-	// switch on tier
 	switch tier {
 	case masterTier:
 		m := opensearch.OpensearchMasterNodeGroupModifier{NodeReplicas: int32(replicas)}
-		err := update.UpdateCR(m)
+		err := update.UpdateCRV1beta1(m)
 		if err != nil {
-			return fmt.Errorf("failed to scale OpenSearch replicas: %f", err)
+			return fmt.Errorf("failed to scale OpenSearch %s replicas: %f", tier, err)
 		}
 	case dataTier:
 		m := opensearch.OpensearchDataNodeGroupModifier{NodeReplicas: int32(replicas)}
-		err := update.UpdateCR(m)
+		err := update.UpdateCRV1beta1(m)
 		if err != nil {
-			return fmt.Errorf("failed to scale OpenSearch replicas: %f", err)
+			return fmt.Errorf("failed to scale OpenSearch %s replicas: %f", tier, err)
 		}
 	case ingestTier:
 		m := opensearch.OpensearchIngestNodeGroupModifier{NodeReplicas: int32(replicas)}
-		err := update.UpdateCR(m)
+		err := update.UpdateCRV1beta1(m)
 		if err != nil {
-			return fmt.Errorf("failed to scale OpenSearch replicas: %f", err)
+			return fmt.Errorf("failed to scale OpenSearch %s replicas: %f", tier, err)
 		}
+	}
+	atomic.AddInt64(&metric.Val, delta)
+
+	// TODO check replica count == expected
+	if true {
+		finishWork(nextScale, metric, delta)
 	}
 	return nil
 }
@@ -159,7 +174,18 @@ func (w scaleWorker) GetMetricDescList() []prometheus.Desc {
 
 func (w scaleWorker) GetMetricList() []prometheus.Metric {
 	return []prometheus.Metric{
-		w.scaleOutCountTotal.BuildMetric(),
+		w.scaleInCountTotal.BuildMetric(),
 		w.scaleOutCountTotal.BuildMetric(),
 	}
+}
+
+func finishWork(next *string, metric *metrics.MetricItem, delta int64) {
+	// Alternate between scale out and in
+	if *next == OUT {
+		*next = IN
+	} else {
+		*next = OUT
+	}
+	// Add metric once work has finished
+	atomic.AddInt64(&metric.Val, delta)
 }
