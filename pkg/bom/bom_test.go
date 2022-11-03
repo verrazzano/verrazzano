@@ -5,9 +5,8 @@ package bom
 
 import (
 	"fmt"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 const (
@@ -296,4 +295,55 @@ func TestBomComponentVersion(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, c)
 	assert.NotNil(t, c.Version)
+}
+
+// TestBomGetComponentVersion tests the GetComponentVersion method
+// GIVEN a call to GetComponentVersion for a valid component
+// WHEN I ask for the version of that component
+// THEN the correct version is returned if found, or an error if not found
+func TestBomGetComponentVersion(t *testing.T) {
+	bom, err := NewBom(testBomFilePath)
+	assert.NoError(t, err)
+
+	ver, err := bom.GetComponentVersion("cert-manager")
+	assert.NoError(t, err)
+	assert.Equal(t, ver, "v1.7.1")
+
+	ver, err = bom.GetComponentVersion("foo")
+	assert.Error(t, err)
+	assert.Equal(t, ver, "")
+}
+
+// TestGetSubcomponentImages tests the GetSubcomponentImages method
+// GIVEN a call to GetSubcomponentImages for a valid subcomponent
+// WHEN I ask for the images of that component
+// THEN the correct images are returned if found, or an error if not found
+func TestGetSubcomponentImages(t *testing.T) {
+	bom, err := NewBom(testBomFilePath)
+	assert.NoError(t, err)
+	subComponentImageforNil := []BomImage([]BomImage(nil))
+	subComponentImage := []BomImage([]BomImage{{ImageName: "external-dns", ImageTag: "v0.7.1-20201016205338-516bc8b2", Registry: "", Repository: "", HelmRegistryKey: "image.registry", HelmRepoKey: "", HelmImageKey: "", HelmTagKey: "image.tag", HelmFullImageKey: "image.repository", HelmRegistryAndRepoKey: ""}})
+	scImages, err := bom.GetSubcomponentImages("external-dns")
+	assert.NoError(t, err)
+	assert.Equal(t, scImages, subComponentImage)
+
+	scImages, err = bom.GetSubcomponentImages("foo")
+	assert.Error(t, err)
+	assert.Equal(t, scImages, subComponentImageforNil)
+}
+
+// TestBomGetSubcomponentImageCount tests the GetSubcomponentImageCount method
+// GIVEN a call to GetSubcomponentImageCount for a valid subcomponent
+// WHEN I ask for the number of images of that component
+// THEN the correct number is returned if found, or zero if not found
+func TestGetSubcomponentImageCount(t *testing.T) {
+	bom, err := NewBom(testBomFilePath)
+	assert.NoError(t, err)
+
+	imageNum := bom.GetSubcomponentImageCount("foo")
+	assert.Equal(t, imageNum, 0)
+
+	imageNum = bom.GetSubcomponentImageCount(ingressControllerComponent)
+	assert.Equal(t, imageNum, 2)
+
 }
