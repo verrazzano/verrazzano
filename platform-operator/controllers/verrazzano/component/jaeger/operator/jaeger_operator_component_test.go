@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -331,6 +333,12 @@ func TestPreUpgrade(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, &tt.actualCR, nil, false, profilesRelativePath)
+			helmcli.SetCmdRunner(os.GenericTestRunner{
+				StdOut: []byte(""),
+				StdErr: []byte("not found"),
+				Err:    fmt.Errorf("error_to_ignore"),
+			})
+			defer helmcli.SetDefaultRunner()
 			err := NewComponent().PreUpgrade(ctx)
 			if tt.expectError {
 				assert.NotNil(t, err)
