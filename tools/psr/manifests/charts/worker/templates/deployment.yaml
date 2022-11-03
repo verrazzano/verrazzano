@@ -1,0 +1,39 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+{{- if eq .Values.appType "k8s" }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "worker.fullName" .}}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      psr.verrazzano.io/worker: {{ template "worker.fullName" .}}
+  replicas: {{ .Values.replicas }}
+  template:
+    metadata:
+      labels:
+        psr.verrazzano.io/worker: {{ template "worker.fullName" .}}
+        app: psr-{{ .Values.global.envVars.PSR_WORKER_TYPE }}
+        version: v1
+    spec:
+      serviceAccountName: {{ template "worker.fullName" .}}
+    {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+    {{- end }}
+      containers:
+        - name: {{ .Release.Name}}-{{ .Values.global.envVars.PSR_WORKER_TYPE }}
+          image: {{  .Values.imageName }}
+          imagePullPolicy: {{  .Values.imagePullPolicy }}
+          env:
+            {{- range $key, $val := .Values.global.envVars }}
+            - name: {{ $key }}
+              value: {{ $val | quote}}
+              {{- end }}
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+{{- end }}

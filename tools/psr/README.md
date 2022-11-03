@@ -35,7 +35,7 @@ that define the configuration. For example, to deploy a use case to
 generate logs using 10 replicas, you would run the following command:
 
 ```
-helm install psr-log-gen manifests/charts/k8s -f manifests/usecases/loggen.yaml --set replicas=10
+helm install psr-log-gen manifests/charts/k8s -f manifests/usecases/writelogs.yaml --set replicas=10
 ```
 
 **NOTE** The worker code for a use case expects all dependencies to exist at the
@@ -56,7 +56,7 @@ To run a scenario, you install two Helm releases as follows (note some use cases
 might not exist yet):
 
 ```
-helm install psr-log-gen manifests/charts/k8s -f manifests/usecases/opensearch/loggen.yaml --set replicas=5
+helm install psr-log-gen manifests/charts/k8s -f manifests/usecases/opensearch/writelogs.yaml --set replicas=5
 helm install psr-scale-out manifests/charts/k8s -f manifests/usecases/opensearch/scale-out-in.yaml --set replicas=1
 ```
 
@@ -91,56 +91,6 @@ an Env var. However,
 the default mode and intention is that these workers run in the Verrazzano
 cluster that is being measure.
 
-## Usage
-
-Use the Makefile to build the backend image or execute other targets. If you
-just want to try
-the example use case on a local Kind cluster, then run the following which
-builds the code, builds the docker image,
-loads the docker image into the Kind cluster, and deploys the example use case.
-
-```
-make run-example-k8s
-```
-
-After you run the make command, run `helm list` to see the `psr` release. The
-get the logs for backend pods in the default namespace
-to see that they are just logging then sleeping in a loop.
-
-**NOTE:** Any Kubernetes platform can be used (OKE, OCI), Kind is just one
-example.
-
-The other Make targets are:
-
-* go-build - build the code
-* docker-build - go-build, then build the image
-* docker-push - docker-build, then push the image to ghcr.io.
-* kind-load-image - docker-build, then load to local Kind cluster
-* run-example-k8s - kind-load-image, then deploy the example use case using Helm
-  k8s chart
-
-### Example Helm Installs
-
-Install the example worker as a Kubernetes deployment with 10 replicas:
-
-```
-helm install  psr manifests/charts/k8s --set imageName=ghcr.io/verrazzano/psr-backend:local-582bfcfcf --replicas=10
-```
-
-Install the logging generator worker as an OAM application using the default
-image in the helm chart:
-
-```
-helm install  psr2 manifests/charts/oam -f manifests/helm/workers/opensearch.yaml
-```
-
-Install the example worker as a Kubernetes deployment using the default image in
-the helm chart, providing an imagePullSecret
-
-```
-helm install  psr-3  manifests/charts/k8s/ --set imagePullSecrets[0].name=verrazzano-container-registry
-```
-
 ### The Backend Image
 
 The backend image is a private image that should never be made public in
@@ -156,13 +106,114 @@ The `backend` directory has the go code which consists of a few packages:
 * spi - the worker interface
 * workers - the various workers
 
-The `manifests/charts` directory has the Helm charts. There is a chart for using
-plain Kubernetes
-resources to deploy the backend, and there is a chart to deploy the backend as
-an oam app. Any use case
-can be deployed with either chart.
+The `manifests/charts` directory has the Helm charts. There is a single chart for using
+either OAM or plain Kubernetes resources to deploy the backend.  The default is OAM, use
+deploy without OAM, use `--set appType=k8s`
 
 The `manifests/usecases` directory has the Helm override files for every use
-case. These files must
-contain the configuration, as key:value pairs, required by the worker.
+case. These files must contain the configuration, as key:value pairs, required by the worker.
 
+## Usage
+
+Use the Makefile to build the backend image or execute other targets. If you
+just want to try the example use case on a local Kind cluster, then run the following which
+builds the code, builds the docker image, loads the docker image into the Kind cluster, and deploys the example use case.
+```
+make run-example-k8s
+```
+
+After you run the make command, run `helm list` to see the `psr` release. The
+get the logs for backend pods in the default namespace to see that they are just logging then sleeping in a loop.
+
+**NOTE:** Any Kubernetes platform can be used (OKE, OCI), Kind is just one
+example.
+
+The other Make targets include:  
+* go-build - build the code
+* docker-build - calls go-build, then build the image
+* docker-push - calls docker-build, then push the image to ghcr.io.
+* kind-load-image - calls docker-build, then load the image to a local Kind cluster
+* run-example-oam - calls kind-load-image, then deploy the example worker as an OAM app
+* run-example-k8s - calls kind-load-image, then deploy the example worker as a Kubernetes deployment
+
+### Example Helm Installs
+
+Install the example worker as an OAM application with 10 replicas:
+```
+helm install psr-example manifests/charts/worker --set imageName=ghcr.io/verrazzano/psr-backend:local-582bfcfcf --replicas=10
+```
+
+Install the example worker as an OAM application using the default image in the helm chart, providing an imagePullSecret
+```
+helm install psr-example manifests/charts/worker --set imagePullSecrets[0].name=verrazzano-container-registry
+```
+
+Install the logging generator worker as a Kubernetes deployment using the default image in the helm chart.  Note the appType must be supplied:
+```
+helm install psr-writelogs manifests/charts/worker --set appType=k8s -f manifests/usecases/opensearch/writelogs.yaml
+```
+
+Install the logging generator worker as a OAM application with 5 worker threads and the default 1 replica.
+```
+helm install psr-writelogs manifests/charts/worker --set global.envVars.PSR_WORKER_THREAD_COUNT=5 -f manifests/usecases/opensearch/writelogs.yaml
+```
+
+## Workers
+All of the worker are deployed using the same worker Helm chart.  Every worker, except the example, have the following requirements: 
+* must emit metrics
+* must not log while doing work, unless that is the purpose of the worker
+
+### Common Configuration
+```
+global:
+  envVars:
+    PSR_WORKER_TYPE - type of worker
+    default: example
+    
+    PSR_ITERATION_SLEEP - duration to sleep between work iterations
+    default: 1s
+
+    PSR_NUM_ITERATIONS - number of iterations per worker thread
+    default: -1 (run forever)
+    
+    PSR_WORKER_THREAD_COUNT - threads per worker
+    default: 1
+    
+```
+
+### Example
+#### Description
+The example worker periodically logs messages, it doesn't provide metrics.
+   
+#### Configuration
+no configuration overrides
+   
+#### Run
+```
+helm install psr-example manifests/charts/worker 
+```
+
+### writelogs
+#### Description
+The writelogs worker periodically logs messages.  The goal is to put a load on OpenSearch since fluentd collects the container logs and
+sends them to OpenSearch.
+
+#### Configuration
+no configuration overrides
+
+#### Run
+```
+helm install psr-writelogs manifests/charts/worker -f manifests/usecases/opensearch/writelogs.yaml
+```
+
+### GetLogs
+#### Description
+The GetLogs worker periodically get messages from OpenSearch, in-cluster.  This worker must run in the mesh.
+
+#### Configuration
+no configuration overrides
+
+#### Run
+```
+helm install psr-getlogs manifests/charts/worker -f manifests/usecases/opensearch/getlogs.yaml
+```

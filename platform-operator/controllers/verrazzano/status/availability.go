@@ -58,14 +58,15 @@ func (p *HealthChecker) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazza
 	}
 	for _, component := range components {
 		// If status is not fully initialized, do not check availability
-		if vz.Status.Components[component.Name()] == nil {
+		componentStatus, ok := vz.Status.Components[component.Name()]
+		if !ok {
 			return nil, nil
 		}
 		// determine a component's availability
 		if component.IsEnabled(ctx.EffectiveCR()) {
 			countEnabled++
 			// gets new availability for a given component
-			a := p.getComponentAvailability(component, ctx)
+			a := p.getComponentAvailability(component, componentStatus.State, ctx)
 			if a.available {
 				countAvailable++
 			}
@@ -92,10 +93,20 @@ func (p *HealthChecker) sendStatus(status *AvailabilityStatus) {
 }
 
 // getComponentAvailability calculates componentAvailability for a given Verrazzano component
-func (p *HealthChecker) getComponentAvailability(component spi.Component, ctx spi.ComponentContext) componentAvailability {
+func (p *HealthChecker) getComponentAvailability(component spi.Component, componentState vzapi.CompStateType, ctx spi.ComponentContext) componentAvailability {
 	name := component.Name()
 	ctx.Init(name)
-	reason, available := component.IsAvailable(ctx)
+	var available = true
+	var reason string
+	// if a component isn't ready, it's not available
+	if componentState != vzapi.CompStateReady {
+		available = false
+		reason = fmt.Sprintf("component is %s", componentState)
+	}
+	// if a component is ready, check if it's available
+	if available {
+		reason, available = component.IsAvailable(ctx)
+	}
 	return componentAvailability{
 		name:      name,
 		reason:    reason,

@@ -23,15 +23,6 @@ spec:
     spec:
       terminationGracePeriodSeconds: 0
       initContainers:
-        - name: initwebhooks
-          imagePullPolicy: {{ .Values.imagePullPolicy }}
-          image: {{ .Values.image }}
-          args:
-            - --init-webhooks=true
-            - --webhooks-enabled=false
-          resources:
-            requests:
-              memory: 72Mi
         - name: webhookswait
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           image: {{ .Values.image }}
@@ -50,8 +41,6 @@ spec:
           args:
             - --zap-log-level=info
             - --health-check-period=60
-            - --webhooks-enabled=false
-            - --init-webhooks=false
           env:
             - name: VERRAZZANO_KUBECONFIG
               value: /home/verrazzano/kubeconfig
@@ -96,7 +85,10 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: {{ .Values.name }}-webhook
@@ -110,20 +102,32 @@ spec:
       {{- if .Values.webhookAffinity }}
       affinity: {{ toYaml .Values.webhookAffinity | nindent 8 }}
       {{- end }}
+      initContainers:
+        - name: initwebhooks
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ .Values.image }}
+          args:
+            - --zap-log-level=info
+            - --run-webhook-init=true
+          resources:
+            requests:
+              memory: 72Mi
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
       containers:
         - name: webhook-run
           image: {{ .Values.image }}
           imagePullPolicy: {{ .Values.imagePullPolicy }}
           args:
             - --zap-log-level=info
-            - --webhooks-enabled=true
-            - --init-webhooks=false
+            - --run-webhooks=true
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/webhook/certs
           resources:
             requests:
               memory: 72Mi
-          volumeMounts:
-            - mountPath: /etc/webhook/certs
-              name: webhook-server-certs
           ports:
             - containerPort: 9100
               name: http-metric
@@ -132,10 +136,6 @@ spec:
               name: webhook
               protocol: TCP
       volumes:
-        - name: webhook-ca-certs
-          secret:
-            secretName: verrazzano-platform-operator-ca
-        - name: webhook-server-certs
-          secret:
-            secretName: verrazzano-platform-operator-tls
+        - name: webhook-certs
+          emptyDir: {}
       serviceAccountName: {{ .Values.name }}

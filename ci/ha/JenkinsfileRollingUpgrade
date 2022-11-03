@@ -304,7 +304,7 @@ pipeline {
                             echo "Installing Verrazzano"
                             ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/platform-operator.yaml --timeout 45m --platform-operator-timeout 10m
 
-                            # For now, manually scale the VPO webhook to 2 replicas until we have hooks for it in the product
+                            # For now, manually scale the VPO webhook to 3 replicas until we have hooks for it in the product
                             kubectl  scale deployment -n verrazzano-install verrazzano-platform-operator-webhook --replicas 3
                             kubectl  rollout status deployment -n verrazzano-install verrazzano-platform-operator-webhook -w --timeout 15m
                        """

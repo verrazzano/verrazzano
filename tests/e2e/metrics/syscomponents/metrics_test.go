@@ -38,6 +38,7 @@ const (
 	vaoSuccessCountMetric          = "vao_appconfig_successful_reconcile_total"
 	vaoFailCountMetric             = "vao_appconfig_error_reconcile_total"
 	vaoDurationCountMetric         = "vao_appconfig_reconcile_duration_count"
+	esClusterStatusMetric          = "es_cluster_status"
 
 	// Namespaces used for validating envoy stats
 	verrazzanoSystemNamespace = "verrazzano-system"
@@ -58,6 +59,8 @@ const (
 	app                 = "app"
 	namespace           = "namespace"
 	podName             = "pod_name"
+	container           = "container"
+	esMaster            = "es-master"
 
 	failedVerifyVersionMsg = "Failed to verify the Verrazzano version was min 1.4.0: %v"
 )
@@ -133,6 +136,14 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 				appK8SIOInstance:    ingressController,
 			})
 		})
+
+		if !pkg.IsManagedClusterProfile() {
+			t.ItMinimumVersion("Verify sample OpenSearch metrics can be queried from Prometheus", "1.3.0", kubeConfig, func() {
+				eventuallyMetricsContainLabels(esClusterStatusMetric, map[string]string{
+					container: esMaster,
+				})
+			})
+		}
 
 		t.It("Verify sample Container Advisor metrics can be queried from Prometheus", func() {
 			eventuallyMetricsContainLabels(containerStartTimeSeconds, map[string]string{})

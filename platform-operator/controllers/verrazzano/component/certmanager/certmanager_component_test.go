@@ -10,6 +10,13 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"math/big"
+	"net"
+	"testing"
+	"time"
+
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
 	cmutil "github.com/jetstack/cert-manager/pkg/api/util"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
@@ -19,6 +26,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -28,11 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"math/big"
-	"net"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
-	"time"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
@@ -40,6 +44,16 @@ import (
 const (
 	testDNSDomain  = "example.dns.io"
 	testOCIDNSName = "ociDNS"
+)
+
+var (
+	mockNamespaceCoreV1Client = common.MockGetCoreV1(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+		Name:   ComponentName,
+		Labels: map[string]string{constants.VerrazzanoManagedKey: ComponentNamespace},
+	}})
+	mockNamespaceWithoutLabelClient = common.MockGetCoreV1(&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{
+		Name: ComponentName,
+	}})
 )
 
 // TestValidateUpdate tests the ValidateUpdate function
@@ -555,11 +569,12 @@ func createFakeCertificate(cn string) *x509.Certificate {
 
 // All of this below is to make Sonar happy
 type validationTestStruct struct {
-	name     string
-	old      *vzapi.Verrazzano
-	new      *vzapi.Verrazzano
-	caSecret *corev1.Secret
-	wantErr  bool
+	name      string
+	old       *vzapi.Verrazzano
+	new       *vzapi.Verrazzano
+	coreV1Cli func(_ ...vzlog.VerrazzanoLogger) (v1.CoreV1Interface, error)
+	caSecret  *corev1.Secret
+	wantErr   bool
 }
 
 var disabled = false
@@ -580,8 +595,24 @@ var tests = []validationTestStruct{
 				},
 			},
 		},
-		new:     &vzapi.Verrazzano{},
-		wantErr: false,
+		new:       &vzapi.Verrazzano{},
+		coreV1Cli: mockNamespaceCoreV1Client,
+		wantErr:   false,
+	},
+	{
+		name: "Cert Manager Namespace already exists",
+		old: &vzapi.Verrazzano{
+			Spec: vzapi.VerrazzanoSpec{
+				Components: vzapi.ComponentSpec{
+					CertManager: &vzapi.CertManagerComponent{
+						Enabled: &disabled,
+					},
+				},
+			},
+		},
+		new:       &vzapi.Verrazzano{},
+		coreV1Cli: mockNamespaceWithoutLabelClient,
+		wantErr:   true,
 	},
 	{
 		name: "disable",
@@ -595,7 +626,8 @@ var tests = []validationTestStruct{
 				},
 			},
 		},
-		wantErr: true,
+		coreV1Cli: mockNamespaceCoreV1Client,
+		wantErr:   true,
 	},
 	{
 		name:    "no change",
@@ -749,9 +781,11 @@ var tests = []validationTestStruct{
 }
 
 func validationTests(t *testing.T, isUpdate bool) {
-	defer func() { getClientFunc = k8sutil.GetCoreV1Client }()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.name == "Cert Manager Namespace already exists" && isUpdate { // will throw error only during installation
+				tt.wantErr = false
+			}
 			c := NewComponent()
 			getClientFunc = getTestClient(tt)
 			runValidationTest(t, tt, isUpdate, c)
@@ -760,6 +794,7 @@ func validationTests(t *testing.T, isUpdate bool) {
 }
 
 func runValidationTest(t *testing.T, tt validationTestStruct, isUpdate bool, c spi.Component) {
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 	if isUpdate {
 		if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
 			t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
@@ -776,6 +811,11 @@ func runValidationTest(t *testing.T, tt validationTestStruct, isUpdate bool, c s
 
 	} else {
 		wantErr := tt.name != "disable" && tt.wantErr // hack for disable validation, allowed on initial install but not on update
+		if tt.coreV1Cli != nil {
+			k8sutil.GetCoreV1Func = tt.coreV1Cli
+		} else {
+			k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+		}
 		if err := c.ValidateInstall(tt.new); (err != nil) != wantErr {
 			t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
 		}
