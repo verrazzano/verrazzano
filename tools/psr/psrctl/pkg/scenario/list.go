@@ -14,6 +14,11 @@ import (
 // The required use case overrides directory
 const usecaseOverrideDir = "usecase-overrides"
 
+// ListAvailableScenarios returns the list of scenarios located in
+// psr/manifests/scenarios.  By convention, a scenario directory must have
+// a scenario.yaml file which describes the scenario. It must also have
+// a subdirectory named usecase-overrides containing the override parameters for
+// each use case. The name of the parent directory, for example s1, is irrelevant.
 func ListAvailableScenarios(scenarioAbsDir string) ([]Scenario, error) {
 	scenarios := []Scenario{}
 	sfiles, err := files.GetMatchingFiles(scenarioAbsDir, regexp.MustCompile("scenario.yaml"))
