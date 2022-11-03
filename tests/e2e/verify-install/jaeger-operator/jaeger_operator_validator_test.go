@@ -16,10 +16,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// runValidatorTest Attempt to use an illegal overrides value on the Jaeger operator configuration
 func runValidatorTest() {
-	// GIVEN A valid verrazzano installation
-	// WHEN An attempt to make an illegal configuration edit is made
-	// THEN The validating webhook catches it and rejects it
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Fail(err.Error())

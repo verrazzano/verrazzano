@@ -59,7 +59,10 @@ func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) {
 var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 	t.Context("Verify Jaeger Install", func() {
 
-		It("Run Validator Negative Test", runValidatorTest)
+		// GIVEN A valid verrazzano installation
+		// WHEN An attempt to make an illegal configuration edit is made
+		// THEN The validating webhook catches it and rejects it
+		t.It("Run Validator Negative Test", runValidatorTest)
 
 		// GIVEN the Jaeger Operator is installed
 		// WHEN we check to make sure the namespace exists
