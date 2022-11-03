@@ -363,7 +363,7 @@ func TestGetURLForIngress(t *testing.T) {
 	asserts.Error(err)
 }
 
-// TestGetRunningPodForLabel tests getting a running pod for a labe;
+// TestGetRunningPodForLabel tests getting a running pod for a label
 // GIVEN a running pod  with a label in a namespace in a cluster
 //
 //	WHEN GetRunningPodForLabel is called with that label and namespace
@@ -385,7 +385,7 @@ func TestGetRunningPodForLabel(t *testing.T) {
 	assert.Equal(t, "name", pod.Name)
 }
 
-// TestGetCoreV1Client tests running a command on a remote pod
+// TestGetCoreV1Client tests getting a CoreV1Client
 //
 //	WHEN GetCoreV1Client is called
 //	THEN GetCoreV1Client returns a client and a nil error
@@ -429,7 +429,7 @@ func TestGetAppsV1Client(t *testing.T) {
 
 }
 
-// TestGetKubernetesClientsetOrDie tests running a command on a remote pod
+// TestGetKubernetesClientsetOrDie tests getting a KubernetesClientset
 //
 //	WHEN GetKubernetesClientsetOrDie is called
 //	THEN GetKubernetesClientsetOrDie return clientset
@@ -474,7 +474,7 @@ func TestGetKubeConfigGivenPathAndContextWithNoKubeConfigPath(t *testing.T) {
 
 }
 
-// TestErrorIfDeploymentExistsNoDeploy tests checking if deployment exists
+// TestErrorIfDeploymentExistsNoDeploy checks errors for deployments
 // GIVEN a deployment doesn't exist
 //
 //	WHEN ErrorIfDeploymentExists is called
@@ -485,7 +485,7 @@ func TestErrorIfDeploymentExistsNoDeploy(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-// TestErrorIfDeploymentExists tests if error is returned if deployment exist
+// TestErrorIfDeploymentExists checks errors for deployments
 // GIVEN a deployment exist already
 //
 //	WHEN ErrorIfDeploymentExists is called
@@ -497,7 +497,7 @@ func TestErrorIfDeploymentExists(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-// TestErrorIfServiceExistsNoSvc tests checking if a service exist
+// TestErrorIfServiceExistsNoSvc checks errors for service
 // GIVEN a service doesn't exist
 //
 //	WHEN ErrorIfServiceExists is called
@@ -508,7 +508,7 @@ func TestErrorIfServiceExistsNoSvc(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-// TestErrorIfServiceExists tests checking if a service exist
+// TestErrorIfServiceExists checks errors for service
 // GIVEN a service exist already
 //
 //	WHEN ErrorIfServiceExists is called
