@@ -15,7 +15,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	oamapi "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/golang/mock/gomock"
@@ -1034,11 +1033,11 @@ func TestAddMetrics(t *testing.T) {
 
 	cli.EXPECT().
 		Get(gomock.Any(), request, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload1 *v1alpha2.ApplicationConfiguration) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload1 *oamapi.ApplicationConfiguration) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload1, "testdata/templates/helidon_workload.yaml", params))
 			workload1.ObjectMeta.Labels = labels
 			workload1.ObjectMeta.Annotations = annotations
-			workload1.Spec.Components = []v1alpha2.ApplicationConfigurationComponent{{ComponentName: componentName, Traits: []v1alpha2.ComponentTrait{{Trait: runtime.RawExtension{Raw: []byte(`{"app":"hello"}`)}}}}}
+			workload1.Spec.Components = []oamapi.ApplicationConfigurationComponent{{ComponentName: componentName, Traits: []oamapi.ComponentTrait{{Trait: runtime.RawExtension{Raw: []byte(`{"app":"hello"}`)}}}}}
 			return nil
 		})
 
