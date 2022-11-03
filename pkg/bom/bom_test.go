@@ -297,7 +297,10 @@ func TestBomComponentVersion(t *testing.T) {
 	assert.NotNil(t, c.Version)
 }
 
-// TestBomGetComponentVersion tests if GetComponentVersion is able to fetch the component version
+// TestBomGetComponentVersion tests the GetComponentVersion method
+// GIVEN a call to GetComponentVersion for a valid component
+// WHEN I ask for the version of that component
+// THEN the correct version is returned if found, or an error if not found
 func TestBomGetComponentVersion(t *testing.T) {
 	bom, err := NewBom(realBomFilePath)
 	assert.NoError(t, err)
@@ -309,7 +312,10 @@ func TestBomGetComponentVersion(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestGetSubcomponentImages tests if the GetSubcomponentImages is able to get the images of a subcomponent
+// TestGetSubcomponentImages tests the GetSubcomponentImages method
+// GIVEN a call to GetSubcomponentImages for a valid subcomponent
+// WHEN I ask for the images of that component
+// THEN the correct images are returned if found, or an error if not found
 func TestGetSubcomponentImages(t *testing.T) {
 	bom, err := NewBom(testBomFilePath)
 	assert.NoError(t, err)
@@ -321,7 +327,10 @@ func TestGetSubcomponentImages(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestGetSubcomponentImageCount tests if the GetSubcomponentImageCount is returning the correct number of images or not
+// TestBomGetSubcomponentImageCount tests the GetSubcomponentImageCount method
+// GIVEN a call to GetSubcomponentImageCount for a valid subcomponent
+// WHEN I ask for the number of images of that component
+// THEN the correct number is returned if found, or zero if not found
 func TestGetSubcomponentImageCount(t *testing.T) {
 	bom, err := NewBom(testBomFilePath)
 	assert.NoError(t, err)
