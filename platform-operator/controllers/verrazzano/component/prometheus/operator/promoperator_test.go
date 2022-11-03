@@ -247,6 +247,7 @@ func TestPreInstallUpgrade(t *testing.T) {
 	// GIVEN the Prometheus Operator is being installed or upgraded
 	// WHEN the preInstallUpgrade function is called
 	// THEN the component namespace is created in the cluster
+	config.TestHelmConfigDir = "../../../../../thirdparty"
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 
