@@ -113,26 +113,27 @@ func (w scaleWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger
 		return fmt.Errorf("error, not a valid OpenSearch tier to scale")
 	}
 
-	var replicas int
+	var replicas int32
 	var delta int64
-	var err error
 	var metric *metrics.MetricItem
 	// validate replicas
 	if *nextScale == OUT {
-		replicas, err = strconv.Atoi(config.PsrEnv.GetEnv(maxReplicaCount))
+		max, err := strconv.ParseInt(config.PsrEnv.GetEnv(maxReplicaCount), 10, 32)
 		if err != nil {
 			return fmt.Errorf("maxReplicaCount can not be parsed to an integer: %f", err)
 		}
+		replicas = int32(max)
 		metric = &w.workerMetrics.scaleOutCountTotal
 		delta = 1
 	} else {
-		replicas, err = strconv.Atoi(config.PsrEnv.GetEnv(minReplicaCount))
+		min, err := strconv.ParseInt(config.PsrEnv.GetEnv(minReplicaCount), 10, 32)
 		if err != nil {
 			return fmt.Errorf("minReplicaCount can not be parsed to an integer: %f", err)
 		}
 		if replicas < 1 {
 			return fmt.Errorf("minReplicaCount can not be less than 1")
 		}
+		replicas = int32(min)
 		metric = &w.workerMetrics.scaleInCountTotal
 		delta = -1
 	}
@@ -141,19 +142,19 @@ func (w scaleWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger
 
 	switch tier {
 	case masterTier:
-		m := opensearch.OpensearchMasterNodeGroupModifier{NodeReplicas: int32(replicas)}
+		m := opensearch.OpensearchMasterNodeGroupModifier{NodeReplicas: replicas}
 		err := update.UpdateCRV1beta1(m)
 		if err != nil {
 			return fmt.Errorf("failed to scale OpenSearch %s replicas: %f", tier, err)
 		}
 	case dataTier:
-		m := opensearch.OpensearchDataNodeGroupModifier{NodeReplicas: int32(replicas)}
+		m := opensearch.OpensearchDataNodeGroupModifier{NodeReplicas: replicas}
 		err := update.UpdateCRV1beta1(m)
 		if err != nil {
 			return fmt.Errorf("failed to scale OpenSearch %s replicas: %f", tier, err)
 		}
 	case ingestTier:
-		m := opensearch.OpensearchIngestNodeGroupModifier{NodeReplicas: int32(replicas)}
+		m := opensearch.OpensearchIngestNodeGroupModifier{NodeReplicas: replicas}
 		err := update.UpdateCRV1beta1(m)
 		if err != nil {
 			return fmt.Errorf("failed to scale OpenSearch %s replicas: %f", tier, err)
