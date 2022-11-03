@@ -27,13 +27,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "1.1.1-20220413170248-b60724ed1",
+              "tag": "v1.1.1-20221011113333-32d9515b3",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "1.1.1-20220413170248-b60724ed1",
+              "tag": "v1.1.1-20221011113333-32d9515b3",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -203,7 +203,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "1.1.1-20220413170248-b60724ed1",
+              "tag": "v1.1.1-20221011113333-32d9515b3",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             }
@@ -220,7 +220,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "1.3.7-20221013201626-04f2fec",
+              "tag": "1.3.7-20221102155228-c1cd93c",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -246,7 +246,7 @@
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "1.2.0-20220721221818-c206c8b25f",
+              "tag": "1.2.0-20221011085109-c206c8b25f",
               "helmFullImageKey": "monitoringOperator.kibanaImage"
             },
             {
@@ -256,7 +256,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "1.1.1-20220413170248-b60724ed1",
+              "tag": "v1.1.1-20221011113333-32d9515b3",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             }
           ]
@@ -293,7 +293,7 @@
           "images": [
             {
               "image": "oam-kubernetes-runtime",
-              "tag": "v0.3.0-20220602215259-046d772",
+              "tag": "v0.3.0-20221013061514-f30c668",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
