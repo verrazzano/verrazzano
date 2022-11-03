@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"reflect"
 	"strings"
 	"text/template"
@@ -397,7 +398,7 @@ var pkceClientUrisTemplate = `
 	]
 `
 
-var pkceClientUrisTemplateForDeprecatedESHosts = `
+var pkceClientUrisTemplateForDeprecatedOSHosts = `
 
 		"redirectUris": [
 		  "https://verrazzano.{{.DNSSubDomain}}/*",
@@ -773,6 +774,11 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	err = createUser(ctx, cfg, cli, vzInternalEsUser, "verrazzano-es-internal", vzSystemGroup, "", "")
 	if err != nil {
 		return err
+	}
+
+	// Update verrazzano-pkce client redirect and web origin uris if deprecated OS host exists in the ingress
+	if pkg.DoesIngressHostExist(constants.VerrazzanoSystemNamespace, constants.OpensearchIngress) {
+		pkceClientUrisTemplate = pkceClientUrisTemplateForDeprecatedOSHosts
 	}
 
 	// Create verrazzano-pkce client
