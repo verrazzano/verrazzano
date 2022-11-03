@@ -27,7 +27,10 @@ import (
 
 const (
 	// ISO8601Layout defines the timestamp format
-	ISO8601Layout = "2006-01-02T15:04:05.999999999-07:00"
+	ISO8601Layout                = "2006-01-02T15:04:05.999999999-07:00"
+	opensearchIndexManagement    = "opensearch-index-management"
+	opensearchJobScheduler       = "opensearch-job-scheduler"
+	opensearchPrometheusExporter = "prometheus-exporter"
 )
 
 // GetOpenSearchSystemIndex in Verrazzano 1.3.0, indices in the verrazzano-system namespace have been migrated
@@ -194,6 +197,13 @@ type IndexListData struct {
 	PriStoreSize string `json:"priStoreSize"`
 }
 
+// Plugins represents the result of /_cat/plugins?format=json output
+type Plugins struct {
+	Name      string `json:"name"`
+	Component string `json:"component"`
+	Version   string `json:"version"`
+}
+
 type ElasticSearchISMPolicyAddModifier struct{}
 
 type ElasticSearchISMPolicyRemoveModifier struct{}
@@ -224,6 +234,30 @@ func (u ElasticSearchISMPolicyAddModifier) ModifyCR(cr *vzapi.Verrazzano) {
 
 func (u ElasticSearchISMPolicyRemoveModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
+}
+
+func VerifyOpenSearchPlugins() error {
+	resp, err := doGetElasticSearchURL("%s/_cat/plugins?format=json")
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode == http.StatusOK {
+		var pluginsData []Plugins
+		err := json.Unmarshal(resp.Body, &pluginsData)
+		if err != nil {
+			return err
+		}
+		expectedPluginCount := 0
+		for _, plugin := range pluginsData {
+			if plugin.Component == opensearchIndexManagement || plugin.Component == opensearchJobScheduler || plugin.Component == opensearchPrometheusExporter {
+				expectedPluginCount++
+			}
+		}
+		if expectedPluginCount != 3 {
+			return fmt.Errorf("expected OpenSearch plugins are not installed")
+		}
+	}
+	return nil
 }
 
 // GetOpenSearchAppIndex in Verrazzano 1.3.0, application indices have been migrated to data streams
