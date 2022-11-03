@@ -8,6 +8,7 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -157,11 +158,15 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 		t.It("authproxy default replicas", func() {
 			cr := update.GetCR()
 
-			expectedRunning := uint32(1)
-			if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
+			expectedRunning := int32(1)
+			deployment, err := pkg.GetDeployment(constants.VerrazzanoSystemNamespace, constants.VerrazzanoAuthproxy)
+			gomega.Expect(err).To(gomega.BeNil())
+			if deployment.Spec.Replicas != nil {
+				expectedRunning = *deployment.Spec.Replicas
+			} else if cr.Spec.Profile == "prod" || cr.Spec.Profile == "" {
 				expectedRunning = 2
 			}
-			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
+			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, uint32(expectedRunning), false)
 		})
 	})
 
@@ -179,12 +184,8 @@ var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 			m := AuthProxyPodPerNodeAffintyModifier{}
 			update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 
-			expectedRunning := nodeCount - 1
+			expectedRunning := nodeCount
 			expectedPending := true
-			if nodeCount == 1 {
-				expectedRunning = nodeCount
-				expectedPending = false
-			}
 			update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, expectedPending)
 		})
 	})
