@@ -6,11 +6,13 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"os"
 	"path/filepath"
 	"strconv"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -94,6 +96,30 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       AppendOverrides,
 			Certificates:              certificates,
 			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, certmanager.ComponentName},
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+					{
+						Name:      rancherWebhookDeployment,
+						Namespace: ComponentNamespace,
+					},
+					{
+						Name:      fleetAgentDeployment,
+						Namespace: FleetLocalSystemNamespace,
+					},
+					{
+						Name:      fleetControllerDeployment,
+						Namespace: FleetSystemNamespace,
+					},
+					{
+						Name:      gitjobDeployment,
+						Namespace: FleetSystemNamespace,
+					},
+				},
+			},
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
@@ -351,17 +377,9 @@ func (r rancherComponent) Install(ctx spi.ComponentContext) error {
 // IsReady component check
 func (r rancherComponent) IsReady(ctx spi.ComponentContext) bool {
 	if r.HelmComponent.IsReady(ctx) {
-		return isRancherReady(ctx)
+		return r.isRancherReady(ctx)
 	}
 	return false
-}
-
-func (r rancherComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = r.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", r.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", r.Name()), false
 }
 
 // PostInstall
@@ -486,11 +504,7 @@ func ConfigureAuthProviders(ctx spi.ComponentContext) error {
 			return err
 		}
 
-		if err := createOrUpdateRancherVerrazzanoUser(ctx); err != nil {
-			return err
-		}
-
-		if err := createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx); err != nil {
+		if err := createOrUpdateRancherUser(ctx); err != nil {
 			return err
 		}
 
@@ -581,6 +595,26 @@ func checkExistingRancher(vz runtime.Object) error {
 		return err
 	}
 	if err = common.CheckExistingNamespace(ns.Items, isRancherNamespace); err != nil {
+		return err
+	}
+	return nil
+}
+
+// createOrUpdateRancherUser create or update the new Rancher user mapped to Keycloak user verrazzano
+func createOrUpdateRancherUser(ctx spi.ComponentContext) error {
+	vzUser, err := keycloak.GetVerrazzanoUserFromKeycloak(ctx)
+	if err != nil {
+		return ctx.Log().ErrorfThrottledNewErr("failed configuring Rancher user, unable to fetch verrazzano user id from Keycloak: %s", err.Error())
+	}
+	rancherUsername, err := getRancherUsername(ctx, vzUser)
+	if err != nil {
+		return err
+	}
+	if err = createOrUpdateRancherVerrazzanoUser(ctx, vzUser, rancherUsername); err != nil {
+		return err
+	}
+
+	if err = createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx, rancherUsername); err != nil {
 		return err
 	}
 	return nil

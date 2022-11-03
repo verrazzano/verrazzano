@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -103,21 +105,17 @@ func (c jaegerOperatorComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // IsReady checks if the Jaeger Operator deployment is ready
 func (c jaegerOperatorComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		defaultJaegerEnabled, err := isJaegerCREnabled(ctx)
-		if err == nil && defaultJaegerEnabled {
-			return isJaegerOperatorReady(ctx) && isDefaultJaegerInstanceReady(ctx)
-		}
-		return isJaegerOperatorReady(ctx)
+		return isJaegerReady(ctx)
 	}
 	return false
 }
 
-func (c jaegerOperatorComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = c.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", c.Name()), true
+func (c jaegerOperatorComponent) IsAvailable(ctx spi.ComponentContext) (string, bool) {
+	deploys, err := getAllComponentDeployments(ctx)
+	if err != nil {
+		return err.Error(), false
 	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
+	return (&ready.AvailabilityObjects{DeploymentNames: deploys}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 // MonitorOverrides checks whether monitoring is enabled for install overrides sources

@@ -6,6 +6,12 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"github.com/golang/mock/gomock"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+	"k8s.io/apimachinery/pkg/types"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -356,4 +362,110 @@ func newClusterRepoResources() []runtime.Object {
 	appClusterRepo.SetName("app-charts")
 
 	return []runtime.Object{cattleSettings, rancherClusterRepo, rancherPartnerClusterRepo, rancherRke2ClusterRepo, appClusterRepo}
+}
+
+// TestGetUserNameForPrincipal tests getUserNameForPrincipal to get the correct base32 encode
+// hash string for the given principalID string
+func TestGetUserNameForPrincipal(t *testing.T) {
+	tests := []struct {
+		name      string
+		principal string
+		want      string
+	}{
+		{
+			"test getUserNameForPrincipal",
+			"keycloakoidc_user://37f24158-e692-45b8-a789-61e0cb6e94f2",
+			"u-mikd3gyuml",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := getUserNameForPrincipal(tt.principal); got != tt.want {
+				t.Errorf("getUserNameForPrincipal() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestGetRancherUsername tests getRancherUsername to check
+// WHEN Keycloak user is provided
+// THEN name of the Rancher user that is mapped to the given Keycloak user is returned
+func TestGetRancherUsername(t *testing.T) {
+
+	keycloakUser := &keycloak.KeycloakUser{
+		ID: "53g24158-e692-45b8-a789-61e0cb6e94f3",
+	}
+	principalLabel := UserPrincipalKeycloakPrefix + keycloakUser.ID
+	rancherUsername := getUserNameForPrincipal(principalLabel)
+	rancherUser := getFakeRancherUser(UserVerrazzano, principalLabel)
+	rancherUser2 := getFakeRancherUser(rancherUsername, principalLabel)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	// Expect a call to get the Rancher user
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: UserVerrazzano}, gomock.Not(gomock.Nil())).
+		Return(fmt.Errorf("internal server error"))
+	tests := []struct {
+		name    string
+		ctx     spi.ComponentContext
+		vzUser  *keycloak.KeycloakUser
+		want    string
+		wantErr bool
+	}{
+		{
+			"TestGetRancherUsername with existing Rancher user u-verrazzano",
+			spi.NewFakeContext(fake.NewClientBuilder().WithObjects(rancherUser).Build(), &vzapi.Verrazzano{}, nil, false),
+			keycloakUser,
+			UserVerrazzano,
+			false,
+		},
+		{
+			"TestGetRancherUsername with existing Rancher user u-<hash>",
+			spi.NewFakeContext(fake.NewClientBuilder().WithObjects(rancherUser2).Build(), &vzapi.Verrazzano{}, nil, false),
+			keycloakUser,
+			rancherUsername,
+			false,
+		},
+		{
+			"TestGetRancherUsername with no existing Rancher user",
+			spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false),
+			keycloakUser,
+			rancherUsername,
+			false,
+		},
+		{
+			"TestGetRancherUsername when get Rancher user API gets failed",
+			spi.NewFakeContext(mock, &vzapi.Verrazzano{}, nil, false),
+			keycloakUser,
+			"",
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := getRancherUsername(tt.ctx, tt.vzUser)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("getRancherUsername() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("getRancherUsername() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// getFakeRancherUser constructs a fake unstructured Rancher user object
+func getFakeRancherUser(userName string, principal string) *unstructured.Unstructured {
+	resource := &unstructured.Unstructured{}
+	resource.SetGroupVersionKind(GVKUser)
+	resource.SetName(userName)
+	resource.SetNamespace("")
+	data := resource.UnstructuredContent()
+	data[UserAttributeUserName] = userName
+	caser := cases.Title(language.English)
+	data[UserAttributeDisplayName] = caser.String(userName)
+	data[UserAttributeDescription] = caser.String(UserVerrazzanoDescription)
+	data[UserAttributePrincipalIDs] = []interface{}{principal, UserPrincipalLocalPrefix + userName}
+	return resource
 }

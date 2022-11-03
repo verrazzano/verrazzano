@@ -5,6 +5,7 @@ package opensearchdashboards
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -143,12 +144,8 @@ func (d opensearchDashboardsComponent) Upgrade(ctx spi.ComponentContext) error {
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
-func (d opensearchDashboardsComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = d.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", d.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", d.Name()), false
+func (d opensearchDashboardsComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available bool) {
+	return (&ready.AvailabilityObjects{DeploymentNames: getOSDDeployments()}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 // IsReady component check

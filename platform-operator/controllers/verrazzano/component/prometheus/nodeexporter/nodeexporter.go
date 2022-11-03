@@ -17,7 +17,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -29,15 +28,9 @@ const (
 )
 
 // isPrometheusNodeExporterReady checks if the Prometheus Node-Exporter daemonset is ready
-func isPrometheusNodeExporterReady(ctx spi.ComponentContext) bool {
-	sets := []types.NamespacedName{
-		{
-			Name:      daemonsetName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c prometheusNodeExporterComponent) isPrometheusNodeExporterReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return ready.DaemonSetsAreReady(ctx.Log(), ctx.Client(), sets, 1, prefix)
+	return ready.DaemonSetsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DaemonsetNames, 1, prefix)
 }
 
 // PreInstall implementation for the Prometheus Node-Exporter Component

@@ -84,6 +84,21 @@ const (
 	meshConfigTracingPath    = "spec.meshConfig.defaultConfig.tracing"
 )
 
+var istioDeployments = []types.NamespacedName{
+	{
+		Name:      IstiodDeployment,
+		Namespace: IstioNamespace,
+	},
+	{
+		Name:      IstioIngressgatewayDeployment,
+		Namespace: IstioNamespace,
+	},
+	{
+		Name:      IstioEgressgatewayDeployment,
+		Namespace: IstioNamespace,
+	},
+}
+
 // istioComponent represents an Istio component
 type istioComponent struct {
 	// ValuesFile contains the path to the IstioOperator CR values file
@@ -381,13 +396,8 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 	return err
 }
 
-func (i istioComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	available = areIstioDeploymentsReady(context, prefix)
-	if available {
-		return fmt.Sprintf("%s is available", i.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", i.Name()), false
+func (i istioComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available bool) {
+	return (&ready.AvailabilityObjects{DeploymentNames: istioDeployments}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
@@ -420,21 +430,7 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 }
 
 func areIstioDeploymentsReady(context spi.ComponentContext, prefix string) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      IstiodDeployment,
-			Namespace: IstioNamespace,
-		},
-		{
-			Name:      IstioIngressgatewayDeployment,
-			Namespace: IstioNamespace,
-		},
-		{
-			Name:      IstioEgressgatewayDeployment,
-			Namespace: IstioNamespace,
-		},
-	}
-	return ready.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(context.Log(), context.Client(), istioDeployments, 1, prefix)
 }
 
 func isIstioManifestNotInstalledError(err error) bool {

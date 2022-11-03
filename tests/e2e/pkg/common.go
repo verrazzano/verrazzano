@@ -57,7 +57,7 @@ const (
 	ApplicationIndexPatternPrefix = "verrazzano-application"
 
 	// kubeConfigErrorFmt - error format for reporting kubeconfig related errors
-	kubeConfigErrorFmt = "Error getting kubeconfig, error: %v"
+	KubeConfigErrorFmt = "Error getting kubeconfig, error: %v"
 
 	// clientSetErrorFmt - error format for reporting clientset  related errors
 	clientSetErrorFmt = "Error getting clientset for kubernetes cluster, error: %v"
@@ -161,8 +161,8 @@ func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, 
 func PodsRunning(namespace string, namePrefixes []string) (bool, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Log(Error, fmt.Sprintf(kubeConfigErrorFmt, err))
-		return false, fmt.Errorf(kubeConfigErrorFmt, err)
+		Log(Error, fmt.Sprintf(KubeConfigErrorFmt, err))
+		return false, fmt.Errorf(KubeConfigErrorFmt, err)
 	}
 	result, err := PodsRunningInCluster(namespace, namePrefixes, kubeconfigPath)
 	return result, err
@@ -172,8 +172,8 @@ func PodsRunning(namespace string, namePrefixes []string) (bool, error) {
 func SpecificPodsRunning(namespace, labels string) (bool, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Log(Error, fmt.Sprintf(kubeConfigErrorFmt, err))
-		return false, fmt.Errorf(kubeConfigErrorFmt, err)
+		Log(Error, fmt.Sprintf(KubeConfigErrorFmt, err))
+		return false, fmt.Errorf(KubeConfigErrorFmt, err)
 	}
 	result, err := SpecificPodsRunningInCluster(namespace, labels, kubeconfigPath)
 	return result, err
@@ -186,8 +186,8 @@ func GetVerrazzanoRetentionPolicy(retentionPolicyName string) (v12.IndexManageme
 	retentionPolicy := v12.IndexManagementPolicy{}
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Log(Error, fmt.Sprintf(kubeConfigErrorFmt, err))
-		return retentionPolicy, fmt.Errorf(kubeConfigErrorFmt, err)
+		Log(Error, fmt.Sprintf(KubeConfigErrorFmt, err))
+		return retentionPolicy, fmt.Errorf(KubeConfigErrorFmt, err)
 	}
 	clientset, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
@@ -218,8 +218,8 @@ func GetVerrazzanoRolloverPolicy(rolloverPolicyName string) (v12.RolloverPolicy,
 	defaultRolloverPolicy := v12.RolloverPolicy{MinIndexAge: &DefaultRolloverPeriod}
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Log(Error, fmt.Sprintf(kubeConfigErrorFmt, err))
-		return defaultRolloverPolicy, fmt.Errorf(kubeConfigErrorFmt, err)
+		Log(Error, fmt.Sprintf(KubeConfigErrorFmt, err))
+		return defaultRolloverPolicy, fmt.Errorf(KubeConfigErrorFmt, err)
 	}
 	clientset, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
@@ -523,7 +523,7 @@ func SliceContainsPolicyRule(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRu
 func ContainerImagePullWait(namespace string, namePrefixes []string) bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Log(Error, fmt.Sprintf(kubeConfigErrorFmt, err))
+		Log(Error, fmt.Sprintf(KubeConfigErrorFmt, err))
 		return false
 	}
 	return ContainerImagePullWaitInCluster(namespace, namePrefixes, kubeconfigPath)
