@@ -726,8 +726,8 @@ spec:
               clusters:
                 description: Status information for each cluster.
                 items:
-                  description: ClusterLevelStatus describes the status of the multi
-                    cluster resource in a specific cluster.
+                  description: ClusterLevelStatus describes the status of the multicluster
+                    resource in a specific cluster.
                   properties:
                     lastUpdateTime:
                       description: Last update time of the resource state in this
@@ -751,7 +751,7 @@ spec:
               conditions:
                 description: The current state of a multicluster resource.
                 items:
-                  description: Condition describes current state of a multi cluster
+                  description: Condition describes current state of a multicluster
                     resource.
                   properties:
                     lastTransitionTime:
