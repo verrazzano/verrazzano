@@ -436,7 +436,7 @@ func getESInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
 			if errors.IsNotFound(err) {
 				ctx.Log().Progressf("Component Jaeger Operator waiting for the secret %s/%s to exist",
 					constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal)
-				return secret, ctrlerrors.RetryableError{Source: ComponentName}
+				return secret, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 			}
 			ctx.Log().Errorf("Component Jaeger Operator failed to get the secret %s/%s: %v",
 				constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal, err)

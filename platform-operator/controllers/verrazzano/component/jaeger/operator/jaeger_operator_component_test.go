@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"testing"
 
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -38,6 +40,7 @@ const (
 	defaultJaegerDisabledJSON    = "{\"jaeger\":{\"create\": false}}"
 	defaultJaegerEnabledJSON     = "{\"jaeger\":{\"create\": true}}"
 	k8sAppNameLabel              = "app.kubernetes.io/name"
+	k8sInstanceNameLabel         = "app.kubernetes.io/instance"
 	podTemplateHashLabel         = "pod-template-hash"
 	deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
 )
@@ -47,11 +50,13 @@ var jaegerEnabledCR = &vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Components: vzapi.ComponentSpec{
 			JaegerOperator: &vzapi.JaegerOperatorComponent{
-				Enabled: &enabled,
+				Enabled: &trueValue,
 			},
 		},
 	},
 }
+
+var jaegerOverrideJSONString = "{\"jaeger\":{\"create\": true, \"spec\":{\"storage\":{\"secretName\":\"test-secret\"}}}}"
 
 type ingressTestStruct struct {
 	name   string
@@ -178,9 +183,8 @@ func TestIsInstalled(t *testing.T) {
 	}
 }
 
-// TestIsInstalled tests the IsEnabled function for the Jaeger Operator component
+// TestPreUpgrade tests the PreUpgrade function for the Jaeger Operator component
 func TestPreUpgrade(t *testing.T) {
-	falseValue := false
 	tests := []struct {
 		name         string
 		client       client.Client
@@ -189,59 +193,138 @@ func TestPreUpgrade(t *testing.T) {
 		expectErrMsg string
 	}{
 		{
-			// GIVEN a default Verrazzano custom resource
-			// WHEN we call IsInstalled on the Jaeger Operator component
-			// THEN the call returns false
-			name: "Test IsInstalled when using default Verrazzano CR",
+			// GIVEN a default Verrazzano custom resource all Jaeger Operator services and secrets
+			// WHEN we call PreUpgrade on the Jaeger Operator component,
+			// THEN the call returns the expected error,
+			name: "Test PreUpgrade with conflicting Jaeger instance",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				getAllJaegerObjects(1, 1, 1)...,
 			).Build(),
 			actualCR:     vzapi.Verrazzano{},
 			expectError:  true,
-			expectErrMsg: "",
+			expectErrMsg: "Conflicting Jaeger instance verrazzano-monitoring/jaeger-operator-jaeger exists!",
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
-			// WHEN we call IsInstalled on the Jaeger Operator component
-			// THEN the call returns true
-			name:         "Test IsInstalled when Jaeger Operator component set to enabled",
+			//      with no pre-existing Jaeger operator objects,
+			// WHEN we call PreUpgrade on the Jaeger Operator component,
+			// THEN the call returns the expected error.
+			name:         "Test PreUpgrade when Jaeger operator deployment is missing",
 			client:       fake.NewClientBuilder().WithScheme(testScheme).Build(),
 			actualCR:     *jaegerEnabledCR,
 			expectError:  true,
-			expectErrMsg: "",
+			expectErrMsg: "Failed to get deployment verrazzano-monitoring/jaeger-operator",
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
-			//       and Jaeger operator pod is not available
-			// WHEN we call IsInstalled on the Jaeger Operator component
-			// THEN the call returns false
-			name: "Test IsInstalled when Jaeger Operator component set to enabled",
+			//       with all Jaeger operator objects and the ES secret does not have any data,
+			// WHEN we call PreUpgrade on the Jaeger Operator component,
+			// THEN the call returns no error.
+			name: "Test PreUpgrade when all Jaeger Operator objects are available with no data in ES secret",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-				getJaegerOperatorObjects(1)...,
+				append(getJaegerOperatorObjects(1), getJaegerWebHookServiceObjects(),
+					getJaegerMetricsService(), getJaegerSecretObject(), getESSecretNoData())...,
 			).Build(),
 			actualCR:     *jaegerEnabledCR,
 			expectError:  false,
-			expectErrMsg: "",
+			expectErrMsg: "_",
 		},
 		{
-			// GIVEN a Verrazzano custom resource with the Jaeger Operator disabled
-			// WHEN we call IsInstalled on the Jaeger Operator component
-			// THEN the call returns false
-			name: "Test IsInstalled when Jaeger Operator component set to disabled",
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       and Jaeger operator objects available and data filled in Jaeger ES secret,
+			// WHEN we call PreUpgrade on the Jaeger Operator component,
+			// THEN the call returns no error
+			name: "Test PreUpgrade when Jaeger Operator objects are available with no data in ES secret",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-				getJaegerOperatorObjects(1)...,
+				append(getJaegerOperatorObjects(1), getJaegerWebHookServiceObjects(),
+					getJaegerMetricsService(), getJaegerSecretObject(), getESSecretWithData())...,
 			).Build(),
-			actualCR: vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						JaegerOperator: &vzapi.JaegerOperatorComponent{
-							Enabled: &falseValue,
-						},
-					},
-				},
-			},
+			actualCR:     *jaegerEnabledCR,
 			expectError:  false,
-			expectErrMsg: "",
+			expectErrMsg: "_",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       and Jaeger operator objects are available
+			// WHEN we call PreUpgrade on the Jaeger Operator component
+			// THEN the call returns no error
+			name: "Test PreUpgrade when Jaeger Operator objects are available and Jaeger instance create disabled",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				append(getJaegerOperatorObjects(1), getJaegerWebHookServiceObjects(),
+					getJaegerMetricsService(), getJaegerSecretObject(), getESSecretNoData())...,
+			).Build(),
+			actualCR:     getVZCRWithCustomJaegerCROverride(jaegerDisabledJSON),
+			expectError:  false,
+			expectErrMsg: "_",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       and Jaeger operator objects are available with OpenSearch secret missing,
+			// WHEN we call PreUpgrade on the Jaeger Operator component,
+			// THEN the call returns error.
+			name: "Test PreUpgrade when OpenSearch secret is missing",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				append(getJaegerOperatorObjects(1), getJaegerWebHookServiceObjects(),
+					getJaegerMetricsService(), getJaegerSecretObject())...,
+			).Build(),
+			actualCR:     *jaegerEnabledCR,
+			expectError:  true,
+			expectErrMsg: "secrets \"verrazzano-es-internal\" not found",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled and custom Jaeger secret
+			//       and other Jaeger operator objects are available
+			// WHEN we call PreUpgrade on the Jaeger Operator component
+			// THEN the call returns the expected error
+			name: "Test PreUpgrade with non existent custom Jaeger password",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				append(getJaegerOperatorObjects(1), getJaegerWebHookServiceObjects(),
+					getJaegerMetricsService(), getJaegerSecretObject())...,
+			).Build(),
+			actualCR:     getVZCRWithCustomJaegerCROverride(jaegerOverrideJSONString),
+			expectError:  true,
+			expectErrMsg: "test-secret not found in namespace verrazzano-install",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       and Jaeger operator objects are available,
+			// WHEN we call IsInstalled on the Jaeger Operator component,
+			// THEN the call returns no error.
+			name: "Test PreUpgrade with existent custom Jaeger password",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				append(getJaegerOperatorObjects(1), getJaegerWebHookServiceObjects(),
+					getJaegerMetricsService(), getJaegerSecretObject(), getCustomSecretWithData())...,
+			).Build(),
+			actualCR:     getVZCRWithCustomJaegerCROverride(jaegerOverrideJSONString),
+			expectError:  false,
+			expectErrMsg: "_",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       and Jaeger operator objects are available and custom secret,
+			// WHEN we call IsInstalled on the Jaeger Operator component,
+			// THEN the call returns no error.
+			name: "Test PreUpgrade with custom Jaeger password",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				append(getLabeledJaegerOperatorDeploy(1), getJaegerWebHookServiceObjects(),
+					getJaegerMetricsService(), getJaegerSecretObject(), getCustomSecretWithData())...,
+			).Build(),
+			actualCR:     getVZCRWithCustomJaegerCROverride(jaegerOverrideJSONString),
+			expectError:  false,
+			expectErrMsg: "_",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       and Jaeger operator objects with missing Jaeger webhook service
+			// WHEN we call IsInstalled on the Jaeger Operator component
+			// THEN the call returns the expected error
+			name: "Test PreUpgrade when Jaeger Operator component set to enabled",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				append(getJaegerOperatorObjects(1), getJaegerMetricsService())...,
+			).Build(),
+			actualCR:     *jaegerEnabledCR,
+			expectError:  true,
+			expectErrMsg: "Failed to get webhook service verrazzano-monitoring/jaeger-operator-webhook-service",
 		},
 	}
 
@@ -251,6 +334,44 @@ func TestPreUpgrade(t *testing.T) {
 			err := NewComponent().PreUpgrade(ctx)
 			if tt.expectError {
 				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.expectErrMsg)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestReassociateResources re-associate jaeger resource post upgrade
+func TestReassociateResources(t *testing.T) {
+	certv1.AddToScheme(testScheme)
+	tests := []struct {
+		name         string
+		client       client.Client
+		actualCR     vzapi.Verrazzano
+		expectError  bool
+		expectErrMsg string
+	}{
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       and all Jaeger operator objects are available,
+			// WHEN we call ReassociateResources on the Jaeger Operator component
+			// THEN the call returns no error
+			name: "Test ReassociateResources when Jaeger Operator component set to enabled",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				append(getJaegerOperatorObjects(1), getJaegerWebHookServiceObjects(),
+					getJaegerMetricsService(), getJaegerSecretObject(), getESSecretNoData())...,
+			).WithRuntimeObjects(getJaegerCertIssuer()).Build(),
+			expectError:  false,
+			expectErrMsg: "_",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ReassociateResources(tt.client)
+			if tt.expectError {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.expectErrMsg)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -269,25 +390,26 @@ func TestUpgrade(t *testing.T) {
 	}{
 		{
 			// GIVEN a default Verrazzano custom resource
-			// WHEN we call IsInstalled on the Jaeger Operator component
-			// THEN the call returns false
-			name: "Test IsInstalled when using default Verrazzano CR",
+			//       and all Jaeger Operator objects are available,
+			// WHEN we call Upgrade on the Jaeger Operator component,
+			// THEN the call returns the expected error
+			name: "Test Upgrade when using default Verrazzano CR",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				getAllJaegerObjects(1, 1, 1)...,
 			).Build(),
 			actualCR:     vzapi.Verrazzano{},
 			expectError:  true,
-			expectErrMsg: "",
+			expectErrMsg: "no such file or directory",
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
 			// WHEN we call IsInstalled on the Jaeger Operator component
 			// THEN the call returns true
-			name:         "Test IsInstalled when Jaeger Operator component set to enabled",
+			name:         "Test Upgrade when Jaeger Operator component set to enabled",
 			client:       fake.NewClientBuilder().WithScheme(testScheme).Build(),
 			actualCR:     *jaegerEnabledCR,
 			expectError:  true,
-			expectErrMsg: "",
+			expectErrMsg: "no such file or directory",
 		},
 	}
 
@@ -297,6 +419,7 @@ func TestUpgrade(t *testing.T) {
 			err := NewComponent().Upgrade(ctx)
 			if tt.expectError {
 				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.expectErrMsg)
 			} else {
 				assert.NoError(t, err)
 			}
@@ -1094,43 +1217,131 @@ func getIngressTests(isUpgradeOperation bool) []ingressTestStruct {
 	}
 }
 
+func getVZCRWithCustomJaegerCROverride(override string) vzapi.Verrazzano {
+	return vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &trueValue,
+					InstallOverrides: vzapi.InstallOverrides{
+						MonitorChanges: &trueValue,
+						ValueOverrides: []vzapi.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(override),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func getAllJaegerObjects(operatorReplicas, collectorReplicas, queryReplicas int32) []client.Object {
 	allJaegerObjects := append(getJaegerOperatorObjects(operatorReplicas), getJaegerCollectorObjects(collectorReplicas)...)
 	allJaegerObjects = append(allJaegerObjects, getJaegerQueryObjects(queryReplicas)...)
 	return allJaegerObjects
 }
 
+func getLabeledJaegerOperatorDeploy(replicas int32) []client.Object {
+	jaegerOperatorObjects := getJaegerOperatorObjects(replicas)
+	labeledJaegerOperatorDeploy := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      deploymentName,
+			Labels:    map[string]string{k8sAppNameLabel: ComponentName, k8sInstanceNameLabel: ComponentName},
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{k8sAppNameLabel: ComponentName, k8sInstanceNameLabel: ComponentName},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: replicas,
+			ReadyReplicas:     replicas,
+			Replicas:          1,
+			UpdatedReplicas:   1,
+		},
+	}
+	return append([]client.Object{labeledJaegerOperatorDeploy}, jaegerOperatorObjects[1:]...)
+}
+
+func getJaegerWebHookServiceObjects() client.Object {
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      ComponentWebhookServiceName,
+		},
+	}
+}
+
+func getJaegerSecretObject() client.Object {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      ComponentSecretName,
+		},
+	}
+}
+
+func getJaegerMetricsService() client.Object {
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      ComponentServiceName,
+		},
+	}
+}
+
+func getCustomSecretWithData() client.Object {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoInstallNamespace,
+			Name:      "test-secret",
+		},
+		Data: map[string][]byte{
+			"ES_USERNAME": []byte("abcd"),
+			"ES_PASSWORD": []byte("xyz"),
+		},
+	}
+}
+
+func getESSecretWithData() client.Object {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      globalconst.VerrazzanoESInternal,
+		},
+		Data: map[string][]byte{
+			"ES_USERNAME": []byte("abcd"),
+			"ES_PASSWORD": []byte("xyz"),
+		},
+	}
+}
+
+func getESSecretNoData() client.Object {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      globalconst.VerrazzanoESInternal,
+		},
+	}
+}
+
+func getJaegerCertIssuer() runtime.Object {
+	return &certv1.Issuer{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      "jaeger-operator-selfsigned-issuer",
+		},
+	}
+}
+
 // getJaegerOperatorObjects returns the K8S objects for the Jaeger Operator component.
 func getJaegerOperatorObjects(availableReplicas int32) []client.Object {
 	return []client.Object{
-		&corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      ComponentServiceName,
-			},
-		},
-		&corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      ComponentWebhookServiceName,
-			},
-		},
-		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      ComponentSecretName,
-			},
-		},
-		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: constants.VerrazzanoSystemNamespace,
-				Name:      globalconst.VerrazzanoESInternal,
-			},
-			StringData: map[string]string{
-				"ES_USERNAME": "abcd",
-				"ES_PASSWORD": "xyz",
-			},
-		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,

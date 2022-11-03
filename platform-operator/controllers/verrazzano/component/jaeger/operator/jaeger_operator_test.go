@@ -441,3 +441,11 @@ func TestGetOverrides(t *testing.T) {
 		})
 	}
 }
+
+func TestGetClient(t *testing.T) {
+	t.Run("test get client", func(t *testing.T) {
+		client, err := getClient()
+		assert.NoError(t, err, "call to getClient() should not return an error")
+		assert.NotNilf(t, client, "call to getClient() should return a valid client")
+	})
+}
