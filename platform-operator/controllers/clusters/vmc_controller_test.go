@@ -941,6 +941,12 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 			return nil
 		})
 
+	// Expect to get existing VMC for status update
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: clusterName}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			return nil
+		})
+
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
@@ -1035,6 +1041,12 @@ func TestSyncManifestSecretEmptyRancherManifest(t *testing.T) {
 	// Expect all the calls needed to register the cluster with Rancher - note we are passing an empty string for the Rancher manifest YAML
 	// that will be returned when calling the Rancher API
 	expectRegisterClusterWithRancher(t, mock, mockRequestSender, testManagedCluster, false, "")
+
+	// Expect to get existing VMC for status update
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			return nil
+		})
 
 	// Expect the Rancher registration status to be set appropriately
 	mock.EXPECT().Status().Return(mockStatus)
@@ -1854,6 +1866,12 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 
 	// Expect all the calls needed to register the cluster with Rancher
 	expectRegisterClusterWithRancher(t, mock, mockRequestSender, name, clusterAlreadyRegistered, expectedRancherYAML)
+
+	// Expect to get existing VMC for status update
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			return nil
+		})
 
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
