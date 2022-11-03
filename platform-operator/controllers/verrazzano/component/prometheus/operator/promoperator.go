@@ -106,6 +106,11 @@ func preInstallUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	err := common.ApplyCRDYaml(ctx, config.GetHelmPromOpChartsDir())
+	if err != nil {
+		return err
+	}
+
 	// Remove any existing volume claims from old VMO-managed Prometheus persistent volumes
 	return updateExistingVolumeClaims(ctx)
 }

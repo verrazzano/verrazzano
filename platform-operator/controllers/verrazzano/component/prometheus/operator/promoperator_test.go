@@ -1050,6 +1050,57 @@ func TestResetVolumeReclaimPolicy(t *testing.T) {
 	assert.ErrorContains(t, err, "Failed resetting reclaim policy")
 }
 
+// TestCreateUpdateServiceMonitors tests the createUpdateServiceMonitors function
+func TestCreateUpdateServiceMonitors(t *testing.T) {
+	endPoints := make([]promoperapi.Endpoint, 0)
+	endPoint := promoperapi.Endpoint{
+		Port:                 "8080",
+		TargetPort:           nil,
+		Path:                 "test",
+		Scheme:               "https",
+		Params:               nil,
+		Interval:             "10",
+		ScrapeTimeout:        "5",
+		TLSConfig:            nil,
+		BearerTokenFile:      "",
+		BearerTokenSecret:    corev1.SecretKeySelector{},
+		Authorization:        nil,
+		HonorLabels:          false,
+		HonorTimestamps:      nil,
+		BasicAuth:            nil,
+		OAuth2:               nil,
+		MetricRelabelConfigs: nil,
+		RelabelConfigs:       nil,
+		ProxyURL:             nil,
+		FollowRedirects:      nil,
+		EnableHttp2:          nil,
+	}
+
+	endPoints = append(endPoints, endPoint)
+
+	clientWithSM := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&promoperapi.ServiceMonitor{
+			TypeMeta:   metav1.TypeMeta{Kind: promoperapi.ServiceMonitorsKind, APIVersion: promoperapi.Version},
+			ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "testServiceMonitor"},
+			Spec: promoperapi.ServiceMonitorSpec{
+				JobLabel:              "test",
+				TargetLabels:          nil,
+				PodTargetLabels:       nil,
+				Endpoints:             endPoints,
+				Selector:              metav1.LabelSelector{},
+				NamespaceSelector:     promoperapi.NamespaceSelector{},
+				SampleLimit:           0,
+				TargetLimit:           0,
+				LabelLimit:            0,
+				LabelNameLengthLimit:  0,
+				LabelValueLengthLimit: 0,
+			},
+		}).Build()
+
+	err := createOrUpdateServiceMonitors(spi.NewFakeContext(clientWithSM, &vzapi.Verrazzano{}, nil, false))
+	assert.NoError(t, err)
+}
+
 // TestAppendResourceRequestOverrides tests the appendResourceRequestOverrides function
 func TestAppendResourceRequestOverrides(t *testing.T) {
 	const (

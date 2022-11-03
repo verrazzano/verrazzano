@@ -22,6 +22,7 @@ const (
 	helmVMOChartsDirSuffix       = "/platform-operator/helm_config/charts/verrazzano-monitoring-operator"
 	helmAppOpChartsDirSuffix     = "/platform-operator/helm_config/charts/verrazzano-application-operator"
 	helmKialiChartsDirSuffix     = "/platform-operator/thirdparty/charts/kiali-server"
+	helmPromOpChartsDirSuffix    = "/platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack"
 	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
 	helmOverridesDirSuffix       = "/platform-operator/helm_config/overrides"
 )
@@ -120,6 +121,14 @@ func GetHelmAppOpChartsDir() string {
 		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano-application-operator")
 	}
 	return filepath.Join(instance.VerrazzanoRootDir, helmAppOpChartsDirSuffix)
+}
+
+// GetHelmPromOpChartsDir returns the Prometheus Operator helm charts dir
+func GetHelmPromOpChartsDir() string {
+	if TestHelmConfigDir != "" {
+		return filepath.Join(TestHelmConfigDir, "/charts/prometheus-community/kube-prometheus-stack")
+	}
+	return filepath.Join(instance.VerrazzanoRootDir, helmPromOpChartsDirSuffix)
 }
 
 // GetHelmKialiChartsDir returns the Kiali helm charts dir
