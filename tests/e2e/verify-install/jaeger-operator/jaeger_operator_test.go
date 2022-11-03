@@ -58,7 +58,7 @@ func WhenJaegerOperatorEnabledIt(text string, args ...interface{}) {
 
 var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 	t.Context("Jaeger Operator Verify Install", func() {
-		t.It("Jaeger Operator Component Verify Install", func() {
+		t.It("Verify Jaeger Post-install", func() {
 			// GIVEN the Jaeger Operator is installed
 			// WHEN we check to make sure the namespace exists
 			// THEN we successfully find the namespace
