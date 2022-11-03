@@ -53,18 +53,12 @@ func runCmdRun(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 
 	fmt.Printf("Starting scenario %s\n", sc.ID)
-
-	_, err = scenario.InstallScenario(embedded.Manifests, sc)
+	msg, err := scenario.InstallScenario(embedded.Manifests, sc)
 	if err != nil {
-		fmt.Printf("Failed to run scenario %s: %v\n", scenarioID, err)
-		return err
+		// Cobra will display failure message
+		e := fmt.Errorf("Failed to run scenario %s: %v\n%s\n", scenarioID, err, msg)
+		return e
 	}
-
-	if err != nil {
-		fmt.Printf("%v", err)
-		return err
-	}
-
 	fmt.Printf("Scenario %s successfully installed\n", sc.ID)
 
 	return nil

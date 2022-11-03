@@ -54,7 +54,6 @@ func InstallScenario(man *embedded.PsrManifests, sc *Scenario) (string, error) {
 		if err != nil {
 			return string(stderr), err
 		}
-
 		i = i + 1
 	}
 	return "", nil
