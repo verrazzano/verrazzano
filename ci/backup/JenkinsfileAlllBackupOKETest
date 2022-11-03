@@ -358,6 +358,17 @@ pipeline {
             }
         }
 
+        stage('verify-install') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        cd ${WORKSPACE}/tests/e2e
+                        ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
+                    """
+                }
+            }
+        }
+
         stage('Initiate opensearch backup hook tests') {
             when {
                 expression {params.OPENSEARCH_BACKUP == true}

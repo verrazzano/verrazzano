@@ -6,16 +6,11 @@ package metrics
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
+	"sync/atomic"
 )
 
 type workerCollector struct {
 	providers []spi.WorkerMetricsProvider
-}
-
-// MetricItem contains the information for a single metric
-type MetricItem struct {
-	Val  int64
-	Desc *prometheus.Desc
 }
 
 func (rc workerCollector) Describe(ch chan<- *prometheus.Desc) {
@@ -38,4 +33,36 @@ func (rc workerCollector) Collect(ch chan<- prometheus.Metric) {
 			ch <- mm[i]
 		}
 	}
+}
+
+// MetricItem contains the information for a single metric
+type MetricItem struct {
+	Val         int64
+	Desc        *prometheus.Desc
+	Name        string
+	Help        string
+	Type        prometheus.ValueType
+	ConstLabels prometheus.Labels
+	VarLabels   []string
+}
+
+// BuildMetric builds the prometheus metrics from the MetricItem
+func (m *MetricItem) BuildMetric() prometheus.Metric {
+	return prometheus.MustNewConstMetric(
+		m.Desc,
+		m.Type,
+		float64(atomic.LoadInt64(&m.Val)),
+	)
+}
+
+// BuildMetricDesc builds the MetricItem description from info about the metric and worker
+func (m *MetricItem) BuildMetricDesc(workerMetricsName string) *prometheus.Desc {
+	d := prometheus.NewDesc(
+		prometheus.BuildFQName(PsrNamespace, workerMetricsName, m.Name),
+		m.Help,
+		m.VarLabels,
+		m.ConstLabels,
+	)
+	m.Desc = d
+	return d
 }

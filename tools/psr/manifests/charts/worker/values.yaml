@@ -3,7 +3,7 @@
 
 imagePullSecrets: [ ]
 
-imageName: ghcr.io/verrazzano/psr-backend:local-12aa43e
+imageName: ghcr.io/verrazzano/psr-backend:local-95510ea
 imagePullPolicy: IfNotPresent
 
 replicas: 1
@@ -19,6 +19,6 @@ global:
 appType: oam
 
 # Each worker that has a subchart needs to override this property
-getlogs:
+opensearch-authpol:
   enabled: false
 

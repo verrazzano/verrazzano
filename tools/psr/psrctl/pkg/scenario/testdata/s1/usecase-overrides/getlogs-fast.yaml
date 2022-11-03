@@ -1,7 +1,4 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-apiVersion: v1
-description: A Helm chart for the PSR getlogs worker
-name: getlogs
-version: 0.1.0
-appVersion: 0.1.0
+
+PSR_ITERNATION_SLEEP: 2ms

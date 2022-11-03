@@ -33,6 +33,9 @@ const (
 	// PsrWorkerThreadCount specifies the number of worker threads to run.
 	// By default, there is one thread per worker
 	PsrWorkerThreadCount = "PSR_WORKER_THREAD_COUNT"
+
+	// PsrWorkerNamespace is the namespace of the PSR release
+	PsrWorkerNamespace = "NAMESPACE"
 )
 
 // Define worker types
@@ -40,6 +43,8 @@ const (
 	WorkerTypeExample   = "example"
 	WorkerTypeWriteLogs = "writelogs"
 	WorkerTypeGetLogs   = "getlogs"
+	WorkerTypeHTTPGet   = "httpget"
+	WorkerTypePostLogs  = "postlogs"
 )
 
 const (
@@ -53,6 +58,7 @@ type CommonConfig struct {
 	IterationSleepNanos time.Duration
 	NumIterations       int64
 	WorkerThreadCount   int
+	Namespace           string
 }
 
 // GetCommonConfig loads the common config from env vars
@@ -63,6 +69,7 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 		{Key: PsrIterationSleep, DefaultVal: "1s", Required: false},
 		{Key: PsrNumIterations, DefaultVal: "-1", Required: false},
 		{Key: PsrWorkerThreadCount, DefaultVal: "1", Required: false},
+		{Key: PsrWorkerNamespace, DefaultVal: "", Required: false},
 	}
 	if err := PsrEnv.LoadFromEnv(dd); err != nil {
 		return CommonConfig{}, err
@@ -85,10 +92,16 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 		threadCount = 100
 	}
 
+	numIterations, err := strconv.Atoi(PsrEnv.GetEnv(PsrNumIterations))
+	if err != nil {
+		return CommonConfig{}, log.ErrorfNewErr("Failed to convert ENV var %s to integer", PsrNumIterations)
+	}
+
 	return CommonConfig{
 		WorkerType:          PsrEnv.GetEnv(PsrWorkerType),
 		IterationSleepNanos: sleepDuration,
-		NumIterations:       UnlimitedWorkerIterations,
+		NumIterations:       int64(numIterations),
 		WorkerThreadCount:   threadCount,
+		Namespace:           PsrEnv.GetEnv(PsrWorkerNamespace),
 	}, nil
 }
