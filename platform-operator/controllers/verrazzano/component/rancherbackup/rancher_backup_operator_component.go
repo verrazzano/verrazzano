@@ -6,6 +6,7 @@ package rancherbackup
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -64,6 +65,9 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 			Dependencies:              []string{networkpolicies.ComponentName, rancher.ComponentName},
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: deployments,
+			},
 		},
 	}
 }
@@ -120,14 +124,6 @@ func (rb rancherBackupHelmComponent) PreInstall(ctx spi.ComponentContext) error 
 // IsReady checks if the RancherBackup objects are ready
 func (rb rancherBackupHelmComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isRancherBackupOperatorReady(ctx)
-}
-
-func (rb rancherBackupHelmComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = rb.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", rb.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", rb.Name()), false
 }
 
 func (rb rancherBackupHelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {

@@ -6,6 +6,7 @@ package vmo
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
@@ -54,6 +55,14 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       appendVMOOverrides,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
 			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName},
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -66,7 +75,7 @@ func (c vmoComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // IsReady calls VMO isVmoReady function
 func (c vmoComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
-		return isVMOReady(context)
+		return c.isVMOReady(context)
 	}
 	return false
 }

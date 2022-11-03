@@ -20,8 +20,8 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: VerrazzanoWebLogicWorkload is the Schema for the verrazzanoweblogicworkloads
-          API
+        description: VerrazzanoWebLogicWorkload specifies the Verrazzano WebLogic
+          workload API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -36,30 +36,29 @@ spec:
           metadata:
             type: object
           spec:
-            description: VerrazzanoWebLogicWorkloadSpec wraps a WebLogic resource.
-              The WebLogic domain specified in the template must contain a spec field
-              and it may include a metadata field.
+            description: The desired state of a Verrazzano WebLogic workload.
             properties:
               template:
+                description: The metadata and spec for the underlying <a href="https://github.com/oracle/weblogic-kubernetes-operator/blob/main/documentation/domains/Domain.md">Domain</a>
+                  resource.
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
             required:
             - template
             type: object
           status:
-            description: VerrazzanoWebLogicWorkloadStatus defines the observed state
-              of VerrazzanoWebLogicWorkload
+            description: The observed state of a Verrazzano WebLogic workload.
             properties:
               lastGeneration:
-                description: LastGeneration is the last generation of the spec that
-                  was reconciled
+                description: The last generation of the Verrazzano WebLogic workload
+                  that was reconciled.
                 type: string
               lastLifecycleAction:
-                description: LastLifecycleAction is the last value of the verrazzano.io/lifecycle-action
+                description: The last value of the `verrazzano.io/lifecycle-action`.
                 type: string
               lastRestartVersion:
-                description: LastRestartVersion is the last value of the verrazzano.io/restart-version
-                  annotation
+                description: The last value of the `verrazzano.io/restart-version`
+                  annotation.
                 type: string
             type: object
         type: object

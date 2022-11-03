@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -41,7 +43,11 @@ var (
 
 // DeploySockShopProject deploys the sock-shop example's VerrazzanoProject to the cluster with the given kubeConfigPath
 func DeploySockShopProject(kubeconfigPath string, sourceDir string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir), kubeconfigPath); err != nil {
+	file, err := pkg.FindTestDataFile(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir))
+	if err != nil {
+		return err
+	}
+	if err := resource.CreateOrUpdateResourceFromFileInCluster(file, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to create %s project resource: %v", sourceDir, err)
 	}
 	return nil
@@ -49,10 +55,18 @@ func DeploySockShopProject(kubeconfigPath string, sourceDir string) error {
 
 // DeploySockShopApp deploys the sock-shop example application to the cluster with the given kubeConfigPath
 func DeploySockShopApp(kubeconfigPath string, sourceDir string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/sock-shop-comp.yaml", sourceDir), kubeconfigPath); err != nil {
+	file, err := pkg.FindTestDataFile(fmt.Sprintf("examples/multicluster/%s/sock-shop-comp.yaml", sourceDir))
+	if err != nil {
+		return err
+	}
+	if err := resource.CreateOrUpdateResourceFromFileInCluster(file, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to create multi-cluster %s component resources: %v", sourceDir, err)
 	}
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/sock-shop-app.yaml", sourceDir), kubeconfigPath); err != nil {
+	file, err = pkg.FindTestDataFile(fmt.Sprintf("examples/multicluster/%s/sock-shop-app.yaml", sourceDir))
+	if err != nil {
+		return err
+	}
+	if err := resource.CreateOrUpdateResourceFromFileInCluster(file, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to create multi-cluster %s application resource: %v", sourceDir, err)
 	}
 	return nil

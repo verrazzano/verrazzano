@@ -11,7 +11,7 @@ func init() {
 	SchemeBuilder.Register(&MetricsBinding{}, &MetricsBindingList{})
 }
 
-// MetricsBindingList contains a list of metrics binding resources
+// MetricsBindingList contains a list of metrics binding resources.
 // +kubebuilder:object:root=true
 type MetricsBindingList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -19,9 +19,10 @@ type MetricsBindingList struct {
 	Items           []MetricsBinding `json:"items"`
 }
 
-// MetricsBinding specifies the metrics binding API
-// +kubebuilder:object:root=true
 // +genclient
+// +kubebuilder:object:root=true
+
+// MetricsBinding specifies the metrics binding API.
 type MetricsBinding struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -29,47 +30,49 @@ type MetricsBinding struct {
 	Spec MetricsBindingSpec `json:"spec"`
 }
 
-// MetricsBindingSpec specifies the desired state of a metrics binding
+// MetricsBindingSpec specifies the desired state of a metrics binding.
 type MetricsBindingSpec struct {
-	// Identifies a namespace and name for a metricsTemplate resource
+	// Identifies a namespace and name for a metricsTemplate resource.
 	MetricsTemplate NamespaceName `json:"metricsTemplate"`
 
-	// Identifies a namespace and name for a Prometheus configMap resource
+	// Identifies a namespace and name for a Prometheus ConfigMap resource.
+	// +optional
 	PrometheusConfigMap NamespaceName `json:"prometheusConfigMap,omitempty"`
 
-	// Identifies a namespace, name and key for a secret containing the Prometheus config
+	// Identifies a namespace, name, and key for a secret containing the Prometheus configuration.
+	// +optional
 	PrometheusConfigSecret SecretKey `json:"prometheusConfigSecret,omitempty"`
 
-	// Identifies the name and type for a workload
+	// Identifies the name and type for a workload.
 	Workload Workload `json:"workload"`
 }
 
-// NamespaceName identifies a namespace and name pair for a resource
+// NamespaceName identifies a namespace and name pair for a resource.
 type NamespaceName struct {
-	// Namespace of a resource
-	Namespace string `json:"namespace"`
-
-	// Name of a resource
+	// Name of the resource.
 	Name string `json:"name"`
+
+	// Namespace of the resource.
+	Namespace string `json:"namespace"`
 }
 
-// SecretKey identifies a value in a Kubernetes Secret by its namespace, name and key in the Secret.
+// SecretKey identifies a value in a Kubernetes secret by its namespace, name, and key.
 type SecretKey struct {
-	// Namespace of the Secret
-	Namespace string `json:"namespace"`
-
-	// Name of the Secret
+	// Name of the secret.
 	Name string `json:"name"`
 
-	// Key in the Secret whose value this object represents
+	// Namespace of the secret.
+	Namespace string `json:"namespace"`
+
+	// Key in the secret whose value this object represents.
 	Key string `json:"key"`
 }
 
-// Workload identifies the name and type of a workload
+// Workload identifies the name and type of workload.
 type Workload struct {
-	// Name of a resource
+	// Name of the resource.
 	Name string `json:"name"`
 
-	// TypeMeta of a resource
+	// TypeMeta of the resource.
 	TypeMeta metav1.TypeMeta `json:"typeMeta"`
 }

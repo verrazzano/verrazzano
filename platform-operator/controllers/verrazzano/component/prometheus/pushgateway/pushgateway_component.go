@@ -4,8 +4,9 @@
 package pushgateway
 
 import (
-	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -49,6 +50,14 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       AppendOverrides,
 			Dependencies:              []string{promoperator.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      deploymentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -62,17 +71,9 @@ func (c prometheusPushgatewayComponent) IsEnabled(effectiveCR runtime.Object) bo
 // IsReady checks if the Prometheus PrometheusPushgateway deployment is ready
 func (c prometheusPushgatewayComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isPushgatewayReady(ctx)
+		return c.isPushgatewayReady(ctx)
 	}
 	return false
-}
-
-func (c prometheusPushgatewayComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = c.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", c.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // PreInstall updates resources necessary for the Prometheus PrometheusPushgateway Component installation

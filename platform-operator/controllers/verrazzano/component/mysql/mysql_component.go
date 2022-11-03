@@ -5,6 +5,8 @@ package mysql
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -65,6 +67,14 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       appendMySQLOverrides,
 			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, MySQLOperatorComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				StatefulsetNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -72,17 +82,9 @@ func NewComponent() spi.Component {
 // IsReady calls MySQL isMySQLReady function
 func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
-		return isMySQLReady(context)
+		return c.isMySQLReady(context)
 	}
 	return false
-}
-
-func (c mysqlComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = c.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", c.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // IsEnabled mysql-specific enabled check for installation

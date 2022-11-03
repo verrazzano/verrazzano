@@ -20,8 +20,8 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: VerrazzanoCoherenceWorkload is the Schema for the verrazzanocoherenceworkloads
-          API
+        description: VerrazzanoCoherenceWorkload specifies the Verrazzano Coherence
+          workload API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -36,27 +36,26 @@ spec:
           metadata:
             type: object
           spec:
-            description: VerrazzanoCoherenceWorkloadSpec wraps a Coherence resource.
-              The Coherence object specified in the template must contain a spec field
-              and it may include a metadata field.
+            description: The desired state of a Verrazzano Coherence workload.
             properties:
               template:
+                description: The metadata and spec for the underlying <a href="https://oracle.github.io/coherence-operator/docs/latest/#/docs/about/04_coherence_spec">Coherence</a>
+                  resource.
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
             required:
             - template
             type: object
           status:
-            description: VerrazzanoCoherenceWorkloadStatus defines the observed state
-              of VerrazzanoCoherenceWorkload
+            description: The observed state of a Verrazzano Coherence workload.
             properties:
               lastGeneration:
-                description: LastGeneration is the last generation of the spec that
-                  was reconciled
+                description: The last generation of the Verrazzano Coherence workload
+                  that was reconciled.
                 type: string
               lastRestartVersion:
-                description: LastRestartVersion is the last value of the verrazzano.io/restart-version
-                  annotation
+                description: The last value of the `verrazzano.io/restart-version`
+                  annotation.
                 type: string
             type: object
         type: object

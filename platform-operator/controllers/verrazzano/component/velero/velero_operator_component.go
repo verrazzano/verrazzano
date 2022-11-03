@@ -6,6 +6,7 @@ package velero
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	prometheusOperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"path/filepath"
@@ -75,6 +76,10 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 			Dependencies:              []string{networkpolicies.ComponentName, prometheusOperator.ComponentName},
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DaemonsetNames:  daemonSets,
+				DeploymentNames: deployments,
+			},
 		},
 	}
 }
@@ -131,14 +136,6 @@ func (v veleroHelmComponent) PreInstall(ctx spi.ComponentContext) error {
 // IsReady checks if the Velero objects are ready
 func (v veleroHelmComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isVeleroOperatorReady(ctx)
-}
-
-func (v veleroHelmComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = v.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", v.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", v.Name()), false
 }
 
 func (v veleroHelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {

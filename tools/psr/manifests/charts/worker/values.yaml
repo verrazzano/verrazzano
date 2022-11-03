@@ -1,0 +1,24 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+imagePullSecrets: [ ]
+
+imageName: ghcr.io/verrazzano/psr-backend:local-b72e5a0
+imagePullPolicy: IfNotPresent
+
+replicas: 1
+
+# envVars contains default worker type and ENV vars common to all workers
+global:
+  envVars:
+    PSR_WORKER_TYPE: example
+    PSR_ITERATION_SLEEP: 1s
+    PSR_WORKER_THREAD_COUNT: 1
+
+# appType can be either oam or k8s, which are just Kubernetes deployments
+appType: oam
+
+# Each worker that has a subchart needs to override this property
+opensearch-authpol:
+  enabled: false
+

@@ -5,8 +5,7 @@ def DOCKER_IMAGE_TAG
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 // pulling "ap-*" from the test regions given discovery of image pull issues
-def availableRegions = [ "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
-                          "sa-saopaulo-1", "uk-london-1" ]
+def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
 def OKE_CLUSTER_PREFIX = ""
 def ociOsBucketName = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def backup_id = 'dummy'
@@ -358,6 +357,17 @@ pipeline {
             }
         }
 
+        stage('verify-install') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        cd ${WORKSPACE}/tests/e2e
+                        ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
+                    """
+                }
+            }
+        }
+
         stage('Initiate opensearch backup hook tests') {
             when {
                 expression {params.OPENSEARCH_BACKUP == true}
@@ -402,6 +412,33 @@ pipeline {
                 failure {
                     script {
                         dumpK8sCluster('rancher-backup-restore-cluster-dump')
+                    }
+                }
+            }
+        }
+
+        stage('Initiate mysql-operator backup restore tests') {
+            when {
+                expression {params.MYSQL_BACKUP == true}
+            }
+            environment {
+                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
+            }
+            steps {
+                echoAllPodInfo()
+                waitForPodsToBeUp("keycloak")
+                runGinkgoRandomize('backup/mysql')
+                println("Wait for pods in keycloak to be ready")
+                waitForPodsToBeUp("keycloak")
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    script {
+                        dumpK8sCluster('mysql-backup-restore-cluster-dump')
                     }
                 }
             }
@@ -457,6 +494,12 @@ pipeline {
             deleteDir()
         }
     }
+}
+
+def echoAllPodInfo() {
+    sh """
+         kubectl get pod -A
+    """
 }
 
 def createBucket(bucketName) {

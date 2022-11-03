@@ -20,7 +20,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: MetricsBinding specifies the metrics binding API
+        description: MetricsBinding specifies the metrics binding API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -36,48 +36,48 @@ spec:
             type: object
           spec:
             description: MetricsBindingSpec specifies the desired state of a metrics
-              binding
+              binding.
             properties:
               metricsTemplate:
                 description: Identifies a namespace and name for a metricsTemplate
-                  resource
+                  resource.
                 properties:
                   name:
-                    description: Name of a resource
+                    description: Name of the resource.
                     type: string
                   namespace:
-                    description: Namespace of a resource
+                    description: Namespace of the resource.
                     type: string
                 required:
                 - name
                 - namespace
                 type: object
               prometheusConfigMap:
-                description: Identifies a namespace and name for a Prometheus configMap
-                  resource
+                description: Identifies a namespace and name for a Prometheus ConfigMap
+                  resource.
                 properties:
                   name:
-                    description: Name of a resource
+                    description: Name of the resource.
                     type: string
                   namespace:
-                    description: Namespace of a resource
+                    description: Namespace of the resource.
                     type: string
                 required:
                 - name
                 - namespace
                 type: object
               prometheusConfigSecret:
-                description: Identifies a namespace, name and key for a secret containing
-                  the Prometheus config
+                description: Identifies a namespace, name, and key for a secret containing
+                  the Prometheus configuration.
                 properties:
                   key:
-                    description: Key in the Secret whose value this object represents
+                    description: Key in the secret whose value this object represents.
                     type: string
                   name:
-                    description: Name of the Secret
+                    description: Name of the secret.
                     type: string
                   namespace:
-                    description: Namespace of the Secret
+                    description: Namespace of the secret.
                     type: string
                 required:
                 - key
@@ -85,13 +85,13 @@ spec:
                 - namespace
                 type: object
               workload:
-                description: Identifies the name and type for a workload
+                description: Identifies the name and type for a workload.
                 properties:
                   name:
-                    description: Name of a resource
+                    description: Name of the resource.
                     type: string
                   typeMeta:
-                    description: TypeMeta of a resource
+                    description: TypeMeta of the resource.
                     properties:
                       apiVersion:
                         description: 'APIVersion defines the versioned schema of this

@@ -6,6 +6,7 @@ package mysqloperator
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
@@ -42,6 +43,9 @@ const (
 
 	// ComponentJSONName is the json name of the component in the CRD
 	ComponentJSONName = "mySQLOperator"
+
+	// BackupContainerName is the name of the executable container in a backup job pod
+	BackupContainerName = "operator-backup-job"
 )
 
 type mysqlOperatorComponent struct {
@@ -65,6 +69,9 @@ func NewComponent() spi.Component {
 			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   getOverrides,
 			InstallBeforeUpgrade:      true,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: getDeploymentList(),
+			},
 		},
 	}
 }
@@ -77,22 +84,14 @@ func (c mysqlOperatorComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // IsReady - component specific ready-check
 func (c mysqlOperatorComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
-		return isReady(context)
+		return c.isReady(context)
 	}
 	return false
 }
 
-func (c mysqlOperatorComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = c.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", c.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
-}
-
 // IsInstalled returns true if the component is installed
 func (c mysqlOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
-	return isInstalled(ctx), nil
+	return c.isInstalled(ctx), nil
 }
 
 // PreInstall runs before components are installed

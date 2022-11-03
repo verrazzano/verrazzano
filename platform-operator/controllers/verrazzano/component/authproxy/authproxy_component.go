@@ -5,6 +5,7 @@ package authproxy
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 
@@ -57,6 +58,14 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
 			GetInstallOverridesFunc:   GetOverrides,
 			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName},
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 			Certificates: []types.NamespacedName{
 				{Name: constants.VerrazzanoIngressSecret, Namespace: ComponentNamespace},
 			},
@@ -96,17 +105,9 @@ func (c authProxyComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano
 // IsReady component check
 func (c authProxyComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isAuthProxyReady(ctx)
+		return c.isAuthProxyReady(ctx)
 	}
 	return false
-}
-
-func (c authProxyComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = c.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", c.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // PreInstall - actions to perform prior to installing this component

@@ -104,15 +104,9 @@ func AppendApplicationOperatorOverrides(compContext spi.ComponentContext, _ stri
 }
 
 // isApplicationOperatorReady checks if the application operator deployment is ready
-func isApplicationOperatorReady(ctx spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c applicationOperatorComponent) isApplicationOperatorReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 // Add label/annotations required by Helm to the Verrazzano installed trait definitions.  Originally, the

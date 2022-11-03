@@ -5,7 +5,9 @@ package nodeexporter
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -50,6 +52,14 @@ func NewComponent() spi.Component {
 			Dependencies:              []string{promoperator.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DaemonsetNames: []types.NamespacedName{
+					{
+						Name:      daemonsetName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -63,17 +73,9 @@ func (c prometheusNodeExporterComponent) IsEnabled(effectiveCR runtime.Object) b
 // IsReady checks if the Prometheus Node-Exporter deployment is ready
 func (c prometheusNodeExporterComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isPrometheusNodeExporterReady(ctx)
+		return c.isPrometheusNodeExporterReady(ctx)
 	}
 	return false
-}
-
-func (c prometheusNodeExporterComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = c.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", c.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // PreInstall updates resources necessary for the Prometheus Node-Exporter Component installation

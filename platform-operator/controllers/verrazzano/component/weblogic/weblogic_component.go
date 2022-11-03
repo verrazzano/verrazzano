@@ -5,7 +5,9 @@ package weblogic
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -54,6 +56,14 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       AppendWeblogicOperatorOverrides,
 			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -84,17 +94,9 @@ func (c weblogicComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano,
 // IsReady component check
 func (c weblogicComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isWeblogicOperatorReady(ctx)
+		return c.isWeblogicOperatorReady(ctx)
 	}
 	return false
-}
-
-func (c weblogicComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = c.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", c.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

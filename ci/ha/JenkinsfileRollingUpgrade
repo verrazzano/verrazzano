@@ -14,7 +14,7 @@ Collections.shuffle(availableRegions)
 
 pipeline {
     options {
-        timeout(time: 3, unit: 'HOURS')
+        timeout(time: 4, unit: 'HOURS')
         skipDefaultCheckout true
         timestamps ()
     }
@@ -37,7 +37,7 @@ pipeline {
         choice (name: 'OKE_NODE_POOL',
                 description: 'OKE node pool configuration',
                 // 1st choice is the default value
-                choices: [ "VM.Standard2.4-4", "VM.Standard2.4-2" ])
+                choices: [ "VM.Standard.E3.Flex-4-4", "VM.Standard2.4-4", "VM.Standard2.4-2" ])
         choice (description: 'OCI region to launch OKE clusters in', name: 'OKE_CLUSTER_REGION',
             // 1st choice is the default value
             choices: availableRegions )
@@ -303,6 +303,10 @@ pipeline {
 
                             echo "Installing Verrazzano"
                             ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/platform-operator.yaml --timeout 45m --platform-operator-timeout 10m
+
+                            # For now, manually scale the VPO webhook to 3 replicas until we have hooks for it in the product
+                            kubectl  scale deployment -n verrazzano-install verrazzano-platform-operator-webhook --replicas 3
+                            kubectl  rollout status deployment -n verrazzano-install verrazzano-platform-operator-webhook -w --timeout 15m
                        """
                     }
                     post {
@@ -430,25 +434,16 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/inplaceupgrade"
                                 OKE_CLUSTER_ID="${OKE_CLUSTER_ID}"
                             }
-                            options {
-                                timeout(time: 90, unit: "MINUTES")
-                            }
                             steps {
                                 runGinkgoFailFast('ha/inplaceupgrade')
                             }
                         }
                         stage('HA Tests') {
-                            options {
-                                timeout(time: 90, unit: "MINUTES")
-                            }
                             steps {
                                 runGinkgoRandomize('ha/monitor')
                             }
                         }
                         stage('Access Hello Helidon') {
-                            options {
-                                timeout(time: 90, unit: "MINUTES")
-                            }
                             steps {
                                 runGinkgo("ha/helidon", "--namespace=${HELIDON_TEST_NAMESPACE}")
                             }
@@ -459,9 +454,6 @@ pipeline {
                             }
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-                            }
-                            options {
-                                timeout(time: 90, unit: "MINUTES")
                             }
                             steps {
                                 sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
@@ -569,7 +561,7 @@ def runGinkgoRandomize(testSuitePath) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             if [ -d "${testSuitePath}" ]; then
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+                ginkgo --timeout=90m -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
             fi
         """
     }
@@ -579,7 +571,7 @@ def runGinkgo(testSuitePath, arguments = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- $arguments
+            ginkgo --timeout=90m -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- $arguments
         """
     }
 }
@@ -588,7 +580,7 @@ def runGinkgoFailFast(testSuitePath, arguments = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v --fail-fast --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- $arguments
+            ginkgo --timeout=90m -v --fail-fast --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- $arguments
         """
     }
 }
