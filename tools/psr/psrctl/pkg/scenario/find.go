@@ -12,13 +12,14 @@ func FindScenarioById(scenarioAbsDir string, ID string) (*Scenario, error) {
 	})
 }
 
-// FindScenarioById finds a Scenario by Name
+// FindScenarioByName finds a Scenario by Name
 func FindScenarioByName(scenarioAbsDir string, name string) (*Scenario, error) {
 	return findScenario(scenarioAbsDir, func(scenario Scenario) bool {
 		return strings.EqualFold(scenario.Name, name)
 	})
 }
 
+// findScenario finds a Scenario
 func findScenario(scenarioAbsDir string, f func(Scenario) bool) (*Scenario, error) {
 	scList, err := ListAvailableScenarios(scenarioAbsDir)
 	if err != nil {

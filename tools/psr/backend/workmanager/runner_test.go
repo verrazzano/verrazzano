@@ -45,9 +45,9 @@ func TestMetricDesc(t *testing.T) {
 
 func assertMetricDescList(t *testing.T, mdList []prometheus.Desc) {
 	const (
-		desc1 = `Desc{fqName: "psr_example_loop_count_total", help: "The total number of loop iterations executed", constLabels: {}, variableLabels: []}`
+		desc1 = `Desc{fqName: "psr_example_loop_count_total", help: "The total number of loop loops executed", constLabels: {}, variableLabels: []}`
 		desc2 = `Desc{fqName: "psr_example_worker_thread_count_total", help: "The total number of worker threads (goroutines) running", constLabels: {}, variableLabels: []}`
-		desc3 = `Desc{fqName: "psr_example_worker_last_iteration_nanoseconds", help: "The number of nanoseconds that the worker took to run the last iteration of doing work", constLabels: {}, variableLabels: []}`
+		desc3 = `Desc{fqName: "psr_example_worker_last_loop_nanoseconds", help: "The number of nanoseconds that the worker took to run the last loop of doing work", constLabels: {}, variableLabels: []}`
 		desc4 = `Desc{fqName: "psr_example_worker_running_seconds_total", help: "The total number of seconds that the worker has been running", constLabels: {}, variableLabels: []}`
 	)
 
@@ -74,16 +74,16 @@ func assertMetricDescList(t *testing.T, mdList []prometheus.Desc) {
 // TestRunWorker tests the Runner.RunWorker method
 // GIVEN a Runner
 //
-//	WHEN RunWorker is called for the correct number of iterations
+//	WHEN RunWorker is called for the correct number of loops
 //	THEN ensure that the worker is called
 func TestRunWorker(t *testing.T) {
 	var tests = []struct {
-		name       string
-		iterations int64
-		expectErr  bool
+		name      string
+		loops     int64
+		expectErr bool
 	}{
-		{name: "oneIter", iterations: 1, expectErr: false},
-		{name: "tenIter", iterations: 10, expectErr: false},
+		{name: "oneIter", loops: 1, expectErr: false},
+		{name: "tenIter", loops: 10, expectErr: false},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -94,13 +94,13 @@ func TestRunWorker(t *testing.T) {
 			assert.NoError(t, err)
 
 			err = r.RunWorker(config.CommonConfig{
-				WorkerType:    "Fake",
-				NumIterations: test.iterations,
+				WorkerType: "Fake",
+				NumLoops:   test.loops,
 			}, log)
 
 			assert.NoError(t, err)
-			assert.Equal(t, test.iterations, f.doWorkCount)
-			assert.Equal(t, test.iterations, actualRunner.loopCount.Val)
+			assert.Equal(t, test.loops, f.doWorkCount)
+			assert.Equal(t, test.loops, actualRunner.loopCount.Val)
 		})
 	}
 }
@@ -126,7 +126,7 @@ func (w *fakeWorker) GetMetricList() []prometheus.Metric {
 	return nil
 }
 
-func (w *fakeWorker) WantIterationInfoLogged() bool {
+func (w *fakeWorker) WantLoopInfoLogged() bool {
 	return true
 }
 

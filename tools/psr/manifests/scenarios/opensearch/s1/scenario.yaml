@@ -7,6 +7,6 @@ description: |
   This is a scenario that writes logs to STDOUT and gets logs from OpenSearch at a moderated rate. 
   The purpose of the scenario is to test a moderate load on both Fluend and OpenSearch by logging records.
 usecases:
-  - usecasePath: opensearch/writelogs/writelogs.yaml
+  - usecasePath: opensearch/writelogs.yaml
     overrideFile: writelogs.yaml
     description: write logs to STDOUT 10 times a second

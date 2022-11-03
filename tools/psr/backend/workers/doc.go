@@ -6,7 +6,7 @@ Package workers contains a set of workers that implement PSR use cases.
 
 # Worker
 Each worker does a single task, such as generate logs. The Worker.Work function is called
-repeatedly by the workmanager.Runner, which implements the iteration loop.  If the worker
+repeatedly by the workmanager.Runner, which implements the loop loop.  If the worker
 has a dependency that doesn't exist, like OpenSearch, it should return an error.
 
 ## Immutable

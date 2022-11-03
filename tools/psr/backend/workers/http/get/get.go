@@ -106,7 +106,7 @@ func (w get) GetMetricList() []prometheus.Metric {
 	}
 }
 
-func (w get) WantIterationInfoLogged() bool {
+func (w get) WantLoopInfoLogged() bool {
 	return false
 }
 

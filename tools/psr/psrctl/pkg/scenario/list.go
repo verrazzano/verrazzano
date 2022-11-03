@@ -31,7 +31,7 @@ func ListAvailableScenarios(scenarioAbsDir string) ([]Scenario, error) {
 		}
 
 		// Build the parent directory name that has the scenario.yaml.
-		sc.UsecaseOverridesDir = filepath.Join(filepath.Dir(f), usecaseOverrideDir)
+		sc.ScenarioUsecaseOverridesDir = filepath.Join(filepath.Dir(f), usecaseOverrideDir)
 		scenarios = append(scenarios, sc)
 	}
 	return scenarios, nil

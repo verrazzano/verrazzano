@@ -93,7 +93,7 @@ func (w postLogs) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{}
 }
 
-func (w postLogs) WantIterationInfoLogged() bool {
+func (w postLogs) WantLoopInfoLogged() bool {
 	return false
 }
 

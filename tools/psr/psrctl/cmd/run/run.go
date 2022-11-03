@@ -16,17 +16,16 @@ const (
 	CommandName = "run"
 	helpShort   = "Run a PSR test scenario"
 	helpLong    = `The command 'run' executes a PSR test scenario consisting of one or more use cases`
-	helpExample = `
-psrctl run scenario-1`
+	helpExample = `psrctl run -s ops-s1`
 )
 
 const (
-	flagScenario       = "scenario"
+	flagScenario       = "scenarioID"
 	flagsScenarioShort = "s"
 	flagScenarioHelp   = "specifies the scenario ID"
 )
 
-var scenarioName string
+var scenarioID string
 
 func NewCmdRun(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -36,7 +35,7 @@ func NewCmdRun(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.Args = cobra.ExactArgs(0)
 	cmd.Example = helpExample
 
-	cmd.PersistentFlags().StringVarP(&scenarioName, flagScenario, flagsScenarioShort, "", flagScenarioHelp)
+	cmd.PersistentFlags().StringVarP(&scenarioID, flagScenario, flagsScenarioShort, "", flagScenarioHelp)
 
 	return cmd
 }
@@ -45,15 +44,19 @@ func NewCmdRun(vzHelper helpers.VZHelper) *cobra.Command {
 func runCmdRun(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	fmt.Println("Runing example scenario...")
 
-	sc, err := scenario.FindScenarioByName(embedded.Manifests.ScenarioAbsDir, scenarioName)
+	sc, err := scenario.FindScenarioById(embedded.Manifests.ScenarioAbsDir, scenarioID)
 	if err != nil {
-		fmt.Printf("Failed to find scenario %s: %v", scenarioName, err)
+		fmt.Printf("Failed to find scenario %s: %v", scenarioID, err)
+		return err
+	}
+	if sc == nil {
+		fmt.Printf("Failed to find scenario with ID %s: %v", scenarioID, err)
 		return err
 	}
 
 	_, err = scenario.InstallScenario(embedded.Manifests, sc)
 	if err != nil {
-		fmt.Printf("Failed to find scenario %s: %v", scenarioName, err)
+		fmt.Printf("Failed to find scenario %s: %v", scenarioID, err)
 		return err
 	}
 
