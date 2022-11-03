@@ -15,7 +15,7 @@ spec:
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
-            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ template "worker.fullName" .}}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ template "worker.fullName" . }}"]
       to:
         - operation:
             ports: ["9200"]

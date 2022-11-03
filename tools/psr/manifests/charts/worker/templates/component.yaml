@@ -31,7 +31,8 @@ spec:
             - name: {{ $key }}
               value: {{ $val | quote}}
               {{- end }}
-          ports:
-            - containerPort: 8080
-              name: backend
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
 {{- end }}
