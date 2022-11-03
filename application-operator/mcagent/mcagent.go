@@ -309,14 +309,6 @@ func getEnvValue(containers *[]corev1.Container, envName string) string {
 	return ""
 }
 
-const (
-	defaultClusterName   = constants.DefaultClusterName
-	defaultSecretName    = "verrazzano-es-internal" //nolint:gosec //#gosec G101
-	esConfigMapName      = "fluentd-es-config"
-	esConfigMapURLKey    = "es-url"
-	esConfigMapSecretKey = "es-secret"
-)
-
 func updateEnvValue(envs []corev1.EnvVar, envName string, newValue string) []corev1.EnvVar {
 	for i, env := range envs {
 		if env.Name == envName {
@@ -354,22 +346,4 @@ func (s *Syncer) GetPrometheusHost() (string, error) {
 		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzPrometheusIngress, err)
 	}
 	return ingress.Spec.Rules[0].Host, nil
-}
-
-// getVzESURLSecret returns the elasticsearchURL and elasticsearchSecret from Verrazzano CR
-func (s *Syncer) getVzESURLSecret() (string, string, error) {
-	url := vzconstants.DefaultOpensearchURL
-	secret := defaultSecretName
-	esConfig := corev1.ConfigMap{}
-	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: esConfigMapName, Namespace: constants.VerrazzanoSystemNamespace}, &esConfig)
-	if err != nil {
-		s.Log.Errorf("Failed to find the ConfigMap %s/%s: %v", constants.VerrazzanoSystemNamespace, esConfigMapName, err)
-	}
-	if len(esConfig.Data[esConfigMapURLKey]) > 0 {
-		url = esConfig.Data[esConfigMapURLKey]
-	}
-	if len(esConfig.Data[esConfigMapSecretKey]) > 0 {
-		secret = esConfig.Data[esConfigMapSecretKey]
-	}
-	return url, secret, nil
 }

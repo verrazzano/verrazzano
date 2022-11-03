@@ -39,8 +39,6 @@ type loggingValues struct {
 	OpenSearchURL     string `json:"osURL,omitempty"`
 	CredentialsSecret string `json:"credentialsSecret,omitempty"`
 	ClusterName       string `json:"clusterName"`
-	UsernameKey       string `json:"usernameKey"`
-	PasswordKey       string `json:"passwordKey"`
 	ConfigHash        string `json:"configHash,omitempty"`
 }
 
@@ -96,6 +94,10 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 	// Overrides object to store any user overrides
 	overrides := fluentdComponentValues{}
+	// append any managed cluster overrides
+	if err := appendManagedClusterOverrides(ctx.Client(), &overrides); err != nil {
+		return kvs, err
+	}
 	// append any fluentd overrides
 	appendFluentdOverrides(effectiveCR, &overrides)
 
