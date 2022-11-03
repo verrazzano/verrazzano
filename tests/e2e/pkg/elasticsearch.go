@@ -238,11 +238,10 @@ func VerifyOpenSearchPlugins() error {
 	if resp.StatusCode == http.StatusOK {
 		out := string(resp.Body)
 		missingPluginsStr := ""
-		missingPlugins := false
 
-		missingPlugins = checkMissingPlugin(out, opensearchJobScheduler, &missingPluginsStr)
-		missingPlugins = checkMissingPlugin(out, opensearchIndexManagement, &missingPluginsStr)
-		missingPlugins = checkMissingPlugin(out, opensearchPrometheusExporter, &missingPluginsStr)
+		missingPlugins := checkMissingPlugin(out, opensearchJobScheduler, &missingPluginsStr)
+		missingPlugins = missingPlugins || checkMissingPlugin(out, opensearchIndexManagement, &missingPluginsStr)
+		missingPlugins = missingPlugins || checkMissingPlugin(out, opensearchPrometheusExporter, &missingPluginsStr)
 
 		if missingPlugins {
 			return fmt.Errorf("missing OpenSearch plugins that were not installed: %s", missingPluginsStr)
