@@ -84,7 +84,7 @@ func NewPostLogsWorker() (spi.Worker, error) {
 func (w postLogs) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
 		EnvName:     config.WorkerTypePostLogs,
-		Description: "The log postter worker performs POST requests on the OpenSearch endpoint",
+		Description: "The postlogs worker performs POST requests on the OpenSearch endpoint",
 		MetricsName: "postlogs",
 	}
 }

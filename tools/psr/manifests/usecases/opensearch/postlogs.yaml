@@ -6,6 +6,6 @@ global:
     PSR_WORKER_TYPE: postlogs
 
 # activate subchart
-opensearchauthpol:
+opensearch-authpol:
   enabled: true
 

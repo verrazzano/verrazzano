@@ -2,6 +2,6 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: v1
 description: A Helm chart for the OpenSearch Authorization Policies
-name: opensearchauthpol
+name: opensearch-authpol
 version: 0.1.0
 appVersion: 0.1.0
