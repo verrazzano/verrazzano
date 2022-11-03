@@ -775,15 +775,6 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Update verrazzano-pkce client redirect and web origin uris if deprecated OS host exists in the ingress
-	osHostExists, err := k8sutil.DoesIngressHostExist(constants.VerrazzanoSystemNamespace, constants.OpensearchIngress)
-	if err != nil {
-		return err
-	}
-	if osHostExists {
-		pkceClientUrisTemplate = pkceClientUrisTemplateForDeprecatedOSHosts
-	}
-
 	// Create verrazzano-pkce client
 	err = createOrUpdateClient(ctx, cfg, cli, "verrazzano-pkce", pkceTmpl, pkceClientUrisTemplate, false)
 	if err != nil {

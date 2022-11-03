@@ -8,6 +8,7 @@ import (
 	"fmt"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -178,6 +179,15 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	// Update verrazzano-pkce client redirect and web origin uris if deprecated OS host exists in the ingress
+	osHostExists, err := k8sutil.DoesIngressHostExist(constants.VerrazzanoSystemNamespace, constants.OpensearchIngress)
+	if err != nil {
+		return err
+	}
+	if osHostExists {
+		pkceClientUrisTemplate = pkceClientUrisTemplateForDeprecatedOSHosts
 	}
 	return configureKeycloakRealms(ctx)
 }
