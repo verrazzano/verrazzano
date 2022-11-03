@@ -396,39 +396,43 @@ const pkceClientUrisTemplate = `
 	  "https://jaeger.{{.DNSSubDomain}}"
 	]
 `
-const pkceClientUrisTemplateForDeprecatedESIngress = `
-	"redirectUris": [
-	  "https://verrazzano.{{.DNSSubDomain}}/*",
-	  "https://verrazzano.{{.DNSSubDomain}}/verrazzano/authcallback",
-	  "https://opensearch.vmi.system.{{.DNSSubDomain}}/*",
-	  "https://opensearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
-	  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
-	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://grafana.vmi.system.{{.DNSSubDomain}}/*",
-	  "https://grafana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
-	  "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://opensearchdashboards.vmi.system.{{.DNSSubDomain}}/*",
-	  "https://opensearchdashboards.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
-	  "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://jaeger.{{.DNSSubDomain}}/*"
-	],
-	"webOrigins": [
-	  "https://verrazzano.{{.DNSSubDomain}}",
-	  "https://opensearch.vmi.system.{{.DNSSubDomain}}",
-      "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
-	  "https://prometheus.vmi.system.{{.DNSSubDomain}}",
-	  "https://grafana.vmi.system.{{.DNSSubDomain}}",
-      "https://kibana.vmi.system.{{.DNSSubDomain}}",
-	  "https://opensearchdashboards.vmi.system.{{.DNSSubDomain}}",
-	  "https://kiali.vmi.system.{{.DNSSubDomain}}",
-	  "https://jaeger.{{.DNSSubDomain}}"
-	]
-`
 
+/*
+const pkceClientUrisTemplateForDeprecatedESIngress = `
+
+		"redirectUris": [
+		  "https://verrazzano.{{.DNSSubDomain}}/*",
+		  "https://verrazzano.{{.DNSSubDomain}}/verrazzano/authcallback",
+		  "https://opensearch.vmi.system.{{.DNSSubDomain}}/*",
+		  "https://opensearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+		  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
+		  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+		  "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
+		  "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+		  "https://grafana.vmi.system.{{.DNSSubDomain}}/*",
+		  "https://grafana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+		  "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
+		  "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+		  "https://opensearchdashboards.vmi.system.{{.DNSSubDomain}}/*",
+		  "https://opensearchdashboards.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+		  "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
+		  "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+		  "https://jaeger.{{.DNSSubDomain}}/*"
+		],
+		"webOrigins": [
+		  "https://verrazzano.{{.DNSSubDomain}}",
+		  "https://opensearch.vmi.system.{{.DNSSubDomain}}",
+	      "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
+		  "https://prometheus.vmi.system.{{.DNSSubDomain}}",
+		  "https://grafana.vmi.system.{{.DNSSubDomain}}",
+	      "https://kibana.vmi.system.{{.DNSSubDomain}}",
+		  "https://opensearchdashboards.vmi.system.{{.DNSSubDomain}}",
+		  "https://kiali.vmi.system.{{.DNSSubDomain}}",
+		  "https://jaeger.{{.DNSSubDomain}}"
+		]
+
+`
+*/
 const rancherClientUrisTemplate = `
 	"redirectUris": [
         "https://rancher.{{.DNSSubDomain}}/verify-auth"
