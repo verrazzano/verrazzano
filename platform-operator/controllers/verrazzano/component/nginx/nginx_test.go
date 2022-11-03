@@ -31,8 +31,9 @@ var crEnabled = vzapi.Verrazzano{
 
 // TestAppendNGINXOverrides tests the AppendOverrides fn
 // GIVEN a call to AppendOverrides
-//  WHEN I pass a VZ spec with defaults
-//  THEN the values created properly
+//
+//	WHEN I pass a VZ spec with defaults
+//	THEN the values created properly
 func TestAppendNGINXOverrides(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
@@ -42,8 +43,9 @@ func TestAppendNGINXOverrides(t *testing.T) {
 
 // TestAppendNGINXOverridesWithInstallArgs tests the AppendOverrides fn
 // GIVEN a call to AppendOverrides
-//  WHEN I pass in extra NGINX install args
-//  THEN the values are translated properly
+//
+//	WHEN I pass in extra NGINX install args
+//	THEN the values are translated properly
 func TestAppendNGINXOverridesWithInstallArgs(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -65,8 +67,9 @@ func TestAppendNGINXOverridesWithInstallArgs(t *testing.T) {
 
 // TestAppendNGINXOverridesExtraKVs tests the AppendOverrides fn
 // GIVEN a call to AppendOverrides
-//  WHEN I pass in a KeyValue list
-//  THEN the values passed in are preserved and no errors occur
+//
+//	WHEN I pass in a KeyValue list
+//	THEN the values passed in are preserved and no errors occur
 func TestAppendNGINXOverridesWithExternalDNS(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -94,8 +97,9 @@ func TestAppendNGINXOverridesWithExternalDNS(t *testing.T) {
 
 // TestAppendNGINXOverridesExtraKVs tests the AppendOverrides fn
 // GIVEN a call to AppendOverrides
-//  WHEN I pass in a KeyValue list
-//  THEN the values passed in are preserved and no errors occur
+//
+//	WHEN I pass in a KeyValue list
+//	THEN the values passed in are preserved and no errors occur
 func TestAppendNGINXOverridesExtraKVs(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -112,8 +116,9 @@ func TestAppendNGINXOverridesExtraKVs(t *testing.T) {
 
 // TestNGINXPreInstall tests the PreInstall fn
 // GIVEN a call to this fn
-//  WHEN I call PreInstall
-//  THEN no errors are returned
+//
+//	WHEN I call PreInstall
+//	THEN no errors are returned
 func TestNGINXPreInstall(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	err := PreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false), ComponentName, ComponentNamespace, "")
@@ -122,8 +127,9 @@ func TestNGINXPreInstall(t *testing.T) {
 
 // TestIsNGINXReady tests the IsReady function
 // GIVEN a call to IsReady
-//  WHEN the deployment object has enough replicas available
-//  THEN true is returned
+//
+//	WHEN the deployment object has enough replicas available
+//	THEN true is returned
 func TestIsNGINXReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
@@ -215,13 +221,14 @@ func TestIsNGINXReady(t *testing.T) {
 			},
 		},
 	}
-	assert.True(t, isNginxReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
+	nginx := NewComponent().(nginxComponent)
+	assert.True(t, nginx.isNginxReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
 }
 
-//  TestIsNGINXNotReadyWithoutIP tests the IsReady function
-//  GIVEN a call to IsReady
-//  WHEN the deployment object has enough replicas available but there's no nginx container ip
-//  THEN false is returned
+// TestIsNGINXNotReadyWithoutIP tests the IsReady function
+// GIVEN a call to IsReady
+// WHEN the deployment object has enough replicas available but there's no nginx container ip
+// THEN false is returned
 func TestIsNGINXNotReadyWithoutIP(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
@@ -310,13 +317,15 @@ func TestIsNGINXNotReadyWithoutIP(t *testing.T) {
 			},
 		},
 	}
-	assert.False(t, isNginxReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
+	nginx := NewComponent().(nginxComponent)
+	assert.False(t, nginx.isNginxReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
 }
 
 // TestIsNGINXNotReady tests the IsReady function
 // GIVEN a call to IsReady
-//  WHEN the deployment object does NOT have enough replicas available
-//  THEN false is returned
+//
+//	WHEN the deployment object does NOT have enough replicas available
+//	THEN false is returned
 func TestIsNGINXNotReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -351,13 +360,15 @@ func TestIsNGINXNotReady(t *testing.T) {
 			},
 		},
 	}
-	assert.False(t, isNginxReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
+	nginx := NewComponent().(nginxComponent)
+	assert.False(t, nginx.isNginxReady(spi.NewFakeContext(fakeClient, vz, nil, false)))
 }
 
 // TestPostInstallWithPorts tests the PostInstall function
 // GIVEN a call to PostInstall
-//  WHEN the VZ ingress has port overrides configured
-//  THEN no error is returned
+//
+//	WHEN the VZ ingress has port overrides configured
+//	THEN no error is returned
 func TestPostInstallWithPorts(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -421,8 +432,9 @@ func TestPostInstallWithPorts(t *testing.T) {
 
 // TestPostInstallNoPorts tests the PostInstall function
 // GIVEN a call to PostInstall
-//  WHEN the VZ ingress has no port overrides configured
-//  THEN no error is returned
+//
+//	WHEN the VZ ingress has no port overrides configured
+//	THEN no error is returned
 func TestPostInstallNoPorts(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -440,8 +452,9 @@ func TestPostInstallNoPorts(t *testing.T) {
 
 // TestPostInstallDryRun tests the PostInstall function
 // GIVEN a call to PostInstall
-//  WHEN the context DryRun flag is true
-//  THEN no error is returned
+//
+//	WHEN the context DryRun flag is true
+//	THEN no error is returned
 func TestPostInstallDryRun(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	assert.NoError(t, PostInstall(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false), ComponentName, ComponentNamespace))
@@ -449,7 +462,8 @@ func TestPostInstallDryRun(t *testing.T) {
 
 // TestNewComponent tests the NewComponent function
 // GIVEN a call to NewComponent
-//  THEN the NGINX component is returned
+//
+//	THEN the NGINX component is returned
 func TestNewComponent(t *testing.T) {
 	component := NewComponent()
 	assert.NotNil(t, component)
@@ -458,16 +472,18 @@ func TestNewComponent(t *testing.T) {
 
 // TestIsEnabledNilComponent tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Nginx component is nil
-//  THEN false is returned
+//
+//	WHEN The Nginx component is nil
+//	THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
 	assert.True(t, NewComponent().IsEnabled(&vzapi.Verrazzano{}))
 }
 
 // TestIsEnabledNilNginx tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Nginx component is nil
-//  THEN true is returned
+//
+//	WHEN The Nginx component is nil
+//	THEN true is returned
 func TestIsEnabledNilNginx(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Ingress = nil
@@ -476,8 +492,9 @@ func TestIsEnabledNilNginx(t *testing.T) {
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Nginx component enabled is nil
-//  THEN true is returned
+//
+//	WHEN The Nginx component enabled is nil
+//	THEN true is returned
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Ingress.Enabled = nil
@@ -486,8 +503,9 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 
 // TestIsEnabledExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Nginx component is explicitly enabled
-//  THEN true is returned
+//
+//	WHEN The Nginx component is explicitly enabled
+//	THEN true is returned
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Ingress.Enabled = getBoolPtr(true)
@@ -496,8 +514,9 @@ func TestIsEnabledExplicit(t *testing.T) {
 
 // TestIsDisableExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Nginx component is explicitly disabled
-//  THEN false is returned
+//
+//	WHEN The Nginx component is explicitly disabled
+//	THEN false is returned
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Ingress.Enabled = getBoolPtr(false)

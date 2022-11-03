@@ -1,0 +1,315 @@
+{{- $cluster_name :=  default "mycluster" .Release.Name }}
+{{- $use_self_signed := default false ((.Values.tls).useSelfSigned) }}
+apiVersion: mysql.oracle.com/v2
+kind: InnoDBCluster
+metadata:
+  name: {{ $cluster_name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  instances: {{ required "serverInstances is required" .Values.serverInstances }}
+  tlsUseSelfSigned: {{ $use_self_signed }}
+  router:
+    instances: {{ required "routerInstances is required" .Values.routerInstances }}
+  {{ if ((.Values).router.podSpec) }}
+    podSpec: {{ toYaml ((.Values).router.podSpec) | nindent 6 }}
+  {{ end }}
+  {{- if not $use_self_signed }}
+  {{- $default_secret_name := printf "%s-router-tls" $cluster_name }}
+  {{- $secret_name := default $default_secret_name ((.Values.tls).routerCertAndPKsecretName) }}
+  {{- if not (lookup "v1" "Secret" .Release.Namespace $secret_name) }}
+    {{- $err := printf "tls.routerCertAndPKsecretName: secret '%s' not found in namespace '%s'" $secret_name .Release.Namespace }}
+    {{- fail $err }}
+  {{- end }}
+    tlsSecretName: {{ $secret_name }}
+{{- end }}
+  secretName: {{ .Release.Name }}-cluster-secret
+  imagePullPolicy : {{ required "image.pullPolicy is required" .Values.image.pullPolicy }}
+{{- $repositoryPath := .Values.image.repository }}
+{{- if $repositoryPath }}
+  imageRepository: {{ $repositoryPath }}
+{{- end }}
+  baseServerId: {{ required "baseServerId is required" .Values.baseServerId }}
+  version: {{ .Values.serverVersion | default .Chart.AppVersion }}
+  serviceAccountName: {{ .Release.Name }}-sa
+{{- if not $use_self_signed }}
+  {{- $default_secret_name := printf "%s-ca" $cluster_name }}
+  {{- $secret_name := default $default_secret_name ((.Values.tls).caSecretName) }}
+  {{- if not (lookup "v1" "Secret" .Release.Namespace $secret_name) }}
+    {{- $err := printf "tls.caSecretName: secret '%s' not found in namespace '%s'" $secret_name .Release.Namespace }}
+    {{- fail $err }}
+  {{- end }}
+  tlsCASecretName: {{ $secret_name }}
+
+  {{- $default_secret_name := printf "%s-tls" $cluster_name }}
+  {{- $secret_name := default $default_secret_name ((.Values.tls).serverCertAndPKsecretName) }}
+  {{- if not (lookup "v1" "Secret" .Release.Namespace $secret_name) }}
+    {{- $err := printf "tls.serverCertAndPKsecretName: secret '%s' not found in namespace '%s'" $secret_name .Release.Namespace }}
+    {{- fail $err }}
+  {{- end }}
+  tlsSecretName: {{ $secret_name }}
+{{- end }}
+{{ if ((.Values).podSpec) }}
+  podSpec:
+{{ if ((.Values).podSpec.affinity) }}
+    affinity:
+{{ toYaml ((.Values).podSpec.affinity) | indent 6 }}
+{{ end }}
+{{ if (.Values).configurationFiles }}
+    containers:
+      - name: sidecar
+        image: {{ (.Values).mysqlOperator.image  }}
+      - name: mysql
+        volumeMounts:
+{{- range $key, $val := .Values.configurationFiles }}
+        - name: configurations
+          mountPath: {{ $.Values.configurationFilesPath }}{{ $key }}
+          subPath: {{ $key }}
+{{- end -}}
+{{ end }}
+{{ if(.Values).initdbScripts }}
+    initContainers:
+    - name: fixdatadir
+      image: {{ (.Values).mysqlOperator.image  }}
+    - name: initconf
+      image: {{ (.Values).mysqlOperator.image  }}
+    - name: initmysql
+{{ if ((.Values).initDB) }}
+      env:
+        - name: DB_RESTORE
+          value: "true"
+{{ end }}
+      volumeMounts:
+{{- range $key, $val := .Values.initdbScripts }}
+      - name: custominitsql
+        mountPath: /docker-entrypoint-initdb.d/{{ $key }}
+        subPath: {{ $key }}
+{{- end -}}
+{{ end }}
+{{ if (or (.Values).initdbScripts (.Values).configurationFiles) }}
+    volumes:
+{{- if .Values.configurationFiles }}
+    - name: configurations
+      configMap:
+        name: {{ $cluster_name }}-configuration
+        defaultMode: 0755
+        items:
+{{- range $key, $val := .Values.configurationFiles }}
+          - key: {{ $key }}
+            path: {{ $key }}
+{{- end -}}
+{{- end -}}
+{{- if .Values.initdbScripts }}
+    - name: custominitsql
+      configMap:
+        name: initsql
+        defaultMode: 0755
+        items:
+{{- range $key, $val := .Values.initdbScripts }}
+          - key: {{ $key }}
+            path: {{ $key }}
+{{- end -}}
+{{- end -}}
+{{ end }}
+{{ end }}
+{{- if ((.Values).serverConfig) }}
+  {{- if (((.Values).serverConfig).mycnf) }}
+  mycnf: |
+    {{- if not (hasPrefix "[mysqld]" (((.Values).serverConfig).mycnf) ) }}
+    [mysqld]
+    {{- end }}
+{{ (((.Values).serverConfig).mycnf) | indent 4 }}
+  {{- end }}
+{{- end }}
+{{- if .Values.datadirVolumeClaimTemplate }}
+  {{- with .Values.datadirVolumeClaimTemplate }}
+  datadirVolumeClaimTemplate:
+    {{- if .storageClassName }}
+    storageClassName: {{ .storageClassName | quote }}
+    {{- end}}
+    {{- if .accessModes }}
+    accessModes: [ "{{ .accessModes }}" ]
+    {{- end }}
+    {{- if .resources.requests.storage }}
+    resources:
+      requests:
+        storage: "{{ .resources.requests.storage }}"
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- if .Values.initDB }}
+  {{- if and (and .Values.initDB.dump .Values.initDB.dump.name) (and .Values.initDB.clone .Values.initDB.donorUrl) }}
+    {{- fail "Dump and Clone are mutually exclusive" }}
+  {{- end }}
+
+  {{- if and .Values.initDB .Values.initDB.clone }}
+    {{- with .Values.initDB.clone }}
+  initDB:
+    clone:
+      donorUrl: {{ required "initDB.clone.donorUrl is required" .donorUrl }}
+      rootUser: {{ .rootUser | default "root" }}
+      secretKeyRef:
+        name: {{ required "initDB.clone.credentials is required" .credentials }}
+    {{- end }}
+  {{- end }}
+
+  {{- if and .Values.initDB .Values.initDB.dump }}
+    {{- with .Values.initDB.dump }}
+      {{- if and .name (or .ociObjectStorage .persistentVolumeClaim .options) }}
+  initDB:
+    dump:
+        {{- if .name }}
+      name: {{ .name }}
+        {{- end }}
+        {{- if .path }}
+      path: {{ .path }}
+        {{- end }}
+        {{- if .options }}
+      options:
+        {{- toYaml .options | nindent 8}}
+        {{- end }}
+      storage:
+        {{- if .ociObjectStorage }}
+        ociObjectStorage:
+          prefix: {{ required "initDB.dump.ociObjectStorage.prefix is required" .ociObjectStorage.prefix }}
+          bucketName: {{ required "initDB.dump.ociObjectStorage.bucketName is required" .ociObjectStorage.bucketName }}
+          credentials: {{ required "initDB.dump.ociObjectStorage.credentials is required" .ociObjectStorage.credentials }}
+        {{- end }}
+        {{- if .s3 }}
+        s3:
+          prefix: {{ required "initDB.dump.s3.prefix is required" .s3.prefix }}
+          bucketName: {{ required "initDB.dump.s3.bucketName is required" .s3.bucketName }}
+          config: {{ required "initDB.dump.s3.config is required" .s3.config }}
+          {{- if .s3.profile }}
+          profile: {{ .s3.profile }}
+          {{- end }}
+          {{- if .s3.endpoint }}
+          endpoint: {{ .s3.endpoint }}
+          {{- end }}
+        {{- end }}
+        {{- if .persistentVolumeClaim }}
+        persistentVolumeClaim:
+          {{- toYaml .persistentVolumeClaim | nindent 10}}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- if .Values.backupProfiles }}
+  backupProfiles:
+  {{- $isDumpInstance := false }}
+  {{- $isSnapshot := false }}
+  {{- range $_, $profile := .Values.backupProfiles }}
+    {{- if $profile.name }}
+  - name: {{ $profile.name -}}
+      {{- $isDumpInstance = hasKey $profile "dumpInstance" }}
+      {{- $isSnapshot = hasKey $profile "snapshot" }}
+      {{- if or $isDumpInstance $isSnapshot }}
+        {{- $backupProfile := ternary $profile.dumpInstance $profile.snapshot $isDumpInstance }}
+        {{- if $isDumpInstance }}
+    dumpInstance:
+        {{- else if $isSnapshot }}
+    snapshot:
+        {{- else }}
+          {{- fail "Impossible backup type" }}
+        {{ end }}
+        {{- if not (hasKey $backupProfile "storage") }}
+          {{- fail "backup profile $profile.name has no storage section" }}
+        {{- else if hasKey $backupProfile.storage "ociObjectStorage" }}
+      storage:
+        ociObjectStorage:
+        {{- if $backupProfile.storage.ociObjectStorage.prefix }}
+          prefix: {{ $backupProfile.storage.ociObjectStorage.prefix }}
+        {{- end }}
+          bucketName: {{ required "bucketName is required"  $backupProfile.storage.ociObjectStorage.bucketName }}
+          credentials: {{ required "credentials is required"  $backupProfile.storage.ociObjectStorage.credentials }}
+          {{- else if hasKey $backupProfile.storage "s3" }}
+      storage:
+        s3:
+        {{- if $backupProfile.storage.s3.prefix }}
+          prefix: {{ $backupProfile.storage.s3.prefix }}
+        {{- end }}
+          bucketName: {{ required "bucketName is required" $backupProfile.storage.s3.bucketName }}
+          config: {{ required "config is required" $backupProfile.storage.s3.config }}
+          {{- if $backupProfile.storage.s3.profile }}
+          profile: {{ $backupProfile.storage.s3.profile }}
+          {{- end }}
+          {{- if $backupProfile.storage.s3.endpoint }}
+          endpoint: {{ $backupProfile.storage.s3.endpoint }}
+          {{- end }}
+        {{- else if hasKey $backupProfile.storage "persistentVolumeClaim" }}
+      storage:
+        persistentVolumeClaim: {{ toYaml $backupProfile.storage.persistentVolumeClaim | nindent 12}}
+        {{- else -}}
+          {{- fail "dumpInstance backup profile $profile.name has empty storage section - neither ociObjectStorage nor persistentVolumeClaim defined" }}
+        {{- end -}}
+      {{- else }}
+        {{- fail "One of dumpInstance or snapshot must be methods of a backupProfile" }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- if .Values.backupSchedules }}
+  backupSchedules:
+  {{- $isDumpInstance := false }}
+  {{- $isSnapshot := false }}
+  {{- range $_, $schedule := .Values.backupSchedules }}
+  - name: {{ $schedule.name }}
+    schedule: {{ quote $schedule.schedule }}
+    deleteBackupData: {{ $schedule.deleteBackupData }}
+    enabled: {{ $schedule.enabled }}
+    {{- if hasKey $schedule "backupProfileName"  }}
+    backupProfileName: {{  $schedule.backupProfileName }}
+    {{- else if hasKey $schedule "backupProfile" }}
+      {{- $isDumpInstance = hasKey $schedule.backupProfile "dumpInstance" }}
+      {{- $isSnapshot = hasKey $schedule.backupProfile "snapshot" }}
+      {{- if or $isDumpInstance $isSnapshot }}
+        {{- $backupProfile := ternary $schedule.backupProfile.dumpInstance $schedule.backupProfile.snapshot $isDumpInstance }}
+    backupProfile:
+        {{- if $isDumpInstance }}
+      dumpInstance:
+        {{- else if $isSnapshot }}
+      snapshot:
+        {{- end }}
+        {{- if not (hasKey $backupProfile "storage") }}
+          {{- fail "schedule backup profile $schedule.name has no storage section" }}
+        {{- else if hasKey $backupProfile.storage "ociObjectStorage" }}
+        storage:
+          ociObjectStorage:
+          {{- if $backupProfile.storage.ociObjectStorage.prefix }}
+            prefix: {{ $backupProfile.storage.ociObjectStorage.prefix }}
+          {{- end }}
+            bucketName: {{ required "bucketName is required"  $backupProfile.storage.ociObjectStorage.bucketName }}
+            credentials: {{ required "credentials is required"  $backupProfile.storage.ociObjectStorage.credentials }}
+        {{- else if hasKey $backupProfile.storage "s3" }}
+        storage:
+          s3:
+          {{- if $backupProfile.storage.s3.prefix }}
+            prefix: {{ $backupProfile.storage.s3.prefix }}
+          {{- end }}
+            bucketName: {{ required "bucketName is required" $backupProfile.storage.s3.bucketName }}
+            config: {{ required "config is required" $backupProfile.storage.s3.config }}
+            {{- if $backupProfile.storage.s3.profile }}
+            profile: {{ $backupProfile.storage.s3.profile }}
+            {{- end }}
+            {{- if $backupProfile.storage.s3.endpoint }}
+            endpoint: {{ $backupProfile.storage.s3.endpoint }}
+            {{- end }}
+        {{- else if hasKey $backupProfile.storage "persistentVolumeClaim" }}
+        storage:
+          persistentVolumeClaim: {{ toYaml $backupProfile.storage.persistentVolumeClaim | nindent 12}}
+        {{- else -}}
+          {{- fail "dumpInstance backup profile $profile.name has empty storage section - neither ociObjectStorage nor persistentVolumeClaim defined" }}
+        {{- end -}}
+      {{- else }}
+         {{- fail "Impossible backup type for a schedule" }}
+      {{- end }}
+
+    {{- else }}
+      {{- fail "Neither backupProfileName nor backupProfile provided for a schedule" }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- if false }}
+{{- end }}

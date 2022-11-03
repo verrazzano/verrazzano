@@ -1,0 +1,92 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: install.verrazzano.io/v1beta1
+kind: Verrazzano
+metadata:
+  name: verrazzano
+spec:
+  profile: prod
+  components:
+    authProxy:
+      overrides:
+        - values:
+            replicas: 2
+    certManager:
+      certificate:
+        acme:
+          provider: ""
+        ca:
+          clusterResourceNamespace: ""
+          secretName: ""
+      overrides:
+        - values:
+            cainjector:
+              replicaCount: 2
+            replicaCount: 2
+            webhook:
+              replicaCount: 2
+    console:
+      overrides:
+        - values:
+            replicas: 2
+    ingressNGINX:
+      overrides:
+        - values:
+            controller:
+              autoscaling:
+                enabled: true
+                minReplicas: 2
+            defaultBackend:
+              replicaCount: 2
+    istio:
+      overrides:
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                egressGateways:
+                  - enabled: true
+                    k8s:
+                      replicaCount: 2
+                    name: istio-egressgateway
+                ingressGateways:
+                  - enabled: true
+                    k8s:
+                      replicaCount: 2
+                      service:
+                        type: LoadBalancer
+                    name: istio-ingressgateway
+                pilot:
+                  k8s:
+                    replicaCount: 2
+    keycloak:
+      mysql: {}
+      overrides:
+        - values:
+            replicas: 2
+      mysql:
+        overrides:
+          - values:
+              serverInstances: 3
+              routerInstances: 2
+    kiali:
+      overrides:
+        - values:
+            deployment:
+              replicas: 2
+    opensearch:
+      nodes:
+        - name: es-ingest
+          replicas: 2
+          roles:
+            - ingest
+    opensearchDashboards:
+      replicas: 2
+    prometheusOperator:
+      overrides:
+        - values:
+            prometheus:
+              prometheusSpec:
+                replicas: 2

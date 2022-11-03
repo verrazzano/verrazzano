@@ -6,6 +6,7 @@ package opensearch
 import (
 	"fmt"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -45,7 +46,7 @@ func (o opensearchComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of the OpenSearch component
 func (o opensearchComponent) GetDependencies() []string {
-	return []string{vmo.ComponentName}
+	return []string{networkpolicies.ComponentName, vmo.ComponentName}
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch component
@@ -59,7 +60,12 @@ func (o opensearchComponent) GetJSONName() string {
 }
 
 // GetOverrides returns the Helm override sources for a component
-func (o opensearchComponent) GetOverrides(_ *vzapi.Verrazzano) []vzapi.Overrides {
+func (o opensearchComponent) GetOverrides(object runtime.Object) interface{} {
+	if _, ok := object.(*vzapi.Verrazzano); ok {
+		return []vzapi.Overrides{}
+	} else if _, ok := object.(*installv1beta1.Verrazzano); ok {
+		return []installv1beta1.Overrides{}
+	}
 	return []vzapi.Overrides{}
 }
 
@@ -134,6 +140,10 @@ func (o opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
+func (o opensearchComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available bool) {
+	return nodesToObjectKeys(ctx.EffectiveCR()).IsAvailable(ctx.Log(), ctx.Client())
+}
+
 // IsReady component check
 func (o opensearchComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isOSReady(ctx)
@@ -151,14 +161,6 @@ func (o opensearchComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := common.CheckIngressesAndCerts(ctx, o); err != nil {
 		return err
 	}
-	return o.updateElasticsearchResources(ctx)
-}
-
-// updateElasticsearchResources updates elasticsearch resources
-func (o opensearchComponent) updateElasticsearchResources(ctx spi.ComponentContext) error {
-	if err := fixupElasticSearchReplicaCount(ctx, ComponentNamespace); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -169,13 +171,35 @@ func (o opensearchComponent) IsEnabled(effectiveCR runtime.Object) bool {
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (o opensearchComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+	v1beta1Old := &installv1beta1.Verrazzano{}
+	v1beta1New := &installv1beta1.Verrazzano{}
+	if err := old.ConvertTo(v1beta1Old); err != nil {
+		return err
+	}
+	if err := new.ConvertTo(v1beta1New); err != nil {
+		return err
+	}
+	return o.ValidateUpdateV1Beta1(v1beta1Old, v1beta1New)
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (o opensearchComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	vzv1beta1 := &installv1beta1.Verrazzano{}
+	if err := vz.ConvertTo(vzv1beta1); err != nil {
+		return err
+	}
+	return o.ValidateInstallV1Beta1(vzv1beta1)
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (o opensearchComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// Do not allow disabling active components
 	if err := o.isOpenSearchEnabled(old, new); err != nil {
 		return err
 	}
 	// Reject any other edits except InstallArgs
 	// Do not allow any updates to storage settings via the volumeClaimSpecTemplates/defaultVolumeSource
-	if err := common.CompareStorageOverrides(old, new, ComponentJSONName); err != nil {
+	if err := common.CompareStorageOverridesV1Beta1(old, new, ComponentJSONName); err != nil {
 		return err
 	}
 	// Reject edits that duplicate names of install args or node groups
@@ -183,18 +207,8 @@ func (o opensearchComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (o opensearchComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	return validateNoDuplicatedConfiguration(vz)
-}
-
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (o opensearchComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	return nil
-}
-
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (o opensearchComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return nil
+	return validateNoDuplicatedConfiguration(vz)
 }
 
 // Name returns the component name
@@ -202,7 +216,7 @@ func (o opensearchComponent) Name() string {
 	return ComponentName
 }
 
-func (o opensearchComponent) isOpenSearchEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (o opensearchComponent) isOpenSearchEnabled(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
 	if vzconfig.IsOpenSearchEnabled(old) && !vzconfig.IsOpenSearchEnabled(new) {
 		return fmt.Errorf("Disabling component OpenSearch not allowed")
@@ -217,7 +231,7 @@ func (o opensearchComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
-			Name:      constants.ElasticsearchIngress,
+			Name:      constants.OpensearchIngress,
 		})
 	}
 

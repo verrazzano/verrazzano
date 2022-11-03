@@ -3,7 +3,8 @@
 package spi
 
 import (
-	"io/ioutil"
+	"k8s.io/apimachinery/pkg/api/equality"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -134,6 +135,12 @@ func TestContextProfilesMerge(t *testing.T) {
 			actualCR:     managedClusterEnableAllOverride,
 			expectedYAML: managedClusterEnableAllMerged,
 		},
+		{
+			name:         "TestProdNoStorageOpenSearchOverrides",
+			description:  "Test prod profile with no storage and OpenSearch overrides",
+			actualCR:     prodNoStorageOSOverrides,
+			expectedYAML: prodNoStorageOpenSearchOverrides,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -161,13 +168,13 @@ func TestContextProfilesMerge(t *testing.T) {
 			a.Equal(test.actualCR, *context.ActualCR(), "Actual CR unexpectedly modified")
 			a.NotNil(context.EffectiveCR(), "Effective CR was nil")
 			a.Equal(v1alpha1.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
-			a.Equal(expectedVZ, context.EffectiveCR(), "Effective CR did not match expected results")
+			a.True(equality.Semantic.DeepEqual(expectedVZ, context.EffectiveCR()), "Effective CR did not match expected results")
 		})
 	}
 }
 
 func loadExpectedMergeResult(expectedYamlFile string) (*v1alpha1.Verrazzano, error) {
-	bYaml, err := ioutil.ReadFile(filepath.Join(expectedYamlFile))
+	bYaml, err := os.ReadFile(filepath.Join(expectedYamlFile))
 	if err != nil {
 		return nil, err
 	}

@@ -7,10 +7,12 @@ import (
 	"context"
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -72,21 +74,24 @@ func WeblogicOperatorPreInstall(ctx spi.ComponentContext, _ string, namespace st
 	return nil
 }
 
-func isWeblogicOperatorReady(ctx spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c weblogicComponent) isWeblogicOperatorReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 // GetOverrides returns install overrides for a component
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.WebLogicOperator != nil {
-		return effectiveCR.Spec.Components.WebLogicOperator.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.WebLogicOperator != nil {
+			return effectiveCR.Spec.Components.WebLogicOperator.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.WebLogicOperator != nil {
+			return effectiveCR.Spec.Components.WebLogicOperator.ValueOverrides
+		}
+		return []installv1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }

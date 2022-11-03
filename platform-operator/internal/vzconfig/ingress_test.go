@@ -22,8 +22,9 @@ const testDomain = "mydomain.com"
 
 // Test_getServiceTypeLoadBalancer tests the GetServiceType function
 // GIVEN a call to GetServiceType
-//  WHEN the Ingress specifies a LoadBalancer type
-//  THEN the LoadBalancer type is returned with no error
+//
+//	WHEN the Ingress specifies a LoadBalancer type
+//	THEN the LoadBalancer type is returned with no error
 func Test_getServiceTypeLoadBalancer(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -43,8 +44,9 @@ func Test_getServiceTypeLoadBalancer(t *testing.T) {
 
 // Test_getServiceTypeNodePort tests the GetServiceType function
 // GIVEN a call to GetServiceType
-//  WHEN the Ingress specifies a NodePort type
-//  THEN the NodePort type is returned with no error
+//
+//	WHEN the Ingress specifies a NodePort type
+//	THEN the NodePort type is returned with no error
 func Test_getServiceTypeNodePort(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -64,8 +66,9 @@ func Test_getServiceTypeNodePort(t *testing.T) {
 
 // Test_getServiceTypeInvalidType tests the GetServiceType function
 // GIVEN a call to GetServiceType
-//  WHEN the Ingress specifies invalid service type
-//  THEN an empty string and an error are returned
+//
+//	WHEN the Ingress specifies invalid service type
+//	THEN an empty string and an error are returned
 func Test_getServiceTypeInvalidType(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -85,8 +88,9 @@ func Test_getServiceTypeInvalidType(t *testing.T) {
 
 // TestGetIngressServiceNotFound tests the GetIngressIP function
 // GIVEN a call to GetIngressIP
-//  WHEN the VZ config Ingress is a LB type and no service is found
-//  THEN an error is returned
+//
+//	WHEN the VZ config Ingress is a LB type and no service is found
+//	THEN an error is returned
 func TestGetIngressServiceNotFound(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -97,7 +101,7 @@ func TestGetIngressServiceNotFound(t *testing.T) {
 			},
 		},
 	}
-	fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	_, err := GetIngressIP(fakeClient, vz)
 	assert.Error(t, err)
 }
@@ -180,7 +184,7 @@ func TestGetIngressIP(t *testing.T) {
 					},
 				}
 			}
-			fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, svc)
+			fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(svc).Build()
 			got, err := GetIngressIP(fakeClient, vz)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetIngressIP() error = %v, wantErr %v", err, tt.wantErr)
@@ -342,7 +346,7 @@ func TestGetDNSSuffix(t *testing.T) {
 					},
 				}
 			}
-			fakeClient := fake.NewFakeClientWithScheme(k8scheme.Scheme, svc)
+			fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(svc).Build()
 			got, err := GetDNSSuffix(fakeClient, vz)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetDNSSuffix() error = %v, wantErr %v", err, tt.wantErr)
@@ -357,8 +361,9 @@ func TestGetDNSSuffix(t *testing.T) {
 
 // TestGetEnvName tests the GetEnvName function
 // GIVEN a call to GetEnvName
-//  WHEN the VZ config specifies an env name
-//  THEN the configured env name is returned
+//
+//	WHEN the VZ config specifies an env name
+//	THEN the configured env name is returned
 func TestGetEnvName(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -370,8 +375,9 @@ func TestGetEnvName(t *testing.T) {
 
 // TestGetEnvNameDefault tests the GetEnvName function
 // GIVEN a call to GetEnvName
-//  WHEN the VZ config does not explicitly configure an EnvironmentName
-//  THEN then "default" is returned
+//
+//	WHEN the VZ config does not explicitly configure an EnvironmentName
+//	THEN then "default" is returned
 func TestGetEnvNameDefault(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	assert.Equal(t, "default", GetEnvName(vz))
@@ -379,8 +385,9 @@ func TestGetEnvNameDefault(t *testing.T) {
 
 // TestBuildDNSDomainDefaultEnv tests the BuildDNSDomain function
 // GIVEN a call to BuildDNSDomain
-//  WHEN the VZ config specifies no env name
-//  THEN the domain name is correctly returned
+//
+//	WHEN the VZ config specifies no env name
+//	THEN the domain name is correctly returned
 func TestBuildDNSDomainDefaultEnv(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -393,15 +400,16 @@ func TestBuildDNSDomainDefaultEnv(t *testing.T) {
 			},
 		},
 	}
-	domain, err := BuildDNSDomain(fake.NewFakeClientWithScheme(k8scheme.Scheme), vz)
+	domain, err := BuildDNSDomain(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build(), vz)
 	assert.NoError(t, err)
 	assert.Equal(t, "default."+testDomain, domain)
 }
 
 // TestBuildDNSDomainCustomEnv tests the BuildDNSDomain function
 // GIVEN a call to BuildDNSDomain
-//  WHEN the VZ config specifies a custom env name
-//  THEN the domain name is correctly returned
+//
+//	WHEN the VZ config specifies a custom env name
+//	THEN the domain name is correctly returned
 func TestBuildDNSDomainCustomEnv(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -415,7 +423,7 @@ func TestBuildDNSDomainCustomEnv(t *testing.T) {
 			},
 		},
 	}
-	domain, err := BuildDNSDomain(fake.NewFakeClientWithScheme(k8scheme.Scheme), vz)
+	domain, err := BuildDNSDomain(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build(), vz)
 	assert.NoError(t, err)
 	assert.Equal(t, "myenv."+testDomain, domain)
 }
@@ -446,28 +454,38 @@ func TestFindVolumeTemplate(t *testing.T) {
 			},
 		},
 	}
+
+	vz := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			VolumeClaimSpecTemplates: specTemplateList,
+		},
+	}
 	// Test boundary conditions
-	invalidName, found := FindVolumeTemplate("blah", specTemplateList)
+	invalidName, found := FindVolumeTemplate("blah", &vz)
 	assert.Nil(t, invalidName)
 	assert.False(t, found)
-	emptyName, found2 := FindVolumeTemplate("", specTemplateList)
+	emptyName, found2 := FindVolumeTemplate("", &vz)
 	assert.Nil(t, emptyName)
 	assert.False(t, found2)
 	nilList, found3 := FindVolumeTemplate("default", nil)
 	assert.Nil(t, nilList)
 	assert.False(t, found3)
-	emptyList, found4 := FindVolumeTemplate("default", []vzapi.VolumeClaimSpecTemplate{})
+	emptyList, found4 := FindVolumeTemplate("default", &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{},
+		},
+	})
 	assert.Nil(t, emptyList)
 	assert.False(t, found4)
 
 	// Test normal behavior
-	defTemplate, found := FindVolumeTemplate("default", specTemplateList)
+	defTemplate, found := FindVolumeTemplate("default", &vz)
 	assert.True(t, found)
 	assert.Equal(t, "defVolume", defTemplate.VolumeName)
-	temp1, found := FindVolumeTemplate("template1", specTemplateList)
+	temp1, found := FindVolumeTemplate("template1", &vz)
 	assert.True(t, found)
 	assert.Equal(t, "temp1Volume", temp1.VolumeName)
-	temp2, found := FindVolumeTemplate("template2", specTemplateList)
+	temp2, found := FindVolumeTemplate("template2", &vz)
 	assert.True(t, found)
 	assert.Equal(t, "temp2Volume", temp2.VolumeName)
 }

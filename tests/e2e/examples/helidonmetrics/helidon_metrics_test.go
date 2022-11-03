@@ -4,8 +4,9 @@
 package helidonmetrics
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 
@@ -42,12 +43,18 @@ var _ = t.BeforeSuite(func() {
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(
-				"examples/hello-helidon/hello-helidon-comp.yaml", namespace)
+			file, err := pkg.FindTestDataFile("examples/hello-helidon/hello-helidon-comp.yaml")
+			if err != nil {
+				return err
+			}
+			return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(
-				"examples/hello-helidon/hello-helidon-app.yaml", namespace)
+			file, err := pkg.FindTestDataFile("examples/hello-helidon/hello-helidon-app.yaml")
+			if err != nil {
+				return err
+			}
+			return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		beforeSuitePassed = true
@@ -73,14 +80,20 @@ var _ = t.AfterSuite(func() {
 		// undeploy the application here
 		pkg.Log(pkg.Info, "Delete application")
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFileInGeneratedNamespace(
-				"tests/e2e/examples/helidonmetrics/testdata/hello-helidon-app-metrics-disabled.yaml", namespace)
+			file, err := pkg.FindTestDataFile("tests/e2e/examples/helidonmetrics/testdata/hello-helidon-app-metrics-disabled.yaml")
+			if err != nil {
+				return err
+			}
+			return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		pkg.Log(pkg.Info, "Delete components")
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFileInGeneratedNamespace(
-				"examples/hello-helidon/hello-helidon-comp.yaml", namespace)
+			file, err := pkg.FindTestDataFile("examples/hello-helidon/hello-helidon-comp.yaml")
+			if err != nil {
+				return err
+			}
+			return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		pkg.Log(pkg.Info, "Wait for application pods to terminate")
@@ -149,8 +162,11 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			)
 			pkg.Log(pkg.Info, "Disabling metrics trait")
 			Eventually(func() error {
-				return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(
-					"tests/e2e/examples/helidonmetrics/testdata/hello-helidon-app-metrics-disabled.yaml", namespace)
+				file, err := pkg.FindTestDataFile("tests/e2e/examples/helidonmetrics/testdata/hello-helidon-app-metrics-disabled.yaml")
+				if err != nil {
+					return err
+				}
+				return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 			}, shortWaitTimeout, shortPollingInterval, "Failed to disable metrics").ShouldNot(HaveOccurred())
 			pkg.Concurrently(
 				func() {
@@ -175,7 +191,7 @@ func helidonConfigPodsRunning() bool {
 }
 
 func serviceMonitorExists() bool {
-	smName := pkg.GetAppServiceMonitorName(namespace, "hello-helidon", "")
+	smName := pkg.GetAppServiceMonitorName(namespace, "hello-helidon", "hello-helidon-component")
 	sm, err := pkg.GetServiceMonitor(namespace, smName)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get the Service Monitor from the cluster: %v", err))

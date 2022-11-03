@@ -47,8 +47,8 @@ const (
 var (
 	// common services running in both admin and managed cluster
 	managedClusterSystemServiceNames = []string{
-		"verrazzano-authproxy.verrazzano-system",
 		"fluentd.verrazzano-system",
+		"verrazzano-authproxy.verrazzano-system",
 	}
 
 	// services that are common plus the ones unique to admin cluster
@@ -108,7 +108,7 @@ type JaegerTraceDataWrapper struct {
 	Errors interface{}       `json:"errors"`
 }
 
-//IsJaegerInstanceCreated checks whether the default Jaeger CR is created
+// IsJaegerInstanceCreated checks whether the default Jaeger CR is created
 func IsJaegerInstanceCreated(kubeconfigPath string) (bool, error) {
 	collectorDeployments, err := GetJaegerCollectorDeployments(kubeconfigPath, globalconst.JaegerInstanceName)
 	if err != nil {
@@ -124,8 +124,10 @@ func IsJaegerInstanceCreated(kubeconfigPath string) (bool, error) {
 }
 
 // GetJaegerCollectorDeployments returns the deployment object of the Jaeger collector corresponding to the given
-//		Jaeger instance. If no instance name is provided, then it returns all Jaeger collector pods in the
-////		verrazzano-monitoring namespace.
+//
+//	Jaeger instance. If no instance name is provided, then it returns all Jaeger collector pods in the
+//
+// //		verrazzano-monitoring namespace.
 func GetJaegerCollectorDeployments(kubeconfigPath, jaegerCRName string) ([]appsv1.Deployment, error) {
 	labels := map[string]string{
 		componentLabelKey: globalconst.JaegerCollectorComponentName,
@@ -142,8 +144,9 @@ func GetJaegerCollectorDeployments(kubeconfigPath, jaegerCRName string) ([]appsv
 }
 
 // GetJaegerQueryDeployments returns the deployment object of the Jaeger query corresponding to the given
-//		Jaeger instance. If no Jaeger instance name is provided, then it returns all Jaeger query pods in the
-//		verrazzano-monitoring namespace
+//
+//	Jaeger instance. If no Jaeger instance name is provided, then it returns all Jaeger query pods in the
+//	verrazzano-monitoring namespace
 func GetJaegerQueryDeployments(kubeconfigPath, jaegerCRName string) ([]appsv1.Deployment, error) {
 	labels := map[string]string{
 		componentLabelKey: globalconst.JaegerQueryComponentName,
@@ -159,7 +162,7 @@ func GetJaegerQueryDeployments(kubeconfigPath, jaegerCRName string) ([]appsv1.De
 	return deployments.Items, err
 }
 
-//JaegerSpanRecordFoundInOpenSearch checks if jaeger span records are found in OpenSearch storage
+// JaegerSpanRecordFoundInOpenSearch checks if jaeger span records are found in OpenSearch storage
 func JaegerSpanRecordFoundInOpenSearch(kubeconfigPath string, after time.Time, serviceName string) bool {
 	indexName, err := GetJaegerSpanIndexName(kubeconfigPath)
 	if err != nil {
@@ -180,7 +183,7 @@ func JaegerSpanRecordFoundInOpenSearch(kubeconfigPath string, after time.Time, s
 	return found
 }
 
-//GetJaegerSpanIndexName returns the index name used in OpenSearch used for storage
+// GetJaegerSpanIndexName returns the index name used in OpenSearch used for storage
 func GetJaegerSpanIndexName(kubeconfigPath string) (string, error) {
 	var jaegerIndices []string
 	for _, indexName := range listSystemElasticSearchIndices(kubeconfigPath) {
@@ -215,7 +218,7 @@ func IsJaegerMetricFound(kubeconfigPath, metricName, clusterName string, kv map[
 	return false
 }
 
-//ListJaegerTracesWithTags lists all trace ids for a given service with the given tags
+// ListJaegerTracesWithTags lists all trace ids for a given service with the given tags
 func ListJaegerTracesWithTags(kubeconfigPath string, start time.Time, serviceName string, tags map[string]string) []string {
 	var traces []string
 	params := url.Values{}
@@ -251,7 +254,7 @@ func ListJaegerTracesWithTags(kubeconfigPath string, start time.Time, serviceNam
 	return traces
 }
 
-//ListServicesInJaeger lists the services whose traces are available in Jaeger
+// ListServicesInJaeger lists the services whose traces are available in Jaeger
 func ListServicesInJaeger(kubeconfigPath string) []string {
 	var services []string
 	url := fmt.Sprintf("%s/api/services", getJaegerURL(kubeconfigPath))

@@ -12,7 +12,7 @@ Collections.shuffle(availableRegions)
 def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def dns_zone_ocid = 'dummy'
 def OKE_CLUSTER_PREFIX = ""
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 
 installerFileName = "install-verrazzano.yaml"
 
@@ -31,7 +31,6 @@ pipeline {
             label "${agentLabel}"
         }
     }
-
     parameters {
         booleanParam (description: 'Whether to use External Elasticsearch', name: 'EXTERNAL_ELASTICSEARCH', defaultValue: false)
         choice (description: 'Number of Cluster', name: 'TOTAL_CLUSTERS', choices: ["2", "1", "3"])
@@ -50,13 +49,13 @@ pipeline {
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
-                choices: [ "v1.20.8", "v1.21.5", "v1.22.5" ])
+                choices: [ "v1.21.5", "v1.22.5", "v1.23.4", "v1.24.1" ])
         choice (name: 'KIND_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KIND Cluster',
                 // 1st choice is the default value
-                choices: [ "1.20", "1.21", "1.22", "1.23", "1.24" ])
+                choices: [ "1.21", "1.22", "1.23", "1.24" ])
         string (name: 'VERSION_FOR_INSTALL',
-                defaultValue: 'v1.1.2',
+                defaultValue: 'v1.2.2',
                 description: 'This is the Verrazzano version for install before doing an upgrade.  By default, the v1.1.2 release will be installed',
                 trim: true)
         string (name: 'VERSION_FOR_UPGRADE',
@@ -86,6 +85,10 @@ pipeline {
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
+        choice (name: 'CRD_API_VERSION',
+                description: 'This is the API crd version.',
+                // 1st choice is the default value
+                choices: [ "v1alpha1", "v1beta1"])
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         string (name: 'CONSOLE_REPO_BRANCH',
                 defaultValue: '',
@@ -156,9 +159,9 @@ pipeline {
         OCI_CLI_REGION = "${params.OKE_CLUSTER_REGION}"
         OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING = 'True'
 
-        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-vz-prod-kind-upgrade.yaml"
-        INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
-        INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1alpha1/install-vz-prod-kind-upgrade.yaml"
+        INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1alpha1/install-verrazzano-ocidns.yaml"
+        INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1alpha1/install-verrazzano-nipio.yaml"
         OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
         ACME_ENVIRONMENT="${params.ACME_ENVIRONMENT}"
         CREATE_EXTERNAL_OPENSEARCH = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create-external-os.sh"
@@ -167,16 +170,18 @@ pipeline {
         SHORT_TIME_STAMP = sh(returnStdout: true, script: "date +%m%d%H%M%S").trim()
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
-
         ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
 
+        // Environment variables required to capture cluster snapshot and bug report on test failure
         DUMP_COMMAND="${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh"
         TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
+        CAPTURE_FULL_CLUSTER="false"
+
+        // Environment variable for Verrazzano CLI executable
         VZ_COMMAND="${GO_REPO_PATH}/vz"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
         VERRAZZANO_INSTALL_LOG="verrazzano-install.log"
-
         EXTERNAL_ELASTICSEARCH = "${params.EXTERNAL_ELASTICSEARCH}"
 
         // used for console artifact capture on failure
@@ -210,7 +215,6 @@ pipeline {
 
         VERSION_FOR_UPGRADE_ENV = "${params.VERSION_FOR_UPGRADE}"
         VERSION_FOR_INSTALL = "${params.VERSION_FOR_INSTALL}"
-
         TARGET_UPGRADE_OPERATOR_YAML = "${WORKSPACE}/target-upgrade-operator.yaml"
         RUNNING_OPERATOR_VERSION = ""
     }
@@ -500,7 +504,7 @@ pipeline {
             parallel {
                 stage('verify-scripts') {
                     steps {
-                        runGinkgoRandomizeParallel('scripts')
+                        runGinkgoRandomizeParallel('scripts/install')
                     }
                 }
                 stage('verify-infra restapi') {
@@ -659,7 +663,7 @@ pipeline {
                 }
             }
             copyGeneratedTestReports()
-            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/*bug-report*/**,**/test-cluster-snapshots/**,**/${TEST_REPORT}", allowEmptyArchive: true
+            archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/*bug-report*/**,**/full-cluster/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
 
             script {
@@ -888,18 +892,21 @@ def deleteOkeClusters() {
 // Either download the specified release of the platform operator YAML, or create one
 // using the specific operator image provided by the user.
 def getVerrazzanoOperatorYaml() {
-    sh """
-        echo "Platform Operator Configuration"
-        cd ${GO_REPO_PATH}/verrazzano
-        if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
-            echo "Downloading operator.yaml for release ${params.VERSION_FOR_INSTALL}"
-            wget "https://github.com/verrazzano/verrazzano/releases/download/${params.VERSION_FOR_INSTALL}/operator.yaml" -O ${WORKSPACE}/downloaded-release-operator.yaml
-            cp ${WORKSPACE}/downloaded-release-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-        else
-            echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
-            env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${params.VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
-        fi
-    """
+    script {
+        OPERATOR_YAML_FILE=sh(returnStdout: true, script: "ci/scripts/derive_operator_yaml.sh ${params.VERSION_FOR_INSTALL}").trim()
+        sh """
+            echo "Platform Operator Configuration"
+            cd ${GO_REPO_PATH}/verrazzano
+            if [ "NONE" == "${params.VERRAZZANO_OPERATOR_IMAGE}" ]; then
+                echo "Downloading ${OPERATOR_YAML_FILE} for release ${params.VERSION_FOR_INSTALL}"
+                wget "${OPERATOR_YAML_FILE}" -O ${WORKSPACE}/downloaded-release-operator.yaml
+                cp ${WORKSPACE}/downloaded-release-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+            else
+                echo "Generating operator.yaml based on image name provided: ${params.VERRAZZANO_OPERATOR_IMAGE}"
+                env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${params.VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
+            fi
+        """
+    }
 }
 
 // Install Verrazzano on each of the clusters
@@ -970,7 +977,8 @@ def getPlatformOperatorForRelease(){
             operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name release-${latestReleaseBranch}/operator.yaml --file"
         //Command to retrieve the released version platform operator yaml.
         }else if(params.IS_TRIGGERED_MANUALLY == "YES" && params.VERSION_FOR_UPGRADE != "NONE" && params.VERSION_FOR_UPGRADE != "current_branch"){
-            operatorCMD = "curl -L https://github.com/verrazzano/verrazzano/releases/download/v${VERSION_FOR_UPGRADE_ENV}/operator.yaml --output"
+            OPERATOR_YAML_FILE=sh(returnStdout: true, script: "ci/scripts/derive_operator_yaml.sh v${VERSION_FOR_UPGRADE_ENV}").trim()
+            operatorCMD = "curl -L ${OPERATOR_YAML_FILE} --output"
         }
 
         sh(script: "$operatorCMD $TARGET_UPGRADE_OPERATOR_YAML")
@@ -1108,7 +1116,8 @@ def verifyRegisterManagedCluster(count, minimalVerification) {
                 export MANAGED_CLUSTER_NAME="managed${count-1}"
                 export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-register/... -- --minimalVerification=${minimalVerification}
+                ginkgo build multicluster/verify-register/
+                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-register/*.test -- --minimalVerification=${minimalVerification}
             """
         }
     }
@@ -1135,10 +1144,11 @@ def verifyDeregisterManagedCluster(count) {
             sh """
                 export MANAGED_CLUSTER_NAME="managed${count-1}"
                 export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                kubectl -n verrazzano-system delete secret verrazzano-cluster-registration
+                export ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+                ./tests/e2e/config/scripts/deregister_managed_cluster.sh
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-deregister/...
+                ginkgo build multicluster/verify-deregister/
+                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-deregister/*.test
             """
         }
     }
@@ -1231,6 +1241,12 @@ def runGinkgoRandomizeParallel(testSuitePath) {
                 } else {
                     clusterName="managed${count-1}"
                 }
+                sh """
+                    export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                    export CLUSTER_NAME="${clusterName}"
+                    cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                    ginkgo build ${testSuitePath}/
+                """
                 runGinkgoRandomizeStages["${count} - Executing ginkgo test suite ${testSuitePath}"] = runGinkgoRandomize(count, clusterName, testSuitePath)
             }
             parallel runGinkgoRandomizeStages
@@ -1246,7 +1262,7 @@ def runGinkgoRandomize(count, clusterName, testSuitePath) {
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 export CLUSTER_NAME="${clusterName}"
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/*.test
             """
         }
     }
@@ -1261,7 +1277,8 @@ def runGinkgoRandomizeAdmin(testSuitePath, clusterDumpDirectory) {
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            ginkgo build ${testSuitePath}/
+            ginkgo -p --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/*.test
         """
     }
 }
@@ -1275,7 +1292,8 @@ def runGinkgoRandomizeSerialAdmin(testSuitePath, clusterDumpDirectory) {
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            ginkgo build ${testSuitePath}/
+            ginkgo --randomize-all -v --keep-going --no-color -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/*.test
         """
     }
 }
@@ -1288,7 +1306,8 @@ def runGinkgoVerify(testSuitePath, clusterDumpDirectory, skipDeploy, skipUndeplo
             export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
             export DUMP_DIRECTORY="${clusterDumpDirectory}"
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
+            ginkgo build ${testSuitePath}/
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/*.test -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
         """
     }
 }
@@ -1323,7 +1342,8 @@ def runGinkgoVerifyInCluster(count, clusterName, testSuitePath, clusterDumpDirec
                 export DUMP_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 export DUMP_DIRECTORY="${clusterDumpDirectory}${clusterName}"
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
+                ginkgo build ${testSuitePath}/
+                ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/*.test -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --skipVerify=${skipVerify} --namespace=${namespace}
             """
         }
     }
@@ -1456,12 +1476,7 @@ def dumpK8sSpecificCluster(count, dumpDirectory) {
         script {
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                mkdir -p ${dumpDirectory}/cluster-snapshot
-                ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}/cluster-snapshot-${count} -r ${dumpDirectory}/cluster-snapshot-${count}/cluster-snapshot/analysis.report
-
-                mkdir -p ${dumpDirectory}/bug-report-${count}/bug-report
-                ${GO_REPO_PATH}/vz bug-report --report-file ${dumpDirectory}/bug-report-${count}/bug-report.tar.gz
-                tar -xvf ${dumpDirectory}/bug-report-${count}/bug-report.tar.gz -C ${dumpDirectory}/bug-report-${count}/bug-report
+                ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}/cluster-snapshot-${count}
             """
         }
     }
@@ -1845,6 +1860,10 @@ def runMulticlusterVerifyRegistry() {
     for(int count=1; count<=clusterCount; count++) {
         verifyRegistryStages["${count} - Verify registry"] = verifyRegistry(count)
     }
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+        ginkgo build registry/
+    """   
     parallel verifyRegistryStages
 }
 
@@ -1855,7 +1874,7 @@ def verifyRegistry(count) {
             sh """
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" registry/...
+                ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" registry/*.test
             """
         }
     }
@@ -1888,12 +1907,20 @@ def emitJobMetrics() {
 }
 
 def setVZConfigForInstallation(){
-    if(params.VZ_INSTALL_CONFIG == "dev-kind-persistence"){
-        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
+    if(params.CRD_API_VERSION == "v1beta1"){
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-vz-prod-kind-upgrade.yaml"
+        INSTALL_CONFIG_FILE_OCIDNS = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-ocidns.yaml"
+        INSTALL_CONFIG_FILE_NIPIO = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-nipio.yaml"
+    }
+    if(params.VZ_INSTALL_CONFIG == "dev-kind-persistence" && params.CRD_API_VERSION == "v1beta1"){
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1beta1/install-verrazzano-kind-with-persistence.yaml"
+        ADMIN_CLUSTER_PROFILE = "dev"
+        MANAGED_CLUSTER_PROFILE = "managed-cluster"
+    }else if(params.VZ_INSTALL_CONFIG == "dev-kind-persistence" && params.CRD_API_VERSION == "v1alpha1") {
+        INSTALL_CONFIG_FILE_KIND = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1alpha1/install-verrazzano-kind-with-persistence.yaml"
         ADMIN_CLUSTER_PROFILE = "dev"
         MANAGED_CLUSTER_PROFILE = "managed-cluster"
     }
-
 }
 
 def isMultiCluster() {
@@ -1934,7 +1961,7 @@ def downloadCLI() {
     script {
         sh """
             echo "Downloading VZ CLI from object storage"
-            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
+            oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
             tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
             ${GO_REPO_PATH}/vz version
         """

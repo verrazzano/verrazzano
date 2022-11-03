@@ -4,8 +4,13 @@
 package helm
 
 import (
+	ctx "context"
 	"fmt"
+	"helm.sh/helm/v3/pkg/release"
+	v1 "k8s.io/api/core/v1"
 	"os"
+	"sort"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -14,17 +19,16 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
-	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/pkg/yaml"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -103,6 +107,8 @@ type HelmComponent struct {
 
 	// Certificates associated with the component
 	Certificates []types.NamespacedName
+
+	AvailabilityObjects *ready.AvailabilityObjects
 }
 
 // Verify that HelmComponent implements Component
@@ -121,7 +127,7 @@ type preUpgradeFuncSig func(log vzlog.VerrazzanoLogger, client clipkg.Client, re
 type appendOverridesSig func(context spi.ComponentContext, releaseName string, namespace string, chartDir string, kvs []bom.KeyValue) ([]bom.KeyValue, error)
 
 // getInstallOverridesSig is an optional function called to generate additional overrides.
-type getInstallOverridesSig func(vz *vzapi.Verrazzano) []vzapi.Overrides
+type getInstallOverridesSig func(object runtime.Object) interface{}
 
 // resolveNamespaceSig is an optional function called for special namespace processing
 type resolveNamespaceSig func(ns string) string
@@ -164,11 +170,15 @@ func (h HelmComponent) GetJSONName() string {
 }
 
 // GetOverrides returns the list of install overrides for a component
-func (h HelmComponent) GetOverrides(cr *vzapi.Verrazzano) []vzapi.Overrides {
+func (h HelmComponent) GetOverrides(cr runtime.Object) interface{} {
 	if h.GetInstallOverridesFunc != nil {
 		return h.GetInstallOverridesFunc(cr)
 	}
-	return []vzapi.Overrides{}
+	if _, ok := cr.(*v1beta1.Verrazzano); ok {
+		return []v1beta1.Overrides{}
+	}
+	return []v1alpha1.Overrides{}
+
 }
 
 // GetDependencies returns the Dependencies of this component
@@ -199,7 +209,7 @@ func (h HelmComponent) GetMinVerrazzanoVersion() string {
 	return h.MinVerrazzanoVersion
 }
 
-// IsInstalled Indicates whether or not the component is installed
+// IsInstalled Indicates whether the component is installed
 func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 	if context.IsDryRun() {
 		context.Log().Debugf("IsInstalled() dry run for %s", h.ReleaseName)
@@ -207,6 +217,16 @@ func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 	}
 	installed, _ := helm.IsReleaseInstalled(h.ReleaseName, h.resolveNamespace(context))
 	return installed, nil
+}
+
+// IsAvailable Indicates whether a component is available for end users
+// Components should implement comprehensive availability checks, supplying an appropriate reason
+// if the check fails.
+func (h HelmComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	if h.AvailabilityObjects != nil {
+		return h.AvailabilityObjects.IsAvailable(context.Log(), context.Client())
+	}
+	return "", true
 }
 
 // IsReady Indicates whether a component is available and ready
@@ -217,11 +237,11 @@ func (h HelmComponent) IsReady(context spi.ComponentContext) bool {
 	}
 
 	// Does the Helm installed app_version number match the chart?
-	chartInfo, err := helmcli.GetChartInfo(h.ChartDir)
+	chartInfo, err := helm.GetChartInfo(h.ChartDir)
 	if err != nil {
 		return false
 	}
-	releaseAppVersion, err := helmcli.GetReleaseAppVersion(h.ReleaseName, h.ChartNamespace)
+	releaseAppVersion, err := helm.GetReleaseAppVersion(h.ReleaseName, h.ChartNamespace)
 	if err != nil {
 		return false
 	}
@@ -241,30 +261,38 @@ func (h HelmComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return true
 }
 
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (h HelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	if err := vzapi.ValidateInstallOverrides(h.GetOverrides(vz)); err != nil {
-		return err
-	}
-	return nil
-}
-
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (h HelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
-	if err := vzapi.ValidateInstallOverrides(h.GetOverrides(new)); err != nil {
+func (h HelmComponent) v1alpha1Validate(vz *v1alpha1.Verrazzano) error {
+	if err := v1alpha1.ValidateInstallOverrides(h.GetOverrides(vz).([]v1alpha1.Overrides)); err != nil {
 		return err
 	}
 	return nil
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (h HelmComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return nil
+func (h HelmComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
+	return h.v1alpha1Validate(vz)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (h HelmComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+func (h HelmComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+	return h.v1alpha1Validate(new)
+}
+
+func (h HelmComponent) v1beta1Validate(vz *v1beta1.Verrazzano) error {
+	if err := v1alpha1.ValidateInstallOverridesV1Beta1(h.GetOverrides(vz).([]v1beta1.Overrides)); err != nil {
+		return err
+	}
 	return nil
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (h HelmComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
+	return h.v1beta1Validate(vz)
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (h HelmComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
+	return h.v1beta1Validate(new)
 }
 
 func (h HelmComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
@@ -286,7 +314,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 	// vz-specific chart overrides file
 	overrides, err := h.buildCustomHelmOverrides(context, resolvedNamespace, kvs...)
-	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `\w*`)
+	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `helm-overrides.*\.yaml`)
 	if err != nil {
 		return err
 	}
@@ -297,6 +325,14 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
+	releaseStatus, err := helm.GetReleaseStatus(context.Log(), h.ReleaseName, h.ChartNamespace)
+	if err != nil {
+		context.Log().ErrorfThrottledNewErr("Error getting release status for %s", h.ReleaseName)
+	} else if releaseStatus != release.StatusDeployed.String() && releaseStatus != release.StatusUninstalled.String() {
+		// When Helm release status not in [deployed, uninstalled], cleanup the secret
+		cleanupLatestSecret(context, h, true)
+	}
+
 	if h.PreInstallFunc != nil {
 		err := h.PreInstallFunc(context, h.ReleaseName, h.resolveNamespace(context), h.ChartDir)
 		if err != nil {
@@ -304,6 +340,44 @@ func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 		}
 	}
 	return nil
+}
+
+// cleanupLatestSecret cleans up any Helm secrets that are left over from a previous operation which was interrupted by a VPO restart
+// This deletes the latest secret that matches the release if the helm release status is not deployed or uninstalled
+// If this is not vz install, do not delete the secret revision 1
+func cleanupLatestSecret(context spi.ComponentContext, h HelmComponent, isInstall bool) {
+	secretList := &v1.SecretList{}
+	context.Client().List(ctx.TODO(), secretList, &clipkg.ListOptions{
+		Namespace: h.ChartNamespace,
+	})
+
+	filteredHelmSecrets := []v1.Secret{}
+	for _, eachSecret := range secretList.Items {
+		if eachSecret.Type == "helm.sh/release.v1" && strings.Contains(eachSecret.Name, "sh.helm.release.v1."+h.ReleaseName+".") {
+			// Filter only helm release type secrets with matching releaseName
+			filteredHelmSecrets = append(filteredHelmSecrets, eachSecret)
+		}
+	}
+
+	// Return when no secrets match found
+	if len(filteredHelmSecrets) == 0 {
+		return
+	}
+
+	// Sort the secrets based on CreationTimeStamp, latest ones first
+	sort.Slice(filteredHelmSecrets, func(i, j int) bool {
+		return (filteredHelmSecrets[i].CreationTimestamp.Time).After(filteredHelmSecrets[j].CreationTimestamp.Time)
+	})
+
+	// Return when there is only one secret AND it's not preinstall
+	if len(filteredHelmSecrets) == 1 && !isInstall {
+		return
+	}
+
+	context.Log().Progressf("Deleting secret %s", filteredHelmSecrets[0])
+	if err := context.Client().Delete(ctx.TODO(), &filteredHelmSecrets[0]); err != nil {
+		context.Log().Errorf("Error deleting secret %s", filteredHelmSecrets[0])
+	}
 }
 
 func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
@@ -315,14 +389,14 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 
 	// If the component has any ingresses associated, those should be present
 	prefix := fmt.Sprintf("Component %s", h.Name())
-	if !status.IngressesPresent(context.Log(), context.Client(), h.GetIngressNames(context), prefix) {
+	if !ready.IngressesPresent(context.Log(), context.Client(), h.GetIngressNames(context), prefix) {
 		return ctrlerrors.RetryableError{
 			Source:    h.ReleaseName,
 			Operation: "Check if Ingresses are present",
 		}
 	}
 
-	if readyStatus, certsNotReady := status.CertificatesAreReady(context.Client(), context.Log(), context.EffectiveCR(), h.Certificates); !readyStatus {
+	if readyStatus, certsNotReady := ready.CertificatesAreReady(context.Client(), context.Log(), context.EffectiveCR(), h.Certificates); !readyStatus {
 		context.Log().Progressf("Certificates not ready for component %s: %v", h.ReleaseName, certsNotReady)
 		return ctrlerrors.RetryableError{
 			Source:    h.ReleaseName,
@@ -333,7 +407,16 @@ func (h HelmComponent) PostInstall(context spi.ComponentContext) error {
 	return nil
 }
 
-func (h HelmComponent) PreUninstall(_ spi.ComponentContext) error {
+func (h HelmComponent) PreUninstall(context spi.ComponentContext) error {
+	releaseStatus, err := helm.GetReleaseStatus(context.Log(), h.ReleaseName, h.ChartNamespace)
+	if err != nil {
+		context.Log().ErrorfThrottledNewErr("Error getting release status for %s", h.ReleaseName)
+	}
+	if releaseStatus == release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() {
+		// Return when Helm release status is in [deployed,uninstalled]
+		return nil
+	}
+	cleanupLatestSecret(context, h, false)
 	return nil
 }
 
@@ -346,7 +429,7 @@ func (h HelmComponent) Uninstall(context spi.ComponentContext) error {
 		context.Log().Infof("%s already uninstalled", h.Name())
 		return nil
 	}
-	_, stderr, err := helmcli.Uninstall(context.Log(), h.ReleaseName, h.resolveNamespace(context), context.IsDryRun())
+	_, stderr, err := helm.Uninstall(context.Log(), h.ReleaseName, h.resolveNamespace(context), context.IsDryRun())
 	if err != nil {
 		context.Log().Errorf("Error uninstalling %s, error: %s, stderr: %s", h.Name(), err.Error(), stderr)
 		return err
@@ -398,7 +481,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	}
 
 	overrides, err := h.buildCustomHelmOverrides(context, resolvedNamespace, kvs...)
-	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `\w*`)
+	defer vzos.RemoveTempFiles(context.Log().GetZapLogger(), `helm-overrides.*\.yaml`)
 	if err != nil {
 		return err
 	}
@@ -408,8 +491,9 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		return err
 	}
 
-	tmpFile, err := vzos.CreateTempFile(context.Log(), "values-*.yaml", stdout)
+	tmpFile, err := vzos.CreateTempFile("helm-overrides-values-*.yaml", stdout)
 	if err != nil {
+		context.Log().Error(err.Error())
 		return err
 	}
 
@@ -420,7 +504,17 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	return err
 }
 
-func (h HelmComponent) PreUpgrade(_ spi.ComponentContext) error {
+func (h HelmComponent) PreUpgrade(context spi.ComponentContext) error {
+	releaseStatus, err := helm.GetReleaseStatus(context.Log(), h.ReleaseName, h.ChartNamespace)
+	if err != nil {
+		context.Log().ErrorfThrottledNewErr("Error getting release status for %s", h.ReleaseName)
+		return err
+	}
+	if releaseStatus == release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() {
+		// Return when Helm release status is in [deployed,uninstalled]
+		return nil
+	}
+	cleanupLatestSecret(context, h, false)
 	return nil
 }
 
@@ -445,13 +539,14 @@ func (h HelmComponent) buildCustomHelmOverrides(context spi.ComponentContext, na
 	// Sort the kvs list by priority (0th term has the highest priority)
 
 	// Getting user defined Helm overrides as the highest priority
-	overrideStrings, err := common.GetInstallOverridesYAML(context, h.GetOverrides(context.EffectiveCR()))
+	overrideStrings, err := common.GetInstallOverridesYAML(context, h.GetOverrides(context.EffectiveCR()).([]v1alpha1.Overrides))
 	if err != nil {
 		return overrides, err
 	}
 	for _, overrideString := range overrideStrings {
-		file, err := vzos.CreateTempFile(context.Log(), fmt.Sprintf("install-overrides-%s-*.yaml", h.Name()), []byte(overrideString))
+		file, err := vzos.CreateTempFile(fmt.Sprintf("helm-overrides-user-%s-*.yaml", h.Name()), []byte(overrideString))
 		if err != nil {
+			context.Log().Error(err.Error())
 			return overrides, err
 		}
 		kvs = append(kvs, bom.KeyValue{Value: file.Name(), IsFile: true})
@@ -530,8 +625,9 @@ func (h HelmComponent) filesFromVerrazzanoHelm(context spi.ComponentContext, nam
 	}
 
 	// Create the file from the string
-	file, err := vzos.CreateTempFile(context.Log(), "helm-overrides-*.yaml", []byte(fileString))
+	file, err := vzos.CreateTempFile("helm-overrides-verrazzano-*.yaml", []byte(fileString))
 	if err != nil {
+		context.Log().Error(err.Error())
 		return newKvs, err
 	}
 	if file != nil {
@@ -606,7 +702,7 @@ func (h HelmComponent) GetIngressNames(context spi.ComponentContext) []types.Nam
 }
 
 // GetInstallArgs returns the list of install args as Helm value pairs
-func GetInstallArgs(args []vzapi.InstallArgs) []bom.KeyValue {
+func GetInstallArgs(args []v1alpha1.InstallArgs) []bom.KeyValue {
 	installArgs := []bom.KeyValue{}
 	for _, arg := range args {
 		installArg := bom.KeyValue{}

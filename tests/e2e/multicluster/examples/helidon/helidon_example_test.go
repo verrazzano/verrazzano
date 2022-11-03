@@ -9,8 +9,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -391,15 +392,27 @@ var _ = t.AfterSuite(func() {
 
 func cleanUp(kubeconfigPath string) error {
 	start := time.Now()
-	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/mc-hello-helidon-app.yaml", sourceDir), kubeconfigPath); err != nil {
+	file, err := pkg.FindTestDataFile(fmt.Sprintf("examples/multicluster/%s/mc-hello-helidon-app.yaml", sourceDir))
+	if err != nil {
+		return err
+	}
+	if err := resource.DeleteResourceFromFileInCluster(file, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete multi-cluster hello-helidon application resource: %v", err)
 	}
 
-	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/hello-helidon-comp.yaml", sourceDir), kubeconfigPath); err != nil {
+	file, err = pkg.FindTestDataFile(fmt.Sprintf("examples/multicluster/%s/hello-helidon-comp.yaml", sourceDir))
+	if err != nil {
+		return err
+	}
+	if err := resource.DeleteResourceFromFileInCluster(file, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete multi-cluster hello-helidon component resources: %v", err)
 	}
 
-	if err := pkg.DeleteResourceFromFileInCluster(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir), kubeconfigPath); err != nil {
+	file, err = pkg.FindTestDataFile(fmt.Sprintf("examples/multicluster/%s/verrazzano-project.yaml", sourceDir))
+	if err != nil {
+		return err
+	}
+	if err := resource.DeleteResourceFromFileInCluster(file, kubeconfigPath); err != nil {
 		return fmt.Errorf("failed to delete hello-helidon project resource: %v", err)
 	}
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))

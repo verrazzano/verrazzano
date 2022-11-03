@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	common "github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,8 +23,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
 const (
@@ -185,7 +185,7 @@ func PopulateRancherUsers(rancherURL string, n int) error {
 			return err
 		}
 		common.RancherUserNameList = append(common.RancherUserNameList, userName)
-		t.Logs.Infof("Sucessfully created rancher user %v", userName)
+		t.Logs.Infof("Successfully created rancher user %v", userName)
 	}
 
 	return nil
@@ -199,16 +199,34 @@ func DeleteRancherUsers(rancherURL string) bool {
 		return false
 	}
 	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	rancherDeletedIds := make([]int, 0)
 	for i := 0; i < len(common.RancherUserNameList); i++ {
 		rancherUserDeleteURL := fmt.Sprintf("%s/v3/users/%s", rancherURL, common.RancherUserIDList[i])
 		_, err := common.HTTPHelper(httpClient, "DELETE", rancherUserDeleteURL, token, "Bearer", http.StatusOK, nil, t.Logs)
 		if err != nil {
 			t.Logs.Errorf("Error while retrieving http data %v", zap.Error(err))
+			updateUserLists(rancherDeletedIds)
 			return false
 		}
-		t.Logs.Infof("Sucessfully deleted rancher user '%v' with id '%v' ", common.RancherUserNameList[i], common.RancherUserIDList[i])
+		t.Logs.Infof("Successfully deleted rancher user '%v' with id '%v' ", common.RancherUserNameList[i], common.RancherUserIDList[i])
+		rancherDeletedIds = append(rancherDeletedIds, i)
 	}
 	return true
+}
+
+// updateUserLists updates the rancher user lists by removing those users that have already been deleted
+func updateUserLists(ids []int) {
+	for _, id := range ids {
+		common.RancherUserNameList = removeItem(common.RancherUserNameList, id)
+		common.RancherUserIDList = removeItem(common.RancherUserIDList, id)
+	}
+}
+
+// removeItem returns a slice with the item specified by the index removed
+func removeItem(s []string, index int) []string {
+	ret := make([]string, 0)
+	ret = append(ret, s[:index]...)
+	return append(ret, s[index+1:]...)
 }
 
 // VerifyRancherUsers gets an existing rancher user

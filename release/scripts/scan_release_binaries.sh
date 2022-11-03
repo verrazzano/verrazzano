@@ -14,16 +14,14 @@ usage() {
   Performs malware scan on release binaries.
 
   Usage:
-    $(basename $0) <release branch> <directory where the release artifacts need to be downloaded, defaults to the current directory> <release version>
+    $(basename $0) <directory containing the release artifacts> <directory to download the scanner> <directory to place the scan report>
+        <type of distribution - Lite/Full> <flag to indicate whether to skip installing scanner>
 
   Example:
-    $(basename $0) release-1.0 . 1.0.2
+    $(basename $0) release_bundle_dir scanner_home scan_report_dir
 
-  The script expects the OCI CLI is installed. It also expects the following environment variables -
+  The script expects the following environment variables -
     RELEASE_VERSION - release version (major.minor.patch format, e.g. 1.0.1)
-    OCI_REGION - OCI region
-    OBJECT_STORAGE_NS - top-level namespace used for the request
-    OBJECT_STORAGE_BUCKET - object storage bucket where the artifacts are stored
     SCANNER_ARCHIVE_LOCATION - command line scanner
     SCANNER_ARCHIVE_FILE - scanner archive
     VIRUS_DEFINITION_LOCATION - virus definition location
@@ -32,38 +30,46 @@ EOM
     exit 0
 }
 
-[ -z "$OCI_REGION" ] || [ -z "$OBJECT_STORAGE_NS" ] || [ -z "$OBJECT_STORAGE_BUCKET" ] ||
 [ -z "$SCANNER_ARCHIVE_LOCATION" ] || [ -z "$SCANNER_ARCHIVE_FILE" ] || [ -z "$NO_PROXY_SUFFIX" ] ||
-[ -z "$VIRUS_DEFINITION_LOCATION" ] || [ -z "$RELEASE_VERSION" ] || [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ "$1" == "-h" ] && { usage; }
+[ -z "$VIRUS_DEFINITION_LOCATION" ] || [ -z "$RELEASE_VERSION" ] || [ "$1" == "-h" ] && { usage; }
 
 . $SCRIPT_DIR/common.sh
 
-BRANCH=${1}
-WORK_DIR=${2:-$SCRIPT_DIR}
-
-SCAN_REPORT_DIR="$WORK_DIR/scan_report_dir"
-SCANNER_HOME="$WORK_DIR/scanner_home"
-SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
-RELEASE_TAR_BALL="verrazzano-$RELEASE_VERSION-open-source.zip"
-
-# Option to scan commercial bundle
-if [ "${BUNDLE_TO_SCAN}" == "commercial" ];then
-  RELEASE_TAR_BALL="verrazzano-$RELEASE_VERSION-commercial.zip"
+if [ -z "$1" ]; then
+  echo "Directory to download the bundle or directory containing the release bundle extracted is required"
+  exit 1
 fi
+RELEASE_BUNDLE_DOWNLOAD_DIR="$1"
 
-RELEASE_BUNDLE_DIR="$WORK_DIR/release_bundle"
+if [ -z "$2" ]; then
+  echo "Directory to place the scanner is required"
+  exit 1
+fi
+SCANNER_HOME="$2"
 
-function download_release_tarball() {
-  cd $WORK_DIR
-  mkdir -p $RELEASE_BUNDLE_DIR
-  oci --region ${OCI_REGION} os object get \
-        --namespace ${OBJECT_STORAGE_NS} \
-        -bn ${OBJECT_STORAGE_BUCKET} \
-        --name "${BRANCH}/${RELEASE_TAR_BALL}" \
-        --file "$RELEASE_BUNDLE_DIR/${RELEASE_TAR_BALL}"
-}
+if [ -z "$3" ]; then
+  echo "Directory to place the scan report is required"
+  exit 1
+fi
+SCAN_REPORT_DIR="$3"
+
+if [ -z "$4" ]; then
+  echo "Verrazzano distribution type to scan is required"
+  exit 1
+fi
+BUNDLE_TO_SCAN="$4"
+
+SKIP_INSTALL_SCANNER=${5:-"false"}
+
+DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR"
+if [ "$BUNDLE_TO_SCAN" == "Full" ];then
+  # There will be a top level verrazzano-<major>.<minor>.<patch> directory inside the full bundle
+  DIR_TO_SCAN="$RELEASE_BUNDLE_DOWNLOAD_DIR/verrazzano-${RELEASE_VERSION}"
+fi
+SCAN_REPORT="$SCAN_REPORT_DIR/scan_report.out"
 
 function install_scanner() {
+  mkdir -p $SCANNER_HOME
   no_proxy="$no_proxy,${NO_PROXY_SUFFIX}"
   cd $SCANNER_HOME
   curl -O $SCANNER_ARCHIVE_LOCATION/$SCANNER_ARCHIVE_FILE
@@ -83,31 +89,39 @@ function scan_release_binaries() {
     rm -f $SCAN_REPORT
   fi
 
-  # Extract the release bundle to a directory, and scan that directory
-  cd $RELEASE_BUNDLE_DIR
-  unzip $RELEASE_TAR_BALL
-  rm $RELEASE_TAR_BALL
-
-  count_files=$(ls -1q *.* | wc -l)
-  ls $RELEASE_BUNDLE_DIR
+  cd $DIR_TO_SCAN
+  ls
+  count_files=$(find . -maxdepth 5 -type f  | LC_ALL=C grep -c /)
 
   cd $SCANNER_HOME
   # The scan takes more than 50 minutes, the option --SUMMARY prints each and every file from all the layers, which is removed.
   # Also --REPORT option prints the output of the scan in the console, which is removed and redirected to a file
-  echo "Starting the scan of $RELEASE_BUNDLE_DIR, it might take a longer duration. The output of the scan is being written to $SCAN_REPORT ..."
-  ./uvscan $RELEASE_BUNDLE_DIR --RPTALL --RECURSIVE --CLEAN --UNZIP --VERBOSE --SUB --SUMMARY --PROGRAM --RPTOBJECTS >> $SCAN_REPORT 2>&1
+  echo "Starting the scan of $DIR_TO_SCAN, it might take a longer duration."
+  echo "The output of the scan is being written to $SCAN_REPORT ..."
+  ./uvscan $DIR_TO_SCAN --RPTALL --RECURSIVE --CLEAN --UNZIP --VERBOSE --SUB --SUMMARY --PROGRAM --RPTOBJECTS >> $SCAN_REPORT 2>&1
 
   # Extract only the last 25 lines from the scan report and create a file, which will be used for the validation
   local scan_summary="${SCAN_REPORT_DIR}/scan_summary.out"
   if [ -e "${scan_summary}" ]; then
     rm -f $scan_summary
   fi
-  tail -25 ${SCAN_REPORT} > ${scan_summary}
+    tail -25 ${SCAN_REPORT} > ${scan_summary}
+
+  files_to_skip=0
+  clean_files="$(expr $count_files - $files_to_skip)"
+  files_not_scanned="$(expr $count_files - $clean_files)"
+
+  # Workaround to address the issue where scanner fails to open a file from ghcr.io_verrazzano_fluentd-kubernetes-daemonset image
+  if [ "$BUNDLE_TO_SCAN" == "Full" ];then
+    files_to_skip=1
+    clean_files="$(expr $count_files - $files_to_skip)"
+    files_not_scanned="$(expr $count_files - $clean_files)"
+  fi
 
   # The following set of lines from the summary in the scan report is used here for validation.
   declare -a expectedLines=("Total files:...................     $count_files"
-                            "Clean:.........................     $count_files"
-                            "Not Scanned:...................     0"
+                            "Clean:.........................     $clean_files"
+                            "Not Scanned:...................     $files_not_scanned"
                             "Possibly Infected:.............     0"
                             "Objects Possibly Infected:.....     0"
                             "Cleaned:.......................     0"
@@ -140,9 +154,12 @@ function scan_release_binaries() {
   fi
 }
 
-mkdir -p $SCANNER_HOME
-validate_oci_cli || exit 1
-download_release_tarball || exit 1
-install_scanner || exit 1
-update_virus_definition || exit 1
+# Skip installation of scanner if SKIP_INSTALL_SCANNER is true
+if [ "true" == "${SKIP_INSTALL_SCANNER}" ];then
+  echo "Skip installing scanner ..."
+else
+  install_scanner || exit 1
+  update_virus_definition || exit 1
+fi
+
 scan_release_binaries || exit 1

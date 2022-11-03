@@ -2,7 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 pipeline {
@@ -25,7 +25,7 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.22", "1.23", "1.24", "1.21", "1.20" ])
+                choices: [ "1.24", "1.23", "1.22", "1.21" ])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -38,6 +38,10 @@ pipeline {
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
+        choice (name: 'CRD_API_VERSION',
+                description: 'This is the API crd version.',
+                // 1st choice is the default value
+                choices: [ "v1beta1", "v1alpha1"])
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
         booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
@@ -80,7 +84,7 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
+        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind-with-persistence.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
@@ -225,20 +229,23 @@ pipeline {
                             yq -i eval '.spec.components.kiali.enabled = false' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.rancher.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.certManager.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                            yq -i eval '.spec.components.ingress.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.istio.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.keycloak.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.applicationOperator.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.oam.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.fluentd.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                            yq -i eval '.spec.components.elasticsearch.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                            yq -i eval '.spec.components.kibana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.prometheus.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.grafana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.console.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
                             yq -i eval '.spec.components.verrazzano.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-                            ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                         """
+                        script {
+                            if(params.CRD_API_VERSION == "v1alpha1"){
+                                scriptForPrepareATEnvironmentV1alpha1()
+                            }else{
+                                scriptForPrepareATEnvironmentV1beta1()
+                            }
+                        }
                     }
                     post {
                         success {
@@ -289,21 +296,23 @@ pipeline {
                             yq -i eval '.spec.components.kiali.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.rancher.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.certManager.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                            yq -i eval '.spec.components.ingress.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.istio.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.keycloak.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.applicationOperator.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.oam.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.fluentd.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                            yq -i eval '.spec.components.elasticsearch.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                            yq -i eval '.spec.components.kibana.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.prometheus.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.grafana.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.console.enabled = true' ${WORKSPACE}/vz-update1.yaml
                             yq -i eval '.spec.components.verrazzano.enabled = true' ${WORKSPACE}/vz-update1.yaml
-                            kubectl apply -f ${WORKSPACE}/vz-update1.yaml
-                            ${TEST_SCRIPTS_DIR}/wait-for-component-ready.sh
                         """
+                        script {
+                            if(params.CRD_API_VERSION == "v1alpha1"){
+                                vzUpdateComponentsV1alpha1()
+                            }else{
+                                vzUpdateComponentsV1beta1()
+                            }
+                        }
                     }
                     post {
                         always {
@@ -392,6 +401,38 @@ pipeline {
                         script {
                             parallel generate_wls_tests("${TEST_DUMP_ROOT}/wls-coh-update2-tests", 'false', 'true')
                         }
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('Availability Status Updates') {
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/availability-update"
+                    }
+                    steps {
+                        runGinkgo('update/availability')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                        }
+                    }
+                }
+
+                stage('API Conversion Update Tests') {
+                    environment {
+                        TEST_ENV = "KIND"
+                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/apiconversion-update"
+                    }
+                    steps {
+                        runGinkgo('update/apiconversion')
                     }
                     post {
                         always {
@@ -977,4 +1018,52 @@ def emitJobMetrics() {
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgoRandomize('jobmetrics')
+}
+
+// Update1 enables disabled components except WLS/COH
+def vzUpdateComponentsV1alpha1(){
+
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        yq -i eval '.spec.components.ingress.enabled = true' ${WORKSPACE}/vz-update1.yaml
+        yq -i eval '.spec.components.elasticsearch.enabled = true' ${WORKSPACE}/vz-update1.yaml
+        yq -i eval '.spec.components.kibana.enabled = true' ${WORKSPACE}/vz-update1.yaml
+        kubectl apply -f ${WORKSPACE}/vz-update1.yaml
+        ${TEST_SCRIPTS_DIR}/wait-for-component-ready.sh
+    """
+}
+
+// Update1 enables disabled components except WLS/COH
+def vzUpdateComponentsV1beta1(){
+
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        yq -i eval '.spec.components.ingressNGINX.enabled = true' ${WORKSPACE}/vz-update1.yaml
+        yq -i eval '.spec.components.opensearch.enabled = true' ${WORKSPACE}/vz-update1.yaml
+        yq -i eval '.spec.components.opensearchDashboards.enabled = true' ${WORKSPACE}/vz-update1.yaml
+        kubectl apply -f ${WORKSPACE}/vz-update1.yaml
+        ${TEST_SCRIPTS_DIR}/wait-for-component-ready.sh
+    """
+}
+
+def scriptForPrepareATEnvironmentV1beta1(){
+
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        yq -i eval '.spec.components.ingressNGINX.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+        yq -i eval '.spec.components.opensearch.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+        yq -i eval '.spec.components.opensearchDashboards.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+    """
+}
+
+def scriptForPrepareATEnvironmentV1alpha1(){
+
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
+        yq -i eval '.spec.components.ingress.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+        yq -i eval '.spec.components.elasticsearch.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+        yq -i eval '.spec.components.kibana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+        ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+    """
 }

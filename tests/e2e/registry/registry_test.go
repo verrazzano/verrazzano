@@ -11,9 +11,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -21,6 +21,10 @@ import (
 const (
 	waitTimeout     = 2 * time.Minute
 	pollingInterval = 10 * time.Second
+
+	extOSPod                   = "opensearch-cluster-master-0"
+	helmOperationPodNamePrefix = "helm-operation"
+	shellImage                 = "/shell:"
 )
 
 var registry = os.Getenv("REGISTRY")
@@ -50,7 +54,6 @@ var listOfNamespaces = []string{
 }
 
 var t = framework.NewTestFramework("registry")
-var extOSPod = "opensearch-cluster-master-0"
 var _ = t.BeforeSuite(func() {})
 var _ = t.AfterSuite(func() {})
 var _ = t.AfterEach(func() {})
@@ -59,6 +62,8 @@ var _ = t.Describe("Image Registry Verification", Label("f:platform-lcm.private-
 	func() {
 		t.It("All the pods in the cluster have the expected registry URLs",
 			func() {
+				foundHelmOperationPod := false
+				shellImageHasCorrectPrefix := false
 				var pod corev1.Pod
 				for i, ns := range listOfNamespaces {
 					var pods *corev1.PodList
@@ -74,22 +79,45 @@ var _ = t.Describe("Image Registry Verification", Label("f:platform-lcm.private-
 						if pod.Name == extOSPod {
 							continue
 						}
+						if strings.HasPrefix(pod.Name, helmOperationPodNamePrefix) {
+							foundHelmOperationPod = true
+						}
+						podLabels := pod.GetLabels()
+						_, ok := podLabels["job-name"]
+						if pod.Status.Phase != corev1.PodRunning && ok {
+							continue
+						}
 						pkg.Log(pkg.Info, fmt.Sprintf("%d. Validating the registry url prefix for pod: %s in namespace: %s", i, pod.Name, ns))
 						for k := range pod.Spec.Containers {
-							registryURL, err := getRegistryURL(pod.Spec.Containers[k].Image)
-							Expect(err).To(BeNil(), fmt.Sprintf("Failed to get the expected registry url for image %s: %v",
-								pod.Spec.Containers[k].Image, err))
-							Expect(strings.HasPrefix(pod.Spec.Containers[k].Image, registryURL)).To(BeTrue(),
-								fmt.Sprintf("FAIL: The image for the pod %s in containers, doesn't start with expected registry URL prefix %s, image name %s", pod.Name, registryURL, pod.Spec.Containers[k].Image))
+							image := pod.Spec.Containers[k].Image
+							registryURL, err := getRegistryURL(image)
+							Expect(err).To(BeNil(), fmt.Sprintf("Failed to get the expected registry url for image %s: %v", image, err))
+							hasCorrectRegistryPrefix := strings.HasPrefix(image, registryURL)
+
+							// When checking the Rancher Helm Operation pod Shell image, there may be old pods left over so we only check to see
+							// if at least one of the Shell images has the correct registry prefix
+							if strings.Contains(image, shellImage) {
+								if hasCorrectRegistryPrefix {
+									shellImageHasCorrectPrefix = true
+								}
+								continue
+							}
+							Expect(hasCorrectRegistryPrefix).To(BeTrue(),
+								fmt.Sprintf("FAIL: The image for the pod %s in containers, doesn't start with expected registry URL prefix %s, image name %s", pod.Name, registryURL, image))
 						}
 						for k := range pod.Spec.InitContainers {
-							registryURL, err := getRegistryURL(pod.Spec.InitContainers[k].Image)
-							Expect(err).To(BeNil(), fmt.Sprintf("Failed to get the expected registry url for init container image %s: %v",
-								pod.Spec.InitContainers[k].Image, err))
-							Expect(strings.HasPrefix(pod.Spec.InitContainers[k].Image, registryURL)).To(BeTrue(),
-								fmt.Sprintf("FAIL: The image for the pod %s in initContainers, doesn't start with expected registry URL prefix %s, image name %s", pod.Name, registryURL, pod.Spec.InitContainers[k].Image))
+							image := pod.Spec.InitContainers[k].Image
+							registryURL, err := getRegistryURL(image)
+							Expect(err).To(BeNil(), fmt.Sprintf("Failed to get the expected registry url for init container image %s: %v", image, err))
+							Expect(strings.HasPrefix(image, registryURL)).To(BeTrue(),
+								fmt.Sprintf("FAIL: The image for the pod %s in initContainers, doesn't start with expected registry URL prefix %s, image name %s", pod.Name, registryURL, image))
 						}
 					}
+				}
+
+				// If we found at least one Rancher Helm Operation pod, then make sure at least one of the Shell images has the correct prefix
+				if foundHelmOperationPod {
+					Expect(shellImageHasCorrectPrefix).To(BeTrue(), "FAIL: Found at least one Rancher Helm Operation pod but none of the shell images has the expected registry prefix")
 				}
 			})
 	})

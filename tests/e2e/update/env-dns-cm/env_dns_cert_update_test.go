@@ -14,8 +14,8 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
 )
 
@@ -60,23 +60,23 @@ func (u CustomCACertificateModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 var (
-	t                              = framework.NewTestFramework("update env-dns-cm")
-	testEnvironmentName     string = "test-env"
-	testDNSDomain           string = "sslip.io"
-	testCertName            string = "test-ca"
-	testCertSecretName      string = "test-secret-ca"
-	testCertSecretNamespace string = "test-namespace"
-	testCertIssuerName      string = "verrazzano-cluster-issuer"
+	t                       = framework.NewTestFramework("update env-dns-cm")
+	testEnvironmentName     = "test-env"
+	testDNSDomain           = "sslip.io"
+	testCertName            = "test-ca"
+	testCertSecretName      = "test-secret-ca"
+	testCertSecretNamespace = "test-namespace"
+	testCertIssuerName      = "verrazzano-cluster-issuer"
 
 	currentEnvironmentName     string
 	currentDNSDomain           string
-	currentCertNamespace       string = "cert-manager"
-	currentCertName            string = "verrazzano-ca-certificate"
-	currentCertIssuerNamespace string = "cert-manager"
-	currentCertIssuerName      string = "verrazzano-selfsigned-issuer"
-	currentCertSecretNamespace string = "cert-manager"
+	currentCertNamespace       = "cert-manager"
+	currentCertName            = "verrazzano-ca-certificate"
+	currentCertIssuerNamespace = "cert-manager"
+	currentCertIssuerName      = "verrazzano-selfsigned-issuer"
+	currentCertSecretNamespace = "cert-manager"
 	/* #nosec G101 -- This is a false positive */
-	currentCertSecretName string = "verrazzano-ca-certificate-secret"
+	currentCertSecretName = "verrazzano-ca-certificate-secret"
 )
 
 var _ = t.AfterSuite(func() {
@@ -87,39 +87,36 @@ var _ = t.AfterSuite(func() {
 var _ = t.Describe("Test updates to environment name, dns domain and cert-manager CA certificates", func() {
 	t.It("Verify the current environment name", func() {
 		cr := update.GetCR()
-		currentEnvironmentName = cr.Spec.EnvironmentName
-		currentDNSDomain = cr.Spec.Components.DNS.Wildcard.Domain
+		currentEnvironmentName = pkg.GetEnvironmentName(cr)
+		currentDNSDomain = pkg.GetDNS(cr)
 		validateIngressList(currentEnvironmentName, currentDNSDomain)
 		validateVirtualServiceList(currentDNSDomain)
 	})
 
 	t.It("Update and verify environment name", func() {
 		m := EnvironmentNameModifier{testEnvironmentName}
-		err := update.UpdateCR(m)
-		if err != nil {
-			log.Fatalf("Error in updating environment name\n%s", err)
-		}
+		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 		validateIngressList(testEnvironmentName, currentDNSDomain)
 		validateVirtualServiceList(currentDNSDomain)
+		pkg.VerifyKeycloakAccess(t.Logs)
+		pkg.VerifyRancherAccess(t.Logs)
+		pkg.VerifyRancherKeycloakAuthConfig(t.Logs)
 	})
 
 	t.It("Update and verify dns domain", func() {
 		m := WildcardDNSModifier{testDNSDomain}
-		err := update.UpdateCR(m)
-		if err != nil {
-			log.Fatalf("Error in updating DNS domain\n%s", err)
-		}
+		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 		validateIngressList(testEnvironmentName, testDNSDomain)
 		validateVirtualServiceList(testDNSDomain)
+		pkg.VerifyKeycloakAccess(t.Logs)
+		pkg.VerifyRancherAccess(t.Logs)
+		pkg.VerifyRancherKeycloakAuthConfig(t.Logs)
 	})
 
 	t.It("Update and verify CA certificate", func() {
 		createCustomCACertificate(testCertName, testCertSecretNamespace, testCertSecretName)
 		m := CustomCACertificateModifier{testCertSecretNamespace, testCertSecretName}
-		err := update.UpdateCR(m)
-		if err != nil {
-			log.Fatalf("Error in updating CA certificate\n%s", err)
-		}
+		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 		validateCertManagerResourcesCleanup()
 		validateCACertificateIssuer()
 	})

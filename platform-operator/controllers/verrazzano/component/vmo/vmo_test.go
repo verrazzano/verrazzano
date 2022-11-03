@@ -29,8 +29,9 @@ const testBomFilePath = "../../testdata/test_bom.json"
 
 // TestIsVMOReady tests the isVMOReady function
 // GIVEN a call to isVMOReady
-//  WHEN the deployment object has enough replicas available
-//  THEN true is returned
+//
+//	WHEN the deployment object has enough replicas available
+//	THEN true is returned
 func TestIsVMOReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
@@ -68,13 +69,15 @@ func TestIsVMOReady(t *testing.T) {
 			},
 		},
 	).Build()
-	assert.True(t, isVMOReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
+	vmo := NewComponent().(vmoComponent)
+	assert.True(t, vmo.isVMOReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsVMONotReady tests the isVMOReady function
 // GIVEN a call to isVMOReady
-//  WHEN the deployment object does not have enough replicas available
-//  THEN true is returned
+//
+//	WHEN the deployment object does not have enough replicas available
+//	THEN true is returned
 func TestIsVMONotReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -88,13 +91,15 @@ func TestIsVMONotReady(t *testing.T) {
 			UpdatedReplicas:   1,
 		},
 	}).Build()
-	assert.False(t, isVMOReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
+	vmo := NewComponent().(vmoComponent)
+	assert.False(t, vmo.isVMOReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestAppendVMOOverrides tests the appendVMOOverrides function
 // GIVEN a call to appendVMOOverrides
-//  WHEN I call with no extra kvs
-//  THEN the correct KeyValue objects are returned and no error occurs
+//
+//	WHEN I call with no extra kvs
+//	THEN the correct KeyValue objects are returned and no error occurs
 func TestAppendVMOOverrides(t *testing.T) {
 	a := assert.New(t)
 	config.SetDefaultBomFilePath(testBomFilePath)
@@ -138,8 +143,9 @@ func TestAppendVMOOverrides(t *testing.T) {
 
 // TestAppendVMOOverridesNoNGINX tests the appendVmoOverrides function
 // GIVEN a call to appendVmoOverrides
-//  WHEN I call with no extra kvs and NGINX is disabled
-//  THEN the correct KeyValue objects are returned and no error occurs
+//
+//	WHEN I call with no extra kvs and NGINX is disabled
+//	THEN the correct KeyValue objects are returned and no error occurs
 func TestAppendVmoOverridesNoNGINX(t *testing.T) {
 	a := assert.New(t)
 	config.SetDefaultBomFilePath(testBomFilePath)
@@ -174,8 +180,9 @@ func TestAppendVmoOverridesNoNGINX(t *testing.T) {
 
 // TestAppendVmoOverridesOidcAuthDisabled tests the appendVmoOverrides function
 // GIVEN a call to appendVmoOverrides
-//  WHEN the Auth Proxy component is disabled
-//  THEN the key/value slice contains a helm override to disable OIDC auth in the VMO
+//
+//	WHEN the Auth Proxy component is disabled
+//	THEN the key/value slice contains a helm override to disable OIDC auth in the VMO
 func TestAppendVmoOverridesOidcAuthDisabled(t *testing.T) {
 	a := assert.New(t)
 	config.SetDefaultBomFilePath(testBomFilePath)

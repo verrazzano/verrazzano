@@ -5,6 +5,10 @@ package grafana
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -54,7 +58,7 @@ func (g grafanaComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of the Grafana component
 func (g grafanaComponent) GetDependencies() []string {
-	return []string{vmo.ComponentName}
+	return []string{networkpolicies.ComponentName, vmo.ComponentName}
 }
 
 // GetCertificateNames returns the Grafana certificate names if Nginx is enabled, otherwise returns
@@ -92,8 +96,11 @@ func (g grafanaComponent) GetJSONName() string {
 }
 
 // GetOverrides returns the Helm overrides for a component
-func (g grafanaComponent) GetOverrides(_ *vzapi.Verrazzano) []vzapi.Overrides {
-	return []vzapi.Overrides{}
+func (g grafanaComponent) GetOverrides(object runtime.Object) interface{} {
+	if _, ok := object.(*vzapi.Verrazzano); ok {
+		return []vzapi.Overrides{}
+	}
+	return []installv1beta1.Overrides{}
 }
 
 // MonitorOverrides indicates if monitoring of override sources is enabled or not for a component
@@ -121,19 +128,23 @@ func (g grafanaComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return isGrafanaInstalled(ctx), nil
 }
 
+func (g grafanaComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available bool) {
+	return (&ready.AvailabilityObjects{DeploymentNames: newDeployments()}).IsAvailable(ctx.Log(), ctx.Client())
+}
+
 // IsReady returns true if the Grafana component is ready
 func (g grafanaComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isGrafanaReady(ctx)
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (g grafanaComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
-	return nil
+func (g grafanaComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return checkExistingCNEGrafana(vz)
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (g grafanaComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return nil
+	return checkExistingCNEGrafana(vz)
 }
 
 // PreInstall ensures that preconditions are met before installing the Grafana component
@@ -219,10 +230,29 @@ func (g grafanaComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (g grafanaComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	// do not allow disabling active components
+	if vzconfig.IsGrafanaEnabled(old) && !vzconfig.IsGrafanaEnabled(new) {
+		return fmt.Errorf("Disabling component Grafana not allowed")
+	}
 	return nil
 }
 
 // Reconcile reconciles the Grafana component
 func (g grafanaComponent) Reconcile(ctx spi.ComponentContext) error {
+	return nil
+}
+
+// checkExistingGrafana checks if Grafana is already installed
+// OLCNE Istio module may have Grafana installed in istio-system namespace
+func checkExistingCNEGrafana(vz runtime.Object) error {
+	if !vzconfig.IsGrafanaEnabled(vz) {
+		return nil
+	}
+	if err := k8sutil.ErrorIfDeploymentExists(constants.IstioSystemNamespace, ComponentName); err != nil {
+		return err
+	}
+	if err := k8sutil.ErrorIfServiceExists(constants.IstioSystemNamespace, ComponentName); err != nil {
+		return err
+	}
 	return nil
 }

@@ -6,9 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/webhook"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 	"strings"
 
@@ -16,17 +14,23 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/istio"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/pkg/k8s/webhook"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	kerrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -47,7 +51,7 @@ const IstioIngressgatewayDeployment = "istio-ingressgateway"
 const IstioEgressgatewayDeployment = "istio-egressgateway"
 
 // IstioNamespace is the default Istio namespace
-const IstioNamespace = "istio-system"
+const IstioNamespace = constants.IstioSystemNamespace
 
 // IstioCoreDNSReleaseName is the name of the istiocoredns release
 const IstioCoreDNSReleaseName = "istiocoredns"
@@ -68,6 +72,32 @@ const istioReaderIstioSystem = "istio-reader-istio-system"
 const istiodIstioSystem = "istiod-istio-system"
 
 const istioSidecarMutatingWebhook = "istio-sidecar-injector"
+
+const (
+	//ExternalIPArg is used in a special case where Istio helm chart no longer supports ExternalIPs.
+	// Put external IPs into the IstioOperator YAML, which does support it
+	ExternalIPArg            = "gateways.istio-ingressgateway.externalIPs"
+	specServiceJSONPath      = "spec.components.ingressGateways.0.k8s.service"
+	externalIPJsonPathSuffix = "externalIPs.0"
+	typeJSONPathSuffix       = "type"
+	externalIPJsonPath       = specServiceJSONPath + "." + externalIPJsonPathSuffix
+	meshConfigTracingPath    = "spec.meshConfig.defaultConfig.tracing"
+)
+
+var istioDeployments = []types.NamespacedName{
+	{
+		Name:      IstiodDeployment,
+		Namespace: IstioNamespace,
+	},
+	{
+		Name:      IstioIngressgatewayDeployment,
+		Namespace: IstioNamespace,
+	},
+	{
+		Name:      IstioEgressgatewayDeployment,
+		Namespace: IstioNamespace,
+	},
+}
 
 // istioComponent represents an Istio component
 type istioComponent struct {
@@ -95,11 +125,18 @@ func (i istioComponent) GetJSONName() string {
 }
 
 // GetOverrides returns the Helm override sources for a component
-func (i istioComponent) GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+func (i istioComponent) GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Istio != nil {
+			return effectiveCR.Spec.Components.Istio.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	}
+	effectiveCR := object.(*installv1beta1.Verrazzano)
 	if effectiveCR.Spec.Components.Istio != nil {
 		return effectiveCR.Spec.Components.Istio.ValueOverrides
 	}
-	return []vzapi.Overrides{}
+	return []installv1beta1.Overrides{}
 }
 
 // MonitorOverrides indicates whether monitoring of override sources is enabled for a component
@@ -243,6 +280,9 @@ func (i istioComponent) Name() string {
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
 func (i istioComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	if err := checkExistingIstio(vz); err != nil {
+		return err
+	}
 	// Validate install overrides
 	if vz.Spec.Components.Istio != nil {
 		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.Istio.ValueOverrides); err != nil {
@@ -267,14 +307,32 @@ func (i istioComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	return i.validateForExternalIPSWithNodePort(&new.Spec)
 }
 
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+// ValidateUpdateV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
 func (i istioComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	return nil
+	if i.IsEnabled(old) && !i.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	// Validate install overrides
+	if new.Spec.Components.Istio != nil {
+		if err := vzapi.ValidateInstallOverridesV1Beta1(new.Spec.Components.Istio.ValueOverrides); err != nil {
+			return err
+		}
+	}
+
+	return i.validateForExternalIPSWithNodePortV1Beta1(&new.Spec)
 }
 
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+// ValidateInstallV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 func (i istioComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return nil
+	if err := checkExistingIstio(vz); err != nil {
+		return err
+	}
+	if vz.Spec.Components.Istio != nil {
+		if err := vzapi.ValidateInstallOverridesV1Beta1(vz.Spec.Components.Istio.ValueOverrides); err != nil {
+			return err
+		}
+	}
+	return i.validateForExternalIPSWithNodePortV1Beta1(&vz.Spec)
 }
 
 // validateForExternalIPSWithNodePort checks that externalIPs are set when Type=NodePort
@@ -292,6 +350,23 @@ func (i istioComponent) validateForExternalIPSWithNodePort(vz *vzapi.VerrazzanoS
 	// look for externalIPs if NodePort
 	if vz.Components.Istio.Ingress.Type == vzapi.NodePort {
 		return vzconfig.CheckExternalIPsArgs(vz.Components.Istio.IstioInstallArgs, vz.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, i.Name())
+	}
+
+	return nil
+}
+
+// validateForExternalIPSWithNodePortV1Beta1 checks that externalIPs are set when Type=NodePort
+func (i istioComponent) validateForExternalIPSWithNodePortV1Beta1(vz *installv1beta1.VerrazzanoSpec) error {
+	// good if istio is not set
+	if vz.Components.Istio == nil {
+		return nil
+	}
+
+	nodePort := string(installv1beta1.NodePort)
+	// look for externalIPs if NodePort
+	err := vzconfig.CheckExternalIPsOverridesArgsWithPaths(vz.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, nodePort, externalIPJsonPathSuffix, i.Name())
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -321,24 +396,13 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 	return err
 }
 
+func (i istioComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available bool) {
+	return (&ready.AvailabilityObjects{DeploymentNames: istioDeployments}).IsAvailable(ctx.Log(), ctx.Client())
+}
+
 func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	deployments := []types.NamespacedName{
-		{
-			Name:      IstiodDeployment,
-			Namespace: IstioNamespace,
-		},
-		{
-			Name:      IstioIngressgatewayDeployment,
-			Namespace: IstioNamespace,
-		},
-		{
-			Name:      IstioEgressgatewayDeployment,
-			Namespace: IstioNamespace,
-		},
-	}
-	ready := status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
-	if !ready {
+	if !areIstioDeploymentsReady(context, prefix) {
 		return false
 	}
 
@@ -358,11 +422,15 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	if err != nil {
 		// Only log for the Istio component context
 		if context.GetComponent() == ComponentName {
-			context.Log().Errorf("Ingress external IP pending for component %s: %v", ComponentName, err)
+			context.Log().Progressf("Ingress external IP pending for component %s: %s", ComponentName, err.Error())
 		}
 		return false
 	}
 	return true
+}
+
+func areIstioDeploymentsReady(context spi.ComponentContext, prefix string) bool {
+	return ready.DeploymentsAreReady(context.Log(), context.Client(), istioDeployments, 1, prefix)
 }
 
 func isIstioManifestNotInstalledError(err error) bool {
@@ -371,12 +439,12 @@ func isIstioManifestNotInstalledError(err error) bool {
 
 // GetDependencies returns the dependencies of this component
 func (i istioComponent) GetDependencies() []string {
-	return []string{}
+	return []string{networkpolicies.ComponentName}
 }
 
 func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
 	if vzconfig.IsApplicationOperatorEnabled(context.ActualCR()) {
-		context.Log().Infof("Stopping WebLogic domains that are have Envoy 1.7.3 sidecar")
+		context.Log().Infof("Stop WebLogic domains that have the old Envoy sidecar where istio version skew is more than 2 minor versions")
 		if err := StopDomainsUsingOldEnvoy(context.Log(), context.Client()); err != nil {
 			return err
 		}
@@ -522,4 +590,36 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 		}
 	}
 	return kvs, nil
+}
+
+func checkExistingIstio(vz runtime.Object) error {
+	if !vzconfig.IsIstioEnabled(vz) {
+		return nil
+	}
+	client, err := k8sutil.GetCoreV1Func()
+	if err != nil {
+		return err
+	}
+	ns, err := client.Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil && !kerrs.IsNotFound(err) {
+		return err
+	}
+	if err = checkNS(ns.Items); err != nil {
+		return err
+	}
+	return nil
+}
+
+func checkNS(ns []v1.Namespace) error {
+	for _, n := range ns {
+		if n.Namespace == IstioNamespace || n.Name == IstioNamespace {
+			for l := range n.Labels {
+				if l == vzNsLabel {
+					return nil
+				}
+			}
+			return fmt.Errorf("found existing Istio namespace %s not created by Verrazzano", IstioNamespace)
+		}
+	}
+	return nil
 }

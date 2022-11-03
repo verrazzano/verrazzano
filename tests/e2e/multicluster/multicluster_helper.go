@@ -11,11 +11,12 @@ import (
 	errs "errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/google/uuid"
@@ -26,7 +27,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	mcapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	mcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
+	mcClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	yv2 "gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
@@ -57,7 +58,11 @@ const (
 
 // DeployVerrazzanoProject deploys the VerrazzanoProject to the cluster with the given kubeConfig
 func DeployVerrazzanoProject(projectConfiguration, kubeConfig string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster(projectConfiguration, kubeConfig); err != nil {
+	file, err := pkg.FindTestDataFile(projectConfiguration)
+	if err != nil {
+		return err
+	}
+	if err := resource.CreateOrUpdateResourceFromFileInCluster(file, kubeConfig); err != nil {
 		return fmt.Errorf("failed to create project resource: %v", err)
 	}
 	return nil
@@ -71,7 +76,11 @@ func TestNamespaceExists(kubeConfig string, namespace string) bool {
 
 // DeployCompResource deploys the OAM Component resource to the cluster with the given kubeConfig
 func DeployCompResource(compConfiguration, testNamespace, kubeConfig string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(compConfiguration, kubeConfig, testNamespace); err != nil {
+	file, err := pkg.FindTestDataFile(compConfiguration)
+	if err != nil {
+		return err
+	}
+	if err := resource.CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file, kubeConfig, testNamespace); err != nil {
 		return fmt.Errorf("failed to create multi-cluster component resources: %v", err)
 	}
 	return nil
@@ -79,7 +88,11 @@ func DeployCompResource(compConfiguration, testNamespace, kubeConfig string) err
 
 // DeployAppResource deploys the OAM Application resource to the cluster with the given kubeConfig
 func DeployAppResource(appConfiguration, testNamespace, kubeConfig string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(appConfiguration, kubeConfig, testNamespace); err != nil {
+	file, err := pkg.FindTestDataFile(appConfiguration)
+	if err != nil {
+		return err
+	}
+	if err := resource.CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file, kubeConfig, testNamespace); err != nil {
 		return fmt.Errorf("failed to create multi-cluster application resource: %v", err)
 	}
 	return nil
@@ -241,8 +254,8 @@ func verifyMCResourcesDeleted(kubeConfig string, namespace string, projectName s
 }
 
 const (
-	oneMinute       = 1 * time.Minute
-	fiveMinutes     = 5 * time.Minute
+	shortWait       = 1 * time.Minute
+	mediumWait      = 5 * time.Minute
 	pollingInterval = 5 * time.Second
 	manifestKey     = "yaml"
 )
@@ -399,7 +412,7 @@ func (c *Cluster) apply(data []byte) {
 			pkg.Log(pkg.Error, fmt.Sprintf("Error applying changes on %s: %v", c.Name, err))
 		}
 		return err == nil
-	}, fiveMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf(" %s failed registration", c.Name))
+	}, mediumWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf(" %s failed registration", c.Name))
 }
 
 func (c *Cluster) UpsertManagedCluster(name string) error {
@@ -444,7 +457,7 @@ func (c *Cluster) UpsertManagedCluster(name string) error {
 			return false
 		}
 		return vmcCreated.Status.Conditions[size-1].Type == mcapi.ConditionReady
-	}, fiveMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("VerrazzanoManagedCluster %s is not ready", vmc.Name))
+	}, mediumWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("VerrazzanoManagedCluster %s is not ready", vmc.Name))
 	return nil
 }
 
@@ -474,7 +487,7 @@ func (c *Cluster) GetManifest(name string) ([]byte, error) {
 	gomega.Eventually(func() bool {
 		data, _ := c.GetSecretData(constants.VerrazzanoMultiClusterNamespace, manifest, manifestKey)
 		return len(data) > 0
-	}, oneMinute, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("manifest %s is not ready", manifest))
+	}, shortWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("manifest %s is not ready", manifest))
 	return c.GetSecretData(constants.VerrazzanoMultiClusterNamespace, manifest, manifestKey)
 }
 
@@ -499,7 +512,7 @@ func (c *Cluster) GetCR(waitForReady bool) *vzapi.Verrazzano {
 				return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
 			}
 			return nil
-		}, fiveMinutes, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
+		}, mediumWait, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
 	}
 	// Get the CR
 	cr, err := pkg.GetVerrazzanoInstallResourceInCluster(c.KubeConfigPath)
@@ -537,7 +550,7 @@ spec:
 			return false
 		}
 		return true
-	}, fiveMinutes, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Failed creating CA %v", caname))
+	}, mediumWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Failed creating CA %v", caname))
 	return caname
 }
 
@@ -633,7 +646,7 @@ func serverFromKubeConfig(kubeCfgPath, name string) string {
 	cmd := exec.Command("kind", "get", "kubeconfig", "--internal", "--Name", name) //nolint:gosec
 	out, err := cmd.Output()
 	if err != nil {
-		out, _ = ioutil.ReadFile(kubeCfgPath)
+		out, _ = os.ReadFile(kubeCfgPath)
 	}
 	yv2.Unmarshal(out, &kubeServerConf)
 	for _, c := range kubeServerConf.Clusters {

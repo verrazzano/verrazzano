@@ -18,8 +18,9 @@ import (
 
 // Test_appendWeblogicOperatorOverridesExtraKVs tests the AppendWeblogicOperatorOverrides fn
 // GIVEN a call to AppendWeblogicOperatorOverrides
-//  WHEN I call with no extra kvs
-//  THEN the correct number of KeyValue objects are returned and no errors occur
+//
+//	WHEN I call with no extra kvs
+//	THEN the correct number of KeyValue objects are returned and no errors occur
 func Test_appendWeblogicOperatorOverrides(t *testing.T) {
 	kvs, err := AppendWeblogicOperatorOverrides(spi.NewFakeContext(nil, nil, nil, false), "weblogic-operator", "verrazzano-system", "", []bom.KeyValue{})
 	assert.NoError(t, err)
@@ -28,8 +29,9 @@ func Test_appendWeblogicOperatorOverrides(t *testing.T) {
 
 // Test_appendWeblogicOperatorOverridesExtraKVs tests the AppendWeblogicOperatorOverrides fn
 // GIVEN a call to AppendWeblogicOperatorOverrides
-//  WHEN I pass in a KeyValue list
-//  THEN the values passed in are preserved and no errors occur
+//
+//	WHEN I pass in a KeyValue list
+//	THEN the values passed in are preserved and no errors occur
 func Test_appendWeblogicOperatorOverridesExtraKVs(t *testing.T) {
 	kvs := []bom.KeyValue{
 		{Key: "Key", Value: "Value"},
@@ -42,8 +44,9 @@ func Test_appendWeblogicOperatorOverridesExtraKVs(t *testing.T) {
 
 // Test_weblogicOperatorPreInstall tests the WeblogicOperatorPreInstall fn
 // GIVEN a call to this fn
-//  WHEN I call WeblogicOperatorPreInstall
-//  THEN no errors are returned
+//
+//	WHEN I call WeblogicOperatorPreInstall
+//	THEN no errors are returned
 func Test_weblogicOperatorPreInstall(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	err := WeblogicOperatorPreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false), "weblogic-operator", "verrazzano-system", "")
@@ -52,8 +55,9 @@ func Test_weblogicOperatorPreInstall(t *testing.T) {
 
 // TestIsWeblogicOperatorReady tests the isWeblogicOperatorReady function
 // GIVEN a call to isWeblogicOperatorReady
-//  WHEN the deployment object has enough replicas available
-//  THEN true is returned
+//
+//	WHEN the deployment object has enough replicas available
+//	THEN true is returned
 func TestIsWeblogicOperatorReady(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -92,13 +96,15 @@ func TestIsWeblogicOperatorReady(t *testing.T) {
 			},
 		},
 	).Build()
-	assert.True(t, isWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
+	weblogic := NewComponent().(weblogicComponent)
+	assert.True(t, weblogic.isWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
 }
 
 // TestIsWeblogicOperatorNotReady tests the isWeblogicOperatorReady function
 // GIVEN a call to isWeblogicOperatorReady
-//  WHEN the deployment object does NOT have enough replicas available
-//  THEN false is returned
+//
+//	WHEN the deployment object does NOT have enough replicas available
+//	THEN false is returned
 func TestIsWeblogicOperatorNotReady(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
@@ -112,5 +118,6 @@ func TestIsWeblogicOperatorNotReady(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	assert.False(t, isWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
+	weblogic := NewComponent().(weblogicComponent)
+	assert.False(t, weblogic.isWeblogicOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
 }

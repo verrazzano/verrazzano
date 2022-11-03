@@ -6,6 +6,7 @@ package bomvalidator
 import (
 	"encoding/json"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	"log"
 	"os"
 	"regexp"
@@ -14,14 +15,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	platformOperatorPodNameSearchString = "verrazzano-platform-operator"                        // Pod Substring for finding the platform operator pod
-	rancherWarningMessage               = "See VZ-5937, Rancher upgrade issue, all VZ versions" // For known Rancher issues with VZ upgrade
+	platformOperatorPodNameSearchString = "verrazzano-platform-operator"                                                       // Pod Substring for finding the platform operator pod
+	rancherWarningMessage               = "Rancher determined the image version is sufficient and does not need to be updated" // For known Rancher component upgrade behavior during VZ upgrade
 )
 
 type imageDetails struct {
@@ -57,20 +58,19 @@ var (
 	kubeconfig string
 )
 
-// Hack to work around an issue with the 1.2 upgrade; Rancher does not always update the webhook image
 type knownIssues struct {
 	alternateTags []string
 	message       string
 }
 
-// Mainly a workaround for Rancher additional images; Rancher does not always update to the latest version
-// in the BOM file, possible Rancher bug that we are pursuing with the Rancher team
+// Mainly a workaround for Rancher additional images. Rancher only updates these images to the latest
+// version mentioned in the BOM file if the cluster contains image versions older than the minimum image versions as specified by rancher.
 var knownImageIssues = map[string]knownIssues{
-	"rancher-webhook": {alternateTags: []string{"v0.1.1", "v0.1.2", "v0.1.4", "v0.2.6"}, message: rancherWarningMessage},
-	"fleet-agent":     {alternateTags: []string{"v0.3.5", "v0.3.10"}, message: rancherWarningMessage},
-	"fleet":           {alternateTags: []string{"v0.3.5", "v0.3.10"}, message: rancherWarningMessage},
-	"gitjob":          {alternateTags: []string{"v0.1.15", "v0.1.30"}, message: rancherWarningMessage},
-	"shell":           {alternateTags: []string{"v0.1.6", "v0.1.16"}, message: rancherWarningMessage},
+	"rancher-webhook": {message: rancherWarningMessage},
+	"fleet-agent":     {message: rancherWarningMessage},
+	"fleet":           {message: rancherWarningMessage},
+	"gitjob":          {message: rancherWarningMessage},
+	"shell":           {message: rancherWarningMessage},
 }
 
 // BOM validations validates the images of below allowed namespaces only
@@ -125,7 +125,7 @@ func validateKubeConfig() bool {
 
 // Get the BOM from the platform operator in the cluster and build the BOM structure from it
 func getBOM() {
-	var platformOperatorPodName string = ""
+	var platformOperatorPodName = ""
 	pods, err := pkg.ListPods("verrazzano-install", metav1.ListOptions{})
 	if err != nil {
 		log.Fatal(err)
@@ -189,11 +189,16 @@ func populateClusterImages(installedNamespace string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, podList := range podsList.Items {
-		for _, initContainer := range podList.Spec.InitContainers {
+	for _, pod := range podsList.Items {
+		podLabels := pod.GetLabels()
+		_, ok := podLabels["job-name"]
+		if pod.Status.Phase != corev1.PodRunning && ok {
+			continue
+		}
+		for _, initContainer := range pod.Spec.InitContainers {
 			clusterImageArray = append(clusterImageArray, initContainer.Image)
 		}
-		for _, container := range podList.Spec.Containers {
+		for _, container := range pod.Spec.Containers {
 			clusterImageArray = append(clusterImageArray, container.Image)
 		}
 	}
@@ -257,7 +262,7 @@ func scanClusterImagesWithBom() bool {
 
 		// Check if the image/tag in the cluster is known to have issues
 		imageWarning, hasKnownIssues := knownImageIssues[nameTag[0]]
-		if hasKnownIssues && vzstring.SliceContainsString(imageWarning.alternateTags, nameTag[1]) {
+		if hasKnownIssues && (imageWarning.alternateTags == nil || len(imageWarning.alternateTags) == 0 || vzstring.SliceContainsString(imageWarning.alternateTags, nameTag[1])) {
 			clusterImageWarnings[nameTag[0]] = fmt.Sprintf("Known issue for image %s, found tag %s, expected tag %s message: %s",
 				nameTag[0], nameTag[1], bomImages[nameTag[0]], imageWarning.message)
 			continue

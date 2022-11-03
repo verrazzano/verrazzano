@@ -5,12 +5,11 @@ def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
 def SKIP_TRIGGERED_TESTS = false
 def SUSPECT_LIST = ""
-def SCAN_IMAGE_PATCH_OPERATOR = false
 def VERRAZZANO_DEV_VERSION = ""
 def tarfilePrefix=""
 def storeLocation=""
 
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 
 pipeline {
     options {
@@ -44,6 +43,10 @@ pipeline {
                 description: 'Wildcard DNS Domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
+        choice (name: 'CRD_API_VERSION',
+                description: 'This is the API crd version.',
+                // 1st choice is the default value
+                choices: [ "v1beta1", "v1alpha1"])
         string (name: 'CONSOLE_REPO_BRANCH',
                 defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
@@ -59,12 +62,6 @@ pipeline {
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
         DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
-        DOCKER_IMAGE_PATCH_CI_IMAGE_NAME = 'verrazzano-image-patch-operator-jenkins'
-        DOCKER_IMAGE_PATCH_PUBLISH_IMAGE_NAME = 'verrazzano-image-patch-operator'
-        DOCKER_IMAGE_PATCH_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_IMAGE_PATCH_PUBLISH_IMAGE_NAME : env.DOCKER_IMAGE_PATCH_CI_IMAGE_NAME}"
-        DOCKER_WIT_CI_IMAGE_NAME = 'verrazzano-weblogic-image-tool-jenkins'
-        DOCKER_WIT_PUBLISH_IMAGE_NAME = 'verrazzano-weblogic-image-tool'
-        DOCKER_WIT_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_WIT_PUBLISH_IMAGE_NAME : env.DOCKER_WIT_CI_IMAGE_NAME}"
         DOCKER_OAM_CI_IMAGE_NAME = 'verrazzano-application-operator-jenkins'
         DOCKER_OAM_PUBLISH_IMAGE_NAME = 'verrazzano-application-operator'
         DOCKER_OAM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_OAM_PUBLISH_IMAGE_NAME : env.DOCKER_OAM_CI_IMAGE_NAME}"
@@ -88,7 +85,7 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind.yaml"
+        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
@@ -104,6 +101,7 @@ pipeline {
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
         OCI_OS_BUCKET="verrazzano-builds"
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        OCI_OS_REGION="us-phoenix-1"
 
         // used to emit metrics
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
@@ -191,6 +189,19 @@ pipeline {
             }
         }
 
+        stage('Check Repo Clean') {
+            steps {
+                checkRepoClean()
+            }
+            post {
+                failure {
+                    script {
+                        SKIP_TRIGGERED_TESTS = true
+                    }
+                }
+            }
+        }
+
         stage('Parallel Build, Test, and Compliance') {
             parallel {
                 stage('Build Verrazzano CLI and Save Binary') {
@@ -241,27 +252,12 @@ pipeline {
                     }
                 }
 
-                stage('Quality and Compliance Checks') {
-                    when { not { buildingTag() } }
-                    steps {
-                        qualityCheck()
-                        thirdpartyCheck()
-                    }
-                    post {
-                        failure {
-                            script {
-                                SKIP_TRIGGERED_TESTS = true
-                            }
-                        }
-                    }
-                }
-
-                stage('Unit Tests') {
+                stage('Quality, Compliance Checks, and Unit Tests') {
                     when { not { buildingTag() } }
                     steps {
                         sh """
                     cd ${GO_REPO_PATH}/verrazzano
-                    make -B coverage
+                    make precommit
                 """
                     }
                     post {
@@ -288,7 +284,7 @@ pipeline {
                                     failNoReports: true,
                                     onlyStable: false,
                                     fileCoverageTargets: '100, 0, 0',
-                                    lineCoverageTargets: '75, 75, 75',
+                                    lineCoverageTargets: '68, 68, 68',
                                     packageCoverageTargets: '100, 0, 0',
                             )
                         }
@@ -296,31 +292,6 @@ pipeline {
                 }
             }
 
-        }
-
-        stage('Image Patch Operator') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    changeset "image-patch-operator/**"
-                }
-            }
-            steps {
-                buildImagePatchOperator("${DOCKER_IMAGE_TAG}")
-                buildWITImage("${DOCKER_IMAGE_TAG}")
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                success {
-                    script {
-                        SCAN_IMAGE_PATCH_OPERATOR = true
-                    }
-                }
-            }
         }
 
         stage('Scan Image') {
@@ -334,9 +305,6 @@ pipeline {
                 script {
                     scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                     scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    if (SCAN_IMAGE_PATCH_OPERATOR == true) {
-                        scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_IMAGE_PATCH_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    }
                 }
             }
             post {
@@ -375,7 +343,7 @@ pipeline {
             }
         }
 
-        stage('Kind Acceptance Tests on 1.22') {
+        stage('Kind Acceptance Tests on 1.24') {
             when {
                 allOf {
                     not { buildingTag() }
@@ -402,9 +370,10 @@ pipeline {
                     script {
                         build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
                             parameters: [
-                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.22'),
+                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
                                 string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                 string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                string(name: 'CRD_API_VERSION', value: params.CRD_API_VERSION),
                                 booleanParam(name: 'RUN_SLOW_TESTS', value: params.RUN_SLOW_TESTS),
                                 booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS),
                                 booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: params.CREATE_CLUSTER_USE_CALICO),
@@ -471,12 +440,8 @@ pipeline {
                 stage("Build Product Zip") {
                     steps {
                         script {
-                            tarfilePrefix="verrazzano_${VERRAZZANO_DEV_VERSION}"
-                            storeLocation="${env.BRANCH_NAME}/${tarfilePrefix}.zip"
-                            generatedBOM="$WORKSPACE/generated-verrazzano-bom.json"
-                            echo "Building zipfile, prefix: ${tarfilePrefix}, location:  ${storeLocation}"
                             sh """
-                                ci/scripts/generate_product_zip.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${env.BRANCH_NAME} ${tarfilePrefix} ${generatedBOM}
+                                ci/scripts/generate_vz_distribution.sh ${WORKSPACE} ${VERRAZZANO_DEV_VERSION} ${SHORT_COMMIT_HASH}
                             """
                         }
                     }
@@ -484,11 +449,14 @@ pipeline {
                 stage("Private Registry Test") {
                     steps {
                         script {
+                            tarfilePrefix="verrazzano-${VERRAZZANO_DEV_VERSION}-lite"
+                            storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${tarfilePrefix}.zip"
                             echo "Starting private registry test for ${storeLocation}, file prefix ${tarfilePrefix}"
                             build job: "verrazzano-private-registry/${BRANCH_NAME.replace("/", "%2F")}",
                                 parameters: [
                                     string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                     string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                    string(name: 'DISTRIBUTION_VARIANT', value: 'Lite'),
                                     string(name: 'ZIPFILE_LOCATION', value: storeLocation)
                                 ], wait: true
                         }
@@ -503,6 +471,8 @@ pipeline {
                         OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
                         OCI_CLI_REGION = "us-ashburn-1"
                         OCI_REGION = "${env.OCI_CLI_REGION}"
+                        // Directory containing the Verrazzano image tar files
+                        VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-full/verrazzano-${VERRAZZANO_DEV_VERSION}/images"
                     }
                     when {
                         expression{params.PUSH_TO_OCIR == true}
@@ -593,36 +563,25 @@ def buildVerrazzanoCLI(dockerImageTag) {
     """
 }
 
-// Called in Stage Build steps
-// Makes target docker push for application/platform operator and analysis
-def buildImages(dockerImageTag) {
+def checkRepoClean() {
     sh """
         cd ${GO_REPO_PATH}/verrazzano
         echo 'Check for forgotten manifest/generate actions...'
         (cd platform-operator; make check-repo-clean)
         (cd application-operator; make check-repo-clean)
-        (cd image-patch-operator; make check-repo-clean)
+    """
+}
+
+// Called in Stage Build steps
+// Makes target docker push for application/platform operator and analysis
+def buildImages(dockerImageTag) {
+    sh """
+        cd ${GO_REPO_PATH}/verrazzano
         echo 'Now build...'
         make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
         cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
+        cp $WORKSPACE/generated-verrazzano-bom.json $WORKSPACE/verrazzano-bom.json
         ${GO_REPO_PATH}/verrazzano/tools/scripts/generate_image_list.sh $WORKSPACE/generated-verrazzano-bom.json $WORKSPACE/verrazzano_images.txt
-    """
-}
-
-// Called in Stage Image Patch Operator
-// Makes target docker-push-ipo
-def buildImagePatchOperator(dockerImageTag) {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano
-        make docker-push-ipo VERRAZZANO_IMAGE_PATCH_OPERATOR_IMAGE_NAME=${DOCKER_IMAGE_PATCH_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
-    """
-}
-
-// Called in Stage Image Patch Operator
-def buildWITImage(dockerImageTag) {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano
-        make docker-push-wit VERRAZZANO_WEBLOGIC_IMAGE_TOOL_IMAGE_NAME=${DOCKER_WIT_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
     """
 }
 
@@ -638,22 +597,6 @@ def generateOperatorYaml(dockerImageTag) {
                 export IMAGE_PULL_SECRETS=verrazzano-container-registry
         esac
         DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} OPERATOR_YAML=$WORKSPACE/generated-operator.yaml make generate-operator-yaml
-    """
-}
-
-// Called in Stage Quality and Compliance Checks steps
-// Makes target check to run all linters
-def qualityCheck() {
-    sh """
-        echo "run all linters"
-        cd ${GO_REPO_PATH}/verrazzano
-        make check check-tests
-
-        echo "copyright scan"
-        time make copyright-check
-        ./ci/scripts/check_if_clean_after_generate.sh
-
-        echo "Third party license check"
     """
 }
 

@@ -7,15 +7,17 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,26 +31,16 @@ const (
 	backendName    = "ingress-controller-ingress-nginx-defaultbackend"
 )
 
-func isNginxReady(context spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      ControllerName,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      backendName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c nginxComponent) isNginxReady(context spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	// Verify that the ingress-nginx service has an external IP before completing post-install
 	_, err := vzconfig.GetIngressIP(context.Client(), context.EffectiveCR())
 	// Only log the message for if the request comes from this component's context
 	// Otherwise, the message is logged for each component that checks the status of the ingress controller
 	if err != nil && context.GetComponent() == ComponentName {
-		context.Log().Errorf("Ingress external IP pending for component %s: %v", ComponentName, err)
+		context.Log().Progressf("Ingress external IP pending for component %s: %s", ComponentName, err.Error())
 	}
-	return err == nil && status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+	return err == nil && ready.DeploymentsAreReady(context.Log(), context.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 func AppendOverrides(context spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
@@ -136,9 +128,18 @@ func getInstallArgs(cr *vzapi.Verrazzano) []vzapi.InstallArgs {
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.Ingress != nil {
-		return effectiveCR.Spec.Components.Ingress.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Ingress != nil {
+			return effectiveCR.Spec.Components.Ingress.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.IngressNGINX != nil {
+			return effectiveCR.Spec.Components.IngressNGINX.ValueOverrides
+		}
+		return []installv1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }

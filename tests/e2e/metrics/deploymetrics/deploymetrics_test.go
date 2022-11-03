@@ -9,14 +9,15 @@ import (
 	"os"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	testpkg "github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -71,7 +72,7 @@ var _ = clusterDump.BeforeSuite(func() {
 
 	// Create a service in VZ versions 1.4.0 and greater, so that a servicemonitor will be generated
 	// by Verrazzano for Prometheus Operator
-	isVzMinVer14, _ := testpkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
+	isVzMinVer14, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
 	if isVzMinVer14 {
 		Eventually(func() error {
 			promJobName, err := getPromJobName()
@@ -80,7 +81,9 @@ var _ = clusterDump.BeforeSuite(func() {
 			}
 			serviceName := promJobName
 			err = createService(serviceName)
-			if err != nil {
+			// if this is running post upgrade, we may have already run this test pre-upgrade and
+			// created the service. It is not an error if the service already exists.
+			if err != nil && !errors.IsAlreadyExists(err) {
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to create the Service for the Service Monitor: %v", err))
 				return err
 			}
@@ -109,12 +112,20 @@ func deployMetricsApplication() {
 
 	t.Logs.Info("Create component resource")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(deploymetricsCompYaml, namespace)
+		file, err := pkg.FindTestDataFile(deploymetricsCompYaml)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create application resource")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(deploymetricsAppYaml, namespace)
+		file, err := pkg.FindTestDataFile(deploymetricsAppYaml)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create DeployMetrics application resource")
 
 	Eventually(func() bool {
@@ -138,12 +149,20 @@ func undeployMetricsApplication() {
 	t.Logs.Info("Delete application")
 	start := time.Now()
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(deploymetricsCompYaml, namespace)
+		file, err := pkg.FindTestDataFile(deploymetricsCompYaml)
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(deploymetricsAppYaml, namespace)
+		file, err := pkg.FindTestDataFile(deploymetricsAppYaml)
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for pods to terminate")
@@ -152,7 +171,7 @@ func undeployMetricsApplication() {
 		return podsNotRunning
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
-	isVzMinVer14, _ := testpkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
+	isVzMinVer14, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
 	if isVzMinVer14 {
 		Eventually(func() bool {
 			serviceName, err := getPromJobName()
@@ -189,14 +208,14 @@ var _ = t.Describe("DeployMetrics Application test", Label("f:app-lcm.oam"), fun
 			if skipVerify {
 				Skip(skipVerifications)
 			}
-			isVzMinVer14, _ := testpkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
+			isVzMinVer14, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
 			if isVzMinVer14 {
 				serviceName, err := getPromJobName()
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf(errGenerateSvcMonJobFmt, err))
 				}
 				Eventually(func() (*promoperapi.ServiceMonitor, error) {
-					monitor, err := testpkg.GetServiceMonitor(namespace, serviceName)
+					monitor, err := pkg.GetServiceMonitor(namespace, serviceName)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("Failed to get the Service Monitor from the cluster: %v", err))
 					}
@@ -295,7 +314,7 @@ func getPromJobName() (string, error) {
 		return kubeconfig, err
 	}
 	if usesServiceMonitor {
-		return testpkg.GetAppServiceMonitorName(namespace, deploymetricsAppName, "deploymetrics-deployment"), nil
+		return pkg.GetAppServiceMonitorName(namespace, deploymetricsAppName, "deploymetrics-deployment"), nil
 	}
 	// For VZ versions prior to 1.4.0, the job name in prometheus scrape config was of the old format
 	// <app_name>_default_<app_namespace>_<app_component_name>

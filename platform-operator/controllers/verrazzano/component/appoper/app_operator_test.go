@@ -27,8 +27,9 @@ const testBomFilePath = "../../testdata/test_bom.json"
 
 // TestAppendAppOperatorOverrides tests the Keycloak override for the theme images
 // GIVEN an env override for the app operator image
-//  WHEN I call AppendApplicationOperatorOverrides
-//  THEN the "image" Key is set with the image override.
+//
+//	WHEN I call AppendApplicationOperatorOverrides
+//	THEN the "image" Key is set with the image override.
 func TestAppendAppOperatorOverrides(t *testing.T) {
 	a := assert.New(t)
 
@@ -67,8 +68,9 @@ func TestAppendAppOperatorOverrides(t *testing.T) {
 
 // TestIsApplicationOperatorReady tests the isApplicationOperatorReady function
 // GIVEN a call to isApplicationOperatorReady
-//  WHEN the deployment object has enough replicas available
-//  THEN true is returned
+//
+//	WHEN the deployment object has enough replicas available
+//	THEN true is returned
 func TestIsApplicationOperatorReady(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -107,15 +109,17 @@ func TestIsApplicationOperatorReady(t *testing.T) {
 			},
 		},
 	).Build()
-	assert.True(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
+
+	a := NewComponent().(applicationOperatorComponent)
+	assert.True(t, a.isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
 }
 
 // TestIsApplicationOperatorNotReady tests the isApplicationOperatorReady function
 // GIVEN a call to isApplicationOperatorReady
-//  WHEN the deployment object does NOT have enough replicas available
-//  THEN false is returned
+//
+//	WHEN the deployment object does NOT have enough replicas available
+//	THEN false is returned
 func TestIsApplicationOperatorNotReady(t *testing.T) {
-
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoSystemNamespace,
@@ -127,7 +131,8 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	assert.False(t, isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
+	a := NewComponent().(applicationOperatorComponent)
+	assert.False(t, a.isApplicationOperatorReady(spi.NewFakeContext(fakeClient, nil, nil, false)))
 }
 
 // TestLabelAnnotateTraitDefinitions tests the labelAnnotateTraitDefinitions function

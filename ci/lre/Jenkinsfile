@@ -27,6 +27,12 @@ pipeline {
                 // 1st choice is the default value
                 // Currently, dev is the only option
                 choices: [ "dev" ])
+        booleanParam (name: 'UPGRADE_VZ',
+                description: 'If true, upgrade Verrazzano to the most recent stable commit',
+                defaultValue: true)
+        booleanParam (name: 'RUN_TESTS',
+                description: 'If true, run tests to verify the status of the cluster',
+                defaultValue: true)
     }
 
     environment {
@@ -59,9 +65,11 @@ pipeline {
         NETRC_FILE = credentials('netrc')
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
+        TEST_DUMP_ROOT="${WORKSPACE}/test-cluster-snapshots"
 
         KUBECONFIG = "${WORKSPACE}/.kube/config"
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
+        TEST_ENV = "LRE"
     }
 
     stages {
@@ -182,7 +190,12 @@ pipeline {
             }
         }
 
-       stage('Upgrade to stable commit') {
+        stage('Upgrade to stable commit') {
+            when {
+                expression {
+                    return params.UPGRADE_VZ
+                }
+            }
             steps {
                 script {
                     // Get the last stable commit ID that passed the triggered tests
@@ -220,7 +233,106 @@ pipeline {
                     }
                 }
             }
-       }
+            post {
+                failure {
+                    dumpK8sCluster('lre-upgrade-failure-cluster-snapshot')
+                }
+            }
+        }
+
+        stage('Verify Install') {
+            when {
+               expression {
+                   return params.RUN_TESTS
+               }
+            }
+            steps {
+                runGinkgoRandomize('verify-install')
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    dumpK8sCluster('lre-verify-install-failure-cluster-snapshot')
+                }
+            }
+        }
+
+        stage('Run Acceptance Tests Infra') {
+            when {
+               expression {
+                   return params.RUN_TESTS
+               }
+            }
+            parallel {
+                stage('verify-scripts') {
+                    steps {
+                        runGinkgoRandomize('scripts', "${KUBECONFIG}")
+                    }
+                }
+                stage('verify-infra restapi') {
+                    steps {
+                        runGinkgoRandomize('verify-infra/restapi')
+                    }
+                }
+                stage('verify-infra oam') {
+                    steps {
+                        runGinkgoRandomize('verify-infra/oam')
+                    }
+                }
+
+                stage('verify-infra vmi') {
+                    steps {
+                        runGinkgoRandomize('verify-infra/vmi')
+                    }
+                }
+
+                stage('security role based access') {
+                    steps {
+                        runGinkgo('security/rbac')
+                    }
+                }
+
+                stage('system component metrics') {
+                    steps {
+                        runGinkgo('metrics/syscomponents')
+                    }
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    dumpK8sCluster('lre-verify-infra-failure-cluster-snapshot')
+                }
+            }
+        }
+
+        stage('Hello Helidon Application Test') {
+            when {
+               expression {
+                   return params.RUN_TESTS
+               }
+            }
+            steps {
+                script {
+                    runGinkgoAppTest('examples/helidon', "hello-helidon", "${TEST_DUMP_ROOT}/examples-helidon", 'true', 'true')
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
+                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                }
+                failure {
+                    dumpK8sCluster('lre-hello-helidon-failure-cluster-snapshot')
+                }
+            }
+        }
 
     }
     post {
@@ -248,9 +360,12 @@ def downloadCLI() {
     }
 }
 
-def runGinkgoRandomize(testSuitePath) {
+def runGinkgoRandomize(testSuitePath, kubeconfig = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
+            if [ ! -z "${kubeConfig}" ]; then
+                export KUBECONFIG="${kubeConfig}"
+            fi
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             ginkgo -p --randomize-all -v --keep-going --no-color ${testSuitePath}/...
         """
@@ -266,6 +381,18 @@ def runGinkgo(testSuitePath) {
     }
 }
 
+def runGinkgoAppTest(testSuitePath, namespace, dumpDir='', skipDeploy='false', skipUndeploy='false') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            if [ ! -z "${dumpDir}" ]; then
+                export DUMP_DIRECTORY=${dumpDir}
+            fi
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo -v --keep-going --no-color ${testSuitePath}/... -- --skipDeploy=${skipDeploy} --skipUndeploy=${skipUndeploy} --namespace=${namespace}
+        """
+    }
+}
+
 def emitJobMetrics() {
     env.JOB_STATUS = "${currentBuild.currentResult}".trim()
     long duration = "${currentBuild.duration}" as long;
@@ -274,4 +401,10 @@ def emitJobMetrics() {
     long startTimeInMillis = "${currentBuild.startTimeInMillis}" as long;
     env.TIME_WAITING = startTimeInMillis-timeInMillis
     runGinkgoRandomize('jobmetrics')
+}
+
+def dumpK8sCluster(dumpDirectory) {
+    sh """
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
+    """
 }

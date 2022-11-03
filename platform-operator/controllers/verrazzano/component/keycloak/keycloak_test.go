@@ -601,7 +601,7 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 	kvs, err := AppendKeycloakOverrides(spi.NewFakeContext(c, vz, nil, false), "", "", "", nil)
 
 	a.NoError(err, "AppendKeycloakOverrides returned an error")
-	a.Len(kvs, 6, "AppendKeycloakOverrides returned wrong number of Key:Value pairs")
+	a.Len(kvs, 7, "AppendKeycloakOverrides returned wrong number of Key:Value pairs")
 
 	a.Contains(kvs, bom.KeyValue{
 		Key:       dnsTarget,
@@ -623,6 +623,10 @@ func TestAppendKeycloakOverrides(t *testing.T) {
 	a.Contains(kvs, bom.KeyValue{
 		Key:   kcIngressClassKey,
 		Value: "verrazzano-nginx",
+	})
+	a.Contains(kvs, bom.KeyValue{
+		Key:   dbHostKey,
+		Value: "mysql-instances",
 	})
 }
 
@@ -730,16 +734,18 @@ func TestCreateOrUpdateAuthSecret(t *testing.T) {
 
 // TestIsEnabledNilComponent tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is nil
-//  THEN false is returned
+//
+//	WHEN The Keycloak component is nil
+//	THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilKeycloak tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is nil
-//  THEN true is returned
+//
+//	WHEN The Keycloak component is nil
+//	THEN true is returned
 func TestIsEnabledNilKeycloak(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -748,8 +754,9 @@ func TestIsEnabledNilKeycloak(t *testing.T) {
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component enabled is nil
-//  THEN true is returned
+//
+//	WHEN The Keycloak component enabled is nil
+//	THEN true is returned
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = nil
@@ -758,8 +765,9 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 
 // TestIsEnabledExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is explicitly enabled
-//  THEN true is returned
+//
+//	WHEN The Keycloak component is explicitly enabled
+//	THEN true is returned
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(true)
@@ -768,8 +776,9 @@ func TestIsEnabledExplicit(t *testing.T) {
 
 // TestIsDisableExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak component is explicitly disabled
-//  THEN false is returned
+//
+//	WHEN The Keycloak component is explicitly disabled
+//	THEN false is returned
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak.Enabled = getBoolPtr(false)
@@ -778,8 +787,9 @@ func TestIsDisableExplicit(t *testing.T) {
 
 // TestIsEnabledManagedClusterProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and managed cluster profile
-//  THEN false is returned
+//
+//	WHEN The Keycloak enabled flag is nil and managed cluster profile
+//	THEN false is returned
 func TestIsEnabledManagedClusterProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -789,8 +799,9 @@ func TestIsEnabledManagedClusterProfile(t *testing.T) {
 
 // TestIsEnabledProdProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and prod profile
-//  THEN false is returned
+//
+//	WHEN The Keycloak enabled flag is nil and prod profile
+//	THEN false is returned
 func TestIsEnabledProdProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -800,8 +811,9 @@ func TestIsEnabledProdProfile(t *testing.T) {
 
 // TestIsEnabledDevProfile tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Keycloak enabled flag is nil and dev profile
-//  THEN false is returned
+//
+//	WHEN The Keycloak enabled flag is nil and dev profile
+//	THEN false is returned
 func TestIsEnabledDevProfile(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Keycloak = nil
@@ -1273,7 +1285,7 @@ func TestIsKeycloakReady(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.c, testVZ, nil, false)
-			assert.Equal(t, tt.isReady, isKeycloakReady(ctx))
+			assert.Equal(t, tt.isReady, NewComponent().(KeycloakComponent).isKeycloakReady(ctx))
 		})
 	}
 }
@@ -1582,4 +1594,20 @@ func TestGetVerrazzanoUserFromKeycloak(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestAddClientRoleToUser adds a client role to the verrazzano user
+// GIVEN a client, and a k8s environment
+// WHEN I call addClientRoleToUser
+// THEN confirm that the function doesn't return an error
+func TestAddClientRoleToUser(t *testing.T) {
+	k8sutil.ClientConfig = fakeRESTConfig
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	cfg, cli, _ := fakeRESTConfig()
+
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	ctx := spi.NewFakeContext(c, testVZ, nil, false)
+
+	err := addClientRoleToUser(ctx, cfg, cli, "testuser", "test-client", "test-realm", "test-role")
+	assert.NoError(t, err)
 }

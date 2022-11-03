@@ -6,28 +6,30 @@ package coherence
 import (
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // IsCoherenceOperatorReady checks if the COH operator deployment is ready
-func isCoherenceOperatorReady(ctx spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c coherenceComponent) isCoherenceOperatorReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.CoherenceOperator != nil {
+			return effectiveCR.Spec.Components.CoherenceOperator.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	}
+	effectiveCR := object.(*v1beta1.Verrazzano)
 	if effectiveCR.Spec.Components.CoherenceOperator != nil {
 		return effectiveCR.Spec.Components.CoherenceOperator.ValueOverrides
 	}
-	return []vzapi.Overrides{}
+	return []v1beta1.Overrides{}
 }

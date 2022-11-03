@@ -9,16 +9,18 @@ import (
 	"os"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
+	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,7 +61,11 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			}
 			// create a project
 			Eventually(func() error {
-				return pkg.CreateOrUpdateResourceFromFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
+				file, err := pkg.FindTestDataFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
+				if err != nil {
+					return err
+				}
+				return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 			Eventually(func() (bool, error) {
@@ -70,7 +76,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 		// This test is part of the minimal verification.
 		t.It("has the expected VerrazzanoManagedCluster", func() {
 			var client *vmcClient.Clientset
-			// If registration happend in VZ versions 1.4 and above on admin cluster, check the ManagedCARetrieved condition as well
+			// If registration happened in VZ versions 1.4 and above on admin cluster, check the ManagedCARetrieved condition as well
 			adminVersionAtRegistration := os.Getenv("ADMIN_VZ_VERSION_AT_REGISTRATION")
 			pkg.Log(pkg.Info, fmt.Sprintf("Admin cluster VZ version at registration is '%s'", adminVersionAtRegistration))
 			regVersion14 := false
@@ -92,6 +98,11 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 			Eventually(func() bool {
 				vmc, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(multiclusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
+				if vmc.Status.LastAgentConnectTime == nil {
+					pkg.Log(pkg.Info, "Last agent connect time is nil")
+				} else {
+					pkg.Log(pkg.Info, fmt.Sprintf("Last agent connect time: %v", vmc.Status.LastAgentConnectTime))
+				}
 				return err == nil &&
 					vmcStatusCheckOkay(vmc, regVersion14) &&
 					vmcRancherStatusCheckOkay(vmc, curAdminVersion14) &&

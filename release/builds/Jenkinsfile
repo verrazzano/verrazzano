@@ -60,8 +60,8 @@ pipeline {
 
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         PERIODIC_JOB_OBJECT_PREFIX = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test"
-        PERIODIC_PRODUCT_ZIP_OBJECT_NAME = "verrazzano-${params.TARGET_VERSION}-open-source.zip"
-        PERIODIC_PRODUCT_COMMERCIAL_OBJECT_NAME = "verrazzano-${params.TARGET_VERSION}-commerical.zip"
+        PERIODIC_PRODUCT_LITE_OBJECT_NAME = "verrazzano-${params.TARGET_VERSION}-lite.zip"
+        PERIODIC_PRODUCT_FULL_OBJECT_NAME = "verrazzano-${params.TARGET_VERSION}.zip"
     }
 
     stages {
@@ -264,27 +264,26 @@ pipeline {
                     // NOTE - this copy operation is asynchronous. The assumption here is that it will complete
                     // by the time the images are pushed to OCR (next build stage), and the release stage2, which uses
                     // these objects, is run.
-                    // Copy open-source distribution, commerical distribution and the SHA256 files for the distribution bundles
                     sh """
                         oci --region ${OCI_OS_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
                           -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
-                          --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/${PERIODIC_PRODUCT_ZIP_OBJECT_NAME} \
-                          --destination-object-name ${CLEAN_BRANCH_NAME}/${PERIODIC_PRODUCT_ZIP_OBJECT_NAME}
+                          --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/${PERIODIC_PRODUCT_LITE_OBJECT_NAME} \
+                          --destination-object-name ${CLEAN_BRANCH_NAME}/${PERIODIC_PRODUCT_LITE_OBJECT_NAME}
 
                         oci --region ${OCI_OS_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
                           -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
-                          --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/${PERIODIC_PRODUCT_ZIP_OBJECT_NAME}.sha256 \
-                          --destination-object-name ${CLEAN_BRANCH_NAME}/${PERIODIC_PRODUCT_ZIP_OBJECT_NAME}.sha256
+                          --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/${PERIODIC_PRODUCT_LITE_OBJECT_NAME}.sha256 \
+                          --destination-object-name ${CLEAN_BRANCH_NAME}/${PERIODIC_PRODUCT_LITE_OBJECT_NAME}.sha256
 
                         oci --region ${OCI_OS_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
                           -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
-                          --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/${PERIODIC_PRODUCT_COMMERCIAL_OBJECT_NAME} \
-                          --destination-object-name ${CLEAN_BRANCH_NAME}/${PERIODIC_PRODUCT_COMMERCIAL_OBJECT_NAME}
+                          --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/${PERIODIC_PRODUCT_FULL_OBJECT_NAME} \
+                          --destination-object-name ${CLEAN_BRANCH_NAME}/${PERIODIC_PRODUCT_FULL_OBJECT_NAME}
 
                         oci --region ${OCI_OS_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
                           -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \
-                          --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/${PERIODIC_PRODUCT_COMMERCIAL_OBJECT_NAME}.sha256 \
-                          --destination-object-name ${CLEAN_BRANCH_NAME}/${PERIODIC_PRODUCT_COMMERCIAL_OBJECT_NAME}.sha256
+                          --source-object-name ${PERIODIC_JOB_OBJECT_PREFIX}/${PERIODIC_PRODUCT_FULL_OBJECT_NAME}.sha256 \
+                          --destination-object-name ${CLEAN_BRANCH_NAME}/${PERIODIC_PRODUCT_FULL_OBJECT_NAME}.sha256
 
                         oci --region ${OCI_OS_REGION} os object copy --namespace ${OCI_OS_NAMESPACE} \
                           -bn ${OCI_OS_BUCKET} --destination-bucket ${OCI_OS_BUCKET} \

@@ -6,10 +6,10 @@ package console
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -66,16 +66,11 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		}), nil
 }
 
-func isConsoleReady(ctx spi.ComponentContext) bool {
-	return status.DeploymentsAreReady(
+func (c consoleComponent) isConsoleReady(ctx spi.ComponentContext) bool {
+	return ready.DeploymentsAreReady(
 		ctx.Log(),
 		ctx.Client(),
-		[]types.NamespacedName{
-			{
-				Namespace: ComponentNamespace,
-				Name:      ComponentName,
-			},
-		},
+		c.AvailabilityObjects.DeploymentNames,
 		1,
 		fmt.Sprintf("Component %s", ctx.GetComponent()))
 }

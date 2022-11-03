@@ -6,13 +6,15 @@ package rancherbackup
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
@@ -25,14 +27,23 @@ const (
 
 // isRancherBackupOperatorReady checks if the Rancher Backup deployment is ready
 func isRancherBackupOperatorReady(context spi.ComponentContext) bool {
-	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, componentPrefix)
+	return ready.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, componentPrefix)
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.RancherBackup != nil {
-		return effectiveCR.Spec.Components.RancherBackup.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.RancherBackup != nil {
+			return effectiveCR.Spec.Components.RancherBackup.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.RancherBackup != nil {
+			return effectiveCR.Spec.Components.RancherBackup.ValueOverrides
+		}
+		return []installv1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }
 

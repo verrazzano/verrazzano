@@ -5,10 +5,14 @@ package weblogic
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
+
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
-	"path/filepath"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -50,8 +54,16 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "weblogic-values.yaml"),
 			PreInstallFunc:            WeblogicOperatorPreInstall,
 			AppendOverridesFunc:       AppendWeblogicOperatorOverrides,
-			Dependencies:              []string{istio.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -72,13 +84,17 @@ func (c weblogicComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c weblogicComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	return nil
+	// Do not allow disabling of any component post-install for now
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
 
 // IsReady component check
 func (c weblogicComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isWeblogicOperatorReady(ctx)
+		return c.isWeblogicOperatorReady(ctx)
 	}
 	return false
 }

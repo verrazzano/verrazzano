@@ -5,20 +5,25 @@ package operator
 
 import (
 	"fmt"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -36,6 +41,8 @@ const chartDir = "prometheus-community/kube-prometheus-stack"
 const (
 	prometheusHostName        = "prometheus.vmi.system"
 	prometheusCertificateName = "system-tls-prometheus"
+
+	istioPrometheus = "prometheus-server"
 )
 
 type prometheusComponent struct {
@@ -57,7 +64,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "prometheus-operator-values.yaml"),
 			// the dependency on the VMO is to ensure that a persistent volume is retained and the claim is released
 			// so that persistent storage can be migrated to the new Prometheus
-			Dependencies:            []string{nginx.ComponentName, certmanager.ComponentName, vmo.ComponentName},
+			Dependencies:            []string{networkpolicies.ComponentName, nginx.ComponentName, certmanager.ComponentName, vmo.ComponentName},
 			AppendOverridesFunc:     AppendOverrides,
 			GetInstallOverridesFunc: GetOverrides,
 		},
@@ -76,6 +83,14 @@ func (c prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
 		return isPrometheusOperatorReady(ctx)
 	}
 	return false
+}
+
+func (c prometheusComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available bool) {
+	listOptions, err := prometheusOperatorListOptions()
+	if err != nil {
+		return err.Error(), false
+	}
+	return (&ready.AvailabilityObjects{DeploymentSelectors: []clipkg.ListOption{listOptions}}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 // MonitorOverrides checks whether monitoring is enabled for install overrides sources
@@ -123,7 +138,14 @@ func (c prometheusComponent) PostUpgrade(ctx spi.ComponentContext) error {
 
 // ValidateInstall verifies the installation of the Verrazzano object
 func (c prometheusComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	return c.validatePrometheusOperator(vz)
+	convertedVZ := installv1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(vz, &convertedVZ); err != nil {
+		return err
+	}
+	if err := checkExistingCNEPrometheus(vz); err != nil {
+		return err
+	}
+	return c.validatePrometheusOperator(&convertedVZ)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
@@ -131,17 +153,27 @@ func (c prometheusComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	return c.validatePrometheusOperator(new)
+	convertedVZ := installv1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(new, &convertedVZ); err != nil {
+		return err
+	}
+	return c.validatePrometheusOperator(&convertedVZ)
 }
 
 // ValidateInstall verifies the installation of the Verrazzano object
 func (c prometheusComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return nil
+	if err := checkExistingCNEPrometheus(vz); err != nil {
+		return err
+	}
+	return c.validatePrometheusOperator(vz)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
 func (c prometheusComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	return nil
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	return c.validatePrometheusOperator(new)
 }
 
 // getIngressNames - gets the names of the ingresses associated with this component
@@ -178,4 +210,19 @@ func (c prometheusComponent) GetCertificateNames(ctx spi.ComponentContext) []typ
 	}
 
 	return certificateNames
+}
+
+// checkExistingCNEPrometheus checks if Prometheus is already installed
+// OLCNE Istio module may have Prometheus installed in istio-system namespace
+func checkExistingCNEPrometheus(vz runtime.Object) error {
+	if !vzconfig.IsPrometheusEnabled(vz) {
+		return nil
+	}
+	if err := k8sutil.ErrorIfDeploymentExists(constants.IstioSystemNamespace, istioPrometheus); err != nil {
+		return err
+	}
+	if err := k8sutil.ErrorIfServiceExists(constants.IstioSystemNamespace, istioPrometheus); err != nil {
+		return err
+	}
+	return nil
 }

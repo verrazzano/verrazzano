@@ -5,10 +5,13 @@ package authproxy
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"path/filepath"
+
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
-	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 
@@ -54,7 +57,15 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
 			GetInstallOverridesFunc:   GetOverrides,
-			Dependencies:              []string{nginx.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName},
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 			Certificates: []types.NamespacedName{
 				{Name: constants.VerrazzanoIngressSecret, Namespace: ComponentNamespace},
 			},
@@ -84,13 +95,17 @@ func (c authProxyComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ver
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c authProxyComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	return nil
+	// Do not allow any changes except to enable the component post-install
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
 
 // IsReady component check
 func (c authProxyComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isAuthProxyReady(ctx)
+		return c.isAuthProxyReady(ctx)
 	}
 	return false
 }

@@ -5,6 +5,7 @@ package oam
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +24,7 @@ func init() {
 	_ = rbacv1.AddToScheme(testScheme)
 }
 
-func Test_oamComponent_ValidateUpdate(t *testing.T) {
+func TestValidateUpdate(t *testing.T) {
 	disabled := false
 	tests := []struct {
 		name    string
@@ -76,10 +77,64 @@ func Test_oamComponent_ValidateUpdate(t *testing.T) {
 	}
 }
 
+func TestValidateUpdateV1Beta1(t *testing.T) {
+	disabled := false
+	tests := []struct {
+		name    string
+		old     *v1beta1.Verrazzano
+		new     *v1beta1.Verrazzano
+		wantErr bool
+	}{
+		{
+			name: "enable",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						OAM: &v1beta1.OAMComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			new:     &v1beta1.Verrazzano{},
+			wantErr: false,
+		},
+		{
+			name: "disable",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						OAM: &v1beta1.OAMComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:    "no change",
+			old:     &v1beta1.Verrazzano{},
+			new:     &v1beta1.Verrazzano{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			if err := c.ValidateUpdateV1Beta1(tt.old, tt.new); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 // TestPreUpgrade tests the OAM PreUpgrade call
 // GIVEN an OAM component
-//  WHEN I call PreUpgrade with defaults
-//  THEN no error is returned
+//
+//	WHEN I call PreUpgrade with defaults
+//	THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook

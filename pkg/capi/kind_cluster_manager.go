@@ -2,45 +2,30 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package capi
 
-import (
-	"io/ioutil"
-	"os"
-
-	os2 "github.com/verrazzano/verrazzano/pkg/os"
-	"go.uber.org/zap"
-	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
-)
-
 const capiDockerProvider = "docker"
+
+func newKindClusterManager(actualConfig ClusterConfig) (ClusterLifeCycleManager, error) {
+	return &kindClusterManager{
+		config:            actualConfig,
+		bootstrapProvider: defaultKindBootstrapProviderImpl,
+	}, nil
+}
+
+// compile time checking for interface implementation
+var _ ClusterLifeCycleManager = &kindClusterManager{}
 
 var defaultCAPIProviders = []string{capiDockerProvider}
 
+var _ ClusterLifeCycleManager = &kindClusterManager{}
+
 // kindClusterManager ClusterLifecycleManager impl for a KIND-based bootstrap cluster
 type kindClusterManager struct {
-	config ClusterConfig
+	config            ClusterConfig
+	bootstrapProvider KindBootstrapProvider
 }
 
 func (r *kindClusterManager) GetKubeConfig() (string, error) {
-	return bootstrapProviderImpl.GetKubeconfig(r.config.GetClusterName())
-}
-
-func (r *kindClusterManager) Init() error {
-	config, err := r.createKubeConfigFile()
-	if err != nil {
-		return err
-	}
-	defer os2.RemoveTempFiles(zap.S(), config.Name())
-	capiclient, err := capiInitFunc("") // TODO: do we need to provide a CAPI config?
-	if err != nil {
-		return err
-	}
-	_, err = capiclient.Init(clusterapi.InitOptions{
-		Kubeconfig: clusterapi.Kubeconfig{
-			Path: config.Name(),
-		},
-		InfrastructureProviders: defaultCAPIProviders,
-	})
-	return err
+	return r.bootstrapProvider.GetKubeconfig(r.config)
 }
 
 func (r *kindClusterManager) GetConfig() ClusterConfig {
@@ -48,24 +33,13 @@ func (r *kindClusterManager) GetConfig() ClusterConfig {
 }
 
 func (r *kindClusterManager) Create() error {
-	return bootstrapProviderImpl.CreateCluster(r.config.GetClusterName())
+	return r.bootstrapProvider.CreateCluster(r.config)
+}
+
+func (r *kindClusterManager) Init() error {
+	return initializeCAPI(r)
 }
 
 func (r *kindClusterManager) Destroy() error {
-	return bootstrapProviderImpl.DestroyCluster(r.config.GetClusterName())
-}
-
-func (r *kindClusterManager) createKubeConfigFile() (*os.File, error) {
-	kcFile, err := ioutil.TempFile(os.TempDir(), "kubeconfig-"+r.config.GetClusterName())
-	if err != nil {
-		return nil, err
-	}
-	config, err := r.GetKubeConfig()
-	if err != nil {
-		return nil, err
-	}
-	if _, err := kcFile.Write([]byte(config)); err != nil {
-		return nil, err
-	}
-	return kcFile, nil
+	return r.bootstrapProvider.DestroyCluster(r.config)
 }

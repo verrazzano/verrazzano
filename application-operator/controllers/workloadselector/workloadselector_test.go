@@ -19,8 +19,8 @@ import (
 
 // TestMatch tests DoesWorkloadMatch
 // GIVEN a namespace label selector, object selector, and specific GVK values
-//  WHEN DoesWorkloadMatch is called
-//  THEN a match of true is returned
+// WHEN DoesWorkloadMatch is called
+// THEN a match of true is returned
 func TestMatch(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -59,8 +59,8 @@ func TestMatch(t *testing.T) {
 
 // TestMatchDefaults tests DoesWorkloadMatch
 // GIVEN no namespace label selector, no object selector, and no GVK values
-//  WHEN DoesWorkloadMatch is called
-//  THEN a match of true is returned
+// WHEN DoesWorkloadMatch is called
+// THEN a match of true is returned
 func TestMatchDefaults(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -84,8 +84,8 @@ func TestMatchDefaults(t *testing.T) {
 
 // TestNoMatchNamespace tests DoesWorkloadMatch
 // GIVEN a namespace label selector, object selector, and specific GVK values
-//  WHEN DoesWorkloadMatch is called
-//  THEN a match of false is returned because namespace did not match
+// WHEN DoesWorkloadMatch is called
+// THEN a match of false is returned because namespace did not match
 func TestNoMatchNamespace(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -124,8 +124,8 @@ func TestNoMatchNamespace(t *testing.T) {
 
 // TestEmptyNamespaceSelectorMatch tests doesNamespaceMatch
 // GIVEN an empty namespace label selector
-//  WHEN doesNamespaceMatch is called
-//  THEN a match of true is returned
+// WHEN doesNamespaceMatch is called
+// THEN a match of true is returned
 func TestEmptyNamespaceSelectorMatch(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -149,8 +149,8 @@ func TestEmptyNamespaceSelectorMatch(t *testing.T) {
 
 // TestNilNamespaceSelectorMatch tests doesNamespaceMatch
 // GIVEN a nil namespace label selector
-//  WHEN doesNamespaceMatch is called
-//  THEN a match of true is returned
+// WHEN doesNamespaceMatch is called
+// THEN a match of true is returned
 func TestNilNamespaceSelectorMatch(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -171,8 +171,8 @@ func TestNilNamespaceSelectorMatch(t *testing.T) {
 
 // TestMatchLabelsNamespaceSelectorMatch tests doesNamespaceMatch
 // GIVEN a namespace label selector using a MatchLabel
-//  WHEN doesNamespaceMatch is called
-//  THEN a match of true is returned
+// WHEN doesNamespaceMatch is called
+// THEN a match of true is returned
 func TestMatchLabelsNamespaceSelectorMatch(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -202,8 +202,8 @@ func TestMatchLabelsNamespaceSelectorMatch(t *testing.T) {
 
 // TestMatchLabelsNamespaceSelectorNoMatch tests doesNamespaceMatch
 // GIVEN a namespace label selector using a MatchLabel
-//  WHEN doesNamespaceMatch is called
-//  THEN a match of false is returned
+// WHEN doesNamespaceMatch is called
+// THEN a match of false is returned
 func TestMatchLabelsNamespaceSelectorNoMatch(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -233,8 +233,8 @@ func TestMatchLabelsNamespaceSelectorNoMatch(t *testing.T) {
 
 // TestMatchExpressionsNamespaceSelector tests doesNamespaceMatch
 // GIVEN a namespace label selector using a MatchExpression
-//  WHEN doesNamespaceMatch is called
-//  THEN a match of true is returned
+// WHEN doesNamespaceMatch is called
+// THEN a match of true is returned
 func TestMatchExpressionsNamespaceSelector(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -268,8 +268,8 @@ func TestMatchExpressionsNamespaceSelector(t *testing.T) {
 
 // TestMatchExpressionsNamespaceSelectorNoMatch tests doesNamespaceMatch
 // GIVEN a namespace label selector using a MatchExpression
-//  WHEN doesNamespaceMatch is called
-//  THEN a match of false is returned
+// WHEN doesNamespaceMatch is called
+// THEN a match of false is returned
 func TestMatchExpressionsNamespaceSelectorNoMatch(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -299,8 +299,8 @@ func TestMatchExpressionsNamespaceSelectorNoMatch(t *testing.T) {
 
 // TestMatchExactGVK tests doesObjectMatch
 // GIVEN specific GVK values and no object label selector
-//  WHEN doesObjectMatch is called
-//  THEN a match of true is returned
+// WHEN doesObjectMatch is called
+// THEN a match of true is returned
 func TestMatchExactGVK(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -324,8 +324,8 @@ func TestMatchExactGVK(t *testing.T) {
 
 // TestMatchWildcardVersion tests doesObjectMatch
 // GIVEN GVK values with a wildcard version and no object label selector
-//  WHEN doesObjectMatch is called
-//  THEN a match of true is returned
+// WHEN doesObjectMatch is called
+// THEN a match of true is returned
 func TestMatchWildcardVersion(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -349,8 +349,8 @@ func TestMatchWildcardVersion(t *testing.T) {
 
 // TestMatchWildcardGroup tests doesObjectMatch
 // GIVEN GVK values with a wildcard group and no object label selector
-//  WHEN doesObjectMatch is called
-//  THEN a match of true is returned
+// WHEN doesObjectMatch is called
+// THEN a match of true is returned
 func TestMatchWildcardGroup(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -374,8 +374,8 @@ func TestMatchWildcardGroup(t *testing.T) {
 
 // TestMatchWildcardKind tests doesObjectMatch
 // GIVEN GVK values with a wildcard Kind and no object label selector
-//  WHEN doesObjectMatch is called
-//  THEN a match of true is returned
+// WHEN doesObjectMatch is called
+// THEN a match of true is returned
 func TestMatchWildcardKind(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -399,8 +399,8 @@ func TestMatchWildcardKind(t *testing.T) {
 
 // TestNoMatchExactGVK tests doesObjectMatch
 // GIVEN specific GVK values and no object label selector
-//  WHEN doesObjectMatch is called
-//  THEN a match of false is returned
+// WHEN doesObjectMatch is called
+// THEN a match of false is returned
 func TestNoMatchExactGVK(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -423,8 +423,8 @@ func TestNoMatchExactGVK(t *testing.T) {
 
 // TestNoMatchWildcardVersion tests doesObjectMatch
 // GIVEN GVK values with wildcard version and no object label selector
-//  WHEN doesObjectMatch is called
-//  THEN a match of false is returned
+// WHEN doesObjectMatch is called
+// THEN a match of false is returned
 func TestNoMatchWildcardVersion(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -448,8 +448,8 @@ func TestNoMatchWildcardVersion(t *testing.T) {
 
 // TestNoMatchWildcardGroup tests doesObjectMatch
 // GIVEN GVK values with wildcard group version and no object label selector
-//  WHEN doesObjectMatch is called
-//  THEN a match of false is returned
+// WHEN doesObjectMatch is called
+// THEN a match of false is returned
 func TestNoMatchWildcardGroup(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -473,8 +473,8 @@ func TestNoMatchWildcardGroup(t *testing.T) {
 
 // TestNoMatchWildcardKind tests doesObjectMatch
 // GIVEN GVK values with wildcard kind version and no object label selector
-//  WHEN doesObjectMatch is called
-//  THEN a match of false is returned
+// WHEN doesObjectMatch is called
+// THEN a match of false is returned
 func TestNoMatchWildcardKind(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -498,8 +498,8 @@ func TestNoMatchWildcardKind(t *testing.T) {
 
 // TestMatchLabelsObjectSelectorMatch tests doesObjectMatch
 // GIVEN an object label selector using a MatchLabel
-//  WHEN doesObjectMatch is called
-//  THEN a match of true is returned
+// WHEN doesObjectMatch is called
+// THEN a match of true is returned
 func TestMatchLabelsObjectSelectorMatch(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -529,8 +529,8 @@ func TestMatchLabelsObjectSelectorMatch(t *testing.T) {
 
 // TestMatchExpressionsObjectSelectorMatch tests doesObjectMatch
 // GIVEN an object label selector using a MatchExpression
-//  WHEN doesObjectMatch is called
-//  THEN a match of true is returned
+// WHEN doesObjectMatch is called
+// THEN a match of true is returned
 func TestMatchExpressionsObjectSelectorMatch(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -565,8 +565,8 @@ func TestMatchExpressionsObjectSelectorMatch(t *testing.T) {
 
 // TestMatchLabelsObjectSelectorNoMatch tests doesObjectMatch
 // GIVEN an object label selector using a MatchLabel
-//  WHEN doesObjectMatch is called
-//  THEN a match of false is returned
+// WHEN doesObjectMatch is called
+// THEN a match of false is returned
 func TestMatchLabelsObjectSelectorNoMatch(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),
@@ -596,8 +596,8 @@ func TestMatchLabelsObjectSelectorNoMatch(t *testing.T) {
 
 // TestMatchExpressionsObjectSelectorNoMatch tests doesObjectMatch
 // GIVEN an object label selector using a MatchExpression
-//  WHEN doesObjectMatch is called
-//  THEN a match of false is returned
+// WHEN doesObjectMatch is called
+// THEN a match of false is returned
 func TestMatchExpressionsObjectSelectorNoMatch(t *testing.T) {
 	ws := &WorkloadSelector{
 		KubeClient: fake.NewSimpleClientset(),

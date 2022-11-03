@@ -6,13 +6,13 @@ package keycloak
 import (
 	"context"
 	"fmt"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -24,8 +24,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -62,11 +64,19 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "keycloak-values.yaml"),
-			Dependencies:              []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, mysql.ComponentName},
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			AppendOverridesFunc:       AppendKeycloakOverrides,
 			Certificates:              certificates,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				StatefulsetNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
@@ -83,7 +93,7 @@ func NewComponent() spi.Component {
 func (c KeycloakComponent) Reconcile(ctx spi.ComponentContext) error {
 	// If the Keycloak component is ready, confirm the configuration is working.
 	// If ephemeral storage is being used, the Keycloak configuration will be rebuilt if needed.
-	if isKeycloakReady(ctx) {
+	if c.isKeycloakReady(ctx) {
 		ctx.Log().Debugf("Component %s calling configureKeycloakRealms from Reconcile", ComponentName)
 		return configureKeycloakRealms(ctx)
 	}
@@ -107,21 +117,6 @@ func (c KeycloakComponent) PreInstall(ctx spi.ComponentContext) error {
 			constants.VerrazzanoSystemNamespace, constants.Verrazzano, err)
 		return err
 	}
-	// Check MySQL Secret. return error which will cause requeue
-	secret = &corev1.Secret{}
-	err = ctx.Client().Get(context.TODO(), client.ObjectKey{
-		Namespace: ComponentNamespace,
-		Name:      mysql.ComponentName,
-	}, secret)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			ctx.Log().Progressf("Component Keycloak waiting for the MySql password %s/%s to exist", ComponentNamespace, mysql.ComponentName)
-			return ctrlerrors.RetryableError{Source: ComponentName}
-		}
-		ctx.Log().Errorf("Component Keycloak failed to get the MySQL password %s/%s: %v", ComponentNamespace, mysql.ComponentName, err)
-		return err
-	}
-
 	// Create secret for the keycloakadmin user if it doesn't exist
 	err = createAuthSecret(ctx, ComponentNamespace, "keycloak-http", "keycloakadmin")
 	if err != nil {
@@ -197,7 +192,7 @@ func (c KeycloakComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // IsReady component check
 func (c KeycloakComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isKeycloakReady(ctx)
+		return c.isKeycloakReady(ctx)
 	}
 	return false
 }
@@ -217,7 +212,11 @@ func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c KeycloakComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	return nil
+	// Do not allow any changes except to enable the component post-install
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
 
 func (c KeycloakComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {

@@ -7,9 +7,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"regexp"
@@ -18,13 +16,15 @@ import (
 
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/semver"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	clik8sutil "github.com/verrazzano/verrazzano/tools/vz/pkg/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -35,14 +35,23 @@ import (
 
 const VpoSimpleLogFormatRegexp = `"level":"(.*?)","@timestamp":"(.*?)",(.*?)"message":"(.*?)",`
 
-// Number of retries after waiting a second for VPO to be ready
-const vpoDefaultWaitRetries = 60 * 5
+// deleteLeftoverPlatformOperatorSig is a function needed for unit test override
+type deleteLeftoverPlatformOperatorSig func(client clipkg.Client) error
 
-var vpoWaitRetries = vpoDefaultWaitRetries
+// DeleteFunc is the default deleteLeftoverPlatformOperator function
+var DeleteFunc deleteLeftoverPlatformOperatorSig = deleteLeftoverPlatformOperator
 
-// Used with unit testing
-func SetVpoWaitRetries(retries int) { vpoWaitRetries = retries }
-func ResetVpoWaitRetries()          { vpoWaitRetries = vpoDefaultWaitRetries }
+func SetDeleteFunc(f deleteLeftoverPlatformOperatorSig) {
+	DeleteFunc = f
+}
+
+func SetDefaultDeleteFunc() {
+	DeleteFunc = deleteLeftoverPlatformOperator
+}
+
+func FakeDeleteFunc(client clipkg.Client) error {
+	return nil
+}
 
 // UsePlatformOperatorUninstallJob determines whether the version of the platform operator is using an uninstall job.
 // The uninstall job was removed with Verrazzano 1.4.0.
@@ -91,7 +100,10 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 			internalFilename = operatorFile
 		}
 	} else {
-		url = fmt.Sprintf(constants.VerrazzanoOperatorURL, version)
+		url, err = helpers.GetOperatorYaml(version)
+		if err != nil {
+			return err
+		}
 	}
 
 	const accessErrorMsg = "Failed to access the Verrazzano operator.yaml file %s: %s"
@@ -109,7 +121,7 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 			return fmt.Errorf(accessErrorMsg, userVisibleFilename, resp.Status)
 		}
 		// Store response in a temporary file
-		tmpFile, err := ioutil.TempFile("", "vz")
+		tmpFile, err := os.CreateTemp("", "vz")
 		if err != nil {
 			return fmt.Errorf(applyErrorMsg, userVisibleFilename, err.Error())
 		}
@@ -138,7 +150,7 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 }
 
 // WaitForPlatformOperator waits for the verrazzano-platform-operator to be ready
-func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, condType vzapi.ConditionType, lastTransitionTime metav1.Time) (string, error) {
+func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, condType v1beta1.ConditionType, timeout time.Duration) (string, error) {
 	// Provide the user with feedback while waiting for the verrazzano-platform-operator to be ready
 	feedbackChan := make(chan bool)
 	defer close(feedbackChan)
@@ -157,29 +169,21 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 		}
 	}(vzHelper.GetOutputStream())
 
-	deployments := []types.NamespacedName{
-		{
-			Name:      constants.VerrazzanoPlatformOperator,
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-		},
-	}
-
 	// Wait for the verrazzano-platform-operator pod to be found
-	seconds := 0
-	retryCount := 0
+	secondsWaited := 0
+	maxSecondsToWait := int(timeout.Seconds())
 	for {
-		ready, err := clik8sutil.DeploymentsAreReady(client, deployments, 1, lastTransitionTime)
+		ready, err := vpoIsReady(client)
 		if ready {
 			break
 		}
 
-		retryCount++
-		if retryCount > vpoWaitRetries {
+		if secondsWaited > maxSecondsToWait {
 			feedbackChan <- true
 			return "", fmt.Errorf("Waiting for %s pod in namespace %s: %v", constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace, err)
 		}
 		time.Sleep(constants.VerrazzanoPlatformOperatorWait * time.Second)
-		seconds += constants.VerrazzanoPlatformOperatorWait
+		secondsWaited += constants.VerrazzanoPlatformOperatorWait
 	}
 	feedbackChan <- true
 
@@ -189,11 +193,7 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 
 // WaitForOperationToComplete waits for the Verrazzano install/upgrade to complete and
 // shows the logs of the ongoing Verrazzano install/upgrade.
-func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, vpoPodName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat LogFormat, condType vzapi.ConditionType) error {
-	rc, err := GetVpoLogStream(kubeClient, vpoPodName)
-	if err != nil {
-		return err
-	}
+func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, namespacedName types.NamespacedName, timeout time.Duration, vpoTimeout time.Duration, logFormat LogFormat, condType v1beta1.ConditionType) error {
 	resChan := make(chan error, 1)
 	defer close(resChan)
 
@@ -203,18 +203,46 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	// goroutine to stream log file output - this goroutine will be left running when this
 	// function is exited because there is no way to cancel the blocking read to the input stream.
 	re := regexp.MustCompile(VpoSimpleLogFormatRegexp)
-	go func(outputStream io.Writer) {
-		sc := bufio.NewScanner(rc)
-		sc.Split(bufio.ScanLines)
+	go func(kubeClient kubernetes.Interface, outputStream io.Writer) {
+		var sc *bufio.Scanner
+		var err error
+		secondsWaited := 0
+		maxSecondsToWait := int(vpoTimeout.Seconds())
+		const secondsPerRetry = 10
+
 		for {
-			sc.Scan()
+			if sc == nil {
+				sc, err = getScanner(client, kubeClient)
+				if err != nil {
+					fmt.Fprintf(outputStream, fmt.Sprintf("Failed to connect to the console output, waited %d of %d seconds to recover: %v\n", secondsWaited, maxSecondsToWait, err))
+					secondsWaited += secondsPerRetry
+					if secondsWaited > maxSecondsToWait {
+						return
+					}
+					time.Sleep(secondsPerRetry * time.Second)
+					continue
+				}
+				secondsWaited = 0
+				sc.Split(bufio.ScanLines)
+			}
+
+			scannedOk := sc.Scan()
+			if !scannedOk {
+				errText := ""
+				if sc.Err() != nil {
+					errText = fmt.Sprintf(": %v", sc.Err())
+				}
+				fmt.Fprintf(outputStream, fmt.Sprintf("Lost connection to the console output, attempting to reconnect%s\n", errText))
+				sc = nil
+				continue
+			}
 			if logFormat == LogFormatSimple {
 				PrintSimpleLogFormat(sc, outputStream, re)
 			} else if logFormat == LogFormatJSON {
 				fmt.Fprintf(outputStream, fmt.Sprintf("%s\n", sc.Text()))
 			}
 		}
-	}(vzHelper.GetOutputStream())
+	}(kubeClient, vzHelper.GetOutputStream())
 
 	startTime := time.Now().UTC()
 
@@ -230,8 +258,10 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 				// Return when the Verrazzano operation has completed
 				vz, err := helpers.GetVerrazzanoResource(client, namespacedName)
 				if err != nil {
-					resChan <- err
-					return
+					// Retry if there is a problem getting the resource.  It is ok to keep retrying since
+					// WaitForOperationToComplete main routine will timeout.
+					time.Sleep(10 * time.Second)
+					continue
 				}
 				for _, condition := range vz.Status.Conditions {
 					// Operation condition met for install/upgrade
@@ -263,6 +293,20 @@ func WaitForOperationToComplete(client clipkg.Client, kubeClient kubernetes.Inte
 	}
 
 	return nil
+}
+
+func getScanner(client clipkg.Client, kubeClient kubernetes.Interface) (*bufio.Scanner, error) {
+	vpoPodName, err := GetVerrazzanoPlatformOperatorPodName(client)
+	if err != nil {
+		return nil, err
+	}
+
+	rc, err := GetVpoLogStream(kubeClient, vpoPodName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stream log output: %v", err)
+	}
+
+	return bufio.NewScanner(rc), nil
 }
 
 // GetVerrazzanoPlatformOperatorPodName returns the VPO pod name
@@ -324,10 +368,52 @@ func PrintSimpleLogFormat(sc *bufio.Scanner, outputStream io.Writer, regexp *reg
 }
 
 // return the operation string to display
-func getOperationString(condType vzapi.ConditionType) string {
+func getOperationString(condType v1beta1.ConditionType) string {
 	operation := "install"
-	if condType == vzapi.CondUpgradeComplete {
+	if condType == v1beta1.CondUpgradeComplete {
 		operation = "upgrade"
 	}
 	return operation
+}
+
+// vpoIsReady check that the named deployments have the minimum number of specified replicas ready and available
+func vpoIsReady(client clipkg.Client) (bool, error) {
+	var expectedReplicas int32 = 1
+	deployment := appsv1.Deployment{}
+	namespacedName := types.NamespacedName{Name: constants.VerrazzanoPlatformOperator, Namespace: vzconstants.VerrazzanoInstallNamespace}
+	if err := client.Get(context.TODO(), namespacedName, &deployment); err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("Failed getting deployment %s: %s", constants.VerrazzanoPlatformOperator, err.Error())
+	}
+	if deployment.Status.UpdatedReplicas < expectedReplicas {
+		return false, nil
+	}
+	if deployment.Status.AvailableReplicas < expectedReplicas {
+		return false, nil
+	}
+
+	if !ready.PodsReadyDeployment(nil, client, namespacedName, deployment.Spec.Selector, expectedReplicas, constants.VerrazzanoPlatformOperator) {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// deleteLeftoverPlatformOperator deletes leftover verrazzano-operator deployment after an abort.
+// This allows for the verrazzano-operator validatingWebhookConfiguration to be updated with an updated caBundle.
+func deleteLeftoverPlatformOperator(client clipkg.Client) error {
+	vpoDeployment := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoInstallNamespace,
+			Name:      constants.VerrazzanoPlatformOperator,
+		},
+	}
+	if err := client.Delete(context.TODO(), &vpoDeployment); err != nil {
+		if !errors.IsNotFound(err) {
+			return fmt.Errorf("Failed to delete leftover verrazzano-operator deployement: %s", err.Error())
+		}
+	}
+	return nil
 }

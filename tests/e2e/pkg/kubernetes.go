@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
 	"os"
 	"strings"
@@ -17,13 +16,12 @@ import (
 	"github.com/google/uuid"
 	certmanagerv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/onsi/gomega"
-	vaoClient "github.com/verrazzano/verrazzano/application-operator/clients/app/clientset/versioned"
-	vpClient "github.com/verrazzano/verrazzano/application-operator/clients/clusters/clientset/versioned"
+	vaoClient "github.com/verrazzano/verrazzano/application-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
-	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	istionetv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/authorization/v1"
@@ -36,6 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -290,6 +289,21 @@ func GetIngressList(namespace string) (*netv1.IngressList, error) {
 	return ingressList, nil
 }
 
+// GetIngress returns the ingress given a namespace and ingress name
+func GetIngress(namespace string, ingressName string) (*netv1.Ingress, error) {
+	// Get the Kubernetes clientset
+	clientSet, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	ingress, err := clientSet.NetworkingV1().Ingresses(namespace).Get(context.TODO(), ingressName, metav1.GetOptions{})
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to get Ingress %s in namespace %s: %v ", ingressName, namespace, err))
+		return nil, err
+	}
+	return ingress, nil
+}
+
 // GetVirtualServiceList returns a list of virtual services in the given namespace
 func GetVirtualServiceList(namespace string) (*istionetv1beta1.VirtualServiceList, error) {
 	// Get the Istio clientset
@@ -443,12 +457,12 @@ func createClientset(config *restclient.Config) (*kubernetes.Clientset, error) {
 }
 
 // GetVerrazzanoManagedClusterClientset returns the Kubernetes clientset for the VerrazzanoManagedCluster
-func GetVerrazzanoManagedClusterClientset() (*vmcClient.Clientset, error) {
+func GetVerrazzanoManagedClusterClientset() (*vpoClient.Clientset, error) {
 	config, err := k8sutil.GetKubeConfig()
 	if err != nil {
 		return nil, err
 	}
-	return vmcClient.NewForConfig(config)
+	return vpoClient.NewForConfig(config)
 }
 
 // GetVerrazzanoClientset returns the Kubernetes clientset for the Verrazzano CRD
@@ -460,13 +474,22 @@ func GetVerrazzanoClientset() (*vpoClient.Clientset, error) {
 	return vpoClient.NewForConfig(config)
 }
 
-// GetVerrazzanoProjectClientsetInCluster returns the Kubernetes clientset for the VerrazzanoProject
-func GetVerrazzanoProjectClientsetInCluster(kubeconfigPath string) (*vpClient.Clientset, error) {
+// GetVerrazzanoClientsetInCluster returns the Kubernetes clientset for platform operator given a kubeconfig location
+func GetVerrazzanoClientsetInCluster(kubeconfigPath string) (*vpoClient.Clientset, error) {
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
-	return vpClient.NewForConfig(config)
+	return vpoClient.NewForConfig(config)
+}
+
+// GetVerrazzanoProjectClientsetInCluster returns the Kubernetes clientset for the VerrazzanoProject
+func GetVerrazzanoProjectClientsetInCluster(kubeconfigPath string) (*vaoClient.Clientset, error) {
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return vaoClient.NewForConfig(config)
 }
 
 // GetVerrazzanoApplicationOperatorClientSet returns the Kubernetes clientset for the Verrazzano Application Operator
@@ -517,6 +540,31 @@ func GetVerrazzanoInstallResourceInCluster(kubeconfigPath string) (*v1alpha1.Ver
 	return &vz, nil
 }
 
+// GetVerrazzanoInstallResourceInClusterV1beta1 returns the installed Verrazzano CR in the given cluster
+// (there should only be 1 per cluster)
+func GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath string) (*v1beta1.Verrazzano, error) {
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	client, err := vpoClient.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	vzClient := client.VerrazzanoV1beta1().Verrazzanos("")
+	vzList, err := vzClient.List(context.TODO(), metav1.ListOptions{})
+
+	if err != nil {
+		return nil, fmt.Errorf("error listing out v1beta1 Verrazzano instances: %v", err)
+	}
+	numVzs := len(vzList.Items)
+	if numVzs == 0 {
+		return nil, fmt.Errorf("did not find installed Verrazzano instance")
+	}
+	vz := vzList.Items[0]
+	return &vz, nil
+}
+
 // IsDevProfile returns true if the deployed resource is a 'dev' profile
 func IsDevProfile() bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -543,6 +591,20 @@ func GetVerrazzano() (*v1alpha1.Verrazzano, error) {
 		return nil, err
 	}
 	cr, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return cr, nil
+}
+
+// GetVerrazzanoV1beta1 returns the installed Verrazzano using v1beta1 API client
+func GetVerrazzanoV1beta1() (*v1beta1.Verrazzano, error) {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return nil, err
+	}
+	cr, err := GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}

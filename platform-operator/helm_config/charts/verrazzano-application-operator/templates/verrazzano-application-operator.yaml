@@ -65,6 +65,7 @@ rules:
       - batch
     resources:
       - jobs
+      - cronjobs
     verbs:
       - get
       - list
@@ -288,6 +289,17 @@ rules:
       - update
       - watch
   - apiGroups:
+      - mysql.oracle.com
+    resources:
+      - innodbclusters
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - update
+      - watch
+  - apiGroups:
       - jaegertracing.io
     resources:
       - jaegers
@@ -296,6 +308,27 @@ rules:
       - get
       - list
       - update
+  - apiGroups:
+    - mysql.oracle.com
+    resources:
+      - mysqlbackups
+    verbs:
+      - create
+      - get
+      - list
+      - patch
+      - update
+      - watch
+      - delete
+  - apiGroups:
+      - mysql.oracle.com
+    resources:
+      - mysqlbackups/status
+    verbs:
+      - get
+      - patch
+      - update
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

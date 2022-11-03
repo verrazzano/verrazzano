@@ -182,12 +182,15 @@ func EnsureResourceLogger(config *ResourceConfig) (VerrazzanoLogger, error) {
 	// Build a logger, skipping 2 call frames so that the correct caller file/line is displayed in the log.
 	// If the callerSkip was 0, then you would see the vzlog.go/line# instead of the file/line of the caller
 	// that called the VerrazzanoLogger
-	zaplog, err := vzlogInit.BuildZapLogger(2)
+	zaplog, err := vzlogInit.BuildZapInfoLogger(2)
 	if err != nil {
 		// This is a fatal error which should never happen
 		return nil, errors.New("Failed initializing logger for controller")
 	}
+	return ForZapLogger(config, zaplog), nil
+}
 
+func ForZapLogger(config *ResourceConfig, zaplog *zap.SugaredLogger) VerrazzanoLogger {
 	// Ensure a Verrazzano logger exists, using zap SugaredLogger as the underlying logger.
 	zaplog = zaplog.With(vzlogInit.FieldResourceNamespace, config.Namespace, vzlogInit.FieldResourceName,
 		config.Name, vzlogInit.FieldController, config.ControllerName)
@@ -205,7 +208,7 @@ func EnsureResourceLogger(config *ResourceConfig) (VerrazzanoLogger, error) {
 
 	// Finally, get the logger using this context.
 	logger := context.EnsureLogger("default", zaplog, zaplog)
-	return logger, nil
+	return logger
 }
 
 // EnsureContext ensures that a LogContext exists
@@ -295,7 +298,7 @@ func (v *verrazzanoLogger) doLog(once bool, args ...interface{}) {
 	}
 }
 
-//doError Logs an error message first checking against the log cache; same behavior as doLog() except that messages
+// doError Logs an error message first checking against the log cache; same behavior as doLog() except that messages
 // are recorded as errors at the throttling frequency.  Errors are never once-only.
 func (v *verrazzanoLogger) doError(args ...interface{}) {
 	msg := fmt.Sprint(args...)
@@ -305,12 +308,14 @@ func (v *verrazzanoLogger) doError(args ...interface{}) {
 	}
 }
 
-//shouldLogMessage Checks candidate log message against the cache and returns true if that message should be recorded in the log.
+// shouldLogMessage Checks candidate log message against the cache and returns true if that message should be recorded in the log.
 //
 // A message should be recorded when
 // - A message is newly added to the cache (seen for the first time)
 // - A message is throttled, but it has not exceeded its frequency threshold since the last occurrence
 func (v *verrazzanoLogger) shouldLogMessage(once bool, msg string) bool {
+	lock.Lock()
+	defer lock.Unlock()
 	// If the message is in the trash, that means it should never be logged again.
 	_, ok := v.trashMessages[msg]
 	if ok {

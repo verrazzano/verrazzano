@@ -5,9 +5,9 @@ package opensearch
 
 import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -108,24 +108,14 @@ func (u OpensearchDuplicateNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
-	cr.Spec.Components.Elasticsearch.Nodes =
-		append(cr.Spec.Components.Elasticsearch.Nodes,
-			vzapi.OpenSearchNode{
-				Name:      string(u.Name),
-				Replicas:  1,
-				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole},
-				Storage:   newNodeStorage("2Gi"),
-				Resources: newResources("512Mi"),
-			},
-			vzapi.OpenSearchNode{
-				Name:      string(u.Name),
-				Replicas:  1,
-				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole},
-				Storage:   newNodeStorage("2Gi"),
-				Resources: newResources("512Mi"),
-			},
-		)
+	arg := vzapi.InstallArgs{
+		Name:  "nodes.master.replicas",
+		Value: "1",
+	}
+	cr.Spec.Components.Elasticsearch.ESInstallArgs = []vzapi.InstallArgs{
+		arg,
+		arg,
+	}
 }
 
 func (u OpensearchAllNodeRolesModifier) ModifyCR(cr *vzapi.Verrazzano) {

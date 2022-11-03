@@ -3,6 +3,16 @@
 
 image:
   pullPolicy: IfNotPresent
+podAnnotations:
+  traffic.sidecar.istio.io/excludeOutboundPorts: "443"
+restic:
+  annotations:
+    traffic.sidecar.istio.io/excludeOutboundPorts: "443"
+metrics:
+  serviceMonitor:
+    enabled: true
+    additionalLabels:
+      release: prometheus-operator
 configuration:
   provider: aws
 backupsEnabled: false

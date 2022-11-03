@@ -5,34 +5,36 @@ package mysql
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // ComponentName is the name of the component
 const ComponentName = "mysql"
+
+// helmReleaseName is the name of the helm release
+const helmReleaseName = ComponentName
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.KeycloakNamespace
 
 // DeploymentPersistentVolumeClaim is the name of a volume claim associated with a MySQL deployment
 const DeploymentPersistentVolumeClaim = "mysql"
-
-// StatefulsetPersistentVolumeClaim is the name of a volume claim associated with a MySQL statefulset
-const StatefulsetPersistentVolumeClaim = "data-mysql-0"
 
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "keycloak.mysql"
@@ -47,9 +49,13 @@ var _ spi.Component = mysqlComponent{}
 
 // NewComponent returns a new MySQL component
 func NewComponent() spi.Component {
+
+	// Cannot include mysqloperatorcomponent because of import cycle
+	const MySQLOperatorComponentName = "mysql-operator"
+
 	return mysqlComponent{
 		helm.HelmComponent{
-			ReleaseName:               ComponentName,
+			ReleaseName:               helmReleaseName,
 			JSONName:                  ComponentJSONName,
 			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:            ComponentNamespace,
@@ -59,8 +65,16 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-values.yaml"),
 			AppendOverridesFunc:       appendMySQLOverrides,
-			Dependencies:              []string{istio.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, MySQLOperatorComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				StatefulsetNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -68,7 +82,7 @@ func NewComponent() spi.Component {
 // IsReady calls MySQL isMySQLReady function
 func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
-		return isMySQLReady(context)
+		return c.isMySQLReady(context)
 	}
 	return false
 }
@@ -104,23 +118,25 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	// Block all changes for now, particularly around storage changes
 
 	// compare the VolumeSourceOverrides and reject if the type or size or storage class is different
-	oldSetting, err := doGenerateVolumeSourceOverrides(old, []bom.KeyValue{})
+	convertedOldVZ := v1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(old, &convertedOldVZ); err != nil {
+		return err
+	}
+	oldSetting, err := doGenerateVolumeSourceOverrides(&convertedOldVZ, []bom.KeyValue{})
 	if err != nil {
 		return err
 	}
-	newSetting, err := doGenerateVolumeSourceOverrides(new, []bom.KeyValue{})
+	convertedNewVZ := v1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(new, &convertedNewVZ); err != nil {
+		return err
+	}
+	newSetting, err := doGenerateVolumeSourceOverrides(&convertedNewVZ, []bom.KeyValue{})
 	if err != nil {
 		return err
 	}
 	// Reject any persistence-specific changes via the mysqlInstallArgs settings
-	if bom.FindKV(oldSetting, "primary.persistence.enabled") != bom.FindKV(newSetting, "primary.persistence.enabled") {
-		return fmt.Errorf("Can not change persistence enabled setting in component: %s", ComponentJSONName)
-	}
-	if bom.FindKV(oldSetting, "primary.persistence.size") != bom.FindKV(newSetting, "primary.persistence.size") {
-		return fmt.Errorf("Can not change persistence volume size in component: %s", ComponentJSONName)
-	}
-	if bom.FindKV(oldSetting, "primary.persistence.storageClass") != bom.FindKV(newSetting, "primary.persistence.storageClass") {
-		return fmt.Errorf("Can not change persistence storage class in component: %s", ComponentJSONName)
+	if err := validatePersistenceSpecificChanges(oldSetting, newSetting); err != nil {
+		return err
 	}
 	// Reject any installArgs changes for now
 	if err := common.CompareInstallArgs(c.getInstallArgs(old), c.getInstallArgs(new)); err != nil {
@@ -130,7 +146,35 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c mysqlComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+func (c mysqlComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
+	// compare the VolumeSourceOverrides and reject if the type or size or storage class is different
+	oldSetting, err := doGenerateVolumeSourceOverrides(old, []bom.KeyValue{})
+	if err != nil {
+		return err
+	}
+	newSetting, err := doGenerateVolumeSourceOverrides(new, []bom.KeyValue{})
+	if err != nil {
+		return err
+	}
+	// Reject any persistence-specific changes via the mysqlInstallArgs settings
+	if err := validatePersistenceSpecificChanges(oldSetting, newSetting); err != nil {
+		return err
+	}
+	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
+}
+
+// validatePersistenceSpecificChanges validates if there are any persistence related changes done via the install overrides
+func validatePersistenceSpecificChanges(oldSetting, newSetting []bom.KeyValue) error {
+	// Reject any persistence-specific changes via the mysqlInstallArgs settings
+	if bom.FindKV(oldSetting, "datadirVolumeClaimTemplate.resources.requests.storage") != bom.FindKV(newSetting, "datadirVolumeClaimTemplate.resources.requests.storage") {
+		return fmt.Errorf("Can not change persistence volume size in component: %s", ComponentJSONName)
+	}
+	if bom.FindKV(oldSetting, "datadirVolumeClaimTemplate.accessModes") != bom.FindKV(newSetting, "datadirVolumeClaimTemplate.accessModes") {
+		return fmt.Errorf("Can not change persistence access modes in component: %s", ComponentJSONName)
+	}
+	if bom.FindKV(oldSetting, "datadirVolumeClaimTemplate.storageClassName") != bom.FindKV(newSetting, "datadirVolumeClaimTemplate.storageClassName") {
+		return fmt.Errorf("Can not change storage class in component: %s", ComponentJSONName)
+	}
 	return nil
 }
 

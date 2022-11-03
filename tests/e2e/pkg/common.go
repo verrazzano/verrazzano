@@ -7,12 +7,15 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"io"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"net/http"
 	neturl "net/url"
 	"os"
 	"reflect"
 	"regexp"
+	"sigs.k8s.io/yaml"
 	"strconv"
 	"strings"
 	"sync"
@@ -35,11 +38,11 @@ const (
 	// NumRetries - maximum number of retries
 	NumRetries = 7
 
-	// RetryWaitMin - minimum retry wait
-	RetryWaitMin = 1 * time.Second
+	// RetryWaitMinimum - minimum retry wait
+	RetryWaitMinimum = 1 * time.Second
 
-	// RetryWaitMax - maximum retry wait
-	RetryWaitMax = 30 * time.Second
+	// RetryWaitMaximum - maximum retry wait
+	RetryWaitMaximum = 30 * time.Second
 
 	// VerrazzanoNamespace - namespace hosting verrazzano resources
 	VerrazzanoNamespace = "verrazzano-system"
@@ -54,7 +57,7 @@ const (
 	ApplicationIndexPatternPrefix = "verrazzano-application"
 
 	// kubeConfigErrorFmt - error format for reporting kubeconfig related errors
-	kubeConfigErrorFmt = "Error getting kubeconfig, error: %v"
+	KubeConfigErrorFmt = "Error getting kubeconfig, error: %v"
 
 	// clientSetErrorFmt - error format for reporting clientset  related errors
 	clientSetErrorFmt = "Error getting clientset for kubernetes cluster, error: %v"
@@ -138,7 +141,7 @@ func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, 
 		Log(Error, fmt.Sprintf("AssertURLAccessibleAndAuthorized: URL=%v, Unexpected error=%v", url, err))
 		return false
 	}
-	ioutil.ReadAll(resp.Body)
+	io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		Log(Error, fmt.Sprintf("AssertURLAccessibleAndAuthorized: URL=%v, Unexpected status code=%v", url, resp.StatusCode))
@@ -158,8 +161,8 @@ func AssertURLAccessibleAndAuthorized(client *retryablehttp.Client, url string, 
 func PodsRunning(namespace string, namePrefixes []string) (bool, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Log(Error, fmt.Sprintf(kubeConfigErrorFmt, err))
-		return false, fmt.Errorf(kubeConfigErrorFmt, err)
+		Log(Error, fmt.Sprintf(KubeConfigErrorFmt, err))
+		return false, fmt.Errorf(KubeConfigErrorFmt, err)
 	}
 	result, err := PodsRunningInCluster(namespace, namePrefixes, kubeconfigPath)
 	return result, err
@@ -169,8 +172,8 @@ func PodsRunning(namespace string, namePrefixes []string) (bool, error) {
 func SpecificPodsRunning(namespace, labels string) (bool, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Log(Error, fmt.Sprintf(kubeConfigErrorFmt, err))
-		return false, fmt.Errorf(kubeConfigErrorFmt, err)
+		Log(Error, fmt.Sprintf(KubeConfigErrorFmt, err))
+		return false, fmt.Errorf(KubeConfigErrorFmt, err)
 	}
 	result, err := SpecificPodsRunningInCluster(namespace, labels, kubeconfigPath)
 	return result, err
@@ -183,8 +186,8 @@ func GetVerrazzanoRetentionPolicy(retentionPolicyName string) (v12.IndexManageme
 	retentionPolicy := v12.IndexManagementPolicy{}
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Log(Error, fmt.Sprintf(kubeConfigErrorFmt, err))
-		return retentionPolicy, fmt.Errorf(kubeConfigErrorFmt, err)
+		Log(Error, fmt.Sprintf(KubeConfigErrorFmt, err))
+		return retentionPolicy, fmt.Errorf(KubeConfigErrorFmt, err)
 	}
 	clientset, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
@@ -215,8 +218,8 @@ func GetVerrazzanoRolloverPolicy(rolloverPolicyName string) (v12.RolloverPolicy,
 	defaultRolloverPolicy := v12.RolloverPolicy{MinIndexAge: &DefaultRolloverPeriod}
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Log(Error, fmt.Sprintf(kubeConfigErrorFmt, err))
-		return defaultRolloverPolicy, fmt.Errorf(kubeConfigErrorFmt, err)
+		Log(Error, fmt.Sprintf(KubeConfigErrorFmt, err))
+		return defaultRolloverPolicy, fmt.Errorf(KubeConfigErrorFmt, err)
 	}
 	clientset, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 	if err != nil {
@@ -414,6 +417,10 @@ func isReadyAndRunning(pod v1.Pod) bool {
 		}
 		return true
 	}
+	// Jaeger Operator has index cleaner pods with a Succeeded status phase. Return true for these type of pods.
+	if pod.Status.Phase == v1.PodSucceeded {
+		return true
+	}
 	if pod.Status.Reason == "Evicted" && len(pod.Status.ContainerStatuses) == 0 {
 		Log(Info, fmt.Sprintf("Pod %v was Evicted", pod.Name))
 		return true // ignore this evicted pod
@@ -516,7 +523,7 @@ func SliceContainsPolicyRule(ruleSlice []rbacv1.PolicyRule, rule rbacv1.PolicyRu
 func ContainerImagePullWait(namespace string, namePrefixes []string) bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Log(Error, fmt.Sprintf(kubeConfigErrorFmt, err))
+		Log(Error, fmt.Sprintf(KubeConfigErrorFmt, err))
 		return false
 	}
 	return ContainerImagePullWaitInCluster(namespace, namePrefixes, kubeconfigPath)
@@ -707,4 +714,22 @@ func CalculateSeconds(age string) (int64, error) {
 		return number, nil
 	}
 	return 0, fmt.Errorf("conversion to seconds for time unit %s is unsupported", match[2])
+}
+
+// CreateOverridesOrDie converts the yaml string to JSON object
+func CreateOverridesOrDie(yamlString string) []v1beta1.Overrides {
+	data, err := yaml.YAMLToJSON([]byte(yamlString))
+	if err != nil {
+		Log(Error, fmt.Sprintf("Failed to convert yaml to JSON: %s", yamlString))
+		panic(err)
+	}
+	return []v1beta1.Overrides{
+		{
+			ConfigMapRef: nil,
+			SecretRef:    nil,
+			Values: &apiextensionsv1.JSON{
+				Raw: data,
+			},
+		},
+	}
 }

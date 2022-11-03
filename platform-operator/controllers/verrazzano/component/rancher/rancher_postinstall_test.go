@@ -7,6 +7,11 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
@@ -21,8 +26,9 @@ var validStdOut = "W1122 18:11:20.905585\nNew password for default admin user (u
 
 // TestCreateAdminSecretIfNotExists verifies creation of the rancher-admin-secret Secret
 // GIVEN a cluster with Rancher running
-//  WHEN createAdminSecretIfNotExists is called
-//  THEN createAdminSecretIfNotExists should ensure the rancher-admin-secret exists and contains a valid Rancher admin password
+//
+//	WHEN createAdminSecretIfNotExists is called
+//	THEN createAdminSecretIfNotExists should ensure the rancher-admin-secret exists and contains a valid Rancher admin password
 func TestCreateAdminSecretIfNotExists(t *testing.T) {
 	log := getTestLogger(t)
 	clientConfigFunction := func() (*rest.Config, rest.Interface, error) {
@@ -113,8 +119,9 @@ func TestCreateAdminSecretIfNotExists(t *testing.T) {
 
 // TestParsePasswordStdout verifies parsing the Rancher password from reset STDOUT
 // GIVEN STDOUT from the reset-password command
-//  WHEN parsePasswordStdout is called
-//  THEN parsePasswordStdout should return the password from STDOUT
+//
+//	WHEN parsePasswordStdout is called
+//	THEN parsePasswordStdout should return the password from STDOUT
 func TestParsePasswordStdout(t *testing.T) {
 	var tests = []struct {
 		in  string
@@ -128,6 +135,54 @@ func TestParsePasswordStdout(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.in, func(t *testing.T) {
 			assert.Equal(t, tt.out, parsePasswordStdout(tt.in))
+		})
+	}
+}
+
+// TestLabelNamespace verifies adding the labels in the rancher components
+// When Rancher namespaces are not labelled
+// Then Required labels should be added to that namespace
+func TestLabelNamespace(t *testing.T) {
+	type args struct {
+		c client.Client
+	}
+	rancherNamespaceWithlabel := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: FleetSystemNamespace,
+			Labels: map[string]string{
+				constants.VerrazzanoManagedKey: FleetSystemNamespace,
+			},
+		},
+	}
+	rancherNamespaceWithoutlabel := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: FleetSystemNamespace,
+			Labels: map[string]string{
+				constants.VerrazzanoManagedKey: FleetSystemNamespace,
+			},
+		},
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			"When no namespace Label in rancher component namespace",
+			args{fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&rancherNamespaceWithoutlabel).Build()},
+			false,
+		},
+		{
+			"When namespace label is there in rancher component namespace",
+			args{fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&rancherNamespaceWithlabel).Build()},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := labelNamespace(tt.args.c); (err != nil) != tt.wantErr {
+				t.Errorf("labelNamespace() error = %v, wantErr %v", err, tt.wantErr)
+			}
 		})
 	}
 }

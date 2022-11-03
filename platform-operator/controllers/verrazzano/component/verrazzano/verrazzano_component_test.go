@@ -12,6 +12,7 @@ import (
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -41,6 +42,8 @@ var crEnabled = vzapi.Verrazzano{
 	},
 }
 
+var getControllerRuntimeClient = getClient
+
 // genericTestRunner is used to run generic OS commands with expected results
 type genericTestRunner struct {
 }
@@ -57,8 +60,9 @@ func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string,
 
 // TestPreUpgrade tests the Verrazzano PreUpgrade call
 // GIVEN a Verrazzano component
-//  WHEN I call PreUpgrade with defaults
-//  THEN no error is returned
+//
+//	WHEN I call PreUpgrade with defaults
+//	THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
@@ -69,8 +73,9 @@ func TestPreUpgrade(t *testing.T) {
 
 // TestPreInstall tests the Verrazzano PreInstall call
 // GIVEN a Verrazzano component
-//  WHEN I call PreInstall when dependencies are met
-//  THEN no error is returned
+//
+//	WHEN I call PreInstall when dependencies are met
+//	THEN no error is returned
 func TestPreInstall(t *testing.T) {
 	c := createPreInstallTestClient()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
@@ -80,8 +85,9 @@ func TestPreInstall(t *testing.T) {
 
 // TestInstall tests the Verrazzano Install call
 // GIVEN a Verrazzano component
-//  WHEN I call Install when dependencies are met
-//  THEN no error is returned
+//
+//	WHEN I call Install when dependencies are met
+//	THEN no error is returned
 func TestInstall(t *testing.T) {
 	c := createPreInstallTestClient()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
@@ -102,8 +108,9 @@ func TestInstall(t *testing.T) {
 
 // TestPostInstall tests the Verrazzano PostInstall call
 // GIVEN a Verrazzano component
-//  WHEN I call PostInstall
-//  THEN no error is returned
+//
+//	WHEN I call PostInstall
+//	THEN no error is returned
 func TestPostInstall(t *testing.T) {
 	time := metav1.Now()
 	ctx, vzComp := fakeComponent(t, []certv1.CertificateCondition{
@@ -115,8 +122,9 @@ func TestPostInstall(t *testing.T) {
 
 // TestUpgrade tests the Verrazzano Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
 // GIVEN a Verrazzano component upgrading from 1.1.0 to 1.2.0
-//  WHEN I call Upgrade
-//  THEN no error is returned
+//
+//	WHEN I call Upgrade
+//	THEN no error is returned
 func TestUpgrade(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
@@ -141,8 +149,9 @@ func TestUpgrade(t *testing.T) {
 
 // TestPostUpgrade tests the Verrazzano PostUpgrade call; simple wrapper exercise, more detailed testing is done elsewhere
 // GIVEN a Verrazzano component upgrading from 1.1.0 to 1.2.0
-//  WHEN I call PostUpgrade
-//  THEN no error is returned
+//
+//	WHEN I call PostUpgrade
+//	THEN no error is returned
 func TestPostUpgrade(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
@@ -165,8 +174,9 @@ func createPreInstallTestClient(extraObjs ...client.Object) client.Client {
 
 // TestIsEnabledNilVerrazzano tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component is nil
-//  THEN true is returned
+//
+//	WHEN The Verrazzano component is nil
+//	THEN true is returned
 func TestIsEnabledNilVerrazzano(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Verrazzano = nil
@@ -175,16 +185,18 @@ func TestIsEnabledNilVerrazzano(t *testing.T) {
 
 // TestIsEnabledNilComponent tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component is nil
-//  THEN true is returned
+//
+//	WHEN The Verrazzano component is nil
+//	THEN true is returned
 func TestIsEnabledNilComponent(t *testing.T) {
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component enabled is nil
-//  THEN true is returned
+//
+//	WHEN The Verrazzano component enabled is nil
+//	THEN true is returned
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Verrazzano.Enabled = nil
@@ -193,8 +205,9 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 
 // TestIsEnabledExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component is explicitly enabled
-//  THEN true is returned
+//
+//	WHEN The Verrazzano component is explicitly enabled
+//	THEN true is returned
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Verrazzano.Enabled = getBoolPtr(true)
@@ -203,8 +216,9 @@ func TestIsEnabledExplicit(t *testing.T) {
 
 // TestIsDisableExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The Verrazzano component is explicitly disabled
-//  THEN false is returned
+//
+//	WHEN The Verrazzano component is explicitly disabled
+//	THEN false is returned
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Verrazzano.Enabled = getBoolPtr(false)
@@ -215,7 +229,7 @@ func getBoolPtr(b bool) *bool {
 	return &b
 }
 
-func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
+func TestValidateUpdate(t *testing.T) {
 	disabled := false
 	var pvc1Gi, _ = resource.ParseQuantity("1Gi")
 	var pvc2Gi, _ = resource.ParseQuantity("2Gi")
@@ -452,6 +466,248 @@ func Test_verrazzanoComponent_ValidateUpdate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewComponent()
 			err := c.ValidateUpdate(tt.old, tt.new)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateUpdateV1beta1(t *testing.T) {
+	disabled := false
+	var pvc1Gi, _ = resource.ParseQuantity("1Gi")
+	var pvc2Gi, _ = resource.ParseQuantity("2Gi")
+	sec := fakeSec("TestValidateUpdate-es-sec")
+	defer func() { getControllerRuntimeClient = getClient }()
+	tests := []struct {
+		name    string
+		old     *v1beta1.Verrazzano
+		new     *v1beta1.Verrazzano
+		wantErr bool
+	}{
+		{
+			name: "enable",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Verrazzano: &v1beta1.VerrazzanoComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			new:     &v1beta1.Verrazzano{},
+			wantErr: false,
+		},
+		{
+			name: "disable",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Verrazzano: &v1beta1.VerrazzanoComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-installargs",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Verrazzano: &v1beta1.VerrazzanoComponent{},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:    "no change",
+			old:     &v1beta1.Verrazzano{},
+			new:     &v1beta1.Verrazzano{},
+			wantErr: false,
+		},
+		{
+			name: "emptyDir to PVC in defaultVolumeSource",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+			},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "PVC to emptyDir in volumeSource",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"},
+					},
+				},
+			},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "resize pvc in defaultVolumeSource",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"},
+					},
+					VolumeClaimSpecTemplates: []v1beta1.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc1Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"},
+					},
+					VolumeClaimSpecTemplates: []v1beta1.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc2Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "disable-console",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Console: &v1beta1.ConsoleComponent{Enabled: &disabled},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "disable-prometheus",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Prometheus: &v1beta1.PrometheusComponent{Enabled: &disabled},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "disable-fluentd",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Fluentd: &v1beta1.FluentdComponent{Enabled: &disabled},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "change-fluentd-oci",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Fluentd: &v1beta1.FluentdComponent{
+							OCI: &v1beta1.OciLoggingConfiguration{
+								APISecret: "secret",
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "change-fluentd-es-secret",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Fluentd: &v1beta1.FluentdComponent{
+							OpenSearchSecret: sec.Name,
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "change-fluentd-es-url",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Fluentd: &v1beta1.FluentdComponent{
+							OpenSearchURL: "url",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "change-fluentd-extravolume",
+			old:  &v1beta1.Verrazzano{},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Fluentd: &v1beta1.FluentdComponent{
+							ExtraVolumeMounts: []v1beta1.VolumeMount{{Source: "foo"}},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			err := c.ValidateUpdateV1Beta1(tt.old, tt.new)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}

@@ -6,16 +6,17 @@ package nodeexporter
 import (
 	"context"
 	"fmt"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -27,15 +28,9 @@ const (
 )
 
 // isPrometheusNodeExporterReady checks if the Prometheus Node-Exporter daemonset is ready
-func isPrometheusNodeExporterReady(ctx spi.ComponentContext) bool {
-	sets := []types.NamespacedName{
-		{
-			Name:      daemonsetName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c prometheusNodeExporterComponent) isPrometheusNodeExporterReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), sets, 1, prefix)
+	return ready.DaemonSetsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DaemonsetNames, 1, prefix)
 }
 
 // PreInstall implementation for the Prometheus Node-Exporter Component
@@ -48,9 +43,9 @@ func preInstall(ctx spi.ComponentContext) error {
 
 	// Create the verrazzano-monitoring namespace
 	ctx.Log().Debugf("Creating namespace %s for the Prometheus Node-Exporter", ComponentNamespace)
-	ns := prometheus.GetVerrazzanoMonitoringNamespace()
+	ns := common.GetVerrazzanoMonitoringNamespace()
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), ns, func() error {
-		prometheus.MutateVerrazzanoMonitoringNamespace(ctx, ns)
+		common.MutateVerrazzanoMonitoringNamespace(ctx, ns)
 		return nil
 	}); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
@@ -59,10 +54,19 @@ func preInstall(ctx spi.ComponentContext) error {
 }
 
 // GetOverrides returns install overrides for a component
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.PrometheusNodeExporter != nil {
-		return effectiveCR.Spec.Components.PrometheusNodeExporter.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.PrometheusNodeExporter != nil {
+			return effectiveCR.Spec.Components.PrometheusNodeExporter.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.PrometheusNodeExporter != nil {
+			return effectiveCR.Spec.Components.PrometheusNodeExporter.ValueOverrides
+		}
+		return []installv1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }
 

@@ -5,7 +5,6 @@ package verrazzano
 
 import (
 	"context"
-
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -19,6 +18,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -83,7 +83,6 @@ var UninstallTrackerMap = make(map[string]*UninstallTracker)
 // reconcileUninstall will Uninstall a Verrazzano installation
 func (r *Reconciler) reconcileUninstall(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	log.Oncef("Uninstalling Verrazzano %s/%s", cr.Namespace, cr.Name)
-
 	tracker := getUninstallTracker(cr)
 	done := false
 	for !done {
@@ -189,7 +188,7 @@ func (r *Reconciler) deleteMCResources(ctx spi.ComponentContext) error {
 	}
 
 	projects := vzappclusters.VerrazzanoProjectList{}
-	if err := r.List(context.TODO(), &projects, &client.ListOptions{Namespace: vzconst.VerrazzanoMultiClusterNamespace}); err != nil {
+	if err := r.List(context.TODO(), &projects, &client.ListOptions{Namespace: vzconst.VerrazzanoMultiClusterNamespace}); err != nil && !meta.IsNoMatchError(err) {
 		return ctx.Log().ErrorfNewErr("Failed listing MC projects: %v", err)
 	}
 	// Delete MC rolebindings for each project
@@ -201,7 +200,7 @@ func (r *Reconciler) deleteMCResources(ctx spi.ComponentContext) error {
 
 	ctx.Log().Oncef("Deleting all VMC resources")
 	vmcList := clustersapi.VerrazzanoManagedClusterList{}
-	if err := r.List(context.TODO(), &vmcList, &client.ListOptions{}); err != nil {
+	if err := r.List(context.TODO(), &vmcList, &client.ListOptions{}); err != nil && !meta.IsNoMatchError(err) {
 		return ctx.Log().ErrorfNewErr("Failed listing VMCs: %v", err)
 	}
 
@@ -291,13 +290,12 @@ func (r *Reconciler) uninstallCleanup(ctx spi.ComponentContext) (ctrl.Result, er
 		return ctrl.Result{}, err
 	}
 
-	// Run Rancher Post Uninstall explicilty to delete any remaining Rancher resources; this may be needed in case
+	// Run Rancher Post Uninstall explicitly to delete any remaining Rancher resources; this may be needed in case
 	// the uninstall was interrupted during uninstall, or if the cluster is a managed cluster where Rancher is not
-	// installed explicilty.
+	// installed explicitly.
 	if err := r.runRancherPostInstall(ctx); err != nil {
 		return ctrl.Result{}, err
 	}
-
 	return r.deleteNamespaces(ctx.Log())
 }
 

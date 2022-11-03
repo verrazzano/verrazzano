@@ -4,31 +4,64 @@
 package mysqloperator
 
 import (
+	"context"
 	"fmt"
-
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	config "github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 // getOverrides gets the install overrides
-func getOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.MySQLOperator != nil {
-		return effectiveCR.Spec.Components.MySQLOperator.ValueOverrides
+func getOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.MySQLOperator != nil {
+			return effectiveCR.Spec.Components.MySQLOperator.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.MySQLOperator != nil {
+			return effectiveCR.Spec.Components.MySQLOperator.ValueOverrides
+		}
+		return []installv1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }
 
+// AppendOverrides Build the set of MySQL operator overrides for the helm install
+func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+
+	var secret corev1.Secret
+	if err := compContext.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: constants.GlobalImagePullSecName}, &secret); err != nil {
+		if errors.IsNotFound(err) {
+			// Global secret not found
+			return kvs, nil
+		}
+		// we had an unexpected error
+		return kvs, err
+	}
+
+	// We found the global secret, set the image.pullSecrets.enabled value to true
+	kvs = append(kvs, bom.KeyValue{Key: "image.pullSecrets.enabled", Value: "true"})
+	return kvs, nil
+}
+
 // isReady - component specific checks for being ready
-func isReady(ctx spi.ComponentContext) bool {
-	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), getDeploymentList(), 1, getPrefix(ctx))
+func (c mysqlOperatorComponent) isReady(ctx spi.ComponentContext) bool {
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, getPrefix(ctx))
 }
 
 // isInstalled checks that the deployment exists
-func isInstalled(ctx spi.ComponentContext) bool {
-	return status.DoDeploymentsExist(ctx.Log(), ctx.Client(), getDeploymentList(), 1, getPrefix(ctx))
+func (c mysqlOperatorComponent) isInstalled(ctx spi.ComponentContext) bool {
+	return ready.DoDeploymentsExist(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, getPrefix(ctx))
 }
 
 func getPrefix(ctx spi.ComponentContext) string {
@@ -46,10 +79,10 @@ func getDeploymentList() []types.NamespacedName {
 
 // validateMySQLOperator checks scenarios in which the Verrazzano CR violates install verification
 // MySQLOperator must be enabled if Keycloak is enabled
-func (c mysqlOperatorComponent) validateMySQLOperator(vz *vzapi.Verrazzano) error {
+func (c mysqlOperatorComponent) validateMySQLOperator(vz *installv1beta1.Verrazzano) error {
 	// Validate install overrides
 	if vz.Spec.Components.MySQLOperator != nil {
-		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.MySQLOperator.ValueOverrides); err != nil {
+		if err := vzapi.ValidateInstallOverridesV1Beta1(vz.Spec.Components.MySQLOperator.ValueOverrides); err != nil {
 			return err
 		}
 	}

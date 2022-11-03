@@ -12,7 +12,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -104,7 +103,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	}
 
 	// Create a temporary directory to place the cluster data
-	bugReportDir, err := ioutil.TempDir("", constants.BugReportDir)
+	bugReportDir, err := os.MkdirTemp("", constants.BugReportDir)
 	if err != nil {
 		return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
 	}

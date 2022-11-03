@@ -6,14 +6,16 @@ package fluentd
 import (
 	"context"
 	"fmt"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"io/ioutil"
 	"k8s.io/apimachinery/pkg/runtime"
+	"os"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -45,7 +47,7 @@ const (
 
 var (
 	// For Unit test purposes
-	writeFileFunc = ioutil.WriteFile
+	writeFileFunc = os.WriteFile
 )
 
 // fluentdComponent represents an Fluentd component
@@ -69,66 +71,91 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    vzImagePullSecretKeyName,
 			AppendOverridesFunc:       appendOverrides,
-			Dependencies:              []string{},
+			Dependencies:              []string{networkpolicies.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DaemonsetNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (f fluentdComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	if err := validateFluentd(vz); err != nil {
+func (c fluentdComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
+	vzV1Beta1 := &v1beta1.Verrazzano{}
+
+	if err := vz.ConvertTo(vzV1Beta1); err != nil {
 		return err
 	}
-	return f.HelmComponent.ValidateInstall(vz)
+
+	return c.ValidateInstallV1Beta1(vzV1Beta1)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (f fluentdComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c fluentdComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+	oldBeta := &v1beta1.Verrazzano{}
+	newBeta := &v1beta1.Verrazzano{}
+
+	if err := old.ConvertTo(oldBeta); err != nil {
+		return err
+	}
+
+	if err := new.ConvertTo(newBeta); err != nil {
+		return err
+	}
+
+	return c.ValidateUpdateV1Beta1(oldBeta, newBeta)
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (c fluentdComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
+	if err := validateFluentd(vz); err != nil {
+		return err
+	}
+	return c.HelmComponent.ValidateInstallV1Beta1(vz)
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c fluentdComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
 	// Do not allow disabling active components
-	if err := f.checkEnabled(old, new); err != nil {
+	if err := c.checkEnabled(old, new); err != nil {
 		return err
 	}
 	if err := validateFluentd(new); err != nil {
 		return err
 	}
-	return f.HelmComponent.ValidateUpdate(old, new)
+	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
 
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (f fluentdComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return nil
-}
-
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (f fluentdComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	return nil
-}
-
-func (f fluentdComponent) checkEnabled(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c fluentdComponent) checkEnabled(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
-	if f.IsEnabled(old) && !f.IsEnabled(new) {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}
 	return nil
 }
 
 // PostInstall - post-install, clean up temp files
-func (f fluentdComponent) PostInstall(ctx spi.ComponentContext) error {
+func (c fluentdComponent) PostInstall(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
-	return f.HelmComponent.PostInstall(ctx)
+	return c.HelmComponent.PostInstall(ctx)
 }
 
 // PostUpgrade Fluentd component post-upgrade processing
-func (f fluentdComponent) PostUpgrade(ctx spi.ComponentContext) error {
+func (c fluentdComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Fluentd component post-upgrade")
 	cleanTempFiles(ctx)
-	return f.HelmComponent.PostUpgrade(ctx)
+	return c.HelmComponent.PostUpgrade(ctx)
 }
 
 // PreInstall Fluentd component pre-install processing; create and label required namespaces, copy any
 // required secrets
-func (f fluentdComponent) PreInstall(ctx spi.ComponentContext) error {
+func (c fluentdComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := loggingPreInstall(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed copying logging secrets for Verrazzano: %v", err)
 	}
@@ -139,15 +166,15 @@ func (f fluentdComponent) PreInstall(ctx spi.ComponentContext) error {
 }
 
 // Install Fluentd component install processing
-func (f fluentdComponent) Install(ctx spi.ComponentContext) error {
-	if err := f.HelmComponent.Install(ctx); err != nil {
+func (c fluentdComponent) Install(ctx spi.ComponentContext) error {
+	if err := c.HelmComponent.Install(ctx); err != nil {
 		return err
 	}
 	return nil
 }
 
 // PreUpgrade Fluentd component pre-upgrade processing
-func (f fluentdComponent) PreUpgrade(ctx spi.ComponentContext) error {
+func (c fluentdComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := fluentdPreUpgrade(ctx, ComponentNamespace); err != nil {
 		return err
 	}
@@ -159,15 +186,15 @@ func (f fluentdComponent) PreUpgrade(ctx spi.ComponentContext) error {
 
 // Uninstall Fluentd to handle upgrade case where Fluentd was not its own helm chart.
 // In that case, we need to delete the Fluentd resources explicitly
-func (f fluentdComponent) Uninstall(context spi.ComponentContext) error {
-	installed, err := f.HelmComponent.IsInstalled(context)
+func (c fluentdComponent) Uninstall(context spi.ComponentContext) error {
+	installed, err := c.HelmComponent.IsInstalled(context)
 	if err != nil {
 		return err
 	}
 
 	// If the helm chart is installed, then uninstall
 	if installed {
-		return f.HelmComponent.Uninstall(context)
+		return c.HelmComponent.Uninstall(context)
 	}
 
 	// Attempt to delete the Fluentd resources
@@ -189,20 +216,20 @@ func (f fluentdComponent) Uninstall(context spi.ComponentContext) error {
 }
 
 // Upgrade Fluentd component upgrade processing
-func (f fluentdComponent) Upgrade(ctx spi.ComponentContext) error {
-	return f.HelmComponent.Install(ctx)
+func (c fluentdComponent) Upgrade(ctx spi.ComponentContext) error {
+	return c.HelmComponent.Install(ctx)
 }
 
 // IsReady component check
-func (f fluentdComponent) IsReady(ctx spi.ComponentContext) bool {
-	if f.HelmComponent.IsReady(ctx) {
-		return isFluentdReady(ctx)
+func (c fluentdComponent) IsReady(ctx spi.ComponentContext) bool {
+	if c.HelmComponent.IsReady(ctx) {
+		return c.isFluentdReady(ctx)
 	}
 	return false
 }
 
 // IsInstalled component check
-func (f fluentdComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
+func (c fluentdComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	daemonSet := &appsv1.DaemonSet{}
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, daemonSet)
 	if errors.IsNotFound(err) {
@@ -216,12 +243,12 @@ func (f fluentdComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 }
 
 // IsEnabled fluentd-specific enabled check for installation
-func (f fluentdComponent) IsEnabled(effectiveCR runtime.Object) bool {
+func (c fluentdComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzconfig.IsFluentdEnabled(effectiveCR)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
-func (f fluentdComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+func (c fluentdComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	if ctx.EffectiveCR().Spec.Components.Fluentd != nil {
 		if ctx.EffectiveCR().Spec.Components.Fluentd.MonitorChanges != nil {
 			return *ctx.EffectiveCR().Spec.Components.Fluentd.MonitorChanges
@@ -232,9 +259,16 @@ func (f fluentdComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 }
 
 // GetOverrides returns install overrides for a component
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*v1alpha1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Fluentd != nil {
+			return effectiveCR.Spec.Components.Fluentd.ValueOverrides
+		}
+		return []v1alpha1.Overrides{}
+	}
+	effectiveCR := object.(*v1beta1.Verrazzano)
 	if effectiveCR.Spec.Components.Fluentd != nil {
 		return effectiveCR.Spec.Components.Fluentd.ValueOverrides
 	}
-	return []vzapi.Overrides{}
+	return []v1beta1.Overrides{}
 }

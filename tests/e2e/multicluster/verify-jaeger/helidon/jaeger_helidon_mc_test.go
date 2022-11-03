@@ -8,23 +8,25 @@ import (
 	"os"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 )
 
 const (
 	shortPollingInterval = 10 * time.Second
 	shortWaitTimeout     = 5 * time.Minute
-	projectName          = "hello-helidon"
+	projectName          = "hello-helidon-jaeger"
 )
 
 const (
-	testAppComponentFilePath     = "testdata/jaeger/helidon/mc-helidon-tracing-comp.yaml"
-	testAppConfigurationFilePath = "examples/multicluster/hello-helidon/mc-hello-helidon-app.yaml"
-	verrazzanoProjectFilePath    = "examples/multicluster/hello-helidon/verrazzano-project.yaml"
+	testAppComponentFilePath     = "testdata/jaeger/helidon/multicluster/mc-helidon-tracing-comp.yaml"
+	testAppConfigurationFilePath = "testdata/jaeger/helidon/multicluster/mc-helidon-tracing-app.yaml"
+	verrazzanoProjectFilePath    = "testdata/jaeger/helidon/multicluster/helidon-verrazzano-project.yaml"
 )
 
 var (
@@ -33,7 +35,7 @@ var (
 	beforeSuitePassed        = false
 	failed                   = false
 	start                    = time.Now()
-	helloHelidonServiceName  = "hello-helidon-mc"
+	helloHelidonServiceName  = "hello-helidon-jaeger-mc"
 )
 
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
@@ -50,7 +52,11 @@ var _ = t.BeforeSuite(func() {
 	// deploy the VerrazzanoProject
 	start := time.Now()
 	Eventually(func() error {
-		if err := pkg.CreateOrUpdateResourceFromFileInCluster(verrazzanoProjectFilePath, adminKubeconfig); err != nil {
+		file, err := pkg.FindTestDataFile(verrazzanoProjectFilePath)
+		if err != nil {
+			return err
+		}
+		if err := resource.CreateOrUpdateResourceFromFileInCluster(file, adminKubeconfig); err != nil {
 			return fmt.Errorf("failed to create %s project resource: %v", projectName, err)
 		}
 		return nil
@@ -63,10 +69,18 @@ var _ = t.BeforeSuite(func() {
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 
 	Eventually(func() error {
-		if err := pkg.CreateOrUpdateResourceFromFileInCluster(testAppComponentFilePath, adminKubeconfig); err != nil {
+		file, err := pkg.FindTestDataFile(testAppComponentFilePath)
+		if err != nil {
+			return err
+		}
+		if err := resource.CreateOrUpdateResourceFromFileInCluster(file, adminKubeconfig); err != nil {
 			return fmt.Errorf("failed to create multi-cluster %s component resources: %v", projectName, err)
 		}
-		if err := pkg.CreateOrUpdateResourceFromFileInCluster(testAppConfigurationFilePath, adminKubeconfig); err != nil {
+		file, err = pkg.FindTestDataFile(testAppConfigurationFilePath)
+		if err != nil {
+			return err
+		}
+		if err := resource.CreateOrUpdateResourceFromFileInCluster(file, adminKubeconfig); err != nil {
 			return fmt.Errorf("failed to create multi-cluster %s application resource: %v", projectName, err)
 		}
 		return nil
@@ -81,7 +95,7 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	err := pkg.GenerateTrafficForTraces(projectName, "", "greet", managedKubeconfig)
 	if err != nil {
-		AbortSuite("Unable to send traffic requests to generate traces")
+		pkg.Log(pkg.Error, "Unable to send traffic requests to generate traces")
 	}
 	beforeSuitePassed = true
 })
@@ -100,20 +114,32 @@ var _ = t.AfterSuite(func() {
 	// undeploy the application here
 	start := time.Now()
 	Eventually(func() error {
-		if err := pkg.DeleteResourceFromFileInCluster(testAppConfigurationFilePath, adminKubeconfig); err != nil {
+		file, err := pkg.FindTestDataFile(testAppConfigurationFilePath)
+		if err != nil {
+			return err
+		}
+		if err := resource.DeleteResourceFromFileInCluster(file, adminKubeconfig); err != nil {
 			return fmt.Errorf("failed to delete multi-cluster hello-helidon application resource: %v", err)
 		}
 		return nil
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(HaveOccurred())
 	Eventually(func() error {
-		if err := pkg.DeleteResourceFromFileInCluster(testAppComponentFilePath, adminKubeconfig); err != nil {
+		file, err := pkg.FindTestDataFile(testAppComponentFilePath)
+		if err != nil {
+			return err
+		}
+		if err := resource.DeleteResourceFromFileInCluster(file, adminKubeconfig); err != nil {
 			return fmt.Errorf("failed to delete multi-cluster hello-helidon component resources: %v", err)
 		}
 		return nil
 	}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		if err := pkg.DeleteResourceFromFileInCluster(verrazzanoProjectFilePath, adminKubeconfig); err != nil {
+		file, err := pkg.FindTestDataFile(verrazzanoProjectFilePath)
+		if err != nil {
+			return err
+		}
+		if err := resource.DeleteResourceFromFileInCluster(file, adminKubeconfig); err != nil {
 			return fmt.Errorf("failed to delete hello-helidon project resource: %v", err)
 		}
 		return nil

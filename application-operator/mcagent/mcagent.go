@@ -6,7 +6,6 @@ package mcagent
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -59,7 +58,7 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 		}
 		s.updateDeployment("verrazzano-monitoring-operator")
 		s.configureLogging(false)
-		s.configureJaegerCR()
+		s.configureJaegerCR(false)
 		if !s.AgentReadyToSync() {
 			// there is no admin cluster we are connected to, so nowhere to send any status updates
 			// received - discard them
@@ -125,6 +124,13 @@ func (s *Syncer) ProcessAgentThread() error {
 	// Sync multi-cluster objects
 	s.SyncMultiClusterResources()
 
+	// Delete the managed cluster resources if deregistration occurs
+	err = s.syncDeregistration()
+	if err != nil {
+		// we couldn't delete the managed cluster resources - but we should keep going with the rest of the work
+		s.Log.Errorf("Failed to sync the deregistration process: %v", err)
+	}
+
 	// Check whether the admin or local clusters' CA certs have rolled, and sync as necessary
 	managedClusterResult, err := s.syncClusterCAs()
 	if err != nil {
@@ -138,7 +144,7 @@ func (s *Syncer) ProcessAgentThread() error {
 		// configure logging and force a restart of the fluentd daemonset since CA or registration
 		// were updated
 		s.configureLogging(true)
-		s.configureJaegerCR()
+		s.configureJaegerCR(true)
 	}
 	return nil
 }
@@ -225,12 +231,12 @@ func validateAgentSecret(secret *corev1.Secret) error {
 // Get the clientset for accessing the admin cluster
 func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	// Create a temp file that contains the kubeconfig
-	tmpFile, err := ioutil.TempFile("", "kubeconfig")
+	tmpFile, err := os.CreateTemp("", "kubeconfig")
 	if err != nil {
 		return nil, err
 	}
 
-	err = ioutil.WriteFile(tmpFile.Name(), secret.Data[mcconstants.KubeconfigKey], 0600)
+	err = os.WriteFile(tmpFile.Name(), secret.Data[mcconstants.KubeconfigKey], 0600)
 	defer os.Remove(tmpFile.Name())
 	if err != nil {
 		return nil, err

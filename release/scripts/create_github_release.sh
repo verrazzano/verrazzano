@@ -8,6 +8,7 @@ set -e
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 . $SCRIPT_DIR/common.sh
+. $SCRIPT_DIR/common-release.sh
 
 usage() {
     cat <<EOM
@@ -39,7 +40,7 @@ TEST_RUN=${3:-true}
 VERSION=${RELEASE_VERSION}
 
 if [[ $VERSION != v* ]] ; then
-  VERSION="v${1}"
+  VERSION="v${RELEASE_VERSION}"
 fi
 
 function verify_release_binaries_exist() {

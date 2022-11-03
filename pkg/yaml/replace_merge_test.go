@@ -125,6 +125,47 @@ spec:
             service.beta.kubernetes.io/oci-load-balancer-shape: 10Mbps
 `
 
+const jaegerBase = `
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  values:
+    meshConfig:
+      defaultConfig:
+        tracing:
+          zipkin:
+            address: abc.xyz
+          tlsSettings:
+            mode: ISTIO_MUTUAL
+`
+const jaegerOverlay = `
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  values:
+    meshConfig:
+      defaultConfig:
+        tracing:
+          sampling: 90
+          zipkin:
+            address: cdef.xyz
+`
+
+const jaegerMerged = `
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  values:
+    meshConfig:
+      defaultConfig:
+        tracing:
+          sampling: 90
+          zipkin:
+            address: cdef.xyz
+          tlsSettings:
+            mode: ISTIO_MUTUAL
+`
+
 // TestMergeReplaceIstio tests the ReplacementMerge function with IstiOperator YAML
 // GIVEN a set of nested YAML strings with embedded lists
 // WHEN ReplacementMerge is called
@@ -134,6 +175,17 @@ func TestMergeReplaceIstio(t *testing.T) {
 	merged, err := ReplacementMerge(istioBase, istiOverlay)
 	assert.NoError(err, merged, "error merging Istio YAML")
 	assert.YAMLEq(istioMerged, merged, "incorrect Istio merged YAML")
+}
+
+// TestMergeReplaceJaeger tests the ReplacementMerge function with IstiOperator YAML
+// GIVEN a set of nested YAML strings with embedded lists
+// WHEN ReplacementMerge is called
+// THEN ensure that the merged result is correct.
+func TestMergeReplaceJaeger(t *testing.T) {
+	assert := assert.New(t)
+	merged, err := ReplacementMerge(jaegerBase, jaegerOverlay)
+	assert.NoError(err, merged, "error merging Istio YAML")
+	assert.YAMLEq(jaegerMerged, merged, "incorrect Istio merged YAML")
 }
 
 // Complete replace YAML
@@ -204,8 +256,6 @@ k2:
 // WHEN ReplacementMerge is called
 // THEN ensure that the result is correct.
 func TestReplaceMany(t *testing.T) {
-	const indent = 2
-
 	tests := []struct {
 		testName string
 		values   []string

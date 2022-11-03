@@ -12,8 +12,9 @@ import (
 
 // TestRun tests the exec Run command
 // GIVEN a command
-//  WHEN I call Run
-//  THEN the value returned will have the correct stdout and stderr
+//
+//	WHEN I call Run
+//	THEN the value returned will have the correct stdout and stderr
 func TestRun(t *testing.T) {
 	assert := assert.New(t)
 
@@ -34,8 +35,9 @@ func TestRun(t *testing.T) {
 
 // TestRunError tests the exec Run error condition
 // GIVEN a command and a fake runner that returns an error
-//  WHEN I call Run
-//  THEN the value returned will have and error status and the correct stdout and stderr
+//
+//	WHEN I call Run
+//	THEN the value returned will have and error status and the correct stdout and stderr
 func TestRunError(t *testing.T) {
 	assert := assert.New(t)
 

@@ -9,19 +9,21 @@ import (
 	"path"
 	"strconv"
 
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	securityv1beta1 "istio.io/api/security/v1beta1"
 	istiov1beta1 "istio.io/api/type/v1beta1"
@@ -31,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -55,16 +56,30 @@ const (
 	defaultPrometheusStorage = "50Gi"
 )
 
+func prometheusOperatorListOptions() (*client.ListOptions, error) {
+	selector, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			constants.VerrazzanoComponentLabelKey: ComponentName,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &client.ListOptions{
+		Namespace:     ComponentNamespace,
+		LabelSelector: selector,
+	}, nil
+}
+
 // isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
 func isPrometheusOperatorReady(ctx spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      deploymentName,
-			Namespace: ComponentNamespace,
-		},
-	}
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	listOptions, err := prometheusOperatorListOptions()
+	if err != nil {
+		ctx.Log().Errorf("Failed to create selector for %s: %v", ComponentName, err)
+		return false
+	}
+	return ready.DeploymentsReadyBySelectors(ctx.Log(), ctx.Client(), 1, prefix, listOptions)
 }
 
 // preInstallUpgrade handles pre-install and pre-upgrade processing for the Prometheus Operator Component
@@ -77,9 +92,9 @@ func preInstallUpgrade(ctx spi.ComponentContext) error {
 
 	// Create the verrazzano-monitoring namespace
 	ctx.Log().Debugf("Creating/updating namespace %s for the Prometheus Operator", ComponentNamespace)
-	ns := prometheus.GetVerrazzanoMonitoringNamespace()
+	ns := common.GetVerrazzanoMonitoringNamespace()
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), ns, func() error {
-		prometheus.MutateVerrazzanoMonitoringNamespace(ctx, ns)
+		common.MutateVerrazzanoMonitoringNamespace(ctx, ns)
 		return nil
 	}); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to create or update the %s namespace: %v", ComponentNamespace, err)
@@ -188,7 +203,7 @@ func updateExistingVolumeClaims(ctx spi.ComponentContext) error {
 	return nil
 }
 
-//createPVCFromPV creates a PVC from a PV definition, and sets the PVC to reference the PV by name
+// createPVCFromPV creates a PVC from a PV definition, and sets the PVC to reference the PV by name
 func createPVCFromPV(ctx spi.ComponentContext, volume corev1.PersistentVolume) error {
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -411,14 +426,14 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 }
 
 // validatePrometheusOperator checks scenarios in which the Verrazzano CR violates install verification due to Prometheus Operator specifications
-func (c prometheusComponent) validatePrometheusOperator(vz *vzapi.Verrazzano) error {
+func (c prometheusComponent) validatePrometheusOperator(vz *installv1beta1.Verrazzano) error {
 	// Validate if Prometheus is enabled, Prometheus Operator should be enabled
 	if !c.IsEnabled(vz) && vzconfig.IsPrometheusEnabled(vz) {
 		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled. Also disable the Prometheus component in order to disable Prometheus Operator")
 	}
-	// Validate install overrides
+	//Validate install overrides for v1beta1.Verrazzano
 	if vz.Spec.Components.PrometheusOperator != nil {
-		if err := vzapi.ValidateInstallOverrides(vz.Spec.Components.PrometheusOperator.ValueOverrides); err != nil {
+		if err := vzapi.ValidateInstallOverridesV1Beta1(vz.Spec.Components.PrometheusOperator.ValueOverrides); err != nil {
 			return err
 		}
 	}
@@ -464,10 +479,19 @@ func appendIstioOverrides(annotationsKey, volumeMountKey, volumeKey string, kvs 
 }
 
 // GetOverrides appends Helm value overrides for the Prometheus Operator Helm chart
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.PrometheusOperator != nil {
-		return effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.PrometheusOperator != nil {
+			return effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.PrometheusOperator != nil {
+			return effectiveCR.Spec.Components.PrometheusOperator.ValueOverrides
+		}
+		return []installv1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }
 

@@ -20,7 +20,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: LoggingTrait is the Schema for the loggingtraits API
+        description: LoggingTrait specifies the logging traits API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -35,30 +35,30 @@ spec:
           metadata:
             type: object
           spec:
-            description: LoggingTraitSpec defines the desired state of LoggingTrait
+            description: LoggingTraitSpec specifies the desired state of a logging
+              trait.
             properties:
               imagePullPolicy:
-                description: ImagePullPolicy represents the optional image pull policy
-                  for the FluentD image provided by the user
+                description: The optional image pull policy for the Fluentd image
+                  provided by the user.
                 type: string
               loggingConfig:
-                description: 'LoggingConfig represents the configuration provided
-                  by the user for the FluentD configuration that consists of fluentd.conf:
-                  "<source>\n ... and so on ...\n"'
+                description: 'The configuration provided by the user for the Fluentd
+                  configuration that consists of fluentd.conf: `<source>\n ... and
+                  so on ...\n`.'
                 type: string
               loggingImage:
-                description: LoggingImage represents the optional FluentD image provided
-                  by the user
+                description: The name of the custom Fluentd image.
                 type: string
               workloadRef:
-                description: The WorkloadReference to the workload to which this trait
-                  applies. This value is populated by the OAM runtime when a ApplicationConfiguration
-                  resource is processed.  When the ApplicationConfiguration is processed
+                description: The WorkloadReference of the workload to which this trait
+                  applies. This value is populated by the OAM runtime when an ApplicationConfiguration
+                  resource is processed.  When the ApplicationConfiguration is processed,
                   a trait and a workload resource are created from the content of
                   the ApplicationConfiguration. The WorkloadReference is provided
-                  in the trait by OAM to ensure the trait controller can find the
-                  workload associated with the component containing the trait within
-                  the original ApplicationConfiguration.
+                  in the trait by OAM to ensure that the trait controller can find
+                  the workload associated with the component containing the trait
+                  within the original ApplicationConfiguration.
                 properties:
                   apiVersion:
                     description: APIVersion of the referenced object.
@@ -81,7 +81,7 @@ spec:
             - workloadRef
             type: object
           status:
-            description: LoggingTraitStatus defines the observed state of LoggingTrait
+            description: The observed state of a logging trait and related resources.
             properties:
               conditions:
                 description: Conditions of the resource.
@@ -117,7 +117,7 @@ spec:
                   type: object
                 type: array
               resources:
-                description: The resources managed by this logging trait
+                description: The resources managed by this logging trait.
                 items:
                   description: A TypedReference refers to an object by Name, Kind,
                     and APIVersion. It is commonly used to reference cluster-scoped

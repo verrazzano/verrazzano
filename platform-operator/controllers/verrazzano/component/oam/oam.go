@@ -8,14 +8,15 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
@@ -27,15 +28,9 @@ const (
 )
 
 // isOAMReady checks if the OAM operator deployment is ready
-func isOAMReady(context spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c oamComponent) isOAMReady(context spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(context.Log(), context.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 // ensureClusterRoles creates or updates additional OAM cluster roles during install and upgrade
@@ -149,9 +144,18 @@ func deleteOAMClusterRoles(client client.Client, log vzlog.VerrazzanoLogger) err
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.OAM != nil {
-		return effectiveCR.Spec.Components.OAM.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.OAM != nil {
+			return effectiveCR.Spec.Components.OAM.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.OAM != nil {
+			return effectiveCR.Spec.Components.OAM.ValueOverrides
+		}
+		return []installv1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }

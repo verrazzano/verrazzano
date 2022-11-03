@@ -5,18 +5,20 @@ package helidon
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 
 	"github.com/hashicorp/go-retryablehttp"
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -227,12 +229,20 @@ func deployHelloHelidonApplication(namespace string, ociLogID string, istioInjec
 
 	pkg.Log(pkg.Info, "Create Hello Helidon component resource")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
+		file, err := pkg.FindTestDataFile(helidonComponentYaml)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon component resource")
 
 	pkg.Log(pkg.Info, "Create Hello Helidon application resource")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
+		file, err := pkg.FindTestDataFile(helidonAppYaml)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
 }
 
@@ -273,7 +283,7 @@ func appEndpointAccess(url string, hostname string, token string, requestShouldS
 		t.Logs.Errorf("Unexpected error=%v", err)
 		return false
 	}
-	bodyRaw, err := ioutil.ReadAll(resp.Body)
+	bodyRaw, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
 		t.Logs.Errorf("Unexpected error=%v", err)

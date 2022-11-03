@@ -1,0 +1,286 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+spec:
+  environmentName: default
+  components:
+    applicationOperator:
+      enabled: true
+    authProxy:
+      enabled: true
+      overrides:
+        - values:
+            affinity: |
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                - podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                      - key: app
+                        operator: In
+                        values:
+                        - verrazzano-authproxy
+                    topologyKey: kubernetes.io/hostname
+                  weight: 100
+            replicas: 1
+    certManager:
+      certificate:
+        acme:
+          provider: ""
+        ca:
+          clusterResourceNamespace: cert-manager
+          secretName: verrazzano-ca-certificate-secret
+      enabled: true
+      overrides:
+        - values:
+            affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app: cert-manager
+                      topologyKey: kubernetes.io/hostname
+                    weight: 100
+            cainjector:
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: cainjector
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+              replicaCount: 1
+            replicaCount: 1
+            webhook:
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: webhook
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+              replicaCount: 1
+    coherenceOperator:
+      enabled: true
+    console:
+      enabled: true
+      overrides:
+        - values:
+            affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app: verrazzano-console
+                      topologyKey: kubernetes.io/hostname
+                    weight: 100
+            replicas: 1
+    dns:
+      wildcard:
+        domain: nip.io
+    fluentd:
+      enabled: true
+      opensearchSecret: verrazzano-es-internal
+      opensearchURL: http://verrazzano-authproxy-elasticsearch:8775
+    grafana:
+      enabled: true
+    ingressNGINX:
+      enabled: true
+      overrides:
+        - values:
+            controller:
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app.kubernetes.io/component: controller
+                            app.kubernetes.io/name: ingress-nginx
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+              autoscaling:
+                enabled: false
+                minReplicas: 1
+            defaultBackend:
+              affinity:
+                podAntiAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app.kubernetes.io/component: default-backend
+                            app.kubernetes.io/name: ingress-nginx
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+              replicaCount: 1
+      type: LoadBalancer
+    istio:
+      enabled: true
+      overrides:
+        - values:
+            apiVersion: install.istio.io/v1alpha1
+            kind: IstioOperator
+            spec:
+              components:
+                egressGateways:
+                  - enabled: true
+                    k8s:
+                      affinity:
+                        podAntiAffinity:
+                          preferredDuringSchedulingIgnoredDuringExecution:
+                            - podAffinityTerm:
+                                labelSelector:
+                                  matchExpressions:
+                                    - key: app
+                                      operator: In
+                                      values:
+                                        - istio-egressgateway
+                                topologyKey: kubernetes.io/hostname
+                              weight: 100
+                      replicaCount: 1
+                    name: istio-egressgateway
+                ingressGateways:
+                  - enabled: true
+                    k8s:
+                      affinity:
+                        podAntiAffinity:
+                          preferredDuringSchedulingIgnoredDuringExecution:
+                            - podAffinityTerm:
+                                labelSelector:
+                                  matchExpressions:
+                                    - key: app
+                                      operator: In
+                                      values:
+                                        - istio-ingressgateway
+                                topologyKey: kubernetes.io/hostname
+                              weight: 100
+                      replicaCount: 1
+                      service:
+                        type: LoadBalancer
+                    name: istio-ingressgateway
+                pilot:
+                  k8s:
+                    affinity:
+                      podAntiAffinity:
+                        preferredDuringSchedulingIgnoredDuringExecution:
+                          - podAffinityTerm:
+                              labelSelector:
+                                matchLabels:
+                                  app: istiod
+                              topologyKey: kubernetes.io/hostname
+                            weight: 100
+    jaegerOperator:
+      enabled: false
+    keycloak:
+      enabled: true
+      mysql:
+        overrides:
+          - values:
+              serverInstances: 1
+              routerInstances: 1
+              router:
+                podSpec:
+                  affinity:
+                    podAntiAffinity:
+                      preferredDuringSchedulingIgnoredDuringExecution:
+                        - weight: 100
+                          podAffinityTerm:
+                            labelSelector:
+                              matchLabels:
+                                app.kubernetes.io/instance: mysql-innodbcluster-mysql-router
+                                app.kubernetes.io/name: mysql-router
+                            topologyKey: kubernetes.io/hostname
+              image:
+                pullPolicy: IfNotPresent
+                pullSecrets:
+                  enabled: false
+              podSpec:
+                affinity:
+                  podAntiAffinity:
+                    preferredDuringSchedulingIgnoredDuringExecution:
+                      - weight: 100
+                        podAffinityTerm:
+                          labelSelector:
+                            matchLabels:
+                              app.kubernetes.io/instance: mysql-innodbcluster-mysql-mysql-server
+                              app.kubernetes.io/name: mysql-innodbcluster-mysql-server
+                          topologyKey: kubernetes.io/hostname
+      overrides:
+        - values:
+            affinity: |
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - weight: 100
+                    podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app.kubernetes.io/instance: keycloak
+                          app.kubernetes.io/name: keycloak
+                      topologyKey: kubernetes.io/hostname
+            replicas: 1
+    kiali:
+      enabled: true
+      overrides:
+        - values:
+            deployment:
+              affinity:
+                pod_anti:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                    - podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: kiali
+                        topologyKey: kubernetes.io/hostname
+                      weight: 100
+              replicas: 1
+    kubeStateMetrics:
+      enabled: false
+    mySQLOperator:
+      enabled: true
+    oam:
+      enabled: true
+    opensearch:
+      enabled: true
+    opensearchDashboards:
+      enabled: true
+      replicas: 1
+    prometheus:
+      enabled: true
+    prometheusAdapter:
+      enabled: false
+    prometheusNodeExporter:
+      enabled: true
+    prometheusOperator:
+      enabled: true
+      overrides:
+        - values:
+            prometheus:
+              prometheusSpec:
+                affinity:
+                  podAntiAffinity:
+                    preferredDuringSchedulingIgnoredDuringExecution:
+                      - podAffinityTerm:
+                          labelSelector:
+                            matchLabels:
+                              app.kubernetes.io/name: prometheus
+                          topologyKey: kubernetes.io/hostname
+                        weight: 100
+                replicas: 1
+    prometheusPushgateway:
+      enabled: false
+    rancher:
+      enabled: true
+    rancherBackup:
+      enabled: false
+    velero:
+      enabled: false
+    verrazzano:
+      enabled: true
+    weblogicOperator:
+      enabled: true

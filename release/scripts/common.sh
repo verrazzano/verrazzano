@@ -7,20 +7,6 @@
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 
-if [ -z "$RELEASE_VERSION" ]; then
-  echo "This script expects environment variable RELEASE_VERSION"
-  exit 1
-fi
-
-# Release artifacts
-declare -a releaseArtifacts=("operator.yaml"
-                             "operator.yaml.sha256"
-                             "README.md"
-                             "verrazzano-${RELEASE_VERSION}-darwin-amd64.tar.gz"
-                             "verrazzano-${RELEASE_VERSION}-darwin-amd64.tar.gz.sha256"
-                             "verrazzano-${RELEASE_VERSION}-linux-amd64.tar.gz"
-                             "verrazzano-${RELEASE_VERSION}-linux-amd64.tar.gz.sha256")
-
 # Validates whether OCI CLI is installed
 function validate_oci_cli() {
      command -v oci >/dev/null 2>&1 || {

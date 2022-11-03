@@ -6,6 +6,11 @@ package velero
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	prometheusOperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -19,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 )
 
 const (
@@ -71,7 +75,11 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "velero-override-static-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
-			Dependencies:              []string{},
+			Dependencies:              []string{networkpolicies.ComponentName, prometheusOperator.ComponentName},
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DaemonsetNames:  daemonSets,
+				DeploymentNames: deployments,
+			},
 		},
 	}
 }
@@ -127,8 +135,8 @@ func (v veleroHelmComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isVeleroOperatorReady(ctx)
 }
 
-func (v veleroHelmComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
-	return nil
+func (v veleroHelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return v.HelmComponent.ValidateInstall(vz)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
@@ -141,11 +149,20 @@ func (v veleroHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Ve
 
 // ValidateUpgrade verifies the install of the Verrazzano object
 func (v veleroHelmComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return nil
+	return v.HelmComponent.ValidateInstallV1Beta1(vz)
 }
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
 func (v veleroHelmComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	if v.IsEnabled(old) && !v.IsEnabled(new) {
+		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
+	}
+	// Validate install overrides
+	if new.Spec.Components.Velero != nil {
+		if err := vzapi.ValidateInstallOverridesV1Beta1(new.Spec.Components.Velero.ValueOverrides); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

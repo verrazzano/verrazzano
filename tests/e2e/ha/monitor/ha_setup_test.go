@@ -4,18 +4,19 @@
 package monitor
 
 import (
+	"context"
+	"net/http"
+
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"k8s.io/client-go/kubernetes"
 )
 
 // config for HA monitoring test suite
 type config struct {
 	api        *pkg.APIEndpoint
 	httpClient *retryablehttp.Client
-	clientset  *kubernetes.Clientset
 	hosts      struct {
 		rancher string
 		kiali   string
@@ -27,13 +28,28 @@ type config struct {
 
 var web = config{}
 
-var _ = t.BeforeSuite(func() {
+var _ = clusterDump.BeforeSuite(func() {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).ShouldNot(HaveOccurred())
 	web.api = pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 	web.httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
-	web.clientset = k8sutil.GetKubernetesClientsetOrDie()
+	web.httpClient.CheckRetry = haCheckRetryRetryPolicy(web.httpClient.CheckRetry)
 	web.users.verrazzano = pkg.EventuallyGetSystemVMICredentials()
 	web.hosts.rancher = pkg.EventuallyGetURLForIngress(t.Logs, web.api, "cattle-system", "rancher", "https")
-	web.hosts.kiali = pkg.EventuallyGetKialiHost(web.clientset)
+	web.hosts.kiali = pkg.EventuallyGetKialiHost(clientset)
 })
+
+// haCheckRetryRetryPolicy - wrap the default retry policy to retry on 401s in this case only
+// - workaround for case where we've had issues with Keycloak availability during cluster upgrade, even with HA configurations
+func haCheckRetryRetryPolicy(retry retryablehttp.CheckRetry) retryablehttp.CheckRetry {
+	return func(ctx context.Context, resp *http.Response, err error) (bool, error) {
+		currentRetry := retry
+		if resp != nil && resp.StatusCode == 401 {
+			return true, nil
+		}
+		if currentRetry != nil {
+			return currentRetry(ctx, resp, err)
+		}
+		return false, nil
+	}
+}

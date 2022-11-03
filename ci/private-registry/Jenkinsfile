@@ -4,13 +4,15 @@
 def DOCKER_IMAGE_TAG
 // Pin to PHX for now for testing; tarball is located only in PHX at present, and takes 15+ mins to download to LHR at runtime
 // - at some point, we can either enable bucket replication or have the pipeline push it to more regions
-//def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
-def agentLabel = "phxlarge"
+//def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
+def agentLabel = "phx-large"
 def ocirRegion = "phx"
 def ocirRegistry = "${ocirRegion}.ocir.io"
 def imageRepoSubPath=""
 def baseImageRepo=""
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
+def zipFileLoc=""
+def installFilePath=""
 
 pipeline {
     options {
@@ -31,7 +33,10 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.22", "1.23", "1.24", "1.21", "1.20" ])
+                choices: [ "1.24", "1.23", "1.22", "1.21" ])
+        choice (name: 'DISTRIBUTION_VARIANT',
+                description: 'Verrazzano Distribution Variant to use for testing',
+                choices: ["Full", "Lite"])
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
                         description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -40,8 +45,12 @@ pipeline {
                 description: 'This is the wildcard DNS domain',
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io"])
+        choice (name: 'CRD_API_VERSION',
+                description: 'This is the API crd version.',
+                // 1st choice is the default value
+                choices: [ "v1beta1", "v1alpha1"])
         string (name: 'ZIPFILE_LOCATION',
-                        defaultValue: 'master-last-clean-periodic-test/verrazzano_periodic.zip',
+                        defaultValue: 'NONE',
                         description: 'The bucket location to use for the Zip file download',
                         trim: true)
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
@@ -82,18 +91,17 @@ pipeline {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind-private-registry.yaml"
         INSTALL_PROFILE = "dev"
         VZ_ENVIRONMENT_NAME = "default"
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
-
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
 
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_BUCKET="verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
 
         // Variables to set the OCI CLI user context to the CI user
         OCI_CLI_TENANCY = credentials('oci-tenancy')
@@ -115,7 +123,7 @@ pipeline {
         // Ideally use the TIBURON-DEV compartment, but we need permissions
         REPOSITORY_COMPARTMENT_OCID = credentials('oci-tiburon-dev-compartment-ocid')
 
-        TARBALL_DIR = "${WORKSPACE}/vz-tarball"
+        TARBALL_ROOT_DIR = "${WORKSPACE}/vz-tarball"
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
@@ -129,16 +137,15 @@ pipeline {
         TEST_REPORT = "test-report.xml"
         GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
         TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
+
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
+        CLEAN_PERIODIC_PREFIX = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test"
+
+        DISTRIBUTION_VARIANT = "${params.DISTRIBUTION_VARIANT}"
     }
 
     stages {
         stage('Initialize workspace and checkout') {
-            environment {
-                OCI_CLI_AUTH="instance_principal"
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
-                VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
-            }
             steps {
                 script {
                     echo "Current execution region: $ocirRegion"
@@ -232,27 +239,36 @@ pipeline {
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                 }
                 script {
-                    sh """
-                        echo "Downloading VZ CLI from object storage"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
-                        tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
-                        ${GO_REPO_PATH}/vz version
-                    """
+                    zipFileLoc = params.ZIPFILE_LOCATION
+                    if (params.ZIPFILE_LOCATION == "NONE") {
+                        if (params.DISTRIBUTION_VARIANT == "Full") {
+                            zipFileLoc = "${CLEAN_PERIODIC_PREFIX}/verrazzano-${VERRAZZANO_DEV_VERSION}.zip".trim()
+                        } else {
+                            zipFileLoc = "${CLEAN_PERIODIC_PREFIX}/verrazzano-${VERRAZZANO_DEV_VERSION}-lite.zip".trim()
+                        }
+                    }
                 }
             }
         }
 
         stage('Download and extract Tarball') {
+             environment {
+                 TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
+             }
             steps {
                 script {
-                    downloadLocation = "${WORKSPACE}/${params.ZIPFILE_LOCATION}"
+                    downloadLocation = "${WORKSPACE}/${zipFileLoc}"
+                    echo "download location: $downloadLocation"
                     baseFilename = sh (
-                        script: "basename ${params.ZIPFILE_LOCATION} .zip",
+                        script: "basename ${zipFileLoc} .zip",
                         returnStdout: true
                         ).trim()
-                    tarfileName = "${baseFilename}.tar.gz"
-                    checksumFile = "${tarfileName}.sha256"
-                    echo "base name: $baseFilename, tar name: $tarfileName"
+
+                    if (params.DISTRIBUTION_VARIANT == "Lite") {
+                        tarfileName = "verrazzano-${VERRAZZANO_DEV_VERSION}-linux-amd64.tar.gz"
+                        checksumFile = "${tarfileName}.sha256"
+                        echo "base name: $baseFilename, tar name: $tarfileName, checksum name: $checksumFile"
+                    }
 
                     zipDir = sh (
                         script: "dirname $downloadLocation",
@@ -261,28 +277,80 @@ pipeline {
 
                     sh """
                         mkdir -p $zipDir || true
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${params.ZIPFILE_LOCATION} --file ${downloadLocation}
+                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${zipFileLoc} --file ${downloadLocation}
                     """
 
-                    dir(env.TARBALL_DIR) {
+                    dir(env.TARBALL_ROOT_DIR) {
                         unzip zipFile: downloadLocation
-                        sh "sha256sum -c $checksumFile"
-                        sh "tar xvf $tarfileName"
+
+                        if (params.DISTRIBUTION_VARIANT == "Lite") {
+                            sh """
+                                sha256sum -c $checksumFile
+                                tar xvf $tarfileName
+
+                                # Installing VZ CLI
+                                cp ${TARBALL_DIR}/bin/vz ${GO_REPO_PATH}
+                                ${GO_REPO_PATH}/vz version # Verify install
+                            """
+                        } else {
+                            sh """
+                                cp ${TARBALL_DIR}/bin/linux-amd64/vz ${GO_REPO_PATH}/vz
+                                chmod +x ${GO_REPO_PATH}/vz
+                                ${GO_REPO_PATH}/vz version
+
+                                # Generate components list and save to file
+                                chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
+                                cd ${TARBALL_DIR}/manifests
+                                sh ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -d -t ${ocirRegistry} -b ${TARBALL_DIR}/manifests/verrazzano-bom.json -m ${TARBALL_ROOT_DIR}/componentsList.txt
+                            """
                         }
+                    }
                 }
             }
         }
-        stage('Upload Verrazzano Images') {
+
+        stage('Verify Distribution') {
+            environment {
+                VERRAZZANO_DEV_VERSION="${VERRAZZANO_DEV_VERSION}"
+                TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
+            }
             steps {
-                sh """
-                    # Create OCIR repos for the images in the tarballs in the test compartment
-                    sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR} -c ${REPOSITORY_COMPARTMENT_OCID}
-                    echo "Upload OCIR region: $ocirRegion"
-                    echo "Upload OCIR Repository: ${ocirRegistry}"
-                    # Run the image-helper to load the images into the OCIR registry in the runner's region
-                    cd ${TARBALL_DIR}
-                    ${TARBALL_DIR}/vz-registry-image-helper.sh -t ${ocirRegistry} -l . -r ${baseImageRepo}
-                """
+                runGinkgoRandomize('verify-distribution')
+            }
+        }
+
+        stage('Upload Verrazzano Images') {
+             environment {
+                 TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
+             }
+            steps {
+                script {
+                    if (params.DISTRIBUTION_VARIANT == "Full") {
+                        sh """
+                            # Create OCIR repos for the images in the tarballs in the test compartment
+                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
+                            echo "Upload OCIR region: $ocirRegion"
+                            echo "Upload OCIR Repository: ${ocirRegistry}"
+                            cd ${TARBALL_DIR}
+                            chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
+                            ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l ./images -r ${baseImageRepo}
+                        """
+                    } else {
+                        sh """
+                            # Create OCIR repos for the images in the tarballs in the test compartment
+                            cd ${TARBALL_DIR}
+                            sh ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -b ${TARBALL_DIR}/manifests/verrazzano-bom.json -f ${TARBALL_DIR}/images
+                            cd ${TEST_SCRIPTS_DIR}
+                            sh ${TEST_SCRIPTS_DIR}/create_ocir_repositories.sh -s $ocirRegion -p ${imageRepoSubPath} -d ${TARBALL_DIR}/images -c ${REPOSITORY_COMPARTMENT_OCID}
+                            echo "Upload OCIR region: $ocirRegion"
+                            echo "Upload OCIR Repository: ${ocirRegistry}"
+                            # Run the image-helper to load the images into the OCIR registry in the runner's region
+                            cd ${TARBALL_DIR}
+                            chmod +x ${TARBALL_DIR}/bin/vz-registry-image-helper.sh
+                            ${TARBALL_DIR}/bin/vz-registry-image-helper.sh -t ${ocirRegistry} -l ./images -r ${baseImageRepo}
+                        """
+                    }
+                }
             }
         }
         stage('Acceptance Tests') {
@@ -295,12 +363,21 @@ pipeline {
                         PRIVATE_REGISTRY_USR="${OCIR_CREDS_USR}"
                         PRIVATE_REGISTRY_PSW="${OCIR_CREDS_PSW}"
                         CLUSTER_SNAPSHOT_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
+                        TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
                     }
                     steps {
+                        script {
+                            if (params.CRD_API_VERSION == "v1alpha1") {
+                                installFilePath = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/v1alpha1/install-verrazzano-kind-no-persistence.yaml"
+                            } else {
+                                installFilePath = "${TARBALL_DIR}/manifests/profiles/dev.yaml"
+                            }
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
-                            ci/scripts/prepare_private_registry_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
+                            chmod +x ci/scripts/prepare_distribution_test_jenkins_at_environment.sh
+                            ci/scripts/prepare_distribution_test_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN} ${installFilePath}
                         """
+                        }
                     }
                     post {
                         success {
@@ -309,9 +386,6 @@ pipeline {
                                     dumpK8sCluster('install-success-cluster-snapshot')
                                 }
                             }
-                        }
-                        always {
-                            archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
                         }
                     }
                 }
@@ -501,7 +575,7 @@ pipeline {
                 script {
                     try {
                         sh """
-                            kubectl delete verrazzano my-verrazzano
+                            kubectl delete verrazzano verrazzano
                         """
                     } catch (err) {
                         currentBuild.result = "FAILURE"

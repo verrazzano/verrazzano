@@ -21,14 +21,21 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - description: The current status of the install/uninstall
+    - description: Available/Enabled Verrazzano Components.
+      jsonPath: .status.available
+      name: Available
+      type: string
+    - description: The current status of the install/uninstall.
       jsonPath: .status.conditions[-1:].type
       name: Status
       type: string
-    - description: The current version of the Verrazzano installation
+    - description: The current version of the Verrazzano installation.
       jsonPath: .status.version
       name: Version
       type: string
+    deprecated: true
+    deprecationWarning: install.verrazzano.io/v1alpha1 Verrazzano is deprecated. To
+      migrate to install.verrazzano.io/v1beta1 Verrazzano, see https://verrazzano.io/latest/docs/releasenotes/#v140.
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -2625,6 +2632,42 @@ spec:
                           type: object
                         type: array
                     type: object
+                  mySQLOperator:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
                   oam:
                     properties:
                       enabled:
@@ -3815,9 +3858,13 @@ spec:
             type: object
           status:
             properties:
+              available:
+                type: string
               components:
                 additionalProperties:
                   properties:
+                    available:
+                      type: boolean
                     conditions:
                       items:
                         properties:
@@ -3896,11 +3943,15 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
-    - description: The current status of the install/uninstall
+    - description: Available/Enabled Verrazzano Components.
+      jsonPath: .status.available
+      name: Available
+      type: string
+    - description: The current status of the install/uninstall.
       jsonPath: .status.conditions[-1:].type
       name: Status
       type: string
-    - description: The current version of the Verrazzano installation
+    - description: The current version of the Verrazzano installation.
       jsonPath: .status.version
       name: Version
       type: string
@@ -4255,10 +4306,20 @@ spec:
                     type: object
                   grafana:
                     properties:
+                      database:
+                        properties:
+                          host:
+                            type: string
+                          name:
+                            type: string
+                        type: object
                       enabled:
                         type: boolean
+                      replicas:
+                        format: int32
+                        type: integer
                     type: object
-                  ingress:
+                  ingressNGINX:
                     properties:
                       enabled:
                         type: boolean
@@ -5178,6 +5239,42 @@ spec:
                         type: array
                     type: object
                   kubeStateMetrics:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
+                  mySQLOperator:
                     properties:
                       enabled:
                         type: boolean
@@ -6465,9 +6562,13 @@ spec:
             type: object
           status:
             properties:
+              available:
+                type: string
               components:
                 additionalProperties:
                   properties:
+                    available:
+                      type: boolean
                     conditions:
                       items:
                         properties:

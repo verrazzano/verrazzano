@@ -6,13 +6,13 @@ package update
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"time"
 
-	ginkgov2 "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clients/verrazzano/clientset/versioned"
+	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,8 +27,13 @@ type CRModifier interface {
 	ModifyCR(cr *vzapi.Verrazzano)
 }
 
+type CRModifierV1beta1 interface {
+	ModifyCRV1beta1(cr *v1beta1.Verrazzano)
+}
+
 // GetCR gets the CR.  If it is not "Ready", wait for up to 5 minutes for it to be "Ready".
 func GetCR() *vzapi.Verrazzano {
+	var vz *vzapi.Verrazzano
 	// Wait for the CR to be Ready
 	gomega.Eventually(func() error {
 		cr, err := pkg.GetVerrazzano()
@@ -38,19 +43,29 @@ func GetCR() *vzapi.Verrazzano {
 		if cr.Status.State != vzapi.VzStateReady {
 			return fmt.Errorf("CR in state %s, not Ready yet", cr.Status.State)
 		}
+		vz = cr
 		return nil
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano CR with Ready state")
+	return vz
+}
 
-	// Get the CR
-	cr, err := pkg.GetVerrazzano()
-	if err != nil {
-		ginkgov2.Fail(err.Error())
-	}
-	if cr == nil {
-		ginkgov2.Fail("CR is nil")
-	}
+// GetCRV1beta1 gets the CR.  If it is not "Ready", wait for up to 5 minutes for it to be "Ready".
+func GetCRV1beta1() *v1beta1.Verrazzano {
+	// Wait for the CR to be Ready
+	var vz *v1beta1.Verrazzano
+	gomega.Eventually(func() error {
+		cr, err := pkg.GetVerrazzanoV1beta1()
+		if err != nil {
+			return err
+		}
+		if cr.Status.State != v1beta1.VzStateReady {
+			return fmt.Errorf("v1beta1 CR in state %s, not Ready yet", cr.Status.State)
+		}
+		vz = cr
+		return nil
+	}, waitTimeout, pollingInterval).Should(gomega.BeNil(), "Expected to get Verrazzano v1beta1 CR with Ready state")
 
-	return cr
+	return vz
 }
 
 // UpdateCR updates the CR with the given CRModifier.
@@ -66,37 +81,109 @@ func UpdateCR(m CRModifier) error {
 
 	// Update the CR
 	var err error
-	config, err := k8sutil.GetKubeConfigGivenPath(defaultKubeConfigPath())
+	path, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		ginkgov2.Fail(err.Error())
+		return err
+	}
+	config, err := k8sutil.GetKubeConfigGivenPath(path)
+	if err != nil {
+		return err
 	}
 	client, err := vpoClient.NewForConfig(config)
 	if err != nil {
-		ginkgov2.Fail(err.Error())
+		return err
 	}
 	vzClient := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace)
 	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
 	return err
 }
 
-func defaultKubeConfigPath() string {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+// UpdateCRV1beta1WithRetries updates the CR with the given CRModifierV1beta1.
+// First it waits for CR to be "Ready" before using the specified CRModifierV1beta1 modifies the CR.
+// Then, it updates the modified.
+// Any error during the process will cause Ginkgo Fail.
+func UpdateCRV1beta1WithRetries(m CRModifierV1beta1, pollingInterval, waitTime time.Duration) {
+	// Update the CR
+	gomega.Eventually(func() bool {
+		// GetCRV1beta1 gets the CR using v1beta1 client.
+		cr := GetCRV1beta1()
+
+		// Modify the CR
+		m.ModifyCRV1beta1(cr)
+
+		path, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			return false
+		}
+		config, err := k8sutil.GetKubeConfigGivenPath(path)
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			return false
+		}
+		client, err := vpoClient.NewForConfig(config)
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			return false
+		}
+		vzClient := client.VerrazzanoV1beta1().Verrazzanos(cr.Namespace)
+		_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
+		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
+			return false
+		}
+		return true
+	}).WithPolling(pollingInterval).WithTimeout(waitTime).Should(gomega.BeTrue())
+}
+
+// UpdateCRV1beta1 updates the CR with the given CRModifierV1beta1.
+// First it waits for CR to be "Ready" before using the specified CRModifierV1beta1 modifies the CR.
+// Then, it updates the modified.
+// Any error during the process will cause Ginkgo Fail.
+func UpdateCRV1beta1(m CRModifierV1beta1) error {
+	// GetCRV1beta1 gets the CR using v1beta1 client.
+	cr := GetCRV1beta1()
+
+	// Modify the CR
+	m.ModifyCRV1beta1(cr)
+
+	// Update the CR
+	var err error
+	path, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		ginkgov2.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		return err
 	}
-	return kubeconfigPath
+	config, err := k8sutil.GetKubeConfigGivenPath(path)
+	if err != nil {
+		return err
+	}
+	client, err := vpoClient.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+	vzClient := client.VerrazzanoV1beta1().Verrazzanos(cr.Namespace)
+	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
+	return err
 }
 
 // UpdateCRWithRetries updates the CR with the given CRModifier.
 // If the update fails, it retries by getting the latest version of CR and applying the same
 // update till it succeeds or timesout.
 func UpdateCRWithRetries(m CRModifier, pollingInterval, timeout time.Duration) {
-	RetryUpdate(m, defaultKubeConfigPath(), true, pollingInterval, timeout)
+	RetryUpdate(m, "", true, pollingInterval, timeout)
 }
 
 // RetryUpdate tries update with kubeconfigPath
 func RetryUpdate(m CRModifier, kubeconfigPath string, waitForReady bool, pollingInterval, timeout time.Duration) {
 	gomega.Eventually(func() bool {
+		var err error
+		if kubeconfigPath == "" {
+			kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
+			if err != nil {
+				pkg.Log(pkg.Error, err.Error())
+				return false
+			}
+		}
 		if waitForReady {
 			WaitForReadyState(kubeconfigPath, time.Time{}, pollingInterval, timeout)
 		}
@@ -175,10 +262,10 @@ func IsCRReadyAfterUpdate(cr *vzapi.Verrazzano, updatedTime time.Time) bool {
 		pkg.Log(pkg.Info, fmt.Sprintf("Checking if condition of type '%s', transitioned at '%s' is for the expected update",
 			condition.Type, condition.LastTransitionTime))
 		if (condition.Type == vzapi.CondInstallComplete || condition.Type == vzapi.CondUpgradeComplete) && condition.Status == corev1.ConditionTrue {
-			// check if the transistion time is post the time of update
+			// check if the transition time is post the time of update
 			transitionTime, err := time.Parse(time.RFC3339, condition.LastTransitionTime)
 			if err != nil {
-				pkg.Log(pkg.Error, "Unable to parse the transistion time '"+condition.LastTransitionTime+"'")
+				pkg.Log(pkg.Error, "Unable to parse the transition time '"+condition.LastTransitionTime+"'")
 				return false
 			}
 			if transitionTime.After(updatedTime) {

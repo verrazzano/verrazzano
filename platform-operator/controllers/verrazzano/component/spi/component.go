@@ -50,8 +50,10 @@ type ComponentInfo interface {
 	ShouldInstallBeforeUpgrade() bool
 	// GetDependencies returns the dependencies of this component
 	GetDependencies() []string
-	// IsReady Indicates whether or not a component is available and ready
+	// IsReady Indicates whether a component is Ready for dependency components
 	IsReady(context ComponentContext) bool
+	// IsAvailable Indicates whether a component is Available for end users
+	IsAvailable(context ComponentContext) (string, bool)
 	// IsEnabled Indicates whether or a component is enabled for installation
 	IsEnabled(effectiveCR runtime.Object) bool
 	// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
@@ -63,7 +65,7 @@ type ComponentInfo interface {
 	// GetJsonName returns the josn name of the verrazzano component in CRD
 	GetJSONName() string
 	// GetOverrides returns the list of overrides for a component
-	GetOverrides(effectiveCR *v1alpha1.Verrazzano) []v1alpha1.Overrides
+	GetOverrides(effectiveCR runtime.Object) interface{}
 	// MonitorOverrides indicates whether the override sources for a component need to be monitored
 	MonitorOverrides(context ComponentContext) bool
 }
@@ -112,9 +114,9 @@ type ComponentValidator interface {
 	ValidateInstall(vz *v1alpha1.Verrazzano) error
 	// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 	ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error
-	// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+	// ValidateInstallV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
 	ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error
-	// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+	// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 	ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error
 }
 

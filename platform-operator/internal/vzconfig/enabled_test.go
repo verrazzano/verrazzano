@@ -19,8 +19,9 @@ var (
 
 // TestIsExternalDNSEnabledDefault tests the IsExternalDNSEnabled function
 // GIVEN a call to IsExternalDNSEnabled
-//  WHEN the VZ config does not explicitly configure DNS
-//  THEN false is returned
+//
+//	WHEN the VZ config does not explicitly configure DNS
+//	THEN false is returned
 func TestIsExternalDNSEnabledDefault(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	assert.False(t, IsExternalDNSEnabled(vz))
@@ -28,8 +29,9 @@ func TestIsExternalDNSEnabledDefault(t *testing.T) {
 
 // TestIsExternalDNSEnabledOCIDNS tests the IsExternalDNSEnabled function
 // GIVEN a call to IsExternalDNSEnabled
-//  WHEN the VZ config has OCI DNS configured
-//  THEN true is returned
+//
+//	WHEN the VZ config has OCI DNS configured
+//	THEN true is returned
 func TestIsExternalDNSEnabledOCIDNS(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -48,8 +50,9 @@ func TestIsExternalDNSEnabledOCIDNS(t *testing.T) {
 
 // TestIsExternalDNSEnabledWildcardDNS tests the IsExternalDNSEnabled function
 // GIVEN a call to IsExternalDNSEnabled
-//  WHEN the VZ config has Wildcard DNS explicitly configured
-//  THEN false is returned
+//
+//	WHEN the VZ config has Wildcard DNS explicitly configured
+//	THEN false is returned
 func TestIsExternalDNSEnabledWildcardDNS(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -68,8 +71,9 @@ func TestIsExternalDNSEnabledWildcardDNS(t *testing.T) {
 
 // TestIsExternalDNSEnabledExternalDNS tests the IsExternalDNSEnabled function
 // GIVEN a call to IsExternalDNSEnabled
-//  WHEN the VZ config has External DNS explicitly configured
-//  THEN false is returned
+//
+//	WHEN the VZ config has External DNS explicitly configured
+//	THEN false is returned
 func TestIsExternalDNSEnabledExternalDNS(t *testing.T) {
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -91,7 +95,8 @@ var falseValue = false
 
 // TestIsRancherEnabled tests the IsRancherEnabled function
 // GIVEN a call to IsRancherEnabled
-//  THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
+//
+//	THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
 func TestIsRancherEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.True(IsRancherEnabled(nil))
@@ -122,7 +127,8 @@ func TestIsRancherEnabled(t *testing.T) {
 
 // TestIsKeycloakEnabled tests the IsKeycloakEnabled function
 // GIVEN a call to IsKeycloakEnabled
-//  THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
+//
+//	THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
 func TestIsKeycloakEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.True(IsKeycloakEnabled(nil))
@@ -153,7 +159,8 @@ func TestIsKeycloakEnabled(t *testing.T) {
 
 // TestIsConsoleEnabled tests the IsConsoleEnabled function
 // GIVEN a call to IsConsoleEnabled
-//  THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
+//
+//	THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
 func TestIsConsoleEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.True(IsConsoleEnabled(nil))
@@ -184,7 +191,8 @@ func TestIsConsoleEnabled(t *testing.T) {
 
 // TestIsFluentdEnabled tests the IsFluentdEnabled function
 // GIVEN a call to IsFluentdEnabled
-//  THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
+//
+//	THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
 func TestIsFluentdEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.True(IsFluentdEnabled(nil))
@@ -215,7 +223,8 @@ func TestIsFluentdEnabled(t *testing.T) {
 
 // TestIsGrafanaEnabled tests the IsGrafanaEnabled function
 // GIVEN a call to IsGrafanaEnabled
-//  THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
+//
+//	THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
 func TestIsGrafanaEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.True(IsGrafanaEnabled(nil))
@@ -246,7 +255,8 @@ func TestIsGrafanaEnabled(t *testing.T) {
 
 // TestIsElasticsearchEnabled tests the IsOpenSearchEnabled function
 // GIVEN a call to IsOpenSearchEnabled
-//  THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
+//
+//	THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
 func TestIsElasticsearchEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.True(IsOpenSearchEnabled(nil))
@@ -277,7 +287,8 @@ func TestIsElasticsearchEnabled(t *testing.T) {
 
 // TestIsKibanaEnabled tests the IsOpenSearchDashboardsEnabled function
 // GIVEN a call to IsOpenSearchDashboardsEnabled
-//  THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
+//
+//	THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
 func TestIsKibanaEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.True(IsOpenSearchDashboardsEnabled(nil))
@@ -308,7 +319,8 @@ func TestIsKibanaEnabled(t *testing.T) {
 
 // TestIsPrometheusEnabled tests the IsPrometheusEnabled function
 // GIVEN a call to IsPrometheusEnabled
-//  THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
+//
+//	THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
 func TestIsPrometheusEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.True(IsPrometheusEnabled(nil))
@@ -339,7 +351,8 @@ func TestIsPrometheusEnabled(t *testing.T) {
 
 // TestIsKialiEnabled tests the IsKialiEnabled function
 // GIVEN a call to IsKialiEnabled
-//  THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
+//
+//	THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
 func TestIsKialiEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.True(IsKialiEnabled(nil))
@@ -370,7 +383,8 @@ func TestIsKialiEnabled(t *testing.T) {
 
 // TestIsIstioEnabled tests the IsIstioEnabled function
 // GIVEN a call to IsIstioEnabled
-//  THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
+//
+//	THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
 func TestIsIstioEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.True(IsIstioEnabled(nil))
@@ -401,7 +415,8 @@ func TestIsIstioEnabled(t *testing.T) {
 
 // TestIsNGINXEnabled tests the IsNGINXEnabled function
 // GIVEN a call to IsNGINXEnabled
-//  THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
+//
+//	THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
 func TestIsNGINXEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.True(IsNGINXEnabled(nil))
@@ -432,7 +447,8 @@ func TestIsNGINXEnabled(t *testing.T) {
 
 // TestIsJaegerOperatorEnabled tests the IsJaegerOperatorEnabled function
 // GIVEN a call to IsJaegerOperatorEnabled
-//  THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
+//
+//	THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
 func TestIsJaegerOperatorEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.False(IsJaegerOperatorEnabled(nil))
@@ -463,7 +479,8 @@ func TestIsJaegerOperatorEnabled(t *testing.T) {
 
 // TestIsApplicationOperatorEnabled tests the IsApplicationOperatorEnabled function
 // GIVEN a call to IsApplicationOperatorEnabled
-//  THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
+//
+//	THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
 func TestIsApplicationOperatorEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.True(IsApplicationOperatorEnabled(nil))
@@ -494,7 +511,8 @@ func TestIsApplicationOperatorEnabled(t *testing.T) {
 
 // TestIsVeleroEnabled tests the IsVeleroEnabled function
 // GIVEN a call to IsVeleroEnabled
-//  THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
+//
+//	THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
 func TestIsVeleroEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.False(IsVeleroEnabled(nil))

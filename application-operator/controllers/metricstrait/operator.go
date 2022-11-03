@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -78,7 +79,7 @@ func (r *Reconciler) reconcileOperatorTraitCreateOrUpdate(ctx context.Context, t
 			return reconcile.Result{}, log.ErrorfNewErr("Failed to create Service Monitor name: %v", err)
 		}
 		opResult, err = r.deleteServiceMonitor(ctx, trait.Namespace, serviceMonitorName, trait, log)
-		if err != nil {
+		if client.IgnoreNotFound(err) != nil {
 			return reconcile.Result{}, log.ErrorfNewErr("Failed to delete Service Monitor %s for disabled metrics trait: %v", serviceMonitorName, err)
 		}
 		rel = vzapi.QualifiedResourceRelation{APIVersion: promoperapi.SchemeGroupVersion.String(), Kind: promoperapi.ServiceMonitorsKind, Namespace: trait.Namespace, Name: serviceMonitorName, Role: scraperRole}

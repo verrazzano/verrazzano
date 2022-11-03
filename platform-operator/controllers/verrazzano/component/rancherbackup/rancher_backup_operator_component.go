@@ -6,10 +6,12 @@ package rancherbackup
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -62,7 +64,10 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "rancher-backup-override-static-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
-			Dependencies:              []string{rancher.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, rancher.ComponentName},
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: deployments,
+			},
 		},
 	}
 }
@@ -118,13 +123,13 @@ func (rb rancherBackupHelmComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isRancherBackupOperatorReady(ctx)
 }
 
-func (rb rancherBackupHelmComponent) ValidateInstall(_ *vzapi.Verrazzano) error {
-	return nil
+func (rb rancherBackupHelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+	return rb.HelmComponent.ValidateInstall(vz)
 }
 
 // ValidateUpgrade verifies the install of the Verrazzano object
 func (rb rancherBackupHelmComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return nil
+	return rb.HelmComponent.ValidateInstallV1Beta1(vz)
 }
 
 func (rb rancherBackupHelmComponent) IsOperatorUninstallSupported() bool {
@@ -141,6 +146,14 @@ func (rb rancherBackupHelmComponent) ValidateUpdate(old *vzapi.Verrazzano, new *
 
 // ValidateUpgrade verifies the upgrade of the Verrazzano object
 func (rb rancherBackupHelmComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+	if rb.IsEnabled(old) && !rb.IsEnabled(new) {
+		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
+	}
+	if new.Spec.Components.RancherBackup != nil {
+		if err := vzapi.ValidateInstallOverridesV1Beta1(new.Spec.Components.RancherBackup.ValueOverrides); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

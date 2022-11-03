@@ -42,8 +42,9 @@ var crEnabled = vzapi.Verrazzano{
 
 // TestPreUpgrade tests the OpenSearch PreUpgrade call
 // GIVEN an OpenSearch component
-//  WHEN I call PreUpgrade with defaults
-//  THEN no error is returned
+//
+//	WHEN I call PreUpgrade with defaults
+//	THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
@@ -54,8 +55,9 @@ func TestPreUpgrade(t *testing.T) {
 
 // TestPreInstall tests the OpenSearch PreInstall call
 // GIVEN an OpenSearch component
-//  WHEN I call PreInstall when dependencies are met
-//  THEN no error is returned
+//
+//	WHEN I call PreInstall when dependencies are met
+//	THEN no error is returned
 func TestPreInstall(t *testing.T) {
 	c := createPreInstallTestClient()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
@@ -65,8 +67,9 @@ func TestPreInstall(t *testing.T) {
 
 // TestInstall tests the OpenSearch Install call
 // GIVEN an OpenSearch component
-//  WHEN I call Install when dependencies are met
-//  THEN no error is returned
+//
+//	WHEN I call Install when dependencies are met
+//	THEN no error is returned
 func TestInstall(t *testing.T) {
 	c := createPreInstallTestClient()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
@@ -80,8 +83,9 @@ func TestInstall(t *testing.T) {
 
 // TestPostInstall tests the OpenSearch PostInstall call
 // GIVEN an OpenSearch component
-//  WHEN I call PostInstall
-//  THEN no error is returned
+//
+//	WHEN I call PostInstall
+//	THEN no error is returned
 func TestPostInstall(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
@@ -120,8 +124,9 @@ func TestPostInstall(t *testing.T) {
 
 // TestPostInstallCertsNotReady tests the OpenSearch PostInstall call
 // GIVEN an OpenSearch component
-//  WHEN I call PostInstall and the certificates aren't ready
-//  THEN a retryable error is returned
+//
+//	WHEN I call PostInstall and the certificates aren't ready
+//	THEN a retryable error is returned
 func TestPostInstallCertsNotReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
@@ -166,8 +171,9 @@ func TestPostInstallCertsNotReady(t *testing.T) {
 
 // TestGetCertificateNames tests the OpenSearch GetCertificateNames call
 // GIVEN an OpenSearch component
-//  WHEN I call GetCertificateNames
-//  THEN the correct number of certificate names are returned based on what is enabled
+//
+//	WHEN I call GetCertificateNames
+//	THEN the correct number of certificate names are returned based on what is enabled
 func TestGetCertificateNames(t *testing.T) {
 	vmiEnabled := true
 	vz := vzapi.Verrazzano{
@@ -191,8 +197,9 @@ func TestGetCertificateNames(t *testing.T) {
 
 // TestUpgrade tests the OpenSearch Upgrade call; simple wrapper exercise, more detailed testing is done elsewhere
 // GIVEN an OpenSearch component upgrading from 1.1.0 to 1.2.0
-//  WHEN I call Upgrade
-//  THEN no error is returned
+//
+//	WHEN I call Upgrade
+//	THEN no error is returned
 func TestUpgrade(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
@@ -208,8 +215,9 @@ func TestUpgrade(t *testing.T) {
 
 // TestPostUpgrade tests the OpenSearch PostUpgrade call; simple wrapper exercise, more detailed testing is done elsewhere
 // GIVEN an OpenSearch component upgrading from 1.1.0 to 1.2.0
-//  WHEN I call PostUpgrade
-//  THEN no error is returned
+//
+//	WHEN I call PostUpgrade
+//	THEN no error is returned
 func TestPostUpgrade(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
@@ -258,8 +266,9 @@ func createPreInstallTestClient(extraObjs ...client.Object) client.Client {
 
 // TestIsEnabledNilOpenSearch tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The OpenSearch component is enabled
-//  THEN true is returned
+//
+//	WHEN The OpenSearch component is enabled
+//	THEN true is returned
 func TestIsEnabledNilOpenSearch(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Elasticsearch = nil
@@ -268,16 +277,18 @@ func TestIsEnabledNilOpenSearch(t *testing.T) {
 
 // TestIsEnabledNilComponent tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The OpenSearch component is nil
-//  THEN true is returned
+//
+//	WHEN The OpenSearch component is nil
+//	THEN true is returned
 func TestIsEnabledNilComponent(t *testing.T) {
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The OpenSearch component enabled is nil
-//  THEN true is returned
+//
+//	WHEN The OpenSearch component enabled is nil
+//	THEN true is returned
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Elasticsearch.Enabled = nil
@@ -286,8 +297,9 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 
 // TestIsEnabledExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The OpenSearch component is explicitly enabled
-//  THEN true is returned
+//
+//	WHEN The OpenSearch component is explicitly enabled
+//	THEN true is returned
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Elasticsearch.Enabled = getBoolPtr(true)
@@ -296,8 +308,9 @@ func TestIsEnabledExplicit(t *testing.T) {
 
 // TestIsDisableExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The OpenSearch component is explicitly disabled
-//  THEN false is returned
+//
+//	WHEN The OpenSearch component is explicitly disabled
+//	THEN false is returned
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.Elasticsearch.Enabled = getBoolPtr(false)
@@ -308,7 +321,7 @@ func getBoolPtr(b bool) *bool {
 	return &b
 }
 
-func Test_opensearchComponent_ValidateUpdate(t *testing.T) {
+func TestValidateUpdate(t *testing.T) {
 	disabled := false
 	var pvc1Gi, _ = resource.ParseQuantity("1Gi")
 	var pvc2Gi, _ = resource.ParseQuantity("2Gi")

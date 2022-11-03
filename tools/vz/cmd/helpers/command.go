@@ -31,14 +31,14 @@ func NewCommand(vzHelper helpers.VZHelper, use string, short string, long string
 }
 
 // GetWaitTimeout returns the time to wait for a command to complete
-func GetWaitTimeout(cmd *cobra.Command) (time.Duration, error) {
+func GetWaitTimeout(cmd *cobra.Command, timeoutFlag string) (time.Duration, error) {
 	// Get the wait value from the command line
 	wait, err := cmd.PersistentFlags().GetBool(constants.WaitFlag)
 	if err != nil {
 		return time.Duration(0), err
 	}
 	if wait {
-		timeout, err := cmd.PersistentFlags().GetDuration(constants.TimeoutFlag)
+		timeout, err := cmd.PersistentFlags().GetDuration(timeoutFlag)
 		if err != nil {
 			return time.Duration(0), err
 		}

@@ -2,7 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 pipeline {
@@ -46,6 +46,11 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "nip.io", "sslip.io" ])
 
+        choice (name: 'CRD_API_VERSION',
+                description: 'This is the API crd version.',
+                // 1st choice is the default value
+                choices: [ "v1beta1", "v1alpha1"])
+
         string (name: 'GIT_COMMIT_TO_USE',
                 defaultValue: 'NONE',
                 description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -57,7 +62,7 @@ pipeline {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
-                choices: [ "1.22", "1.21", "1.23", "1.24" ])
+                choices: [ "1.24", "1.21", "1.22", "1.23" ])
 
         booleanParam (description: 'Whether to create kind cluster with Calico for AT testing (defaults to true)', name: 'CREATE_KIND_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
@@ -109,9 +114,9 @@ pipeline {
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
 
-        INSTALL_CONFIG_FILE_KIND_PERSISTENCE = "./tests/e2e/config/scripts/install-verrazzano-kind-with-persistence.yaml"
-        INSTALL_CONFIG_FILE_KIND_EPHEMERAL = "./tests/e2e/config/scripts/install-verrazzano-kind-no-persistence.yaml"
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/install-verrazzano-kind-no-persistence.yaml"
+        INSTALL_CONFIG_FILE_KIND_PERSISTENCE = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind-with-persistence.yaml"
+        INSTALL_CONFIG_FILE_KIND_EPHEMERAL = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind-no-persistence.yaml"
+        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind-no-persistence.yaml"
 
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
@@ -239,7 +244,7 @@ pipeline {
                         echo "Downloading VZ CLI from object storage"
                         oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
                         tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
-                        ${GO_REPO_PATH}/vz version
+                        ${VZ_COMMAND} version
                     """
                 }
             }
@@ -373,7 +378,7 @@ def runInstallOnly(stagePrefix, iteration) {
             sh """
                 # sleep for a period to ensure async deletion of Verrazzano components from uninstall above has completed
                 #sleep 90
-                ${GO_REPO_PATH}/vz install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE}
+                ${VZ_COMMAND} install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE}
             """
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                dumpK8sCluster('verrazzano-${dirPrefix}-${iteration}-cluster-snapshot')
@@ -465,10 +470,15 @@ def uninstallVerrazzano(vpoLogsDir) {
         echo "Platform operator uninstall logs dir: ${vpoLogsDir}"
 
         // Delete VZ in the background
-        sh """
+        while (true) {
             echo "Deleting the Verrazzano resource..."
-            ${GO_REPO_PATH}/vz uninstall --timeout=20m 
-        """
+            result = sh(returnStatus: true, script: "${VZ_COMMAND} uninstall --timeout=20m")
+            if (result == 0) {
+                break
+            }
+            echo "vz uninstall result: ${result}"
+            sh "sleep 5"
+        }
     }
 }
 
@@ -485,13 +495,14 @@ def kill_vpo_loop(vpoLogsDir) {
             VZ_STATUS=\$(kubectl get vz my-verrazzano --ignore-not-found -o jsonpath={.status.conditions[-1].type})
             RESTARTS=1
             while [ ! -z \$VZ_STATUS ] && [ \$VZ_STATUS == "UninstallStarted" ] ; do
-                POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
-                mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
-                kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator >> ${vpoLogsDir}/verrazzano-platform-operator-before-vpo-killed-pod-\${RESTARTS}.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
-                kubectl -n verrazzano-install delete po \$POD
-                POD=\$(kubectl get pod -l app=verrazzano-platform-operator -n verrazzano-install -o jsonpath="{.items[0].metadata.name}")
-                kubectl -n verrazzano-install wait --for=condition=ready --timeout=600s pod/\$POD
-                echo "VPO \$POD successfully restarted"
+                NS_STATUS=\$(kubectl get ns verrazzano-install --ignore-not-found -o jsonpath={.status.phase})
+                if [ ! -z \$NS_STATUS ]; then
+                    mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
+                    kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator >> ${vpoLogsDir}/verrazzano-platform-operator-before-vpo-killed-pod-\${RESTARTS}.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                    kubectl -n verrazzano-install delete pod -l app=verrazzano-platform-operator --ignore-not-found
+                    kubectl -n verrazzano-install rollout status deployments/verrazzano-platform-operator --timeout=600s
+                    echo "VPO pod successfully restarted"
+                fi
 
                 # Sleep a random interval between 15 and 60 seconds
                 SLEEP_SEC=\$[ \$RANDOM % 45 + 15 ]

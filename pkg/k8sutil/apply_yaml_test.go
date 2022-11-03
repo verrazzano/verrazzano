@@ -49,7 +49,7 @@ func TestApplyD(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+			c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 			y := k8sutil.NewYAMLApplier(c, "")
 			err := y.ApplyD(tt.dir)
 			if tt.isError {
@@ -97,7 +97,7 @@ func TestApplyF(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+			c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 			y := k8sutil.NewYAMLApplier(c, "test")
 			err := y.ApplyF(tt.file)
 			if tt.isError {
@@ -112,8 +112,9 @@ func TestApplyF(t *testing.T) {
 
 // TestApplyFNonSpec
 // GIVEN a object that contains top level fields outside of spec
-//  WHEN I call apply with changes non-spec fields
-//  THEN the resulting object contains the updates
+//
+//	WHEN I call apply with changes non-spec fields
+//	THEN the resulting object contains the updates
 func TestApplyFNonSpec(t *testing.T) {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
@@ -147,8 +148,9 @@ func TestApplyFNonSpec(t *testing.T) {
 
 // TestApplyFMerge
 // GIVEN a object that contains spec field
-//  WHEN I call apply with additions to the spec field
-//  THEN the resulting object contains the merged updates
+//
+//	WHEN I call apply with additions to the spec field
+//	THEN the resulting object contains the merged updates
 func TestApplyFMerge(t *testing.T) {
 	deadlineSeconds := int32(5)
 	deployment := &appv1.Deployment{
@@ -178,8 +180,9 @@ func TestApplyFMerge(t *testing.T) {
 
 // TestApplyFClusterRole
 // GIVEN a ClusterRole object
-//  WHEN I call apply with additions
-//  THEN the resulting object contains the merged updates
+//
+//	WHEN I call apply with additions
+//	THEN the resulting object contains the merged updates
 func TestApplyFClusterRole(t *testing.T) {
 	deadlineSeconds := int32(5)
 	deployment := &appv1.Deployment{
@@ -262,7 +265,7 @@ func TestApplyFT(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+			c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 			y := k8sutil.NewYAMLApplier(c, "")
 			err := y.ApplyFT(tt.file, tt.args)
 			if tt.isError {
@@ -308,7 +311,7 @@ func TestApplyDT(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+			c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 			y := k8sutil.NewYAMLApplier(c, "")
 			err := y.ApplyDT(tt.dir, tt.args)
 			if tt.isError {
@@ -341,7 +344,7 @@ func TestDeleteF(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+			c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 			y := k8sutil.NewYAMLApplier(c, "")
 			err := y.DeleteF(tt.file)
 			if tt.isError {
@@ -376,7 +379,7 @@ func TestDeleteFD(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+			c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 			y := k8sutil.NewYAMLApplier(c, "")
 			err := y.DeleteFT(tt.file, tt.args)
 			if tt.isError {
@@ -389,7 +392,7 @@ func TestDeleteFD(t *testing.T) {
 }
 
 func TestDeleteAll(t *testing.T) {
-	c := fake.NewFakeClientWithScheme(k8scheme.Scheme)
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	y := k8sutil.NewYAMLApplier(c, "")
 	err := y.ApplyD(objects)
 	assert.NoError(t, err)

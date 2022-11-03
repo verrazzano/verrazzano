@@ -111,7 +111,7 @@ func TestReconcileCreateSecret(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newSecretReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -159,7 +159,7 @@ func TestReconcileUpdateSecret(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newSecretReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -207,7 +207,7 @@ func TestReconcileCreateSecretFailed(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newSecretReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.Nil(err)
@@ -249,7 +249,7 @@ func TestReconcileUpdateSecretFailed(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newSecretReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.Nil(err)
@@ -308,7 +308,7 @@ func TestReconcilePlacementInDifferentCluster(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newSecretReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -338,7 +338,7 @@ func TestReconcileResourceNotFound(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(namespace, crName)
 	reconciler := newSecretReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.NoError(err)
@@ -453,7 +453,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	// create a request and reconcile it
 	request := clusterstest.NewRequest(vzconst.KubeSystem, "unit-test-verrazzano-helidon-workload")
 	reconciler := newSecretReconciler(cli)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	mocker.Finish()
 	assert.Nil(err)

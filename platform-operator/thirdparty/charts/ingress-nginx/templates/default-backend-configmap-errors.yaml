@@ -240,3 +240,4 @@ data:
     { "message": "504 Gateway Timeout" }
   505.json: |
     { "message": "505 HTTP Version Not Supported" }
+

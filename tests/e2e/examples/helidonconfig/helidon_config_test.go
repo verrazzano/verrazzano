@@ -5,10 +5,13 @@ package helidonconfig
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
+
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -42,11 +45,19 @@ var _ = t.BeforeSuite(func() {
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/helidon-config/helidon-config-comp.yaml", namespace)
+			file, err := pkg.FindTestDataFile("examples/helidon-config/helidon-config-comp.yaml")
+			if err != nil {
+				return err
+			}
+			return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/helidon-config/helidon-config-app.yaml", namespace)
+			file, err := pkg.FindTestDataFile("examples/helidon-config/helidon-config-app.yaml")
+			if err != nil {
+				return err
+			}
+			return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval, "Failed to create helidon-config application resource").ShouldNot(HaveOccurred())
 		beforeSuitePassed = true
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
@@ -80,12 +91,20 @@ var _ = t.AfterSuite(func() {
 		// undeploy the application here
 		pkg.Log(pkg.Info, "Delete application")
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/helidon-config/helidon-config-app.yaml", namespace)
+			file, err := pkg.FindTestDataFile("examples/helidon-config/helidon-config-app.yaml")
+			if err != nil {
+				return err
+			}
+			return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		pkg.Log(pkg.Info, "Delete components")
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/helidon-config/helidon-config-comp.yaml", namespace)
+			file, err := pkg.FindTestDataFile("examples/helidon-config/helidon-config-comp.yaml")
+			if err != nil {
+				return err
+			}
+			return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		pkg.Log(pkg.Info, "Wait for application pods to terminate")

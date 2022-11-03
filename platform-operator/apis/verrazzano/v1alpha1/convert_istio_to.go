@@ -21,41 +21,54 @@ import (
 //
 // NOTE: The go template rendering doesn't properly indent the multi-line YAML value
 // For example, the template fragment only indents the fist line of values
-//    global:
-//      {{.Values}}
+//
+//	global:
+//	  {{.Values}}
+//
 // so the result is
-//    global:
-//      line1:
+//
+//	global:
+//	  line1:
+//
 // line2:
-//   line3:
+//
+//	line3:
+//
 // etc...
 //
 // A solution is to pre-indent each line of the values then insert it at column 0 as follows:
-//    global:
+//
+//	global:
+//
 // {{.Values}}
 // See the leftMargin usage in the code
-//
 const istioGatewayTemplate = `
 apiVersion: install.istio.io/v1alpha1
 kind: IstioOperator
 spec:
+{{- if (or .IngressKubernetes .EgressKubernetes) }}
   components:
+{{- if .EgressKubernetes }}
     egressGateways:
       - name: istio-egressgateway
         enabled: true
-{{- if .EgressKubernetes }}
+{{- if (or (gt .IngressReplicaCount 0) (ne .EgressAffinity "")) }}
         k8s:
+{{- if (gt .IngressReplicaCount 0) }}
           replicaCount: {{.EgressReplicaCount}}
+{{- end}}
 {{- if .EgressAffinity }}
           affinity:
 {{ multiLineIndent 12 .EgressAffinity }}
 {{- end }}
 {{- end }}
+{{- end }}
+{{- if .IngressKubernetes }}
     ingressGateways:
       - name: istio-ingressgateway
         enabled: true
         k8s:
-{{- if .IngressKubernetes }}
+{{- if (gt .IngressReplicaCount 0) }}
           replicaCount: {{.IngressReplicaCount}}
 {{- end }}
           service:
@@ -63,7 +76,7 @@ spec:
 {{- if .IngressServicePorts }}
             ports:
 {{ multiLineIndent 12 .IngressServicePorts }}
-            {{- end}}
+{{- end}}
 {{- if .ExternalIps }}
             externalIPs:
 {{.ExternalIps}}
@@ -71,6 +84,10 @@ spec:
 {{- if .IngressAffinity }}
           affinity:
 {{ multiLineIndent 12 .IngressAffinity }}
+{{- end }}
+{{- end }}
+{{else}}
+ {}
 {{- end }}
 `
 
@@ -100,7 +117,7 @@ func convertIstioComponentToYaml(comp *IstioComponent) (*v1beta1.Overrides, erro
 	}
 	var externalIPYAMLTemplateValue = ""
 	// Build a list of YAML strings from the istioComponent initargs, one for each arg.
-	expandedYamls := []string{}
+	var expandedYamls []string
 	for _, arg := range comp.IstioInstallArgs {
 		values := arg.ValueList
 		if len(values) == 0 {
@@ -131,7 +148,7 @@ func convertIstioComponentToYaml(comp *IstioComponent) (*v1beta1.Overrides, erro
 	if err != nil {
 		return nil, err
 	}
-	expandedYamls = append(expandedYamls, gatewayYaml)
+	expandedYamls = append([]string{gatewayYaml}, expandedYamls...)
 	// Merge all the expanded YAMLs into a single YAML,
 	// second has precedence over first, third over second, and so forth.
 	merged, err := vzyaml.ReplacementMerge(expandedYamls...)
@@ -153,14 +170,14 @@ func addYAML(name string, values, expandedYamls []string) ([]string, error) {
 }
 
 // Change the YAML from
-//       externalIPs
-//       - 1.2.3.4
-//       - 1.3.4.6
 //
-//  to
-//       - 1.2.3.4
-//       - 1.3.4.6
+//	     externalIPs
+//	     - 1.2.3.4
+//	     - 1.3.4.6
 //
+//	to
+//	     - 1.2.3.4
+//	     - 1.3.4.6
 func fixExternalIPYaml(yaml string) string {
 	segs := strings.SplitN(yaml, "\n", 2)
 	if len(segs) == 2 {
@@ -179,11 +196,15 @@ func configureGateways(istioComponent *IstioComponent, externalIP string) (strin
 	if err := configureEgressGateway(istioComponent, &data); err != nil {
 		return "", err
 	}
-
 	data.ExternalIps = ""
 	if externalIP != "" {
 		data.ExternalIps = externalIP
 	}
+	// Include ingress component in the spec when either of the data is available
+	//	- ingress section is filled,
+	//	- external ip is provided through IstioInstallArgs
+	//	- its service ports are overridden through IstioInstallArgs
+	data.IngressKubernetes = data.IngressKubernetes || data.ExternalIps != "" || data.IngressServicePorts != ""
 
 	// use template to get populate template with data
 	var b bytes.Buffer

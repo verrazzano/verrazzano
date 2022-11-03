@@ -7,12 +7,15 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"reflect"
-	"sigs.k8s.io/yaml"
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"sigs.k8s.io/yaml"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -25,8 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/update"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -247,7 +250,8 @@ func (u NginxIstioNodePortModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		},
 	}
 	// update Istio
-	istioYaml := fmt.Sprintf(`kind: IstioOperator
+	istioYaml := fmt.Sprintf(`apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
 spec:
   values:
     gateways:
@@ -553,7 +557,7 @@ func applyResource(resourceFile string, templateData *externalLBsTemplateData) {
 		Fail(err.Error())
 	}
 
-	err = pkg.CreateOrUpdateResourceFromBytes(buff.Bytes())
+	err = resource.CreateOrUpdateResourceFromBytes(buff.Bytes(), t.Logs)
 	if err != nil {
 		Fail(err.Error())
 	}

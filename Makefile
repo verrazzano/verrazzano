@@ -27,12 +27,9 @@ TIMESTAMP := $(shell date -u +%Y%m%d%H%M%S)
 DOCKER_IMAGE_TAG ?= local-${TIMESTAMP}-$(shell git rev-parse --short HEAD)
 VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME ?= verrazzano-platform-operator-dev
 VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME ?= verrazzano-application-operator-dev
-VERRAZZANO_IMAGE_PATCH_OPERATOR_IMAGE_NAME ?= verrazzano-image-patch-operator-dev
-VERRAZZANO_WEBLOGIC_IMAGE_TOOL_IMAGE_NAME ?= verrazzano-weblogic-image-tool-dev
 
 VERRAZZANO_PLATFORM_OPERATOR_IMAGE = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 VERRAZZANO_APPLICATION_OPERATOR_IMAGE = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
-VERRAZZANO_IMAGE_PATCH_OPERATOR_IMAGE = ${DOCKER_REPO}/${DOCKER_NAMESPACE}/${VERRAZZANO_IMAGE_PATCH_OPERATOR_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 
 CURRENT_YEAR = $(shell date +"%Y")
 
@@ -55,14 +52,6 @@ docker-push: ## build and push all images
 	(cd application-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
 	(cd platform-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG} VERRAZZANO_APPLICATION_OPERATOR_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE})
 
-.PHONY: docker-push-ipo
-docker-push-ipo: ## build and push just the Image Patch Operator
-	(cd image-patch-operator; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_IMAGE_PATCH_OPERATOR_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
-
-.PHONY: docker-push-wit
-docker-push-wit: ## build and push the WebLogic Image Tool image for the Image Patch Service
-	(cd image-patch-operator/weblogic-imagetool; make docker-push DOCKER_IMAGE_NAME=${VERRAZZANO_WEBLOGIC_IMAGE_TOOL_IMAGE_NAME} DOCKER_IMAGE_TAG=${DOCKER_IMAGE_TAG})
-
 .PHONY: create-test-deploy
 create-test-deploy: docker-push
 	(cd platform-operator; make create-test-deploy VZ_DEV_IMAGE=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE} VZ_APP_OP_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE})
@@ -78,7 +67,28 @@ test-platform-operator-remove:
 
 .PHONY: test-platform-operator-install-logs
 test-platform-operator-install-logs:
-	kubectl logs -f -n default $(shell kubectl get pods -n default --no-headers | grep "^verrazzano-install-" | cut -d ' ' -f 1)
+	kubectl logs -f -n verrazzano-install $(shell kubectl get pods -n verrazzano-install --no-headers | grep "^verrazzano-platform-operator-" | cut -d ' ' -f 1)
+
+.PHONY: precommit
+precommit: precommit-check precommit-build unit-test-coverage
+
+.PHONY: precommit-nocover
+precommit-nocover: precommit-check precommit-build unit-test
+
+.PHONY: precommit-check
+precommit-check: check check-tests copyright-check
+
+.PHONY: precommit-build
+precommit-build:
+	go build ./...
+
+.PHONY: unit-test-coverage
+unit-test-coverage:
+	${SCRIPT_DIR}/coverage.sh html
+
+.PHONY: unit-test
+unit-test:
+	go test $$(go list ./... | grep -Ev /tests/e2e)
 
 #
 #  Compliance check targets

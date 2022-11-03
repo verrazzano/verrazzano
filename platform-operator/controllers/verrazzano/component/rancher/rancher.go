@@ -4,52 +4,47 @@
 package rancher
 
 import (
-	"bufio"
 	"context"
+	"crypto/sha256"
+	"encoding/base32"
 	"fmt"
+	"reflect"
 	"strings"
 
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
-	corev1 "k8s.io/api/core/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-// checkRancherUpgradeFailureSig is a function needed for unit test override
-type checkRancherUpgradeFailureSig func(c client.Client, log vzlog.VerrazzanoLogger) (err error)
+// getDynamicClientFuncSig defines the signature for a function that returns a k8s dynamic client
+type getDynamicClientFuncSig func() (dynamic.Interface, error)
 
-// checkRancherUpgradeFailureFunc is the default checkRancherUpgradeFailure function
-var checkRancherUpgradeFailureFunc checkRancherUpgradeFailureSig = checkRancherUpgradeFailure
-
-// fakeCheckRancherUpgradeFailure is the fake checkRancherUpgradeFailure function needed for unit testing
-func fakeCheckRancherUpgradeFailure(_ client.Client, _ vzlog.VerrazzanoLogger) (err error) {
-	return nil
-}
-
-func SetFakeCheckRancherUpgradeFailureFunc() {
-	checkRancherUpgradeFailureFunc = fakeCheckRancherUpgradeFailure
-}
-
-func SetDefaultCheckRancherUpgradeFailureFunc() {
-	checkRancherUpgradeFailureFunc = checkRancherUpgradeFailure
-}
+// getDynamicClientFunc is the function for getting a k8s dynamic client - this allows us to override
+// the function for unit testing
+var getDynamicClientFunc getDynamicClientFuncSig = getDynamicClient
 
 // Constants for Kubernetes resource names
 const (
@@ -59,7 +54,6 @@ const (
 	FleetSystemNamespace      = "cattle-fleet-system"
 	FleetLocalSystemNamespace = "cattle-fleet-local-system"
 	defaultSecretNamespace    = "cert-manager"
-	namespaceLabelKey         = "verrazzano.io/namespace"
 	rancherTLSSecretName      = "tls-ca"
 	defaultVerrazzanoName     = "verrazzano-ca-certificate-secret"
 	fleetAgentDeployment      = "fleet-agent"
@@ -94,15 +88,25 @@ const (
 )
 
 const (
-	SettingServerURL            = "server-url"
-	SettingFirstLogin           = "first-login"
-	KontainerDriverOKE          = "oraclecontainerengine"
-	NodeDriverOCI               = "oci"
-	ClusterLocal                = "local"
-	AuthConfigLocal             = "local"
-	UserVerrazzano              = "u-verrazzano"
-	UserVerrazzanoDescription   = "Verrazzano Admin"
-	GlobalRoleBindingVerrazzano = "grb-" + UserVerrazzano
+	SettingServerURL                  = "server-url"
+	KontainerDriverOKE                = "oraclecontainerengine"
+	NodeDriverOCI                     = "oci"
+	ClusterLocal                      = "local"
+	AuthConfigLocal                   = "local"
+	UserVerrazzano                    = "u-verrazzano"
+	UserVerrazzanoDescription         = "Verrazzano Admin"
+	GlobalRoleBindingVerrazzanoPrefix = "grb-"
+	SettingUIPL                       = "ui-pl"
+	SettingUIPLValueVerrazzano        = "Verrazzano"
+	SettingUILogoLight                = "ui-logo-light"
+	SettingUILogoLightLogoFilePath    = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-light.svg"
+	SettingUILogoDark                 = "ui-logo-dark"
+	SettingUILogoDarkLogoFilePath     = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-dark.svg"
+	SettingUILogoValueprefix          = "data:image/svg+xml;base64,"
+	SettingUIPrimaryColor             = "ui-primary-color"
+	SettingUIPrimaryColorValue        = "rgb(48, 99, 142)"
+	SettingUILinkColor                = "ui-link-color"
+	SettingUILinkColorValue           = "rgb(49, 118, 217)"
 )
 
 // auth config
@@ -117,7 +121,6 @@ const (
 	AuthConfigAttributeEnabled                    = "enabled"
 	AuthConfigKeycloakAttributeGroupSearchEnabled = "groupSearchEnabled"
 	AuthConfigKeycloakAttributeAuthEndpoint       = "authEndpoint"
-	AuthConfigKeycloakAttributeClientSecret       = "clientSecret"
 	AuthConfigKeycloakAttributeIssuer             = "issuer"
 	AuthConfigKeycloakAttributeRancherURL         = "rancherUrl"
 )
@@ -161,7 +164,14 @@ const (
 	UserPrincipalLocalPrefix     = "local://"
 )
 
-var GVKSetting = common.GetRancherMgmtAPIGVKForKind("Setting")
+const (
+	rancherChartsClusterRepoName        = "rancher-charts"
+	rancherPartnerChartsClusterRepoName = "rancher-partner-charts"
+	rancherRke2ChartsClusterRepoName    = "rancher-rke2-charts"
+
+	chartDefaultBranchName = "chart-default-branch"
+)
+
 var GVKCluster = common.GetRancherMgmtAPIGVKForKind("Cluster")
 var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
 var GVKKontainerDriver = common.GetRancherMgmtAPIGVKForKind("KontainerDriver")
@@ -196,6 +206,18 @@ var GroupRolePairs = []map[string]string{
 	},
 }
 
+var cattleSettingsGVR = schema.GroupVersionResource{
+	Group:    "management.cattle.io",
+	Version:  "v3",
+	Resource: "settings",
+}
+
+var cattleClusterReposGVR = schema.GroupVersionResource{
+	Group:    "catalog.cattle.io",
+	Version:  "v1",
+	Resource: "clusterrepos",
+}
+
 func useAdditionalCAs(acme vzapi.Acme) bool {
 	return acme.Environment != "production"
 }
@@ -215,129 +237,65 @@ func getRancherHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 
 // isRancherReady checks that the Rancher component is in a 'Ready' state, as defined
 // in the body of this function
-func isRancherReady(ctx spi.ComponentContext) bool {
+func (r rancherComponent) isRancherReady(ctx spi.ComponentContext) bool {
 	log := ctx.Log()
 	c := ctx.Client()
-
-	// Temporary work around for Rancher issue 36914
-	err := checkRancherUpgradeFailureFunc(c, log)
-	if err != nil {
-		log.ErrorfThrottled("Error checking Rancher pod logs: %s", err.Error())
-		return false
-	}
-
-	deployments := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      rancherWebhookDeployment,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      fleetAgentDeployment,
-			Namespace: FleetLocalSystemNamespace,
-		},
-		{
-			Name:      fleetControllerDeployment,
-			Namespace: FleetSystemNamespace,
-		},
-		{
-			Name:      gitjobDeployment,
-			Namespace: FleetSystemNamespace,
-		},
-	}
-
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsAreReady(log, c, deployments, 1, prefix)
+	return ready.DeploymentsAreReady(log, c, r.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
-// checkRancherUpgradeFailure - temporary work around for Rancher issue 36914. During an upgrade, the Rancher pods
-// are recycled.  When the leader pod is restarted, it is possible that a Rancher 2.5.9 pod could
-// acquire leader and recreate the downloaded helm charts it requires.
-//
-// If one of the Rancher pods is failing to find the rancher-webhook, recycle that pod.
-func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) error {
-	ctx := context.TODO()
-
-	// Get the Rancher pods
-	podList := &corev1.PodList{}
-	err := c.List(ctx, podList, client.InNamespace(ComponentNamespace), client.MatchingLabels{"app": "rancher"})
-	if err != nil {
+// chartsNotUpdatedWorkaround - workaround for VZ-7053, where some of the Helm charts are not
+// getting updated after Rancher upgrade. This workaround will scale the Rancher deployment down
+// and then delete the ClusterRepo resources. This must be done in PreUpgrade. Scaling down is
+// necessary to prevent an old pod from updating the ClusterRepo with an old commit. When Rancher
+// is upgraded, new Rancher pods will start and create new ClusterRepo resources with the correct
+// chart data.
+func chartsNotUpdatedWorkaround(ctx spi.ComponentContext) error {
+	if err := scaleDownRancherDeployment(ctx.Client(), ctx.Log()); err != nil {
 		return err
 	}
-	if len(podList.Items) == 0 {
+	return deleteClusterRepos(ctx.Log())
+}
+
+// scaleDownRancherDeployment scales the Rancher deployment down to zero replicas
+func scaleDownRancherDeployment(c client.Client, log vzlog.VerrazzanoLogger) error {
+	deployment := appsv1.Deployment{}
+	namespacedName := types.NamespacedName{Name: common.RancherName, Namespace: common.CattleSystem}
+	if err := c.Get(context.TODO(), namespacedName, &deployment); err != nil {
+		return client.IgnoreNotFound(err)
+	}
+
+	if deployment.Status.AvailableReplicas == 0 {
+		// deployment is scaled down, we're done
 		return nil
 	}
 
+	if deployment.Spec.Replicas == nil || *deployment.Spec.Replicas > 0 {
+		log.Infof("Scaling down Rancher deployment %v", namespacedName)
+		zero := int32(0)
+		deployment.Spec.Replicas = &zero
+		if err := c.Update(context.TODO(), &deployment); err != nil {
+			return log.ErrorfNewErr("Failed to scale Rancher deployment %v to zero replicas: %v", namespacedName, err)
+		}
+	}
+
+	// return RetryableError so we come back through this function again and check the replicas - repeat
+	// until there are no available replicas
+	log.Progressf("Waiting for Rancher deployment %v to scale down", namespacedName)
+	return ctrlerrors.RetryableError{Source: ComponentName}
+}
+
+// getDynamicClient returns a dynamic k8s client
+func getDynamicClient() (dynamic.Interface, error) {
 	config, err := ctrl.GetConfig()
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	clientSet, err := kubernetes.NewForConfig(config)
+	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	// Check the logs of each pod
-	podsRestarted := false
-	for i, pod := range podList.Items {
-		// Skip pods that are already being deleted
-		if pod.DeletionTimestamp != nil {
-			continue
-		}
-
-		// Skip pods that are not ready, they will get checked again in another call to isReady.
-		if !isPodReady(pod) {
-			continue
-		}
-
-		// Get the pod log stream
-		logStream, err := clientSet.CoreV1().Pods(ComponentNamespace).GetLogs(pod.Name, &corev1.PodLogOptions{Container: "rancher"}).Stream(ctx)
-		if err != nil {
-			return err
-		}
-		defer logStream.Close()
-
-		// Search the stream for the expected text
-		restartPod := false
-		scanner := bufio.NewScanner(logStream)
-		for scanner.Scan() {
-			token := scanner.Text()
-			if strings.Contains(token, "[ERROR] available chart version") {
-				log.Infof("Rancher IsReady: Failed to find system chart for pod %s: %s", pod.Name, token)
-				restartPod = true
-				break
-			}
-		}
-
-		// If the pod is failing to find the system chart for rancher-webhook, the wrong helm charts are
-		// being used by the Rancher pod. Restart the pod. This will cause another Rancher pod to become the leader,
-		// and, if needed, will recreate the custom resources related to the helm charts.
-		if restartPod {
-			// Delete custom resources containing helm charts to use
-			err := deleteClusterRepos(log)
-			if err != nil {
-				return err
-			}
-			log.Infof("Rancher IsReady: Restarting pod %s", pod.Name)
-			err = c.Delete(ctx, &podList.Items[i])
-			if err != nil {
-				return err
-			}
-			podsRestarted = true
-		}
-	}
-
-	// If any pods were restarted, return an error so that the IsReady check will not continue
-	// any further.  Checks will resume again after the pod is ready again.
-	if podsRestarted {
-		return fmt.Errorf("Rancher IsReady: pods were restarted, waiting for them to be ready again")
-	}
-
-	return nil
+	return dynamicClient, nil
 }
 
 // deleteClusterRepos - temporary work around for Rancher issue 36914. On upgrade of Rancher
@@ -345,79 +303,67 @@ func checkRancherUpgradeFailure(c client.Client, log vzlog.VerrazzanoLogger) err
 // helm charts for the previous release of Rancher are used (instead of the charts on the Rancher
 // container image).
 func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
-
-	config, err := ctrl.GetConfig()
+	dynamicClient, err := getDynamicClientFunc()
 	if err != nil {
-		log.Debugf("Rancher IsReady: Failed getting config: %v", err)
+		log.Errorf("Rancher deleteClusterRepos: Failed creating dynamic client: %v", err)
 		return err
-	}
-	dynamicClient, err := dynamic.NewForConfig(config)
-	if err != nil {
-		log.Debugf("Rancher IsReady: Failed creating dynamic client: %v", err)
-		return err
-	}
-
-	// Configure the GVR
-	gvr := schema.GroupVersionResource{
-		Group:    "management.cattle.io",
-		Version:  "v3",
-		Resource: "settings",
 	}
 
 	// Get the name of the default branch for the helm charts
-	name := "chart-default-branch"
-	chartDefaultBranch, err := dynamicClient.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
+	chartDefaultBranch, err := dynamicClient.Resource(cattleSettingsGVR).Get(context.TODO(), chartDefaultBranchName, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return nil
 	}
 	if err != nil {
-		log.Debugf("Rancher IsReady: Failed getting settings.management.cattle.io %s: %v", name, err)
+		log.Errorf("Rancher deleteClusterRepos: Failed getting settings.management.cattle.io %s: %v", chartDefaultBranchName, err)
 		return err
 	}
 
 	// Obtain the name of the default branch from the custom resource
 	defaultBranch, _, err := unstructured.NestedString(chartDefaultBranch.Object, "default")
 	if err != nil {
-		log.Debugf("Rancher IsReady: Failed to find default branch value in settings.management.cattle.io %s: %v", name, err)
+		log.Errorf("Rancher deleteClusterRepos: Failed to find default branch value in settings.management.cattle.io %s: %v", chartDefaultBranchName, err)
 		return err
 	}
 
-	log.Infof("Rancher IsReady: The default release branch is currently set to %s", defaultBranch)
+	log.Infof("Rancher deleteClusterRepos: The default release branch is currently set to %s", defaultBranch)
 
 	// Delete settings.management.cattle.io chart-default-branch
-	err = dynamicClient.Resource(gvr).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	err = dynamicClient.Resource(cattleSettingsGVR).Delete(context.TODO(), chartDefaultBranchName, metav1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
-		log.Debugf("Rancher IsReady: Failed deleting settings.management.cattle.io %s: %v", name, err)
+		log.Errorf("Rancher deleteClusterRepos: Failed deleting settings.management.cattle.io %s: %v", chartDefaultBranchName, err)
 		return err
 	}
-	log.Infof("Rancher IsReady: Deleted settings.management.cattle.io %s", name)
-
-	// Reconfigure the GVR
-	gvr = schema.GroupVersionResource{
-		Group:    "catalog.cattle.io",
-		Version:  "v1",
-		Resource: "clusterrepos",
-	}
+	log.Infof("Rancher deleteClusterRepos: Deleted settings.management.cattle.io %s", chartDefaultBranchName)
 
 	// List of clusterrepos to delete
-	names := []string{"rancher-charts", "rancher-rke2-charts", "rancher-partner-charts"}
+	names := []string{rancherChartsClusterRepoName, rancherPartnerChartsClusterRepoName, rancherRke2ChartsClusterRepoName}
 	for _, name := range names {
-		err = dynamicClient.Resource(gvr).Delete(context.TODO(), name, metav1.DeleteOptions{})
+		err = dynamicClient.Resource(cattleClusterReposGVR).Delete(context.TODO(), name, metav1.DeleteOptions{})
 		if err != nil && !errors.IsNotFound(err) {
-			log.Debugf("Rancher IsReady: Failed deleting clusterrepos.catalog.cattle.io %s: %v", name, err)
+			log.Errorf("Rancher deleteClusterRepos: Failed deleting clusterrepos.catalog.cattle.io %s: %v", name, err)
 			return err
 		}
-		log.Infof("Rancher IsReady: Deleted clusterrepos.catalog.cattle.io %s", name)
+		log.Infof("Rancher deleteClusterRepos: Deleted clusterrepos.catalog.cattle.io %s", name)
 	}
 
 	return nil
 }
 
 // GetOverrides returns install overrides for a component
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.Rancher != nil {
-		return effectiveCR.Spec.Components.Rancher.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Rancher != nil {
+			return effectiveCR.Spec.Components.Rancher.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Rancher != nil {
+			return effectiveCR.Spec.Components.Rancher.ValueOverrides
+		}
+		return []installv1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }
 
@@ -486,7 +432,7 @@ func activatOKEDriver(log vzlog.VerrazzanoLogger, c client.Client) error {
 // putServerURL updates the server-url Setting
 func putServerURL(log vzlog.VerrazzanoLogger, c client.Client, serverURL string) error {
 	serverURLSetting := unstructured.Unstructured{}
-	serverURLSetting.SetGroupVersionKind(GVKSetting)
+	serverURLSetting.SetGroupVersionKind(common.GVKSetting)
 	serverURLSettingName := types.NamespacedName{Name: SettingServerURL}
 	err := c.Get(context.Background(), serverURLSettingName, &serverURLSetting)
 	if err != nil {
@@ -538,39 +484,28 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	authConfig[common.AuthConfigKeycloakAttributeClientSecret] = clientSecret
 	authConfig[AuthConfigKeycloakAttributeIssuer] = keycloakURL + AuthConfigKeycloakURLPathIssuer
 	authConfig[AuthConfigKeycloakAttributeRancherURL] = rancherURL + AuthConfigKeycloakURLPathVerifyAuth
+	authConfig[AuthConfigAttributeEnabled] = true
 
 	return common.UpdateKeycloakOIDCAuthConfig(ctx, authConfig)
 }
 
-// createOrUpdateResource creates or updates a Rancher resource used in the Keycloak OIDC integration
+// createOrUpdateResource creates or updates a Rancher resource
 func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, gvk schema.GroupVersionKind, attributes map[string]interface{}) error {
 	log := ctx.Log()
 	c := ctx.Client()
 	resource := unstructured.Unstructured{}
 	resource.SetGroupVersionKind(gvk)
-	err := c.Get(context.Background(), nsn, &resource)
-	createNew := false
-	if err != nil {
-		if errors.IsNotFound(err) {
-			createNew = true
-			log.Debugf("%s %s does not exist", gvk.Kind, nsn.Name)
-		} else {
-			return log.ErrorfThrottledNewErr("failed configuring %s, unable to fetch %s: %s", gvk.Kind, nsn.Name, err.Error())
+	resource.SetName(nsn.Name)
+	resource.SetNamespace(nsn.Namespace)
+	_, err := controllerutil.CreateOrUpdate(context.Background(), c, &resource, func() error {
+		if len(attributes) > 0 {
+			data := resource.UnstructuredContent()
+			for k, v := range attributes {
+				data[k] = v
+			}
 		}
-	}
-
-	data := resource.UnstructuredContent()
-	for k, v := range attributes {
-		data[k] = v
-	}
-
-	if createNew {
-		resource.SetName(nsn.Name)
-		resource.SetNamespace(nsn.Namespace)
-		err = c.Create(context.Background(), &resource, &client.CreateOptions{})
-	} else {
-		err = c.Update(context.Background(), &resource, &client.UpdateOptions{})
-	}
+		return nil
+	})
 
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring %s %s: %s", gvk.Kind, nsn.Name, err.Error())
@@ -580,32 +515,25 @@ func createOrUpdateResource(ctx spi.ComponentContext, nsn types.NamespacedName, 
 }
 
 // createOrUpdateRancherVerrazzanoUser creates or updates the verrazzano user in Rancher
-func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext) error {
-	log := ctx.Log()
-
-	nsn := types.NamespacedName{Name: UserVerrazzano}
-
-	vzUser, err := keycloak.GetVerrazzanoUserFromKeycloak(ctx)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring verrazzano rancher user, unable to fetch verrazzano user id from keycloak: %s", err.Error())
-	}
-
+func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext, vzUser *keycloak.KeycloakUser, rancherUsername string) error {
+	nsn := types.NamespacedName{Name: rancherUsername}
 	data := map[string]interface{}{}
 	data[UserAttributeUserName] = vzUser.Username
-	data[UserAttributeDisplayName] = strings.Title(vzUser.Username)
-	data[UserAttributeDescription] = strings.Title(UserVerrazzanoDescription)
-	data[UserAttributePrincipalIDs] = []interface{}{UserPrincipalKeycloakPrefix + vzUser.ID, UserPrincipalLocalPrefix + UserVerrazzano}
+	caser := cases.Title(language.English)
+	data[UserAttributeDisplayName] = caser.String(vzUser.Username)
+	data[UserAttributeDescription] = caser.String(UserVerrazzanoDescription)
+	data[UserAttributePrincipalIDs] = []interface{}{UserPrincipalKeycloakPrefix + vzUser.ID, UserPrincipalLocalPrefix + rancherUsername}
 
 	return createOrUpdateResource(ctx, nsn, GVKUser, data)
 }
 
 // createOrUpdateRancherVerrazzanoUserGlobalRoleBinding used to make the verrazzano user admin
-func createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx spi.ComponentContext) error {
-	nsn := types.NamespacedName{Name: GlobalRoleBindingVerrazzano}
+func createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx spi.ComponentContext, rancherUsername string) error {
+	nsn := types.NamespacedName{Name: GlobalRoleBindingVerrazzanoPrefix + rancherUsername}
 
 	data := map[string]interface{}{}
 	data[GlobalRoleBindingAttributeRoleName] = AdminRoleName
-	data[GlobalRoleBindingAttributeUserName] = UserVerrazzano
+	data[GlobalRoleBindingAttributeUserName] = rancherUsername
 
 	return createOrUpdateResource(ctx, nsn, GVKGlobalRoleBinding, data)
 }
@@ -626,7 +554,8 @@ func createOrUpdateRoleTemplate(ctx spi.ComponentContext, role string) error {
 	data := map[string]interface{}{}
 	data[RoleTemplateAttributeBuiltin] = false
 	data[RoleTemplateAttributeContext] = "cluster"
-	data[RoleTemplateAttributeDisplayName] = strings.Title(strings.Replace(role, "-", " ", 1))
+	caser := cases.Title(language.English)
+	data[RoleTemplateAttributeDisplayName] = caser.String(strings.Replace(role, "-", " ", 1))
 	data[RoleTemplateAttributeExternal] = true
 	data[RoleTemplateAttributeHidden] = true
 	if clusterRole.Rules != nil && len(clusterRole.Rules) > 0 {
@@ -649,45 +578,132 @@ func createOrUpdateClusterRoleTemplateBinding(ctx spi.ComponentContext, clusterR
 	return createOrUpdateResource(ctx, nsn, GVKClusterRoleTemplateBinding, data)
 }
 
-// disableOrEnableAuthProvider disables Keycloak as an Auth Provider
-func disableOrEnableAuthProvider(ctx spi.ComponentContext, name string, enable bool) error {
-	log := ctx.Log()
-	c := ctx.Client()
-	authConfig := unstructured.Unstructured{}
-	authConfig.SetGroupVersionKind(common.GVKAuthConfig)
-	authConfigName := types.NamespacedName{Name: name}
-	err := c.Get(context.Background(), authConfigName, &authConfig)
-	if err != nil {
-		return log.ErrorfThrottledNewErr("failed to set enabled to %v for authconfig %s, unable to fetch, error: %s", enable, name, err.Error())
-	}
-
-	authConfigData := authConfig.UnstructuredContent()
-	authConfigData[AuthConfigAttributeEnabled] = enable
-	err = c.Update(context.Background(), &authConfig, &client.UpdateOptions{})
-	if err != nil {
-		return log.ErrorfThrottledNewErr("failed to set enabled to %v for authconfig %s, error: %s", enable, name, err.Error())
-	}
-
-	return nil
-}
-
 // disableFirstLogin disables the verrazzano user first log in
 func disableFirstLogin(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 	c := ctx.Client()
 	firstLoginSetting := unstructured.Unstructured{}
-	firstLoginSetting.SetGroupVersionKind(GVKSetting)
-	firstLoginSettingName := types.NamespacedName{Name: SettingFirstLogin}
+	firstLoginSetting.SetGroupVersionKind(common.GVKSetting)
+	firstLoginSettingName := types.NamespacedName{Name: common.SettingFirstLogin}
 	err := c.Get(context.Background(), firstLoginSettingName, &firstLoginSetting)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed getting first-login Setting: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed getting first-login setting: %s", err.Error())
 	}
 
 	firstLoginSetting.UnstructuredContent()["value"] = "false"
 	err = c.Update(context.Background(), &firstLoginSetting)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed updating first-login Setting: %s", err.Error())
+		return log.ErrorfThrottledNewErr("Failed updating first-login setting: %s", err.Error())
 	}
 
 	return nil
+}
+
+// createOrUpdateUIPlSetting creates/updates the ui-pl setting with value Verrazzano
+func createOrUpdateUIPlSetting(ctx spi.ComponentContext) error {
+	return createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUIPL}, common.GVKSetting, map[string]interface{}{"value": SettingUIPLValueVerrazzano})
+}
+
+// createOrUpdateUILogoSetting updates the ui-logo-* settings
+func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, logoPath string) error {
+	log := ctx.Log()
+	c := ctx.Client()
+	pod, err := k8sutil.GetRunningPodForLabel(c, "app=rancher", "cattle-system", log)
+	if err != nil {
+		return err
+	}
+
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return err
+	}
+
+	logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("cat %s | base64", logoPath)}
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, pod, "rancher", logoCommand)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed execing into Rancher pod %s: %v", stderr, err)
+	}
+
+	if len(stdout) == 0 {
+		return log.ErrorfThrottledNewErr("Invalid empty output from Rancher pod")
+	}
+
+	return createOrUpdateResource(ctx, types.NamespacedName{Name: settingName}, common.GVKSetting, map[string]interface{}{"value": fmt.Sprintf("%s%s", SettingUILogoValueprefix, stdout)})
+}
+
+// createOrUpdateUIColorSettings creates/updates the ui-primary-color and ui-link-color settings
+func createOrUpdateUIColorSettings(ctx spi.ComponentContext) error {
+	err := createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUIPrimaryColor}, common.GVKSetting, map[string]interface{}{"value": SettingUIPrimaryColorValue})
+	if err != nil {
+		return err
+	}
+
+	return createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUILinkColor}, common.GVKSetting, map[string]interface{}{"value": SettingUILinkColorValue})
+}
+
+// getRancherVerrazzanoUserName fetches Rancher user that is mapped to the ID of  Keycloak user verrazzano
+// It checks only for u-verrazzano and u-<hash> users only
+func getRancherVerrazzanoUserName(ctx spi.ComponentContext, vzUser *keycloak.KeycloakUser) (string, error) {
+	c := ctx.Client()
+	resources := unstructured.Unstructured{}
+	nsn := types.NamespacedName{Name: UserVerrazzano}
+	resources.SetGroupVersionKind(GVKUser)
+	resources.SetName(nsn.Name)
+	resources.SetNamespace(nsn.Namespace)
+	userPrincipalKeycloakID := UserPrincipalKeycloakPrefix + vzUser.ID
+	key := client.ObjectKeyFromObject(&resources)
+	err := c.Get(context.TODO(), key, &resources)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			nsn.Name = getUserNameForPrincipal(userPrincipalKeycloakID)
+			err = c.Get(context.TODO(), nsn, &resources)
+		}
+		if err != nil && !errors.IsNotFound(err) {
+			return "", err
+		}
+	}
+	return getUserMappedToPrincipalID(resources, userPrincipalKeycloakID)
+}
+
+// getUserMappedToPrincipalID returns the  Rancher username if the Rancher user contains the specified principalStr
+func getUserMappedToPrincipalID(resource unstructured.Unstructured, principalStr string) (string, error) {
+	data := resource.UnstructuredContent()
+	principleIDs, ok := data[UserAttributePrincipalIDs]
+	if ok {
+		switch reflect.TypeOf(principleIDs).Kind() {
+		case reflect.Slice:
+			listOfPrincipleIDs := reflect.ValueOf(principleIDs)
+			for i := 0; i < listOfPrincipleIDs.Len(); i++ {
+				principleID := listOfPrincipleIDs.Index(i).Interface().(string)
+				if strings.Contains(principleID, principalStr) {
+					return resource.GetName(), nil
+				}
+			}
+		}
+	}
+	return "", nil
+}
+
+// getRancherUsername returns the Rancher username.
+// If there is already Rancher user exists mapped to Keycloak user verrazzano, it will return that existing Rancher username
+// else new Rancher username(created from principal) will be returned.
+func getRancherUsername(ctx spi.ComponentContext, vzUser *keycloak.KeycloakUser) (string, error) {
+	log := ctx.Log()
+	keycloakPrincipal := UserPrincipalKeycloakPrefix + vzUser.ID
+	rancherUserName := getUserNameForPrincipal(keycloakPrincipal)
+	existingUser, err := getRancherVerrazzanoUserName(ctx, vzUser)
+	if err != nil {
+		return "", log.ErrorfThrottledNewErr("failed to check if Rancher user mapped to Keycloak user verrazzano exists or not: %s", err.Error())
+	} else if existingUser != "" { // If Rancher user already exists that is mapped to Keycloak user verrazzano
+		rancherUserName = existingUser
+	}
+	return rancherUserName, nil
+}
+
+// getUserNameForPrincipal return the Rancher username created from principal
+func getUserNameForPrincipal(principal string) string {
+	hasher := sha256.New()
+	hasher.Write([]byte(principal))
+	sha := base32.StdEncoding.WithPadding(-1).EncodeToString(hasher.Sum(nil))[:10]
+	return "u-" + strings.ToLower(sha)
 }

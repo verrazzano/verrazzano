@@ -49,7 +49,11 @@ pipeline {
         choice (name: 'OKE_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
                 // 1st choice is the default value
-                choices: [ "v1.22.5", "v1.23.4", "v1.24.1", "v1.21.5", "v1.20.8" ])
+                choices: [ "v1.24.1", "v1.23.4", "v1.22.5", "v1.21.5" ])
+        choice (name: 'CRD_API_VERSION',
+                description: 'This is the API crd version.',
+                // 1st choice is the default value
+                choices: [ "v1beta1", "v1alpha1"])
         booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS',
                       defaultValue: false,
                       description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)')
@@ -67,6 +71,9 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to persist object store bucket', name: 'DELETE_BUCKET', defaultValue: true)
+        booleanParam (description: 'Whether to execute MySQL backup tests', name: 'MYSQL_BACKUP', defaultValue: true)
+        booleanParam (description: 'Whether to execute OpenSearch backup tests', name: 'OPENSEARCH_BACKUP', defaultValue: true)
+        booleanParam (description: 'Whether to execute Rancher backup tests', name: 'RANCHER_BACKUP', defaultValue: true)
     }
 
     environment {
@@ -113,7 +120,7 @@ pipeline {
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         LOOPING_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/looping-test"
         UNINSTALL_TEST_SCRIPTS_DIR = "${TEST_SCRIPTS_DIR}/uninstall-test"
-        INSTALL_CONFIG_FILE = "./tests/e2e/config/scripts/install-verrazzano-kind-backup-enabled.yaml"
+        INSTALL_CONFIG_FILE = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-oke-backup-enabled.yaml"
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password')
         DATABASE_PSW = credentials('todo-mysql-password')
 
@@ -165,9 +172,10 @@ pipeline {
                 sh """
                     echo "${NODE_LABELS}"
                 """
+
                 script {
-                   EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
-                   if (params.GIT_COMMIT_TO_USE == "NONE") {
+                    EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
+                    if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
                         def scmInfo = checkout scm
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
@@ -191,6 +199,7 @@ pipeline {
                     }
                     echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
                 }
+
                 sh """
                     cp -f "${NETRC_FILE}" $HOME/.netrc
                     chmod 600 $HOME/.netrc
@@ -198,9 +207,9 @@ pipeline {
 
                 script {
                     try {
-                        sh """
-                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
-                        """
+                    sh """
+                        echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                    """
                     } catch(error) {
                         echo "docker login failed, retrying after sleep"
                         retry(4) {
@@ -211,16 +220,10 @@ pipeline {
                         }
                     }
                 }
-
                 sh """
                     rm -rf ${GO_REPO_PATH}/verrazzano
                     mkdir -p ${GO_REPO_PATH}/verrazzano
                     tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
-                    cd ${GO_REPO_PATH}/verrazzano
-                    git config --global credential.helper "!f() { echo username=\\$DOCKER_CREDS_USR; echo password=\\$DOCKER_CREDS_PSW; }; f"
-                    git config --global user.name $DOCKER_CREDS_USR
-                    git config --global user.email "${DOCKER_EMAIL}"
-                    git checkout -b ${env.BRANCH_NAME}
                 """
 
                 script {
@@ -231,15 +234,15 @@ pipeline {
                     DOCKER_IMAGE_TAG = "${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     // update the description with some meaningful info
                     setDisplayName()
-                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
+                    currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
 
                     // derive the prefix for the OKE cluster
                     OKE_CLUSTER_PREFIX = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_oke_cluster_name.sh").trim()
 
                     // Derive Kubernetes version, which is used to set the value for a label in the metrics emitted by the tests
                     env.K8S_VERSION_LABEL = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_kubernetes_version.sh ${params.OKE_CLUSTER_VERSION}").trim()
-                }
 
+                }
                 script {
                     sh """
                         echo "Downloading VZ CLI from object storage"
@@ -247,7 +250,7 @@ pipeline {
                         tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
                         ${GO_REPO_PATH}/vz version
                     """
-                 }
+                }
             }
         }
 
@@ -355,7 +358,21 @@ pipeline {
             }
         }
 
+        stage('verify-install') {
+            steps {
+                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+                    sh """
+                        cd ${WORKSPACE}/tests/e2e
+                        ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
+                    """
+                }
+            }
+        }
+
         stage('Initiate opensearch backup hook tests') {
+            when {
+                expression {params.OPENSEARCH_BACKUP == true}
+            }
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
             }
@@ -379,6 +396,9 @@ pipeline {
         }
 
         stage('Initiate rancher backup operator tests') {
+            when {
+                expression {params.RANCHER_BACKUP == true}
+            }
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/rancher"
             }
@@ -398,13 +418,19 @@ pipeline {
             }
         }
 
-        stage('Initiate Mysql backup and restore tests') {
+        stage('Initiate mysql-operator backup restore tests') {
+            when {
+                expression {params.MYSQL_BACKUP == true}
+            }
             environment {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/mysql"
             }
             steps {
+                echoAllPodInfo()
                 waitForPodsToBeUp("keycloak")
                 runGinkgoRandomize('backup/mysql')
+                println("Wait for pods in keycloak to be ready")
+                waitForPodsToBeUp("keycloak")
             }
             post {
                 always {
@@ -469,6 +495,12 @@ pipeline {
             deleteDir()
         }
     }
+}
+
+def echoAllPodInfo() {
+    sh """
+         kubectl get pod -A
+    """
 }
 
 def createBucket(bucketName) {

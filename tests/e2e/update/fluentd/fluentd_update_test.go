@@ -4,17 +4,22 @@
 package fluentd
 
 import (
+	"fmt"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
+	"github.com/onsi/gomega"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	pcons "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"time"
 )
 
 const (
-	labelValidation = "f:platform-lcm.fluentd-update-validation"
-	opensearchURL   = "https://opensearch.example.com:9200"
+	labelValidation      = "f:platform-lcm.fluentd-update-validation"
+	opensearchURL        = "https://opensearch.example.com:9200"
+	opensearchURLV1beta1 = "https://opensearch.v1beta1.example.com:9200"
 )
 
 var (
@@ -30,13 +35,19 @@ var (
 var _ = t.AfterSuite(func() {
 	pkg.DeleteSecret(pcons.VerrazzanoInstallNamespace, extEsSec)
 	pkg.DeleteSecret(pcons.VerrazzanoInstallNamespace, wrongSec)
-	ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
+	start := time.Now()
+	gomega.Eventually(func() bool {
+		return ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
+	}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
 })
 
 var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 	t.Describe("fluentd verify", Label("f:platform-lcm.fluentd-verify"), func() {
 		t.It("fluentd default config", func() {
-			ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
+			start := time.Now()
+			gomega.Eventually(func() bool {
+				return ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
+			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
 		})
 	})
 
@@ -46,19 +57,37 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 				ElasticsearchSecret: extEsSec + "missing",
 				ElasticsearchURL:    opensearchURL,
 			}}
-			ValidateUpdate(m, "must be created")
+			expectedError := "must be created"
+			ValidateUpdate(m, expectedError)
 		})
 	})
 
 	t.Describe("Update external Opensearch", Label("f:platform-lcm.fluentd-external-opensearch"), func() {
 		t.It("external Opensearch", func() {
 			pkg.CreateCredentialsSecret(pcons.VerrazzanoInstallNamespace, extEsSec, "user", "pw", map[string]string{})
-			m := &FluentdModifier{Component: vzapi.FluentdComponent{
+			v1alpha1Modifier := &FluentdModifier{Component: vzapi.FluentdComponent{
 				ElasticsearchSecret: extEsSec,
 				ElasticsearchURL:    opensearchURL,
 			}}
-			ValidateUpdate(m, "")
-			ValidateDaemonset(opensearchURL, extEsSec, "")
+			v1beta1Modifier := &FluentdModifierV1beta1{Component: v1beta1.FluentdComponent{
+				OpenSearchSecret: extEsSec,
+				OpenSearchURL:    opensearchURLV1beta1,
+			}}
+
+			// Update CR using v1alpha1 API client.
+			ValidateUpdate(v1alpha1Modifier, "")
+			start := time.Now()
+			gomega.Eventually(func() bool {
+				return ValidateDaemonset(opensearchURL, extEsSec, "")
+			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", opensearchURL, time.Since(start)))
+
+			//Update CR using v1beta1 API client.
+			ValidateUpdateV1beta1(v1beta1Modifier, "")
+
+			start = time.Now()
+			gomega.Eventually(func() bool {
+				return ValidateDaemonsetV1beta1(opensearchURLV1beta1, extEsSec, "")
+			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", opensearchURLV1beta1, time.Since(start)))
 		})
 	})
 
@@ -67,9 +96,13 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			m := &FluentdModifier{Component: vzapi.FluentdComponent{
 				OCI: &vzapi.OciLoggingConfiguration{APISecret: wrongSec},
 			}}
-			ValidateUpdate(m, "must be created")
+			expectedError1 := "must be created"
+			ValidateUpdate(m, expectedError1)
+
 			pkg.CreateCredentialsSecret(pcons.VerrazzanoInstallNamespace, wrongSec, "api", "pw", map[string]string{})
-			ValidateUpdate(m, "Did not find OCI configuration")
+
+			expectedError2 := "Did not find OCI configuration"
+			ValidateUpdate(m, expectedError2)
 		})
 	})
 
@@ -82,8 +115,16 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 				DefaultAppLogID: defLogID,
 			}}}
 			ValidateUpdate(m, "")
-			ValidateDaemonset("", "", ociLgSec)
-			ValidateConfigMap(sysLogID, defLogID)
+
+			start := time.Now()
+			gomega.Eventually(func() bool {
+				return ValidateDaemonset("", "", ociLgSec)
+			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", "", time.Since(start)))
+
+			gomega.Eventually(func() bool {
+				return ValidateConfigMap(sysLogID, defLogID)
+			}, shortWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("ConfigMap %s is not ready", fluentdName+"-config"))
+
 		})
 	})
 
@@ -92,7 +133,8 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 			m := &FluentdModifier{Component: vzapi.FluentdComponent{
 				ExtraVolumeMounts: []vzapi.VolumeMount{{Source: "/var/log"}},
 			}}
-			ValidateUpdate(m, "duplicate mount path found")
+			expectedError := "duplicate mount path found"
+			ValidateUpdate(m, expectedError)
 		})
 	})
 
@@ -103,7 +145,11 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 				ExtraVolumeMounts: []vzapi.VolumeMount{vm},
 			}}
 			ValidateUpdate(m, "")
-			ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "", vm)
+
+			start := time.Now()
+			gomega.Eventually(func() bool {
+				return ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "", vm)
+			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
 		})
 	})
 })

@@ -7,14 +7,16 @@ import (
 	"context"
 	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -102,15 +104,9 @@ func AppendApplicationOperatorOverrides(compContext spi.ComponentContext, _ stri
 }
 
 // isApplicationOperatorReady checks if the application operator deployment is ready
-func isApplicationOperatorReady(ctx spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c applicationOperatorComponent) isApplicationOperatorReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return status.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 // Add label/annotations required by Helm to the Verrazzano installed trait definitions.  Originally, the
@@ -194,9 +190,18 @@ func labelAnnotateWorkloadDefinitions(c client.Client) error {
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.ApplicationOperator != nil {
-		return effectiveCR.Spec.Components.ApplicationOperator.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.ApplicationOperator != nil {
+			return effectiveCR.Spec.Components.ApplicationOperator.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*v1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.ApplicationOperator != nil {
+			return effectiveCR.Spec.Components.ApplicationOperator.ValueOverrides
+		}
+		return []v1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }

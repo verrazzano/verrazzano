@@ -51,7 +51,7 @@ func GetInstanceInfo(ctx spi.ComponentContext) *v1alpha1.InstanceInfo {
 		ConsoleURL:    consoleURL,
 		RancherURL:    getComponentIngressURL(ingressList.Items, ctx, rancher.ComponentName, constants.RancherIngress),
 		KeyCloakURL:   getComponentIngressURL(ingressList.Items, ctx, keycloak.ComponentName, constants.KeycloakIngress),
-		ElasticURL:    getComponentIngressURL(ingressList.Items, ctx, opensearch.ComponentName, constants.ElasticsearchIngress),
+		ElasticURL:    getComponentIngressURL(ingressList.Items, ctx, opensearch.ComponentName, constants.OpensearchIngress),
 		KibanaURL:     getComponentIngressURL(ingressList.Items, ctx, opensearchdashboards.ComponentName, constants.KibanaIngress),
 		GrafanaURL:    getComponentIngressURL(ingressList.Items, ctx, grafana.ComponentName, constants.GrafanaIngress),
 		PrometheusURL: getComponentIngressURL(ingressList.Items, ctx, promoperator.ComponentName, constants.PrometheusIngress),

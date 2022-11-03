@@ -21,8 +21,8 @@ import (
 
 // TestMetricsTraitDefaulter_Default tests adding a default MetricsTrait to an appconfig
 // GIVEN a AppConfigDefaulter and an appconfig
-//  WHEN Default is called with an appconfig
-//  THEN Default should add a default MetricsTrait to the appconfig if supported
+// WHEN Default is called with an appconfig
+// THEN Default should add a default MetricsTrait to the appconfig if supported
 func TestMetricsTraitDefaulter_Default(t *testing.T) {
 	testDefaulter(t, "hello-comp.yaml", "hello-conf.yaml", "hello-workload.yaml", true,
 		0, 1)
@@ -36,8 +36,8 @@ func TestMetricsTraitDefaulter_Default(t *testing.T) {
 
 // TestMetricsTraitDefaulter_Cleanup tests cleaning up the default MetricsTrait on an appconfig
 // GIVEN a AppConfigDefaulter and an appconfig
-//  WHEN Cleanup is called with an appconfig
-//  THEN Cleanup should run without error
+// WHEN Cleanup is called with an appconfig
+// THEN Cleanup should run without error
 func TestMetricsTraitDefaulter_Cleanup(t *testing.T) {
 	testMetricsTraitDefaulterCleanup(t, "hello-conf.yaml", false)
 	testMetricsTraitDefaulterCleanup(t, "hello-conf.yaml", true)

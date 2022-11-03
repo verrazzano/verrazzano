@@ -18,6 +18,11 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	cmutil "github.com/jetstack/cert-manager/pkg/api/util"
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
@@ -25,6 +30,7 @@ import (
 	certv1client "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzresource "github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -33,7 +39,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -55,6 +60,9 @@ const (
 	caCertCommonName            = "verrazzano-root-ca"
 	verrazzanoClusterIssuerName = "verrazzano-cluster-issuer"
 	clusterResourceNamespaceKey = "clusterResourceNamespace"
+
+	longestSystemURLPrefix = "elasticsearch.vmi.system"
+	preOccupiedspace       = len(longestSystemURLPrefix) + 2
 
 	crdDirectory  = "/cert-manager/"
 	crdInputFile  = "cert-manager.crds.yaml"
@@ -188,7 +196,7 @@ type getCertManagerClientFuncType func() (certv1client.CertmanagerV1Interface, e
 
 var getCMClientFunc getCertManagerClientFuncType = GetCertManagerClientset
 
-//GetCertManagerClientset Get a CertManager clientset object
+// GetCertManagerClientset Get a CertManager clientset object
 func GetCertManagerClientset() (certv1client.CertmanagerV1Interface, error) {
 	cfg, err := controllerruntime.GetConfig()
 	if err != nil {
@@ -219,7 +227,8 @@ func checkRenewAllCertificates(compContext spi.ComponentContext, isCAConfig bool
 		return err
 	}
 	// Obtain the CA Common Name for comparison
-	issuerCNs, err := findIssuerCommonName(compContext.EffectiveCR().Spec.Components.CertManager.Certificate, isCAConfig)
+	comp := vzapi.ConvertCertManagerToV1Beta1(compContext.EffectiveCR().Spec.Components.CertManager)
+	issuerCNs, err := findIssuerCommonName(comp.Certificate, isCAConfig)
 	if err != nil {
 		return err
 	}
@@ -230,7 +239,7 @@ func checkRenewAllCertificates(compContext spi.ComponentContext, isCAConfig bool
 	return nil
 }
 
-//updateCerts Loop through the certs, and issue a renew request if necessary
+// updateCerts Loop through the certs, and issue a renew request if necessary
 func updateCerts(ctx context.Context, log vzlog.VerrazzanoLogger, cmClient certv1client.CertmanagerV1Interface, issuerCNs []string, certList certv1.CertificateList) error {
 	for index, currentCert := range certList.Items {
 		if currentCert.Name == caCertificateName {
@@ -256,7 +265,7 @@ func updateCerts(ctx context.Context, log vzlog.VerrazzanoLogger, cmClient certv
 	return nil
 }
 
-//getCertIssuerCommonName Gets the CN of the current issuer from the specified Cert secret
+// getCertIssuerCommonName Gets the CN of the current issuer from the specified Cert secret
 func getCertIssuerCommonName(currentCert certv1.Certificate) (string, error) {
 	secret, err := getSecret(currentCert.Namespace, currentCert.Spec.SecretName)
 	if err != nil {
@@ -269,7 +278,7 @@ func getCertIssuerCommonName(currentCert certv1.Certificate) (string, error) {
 	return certIssuerCN, nil
 }
 
-//renewCertificate Requests a new certificate by updating the status of the Certificate object to "Issuing"
+// renewCertificate Requests a new certificate by updating the status of the Certificate object to "Issuing"
 func renewCertificate(ctx context.Context, cmclientv1 certv1client.CertmanagerV1Interface, log vzlog.VerrazzanoLogger, updateCert *certv1.Certificate) error {
 	// Update the certificate status to start a renewal; avoid using controllerruntime.CreateOrUpdate(), while
 	// it should only do an update we don't want to accidentally create a updateCert
@@ -290,7 +299,7 @@ func renewCertificate(ctx context.Context, cmclientv1 certv1client.CertmanagerV1
 	return nil
 }
 
-//cleanupFailedCertificateRequests Delete any failed certificate requests associated with a certificate
+// cleanupFailedCertificateRequests Delete any failed certificate requests associated with a certificate
 func cleanupFailedCertificateRequests(ctx context.Context, cmclientv1 certv1client.CertmanagerV1Interface, log vzlog.VerrazzanoLogger, updateCert *certv1.Certificate) error {
 	crNamespaceClient := cmclientv1.CertificateRequests(updateCert.Namespace)
 	list, err := crNamespaceClient.List(ctx, metav1.ListOptions{})
@@ -388,26 +397,12 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 }
 
 // isCertManagerReady checks the state of the expected cert-manager deployments and returns true if they are in a ready state
-func isCertManagerReady(context spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      certManagerDeploymentName,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      cainjectorDeploymentName,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      webhookDeploymentName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c certManagerComponent) isCertManagerReady(context spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	return status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(context.Log(), context.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
-//writeCRD writes out CertManager CRD manifests with OCI DNS specifications added
+// writeCRD writes out CertManager CRD manifests with OCI DNS specifications added
 // reads the input CRD file line by line, adding OCI DNS snippets
 func writeCRD(inFilePath, outFilePath string, useOCIDNS bool) error {
 	infile, err := os.Open(inFilePath)
@@ -463,7 +458,7 @@ func writeCRD(inFilePath, outFilePath string, useOCIDNS bool) error {
 	}
 }
 
-//createSnippetWithPadding left pads the OCI DNS snippet with a fixed amount of padding
+// createSnippetWithPadding left pads the OCI DNS snippet with a fixed amount of padding
 func createSnippetWithPadding(padding string) []byte {
 	builder := strings.Builder{}
 	for _, line := range ociDNSSnippet {
@@ -477,31 +472,31 @@ func createSnippetWithPadding(padding string) []byte {
 
 // Check if cert-type is CA, if not it is assumed to be Acme
 func isCA(compContext spi.ComponentContext) (bool, error) {
-	return validateConfiguration(compContext.EffectiveCR())
+	comp := vzapi.ConvertCertManagerToV1Beta1(compContext.EffectiveCR().Spec.Components.CertManager)
+	return validateConfiguration(comp)
 }
 
 // validateConfiguration Checks if the configuration is valid and is a CA configuration
 // - returns true if it is a CA configuration, false if not
 // - returns an error if both CA and ACME settings are configured
-func validateConfiguration(cr *vzapi.Verrazzano) (isCA bool, err error) {
-	components := cr.Spec.Components
-	if components.CertManager == nil {
+func validateConfiguration(comp *v1beta1.CertManagerComponent) (isCA bool, err error) {
+	if comp == nil {
 		// Is default CA configuration
 		return true, nil
 	}
 	// Check if Ca or Acme is empty
-	caNotEmpty := components.CertManager.Certificate.CA != vzapi.CA{}
-	acmeNotEmpty := components.CertManager.Certificate.Acme != vzapi.Acme{}
+	caNotEmpty := comp.Certificate.CA != v1beta1.CA{}
+	acmeNotEmpty := comp.Certificate.Acme != v1beta1.Acme{}
 	if caNotEmpty && acmeNotEmpty {
 		return false, errors.New("Certificate object Acme and CA cannot be simultaneously populated")
 	}
 	if caNotEmpty {
-		if err := validateCAConfiguration(components.CertManager.Certificate.CA); err != nil {
+		if err := validateCAConfiguration(comp.Certificate.CA); err != nil {
 			return true, err
 		}
 		return true, nil
 	} else if acmeNotEmpty {
-		if err := validateAcmeConfiguration(components.CertManager.Certificate.Acme); err != nil {
+		if err := validateAcmeConfiguration(comp.Certificate.Acme); err != nil {
 			return false, err
 		}
 		return false, nil
@@ -509,7 +504,7 @@ func validateConfiguration(cr *vzapi.Verrazzano) (isCA bool, err error) {
 	return false, errors.New("Either Acme or CA certificate authorities must be configured")
 }
 
-func validateCAConfiguration(ca vzapi.CA) error {
+func validateCAConfiguration(ca v1beta1.CA) error {
 	if ca.SecretName == constants.DefaultVerrazzanoCASecretName && ca.ClusterResourceNamespace == ComponentNamespace {
 		// if it's the default self-signed config the secret won't exist until created by CertManager
 		return nil
@@ -519,7 +514,7 @@ func validateCAConfiguration(ca vzapi.CA) error {
 	return err
 }
 
-func getCASecret(ca vzapi.CA) (*v1.Secret, error) {
+func getCASecret(ca v1beta1.CA) (*v1.Secret, error) {
 	name := ca.SecretName
 	namespace := ca.ClusterResourceNamespace
 	return getSecret(namespace, name)
@@ -533,8 +528,8 @@ func getSecret(namespace string, name string) (*v1.Secret, error) {
 	return v1Client.Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
-//validateAcmeConfiguration Validate the ACME/LetsEncrypt values
-func validateAcmeConfiguration(acme vzapi.Acme) error {
+// validateAcmeConfiguration Validate the ACME/LetsEncrypt values
+func validateAcmeConfiguration(acme v1beta1.Acme) error {
 	if !isLetsEncryptProvider(acme) {
 		return fmt.Errorf("Invalid ACME certificate provider %v", acme.Provider)
 	}
@@ -547,15 +542,15 @@ func validateAcmeConfiguration(acme vzapi.Acme) error {
 	return nil
 }
 
-func isLetsEncryptProvider(acme vzapi.Acme) bool {
+func isLetsEncryptProvider(acme v1beta1.Acme) bool {
 	return strings.ToLower(string(acme.Provider)) == strings.ToLower(string(vzapi.LetsEncrypt))
 }
 
-func isLetsEncryptStagingEnv(acme vzapi.Acme) bool {
+func isLetsEncryptStagingEnv(acme v1beta1.Acme) bool {
 	return strings.ToLower(acme.Environment) == letsEncryptStaging
 }
 
-func isLetsEncryptProductionEnv(acme vzapi.Acme) bool {
+func isLetsEncryptProductionEnv(acme v1beta1.Acme) bool {
 	return strings.ToLower(acme.Environment) == letsencryptProduction
 }
 
@@ -564,7 +559,7 @@ func isLetsEncryptStaging(compContext spi.ComponentContext) bool {
 	return acmeEnvironment != "" && strings.ToLower(acmeEnvironment) != "production"
 }
 
-//createOrUpdateAcmeResources Create or update the ACME ClusterIssuer
+// createOrUpdateAcmeResources Create or update the ACME ClusterIssuer
 // - returns OperationResultNone/error on error
 // - returns OperationResultCreated/nil if the CI is created (initial install)
 // - returns OperationResultUpdated/nil if the CI is updated
@@ -670,7 +665,7 @@ func createAcmeCusterIssuerLookupObject(log vzlog.VerrazzanoLogger) (*unstructur
 
 }
 
-//createOrUpdateCAResources Create or update the CA ClusterIssuer
+// createOrUpdateCAResources Create or update the CA ClusterIssuer
 // - returns OperationResultNone/error on error
 // - returns OperationResultCreated/nil if the CI is created (initial install)
 // - returns OperationResultUpdated/nil if the CI is updated
@@ -755,22 +750,22 @@ func createOrUpdateCAResources(compContext spi.ComponentContext) (controllerutil
 	return opResult, nil
 }
 
-func findIssuerCommonName(certificate vzapi.Certificate, isCAValue bool) ([]string, error) {
+func findIssuerCommonName(certificate v1beta1.Certificate, isCAValue bool) ([]string, error) {
 	if isCAValue {
 		return extractCACommonName(certificate.CA)
 	}
 	return getACMEIssuerName(certificate.Acme)
 }
 
-//getACMEIssuerName Let's encrypt certificates are published, and the intermediate signing CA CNs are well-known
-func getACMEIssuerName(acme vzapi.Acme) ([]string, error) {
+// getACMEIssuerName Let's encrypt certificates are published, and the intermediate signing CA CNs are well-known
+func getACMEIssuerName(acme v1beta1.Acme) ([]string, error) {
 	if isLetsEncryptProductionEnv(acme) {
 		return letsEncryptProductionCACommonNames, nil
 	}
 	return letsEncryptStagingCACommonNames, nil
 }
 
-func extractCACommonName(ca vzapi.CA) ([]string, error) {
+func extractCACommonName(ca v1beta1.CA) ([]string, error) {
 	secret, err := getCASecret(ca)
 	if err != nil {
 		return []string{}, err
@@ -930,9 +925,70 @@ func deleteObject(client crtclient.Client, name string, namespace string, object
 }
 
 // GetOverrides gets the install overrides
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.CertManager != nil {
+			return effectiveCR.Spec.Components.CertManager.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	}
+	effectiveCR := object.(*v1beta1.Verrazzano)
 	if effectiveCR.Spec.Components.CertManager != nil {
 		return effectiveCR.Spec.Components.CertManager.ValueOverrides
 	}
-	return []vzapi.Overrides{}
+	return []v1beta1.Overrides{}
+}
+
+// validateLongestHostName validates that the longest possible host name for a system endpoint
+// is not greater than 64 characters
+func validateLongestHostName(effectiveCR runtime.Object) error {
+	envName := getEnvironmentName(effectiveCR)
+	dnsSuffix, wildcard := getDNSSuffix(effectiveCR)
+	spaceOccupied := preOccupiedspace
+	longestHostName := fmt.Sprintf("%s.%s.%s", longestSystemURLPrefix, envName, dnsSuffix)
+	if len(longestHostName) > 64 {
+		if wildcard {
+			spaceOccupied = spaceOccupied + len(dnsSuffix)
+			return fmt.Errorf("spec.environmentName %s is too long. For the given configuration it must have at most %v characters", envName, 64-spaceOccupied)
+		}
+
+		return fmt.Errorf("spec.environmentName %s and DNS suffix %s are too long. For the given configuration they must have at most %v characters in combination", envName, dnsSuffix, 64-spaceOccupied)
+	}
+	return nil
+}
+
+func getEnvironmentName(effectiveCR runtime.Object) string {
+	if cr, ok := effectiveCR.(*vzapi.Verrazzano); ok {
+		return cr.Spec.EnvironmentName
+	}
+	cr := effectiveCR.(*v1beta1.Verrazzano)
+	return cr.Spec.EnvironmentName
+}
+
+func getDNSSuffix(effectiveCR runtime.Object) (string, bool) {
+	dnsSuffix, wildcard := "0.0.0.0", true
+	if cr, ok := effectiveCR.(*vzapi.Verrazzano); ok {
+		if cr.Spec.Components.DNS == nil || cr.Spec.Components.DNS.Wildcard != nil {
+			return fmt.Sprintf("%s.%s", dnsSuffix, vzconfig.GetWildcardDomain(cr.Spec.Components.DNS)), wildcard
+		} else if cr.Spec.Components.DNS.OCI != nil {
+			wildcard = false
+			dnsSuffix = cr.Spec.Components.DNS.OCI.DNSZoneName
+		} else if cr.Spec.Components.DNS.External != nil {
+			wildcard = false
+			dnsSuffix = cr.Spec.Components.DNS.External.Suffix
+		}
+		return dnsSuffix, wildcard
+	}
+
+	cr := effectiveCR.(*v1beta1.Verrazzano)
+	if cr.Spec.Components.DNS == nil || cr.Spec.Components.DNS.Wildcard != nil {
+		return fmt.Sprintf("%s.%s", dnsSuffix, vzconfig.GetWildcardDomain(cr.Spec.Components.DNS)), wildcard
+	} else if cr.Spec.Components.DNS.OCI != nil {
+		wildcard = false
+		dnsSuffix = cr.Spec.Components.DNS.OCI.DNSZoneName
+	} else if cr.Spec.Components.DNS.External != nil {
+		wildcard = false
+		dnsSuffix = cr.Spec.Components.DNS.External.Suffix
+	}
+	return dnsSuffix, wildcard
 }

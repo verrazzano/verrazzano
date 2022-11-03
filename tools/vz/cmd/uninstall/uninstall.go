@@ -13,6 +13,7 @@ import (
 
 	"github.com/spf13/cobra"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -20,13 +21,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -54,7 +55,7 @@ func setWaitRetries(retries int) { uninstallWaitRetries = retries }
 func resetWaitRetries()          { uninstallWaitRetries = uninstallDefaultWaitRetries }
 
 var propagationPolicy = metav1.DeletePropagationBackground
-var deleteOptions = &clipkg.DeleteOptions{PropagationPolicy: &propagationPolicy}
+var deleteOptions = &client.DeleteOptions{PropagationPolicy: &propagationPolicy}
 
 var logsEnum = cmdhelpers.LogFormatSimple
 
@@ -67,6 +68,7 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 
 	cmd.PersistentFlags().Bool(constants.WaitFlag, constants.WaitFlagDefault, constants.WaitFlagHelp)
 	cmd.PersistentFlags().Duration(constants.TimeoutFlag, time.Minute*30, constants.TimeoutFlagHelp)
+	cmd.PersistentFlags().Duration(constants.VPOTimeoutFlag, time.Minute*5, constants.VPOTimeoutFlagHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 
 	// Remove CRD's flag is still being discussed - keep hidden for now
@@ -76,6 +78,9 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	// Dry run flag is still being discussed - keep hidden for now
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an uninstall.")
 	_ = cmd.PersistentFlags().MarkHidden(constants.DryRunFlag)
+
+	// Hide the flag for overriding the default wait timeout for the platform-operator
+	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
 
 	return cmd
 }
@@ -113,7 +118,7 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	}
 
 	// Get the timeout value for the uninstall command.
-	timeout, err := cmdhelpers.GetWaitTimeout(cmd)
+	timeout, err := cmdhelpers.GetWaitTimeout(cmd, constants.TimeoutFlag)
 	if err != nil {
 		return err
 	}
@@ -124,28 +129,33 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return err
 	}
 
-	// Delete the Verrazzano custom resource.
-	err = client.Delete(context.TODO(), vz)
-	if err != nil {
-		return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
-	}
-	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Uninstalling Verrazzano\n")
-
-	var podName string
-	if useUninstallJob {
-		// Get the uninstall job for streaming the logs
-		jobName := constants.VerrazzanoUninstall + "-" + vz.Name
-		podName, err = getUninstallJobPodName(client, vzHelper, jobName)
-	} else {
-		// Get the VPO pod for streaming the logs
-		podName, err = cmdhelpers.GetVerrazzanoPlatformOperatorPodName(client)
-	}
+	// Get the VPO timeout
+	vpoTimeout, err := cmdhelpers.GetWaitTimeout(cmd, constants.VPOTimeoutFlag)
 	if err != nil {
 		return err
 	}
 
+	// Delete the Verrazzano custom resource.
+	err = client.Delete(context.TODO(), vz)
+	if err != nil {
+		// Try to delete the resource as v1alpha1 if the v1beta1 API version did not match
+		if meta.IsNoMatchError(err) {
+			vzV1Alpha1 := &v1alpha1.Verrazzano{}
+			err = vzV1Alpha1.ConvertFrom(vz)
+			if err != nil {
+				return failedToUninstallErr(err)
+			}
+			if err := client.Delete(context.TODO(), vzV1Alpha1); err != nil {
+				return failedToUninstallErr(err)
+			}
+		} else {
+			return failedToUninstallErr(err)
+		}
+	}
+	_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), "Uninstalling Verrazzano\n")
+
 	// Wait for the Verrazzano uninstall to complete.
-	err = waitForUninstallToComplete(client, kubeClient, vzHelper, podName, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, logFormat, useUninstallJob)
+	err = waitForUninstallToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat, useUninstallJob)
 	if err != nil {
 		return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
 	}
@@ -155,7 +165,7 @@ func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 
 // cleanupResources deletes remaining resources that remain after the Verrazzano resource in uninstalled
 // Resources that fail to delete will log an error but will not return
-func cleanupResources(client clipkg.Client, vzHelper helpers.VZHelper) {
+func cleanupResources(client client.Client, vzHelper helpers.VZHelper) {
 	// Delete verrazzano-install namespace
 	err := deleteNamespace(client, constants.VerrazzanoInstall)
 	if err != nil {
@@ -163,7 +173,17 @@ func cleanupResources(client clipkg.Client, vzHelper helpers.VZHelper) {
 	}
 
 	// Delete other verrazzano resources
-	err = deleteWebhookConfiguration(client, constants.VerrazzanoPlatformOperator)
+	err = deleteWebhookConfiguration(client, constants.VerrazzanoPlatformOperatorWebhook)
+	if err != nil {
+		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+	}
+
+	err = deleteWebhookConfiguration(client, constants.VerrazzanoMysqlInstallValuesWebhook)
+	if err != nil {
+		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+	}
+
+	err = deleteMutatingWebhookConfiguration(client, constants.MysqlBackupMutatingWebhookName)
 	if err != nil {
 		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
 	}
@@ -265,36 +285,59 @@ func getUninstallJobPodName(c client.Client, vzHelper helpers.VZHelper, jobName 
 }
 
 // waitForUninstallToComplete waits for the Verrazzano resource to no longer exist
-func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, podName string, namespacedName types.NamespacedName, timeout time.Duration, logFormat cmdhelpers.LogFormat, uninstallJobLog bool) error {
-	var err error
-	var rc io.ReadCloser
-	if uninstallJobLog {
-		rc, err = getUninstallJobLogStream(kubeClient, podName)
-	} else {
-		rc, err = cmdhelpers.GetVpoLogStream(kubeClient, podName)
-	}
-	if err != nil {
-		return err
-	}
-
+func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, namespacedName types.NamespacedName, timeout time.Duration, vpoTimeout time.Duration, logFormat cmdhelpers.LogFormat, useUninstallJob bool) error {
 	resChan := make(chan error, 1)
 	defer close(resChan)
 
 	feedbackChan := make(chan bool)
 	defer close(feedbackChan)
 
-	re := regexp.MustCompile(cmdhelpers.VpoSimpleLogFormatRegexp)
-	go func(outputStream io.Writer) {
-		sc := bufio.NewScanner(rc)
-		sc.Split(bufio.ScanLines)
-		for sc.Scan() {
-			if !uninstallJobLog && logFormat == cmdhelpers.LogFormatSimple {
+	rc, err := getScanner(useUninstallJob, client, kubeClient, vzHelper, namespacedName)
+	if err != nil {
+		return err
+	}
+
+	go func(outputStream io.Writer, sc *bufio.Scanner, useUninstallJob bool) {
+		re := regexp.MustCompile(cmdhelpers.VpoSimpleLogFormatRegexp)
+		var err error
+		secondsWaited := 0
+		maxSecondsToWait := int(vpoTimeout.Seconds())
+		const secondsPerRetry = 10
+
+		for {
+			if sc == nil {
+				sc, err = getScanner(useUninstallJob, client, kubeClient, vzHelper, namespacedName)
+				if err != nil {
+					fmt.Fprintf(outputStream, fmt.Sprintf("Failed to connect to the uninstall output, waited %d of %d seconds to recover: %v\n", secondsWaited, maxSecondsToWait, err))
+					secondsWaited += secondsPerRetry
+					if secondsWaited > maxSecondsToWait {
+						return
+					}
+					time.Sleep(secondsPerRetry * time.Second)
+					continue
+				}
+				secondsWaited = 0
+				sc.Split(bufio.ScanLines)
+			}
+
+			scannedOk := sc.Scan()
+			if !scannedOk {
+				errText := ""
+				if sc.Err() != nil {
+					errText = fmt.Sprintf(": %v", sc.Err())
+				}
+				fmt.Fprintf(outputStream, fmt.Sprintf("Lost connection to the uninstall output, attempting to reconnect%s\n", errText))
+				sc = nil
+				continue
+			}
+
+			if !useUninstallJob && logFormat == cmdhelpers.LogFormatSimple {
 				cmdhelpers.PrintSimpleLogFormat(sc, outputStream, re)
 			} else {
 				_, _ = fmt.Fprintf(outputStream, fmt.Sprintf("%s\n", sc.Text()))
 			}
 		}
-	}(vzHelper.GetOutputStream())
+	}(vzHelper.GetOutputStream(), rc, useUninstallJob)
 
 	go func() {
 		for {
@@ -335,6 +378,35 @@ func waitForUninstallToComplete(client client.Client, kubeClient kubernetes.Inte
 	return timeoutErr
 }
 
+// getScanner - get scanner for uninstall console output
+func getScanner(useUninstallJob bool, client client.Client, kubeClient kubernetes.Interface, vzHelper helpers.VZHelper, namespacedName types.NamespacedName) (*bufio.Scanner, error) {
+	var podName string
+	var err error
+	if useUninstallJob {
+		// Get the uninstall job for streaming the logs
+		jobName := constants.VerrazzanoUninstall + "-" + namespacedName.Name
+		podName, err = getUninstallJobPodName(client, vzHelper, jobName)
+	} else {
+		// Get the VPO pod for streaming the logs
+		podName, err = cmdhelpers.GetVerrazzanoPlatformOperatorPodName(client)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var rc io.ReadCloser
+	if useUninstallJob {
+		rc, err = getUninstallJobLogStream(kubeClient, podName)
+	} else {
+		rc, err = cmdhelpers.GetVpoLogStream(kubeClient, podName)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return bufio.NewScanner(rc), nil
+}
+
 // getUninstallJobLogStream returns the stream to the uninstall job log file
 func getUninstallJobLogStream(kubeClient kubernetes.Interface, uninstallPodName string) (io.ReadCloser, error) {
 	// Tail the log messages from the uninstall job log starting at the current time.
@@ -366,7 +438,7 @@ func deleteNamespace(client client.Client, name string) error {
 }
 
 // deleteWebhookConfiguration deletes a given ValidatingWebhookConfiguration
-func deleteWebhookConfiguration(client clipkg.Client, name string) error {
+func deleteWebhookConfiguration(client client.Client, name string) error {
 	vwc := &adminv1.ValidatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -380,8 +452,23 @@ func deleteWebhookConfiguration(client clipkg.Client, name string) error {
 	return nil
 }
 
+// deleteMutatingWebhookConfiguration deletes a given MutatingWebhookConfiguration
+func deleteMutatingWebhookConfiguration(client client.Client, name string) error {
+	mwc := &adminv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+
+	err := client.Delete(context.TODO(), mwc, deleteOptions)
+	if err != nil && !errors.IsNotFound(err) {
+		return fmt.Errorf("Failed to delete MutatingWebhookConfiguration resource %s: %s", name, err.Error())
+	}
+	return nil
+}
+
 // deleteClusterRoleBinding deletes a given ClusterRoleBinding
-func deleteClusterRoleBinding(client clipkg.Client, name string) error {
+func deleteClusterRoleBinding(client client.Client, name string) error {
 	crb := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -408,4 +495,8 @@ func deleteClusterRole(client client.Client, name string) error {
 		return fmt.Errorf("Failed to delete ClusterRole resource %s: %s", name, err.Error())
 	}
 	return nil
+}
+
+func failedToUninstallErr(err error) error {
+	return fmt.Errorf("Failed to uninstall Verrazzano: %s", err.Error())
 }

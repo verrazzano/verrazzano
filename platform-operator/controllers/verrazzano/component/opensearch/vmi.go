@@ -21,7 +21,7 @@ const (
 func updateFunc(ctx spi.ComponentContext, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, existingVMI *vmov1.VerrazzanoMonitoringInstance) error {
 	hasDataNodeOverride := hasNodeStorageOverride(ctx.ActualCR(), "nodes.data.requests.storage")
 	hasMasterNodeOverride := hasNodeStorageOverride(ctx.ActualCR(), "nodes.master.requests.storage")
-	opensearch, err := newOpenSearch(ctx.EffectiveCR(), storage, existingVMI, hasDataNodeOverride, hasMasterNodeOverride)
+	opensearch, err := newOpenSearch(ctx.EffectiveCR(), ctx.ActualCR(), storage, existingVMI, hasDataNodeOverride, hasMasterNodeOverride)
 	if err != nil {
 		return err
 	}
@@ -43,17 +43,27 @@ func hasNodeStorageOverride(cr *vzapi.Verrazzano, override string) bool {
 	return false
 }
 
-//newOpenSearch creates a new OpenSearch resource for the VMI
+func actualCRNodes(cr *vzapi.Verrazzano) map[string]vzapi.OpenSearchNode {
+	nodeMap := map[string]vzapi.OpenSearchNode{}
+	if cr != nil && cr.Spec.Components.Elasticsearch != nil {
+		for _, node := range cr.Spec.Components.Elasticsearch.Nodes {
+			nodeMap[node.Name] = node
+		}
+	}
+	return nodeMap
+}
+
+// newOpenSearch creates a new OpenSearch resource for the VMI
 // The storage settings for OpenSearch nodes follow this order of precedence:
 // 1. ESInstallArgs values
 // 2. VolumeClaimTemplate overrides
 // 3. Profile values (which show as ESInstallArgs in the ActualCR)
 // The data node storage may be changed on update. The master node storage may NOT.
-func newOpenSearch(cr *vzapi.Verrazzano, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, hasDataOverride, hasMasterOverride bool) (*vmov1.Elasticsearch, error) {
-	if cr.Spec.Components.Elasticsearch == nil {
+func newOpenSearch(effectiveCR, actualCR *vzapi.Verrazzano, storage *common.ResourceRequestValues, vmi *vmov1.VerrazzanoMonitoringInstance, hasDataOverride, hasMasterOverride bool) (*vmov1.Elasticsearch, error) {
+	if effectiveCR.Spec.Components.Elasticsearch == nil {
 		return &vmov1.Elasticsearch{}, nil
 	}
-	opensearchComponent := cr.Spec.Components.Elasticsearch
+	opensearchComponent := effectiveCR.Spec.Components.Elasticsearch
 	opensearch := &vmov1.Elasticsearch{
 		Enabled: opensearchComponent.Enabled != nil && *opensearchComponent.Enabled,
 		Storage: vmov1.Storage{},
@@ -71,7 +81,7 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *common.ResourceRequestValues, 
 			},
 		},
 		// adapt the VPO node list to VMI node list
-		Nodes: nodeAdapter(vmi, cr.Spec.Components.Elasticsearch.Nodes, storage),
+		Nodes: nodeAdapter(effectiveCR, vmi, effectiveCR.Spec.Components.Elasticsearch.Nodes, actualCRNodes(actualCR), storage),
 	}
 
 	// Proxy any ISM policies to the VMI
@@ -122,7 +132,7 @@ func newOpenSearch(cr *vzapi.Verrazzano, storage *common.ResourceRequestValues, 
 	return opensearch, nil
 }
 
-//populateOpenSearchFromInstallArgs loops through each of the install args and sets their value in the corresponding
+// populateOpenSearchFromInstallArgs loops through each of the install args and sets their value in the corresponding
 // OpenSearch object
 func populateOpenSearchFromInstallArgs(opensearch *vmov1.Elasticsearch, opensearchComponent *vzapi.ElasticsearchComponent) error {
 	intSetter := func(val *int32, arg vzapi.InstallArgs) error {
@@ -170,7 +180,7 @@ func populateOpenSearchFromInstallArgs(opensearch *vmov1.Elasticsearch, opensear
 	return nil
 }
 
-func nodeAdapter(vmi *vmov1.VerrazzanoMonitoringInstance, nodes []vzapi.OpenSearchNode, storage *common.ResourceRequestValues) []vmov1.ElasticsearchNode {
+func nodeAdapter(effectiveCR *vzapi.Verrazzano, vmi *vmov1.VerrazzanoMonitoringInstance, nodes []vzapi.OpenSearchNode, actualCRNodes map[string]vzapi.OpenSearchNode, storage *common.ResourceRequestValues) []vmov1.ElasticsearchNode {
 	getQuantity := func(q *resource.Quantity) string {
 		if q == nil || q.String() == "0" {
 			return ""
@@ -178,14 +188,7 @@ func nodeAdapter(vmi *vmov1.VerrazzanoMonitoringInstance, nodes []vzapi.OpenSear
 		return q.String()
 	}
 	var vmoNodes []vmov1.ElasticsearchNode
-	for _, node := range nodes {
-		var storageSize string
-		if storage != nil && storage.Storage != "" {
-			storageSize = storage.Storage
-		}
-		if node.Storage != nil {
-			storageSize = node.Storage.Size
-		}
+	for _, node := range nodes { // node is the merged profile node
 		resources := vmov1.Resources{}
 		if node.Resources != nil {
 			resources.RequestCPU = getQuantity(node.Resources.Requests.Cpu())
@@ -200,7 +203,7 @@ func nodeAdapter(vmi *vmov1.VerrazzanoMonitoringInstance, nodes []vzapi.OpenSear
 			Roles:     node.Roles,
 			Resources: resources,
 			Storage: &vmov1.Storage{
-				Size: storageSize,
+				Size: findStorageForNode(effectiveCR, node, actualCRNodes, storage),
 			},
 		}
 		// if the node was present in an existing VMI and has PVC names, they should be carried over
@@ -210,7 +213,30 @@ func nodeAdapter(vmi *vmov1.VerrazzanoMonitoringInstance, nodes []vzapi.OpenSear
 	return vmoNodes
 }
 
-//setPVCNames persists any PVC names from an existing VMI
+func findStorageForNode(effectiveCR *vzapi.Verrazzano, node vzapi.OpenSearchNode, actualCRNodes map[string]vzapi.OpenSearchNode, storage *common.ResourceRequestValues) string {
+	var storageSize string
+	// Profile storage has the lowest precedence
+	if node.Storage != nil {
+		storageSize = node.Storage.Size
+	}
+	// volume claim storage has second precedence
+	if storage != nil && storage.Storage != "" {
+		storageSize = storage.Storage
+	}
+	// if using EmptyDir, zero out profile storage
+	if effectiveCR.Spec.DefaultVolumeSource != nil && effectiveCR.Spec.DefaultVolumeSource.EmptyDir != nil {
+		storageSize = ""
+	}
+	// user defined storage has the highest precedence
+	if actualCRNode, ok := actualCRNodes[node.Name]; ok {
+		if actualCRNode.Storage != nil {
+			storageSize = actualCRNode.Storage.Size
+		}
+	}
+	return storageSize
+}
+
+// setPVCNames persists any PVC names from an existing VMI
 func setPVCNames(vmi *vmov1.VerrazzanoMonitoringInstance, node *vmov1.ElasticsearchNode) {
 	if vmi != nil {
 		for _, nodeGroup := range vmi.Spec.Elasticsearch.Nodes {

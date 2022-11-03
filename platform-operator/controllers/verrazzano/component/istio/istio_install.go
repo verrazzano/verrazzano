@@ -6,7 +6,6 @@ package istio
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	os2 "github.com/verrazzano/verrazzano/pkg/os"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -40,6 +40,8 @@ const (
 	istioTempSuffix           = "yaml"
 	istioTmpFileCreatePattern = istioTempPrefix + "*." + istioTempSuffix
 	istioTmpFileCleanPattern  = istioTempPrefix + ".*\\." + istioTempSuffix
+
+	vzNsLabel = "verrazzano.io/namespace"
 )
 
 // create func vars for unit tests
@@ -73,14 +75,14 @@ type installMonitorType struct {
 	inputCh  chan installRoutineParams
 }
 
-//installRoutineParams - Used to pass args to the install goroutine
+// installRoutineParams - Used to pass args to the install goroutine
 type installRoutineParams struct {
 	overrides     string
 	fileOverrides []string
 	log           vzlog.VerrazzanoLogger
 }
 
-//installMonitor - Represents a monitor object used by the component to monitor a background goroutine used for running
+// installMonitor - Represents a monitor object used by the component to monitor a background goroutine used for running
 // istioctl install operations asynchronously.
 type installMonitor interface {
 	// checkResult - Checks for a result from the install goroutine; returns either the result of the operation, or an error indicating
@@ -94,7 +96,7 @@ type installMonitor interface {
 	run(args installRoutineParams)
 }
 
-//checkResult - checks for a result from the goroutine
+// checkResult - checks for a result from the goroutine
 // - returns false and a retry error if it's still running, or the result from the channel and nil if an answer was received
 func (m *installMonitorType) checkResult() (bool, error) {
 	select {
@@ -105,19 +107,19 @@ func (m *installMonitorType) checkResult() (bool, error) {
 	}
 }
 
-//reset - reset the monitor and close the channel
+// reset - reset the monitor and close the channel
 func (m *installMonitorType) reset() {
 	m.running = false
 	close(m.resultCh)
 	close(m.inputCh)
 }
 
-//isRunning - returns true of the monitor/goroutine are active
+// isRunning - returns true of the monitor/goroutine are active
 func (m *installMonitorType) isRunning() bool {
 	return m.running
 }
 
-//run - Run the install in a goroutine
+// run - Run the install in a goroutine
 func (m *installMonitorType) run(args installRoutineParams) {
 	m.running = true
 	m.resultCh = make(chan bool, 2)
@@ -170,7 +172,7 @@ func (i istioComponent) IsInstalled(compContext spi.ComponentContext) (bool, err
 	return true, nil
 }
 
-//Install - istioComponent install
+// Install - istioComponent install
 //
 // This utilizes the istioctl utility for install, which blocks during the entire installation process.  This can
 // take up to several minutes and block the controller.  For now, we launch the install operation in a goroutine
@@ -215,7 +217,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 	return forkInstallFunc(compContext, i.monitor, overrideStrings, istioTempFiles)
 }
 
-//forkInstall - istioctl install blocks, fork it into the background
+// forkInstall - istioctl install blocks, fork it into the background
 func forkInstall(compContext spi.ComponentContext, monitor installMonitor, overrideStrings string, files []string) error {
 	log := compContext.Log()
 	log.Debugf("Creating background install goroutine for Istio")
@@ -272,29 +274,32 @@ func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) (
 	// Only create override file if the CR has an Istio component
 	if cr.Spec.Components.Istio != nil {
 		// create operator YAML
-		istioOperatorYaml, err := BuildIstioOperatorYaml(compContext, cr.Spec.Components.Istio)
+		convertedVZ := &v1beta1.Verrazzano{}
+		err := cr.ConvertTo(convertedVZ)
+		if err != nil {
+			return files, log.ErrorfNewErr("Error converting from v1alpha1 to v1beta1: %v", err)
+		}
+		jaegerTracingYaml, err := buildJaegerTracingYaml(compContext, convertedVZ.Spec.Components.Istio, convertedVZ.Namespace)
 		if err != nil {
 			return files, log.ErrorfNewErr("Failed to Build IstioOperator YAML: %v", err)
 		}
-
 		// Write the overrides to a tmp file and append it to files
-		userFileCR, err := createTempFile(log, istioOperatorYaml)
+		jaegerTracingFile, err := createTempFile(log, jaegerTracingYaml)
 		if err != nil {
 			return files, err
 		}
-		files = append(files, userFileCR)
-
 		// get the install overrides from the VZ CR, write it to a temp file and append it
-		files, err = appendOverrideFilesInOrder(compContext, files)
+		files, err = appendOverrideFilesInOrder(compContext, convertedVZ, files)
 		if err != nil {
 			return files, err
 		}
+		files = append(files, jaegerTracingFile)
 	}
 	return files, nil
 }
 
-func appendOverrideFilesInOrder(ctx spi.ComponentContext, files []string) ([]string, error) {
-	overrideYAMLs, err := common.GetInstallOverridesYAML(ctx, ctx.EffectiveCR().Spec.Components.Istio.ValueOverrides)
+func appendOverrideFilesInOrder(ctx spi.ComponentContext, cr *v1beta1.Verrazzano, files []string) ([]string, error) {
+	overrideYAMLs, err := common.GetInstallOverridesYAMLUsingClient(ctx.Client(), cr.Spec.Components.Istio.ValueOverrides, cr.Namespace)
 	if err != nil {
 		return files, err
 	}
@@ -341,7 +346,7 @@ func labelNamespace(compContext spi.ComponentContext) error {
 		if ns.Labels == nil {
 			ns.Labels = make(map[string]string)
 		}
-		ns.Labels["verrazzano.io/namespace"] = IstioNamespace
+		ns.Labels[vzNsLabel] = IstioNamespace
 		return nil
 	}); err != nil {
 		return err
@@ -369,7 +374,7 @@ func createPeerAuthentication(compContext spi.ComponentContext) error {
 
 // createTempFile creates an Istio temp file and returns the name
 func createTempFile(log vzlog.VerrazzanoLogger, data string) (string, error) {
-	file, err := ioutil.TempFile(os.TempDir(), istioTmpFileCreatePattern)
+	file, err := os.CreateTemp(os.TempDir(), istioTmpFileCreatePattern)
 	if err != nil {
 		return "", log.ErrorfNewErr("Failed to create temporary file for Istio install: %v", err)
 	}

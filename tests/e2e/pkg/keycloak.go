@@ -7,15 +7,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"go.uber.org/zap"
 
-	"io/ioutil"
-
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -114,7 +115,7 @@ func (c *KeycloakRESTClient) GetRealm(realm string) (map[string]interface{}, err
 	if response.StatusCode != 200 {
 		return nil, fmt.Errorf("invalid response status: %d", response.StatusCode)
 	}
-	responseBody, err := ioutil.ReadAll(response.Body)
+	responseBody, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -280,6 +281,42 @@ func (c *KeycloakRESTClient) SetPassword(userRealm string, userID string, passwo
 	defer response.Body.Close()
 	if response.StatusCode != 204 {
 		return fmt.Errorf("invalid response status: %d", response.StatusCode)
+	}
+	return nil
+}
+
+// VerifyKeycloakAccess verifies access to Keycloak
+func VerifyKeycloakAccess(log *zap.SugaredLogger) error {
+	waitTimeout := 5 * time.Minute
+	pollingInterval := 5 * time.Second
+	if !IsManagedClusterProfile() {
+		var keycloakURL string
+		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+		if err != nil {
+			log.Error(fmt.Sprintf("Error getting kubeconfig: %v", err))
+			return err
+		}
+
+		gomega.Eventually(func() error {
+			api := EventuallyGetAPIEndpoint(kubeconfigPath)
+			ingress, err := api.GetIngress("keycloak", "keycloak")
+			if err != nil {
+				return err
+			}
+			keycloakURL = fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
+			log.Infof("Found ingress URL: %s", keycloakURL)
+			return nil
+		}, waitTimeout, pollingInterval).ShouldNot(gomega.HaveOccurred())
+
+		gomega.Expect(keycloakURL).NotTo(gomega.BeEmpty())
+		var httpResponse *HTTPResponse
+
+		gomega.Eventually(func() (*HTTPResponse, error) {
+			var err error
+			httpResponse, err = GetWebPage(keycloakURL, "")
+			return httpResponse, err
+		}, waitTimeout, pollingInterval).Should(HasStatus(http.StatusOK))
+		gomega.Expect(CheckNoServerHeader(httpResponse)).To(gomega.BeTrue(), "Found unexpected server header in response")
 	}
 	return nil
 }

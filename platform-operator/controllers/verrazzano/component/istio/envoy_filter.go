@@ -42,8 +42,6 @@ const specField = "spec"
 
 // Create the Envoy network filter
 func createEnvoyFilter(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
-	const IstioEnvoyFilter = "server-header-filter"
-
 	// Unmarshal the YAML into an object
 	u := &unstructured.Unstructured{Object: map[string]interface{}{}}
 	err := yaml.Unmarshal([]byte(filterYaml), u)

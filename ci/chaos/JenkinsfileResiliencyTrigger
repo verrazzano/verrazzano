@@ -1,8 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-def agentLabel = env.JOB_NAME.contains('master') ? "phxsmall" : "VM.Standard2.2"
-def branchSpecificSchedule = getCronSchedule()
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-small" : "small"
 
 pipeline {
     options {
@@ -18,10 +17,6 @@ pipeline {
             registryCredentialsId 'ocir-pull-and-push-account'
             label "${agentLabel}"
         }
-    }
-
-    triggers {
-        cron(branchSpecificSchedule)
     }
 
     parameters {
@@ -60,29 +55,27 @@ pipeline {
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
-        KUBERNETES_VERSION = '1.20,1.21,1.22,1.23,1.24'
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
+
+        OCI_CLI_AUTH="instance_principal"
+        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
+        OCI_OS_BUCKET="verrazzano-builds"
     }
 
     stages {
         stage('Clean workspace and checkout') {
             steps {
-                sh """
-                    echo "${NODE_LABELS}"
-                """
-
-                // REVIEW: I'm not sure that we actually need to fetch the sources here, but I'm doing here as it was easier
-                // to test working with the SCM checkout settings starting from this job. We should be able to trigger this job
-                // with parameters directly (ie: based on a previous build), in that situation doing this gives us a single point
-                // to ensure the commit matches what was intended before triggering a bunch of downstream jobs that will
-                // all fail if it wasn't correct. So we may want to keep it here unless there is a compelling reason not to do so.
-                // I haven't looked at the executor resource usage yet in all of this, so it may be that could have constraints for
-                // using flyweight executors (still need to look at that)
                 script {
                     if (params.GIT_COMMIT_TO_USE == "NONE") {
                         echo "Specific GIT commit was not specified, use current head"
-                        def scmInfo = checkout scm
+                        def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: env.BRANCH_NAME]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
                         env.GIT_COMMIT = scmInfo.GIT_COMMIT
                         env.GIT_BRANCH = scmInfo.GIT_BRANCH
                     } else {
@@ -127,26 +120,10 @@ pipeline {
             parallel {
                 stage('VPO killed during upgrade') {
                     steps {
-                        script {
-                            build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                    string(name: 'CHAOS_TEST_TYPE', value: 'vpo.killed')
-                                ], wait: true
-                        }
-                    }
-                }
-                stage('Upgrade using ephemeral storage') {
-                    steps {
-                        script {
-                            build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
-                                parameters: [
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
                                         string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -154,76 +131,104 @@ pipeline {
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                         booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                        string(name: 'CHAOS_TEST_TYPE', value: 'ephemeral.storage.upgrade')
-                                ], wait: true
+                                        string(name: 'CHAOS_TEST_TYPE', value: 'vpo.killed')
+                                    ], wait: true
+                            }
+                        }
+                    }
+                }
+                stage('Upgrade using ephemeral storage') {
+                    steps {
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                            string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
+                                            string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                            string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                            string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                            string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                            string(name: 'CHAOS_TEST_TYPE', value: 'ephemeral.storage.upgrade')
+                                    ], wait: true
+                            }
                         }
                     }
                 }
                 stage('Component helm install failure') {
                     steps {
-                        script {
-                            build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                    string(name: 'CHAOS_TEST_TYPE', value: 'helm.chart.corrupted')
-                            ], wait: true
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
+                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                        string(name: 'CHAOS_TEST_TYPE', value: 'helm.chart.corrupted')
+                                ], wait: true
+                            }
                         }
                     }
                 }
                 stage('Uninstall failed upgrade') {
                     steps {
-                        script {
-                            build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                    string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.failed.upgrade')
-                            ], wait: true
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
+                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                        string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.failed.upgrade')
+                                ], wait: true
+                            }
                         }
                     }
                 }
                 stage('Upgrade a failed 1.2.0 upgrade') {
                     steps {
-                        script {
-                            build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                    string(name: 'CHAOS_TEST_TYPE', value: 'upgrade.failed.upgrade')
-                            ], wait: true
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
+                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                        string(name: 'CHAOS_TEST_TYPE', value: 'upgrade.failed.upgrade')
+                                ], wait: true
+                            }
                         }
                     }
                 }
                 stage('Upgrade an in-process failing upgrade') {
                     steps {
-                        script {
-                            build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                    string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                    string(name: 'CHAOS_TEST_TYPE', value: 'upgrade.failing.upgrade')
-                            ], wait: true
+                        retry(count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
+                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                        string(name: 'CHAOS_TEST_TYPE', value: 'upgrade.failing.upgrade')
+                                ], wait: true
+                            }
                         }
                     }
                 }

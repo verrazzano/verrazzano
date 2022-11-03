@@ -39,9 +39,7 @@ create_kind_cluster() {
     return 0
   fi
 
-  if [ ${K8S_VERSION} == 1.20 ]; then
-    KIND_IMAGE="v1.20.15@sha256:6f2d011dffe182bad80b85f6c00e8ca9d86b5b8922cdf433d53575c4c5212248"
-  elif [ ${K8S_VERSION} == 1.21 ]; then
+  if [ ${K8S_VERSION} == 1.21 ]; then
     KIND_IMAGE="v1.21.12@sha256:f316b33dd88f8196379f38feb80545ef3ed44d9197dca1bfd48bcb1583210207"
   elif [ ${K8S_VERSION} == 1.22 ]; then
     KIND_IMAGE="v1.22.9@sha256:8135260b959dfe320206eb36b3aeda9cffcb262f4b44cda6b33f7bb73f453105"

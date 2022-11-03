@@ -6,11 +6,15 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
+
 	"os"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	. "github.com/onsi/ginkgo/v2"
@@ -171,7 +175,11 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc configmap")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap_update.yaml")
+				file, err := pkg.FindTestDataFile("testdata/multicluster/multicluster_configmap_update.yaml")
+				if err != nil {
+					return false, fmt.Errorf(fmt.Sprintf("expected error from CreateOrUpdateResourceFromFile: %v", err))
+				}
+				err = resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("expected error from CreateOrUpdateResourceFromFile")
@@ -180,7 +188,11 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
 			Eventually(func() (bool, error) {
-				err := pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml")
+				file, err := pkg.FindTestDataFile("testdata/multicluster/multicluster_configmap.yaml")
+				if err != nil {
+					return false, fmt.Errorf(fmt.Sprintf("expected error message from DeleteResourceFromFile: %v", err))
+				}
+				err = resource.DeleteResourceFromFile(file, t.Logs)
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("expected error from DeleteResourceFromFile")
@@ -195,7 +207,11 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find mc secret")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-multicluster-secret-update.yaml")
+				file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest1-multicluster-secret-update.yaml")
+				if err != nil {
+					return false, fmt.Errorf(fmt.Sprintf("expected error from CreateOrUpdateResourceFromFile: %v", err))
+				}
+				err = resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("expected error from CreateOrUpdateResourceFromFile")
@@ -204,7 +220,11 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
 			Eventually(func() (bool, error) {
-				err := pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml")
+				file, err := pkg.FindTestDataFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml")
+				if err != nil {
+					return false, fmt.Errorf(fmt.Sprintf("expected error message from DeleteResourceFromFile: %v", err))
+				}
+				err = resource.DeleteResourceFromFile(file, t.Logs)
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("expected error from DeleteResourceFromFile")
@@ -219,7 +239,11 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find OAM Component")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml")
+				file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest1-oam-component.yaml")
+				if err != nil {
+					return false, fmt.Errorf(fmt.Sprintf("expected error from CreateOrUpdateResourceFromFile: %v", err))
+				}
+				err = resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("expected error from CreateOrUpdateResourceFromFile")
@@ -228,7 +252,11 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
 			Eventually(func() (bool, error) {
-				err := pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml")
+				file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest1-oam-component.yaml")
+				if err != nil {
+					return false, fmt.Errorf(fmt.Sprintf("exepected error message from DeleteResourceFromFile: %v", err))
+				}
+				err = resource.DeleteResourceFromFile(file, t.Logs)
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("expected error from DeleteResourceFromFile")
@@ -243,7 +271,11 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find Secret")
 			// try to update
 			Eventually(func() (bool, error) {
-				err := pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml")
+				file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest1-secret.yaml")
+				if err != nil {
+					return false, fmt.Errorf(fmt.Sprintf("expected error from CreateOrUpdateResourceFromFile: %v", err))
+				}
+				err = resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("expected error from CreateOrUpdateResourceFromFile")
@@ -252,7 +284,11 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
 			// try to delete
 			Eventually(func() (bool, error) {
-				err := pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml")
+				file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest1-secret.yaml")
+				if err != nil {
+					return false, fmt.Errorf(fmt.Sprintf("expected error message from DeleteResourceFromFile: %v", err))
+				}
+				err = resource.DeleteResourceFromFile(file, t.Logs)
 				// if we didn't get an error, fail immediately
 				if err == nil {
 					return false, goerrors.New("expected error from DeleteResourceFromFile")
@@ -270,7 +306,11 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 			// Change the placement to be on the admin cluster
 			pkg.Log(pkg.Info, fmt.Sprintf("Change the placement of the namespace %s to be on the admin cluster", permissionTest2Namespace))
 			Eventually(func() error {
-				return pkg.CreateOrUpdateResourceFromFileInCluster("testdata/multicluster/permissiontest2-verrazzanoproject-new-placement.yaml", adminKubeconfig)
+				file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest2-verrazzanoproject-new-placement.yaml")
+				if err != nil {
+					return err
+				}
+				return resource.CreateOrUpdateResourceFromFileInCluster(file, adminKubeconfig)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 			// Wait for the project resource to be deleted from the managed cluster
 			pkg.Log(pkg.Info, "Wait for the VerrazzanoProject to be removed from the managed cluster")
@@ -371,10 +411,18 @@ func deployTestResources() {
 	// create the test projects
 	pkg.Log(pkg.Info, "Creating test projects")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-verrazzanoproject.yaml")
+		file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest1-verrazzanoproject.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest2-verrazzanoproject.yaml")
+		file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest2-verrazzanoproject.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// Wait for the namespaces to be created
@@ -392,28 +440,48 @@ func deployTestResources() {
 	// create a MC config map
 	pkg.Log(pkg.Info, "Creating MC config map")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_configmap.yaml")
+		file, err := pkg.FindTestDataFile("testdata/multicluster/multicluster_configmap.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// create a MC secret
 	pkg.Log(pkg.Info, "Creating MC secret")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml")
+		file, err := pkg.FindTestDataFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// create a OAM Component
 	pkg.Log(pkg.Info, "Creating OAM Component")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml")
+		file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest1-oam-component.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// create a k8s secret
 	pkg.Log(pkg.Info, "Creating k8s secrets")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml")
+		file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest1-secret.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/multicluster/permissiontest2-secret.yaml")
+		file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest2-secret.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 }
@@ -428,37 +496,65 @@ func undeployTestResources() {
 	pkg.Log(pkg.Info, "Deleting MC config map")
 	start := time.Now()
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_configmap.yaml")
+		file, err := pkg.FindTestDataFile("testdata/multicluster/multicluster_configmap.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete a MC secret
 	pkg.Log(pkg.Info, "Deleting MC secret")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml")
+		file, err := pkg.FindTestDataFile("testdata/multicluster/multicluster_secret_permissiontest1.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete a OAM Component
 	pkg.Log(pkg.Info, "Deleting OAM Component")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest1-oam-component.yaml")
+		file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest1-oam-component.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete k8s secrets
 	pkg.Log(pkg.Info, "Deleting k8s secrets")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest1-secret.yaml")
+		file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest1-secret.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest2-secret.yaml")
+		file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest2-secret.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// delete the test projects
 	pkg.Log(pkg.Info, "Deleting test projects")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest1-verrazzanoproject.yaml")
+		file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest1-verrazzanoproject.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/multicluster/permissiontest2-verrazzanoproject.yaml")
+		file, err := pkg.FindTestDataFile("testdata/multicluster/permissiontest2-verrazzanoproject.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 	// Wait for the project resources to be deleted from the managed cluster

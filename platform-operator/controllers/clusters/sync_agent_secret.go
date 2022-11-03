@@ -7,8 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-
-	"io/ioutil"
+	"os"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
@@ -38,12 +37,12 @@ var rancherBasedKubeConfigEnabled = false
 // Create an agent secret with a kubeconfig that has a token allowing access to the managed cluster
 // with restricted access as defined in the verrazzano-managed-cluster role.
 // The code does the following:
-//   1. get the service account for the managed cluster
-//   2. get the name of the service account token from the service account secret name field
-//   3. get the in-memory client configuration used to access the admin cluster
-//   4. build a kubeconfig struct using data from the client config and the service account token
-//   5. save the kubeconfig as a secret
-//   6. update VMC with the admin secret name
+//  1. get the service account for the managed cluster
+//  2. get the name of the service account token from the service account secret name field
+//  3. get the in-memory client configuration used to access the admin cluster
+//  4. build a kubeconfig struct using data from the client config and the service account token
+//  5. save the kubeconfig as a secret
+//  6. update VMC with the admin secret name
 func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.VerrazzanoManagedCluster) error {
 	// The same managed name and  vmc namespace is used for the service account and the kubeconfig secret,
 	// for clarity use different vars
@@ -62,7 +61,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.Ver
 	}
 	var tokenName string
 	if len(sa.Secrets) == 0 {
-		r.log.Infof("Service account %s/%s is missing a secret name. Using the service account token secret created"+
+		r.log.Oncef("Service account %s/%s is missing a secret name. Using the service account token secret created"+
 			" by the VerrazzanoManagedCluster controller", managedNamespace, saName)
 		tokenName = sa.Name + "-token"
 	} else {
@@ -80,7 +79,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncAgentSecret(vmc *clusterapi.Ver
 	}
 
 	// Build the kubeconfig
-	var err error = nil
+	var err error
 	var kc *vzk8s.KubeConfig
 	// Check feature flag before building kubeconfig from Rancher - feature flag was introduced in
 	// VZ-6448, to be removed when VZ-6449 is completed
@@ -229,7 +228,7 @@ func getB64CAData(config *rest.Config) (string, error) {
 	if len(config.CAData) > 0 {
 		return base64.StdEncoding.EncodeToString(config.CAData), nil
 	}
-	s, err := ioutil.ReadFile(config.CAFile)
+	s, err := os.ReadFile(config.CAFile)
 	if err != nil {
 		return "", fmt.Errorf("Error %v reading CAData file %s", err, config.CAFile)
 	}

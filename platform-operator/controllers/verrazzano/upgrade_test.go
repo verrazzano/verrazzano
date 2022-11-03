@@ -6,24 +6,19 @@ package verrazzano
 import (
 	"context"
 	"crypto/rand"
-	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"math/big"
-	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
 
-	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core"
-	oamapi "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
@@ -34,6 +29,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+
+	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core"
+	oamapi "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -51,7 +52,7 @@ import (
 // unitTestBomFIle is used for unit test
 const unitTestBomFile = "../../verrazzano-bom.json"
 
-//ingress list constants
+// ingress list constants
 const dnsDomain = "myenv.testverrazzano.com"
 const keycloakURL = "keycloak." + dnsDomain
 const esURL = "elasticsearch." + dnsDomain
@@ -65,14 +66,6 @@ const jaegerURL = "jaeger." + dnsDomain
 
 var istioEnabled = false
 var jaegerEnabled = true
-
-// goodRunner is used to test helm success without actually running an OS exec command
-type goodRunner struct {
-}
-
-// badRunner is used to test helm failure without actually running an OS exec command
-type badRunner struct {
-}
 
 // TestUpgradeNoVersion tests the reconcileUpgrade method for the following use case
 // GIVEN a request to reconcile a verrazzano resource after install is completed
@@ -150,7 +143,7 @@ func TestUpgradeNoVersion(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -250,7 +243,7 @@ func TestUpgradeSameVersion(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -313,7 +306,7 @@ func TestUpgradeInitComponents(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -368,7 +361,7 @@ func TestUpgradeStarted(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -425,7 +418,7 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -509,7 +502,7 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -552,6 +545,17 @@ func TestUpgradeCompleted(t *testing.T) {
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	_ = oamcore.AddToScheme(k8scheme.Scheme)
+
+	authConfig := createKeycloakAuthConfig()
+	localAuthConfig := createLocalAuthConfig()
+	kcSecret := createKeycloakSecret()
+	firstLoginSetting := createFirstLoginSetting()
+	rancherIngress := createIngress(common.CattleSystem, constants.RancherIngress, common.RancherName)
+	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
+	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
+	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
+	addExec()
+
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
 			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
@@ -571,6 +575,8 @@ func TestUpgradeCompleted(t *testing.T) {
 			}},
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+		&rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting,
+		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole,
 	).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
@@ -598,6 +604,7 @@ func TestUpgradeCompleted(t *testing.T) {
 		}
 	}
 	asserts.True(found, "expected upgrade completed to be true")
+	assertKeycloakAuthConfig(asserts, spi.NewFakeContext(c, &verrazzano, nil, false))
 }
 
 // TestUpgradeCompletedMultipleReconcile tests the reconcileUpgrade method for the following use case
@@ -635,6 +642,17 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	_ = oamcore.AddToScheme(k8scheme.Scheme)
+
+	authConfig := createKeycloakAuthConfig()
+	localAuthConfig := createLocalAuthConfig()
+	kcSecret := createKeycloakSecret()
+	firstLoginSetting := createFirstLoginSetting()
+	rancherIngress := createIngress(common.CattleSystem, constants.RancherIngress, common.RancherName)
+	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
+	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
+	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
+	addExec()
+
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vzapi.Verrazzano{
 			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
@@ -654,6 +672,8 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 			}},
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+		&rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting,
+		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole,
 	).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
@@ -681,103 +701,7 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 		}
 	}
 	asserts.True(found, "expected upgrade completed to be true")
-}
-
-// TestUpgradeCompletedStatusReturnsError tests the reconcileUpgrade method for the following use case
-// GIVEN a request to reconcile an verrazzano resource after install is completed
-// WHEN the update of the VZ resource status fails and returns an error
-// THEN ensure an error is returned and a requeue is requested
-func TestUpgradeCompletedStatusReturnsError(t *testing.T) {
-	initUnitTesing()
-	namespace := "verrazzano"
-	name := "test"
-	var verrazzanoToUse vzapi.Verrazzano
-
-	fname, _ := filepath.Abs(unitTestBomFile)
-	config.SetDefaultBomFilePath(fname)
-	asserts := assert.New(t)
-	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
-
-	defer config.Set(config.Get())
-	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
-
-	// Setup fake client to provide workloads for restart platform testing
-	goClient, err := initFakeClient()
-	asserts.NoError(err)
-	k8sutil.SetFakeClient(goClient)
-
-	registry.OverrideGetComponentsFn(func() []spi.Component {
-		return []spi.Component{
-			fakeComponent{},
-		}
-	})
-	defer registry.ResetGetComponentsFn()
-
-	config.TestProfilesDir = "../../manifests/profiles"
-	defer func() { config.TestProfilesDir = "" }()
-
-	// Expect a call to get the verrazzano resource.  Return resource with version
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, verrazzano *vzapi.Verrazzano) error {
-			verrazzano.TypeMeta = metav1.TypeMeta{
-				APIVersion: "install.verrazzano.io/v1alpha1",
-				Kind:       "Verrazzano"}
-			verrazzano.ObjectMeta = metav1.ObjectMeta{
-				Namespace:  name.Namespace,
-				Name:       name.Name,
-				Finalizers: []string{finalizerName}}
-			verrazzano.Spec = vzapi.VerrazzanoSpec{
-				Version: "1.2.0"}
-			verrazzano.Status = vzapi.VerrazzanoStatus{
-				State:      vzapi.VzStateUpgrading,
-				Components: makeVerrazzanoComponentStatusMap(),
-				Conditions: []vzapi.Condition{
-					{
-						Type: vzapi.CondInstallComplete,
-					},
-					{
-						Type: vzapi.CondUpgradeStarted,
-					},
-				},
-			}
-			return nil
-		}).AnyTimes()
-
-	// Expect a call to get the service account
-	expectGetServiceAccountExists(mock, name, nil)
-
-	// Expect a call to get the ClusterRoleBinding
-	expectClusterRoleBindingExists(mock, verrazzanoToUse, namespace, name)
-
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *oamapi.ApplicationConfigurationList, opts ...client.ListOption) error {
-			return nil
-		}).AnyTimes()
-
-	// Expect a call to get the status writer and return a mock.
-	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-
-	// Expect a call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			return fmt.Errorf("Unexpected status error")
-		}).AnyTimes()
-
-	// Create and make the request
-	request := newRequest(namespace, name)
-	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconcileLoop(reconciler, request)
-
-	// Validate the results
-	mocker.Finish()
-	asserts.NoError(err)
-	asserts.Equal(true, result.Requeue)
+	assertKeycloakAuthConfig(asserts, spi.NewFakeContext(c, &verrazzano, nil, false))
 }
 
 // TestUpgradeHelmError tests the reconcileUpgrade method for the following use case
@@ -920,17 +844,12 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 // THEN no error is returned and the correct spi.Component upgrade methods have been returned
 func TestUpgradeComponent(t *testing.T) {
 	initUnitTesing()
-	namespace := "verrazzano"
-	name := "test"
 	// Need to use real component name since upgrade loops through registry
 	componentName := oam.ComponentName
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
@@ -976,28 +895,32 @@ func TestUpgradeComponent(t *testing.T) {
 	mockComp.EXPECT().IsEnabled(gomock.Any()).Return(true).AnyTimes()
 	mockComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
-	mockComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
+	mockComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).AnyTimes()
 	mockComp.EXPECT().Name().Return(componentName).AnyTimes()
 	mockComp.EXPECT().IsReady(gomock.Any()).Return(true).AnyTimes()
 
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *oamapi.ApplicationConfigurationList, opts ...client.ListOption) error {
-			return nil
-		}).AnyTimes()
+	ingressList := networkingv1.IngressList{Items: []networkingv1.Ingress{}}
+	//sa := rbac.NewServiceAccount(namespace, name, []string{}, map[string]string{})
+	//crb := rbac.NewClusterRoleBinding(&vz, buildClusterRoleBindingName(namespace, name), getInstallNamespace(), buildServiceAccountName(name))
+	authConfig := createKeycloakAuthConfig()
+	localAuthConfig := createLocalAuthConfig()
+	kcSecret := createKeycloakSecret()
+	firstLoginSetting := createFirstLoginSetting()
+	rancherIngress := createIngress(common.CattleSystem, constants.RancherIngress, common.RancherName)
+	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
+	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
+	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
+	addExec()
 
-	// Expect a call to get the status writer and return a mock.
-	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
+	appConfigList := oamapi.ApplicationConfigurationList{Items: []oamapi.ApplicationConfiguration{}}
+	kcPVC := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "keycloak", Name: "dump-claim"},
+	}
 
-	// Expect a call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			return nil
-		}).AnyTimes()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz, &rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, kcPVC).WithLists(&ingressList, &appConfigList).Build()
 
 	// Reconcile upgrade until state is done.  Put guard to prevent infinite loop
-	reconciler := newVerrazzanoReconciler(mock)
+	reconciler := newVerrazzanoReconciler(c)
 	numComponentStates := 10
 	var result ctrl.Result
 	for i := 0; i < numComponentStates; i++ {
@@ -1010,7 +933,16 @@ func TestUpgradeComponent(t *testing.T) {
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
-	asserts.Equal(false, result.Requeue)
+
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &vz)
+	asserts.NoError(err)
+
+	asserts.Equal(vzapi.VzStateUpgrading, vz.Status.State)
+	asserts.Equal(vz.Generation, vz.Status.Components[componentName].LastReconciledGeneration)
+	asserts.Equal(vzapi.CondUpgradeStarted, vz.Status.Components[componentName].Conditions[1].Type)
+	asserts.Equal(vzapi.CondUpgradeComplete, vz.Status.Components[componentName].Conditions[2].Type)
+	assertKeycloakAuthConfig(asserts, spi.NewFakeContext(c, &vz, nil, false))
+
 }
 
 // TestUpgradeComponentWithBlockingStatus tests the reconcileUpgrade method for the following use case
@@ -1120,9 +1052,6 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
-	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
@@ -1166,10 +1095,10 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	// Set enabled mock component expectations
 	mockEnabledComp.EXPECT().IsEnabled(gomock.Any()).Return(true).AnyTimes()
 	mockEnabledComp.EXPECT().Name().Return("EnabledComponent").AnyTimes()
-	mockEnabledComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).Times(2)
+	mockEnabledComp.EXPECT().IsInstalled(gomock.Any()).Return(true, nil).AnyTimes()
 	mockEnabledComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(1)
 	mockEnabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(1)
-	mockEnabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(1)
+	mockEnabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).AnyTimes()
 	mockEnabledComp.EXPECT().IsReady(gomock.Any()).Return(true).AnyTimes()
 	mockEnabledComp.EXPECT().IsEnabled(gomock.Any()).Return(true).AnyTimes()
 
@@ -1178,38 +1107,45 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	mockDisabledComp.EXPECT().IsInstalled(gomock.Any()).Return(false, nil).AnyTimes()
 	mockDisabledComp.EXPECT().PreUpgrade(gomock.Any()).Return(nil).Times(0)
 	mockDisabledComp.EXPECT().Upgrade(gomock.Any()).Return(nil).Times(0)
-	mockDisabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).Times(0)
+	mockDisabledComp.EXPECT().PostUpgrade(gomock.Any()).Return(nil).AnyTimes()
 	mockDisabledComp.EXPECT().IsEnabled(gomock.Any()).Return(false).AnyTimes()
+	ingressList := networkingv1.IngressList{Items: []networkingv1.Ingress{}}
 
-	// Expect a call to get the status writer and return a mock.
-	mock.EXPECT().Status().Return(mockStatus).AnyTimes()
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			return nil
-		}).AnyTimes()
+	authConfig := createKeycloakAuthConfig()
+	localAuthConfig := createLocalAuthConfig()
+	kcSecret := createKeycloakSecret()
+	firstLoginSetting := createFirstLoginSetting()
+	rancherIngress := createIngress(common.CattleSystem, constants.RancherIngress, common.RancherName)
+	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
+	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
+	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
+	addExec()
 
-	// Expect a call to update the status of the Verrazzano resource
-	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, verrazzano *vzapi.Verrazzano, opts ...client.UpdateOption) error {
-			return nil
-		}).AnyTimes()
+	appConfigList := oamapi.ApplicationConfigurationList{Items: []oamapi.ApplicationConfiguration{}}
+	kcPVC := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "keycloak", Name: "dump-claim"},
+	}
 
-	mock.EXPECT().
-		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, list *oamapi.ApplicationConfigurationList, opts ...client.ListOption) error {
-			return nil
-		}).AnyTimes()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz, &rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, kcPVC).WithLists(&ingressList, &appConfigList).Build()
 
-	// Reconcile upgrade
-	reconciler := newVerrazzanoReconciler(mock)
+	// Reconcile upgrade until state is done.  Put guard to prevent infinite loop
+	reconciler := newVerrazzanoReconciler(c)
 	result, err := reconcileUpgradeLoop(reconciler, &vz)
 
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
+
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: name}, &vz)
+	asserts.NoError(err)
+
+	asserts.Equal(vzapi.VzStateUpgrading, vz.Status.State)
+	asserts.Equal(vz.Generation, vz.Status.Components[mockEnabledComp.Name()].LastReconciledGeneration)
+	asserts.Equal(vzapi.CondUpgradeStarted, vz.Status.Components[mockEnabledComp.Name()].Conditions[0].Type)
+	asserts.Equal(vzapi.CondUpgradeComplete, vz.Status.Components[mockEnabledComp.Name()].Conditions[1].Type)
+	asserts.Equal(int64(0), vz.Status.Components[mockEnabledComp.Name()].LastReconciledGeneration)
 	asserts.Equal(false, result.Requeue)
+	assertKeycloakAuthConfig(asserts, spi.NewFakeContext(c, &vz, nil, false))
 }
 
 // TestRetryUpgrade tests the retryUpgrade method for the following use case
@@ -1259,7 +1195,7 @@ func TestRetryUpgrade(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -1317,7 +1253,7 @@ func TestTransitionToPausedUpgradeFromFailed(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -1374,7 +1310,7 @@ func TestTransitionToPausedUpgradeFromStarted(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -1430,7 +1366,7 @@ func TestTransitionFromPausedUpgrade(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -1491,7 +1427,7 @@ func TestDontRetryUpgrade(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -1543,14 +1479,6 @@ func TestIsLastConditionTrue(t *testing.T) {
 		},
 	}
 	asserts.True(isLastCondition(st, vzapi.CondInstallFailed), "isLastCondition should have returned true")
-}
-
-func (r goodRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return []byte("success"), []byte(""), nil
-}
-
-func (r badRunner) Run(_ *exec.Cmd) (stdout []byte, stderr []byte, err error) {
-	return []byte(""), []byte("failure"), errors.New("Helm Error")
 }
 
 // TestInstanceRestoreWithEmptyStatus tests the reconcileUpdate method for the following use case
@@ -1705,7 +1633,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -1774,7 +1702,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 						Type: vzapi.CondInstallComplete,
 					},
 				},
-				Components: func() v1alpha1.ComponentStatusMap {
+				Components: func() vzapi.ComponentStatusMap {
 					statusMap := makeVerrazzanoComponentStatusMap()
 					statusMap[keycloak.ComponentName].State = vzapi.CompStateDisabled
 					statusMap[istio.ComponentName].State = vzapi.CompStateDisabled
@@ -1878,7 +1806,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(c)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	asserts.NoError(err)
@@ -1937,11 +1865,11 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 
 // initStartingStates inits the starting state for verrazzano and component upgrade
 func initStartingStates(cr *vzapi.Verrazzano, compName string) {
-	initStates(cr, vzStateStart, compName, compStateInit)
+	initStates(cr, vzStateStart, compName, compStateUpgradeInit)
 }
 
 // initStates inits the specified state for verrazzano and component upgrade
-func initStates(cr *vzapi.Verrazzano, vzState VerrazzanoUpgradeState, compName string, compState ComponentUpgradeState) {
+func initStates(cr *vzapi.Verrazzano, vzState VerrazzanoUpgradeState, compName string, compState componentUpgradeState) {
 	tracker := getUpgradeTracker(cr)
 	tracker.vzState = vzState
 	upgradeContext := tracker.getComponentUpgradeContext(compName)
@@ -1968,7 +1896,7 @@ func reconcileLoop(reconciler Reconciler, request ctrl.Request) (ctrl.Result, er
 	var err error
 	var result ctrl.Result
 	for i := 0; i < numComponentStates; i++ {
-		result, err = reconciler.Reconcile(nil, request)
+		result, err = reconciler.Reconcile(context.TODO(), request)
 		if err != nil || !result.Requeue {
 			break
 		}

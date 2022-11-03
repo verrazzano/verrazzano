@@ -4,12 +4,8 @@
 package verrazzano
 
 import (
-	"time"
-
-	"github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -20,7 +16,7 @@ import (
 type componentUninstallState string
 
 const (
-	// compStateInit is the state when a component is starting the Uninstall flow
+	// compStateUpgradeStart is the state when a component is starting the Uninstall flow
 	compStateUninstallStart componentUninstallState = "compStateUninstallStart"
 
 	// compStatePreUninstall is the state when a component does a pre-Uninstall
@@ -32,8 +28,8 @@ const (
 	// compStateWaitUninstalled is the state when a component is waiting to be uninstalled
 	compStateWaitUninstalled componentUninstallState = "compStateWaitUninstalled"
 
-	// compStateUninstalledone is the state when component Uninstall is done
-	compStateUninstalledone componentUninstallState = "compStateUninstalledone"
+	// compStateUninstalleDone is the state when component Uninstall is done
+	compStateUninstalleDone componentUninstallState = "compStateUninstalleDone"
 
 	// compStateUninstallEnd is the terminal state
 	compStateUninstallEnd componentUninstallState = "compStateUninstallEnd"
@@ -45,22 +41,29 @@ type componentUninstallContext struct {
 }
 
 // UninstallComponents will Uninstall the components as required
-func (r *Reconciler) uninstallComponents(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano, tracker *UninstallTracker) (ctrl.Result, error) {
+func (r *Reconciler) uninstallComponents(log vzlog.VerrazzanoLogger, cr *v1alpha1.Verrazzano, tracker *UninstallTracker) (ctrl.Result, error) {
 	spiCtx, err := spi.NewContext(log, r.Client, cr, nil, r.DryRun)
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}
 
-	// Loop through all of the Verrazzano components and Uninstall each one.
-	// Don't move to the next component until the current one has been succcessfully Uninstalled
+	var requeue bool
+
+	// Loop through the Verrazzano components and Uninstall each one.
+	// Don't block uninstalling the next component if the current one has an error.
+	// It is normal for a component to return an error if it is waiting for some condition.
 	for _, comp := range registry.GetComponents() {
 		UninstallContext := tracker.getComponentUninstallContext(comp.Name())
 		result, err := r.uninstallSingleComponent(spiCtx, UninstallContext, comp)
 		if err != nil || result.Requeue {
-			return result, err
+			requeue = true
 		}
 
 	}
+	if requeue {
+		return newRequeueWithDelay(), nil
+	}
+
 	// All components have been Uninstalled
 	return ctrl.Result{}, nil
 }
@@ -90,7 +93,7 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 				UninstallContext.state = compStateUninstallEnd
 				continue
 			}
-			if err := r.updateComponentStatus(compContext, "Uninstall started", vzapi.CondUninstallStarted); err != nil {
+			if err := r.updateComponentStatus(compContext, "Uninstall started", v1alpha1.CondUninstallStarted); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
 			compLog.Oncef("Component %s is starting to uninstall", compName)
@@ -99,7 +102,7 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 		case compStatePreUninstall:
 			compLog.Oncef("Component %s is calling pre-uninstall", compName)
 			if err := comp.PreUninstall(compContext); err != nil {
-				compLog.Errorf("Failed pre-uninstalling component %s: %v", compName, err)
+				// Components will log errors, could be waiting for condition
 				return ctrl.Result{}, err
 			}
 			UninstallContext.state = compStateUninstall
@@ -108,8 +111,7 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 			compLog.Progressf("Component %s is calling uninstall", compName)
 			if err := comp.Uninstall(compContext); err != nil {
 				compLog.Errorf("Failed uninstalling component %s, will retry: %v", compName, err)
-				// requeue for 30 to 60 seconds later
-				return controller.NewRequeueWithDelay(30, 60, time.Second), nil
+				return ctrl.Result{}, err
 			}
 			UninstallContext.state = compStateWaitUninstalled
 
@@ -117,7 +119,7 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 			installed, err := comp.IsInstalled(compContext)
 			if err != nil {
 				compLog.Errorf("Failed checking if component %s is installed: %v", compName, err)
-				return controller.NewRequeueWithDelay(10, 15, time.Second), nil
+				return newRequeueWithDelay(), nil
 			}
 			if installed {
 				compLog.Progressf("Waiting for component %s to be uninstalled", compName)
@@ -126,13 +128,12 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 			compLog.Progressf("Component %s has been uninstalled, running post-uninstall", compName)
 			if err := comp.PostUninstall(compContext); err != nil {
 				compLog.Errorf("PostUninstall for component %s failed: %v", compName, err)
-				// requeue for 10 to 15 seconds later
-				return controller.NewRequeueWithDelay(10, 15, time.Second), nil
+				return newRequeueWithDelay(), nil
 			}
-			UninstallContext.state = compStateUninstalledone
+			UninstallContext.state = compStateUninstalleDone
 
-		case compStateUninstalledone:
-			if err := r.updateComponentStatus(compContext, "Uninstall complete", vzapi.CondUninstallComplete); err != nil {
+		case compStateUninstalleDone:
+			if err := r.updateComponentStatus(compContext, "Uninstall complete", v1alpha1.CondUninstallComplete); err != nil {
 				return ctrl.Result{Requeue: true}, err
 			}
 			compLog.Oncef("Component %s has successfully uninstalled", compName)

@@ -13,10 +13,10 @@ import (
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/stretchr/testify/assert"
-	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -26,7 +26,6 @@ import (
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -57,7 +55,7 @@ var (
 )
 
 func init() {
-	_ = clientgoscheme.AddToScheme(testScheme)
+	_ = k8scheme.AddToScheme(testScheme)
 	_ = vzapi.AddToScheme(testScheme)
 	_ = certapiv1.AddToScheme(testScheme)
 	_ = istioclisec.AddToScheme(testScheme)
@@ -66,6 +64,14 @@ func init() {
 
 // TestIsPrometheusOperatorReady tests the isPrometheusOperatorReady function for the Prometheus Operator
 func TestIsPrometheusOperatorReady(t *testing.T) {
+	operatorObjectMeta := metav1.ObjectMeta{
+		Namespace: ComponentNamespace,
+		Name:      deploymentName,
+		Labels: map[string]string{
+			"app.kubernetes.io/instance":          ComponentName,
+			constants.VerrazzanoComponentLabelKey: ComponentName,
+		},
+	}
 	tests := []struct {
 		name       string
 		client     client.Client
@@ -78,11 +84,7 @@ func TestIsPrometheusOperatorReady(t *testing.T) {
 			name: "Test IsReady when Prometheus Operator is successfully deployed",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName,
-						Labels:    map[string]string{"app.kubernetes.io/instance": ComponentName},
-					},
+					ObjectMeta: operatorObjectMeta,
 					Spec: appsv1.DeploymentSpec{
 						Selector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{"app.kubernetes.io/instance": ComponentName},
@@ -94,7 +96,7 @@ func TestIsPrometheusOperatorReady(t *testing.T) {
 						UpdatedReplicas:   1,
 					},
 				},
-				&v1.Pod{
+				&corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
 						Name:      deploymentName + "-95d8c5d96-m6mbr",
@@ -121,10 +123,7 @@ func TestIsPrometheusOperatorReady(t *testing.T) {
 			name: "Test IsReady when Prometheus Operator deployment is not ready",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: ComponentNamespace,
-						Name:      deploymentName,
-					},
+					ObjectMeta: operatorObjectMeta,
 					Status: appsv1.DeploymentStatus{
 						AvailableReplicas: 0,
 						Replicas:          1,
@@ -254,7 +253,7 @@ func TestPreInstallUpgrade(t *testing.T) {
 	err := preInstallUpgrade(ctx)
 	assert.NoError(t, err)
 
-	ns := v1.Namespace{}
+	ns := corev1.Namespace{}
 	err = client.Get(context.TODO(), types.NamespacedName{Name: ComponentNamespace}, &ns)
 	assert.NoError(t, err)
 }
@@ -341,7 +340,7 @@ func TestAppendIstioOverrides(t *testing.T) {
 				},
 				{
 					Key:   fmt.Sprintf("%s[0].emptyDir.medium", volumeKey),
-					Value: string(v1.StorageMediumMemory),
+					Value: string(corev1.StorageMediumMemory),
 				},
 			},
 		},
@@ -442,7 +441,10 @@ func TestValidatePrometheusOperator(t *testing.T) {
 	c := prometheusComponent{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := c.validatePrometheusOperator(&tt.vz)
+			convertedVZ := v1beta1.Verrazzano{}
+			err := common.ConvertVerrazzanoCR(&tt.vz, &convertedVZ)
+			assert.NoError(t, err)
+			err = c.validatePrometheusOperator(&convertedVZ)
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
@@ -487,7 +489,7 @@ func TestApplySystemMonitors(t *testing.T) {
 
 // TestValidatePrometheusOperator tests the validation of the Prometheus Operator installation and the Verrazzano CR
 func TestUpdateApplicationAuthorizationPolicies(t *testing.T) {
-	assert := asserts.New(t)
+	assertions := assert.New(t)
 	scheme := k8scheme.Scheme
 	_ = vzapi.AddToScheme(scheme)
 	_ = istioclisec.AddToScheme(scheme)
@@ -495,7 +497,7 @@ func TestUpdateApplicationAuthorizationPolicies(t *testing.T) {
 	testNsName := "test-ns"
 	testAuthPolicyName := "test-authpolicy"
 	principal := "cluster.local/ns/verrazzano-monitoring/sa/prometheus-operator-kube-p-prometheus"
-	namespace := v1.Namespace{
+	namespace := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   testNsName,
 			Labels: map[string]string{vzconst.VerrazzanoManagedLabelKey: "true"},
@@ -738,20 +740,20 @@ func TestUpdateApplicationAuthorizationPolicies(t *testing.T) {
 			fakes := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objects...).Build()
 			ctx := spi.NewFakeContext(fakes, &vzapi.Verrazzano{}, nil, false)
 			err := updateApplicationAuthorizationPolicies(ctx)
-			assert.NoError(err)
+			assertions.NoError(err)
 			if tt.expectedPrincipals != nil {
-				nsList := v1.NamespaceList{}
+				nsList := corev1.NamespaceList{}
 				err = fakes.List(context.TODO(), &nsList)
-				assert.NoError(err)
+				assertions.NoError(err)
 				for _, ns := range nsList.Items {
 					authPolicyList := istioclisec.AuthorizationPolicyList{}
 					err = fakes.List(context.TODO(), &authPolicyList, &client.ListOptions{Namespace: ns.Name})
-					assert.NoError(err)
+					assertions.NoError(err)
 					for _, authPolicy := range authPolicyList.Items {
 						foundPrincipals := []string{}
 						for _, principal := range authPolicy.Spec.Rules[0].From[0].Source.Principals {
-							assert.NotContains(foundPrincipals, principal)
-							assert.Contains(*tt.expectedPrincipals, principal)
+							assertions.NotContains(foundPrincipals, principal)
+							assertions.Contains(*tt.expectedPrincipals, principal)
 							foundPrincipals = append(foundPrincipals, principal)
 						}
 					}
@@ -763,7 +765,7 @@ func TestUpdateApplicationAuthorizationPolicies(t *testing.T) {
 
 // TestCreateOrUpdatePrometheusAuthPolicy tests the createOrUpdatePrometheusAuthPolicy function
 func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
-	assert := asserts.New(t)
+	assertions := assert.New(t)
 
 	// GIVEN Prometheus Operator is being installed or upgraded
 	// WHEN  we call the createOrUpdatePrometheusAuthPolicy function
@@ -772,18 +774,18 @@ func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 
 	err := createOrUpdatePrometheusAuthPolicy(ctx)
-	assert.NoError(err)
+	assertions.NoError(err)
 
 	authPolicy := &istioclisec.AuthorizationPolicy{}
 	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName}, authPolicy)
-	assert.NoError(err)
+	assertions.NoError(err)
 
-	assert.Len(authPolicy.Spec.Rules, 3)
-	assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy")
-	assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
-	assert.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/vmi-system-kiali")
-	assert.Contains(authPolicy.Spec.Rules[1].From[0].Source.Principals, serviceAccount)
-	assert.Contains(authPolicy.Spec.Rules[2].From[0].Source.Principals, "cluster.local/ns/verrazzano-monitoring/sa/jaeger-operator-jaeger")
+	assertions.Len(authPolicy.Spec.Rules, 3)
+	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy")
+	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/vmi-system-kiali")
+	assertions.Contains(authPolicy.Spec.Rules[1].From[0].Source.Principals, serviceAccount)
+	assertions.Contains(authPolicy.Spec.Rules[2].From[0].Source.Principals, "cluster.local/ns/verrazzano-monitoring/sa/jaeger-operator-jaeger")
 
 	// GIVEN Prometheus Operator is being installed or upgraded
 	// AND   Istio is disabled
@@ -802,11 +804,11 @@ func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
 	ctx = spi.NewFakeContext(client, vz, nil, false)
 
 	err = createOrUpdatePrometheusAuthPolicy(ctx)
-	assert.NoError(err)
+	assertions.NoError(err)
 
 	authPolicy = &istioclisec.AuthorizationPolicy{}
 	err = client.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: prometheusAuthPolicyName}, authPolicy)
-	assert.ErrorContains(err, "not found")
+	assertions.ErrorContains(err, "not found")
 }
 
 // TestCreateOrUpdateNetworkPolicies tests the createOrUpdateNetworkPolicies function

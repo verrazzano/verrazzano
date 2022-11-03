@@ -23,6 +23,9 @@ const (
 	TimeoutFlag     = "timeout"
 	TimeoutFlagHelp = "Limits the amount of time a command will wait to complete"
 
+	VPOTimeoutFlag     = "platform-operator-timeout"
+	VPOTimeoutFlagHelp = "Limits the amount of time a command will wait for the Verrazzano Platform Operator to be ready"
+
 	VersionFlag            = "version"
 	VersionFlagDefault     = "latest"
 	VersionFlagInstallHelp = "The version of Verrazzano to install"
@@ -53,10 +56,17 @@ const (
 // VerrazzanoReleaseList - API for getting the list of Verrazzano releases
 const VerrazzanoReleaseList = "https://api.github.com/repos/verrazzano/verrazzano/releases"
 
-// VerrazzanoOperatorURL - URL for downloading Verrazzano releases
+// VerrazzanoOperatorURL - URL for downloading Verrazzano operator.yaml
 const VerrazzanoOperatorURL = "https://github.com/verrazzano/verrazzano/releases/download/%s/operator.yaml"
 
+// VerrazzanoPlatformOperatorURL - URL for downloading verrazzano-platform-operator.yaml
+const VerrazzanoPlatformOperatorURL = "https://github.com/verrazzano/verrazzano/releases/download/%s/verrazzano-platform-operator.yaml"
+
 const VerrazzanoPlatformOperator = "verrazzano-platform-operator"
+
+const VerrazzanoPlatformOperatorWebhook = "verrazzano-platform-operator-webhook"
+
+const VerrazzanoMysqlInstallValuesWebhook = "verrazzano-platform-mysqlinstalloverrides"
 
 const VerrazzanoApplicationOperator = "verrazzano-application-operator"
 
@@ -89,6 +99,9 @@ const OAMManagedClusters = "verrazzanomanagedclusters"
 const VerrazzanoManagedLabel = "verrazzano-managed=true"
 
 const LineSeparator = "-"
+
+// MysqlBackupMutatingWebhookName specifies the name of mysql webhook.
+const MysqlBackupMutatingWebhookName = "verrazzano-mysql-backup"
 
 // Analysis tool flags
 const (
@@ -172,13 +185,17 @@ const (
 const (
 	ClusterNameFlagName    = "name"
 	ClusterNameFlagDefault = "vz-capi"
-	ClusterNameFlagHelp    = "The name of the cluster - defaults to " + ClusterNameFlagDefault
+	ClusterNameFlagHelp    = "The name of the cluster"
 
 	ClusterTypeFlagName    = "type"
-	ClusterTypeFlagDefault = "kind"
-	ClusterTypeFlagHelp    = "The type of the cluster - defaults to " + ClusterTypeFlagDefault
+	ClusterTypeFlagDefault = "ocne"
+	ClusterTypeFlagHelp    = "The type of the cluster"
 
 	ClusterImageFlagName    = "image"
 	ClusterImageFlagDefault = ""
 	ClusterImageFlagHelp    = "DEVELOPMENT ONLY - the image to use for the cluster"
+
+	KubeconfigPathFlagName    = "path"
+	KubeconfigPathFlagDefault = ""
+	KubeconfigPathFlagHelp    = "Path to the file where the kubeconfig should be saved - defaults to your current kubeconfig"
 )

@@ -64,11 +64,6 @@ func (v *MultiClusterApplicationConfigurationValidator) Handle(ctx context.Conte
 				errorCounterMetricObject.Inc(zapLogForMetrics, err)
 				return admission.Denied(err.Error())
 			}
-			err = validateNamespaceInProject(v.client, mcac.Namespace)
-			if err != nil {
-				errorCounterMetricObject.Inc(zapLogForMetrics, err)
-				return admission.Denied(err.Error())
-			}
 		}
 	}
 	counterMetricObject.Inc(zapLogForMetrics, err)

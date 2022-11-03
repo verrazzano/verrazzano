@@ -1,16 +1,17 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-apiVersion: install.verrazzano.io/v1alpha1
+apiVersion: install.verrazzano.io/v1beta1
 kind: Verrazzano
 metadata:
   name: verrazzano
 spec:
   profile: prod
   components:
-    authproxy:
-      kubernetes:
-        replicas: 2
+    authProxy:
+      overrides:
+        - values:
+            replicas: 2
     certManager:
       overrides:
         - values:
@@ -19,11 +20,15 @@ spec:
               replicaCount: 2
             webhook:
               replicaCount: 2
+    coherenceOperator:
+      overrides:
+        - values:
+            replicas: 3
     console:
       overrides:
         - values:
             replicas: 2
-    ingress:
+    ingressNGINX:
       overrides:
         - values:
             controller:
@@ -42,17 +47,52 @@ spec:
                 pilot:
                   k8s:
                     replicaCount: 2
-      ingress:
-        kubernetes:
-          replicas: 2
-      egress:
-        kubernetes:
-          replicas: 2
+                ingressGateways:
+                  - enabled: true
+                    k8s:
+                      affinity:
+                        podAntiAffinity:
+                          preferredDuringSchedulingIgnoredDuringExecution:
+                            - podAffinityTerm:
+                                labelSelector:
+                                  matchExpressions:
+                                    - key: app
+                                      operator: In
+                                      values:
+                                        - istio-ingressgateway
+                                topologyKey: kubernetes.io/hostname
+                              weight: 100
+                      replicaCount: 2
+                      service:
+                        type: LoadBalancer
+                    name: istio-ingressgateway
+                egressGateways:
+                  - enabled: true
+                    k8s:
+                      affinity:
+                        podAntiAffinity:
+                          preferredDuringSchedulingIgnoredDuringExecution:
+                            - podAffinityTerm:
+                                labelSelector:
+                                  matchExpressions:
+                                    - key: app
+                                      operator: In
+                                      values:
+                                        - istio-egressgateway
+                                topologyKey: kubernetes.io/hostname
+                              weight: 100
+                      replicaCount: 2
+                    name: istio-egressgateway
     keycloak:
       overrides:
         - values:
-            replicas: 2
-    kibana:
+            replicas: 3
+      mysql:
+        overrides:
+          - values:
+              serverInstances: 3
+              routerInstances: 3
+    opensearchDashboards:
       replicas: 2
     kiali:
       overrides:
@@ -65,7 +105,7 @@ spec:
             prometheus:
               prometheusSpec:
                 replicas: 2
-    elasticsearch:
-      installArgs:
-        - name: nodes.ingest.replicas
-          value: "2"
+    opensearch:
+      nodes:
+        - name: es-ingest
+          replicas: 2

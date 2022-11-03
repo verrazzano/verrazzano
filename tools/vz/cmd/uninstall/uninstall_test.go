@@ -6,9 +6,13 @@ package uninstall
 import (
 	"bytes"
 	"context"
+	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
@@ -20,16 +24,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"os"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 // TestUninstallCmd
 // GIVEN a CLI uninstall command with all defaults
-//  WHEN I call cmd.Execute for uninstall
-//  THEN the CLI uninstall command is successful
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command is successful
 func TestUninstallCmd(t *testing.T) {
 	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vpo := createVpoPod()
@@ -60,8 +63,9 @@ func TestUninstallCmd(t *testing.T) {
 
 // TestUninstallCmdUninstallJob
 // GIVEN a CLI uninstall command with all defaults and a 1.3.1 version install
-//  WHEN I call cmd.Execute for uninstall
-//  THEN the CLI uninstall command is successful
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command is successful
 func TestUninstallCmdUninstallJob(t *testing.T) {
 	deployment := createVpoDeployment(nil)
 	job := &corev1.Pod{
@@ -107,8 +111,9 @@ func TestUninstallCmdUninstallJob(t *testing.T) {
 
 // TestUninstallCmdDefaultTimeout
 // GIVEN a CLI uninstall command with all defaults and --timeout=2ms
-//  WHEN I call cmd.Execute for uninstall
-//  THEN the CLI uninstall command times out
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command times out
 func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vpo := createVpoPod()
@@ -141,8 +146,9 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 
 // TestUninstallCmdDefaultNoWait
 // GIVEN a CLI uninstall command with all defaults and --wait==false
-//  WHEN I call cmd.Execute for uninstall
-//  THEN the CLI uninstall command is successful
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command is successful
 func TestUninstallCmdDefaultNoWait(t *testing.T) {
 	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vpo := createVpoPod()
@@ -172,8 +178,9 @@ func TestUninstallCmdDefaultNoWait(t *testing.T) {
 
 // TestUninstallCmdJsonLogFormat
 // GIVEN a CLI uninstall command with defaults and --log-format=json and --wait==false
-//  WHEN I call cmd.Execute for uninstall
-//  THEN the CLI uninstall command is successful
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command is successful
 func TestUninstallCmdJsonLogFormat(t *testing.T) {
 	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vz := createVz()
@@ -198,8 +205,9 @@ func TestUninstallCmdJsonLogFormat(t *testing.T) {
 
 // TestUninstallCmdDefaultNoVPO
 // GIVEN a CLI uninstall command with all defaults and no VPO found
-//  WHEN I call cmd.Execute for uninstall
-//  THEN the CLI uninstall command fails
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command fails
 func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.4.0"})
 	vz := createVz()
@@ -217,13 +225,14 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Failed to find the Verrazzano platform operator in namespace verrazzano-install")
-	assert.Contains(t, errBuf.String(), "Error: Failed to find the Verrazzano platform operator in namespace verrazzano-install")
+	assert.Contains(t, errBuf.String(), "Failed to find the Verrazzano platform operator in namespace verrazzano-install")
 }
 
 // TestUninstallCmdDefaultNoUninstallJob
 // GIVEN a CLI uninstall command with all defaults and no uninstall job pod
-//  WHEN I call cmd.Execute for uninstall
-//  THEN the CLI uninstall command fails
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command fails
 func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	deployment := createVpoDeployment(map[string]string{"app.kubernetes.io/version": "1.3.0"})
 	vz := createVz()
@@ -245,13 +254,14 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-uninstall-verrazzano, verrazzano-uninstall-verrazzano pod not found in namespace verrazzano-install")
-	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-uninstall-verrazzano, verrazzano-uninstall-verrazzano pod not found in namespace verrazzano-install")
+	assert.Contains(t, errBuf.String(), "Waiting for verrazzano-uninstall-verrazzano, verrazzano-uninstall-verrazzano pod not found in namespace verrazzano-install")
 }
 
 // TestUninstallCmdDefaultNoVzResource
 // GIVEN a CLI uninstall command with all defaults and no vz resource found
-//  WHEN I call cmd.Execute for uninstall
-//  THEN the CLI uninstall command fails
+//
+//	WHEN I call cmd.Execute for uninstall
+//	THEN the CLI uninstall command fails
 func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).Build()
 
@@ -279,8 +289,8 @@ func createNamespace() *corev1.Namespace {
 	}
 }
 
-func createVz() *vzapi.Verrazzano {
-	return &vzapi.Verrazzano{
+func createVz() *v1beta1.Verrazzano {
+	return &v1beta1.Verrazzano{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
@@ -315,7 +325,7 @@ func createWebhook() *adminv1.ValidatingWebhookConfiguration {
 	return &adminv1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.VerrazzanoPlatformOperator,
+			Name: constants.VerrazzanoPlatformOperatorWebhook,
 		},
 	}
 }
@@ -351,7 +361,7 @@ func ensureResourcesDeleted(t *testing.T, client ctrlclient.Client) {
 
 	// Expect the Validating Webhook Configuration to be deleted
 	vwc := adminv1.ValidatingWebhookConfiguration{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperator}, &vwc)
+	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperatorWebhook}, &vwc)
 	assert.True(t, errors.IsNotFound(err))
 
 	// Expect the Cluster Role Binding to be deleted
@@ -373,7 +383,7 @@ func ensureResourcesNotDeleted(t *testing.T, client ctrlclient.Client) {
 
 	// Expect the Validating Webhook Configuration not to be deleted
 	vwc := adminv1.ValidatingWebhookConfiguration{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperator}, &vwc)
+	err = client.Get(context.TODO(), types.NamespacedName{Name: constants.VerrazzanoPlatformOperatorWebhook}, &vwc)
 	assert.NoError(t, err)
 
 	// Expect the Cluster Role Binding not to be deleted

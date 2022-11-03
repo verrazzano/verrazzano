@@ -9,7 +9,7 @@ import (
 	platformOperatorConstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 )
 
-// RestartVersionAnnotation - the annotation used by user to tell Verrazzano applicaton to restart its components
+// RestartVersionAnnotation - the annotation used by user to tell Verrazzano application to restart its components
 const RestartVersionAnnotation = "verrazzano.io/restart-version"
 
 // VerrazzanoRestartAnnotation is the annotation used to restart platform workloads
@@ -128,7 +128,7 @@ const TestPrometheusScrapeJob = "test_job"
 const DefaultOpensearchURL = "http://verrazzano-authproxy-elasticsearch:8775"
 
 // Default Jaeger OpenSearch URL
-const DefaultJaegerOSURL = "http://verrazzano-authproxy-elasticsearch.verrazzano-system.svc.cluster.local:8775"
+const DefaultJaegerOSURL = "http://verrazzano-authproxy-elasticsearch.verrazzano-system:8775"
 
 // DefaultJaegerSecretName is the Jaeger secret name used by the default Jaeger instance
 // #nosec
@@ -160,6 +160,12 @@ const MetricsTemplateAPIVersion = "app.verrazzano.io/v1alpha1"
 
 // SecretKind is the kind for a secret
 const SecretKind = "Secret"
+
+// MysqlBackupMutatingWebhookName specifies the name of mysql webhook.
+const MysqlBackupMutatingWebhookName = "verrazzano-mysql-backup"
+
+// MysqlBackupMutatingWebhookPath specifies the path of mysql webhook.
+const MysqlBackupMutatingWebhookPath = "/mysql-backup-job-annotate"
 
 // Components Names
 const (

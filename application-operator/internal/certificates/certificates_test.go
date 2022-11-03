@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -21,12 +20,13 @@ import (
 
 // TestSetupCertificates tests that the certificates needed for webhooks are created
 // GIVEN an output directory for certificates
-//  WHEN I call SetupCertificates
-//  THEN all the needed certificate artifacts are created
+//
+//	WHEN I call SetupCertificates
+//	THEN all the needed certificate artifacts are created
 func TestSetupCertificates(t *testing.T) {
 	a := assert.New(t)
 
-	dir, err := ioutil.TempDir("", "certs")
+	dir, err := os.MkdirTemp("", "certs")
 	if err != nil {
 		a.Nil(err, "error should not be returned creating temporary directory")
 	}
@@ -39,7 +39,7 @@ func TestSetupCertificates(t *testing.T) {
 	a.FileExists(crtFile, dir, "tls.crt", "expected tls.crt file not found")
 	a.FileExists(keyFile, dir, "tls.key", "expected tls.key file not found")
 
-	crtBytes, err := ioutil.ReadFile(crtFile)
+	crtBytes, err := os.ReadFile(crtFile)
 	if a.NoError(err) {
 		block, _ := pem.Decode(crtBytes)
 		a.NotEmptyf(block, "failed to decode PEM block containing public key")
@@ -54,8 +54,9 @@ func TestSetupCertificates(t *testing.T) {
 
 // TestSetupCertificatesFail tests that the certificates needed for webhooks are not created
 // GIVEN an invalid output directory for certificates
-//  WHEN I call SetupCertificates
-//  THEN all the needed certificate artifacts are not created
+//
+//	WHEN I call SetupCertificates
+//	THEN all the needed certificate artifacts are not created
 func TestSetupCertificatesFail(t *testing.T) {
 	a := assert.New(t)
 
@@ -66,8 +67,9 @@ func TestSetupCertificatesFail(t *testing.T) {
 // TestUpdateValidatingWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-platform-operator
 // validatingWebhookConfiguration resource.
 // GIVEN a validatingWebhookConfiguration resource with the CA Bundle set
-//  WHEN I call UpdateValidatingnWebhookConfiguration
-//  THEN the validatingWebhookConfiguration resource set the CA Bundle as expected
+//
+//	WHEN I call UpdateValidatingnWebhookConfiguration
+//	THEN the validatingWebhookConfiguration resource set the CA Bundle as expected
 func TestUpdateValidatingWebhookConfiguration(t *testing.T) {
 	a := assert.New(t)
 
@@ -109,8 +111,9 @@ func TestUpdateValidatingWebhookConfiguration(t *testing.T) {
 // TestUpdateValidatingWebhookConfigurationFail tests that the CA Bundle is not updated in the
 // verrazzano-platform-operator validatingWebhookConfiguration resource.
 // GIVEN an invalid validatingWebhookConfiguration resource with the CA Bundle set
-//  WHEN I call UpdateValidatingnWebhookConfiguration
-//  THEN the validatingWebhookConfiguration resource will fail to be updated
+//
+//	WHEN I call UpdateValidatingnWebhookConfiguration
+//	THEN the validatingWebhookConfiguration resource will fail to be updated
 func TestUpdateValidatingWebhookConfigurationFail(t *testing.T) {
 	a := assert.New(t)
 
@@ -149,8 +152,9 @@ func TestUpdateValidatingWebhookConfigurationFail(t *testing.T) {
 // TestUpdateAppConfigMutatingWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-application-operator
 // mutatingWebhookConfiguration resource.
 // GIVEN a mutatingWebhookConfiguration resource with the CA Bundle set
-//  WHEN I call UpdateAppConfigMutatingWebhookConfiguration
-//  THEN the mutatingWebhookConfiguration resource set the CA Bundle as expected
+//
+//	WHEN I call UpdateAppConfigMutatingWebhookConfiguration
+//	THEN the mutatingWebhookConfiguration resource set the CA Bundle as expected
 func TestUpdateAppConfigMutatingWebhookConfiguration(t *testing.T) {
 	a := assert.New(t)
 
@@ -192,8 +196,9 @@ func TestUpdateAppConfigMutatingWebhookConfiguration(t *testing.T) {
 // TestUpdateAppConfigMutatingWebhookConfigurationFail tests that the CA Bundle is not updated in the
 // verrazzano-application-operator mutatingWebhookConfiguration resource.
 // GIVEN an invalid mutatingWebhookConfiguration resource with the CA Bundle set
-//  WHEN I call UpdateAppConfigMutatingWebhookConfiguration
-//  THEN the mutatingWebhookConfiguration resource will fail to be updated
+//
+//	WHEN I call UpdateAppConfigMutatingWebhookConfiguration
+//	THEN the mutatingWebhookConfiguration resource will fail to be updated
 func TestUpdateAppConfigMutatingWebhookConfigurationFail(t *testing.T) {
 	a := assert.New(t)
 
@@ -232,8 +237,9 @@ func TestUpdateAppConfigMutatingWebhookConfigurationFail(t *testing.T) {
 // TestUpdateIstioMutatingWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-application-operator
 // mutatingWebhookConfiguration resource.
 // GIVEN a mutatingWebhookConfiguration resource with the CA Bundle set
-//  WHEN I call UpdateIstioMutatingWebhookConfiguration
-//  THEN the mutatingWebhookConfiguration resource set the CA Bundle as expected
+//
+//	WHEN I call UpdateIstioMutatingWebhookConfiguration
+//	THEN the mutatingWebhookConfiguration resource set the CA Bundle as expected
 func TestUpdateIstioMutatingWebhookConfiguration(t *testing.T) {
 	a := assert.New(t)
 
@@ -275,8 +281,9 @@ func TestUpdateIstioMutatingWebhookConfiguration(t *testing.T) {
 // TestUpdateIstioMutatingWebhookConfigurationFail tests that the CA Bundle is not updated in the
 // verrazzano-application-operator mutatingWebhookConfiguration resource.
 // GIVEN an invalid mutatingWebhookConfiguration resource with the CA Bundle set
-//  WHEN I call UpdateIstioMutatingWebhookConfiguration
-//  THEN the mutatingWebhookConfiguration resource will fail to be updated
+//
+//	WHEN I call UpdateIstioMutatingWebhookConfiguration
+//	THEN the mutatingWebhookConfiguration resource will fail to be updated
 func TestUpdateIstioMutatingWebhookConfigurationFail(t *testing.T) {
 	a := assert.New(t)
 

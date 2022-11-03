@@ -6,9 +6,13 @@ package operator
 import (
 	"context"
 	"fmt"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
+
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
@@ -82,9 +86,9 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_3_0,
-			ImagePullSecretKeyname:    "image.imagePullSecrets[0].name",
+			ImagePullSecretKeyname:    "image.imagePullSecrets[0]",
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml"),
-			Dependencies:              []string{certmanager.ComponentName, opensearch.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName, opensearch.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 		},
@@ -100,13 +104,17 @@ func (c jaegerOperatorComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // IsReady checks if the Jaeger Operator deployment is ready
 func (c jaegerOperatorComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		defaultJaegerEnabled, err := isJaegerCREnabled(ctx)
-		if err == nil && defaultJaegerEnabled {
-			return isJaegerOperatorReady(ctx) && isDefaultJaegerInstanceReady(ctx)
-		}
-		return isJaegerOperatorReady(ctx)
+		return isJaegerReady(ctx)
 	}
 	return false
+}
+
+func (c jaegerOperatorComponent) IsAvailable(ctx spi.ComponentContext) (string, bool) {
+	deploys, err := getAllComponentDeployments(ctx)
+	if err != nil {
+		return err.Error(), false
+	}
+	return (&ready.AvailabilityObjects{DeploymentNames: deploys}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 // MonitorOverrides checks whether monitoring is enabled for install overrides sources
@@ -146,7 +154,14 @@ func (c jaegerOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
 
 // ValidateInstall validates the installation of the Verrazzano CR
 func (c jaegerOperatorComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
-	return c.validateJaegerOperator(vz)
+	convertedVZ := installv1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(vz, &convertedVZ); err != nil {
+		return err
+	}
+	if err := c.HelmComponent.ValidateInstallV1Beta1(&convertedVZ); err != nil {
+		return err
+	}
+	return c.validateJaegerOperator(&convertedVZ)
 }
 
 // ValidateUpdate validates if the update operation of the Verrazzano CR is valid or not.
@@ -154,24 +169,44 @@ func (c jaegerOperatorComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzap
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
 	}
-	return c.validateJaegerOperator(new)
+	convertedVZNew := installv1beta1.Verrazzano{}
+	convertedVZOld := installv1beta1.Verrazzano{}
+	if err := common.ConvertVerrazzanoCR(new, &convertedVZNew); err != nil {
+		return err
+	}
+	if err := common.ConvertVerrazzanoCR(old, &convertedVZOld); err != nil {
+		return err
+	}
+	if err := c.HelmComponent.ValidateUpdateV1Beta1(&convertedVZOld, &convertedVZNew); err != nil {
+		return err
+	}
+	return c.validateJaegerOperator(&convertedVZNew)
 }
 
-// ValidateInstall validates the installation of the Verrazzano CR
+// ValidateInstallV1Beta1 validates the installation of the Verrazzano CR
 func (c jaegerOperatorComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return nil
+	if err := c.HelmComponent.ValidateInstallV1Beta1(vz); err != nil {
+		return err
+	}
+	return c.validateJaegerOperator(vz)
 }
 
-// ValidateUpdate validates if the update operation of the Verrazzano CR is valid or not.
+// ValidateUpdateV1Beta1 validates if the update operation of the Verrazzano CR is valid or not.
 func (c jaegerOperatorComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	return nil
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("disabling component %s is not allowed", ComponentJSONName)
+	}
+	if err := c.HelmComponent.ValidateUpdateV1Beta1(old, new); err != nil {
+		return err
+	}
+	return c.validateJaegerOperator(new)
 }
 
 // PreUpgrade Jaeger component pre-upgrade processing
 func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Jaeger pre-upgrade")
 	// Create the verrazzano-monitoring namespace if not already created
-	if err := ensureVerrazzanoMonitoringNamespace(ctx); err != nil {
+	if err := common.EnsureVerrazzanoMonitoringNamespace(ctx); err != nil {
 		return err
 	}
 	installed, err := helmcli.IsReleaseInstalled(ComponentName, ComponentNamespace)
@@ -198,7 +233,6 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 
 // Upgrade jaegeroperator component for upgrade processing.
 func (c jaegerOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
-
 	return c.HelmComponent.Install(ctx)
 }
 

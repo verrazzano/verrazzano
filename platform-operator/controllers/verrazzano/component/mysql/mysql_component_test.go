@@ -6,15 +6,14 @@ package mysql
 import (
 	"testing"
 
-	"k8s.io/apimachinery/pkg/api/resource"
-
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func Test_mysqlComponent_ValidateUpdate(t *testing.T) {
+func TestValidateUpdate(t *testing.T) {
 	var pvc1Gi, _ = resource.ParseQuantity("1Gi")
 	var pvc2Gi, _ = resource.ParseQuantity("2Gi")
 	var storageClass1 = "class1"
@@ -337,6 +336,332 @@ func Test_mysqlComponent_ValidateUpdate(t *testing.T) {
 			c := NewComponent()
 			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidateUpdateV1beta1(t *testing.T) {
+	var pvc1Gi, _ = resource.ParseQuantity("1Gi")
+	var pvc2Gi, _ = resource.ParseQuantity("2Gi")
+	var storageClass1 = "class1"
+	var storageClass2 = "class2"
+	tests := []struct {
+		name    string
+		old     *v1beta1.Verrazzano
+		new     *v1beta1.Verrazzano
+		wantErr bool
+	}{
+		{
+			name:    "no change",
+			old:     &v1beta1.Verrazzano{},
+			new:     &v1beta1.Verrazzano{},
+			wantErr: false,
+		},
+		{
+			name: "emptyDir to PVC in volumeSource",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Keycloak: &v1beta1.KeycloakComponent{
+							MySQL: v1beta1.MySQLComponent{
+								VolumeSource: &corev1.VolumeSource{
+									EmptyDir: &corev1.EmptyDirVolumeSource{},
+								},
+							},
+						},
+					},
+				},
+			},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Keycloak: &v1beta1.KeycloakComponent{
+							MySQL: v1beta1.MySQLComponent{
+								VolumeSource: &corev1.VolumeSource{
+									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change-install-args",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Keycloak: &v1beta1.KeycloakComponent{
+							MySQL: v1beta1.MySQLComponent{},
+						},
+					},
+				},
+			},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Keycloak: &v1beta1.KeycloakComponent{
+							MySQL: v1beta1.MySQLComponent{
+								VolumeSource: &corev1.VolumeSource{
+									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "PVC to emptyDir in volumeSource",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Keycloak: &v1beta1.KeycloakComponent{
+							MySQL: v1beta1.MySQLComponent{
+								VolumeSource: &corev1.VolumeSource{
+									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+								},
+							},
+						},
+					},
+				},
+			},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Keycloak: &v1beta1.KeycloakComponent{
+							MySQL: v1beta1.MySQLComponent{
+								VolumeSource: &corev1.VolumeSource{
+									EmptyDir: &corev1.EmptyDirVolumeSource{},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "resize pvc in volumeSource",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Keycloak: &v1beta1.KeycloakComponent{
+							MySQL: v1beta1.MySQLComponent{
+								VolumeSource: &corev1.VolumeSource{
+									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+								},
+							},
+						},
+					},
+					VolumeClaimSpecTemplates: []v1beta1.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "mysql"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc1Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Keycloak: &v1beta1.KeycloakComponent{
+							MySQL: v1beta1.MySQLComponent{
+								VolumeSource: &corev1.VolumeSource{
+									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+								},
+							},
+						},
+					},
+					VolumeClaimSpecTemplates: []v1beta1.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "mysql"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc2Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change storage class in volumeSource",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Keycloak: &v1beta1.KeycloakComponent{
+							MySQL: v1beta1.MySQLComponent{
+								VolumeSource: &corev1.VolumeSource{
+									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+								},
+							},
+						},
+					},
+					VolumeClaimSpecTemplates: []v1beta1.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "mysql"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								StorageClassName: &storageClass1,
+							},
+						},
+					},
+				},
+			},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Keycloak: &v1beta1.KeycloakComponent{
+							MySQL: v1beta1.MySQLComponent{
+								VolumeSource: &corev1.VolumeSource{
+									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+								},
+							},
+						},
+					},
+					VolumeClaimSpecTemplates: []v1beta1.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "mysql"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								StorageClassName: &storageClass2,
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "emptyDir to PVC in defaultVolumeSource",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+			},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "PVC to emptyDir in defaultVolumeSource",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+					},
+				},
+			},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "resize pvc in defaultVolumeSource",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+					},
+					VolumeClaimSpecTemplates: []v1beta1.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "mysql"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc1Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+					},
+					VolumeClaimSpecTemplates: []v1beta1.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "mysql"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc2Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "change storage class in defaultVolumeSource",
+			old: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+					},
+					VolumeClaimSpecTemplates: []v1beta1.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "mysql"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								StorageClassName: &storageClass1,
+							},
+						},
+					},
+				},
+			},
+			new: &v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+					},
+					VolumeClaimSpecTemplates: []v1beta1.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "mysql"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								StorageClassName: &storageClass2,
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			if err := c.ValidateUpdateV1Beta1(tt.old, tt.new); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

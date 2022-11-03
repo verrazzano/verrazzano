@@ -5,6 +5,8 @@ package v1alpha1
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/Jeffail/gabs/v2"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
@@ -17,7 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 	"sigs.k8s.io/yaml"
-	"strconv"
 )
 
 const (
@@ -43,7 +44,7 @@ type expandInfo struct {
 	key        string
 }
 
-//ConvertTo converts a v1alpha1.Verrazzano to a v1beta1.Verrazzano
+// ConvertTo converts a v1alpha1.Verrazzano to a v1beta1.Verrazzano
 func (in *Verrazzano) ConvertTo(dstRaw conversion.Hub) error {
 	out := dstRaw.(*v1beta1.Verrazzano)
 	if out == nil || in == nil {
@@ -61,7 +62,7 @@ func (in *Verrazzano) ConvertTo(dstRaw conversion.Hub) error {
 	out.Spec.EnvironmentName = in.Spec.EnvironmentName
 	out.Spec.Version = in.Spec.Version
 	out.Spec.DefaultVolumeSource = in.Spec.DefaultVolumeSource
-	out.Spec.VolumeClaimSpecTemplates = convertVolumeClaimTemplateTo(in.Spec.VolumeClaimSpecTemplates)
+	out.Spec.VolumeClaimSpecTemplates = ConvertVolumeClaimTemplateTo(in.Spec.VolumeClaimSpecTemplates)
 	out.Spec.Components = components
 	out.Spec.Security = convertSecuritySpecTo(in.Spec.Security)
 
@@ -71,10 +72,11 @@ func (in *Verrazzano) ConvertTo(dstRaw conversion.Hub) error {
 	out.Status.Conditions = convertConditionsTo(in.Status.Conditions)
 	out.Status.Components = convertComponentStatusMapTo(in.Status.Components)
 	out.Status.VerrazzanoInstance = convertVerrazzanoInstanceTo(in.Status.VerrazzanoInstance)
+	out.Status.Available = in.Status.Available
 	return nil
 }
 
-func convertVolumeClaimTemplateTo(src []VolumeClaimSpecTemplate) []v1beta1.VolumeClaimSpecTemplate {
+func ConvertVolumeClaimTemplateTo(src []VolumeClaimSpecTemplate) []v1beta1.VolumeClaimSpecTemplate {
 	var templates []v1beta1.VolumeClaimSpecTemplate
 	for _, template := range src {
 		templates = append(templates, v1beta1.VolumeClaimSpecTemplate{
@@ -98,7 +100,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 	if err != nil {
 		return v1beta1.ComponentSpec{}, err
 	}
-	istioComponent, err := convertIstioToV1Beta1(src.Istio)
+	istioComponent, err := ConvertIstioToV1Beta1(src.Istio)
 	if err != nil {
 		return v1beta1.ComponentSpec{}, err
 	}
@@ -111,7 +113,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		return v1beta1.ComponentSpec{}, err
 	}
 	return v1beta1.ComponentSpec{
-		CertManager:            convertCertManagerToV1Beta1(src.CertManager),
+		CertManager:            ConvertCertManagerToV1Beta1(src.CertManager),
 		CoherenceOperator:      convertCoherenceOperatorToV1Beta1(src.CoherenceOperator),
 		ApplicationOperator:    convertApplicationOperatorToV1Beta1(src.ApplicationOperator),
 		AuthProxy:              authProxyComponent,
@@ -121,7 +123,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		OpenSearch:             opensearchComponent,
 		Fluentd:                convertFluentdToV1Beta1(src.Fluentd),
 		Grafana:                convertGrafanaToV1Beta1(src.Grafana),
-		Ingress:                ingressComponent,
+		IngressNGINX:           ingressComponent,
 		Istio:                  istioComponent,
 		JaegerOperator:         convertJaegerOperatorToV1Beta1(src.JaegerOperator),
 		Kiali:                  convertKialiToV1Beta1(src.Kiali),
@@ -142,7 +144,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 	}, nil
 }
 
-func convertCertManagerToV1Beta1(src *CertManagerComponent) *v1beta1.CertManagerComponent {
+func ConvertCertManagerToV1Beta1(src *CertManagerComponent) *v1beta1.CertManagerComponent {
 	if src == nil {
 		return nil
 	}
@@ -419,11 +421,16 @@ func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSea
 		}
 	}
 
-	return map[string]v1beta1.OpenSearchNode{
-		masterNodeName: *masterNode,
-		dataNodeName:   *dataNode,
-		ingestNodeName: *ingestNode,
-	}, nil
+	nodes := map[string]v1beta1.OpenSearchNode{}
+	addNode := func(node *v1beta1.OpenSearchNode) {
+		if node.Replicas > 0 {
+			nodes[node.Name] = *node
+		}
+	}
+	addNode(masterNode)
+	addNode(dataNode)
+	addNode(ingestNode)
+	return nodes, nil
 }
 
 func convertFluentdToV1Beta1(src *FluentdComponent) *v1beta1.FluentdComponent {
@@ -485,7 +492,7 @@ func convertIngressNGINXToV1Beta1(src *IngressNginxComponent) (*v1beta1.IngressN
 	if src == nil {
 		return nil, nil
 	}
-	installOverrides, err := convertInstallOverridesWithArgsToV1Beta1(src.NGINXInstallArgs, src.InstallOverrides)
+	installOverrides, err := ConvertInstallOverridesWithArgsToV1Beta1(src.NGINXInstallArgs, src.InstallOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -498,7 +505,7 @@ func convertIngressNGINXToV1Beta1(src *IngressNginxComponent) (*v1beta1.IngressN
 	}, nil
 }
 
-func convertIstioToV1Beta1(src *IstioComponent) (*v1beta1.IstioComponent, error) {
+func ConvertIstioToV1Beta1(src *IstioComponent) (*v1beta1.IstioComponent, error) {
 	if src == nil {
 		return nil, nil
 	}
@@ -522,12 +529,6 @@ func convertIstioToV1Beta1(src *IstioComponent) (*v1beta1.IstioComponent, error)
 	}, nil
 }
 
-type IstioOperator struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-	Spec              *operatorv1alpha1.IstioOperatorSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
-}
-
 func mergeIstioOverrides(override v1beta1.Overrides, overrides []v1beta1.Overrides) ([]v1beta1.Overrides, error) {
 	if !isOverrideValueUnset(override) {
 		if len(overrides) < 1 {
@@ -535,14 +536,20 @@ func mergeIstioOverrides(override v1beta1.Overrides, overrides []v1beta1.Overrid
 				override,
 			}, nil
 		}
-		if isOverrideValueUnset(overrides[0]) {
-			overrides[0].Values = override.Values
+
+		lastIndex := len(overrides) - 1
+		if isOverrideValueUnset(overrides[lastIndex]) {
+			overrides[lastIndex].Values = override.Values
 		} else {
-			data, err := strategicpatch.StrategicMergePatch(overrides[0].Values.Raw, override.Values.Raw, IstioOperator{})
+			data, err := strategicpatch.StrategicMergePatch(overrides[lastIndex].Values.Raw, override.Values.Raw, struct {
+				metav1.TypeMeta   `json:",inline"`
+				metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+				Spec              *operatorv1alpha1.IstioOperatorSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+			}{})
 			if err != nil {
 				return nil, err
 			}
-			overrides[0].Values.Raw = data
+			overrides[lastIndex].Values.Raw = data
 		}
 	}
 
@@ -577,11 +584,11 @@ func convertKeycloakToV1Beta1(src *KeycloakComponent) (*v1beta1.KeycloakComponen
 	if src == nil {
 		return nil, nil
 	}
-	keycloakOverrides, err := convertInstallOverridesWithArgsToV1Beta1(src.KeycloakInstallArgs, src.InstallOverrides)
+	keycloakOverrides, err := ConvertInstallOverridesWithArgsToV1Beta1(src.KeycloakInstallArgs, src.InstallOverrides)
 	if err != nil {
 		return nil, err
 	}
-	mysqlOverrides, err := convertInstallOverridesWithArgsToV1Beta1(src.MySQL.MySQLInstallArgs, src.MySQL.InstallOverrides)
+	mysqlOverrides, err := ConvertInstallOverridesWithArgsToV1Beta1(src.MySQL.MySQLInstallArgs, src.MySQL.InstallOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -719,7 +726,7 @@ func convertVerrazzanoToV1Beta1(src *VerrazzanoComponent) (*v1beta1.VerrazzanoCo
 	if src == nil {
 		return nil, nil
 	}
-	installOverrides, err := convertInstallOverridesWithArgsToV1Beta1(src.InstallArgs, src.InstallOverrides)
+	installOverrides, err := ConvertInstallOverridesWithArgsToV1Beta1(src.InstallArgs, src.InstallOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -753,6 +760,7 @@ func convertComponentStatusMapTo(components ComponentStatusMap) v1beta1.Componen
 				Name:                     detail.Name,
 				Conditions:               convertConditionsTo(detail.Conditions),
 				State:                    v1beta1.CompStateType(detail.State),
+				Available:                detail.Available,
 				Version:                  detail.Version,
 				LastReconciledGeneration: detail.LastReconciledGeneration,
 				ReconcilingGeneration:    detail.ReconcilingGeneration,
@@ -786,7 +794,7 @@ func convertSecuritySpecTo(security SecuritySpec) v1beta1.SecuritySpec {
 	}
 }
 
-func convertInstallOverridesWithArgsToV1Beta1(args []InstallArgs, overrides InstallOverrides) (v1beta1.InstallOverrides, error) {
+func ConvertInstallOverridesWithArgsToV1Beta1(args []InstallArgs, overrides InstallOverrides) (v1beta1.InstallOverrides, error) {
 	convertedOverrides := convertInstallOverridesToV1Beta1(overrides)
 	override := v1beta1.Overrides{}
 	if len(args) > 0 {
@@ -867,11 +875,11 @@ func convertCommonKubernetesToYaml(src CommonKubernetesSpec, replicasInfo, affin
 func convertInstallOverridesToV1Beta1(src InstallOverrides) v1beta1.InstallOverrides {
 	return v1beta1.InstallOverrides{
 		MonitorChanges: src.MonitorChanges,
-		ValueOverrides: convertValueOverridesToV1Beta1(src.ValueOverrides),
+		ValueOverrides: ConvertValueOverridesToV1Beta1(src.ValueOverrides),
 	}
 }
 
-func convertValueOverridesToV1Beta1(overrides []Overrides) []v1beta1.Overrides {
+func ConvertValueOverridesToV1Beta1(overrides []Overrides) []v1beta1.Overrides {
 	var out []v1beta1.Overrides
 	for _, override := range overrides {
 		out = append(out, v1beta1.Overrides{

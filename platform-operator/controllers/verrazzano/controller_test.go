@@ -6,6 +6,12 @@ package verrazzano
 import (
 	"context"
 	"fmt"
+	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
+	v1 "k8s.io/api/batch/v1"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sync"
 	"testing"
 	"time"
@@ -15,6 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -98,7 +105,8 @@ func TestGetUninstallJobName(t *testing.T) {
 // GIVEN a request to reconcile a Verrazzano resource
 // WHEN a Verrazzano resource has been applied
 // THEN ensure all the objects are already created and
-//      ensure a finalizer is added if it doesn't exist
+//
+//	ensure a finalizer is added if it doesn't exist
 func TestInstall(t *testing.T) {
 	tests := []struct {
 		namespace string
@@ -188,7 +196,7 @@ func TestInstall(t *testing.T) {
 			reconcileCounterMetric, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter)
 			assert.NoError(t, err)
 			reconcileCounterBefore := testutil.ToFloat64(reconcileCounterMetric.Get())
-			result, err := reconciler.Reconcile(nil, request)
+			result, err := reconciler.Reconcile(context.TODO(), request)
 			reconcileCounterAfter := testutil.ToFloat64(reconcileCounterMetric.Get())
 			asserts.Equal(reconcileCounterBefore, reconcileCounterAfter-1)
 
@@ -267,7 +275,7 @@ func TestInstallInitComponents(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.NotZero(result.RequeueAfter)
@@ -353,25 +361,6 @@ func TestCreateLocalRegistrationSecretUnexpectedError(t *testing.T) {
 	asserts.Error(err)
 }
 
-func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
-	statusMap := make(vzapi.ComponentStatusMap)
-	for _, comp := range registry.GetComponents() {
-		if comp.IsOperatorInstallSupported() {
-			statusMap[comp.Name()] = &vzapi.ComponentStatusDetails{
-				Name: comp.Name(),
-				Conditions: []vzapi.Condition{
-					{
-						Type:   vzapi.CondInstallComplete,
-						Status: corev1.ConditionTrue,
-					},
-				},
-				State: vzapi.CompStateReady,
-			}
-		}
-	}
-	return statusMap
-}
-
 // TestCreateVerrazzanoWithOCIDNS tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an Verrazzano resource with OCI DNS configured
 // WHEN a Verrazzano resource has been created
@@ -442,7 +431,6 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 			secret.Type = corev1.SecretTypeOpaque
 			return nil
 		})
-
 	// Expect a call to get the Verrazzano system namespace (return exists)
 	expectGetVerrazzanoSystemNamespaceExists(mock, asserts)
 
@@ -463,7 +451,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -556,7 +544,7 @@ func TestUninstallComplete(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -568,7 +556,7 @@ func TestUninstallComplete(t *testing.T) {
 // TestUninstallStarted tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an Verrazzano resource
 // WHEN a Verrazzano resource has been deleted
-// THEN ensure an unisntall job is started
+// THEN ensure an uninstall job is started
 func TestUninstallStarted(t *testing.T) {
 	unitTesting = true
 	namespace := "verrazzano"
@@ -646,7 +634,7 @@ func TestUninstallStarted(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -747,7 +735,7 @@ func TestUninstallSucceeded(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -779,7 +767,7 @@ func TestVerrazzanoNotFound(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -810,7 +798,7 @@ func TestVerrazzanoGetError(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -868,7 +856,7 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -931,7 +919,7 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
@@ -996,13 +984,89 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 	// Create and make the request
 	request := newRequest(namespace, name)
 	reconciler := newVerrazzanoReconciler(mock)
-	result, err := reconciler.Reconcile(nil, request)
+	result, err := reconciler.Reconcile(context.TODO(), request)
 
 	// Validate the results
 	mocker.Finish()
 	asserts.NoError(err)
 	asserts.Equal(true, result.Requeue)
 	asserts.NotZero(result.RequeueAfter)
+}
+
+// Test_appendConditionIfNecessary tests whether conditions are appended or updated correctly
+// GIVEN a list of conditions
+// WHEN the new condition already exists,
+// THEN it should be updated and duplicates removed
+// OTHERWISE it should be appended to the list of conditions
+func Test_appendConditionIfNecessary(t *testing.T) {
+	asserts := assert.New(t)
+	tests := []struct {
+		name                string
+		conditions          []vzapi.Condition
+		expectNumConditions int
+	}{
+		{
+			name:                "no existing conditions",
+			conditions:          []vzapi.Condition{},
+			expectNumConditions: 1,
+		},
+		{
+			name: "one InstallStarted condition",
+			conditions: []vzapi.Condition{
+				{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some time"},
+			},
+			expectNumConditions: 1,
+		},
+		{
+			name: "multiple InstallStarted conditions",
+			conditions: []vzapi.Condition{
+				{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some time"},
+				{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some other time"},
+			},
+			expectNumConditions: 1,
+		},
+		{
+			name: "one some other condition",
+			conditions: []vzapi.Condition{
+				{Type: vzapi.CondUpgradeFailed, Status: corev1.ConditionFalse, LastTransitionTime: "some time"},
+			},
+			expectNumConditions: 2,
+		},
+		{
+			name: "multiple other conditions",
+			conditions: []vzapi.Condition{
+				{Type: vzapi.CondUpgradeStarted, Status: corev1.ConditionTrue, LastTransitionTime: "some time 1"},
+				{Type: vzapi.CondUpgradeFailed, Status: corev1.ConditionFalse, LastTransitionTime: "some time 2"},
+			},
+			expectNumConditions: 3,
+		},
+		{
+			name: "multiple conditions with InstallStarted duplicates",
+			conditions: []vzapi.Condition{
+				{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some time before"},
+				{Type: vzapi.CondUpgradeFailed, Status: corev1.ConditionFalse, LastTransitionTime: "some time2"},
+				{Type: vzapi.CondInstallStarted, Status: corev1.ConditionFalse, LastTransitionTime: "some other time"},
+				{Type: vzapi.CondInstallStarted, Status: corev1.ConditionTrue, LastTransitionTime: "yet another time"},
+				{Type: vzapi.CondPreInstall, Status: corev1.ConditionFalse, LastTransitionTime: "some time preinstall"},
+			},
+			expectNumConditions: 3,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			unitTesting = true
+			newCondition := vzapi.Condition{Status: corev1.ConditionTrue, Type: vzapi.CondInstallStarted, LastTransitionTime: "updatedtime"}
+			updatedConditions := appendConditionIfNecessary(vzlog.DefaultLogger(), "my-vz", tt.conditions, newCondition)
+			asserts.Equal(tt.expectNumConditions, len(updatedConditions))
+			// the new install started condition should be the last one in the list, and its value
+			// should be what we set it to
+			cond := updatedConditions[tt.expectNumConditions-1]
+			if cond.Type == vzapi.CondInstallStarted {
+				asserts.Equal("updatedtime", cond.LastTransitionTime)
+				asserts.Equal(corev1.ConditionTrue, cond.Status)
+			}
+		})
+	}
 }
 
 // newScheme creates a new scheme that includes this package's object to use for testing
@@ -1033,6 +1097,7 @@ func newVerrazzanoReconciler(c client.Client) Reconciler {
 		Scheme:            scheme,
 		WatchedComponents: map[string]bool{},
 		WatchMutex:        &sync.RWMutex{},
+		StatusUpdater:     &vzstatus.FakeVerrazzanoStatusUpdater{Client: c},
 	}
 	return reconciler
 }
@@ -1304,8 +1369,316 @@ func TestReconcileErrorCounter(t *testing.T) {
 	reconcileErrorCounterMetric, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileError)
 	assert.NoError(t, err)
 	errorCounterBefore := testutil.ToFloat64(reconcileErrorCounterMetric.Get())
-	reconciler.Reconcile(nil, errorRequest)
+	reconciler.Reconcile(context.TODO(), errorRequest)
 	errorCounterAfter := testutil.ToFloat64(reconcileErrorCounterMetric.Get())
 	assert.NoError(t, err)
 	asserts.Equal(errorCounterBefore, errorCounterAfter-1)
+}
+
+// TestUninstallJobCleanup tests the uninstall job cleanup function
+// GIVEN a completed uninstall job
+// WHEN the function is called
+// THEN the job and associated pod are deleted
+func TestUninstallJobCleanup(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.VerrazzanoInstallNamespace,
+				Name:      "uninstall-201321",
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{"job-name": "uninstall-201321"},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	err := reconciler.cleanupUninstallJob("uninstall-201321", constants.VerrazzanoInstallNamespace, vzlog.DefaultLogger())
+	asserts.Nil(err)
+	job := &v1.Job{}
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	asserts.NotNil(err)
+	asserts.True(errors.IsNotFound(err))
+}
+
+// TestMysqlBackupJobCleanup tests the MySQL backup job cleanup function
+// GIVEN a completed backup job
+// WHEN the function is called
+// THEN the job and associated pod are deleted
+func TestMysqlBackupJobCleanup(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.KeycloakNamespace,
+				Name:      "one-off-backup-20221018-201321",
+				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{"job-name": "one-off-backup-20221018-201321"},
+			},
+			Status: corev1.PodStatus{
+				ContainerStatuses: []corev1.ContainerStatus{
+					{
+						Name: "operator-backup-job",
+						State: corev1.ContainerState{
+							Terminated: &corev1.ContainerStateTerminated{
+								ExitCode: 0,
+							},
+						},
+					},
+				},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	asserts.Nil(err)
+	job := &v1.Job{}
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	asserts.NotNil(err)
+	asserts.True(errors.IsNotFound(err))
+}
+
+// TestMysqlScheduledBackupJobCleanup tests the MySQL backup job cleanup function
+// GIVEN a completed scheduled backup job
+// WHEN the function is called
+// THEN the job and associated pod are deleted
+func TestMysqlScheduledBackupJobCleanup(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "one-off-backup-schedule20221018-201321",
+				Namespace: constants.KeycloakNamespace,
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "batch/v1",
+						Kind:       "CronJob",
+						Name:       "one-off-backup-schedule-20221018-201321",
+					},
+				},
+			},
+		},
+		&v1.CronJob{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.KeycloakNamespace,
+				Name:      "one-off-backup-schedule-20221018-201321",
+				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{"job-name": "one-off-backup-20221018-201321"},
+			},
+			Status: corev1.PodStatus{
+				ContainerStatuses: []corev1.ContainerStatus{
+					{
+						Name: "operator-backup-job",
+						State: corev1.ContainerState{
+							Terminated: &corev1.ContainerStateTerminated{
+								ExitCode: 0,
+							},
+						},
+					},
+				},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	asserts.Nil(err)
+	job := &v1.Job{}
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	asserts.NotNil(err)
+	asserts.True(errors.IsNotFound(err))
+	cronJob := &v1.CronJob{}
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-schedule-20221018-201321", Namespace: constants.KeycloakNamespace}, cronJob)
+	asserts.Nil(err)
+}
+
+// TestInProgressMysqlBackupJobCleanup tests the MySQL backup job cleanup function
+// GIVEN a not completed backup job
+// WHEN the function is called
+// THEN the job and associated pod are not deleted
+func TestInProgressMysqlBackupJobCleanup(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.KeycloakNamespace,
+				Name:      "one-off-backup-20221018-201321",
+				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{"job-name": "one-off-backup-20221018-201321"},
+			},
+			Status: corev1.PodStatus{
+				ContainerStatuses: []corev1.ContainerStatus{
+					{
+						Name: "operator-backup-job",
+						State: corev1.ContainerState{
+							Running: &corev1.ContainerStateRunning{},
+						},
+					},
+				},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	asserts.NotNil(err)
+	job := &v1.Job{}
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	asserts.Nil(err)
+	asserts.NotNil(job)
+}
+
+// TestFailedMysqlBackupJobCleanup tests the MySQL backup job cleanup function
+// GIVEN a completed backup job with a non-zero exit code
+// WHEN the function is called
+// THEN the job and associated pod are not deleted
+func TestFailedMysqlBackupJobCleanup(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.KeycloakNamespace,
+				Name:      "one-off-backup-20221018-201321",
+				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{"job-name": "one-off-backup-20221018-201321"},
+			},
+			Status: corev1.PodStatus{
+				ContainerStatuses: []corev1.ContainerStatus{
+					{
+						Name: "operator-backup-job",
+						State: corev1.ContainerState{
+							Terminated: &corev1.ContainerStateTerminated{
+								ExitCode: 1,
+							},
+						},
+					},
+				},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	asserts.NotNil(err)
+	job := &v1.Job{}
+	err = c.Get(context.TODO(), client.ObjectKey{Name: "one-off-backup-20221018-201321", Namespace: constants.KeycloakNamespace}, job)
+	asserts.Nil(err)
+	asserts.NotNil(job)
+}
+
+// erroringFakeClient wraps a k8s client and returns an error when List is called
+type erroringFakeClient struct {
+	client.Client
+}
+
+// List always returns an error - used to simulate an error listing a resource
+func (e *erroringFakeClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+	return errors.NewNotFound(schema.GroupResource{}, "")
+}
+
+// TestNoMysqlBackupJobsFound tests the MySQL backup job cleanup function
+// GIVEN no jobs are available
+// WHEN the function is called
+// THEN the cleanup is skipped
+func TestNoMysqlBackupJobsFound(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	reconciler := newVerrazzanoReconciler(&erroringFakeClient{c})
+	err := reconciler.cleanupMysqlBackupJob(vzlog.DefaultLogger())
+	asserts.Nil(err)
+}
+
+// TestMysqlOperatorJobPredicateWrongNamespace tests the MySQL operator job predicate
+// GIVEN a create event for a job in a namespace other than 'keycloak'
+// WHEN the function is called
+// THEN the result is false
+func TestMysqlOperatorJobPredicateWrongNamespace(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	job := &v1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "WrongNamespace",
+			Name:      "one-off-backup-20221018-201321",
+			Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+		},
+	}
+	isMysqlJob := reconciler.isMysqlOperatorJob(event.CreateEvent{Object: job}, vzlog.DefaultLogger())
+	asserts.False(isMysqlJob)
+}
+
+// TestMysqlOperatorJobPredicateOwnedByOperatorCronJob tests the MySQL operator job predicate
+// GIVEN a create event for a job owned by a cron job created by the operator
+// WHEN the function is called
+// THEN the result is true
+func TestMysqlOperatorJobPredicateOwnedByOperatorCronJob(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&v1.CronJob{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.KeycloakNamespace,
+				Name:      "one-off-backup-schedule-20221018-201321",
+				Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+			},
+		},
+	).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	job := &v1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: mysql.ComponentNamespace,
+			Name:      "one-off-backup-20221018-201321",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "batch/v1",
+					Kind:       "CronJob",
+					Name:       "one-off-backup-schedule-20221018-201321",
+				},
+			},
+		},
+	}
+	isMysqlJob := reconciler.isMysqlOperatorJob(event.CreateEvent{Object: job}, vzlog.DefaultLogger())
+	asserts.True(isMysqlJob)
+}
+
+// TestMysqlOperatorJobPredicateValidBackupJob tests the MySQL operator job predicate
+// GIVEN a create event for a job directly created by the operator
+// WHEN the function is called
+// THEN the result is true
+func TestMysqlOperatorJobPredicateValidBackupJob(t *testing.T) {
+	asserts := assert.New(t)
+	_ = vzapi.AddToScheme(k8scheme.Scheme)
+	c := fakes.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+	reconciler := newVerrazzanoReconciler(c)
+	job := &v1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: mysql.ComponentNamespace,
+			Name:      "one-off-backup-20221018-201321",
+			Labels:    map[string]string{"app.kubernetes.io/created-by": constants3.MySQLOperator},
+		},
+	}
+	isMysqlJob := reconciler.isMysqlOperatorJob(event.CreateEvent{Object: job}, vzlog.DefaultLogger())
+	asserts.True(isMysqlJob)
 }

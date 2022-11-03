@@ -3,6 +3,7 @@
 package spi
 
 import (
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -11,26 +12,27 @@ import (
 )
 
 const (
-	basicDevMerged                  = "testdata/basicDevMerged.yaml"
-	basicProdMerged                 = "testdata/basicProdMerged.yaml"
-	basicManagedClusterMerged       = "testdata/basicManagedClusterMerged.yaml"
-	devAllDisabledMerged            = "testdata/devAllDisabledMerged.yaml"
-	devOCIDNSOverrideMerged         = "testdata/devOCIOverrideMerged.yaml"
-	devCertManagerOverrideMerged    = "testdata/devCertManagerOverrideMerged.yaml"
-	devElasticSearchOveridesMerged  = "testdata/devESArgsStorageOverride.yaml"
-	devKeycloakOveridesMerged       = "testdata/devKeycloakInstallArgsStorageOverride.yaml"
-	prodElasticSearchOveridesMerged = "testdata/prodESOverridesMerged.yaml"
-	prodElasticSearchStorageMerged  = "testdata/prodESStorageArgsMerged.yaml"
-	prodIngressIstioOverridesMerged = "testdata/prodIngressIstioOverridesMerged.yaml"
-	prodFluentdOverridesMerged      = "testdata/prodFluentdOverridesMerged.yaml"
-	managedClusterEnableAllMerged   = "testdata/managedClusterEnableAllOverrideMerged.yaml"
+	basicDevMerged                   = "testdata/basicDevMerged.yaml"
+	basicProdMerged                  = "testdata/basicProdMerged.yaml"
+	basicManagedClusterMerged        = "testdata/basicManagedClusterMerged.yaml"
+	devAllDisabledMerged             = "testdata/devAllDisabledMerged.yaml"
+	devOCIDNSOverrideMerged          = "testdata/devOCIOverrideMerged.yaml"
+	devCertManagerOverrideMerged     = "testdata/devCertManagerOverrideMerged.yaml"
+	devElasticSearchOveridesMerged   = "testdata/devESArgsStorageOverride.yaml"
+	devKeycloakOveridesMerged        = "testdata/devKeycloakInstallArgsStorageOverride.yaml"
+	prodElasticSearchOveridesMerged  = "testdata/prodESOverridesMerged.yaml"
+	prodElasticSearchStorageMerged   = "testdata/prodESStorageArgsMerged.yaml"
+	prodIngressIstioOverridesMerged  = "testdata/prodIngressIstioOverridesMerged.yaml"
+	prodFluentdOverridesMerged       = "testdata/prodFluentdOverridesMerged.yaml"
+	managedClusterEnableAllMerged    = "testdata/managedClusterEnableAllOverrideMerged.yaml"
+	prodNoStorageOpenSearchOverrides = "testdata/prodNoStorageOpenSearchOverrides.yaml"
 )
 
 var falseValue = false
 
 var trueValue = true
 
-//var defaultPVC50Gi, _ = resource.ParseQuantity("50Gi")
+// var defaultPVC50Gi, _ = resource.ParseQuantity("50Gi")
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 var pvc500Gi, _ = resource.ParseQuantity("2T")
 
@@ -151,9 +153,16 @@ var devElasticSearchOverrides = v1alpha1.Verrazzano{
 		},
 		Components: v1alpha1.ComponentSpec{
 			Elasticsearch: &v1alpha1.ElasticsearchComponent{
-				ESInstallArgs: []v1alpha1.InstallArgs{
-					{Name: "nodes.master.replicas", Value: "3"},
-					{Name: "nodes.master.requests.memory", Value: "3G"},
+				Nodes: []v1alpha1.OpenSearchNode{
+					{
+						Name:     "es-master",
+						Replicas: 3,
+						Resources: &corev1.ResourceRequirements{
+							Requests: map[corev1.ResourceName]resource.Quantity{
+								corev1.ResourceMemory: resource.MustParse("3G"),
+							},
+						},
+					},
 				},
 			},
 		},
@@ -249,13 +258,40 @@ var prodElasticSearchOverrides = v1alpha1.Verrazzano{
 		},
 		Components: v1alpha1.ComponentSpec{
 			Elasticsearch: &v1alpha1.ElasticsearchComponent{
-				ESInstallArgs: []v1alpha1.InstallArgs{
-					{Name: "nodes.master.replicas", Value: "3"},
-					{Name: "nodes.master.requests.memory", Value: "3G"},
-					{Name: "nodes.ingest.replicas", Value: "6"},
-					{Name: "nodes.ingest.requests.memory", Value: "32G"},
-					{Name: "nodes.data.replicas", Value: "6"},
-					{Name: "nodes.data.requests.memory", Value: "32G"},
+				Nodes: []v1alpha1.OpenSearchNode{
+					{
+						Name:     "es-master",
+						Replicas: 3,
+						Resources: &corev1.ResourceRequirements{
+							Requests: map[corev1.ResourceName]resource.Quantity{
+								corev1.ResourceMemory: resource.MustParse("3G"),
+							},
+						},
+						Storage: &v1alpha1.OpenSearchNodeStorage{
+							Size: "50Gi",
+						},
+					},
+					{
+						Name:     "es-data",
+						Replicas: 6,
+						Resources: &corev1.ResourceRequirements{
+							Requests: map[corev1.ResourceName]resource.Quantity{
+								corev1.ResourceMemory: resource.MustParse("32G"),
+							},
+						},
+						Storage: &v1alpha1.OpenSearchNodeStorage{
+							Size: "50Gi",
+						},
+					},
+					{
+						Name:     "es-ingest",
+						Replicas: 6,
+						Resources: &corev1.ResourceRequirements{
+							Requests: map[corev1.ResourceName]resource.Quantity{
+								corev1.ResourceMemory: resource.MustParse("32G"),
+							},
+						},
+					},
 				},
 			},
 		},
@@ -271,15 +307,40 @@ var prodElasticSearchStorageArgs = v1alpha1.Verrazzano{
 		Profile:         "prod",
 		Components: v1alpha1.ComponentSpec{
 			Elasticsearch: &v1alpha1.ElasticsearchComponent{
-				ESInstallArgs: []v1alpha1.InstallArgs{
-					{Name: "nodes.master.replicas", Value: "3"},
-					{Name: "nodes.master.requests.memory", Value: "3G"},
-					{Name: "nodes.master.requests.storage", Value: "100Gi"},
-					{Name: "nodes.ingest.replicas", Value: "6"},
-					{Name: "nodes.ingest.requests.memory", Value: "32G"},
-					{Name: "nodes.data.replicas", Value: "6"},
-					{Name: "nodes.data.requests.memory", Value: "32G"},
-					{Name: "nodes.data.requests.storage", Value: "150Gi"},
+				Nodes: []v1alpha1.OpenSearchNode{
+					{
+						Name:     "es-master",
+						Replicas: 3,
+						Resources: &corev1.ResourceRequirements{
+							Requests: map[corev1.ResourceName]resource.Quantity{
+								corev1.ResourceMemory: resource.MustParse("3G"),
+							},
+						},
+						Storage: &v1alpha1.OpenSearchNodeStorage{
+							Size: "100Gi",
+						},
+					},
+					{
+						Name:     "es-data",
+						Replicas: 6,
+						Resources: &corev1.ResourceRequirements{
+							Requests: map[corev1.ResourceName]resource.Quantity{
+								corev1.ResourceMemory: resource.MustParse("32G"),
+							},
+						},
+						Storage: &v1alpha1.OpenSearchNodeStorage{
+							Size: "150Gi",
+						},
+					},
+					{
+						Name:     "es-ingest",
+						Replicas: 6,
+						Resources: &corev1.ResourceRequirements{
+							Requests: map[corev1.ResourceName]resource.Quantity{
+								corev1.ResourceMemory: resource.MustParse("32G"),
+							},
+						},
+					},
 				},
 			},
 		},
@@ -351,6 +412,46 @@ var managedClusterEnableAllOverride = v1alpha1.Verrazzano{
 			Kibana:        &v1alpha1.KibanaComponent{Enabled: &trueValue},
 			Prometheus:    &v1alpha1.PrometheusComponent{Enabled: &trueValue},
 			Rancher:       &v1alpha1.RancherComponent{Enabled: &trueValue},
+		},
+	},
+}
+
+var prodNoStorageOSOverrides = v1alpha1.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "prod-no-storage-os-overrides",
+	},
+	Spec: v1alpha1.VerrazzanoSpec{
+		Profile: "prod",
+		DefaultVolumeSource: &corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
+		},
+		Components: v1alpha1.ComponentSpec{
+			Elasticsearch: &v1alpha1.ElasticsearchComponent{
+				Enabled: &trueValue,
+				Nodes: []v1alpha1.OpenSearchNode{
+					{
+						Name:     "es-master",
+						Replicas: 0,
+					},
+					{
+						Name:     "es-data",
+						Replicas: 0,
+					},
+					{
+						Name:     "es-ingest",
+						Replicas: 0,
+					},
+					{
+						Name:     "custom",
+						Replicas: 3,
+						Roles: []vmov1.NodeRole{
+							vmov1.DataRole,
+							vmov1.IngestRole,
+							vmov1.MasterRole,
+						},
+					},
+				},
+			},
 		},
 	},
 }

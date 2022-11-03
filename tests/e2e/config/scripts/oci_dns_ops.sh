@@ -9,7 +9,7 @@ function usage {
     echo "usage: $0 [-o operation] [-c compartment_ocid] [-s subdomain_name] "
     echo "  -o  operation               'create' or 'delete'. Optional.  Defaults to 'create'."
     echo "  -c  compartment_ocid        Compartment OCID. Optional.  Defaults to TIBURON-DEV compartment OCID."
-    echo "  -s  submdomain_name         subdomain prefix for v8o.io. Required."
+    echo "  -s  subdomain_name         subdomain prefix for v8o.io. Required."
     echo "  -k DNS scope                Specifies  to operate only on resources that have a matching DNS scope.Optional. GLOBAL, PRIVATE"
     echo "  -h                         Help"
     echo
@@ -43,6 +43,20 @@ if [ -z "${SUBDOMAIN_NAME}" ] ; then
     exit 1
 fi
 
+if [ ${TEST_ENV} != "kind_oci_dns" ] && [ ${DNS_SCOPE} == "PRIVATE" ]; then
+  if [ ${V80_COMPARTMENT_OCID} == "" ]; then
+      echo "Jenkins runner compartment ocid must be set!"
+      exit 1
+  fi
+fi
+
+if [ ${TEST_ENV} != "ocidns_oke" ] && [ ${TEST_ENV} != "kind_oci_dns" ]; then
+  if [ ${DNS_SCOPE} == "PRIVATE" ];then
+    echo "Invalid TEST_ENV for DNS_SCOPE=PRIVATE " ${TEST_ENV}
+    exit 1
+  fi
+fi
+
 
 if [ "${DNS_SCOPE_INPUT:-}" ] ; then
   if [ ${DNS_SCOPE_INPUT} == "GLOBAL" ] || [ ${DNS_SCOPE_INPUT} == "PRIVATE" ]; then
@@ -56,7 +70,6 @@ if [ ${DNS_SCOPE} == "PRIVATE" ];then
 else
   ZONE_NAME="${SUBDOMAIN_NAME}.v8o.io"
 fi
-
 
 zone_ocid=""
 status_code=1
@@ -73,15 +86,21 @@ if [ $OPERATION == "create" ]; then
       oci dns zone get --zone-name-or-id ${ZONE_NAME}
     fi
 
-    VCN_ID=$(oci network vcn list --compartment-id "${COMPARTMENT_OCID}" --display-name "${TF_VAR_label_prefix}-oke-vcn" | jq -r '.data[0].id')
+    if [ ${TEST_ENV} == "ocidns_oke" ]; then
+      VCN_ID=$(oci network vcn list --compartment-id "${COMPARTMENT_OCID}" --display-name "${TF_VAR_label_prefix}-oke-vcn" | jq -r '.data[0].id')
+    elif [ ${TEST_ENV} == "kind_oci_dns" ]; then
+      VCN_ID=$(oci network vcn list --compartment-id "${V80_COMPARTMENT_OCID}" --display-name ${JENKINS_VCN} | jq -r '.data[0].id')
+    fi
     if [ $? -ne 0 ];then
         log "Failed to fetch vcn '${TF_VAR_label_prefix}-oke-vcn'"
+        exit 1
     fi
 
     DNS_RESOLVER_ID=$(oci network vcn-dns-resolver-association get --vcn-id ${VCN_ID} | jq '.data["dns-resolver-id"]' -r)
     DNS_UPDATE=$(oci dns resolver update --resolver-id ${DNS_RESOLVER_ID} --attached-views '[{"viewId":"'"${VCN_VIEW_ID}"'"}]' --scope PRIVATE --force)
     if [ $? -ne 0 ];then
         log "Failed to update vcn '${TF_VAR_label_prefix}-oke-vcn' with private view"
+        exit 1
     fi
   else
     zone_ocid=$(oci dns zone create -c ${COMPARTMENT_OCID} --name ${ZONE_NAME} --zone-type PRIMARY --scope ${DNS_SCOPE} | jq -r ".data | .[\"id\"]"; exit ${PIPESTATUS[0]})
@@ -91,7 +110,7 @@ if [ $OPERATION == "create" ]; then
       oci dns zone get --zone-name-or-id ${ZONE_NAME}
     fi
   fi
-  
+
 elif [ $OPERATION == "delete" ]; then
   DNS_ZONE_OCID=`(oci dns zone list --compartment-id ${COMPARTMENT_OCID} --scope ${DNS_SCOPE} --name ${ZONE_NAME} | jq -r '.data[].id')`
   oci dns zone delete --zone-name-or-id ${DNS_ZONE_OCID} --scope ${DNS_SCOPE} --force
@@ -118,4 +137,3 @@ else
   log "Error invoking OCI CLI to perform DNS zone operation"
   exit 1
 fi
-

@@ -20,6 +20,8 @@ spec:
     metadata:
       labels:
         name: mysql-operator
+      annotations:
+        traffic.sidecar.istio.io/excludeOutboundPorts: "443"
     spec:
       containers:
         - name: mysql-operator

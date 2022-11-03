@@ -49,7 +49,6 @@ var testScheme = runtime.NewScheme()
 
 func init() {
 	_ = k8scheme.AddToScheme(testScheme)
-	//_ = clientgoscheme.AddToScheme(testScheme)
 	_ = v1alpha1.AddToScheme(testScheme)
 	_ = certv1.AddToScheme(testScheme)
 	// +kubebuilder:scaffold:testScheme
@@ -62,8 +61,9 @@ func (r genericHelmTestRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte,
 
 // TestGetName tests the component name
 // GIVEN a Verrazzano component
-//  WHEN I call Name
-//  THEN the correct Verrazzano name is returned
+//
+//	WHEN I call Name
+//	THEN the correct Verrazzano name is returned
 func TestGetName(t *testing.T) {
 	comp := HelmComponent{
 		ReleaseName: "release1",
@@ -75,8 +75,9 @@ func TestGetName(t *testing.T) {
 
 // TestUpgrade tests the component upgrade
 // GIVEN a component
-//  WHEN I call Upgrade
-//  THEN the upgrade returns success and passes the correct values to the upgrade function
+//
+//	WHEN I call Upgrade
+//	THEN the upgrade returns success and passes the correct values to the upgrade function
 func TestUpgrade(t *testing.T) {
 	a := assert.New(t)
 
@@ -90,7 +91,7 @@ func TestUpgrade(t *testing.T) {
 		PreUpgradeFunc:          fakePreUpgrade,
 	}
 
-	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
 	fakeOverrides = []string{
 		"rancherImage=ghcr.io/verrazzano/rancher",
 		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
@@ -110,16 +111,17 @@ func TestUpgrade(t *testing.T) {
 }
 
 func newFakeClient() clipkg.Client {
-	client := fake.NewFakeClientWithScheme(k8scheme.Scheme,
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&corev1.Secret{ObjectMeta: v1.ObjectMeta{Name: constants.GlobalImagePullSecName, Namespace: "default"}},
-	)
+	).Build()
 	return client
 }
 
 // TestUpgradeIsInstalledUnexpectedError tests the component upgrade
 // GIVEN a component
-//  WHEN I call Upgrade and the chart status function returns an error
-//  THEN the upgrade returns an error
+//
+//	WHEN I call Upgrade and the chart status function returns an error
+//	THEN the upgrade returns an error
 func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 	a := assert.New(t)
 
@@ -143,8 +145,9 @@ func TestUpgradeIsInstalledUnexpectedError(t *testing.T) {
 
 // TestUpgradeReleaseNotInstalled tests the component upgrade
 // GIVEN a component
-//  WHEN I call Upgrade and the chart is not installed
-//  THEN the upgrade returns no error
+//
+//	WHEN I call Upgrade and the chart is not installed
+//	THEN the upgrade returns no error
 func TestUpgradeReleaseNotInstalled(t *testing.T) {
 	a := assert.New(t)
 
@@ -164,8 +167,9 @@ func TestUpgradeReleaseNotInstalled(t *testing.T) {
 
 // TestUpgradeWithEnvOverrides tests the component upgrade
 // GIVEN a component
-//  WHEN I call Upgrade when the registry and repo overrides are set
-//  THEN the upgrade returns success and passes the correct values to the upgrade function
+//
+//	WHEN I call Upgrade when the registry and repo overrides are set
+//	THEN the upgrade returns success and passes the correct values to the upgrade function
 func TestUpgradeWithEnvOverrides(t *testing.T) {
 	a := assert.New(t)
 
@@ -193,7 +197,7 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 	_ = os.Setenv(constants.ImageRepoOverrideEnvVar, "myrepo")
 	defer func() { _ = os.Unsetenv(constants.ImageRepoOverrideEnvVar) }()
 
-	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
 	fakeOverrides = []string{
 		"rancherImage=myreg.io/myrepo/verrazzano/rancher",
 		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
@@ -215,8 +219,9 @@ func TestUpgradeWithEnvOverrides(t *testing.T) {
 
 // TestInstall tests the component install
 // GIVEN a component
-//  WHEN I call Install and the chart is not installed
-//  THEN the install runs and returns no error
+//
+//	WHEN I call Install and the chart is not installed
+//	THEN the install runs and returns no error
 func TestInstall(t *testing.T) {
 	a := assert.New(t)
 
@@ -231,7 +236,7 @@ func TestInstall(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
 	fakeOverrides = []string{
 		"rancherImage=ghcr.io/verrazzano/rancher",
 		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
@@ -256,8 +261,9 @@ func TestInstall(t *testing.T) {
 
 // TestInstallWithFileOverride tests the component install
 // GIVEN a component
-//  WHEN I call Install and the chart is not installed and has a custom overrides
-//  THEN the overrides struct is populated correctly there is an error for trying to read a file that does not exist
+//
+//	WHEN I call Install and the chart is not installed and has a custom overrides
+//	THEN the overrides struct is populated correctly there is an error for trying to read a file that does not exist
 func TestInstallWithAllOverride(t *testing.T) {
 	a := assert.New(t)
 
@@ -279,7 +285,7 @@ func TestInstallWithAllOverride(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
 	fakeOverrides = []string{
 		"rancherImage=ghcr.io/verrazzano/rancher",
 		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
@@ -309,8 +315,9 @@ func TestInstallWithAllOverride(t *testing.T) {
 
 // TestInstallPreviousFailure tests the component install
 // GIVEN a component
-//  WHEN I call Install and the chart release is in a failed status
-//  THEN the chart is uninstalled and then re-installed
+//
+//	WHEN I call Install and the chart release is in a failed status
+//	THEN the chart is uninstalled and then re-installed
 func TestInstallPreviousFailure(t *testing.T) {
 	a := assert.New(t)
 
@@ -325,7 +332,7 @@ func TestInstallPreviousFailure(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
-	// This string is built from the Key:Value arrary returned by the bom.buildImageOverrides() function
+	// This string is built from the Key:Value array returned by the bom.buildImageOverrides() function
 	fakeOverrides = []string{
 		"rancherImage=ghcr.io/verrazzano/rancher",
 		"rancherImageTag=v2.5.7-20210407205410-1c7b39d0c",
@@ -350,8 +357,9 @@ func TestInstallPreviousFailure(t *testing.T) {
 
 // TestInstallWithPreInstallFunc tests the component install
 // GIVEN a component
-//  WHEN I call Install and the component returns KVs from a preinstall func hook
-//  THEN the chart is installed with the additional preInstall helm values
+//
+//	WHEN I call Install and the component returns KVs from a preinstall func hook
+//	THEN the chart is installed with the additional preInstall helm values
 func TestInstallWithPreInstallFunc(t *testing.T) {
 	a := assert.New(t)
 
@@ -393,8 +401,9 @@ func TestInstallWithPreInstallFunc(t *testing.T) {
 
 // TestOperatorInstallSupported tests IsOperatorInstallSupported
 // GIVEN a component
-//  WHEN I call IsOperatorInstallSupported
-//  THEN the correct Value based on the component definition is returned
+//
+//	WHEN I call IsOperatorInstallSupported
+//	THEN the correct Value based on the component definition is returned
 func TestOperatorInstallSupported(t *testing.T) {
 	a := assert.New(t)
 
@@ -407,8 +416,9 @@ func TestOperatorInstallSupported(t *testing.T) {
 
 // TestGetDependencies tests GetDependencies
 // GIVEN a component
-//  WHEN I call GetDependencies
-//  THEN the correct Value based on the component definition is returned
+//
+//	WHEN I call GetDependencies
+//	THEN the correct Value based on the component definition is returned
 func TestGetDependencies(t *testing.T) {
 	a := assert.New(t)
 
@@ -421,8 +431,9 @@ func TestGetDependencies(t *testing.T) {
 
 // TestGetDependencies tests IsInstalled
 // GIVEN a component
-//  WHEN I call GetDependencies
-//  THEN true is returned if it the helm release is deployed, false otherwise
+//
+//	WHEN I call GetDependencies
+//	THEN true is returned if it the helm release is deployed, false otherwise
 func TestIsInstalled(t *testing.T) {
 	a := assert.New(t)
 
@@ -449,8 +460,9 @@ func TestIsInstalled(t *testing.T) {
 
 // TestReady tests IsReady
 // GIVEN a component
-//  WHEN I call IsReady
-//  THEN true is returned based on chart status and the status check function if defined for the component
+//
+//	WHEN I call IsReady
+//	THEN true is returned based on chart status and the status check function if defined for the component
 func TestReady(t *testing.T) {
 	defer helm.SetDefaultChartStatusFunction()
 	defer helm.SetDefaultChartInfoFunction()
@@ -561,8 +573,9 @@ func TestReady(t *testing.T) {
 
 // TestOrganizeHelmValues tests OrganizeHelmValues
 // GIVEN a key value list
-//  WHEN I call OrganizeHelmValues
-//  THEN I get a reverse list of my key value pairs as HelmComponent objects
+//
+//	WHEN I call OrganizeHelmValues
+//	THEN I get a reverse list of my key value pairs as HelmComponent objects
 func TestOrganizeHelmValues(t *testing.T) {
 	tests := []struct {
 		name              string
@@ -630,18 +643,19 @@ func TestOrganizeHelmValues(t *testing.T) {
 	}
 }
 
-//  TestFilesFromVerrazzanoHelm tests filesFromVerrazzanoHelm
-//  GIVEN an override list
-//  WHEN I call retrieveInstallOverrideResources
-//  THEN I get a list of key value pairs of files from the override sources
+// TestFilesFromVerrazzanoHelm tests filesFromVerrazzanoHelm
+// GIVEN an override list
+// WHEN I call retrieveInstallOverrideResources
+// THEN I get a list of key value pairs of files from the override sources
 func TestFilesFromVerrazzanoHelm(t *testing.T) {
 
 	tests := []struct {
-		name             string
-		expectError      bool
-		component        *HelmComponent
-		additionalValues []bom.KeyValue
-		kvsLen           int
+		name                 string
+		expectError          bool
+		component            *HelmComponent
+		additionalValues     []bom.KeyValue
+		kvsLen               int
+		expectedStringInFile string
 	}{
 		{
 			name:             "test no overrides",
@@ -699,6 +713,20 @@ func TestFilesFromVerrazzanoHelm(t *testing.T) {
 			kvsLen: 5,
 		},
 		{
+			name:        "test file overrides boolean value with setString",
+			expectError: false,
+			component: &HelmComponent{
+				AppendOverridesFunc: func(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+					kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].name", 0), Value: "SOME_BOOLEAN_AS_STRING"})
+					kvs = append(kvs, bom.KeyValue{Key: fmt.Sprintf("extraEnv[%d].value", 0), Value: "true", SetString: true})
+					return kvs, nil
+				},
+			},
+			additionalValues:     []bom.KeyValue{},
+			kvsLen:               1,
+			expectedStringInFile: "value: \"true\"",
+		},
+		{
 			name:        "test get file error",
 			expectError: true,
 			component:   &HelmComponent{},
@@ -745,6 +773,16 @@ func TestFilesFromVerrazzanoHelm(t *testing.T) {
 			a.Equal(tt.kvsLen, len(kvs))
 			for _, kv := range kvs {
 				a.True(kv.IsFile)
+			}
+			if tt.expectedStringInFile != "" {
+				// assert that the given string occurs in the file generated
+				content, err := os.ReadFile(kvs[0].Value)
+				if err != nil {
+					a.Error(err)
+				} else {
+					contentStr := string(content)
+					a.Contains(contentStr, tt.expectedStringInFile)
+				}
 			}
 			if tt.expectError {
 				a.Error(err)

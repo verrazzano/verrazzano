@@ -5,8 +5,11 @@ package oam
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -44,8 +47,16 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "oam-kubernetes-runtime-values.yaml"),
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
-			Dependencies:              []string{},
+			Dependencies:              []string{networkpolicies.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -58,7 +69,7 @@ func (c oamComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // IsReady component check
 func (c oamComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isOAMReady(ctx)
+		return c.isOAMReady(ctx)
 	}
 	return false
 }
@@ -74,7 +85,11 @@ func (c oamComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzan
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c oamComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	return nil
+	// Block all changes for now, particularly around storage changes
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
 
 // PreUpgrade OAM-pre-upgrade processing

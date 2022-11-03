@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -42,11 +44,19 @@ var _ = t.BeforeSuite(func() {
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-comp.yaml", namespace)
+		file, err := pkg.FindTestDataFile("testdata/logging/helidon/helidon-logging-comp.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-app.yaml", namespace)
+		file, err := pkg.FindTestDataFile("testdata/logging/helidon/helidon-logging-app.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() bool {
@@ -74,12 +84,20 @@ var _ = t.AfterSuite(func() {
 
 	t.Logs.Info("Delete application")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-app.yaml", namespace)
+		file, err := pkg.FindTestDataFile("testdata/logging/helidon/helidon-logging-app.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/helidon/helidon-logging-comp.yaml", namespace)
+		file, err := pkg.FindTestDataFile("testdata/logging/helidon/helidon-logging-comp.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for application pods to terminate")

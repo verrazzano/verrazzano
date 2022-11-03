@@ -7,7 +7,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"io/ioutil"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"k8s.io/apimachinery/pkg/runtime"
+	"os"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -18,15 +21,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
@@ -45,11 +45,11 @@ const (
 
 var (
 	// For Unit test purposes
-	writeFileFunc = ioutil.WriteFile
+	writeFileFunc = os.WriteFile
 )
 
 func resetWriteFileFunc() {
-	writeFileFunc = ioutil.WriteFile
+	writeFileFunc = os.WriteFile
 }
 
 // resolveVerrazzanoNamespace will return the default Verrazzano system namespace unless the namespace is specified
@@ -66,51 +66,19 @@ func isVerrazzanoReady(ctx spi.ComponentContext) bool {
 }
 
 // VerrazzanoPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano helm chart
-func verrazzanoPreUpgrade(ctx spi.ComponentContext, namespace string) error {
+func verrazzanoPreUpgrade(ctx spi.ComponentContext) error {
 	if err := exportFromHelmChart(ctx.Client()); err != nil {
 		return err
 	}
 	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
 		return err
 	}
-	return nil
-}
-
-func createAndLabelNamespaces(ctx spi.ComponentContext) error {
-	if err := LabelKubeSystemNamespace(ctx.Client()); err != nil {
-		return err
-	}
-	if err := common.CreateAndLabelVMINamespaces(ctx); err != nil {
-		return err
-	}
-	if err := namespace.CreateVerrazzanoMultiClusterNamespace(ctx.Client()); err != nil {
-		return err
-	}
-	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
-		istio := ctx.EffectiveCR().Spec.Components.Istio
-		if err := namespace.CreateKeycloakNamespace(ctx.Client(), istio != nil && istio.IsInjectionEnabled()); err != nil {
-			return ctx.Log().ErrorfNewErr("Failed creating Keycloak namespace: %v", err)
+	if vzconfig.IsJaegerOperatorEnabled(ctx.EffectiveCR()) || vzconfig.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) {
+		// Auth policies and Network policies created in the helm chart requires verrazzano-monitoring namespace
+		ctx.Log().Debugf("Creating namespace %s for the Verrazzano component", constants.VerrazzanoMonitoringNamespace)
+		if err := common.EnsureVerrazzanoMonitoringNamespace(ctx); err != nil {
+			return err
 		}
-	}
-	// cattle-system NS must be created since the rancher NetworkPolicy, which is always installed, requires it
-	if err := namespace.CreateRancherNamespace(ctx.Client()); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed creating Rancher namespace: %v", err)
-	}
-	return nil
-}
-
-// LabelKubeSystemNamespace adds the label needed by network polices to kube-system
-func LabelKubeSystemNamespace(client clipkg.Client) error {
-	const KubeSystemNamespace = "kube-system"
-	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: KubeSystemNamespace}}
-	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), client, &ns, func() error {
-		if ns.Labels == nil {
-			ns.Labels = make(map[string]string)
-		}
-		ns.Labels["verrazzano.io/namespace"] = KubeSystemNamespace
-		return nil
-	}); err != nil {
-		return err
 	}
 	return nil
 }
@@ -298,10 +266,19 @@ func HashSum(config interface{}) string {
 }
 
 // GetOverrides returns install overrides for a component
-func GetOverrides(effectiveCR *vzapi.Verrazzano) []vzapi.Overrides {
-	if effectiveCR.Spec.Components.Verrazzano != nil {
-		return effectiveCR.Spec.Components.Verrazzano.ValueOverrides
+func GetOverrides(object runtime.Object) interface{} {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Verrazzano != nil {
+			return effectiveCR.Spec.Components.Verrazzano.ValueOverrides
+		}
+		return []vzapi.Overrides{}
+	} else if effectiveCR, ok := object.(*installv1beta1.Verrazzano); ok {
+		if effectiveCR.Spec.Components.Verrazzano != nil {
+			return effectiveCR.Spec.Components.Verrazzano.ValueOverrides
+		}
+		return []installv1beta1.Overrides{}
 	}
+
 	return []vzapi.Overrides{}
 }
 

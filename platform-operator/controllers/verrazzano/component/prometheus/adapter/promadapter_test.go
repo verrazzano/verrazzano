@@ -37,7 +37,7 @@ func TestIsPrometheusAdapterReady(t *testing.T) {
 			// WHEN we call isPrometheusAdapterReady
 			// THEN the call returns true
 			name: "Test IsReady when Prometheus Adapter is successfully deployed",
-			client: fake.NewFakeClientWithScheme(testScheme,
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
@@ -72,7 +72,7 @@ func TestIsPrometheusAdapterReady(t *testing.T) {
 						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 					},
 				},
-			),
+			).Build(),
 			expectTrue: true,
 		},
 		{
@@ -80,7 +80,7 @@ func TestIsPrometheusAdapterReady(t *testing.T) {
 			// WHEN we call isPrometheusAdapterReady
 			// THEN the call returns false
 			name: "Test IsReady when Prometheus Adapter deployment is not ready",
-			client: fake.NewFakeClientWithScheme(testScheme,
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				&appsv1.Deployment{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: ComponentNamespace,
@@ -91,7 +91,8 @@ func TestIsPrometheusAdapterReady(t *testing.T) {
 						Replicas:          1,
 						UpdatedReplicas:   0,
 					},
-				}),
+				},
+			).Build(),
 			expectTrue: false,
 		},
 		{
@@ -99,14 +100,15 @@ func TestIsPrometheusAdapterReady(t *testing.T) {
 			// WHEN we call isPrometheusAdapterReady
 			// THEN the call returns false
 			name:       "Test IsReady when Prometheus Adapter deployment does not exist",
-			client:     fake.NewFakeClientWithScheme(testScheme),
+			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
 			expectTrue: false,
 		},
 	}
+	promAdapter := NewComponent().(prometheusAdapterComponent)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, nil, false)
-			assert.Equal(t, tt.expectTrue, isPrometheusAdapterReady(ctx))
+			assert.Equal(t, tt.expectTrue, promAdapter.isPrometheusAdapterReady(ctx))
 		})
 	}
 }

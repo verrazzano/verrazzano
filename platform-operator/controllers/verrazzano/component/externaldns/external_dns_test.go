@@ -5,6 +5,7 @@ package externaldns
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os/exec"
@@ -115,7 +116,8 @@ func TestIsExternalDNSReady(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		newDeployment(ComponentName, true), newPod(ComponentName), newReplicaSet(ComponentName),
 	).Build()
-	assert.True(t, isExternalDNSReady(spi.NewFakeContext(client, nil, nil, false)))
+	externalDNS := NewComponent().(externalDNSComponent)
+	assert.True(t, externalDNS.isExternalDNSReady(spi.NewFakeContext(client, nil, nil, false)))
 }
 
 // TestIsExternalDNSNotReady tests the isExternalDNSReady fn
@@ -126,7 +128,8 @@ func TestIsExternalDNSNotReady(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		newDeployment(ComponentName, false),
 	).Build()
-	assert.False(t, isExternalDNSReady(spi.NewFakeContext(client, nil, nil, false)))
+	externalDNS := NewComponent().(externalDNSComponent)
+	assert.False(t, externalDNS.isExternalDNSReady(spi.NewFakeContext(client, nil, nil, false)))
 }
 
 // TestAppendExternalDNSOverrides tests the AppendOverrides fn
@@ -230,8 +233,9 @@ func TestExternalDNSPreInstall3InvalidScope(t *testing.T) {
 
 // TestOwnerIDTextPrefix_HelmValueExists tests the getOrBuildIDs and getOrBuildTXTRecordPrefix functions
 // GIVEN calls to getOrBuildIDs and getOrBuildTXTRecordPrefix
-//  WHEN a valid helm release and namespace are deployed and the txtOwnerId and txtPrefix values exist in the release values
-//  THEN the function returns the stored helm values and no error
+//
+//	WHEN a valid helm release and namespace are deployed and the txtOwnerId and txtPrefix values exist in the release values
+//	THEN the function returns the stored helm values and no error
 func TestOwnerIDTextPrefix_HelmValueExists(t *testing.T) {
 	jsonOut := []byte(`
 {
@@ -263,7 +267,7 @@ func TestOwnerIDTextPrefix_HelmValueExists(t *testing.T) {
 	localvz.UID = "uid"
 	localvz.Spec.Components.DNS.OCI = oci
 
-	client := fake.NewFakeClientWithScheme(testScheme, localvz)
+	client := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(localvz).Build()
 	compContext := spi.NewFakeContext(client, vz, nil, false)
 
 	ids, err := getOrBuildIDs(compContext, ComponentName, ComponentNamespace)
@@ -277,8 +281,9 @@ func TestOwnerIDTextPrefix_HelmValueExists(t *testing.T) {
 
 // TestOwnerIDTextPrefix_NoHelmValueExists tests the getOrBuildIDs and getOrBuildTXTRecordPrefix functions
 // GIVEN calls to getOrBuildIDs and getOrBuildTXTRecordPrefix
-//  WHEN no stored helm values exist
-//  THEN the function returns the generated values and no error
+//
+//	WHEN no stored helm values exist
+//	THEN the function returns the generated values and no error
 func Test_getOrBuildOwnerID_NoHelmValueExists(t *testing.T) {
 	helm.SetCmdRunner(genericTestRunner{
 		stdOut: []byte(""),
@@ -361,5 +366,69 @@ func newReplicaSet(name string) *appsv1.ReplicaSet {
 			Name:        name + "-95d8c5d96",
 			Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 		},
+	}
+}
+
+func TestGetOverrides(t *testing.T) {
+	ref := &v1.ConfigMapKeySelector{
+		Key: "foo",
+	}
+	o := v1beta1.InstallOverrides{
+		ValueOverrides: []v1beta1.Overrides{
+			{
+				ConfigMapRef: ref,
+			},
+		},
+	}
+	oV1Alpha1 := vzapi.InstallOverrides{
+		ValueOverrides: []vzapi.Overrides{
+			{
+				ConfigMapRef: ref,
+			},
+		},
+	}
+	var tests = []struct {
+		name string
+		cr   runtime.Object
+		res  interface{}
+	}{
+		{
+			"overrides when component not nil, v1alpha1",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						DNS: &vzapi.DNSComponent{
+							InstallOverrides: oV1Alpha1,
+						},
+					},
+				},
+			},
+			oV1Alpha1.ValueOverrides,
+		},
+		{
+			"Empty overrides when component nil",
+			&v1beta1.Verrazzano{},
+			[]v1beta1.Overrides{},
+		},
+		{
+			"overrides when component not nil",
+			&v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						DNS: &v1beta1.DNSComponent{
+							InstallOverrides: o,
+						},
+					},
+				},
+			},
+			o.ValueOverrides,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			override := GetOverrides(tt.cr)
+			assert.EqualValues(t, tt.res, override)
+		})
 	}
 }

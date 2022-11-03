@@ -20,9 +20,10 @@ pipeline {
     parameters {
         string (description: 'The release branch', name: 'RELEASE_BRANCH', defaultValue: 'NONE', trim: true)
         string (description: 'The release version (major.minor.patch format, e.g. 1.0.1)', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
+        string (description: 'The source commit for the release (required for full release)', name: 'RELEASE_COMMIT', defaultValue: 'NONE', trim: true )
         choice (name: 'DISTRIBUTION_VARIANT',
                 description: 'Verrazzano Distribution Variant to use for scanning',
-                choices: ["commercial", "open-source"])
+                choices: ["Lite", "Full"])
     }
 
     environment {
@@ -34,6 +35,7 @@ pipeline {
 
         OBJECT_STORAGE_NS = credentials('oci-os-namespace')
         OBJECT_STORAGE_BUCKET="verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         OCI_REGION="us-phoenix-1"
         OCI_CLI_AUTH="api_key"
         OCI_CLI_TENANCY = credentials('oci-tenancy')
@@ -43,7 +45,17 @@ pipeline {
 
         RELEASE_BINARIES_DIR = "${WORKSPACE}/release/scripts/release_work"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
-        BUNDLE_TO_SCAN = "${params.DISTRIBUTION_VARIANT}"
+
+        RELEASE_VERSION = "${params.RELEASE_VERSION}"
+        VERRAZZANO_RELEASE_PREFIX = "verrazzano-${RELEASE_VERSION}"
+        VERRAZZANO_LITE_BUNDLE = "${VERRAZZANO_RELEASE_PREFIX}-lite.zip"
+        VERRAZZANO_FULL_BUNDLE = "${VERRAZZANO_RELEASE_PREFIX}.zip"
+
+        VZ_LITE = "vz-lite"
+        VZ_FULL = "vz-full"
+
+        SCANNER_HOME = "${WORKSPACE}/scanner_home"
+        SCAN_REPORT_BASE_DIR = "${WORKSPACE}/scan_report_dir"
     }
 
     stages {
@@ -67,6 +79,23 @@ pipeline {
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 ${params.RELEASE_COMMIT}").trim()
+                }
+            }
+        }
+
+        stage('Download Release Binaries') {
+            steps {
+                script {
+                    sh """
+                        mkdir -p ${RELEASE_BINARIES_DIR}
+                        cd ${WORKSPACE}/release/scripts
+                        if [ "${params.DISTRIBUTION_VARIANT}" == "Full" ];then
+                            ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${VERRAZZANO_FULL_BUNDLE} ${RELEASE_BINARIES_DIR}/${VZ_FULL}
+                        else
+                            ./get_release_artifacts.sh ${params.RELEASE_BRANCH} ${SHORT_COMMIT_HASH} ${VERRAZZANO_LITE_BUNDLE} ${RELEASE_BINARIES_DIR}/${VZ_LITE}
+                        fi
+                    """
                 }
             }
         }
@@ -80,15 +109,14 @@ pipeline {
             }
            steps {
                 script {
-                    // The scan alone takes around 55 minutes, so setting a higher timeout
-                    timeout(time: 240, unit: 'MINUTES') {
+                    // The scan takes more than 3 hours for the full bundle, so setting a higher timeout
+                    timeout(time: 300, unit: 'MINUTES') {
                         sh """
                             cd ${WORKSPACE}/release/scripts
-
-                            if [ ${params.RELEASE_BRANCH} == "NONE" ]; then
-                              ./scan_release_binaries.sh ${env.BRANCH_NAME.replace("/", "%2F")}-last-clean-periodic-test ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
+                            if [ "${params.DISTRIBUTION_VARIANT}" == "Full" ];then
+                                ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_FULL} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_FULL} ${params.DISTRIBUTION_VARIANT}
                             else
-                              ./scan_release_binaries.sh "${params.RELEASE_BRANCH}-last-clean-periodic-test" ${RELEASE_BINARIES_DIR} ${params.RELEASE_VERSION}
+                                ./scan_release_binaries.sh ${RELEASE_BINARIES_DIR}/${VZ_LITE} ${SCANNER_HOME} ${SCAN_REPORT_BASE_DIR}/${VZ_LITE} ${params.DISTRIBUTION_VARIANT}
                             fi
                         """
                    }

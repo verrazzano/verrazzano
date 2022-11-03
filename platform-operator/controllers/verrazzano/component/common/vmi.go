@@ -11,15 +11,15 @@ import (
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzsecret "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
@@ -83,7 +83,7 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 	}
 	vmi := NewVMI()
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), vmi, func() error {
-		var existingVMI *vmov1.VerrazzanoMonitoringInstance = nil
+		var existingVMI *vmov1.VerrazzanoMonitoringInstance
 		if len(vmi.Spec.SecretsName) > 0 {
 			existingVMI = vmi.DeepCopy()
 		}
@@ -209,7 +209,32 @@ func FindStorageOverride(effectiveCR *vzapi.Verrazzano) (*ResourceRequestValues,
 	}
 	if defaultVolumeSource.PersistentVolumeClaim != nil {
 		pvcClaim := defaultVolumeSource.PersistentVolumeClaim
-		storageSpec, found := vzconfig.FindVolumeTemplate(pvcClaim.ClaimName, effectiveCR.Spec.VolumeClaimSpecTemplates)
+		storageSpec, found := vzconfig.FindVolumeTemplate(pvcClaim.ClaimName, effectiveCR)
+		if !found {
+			return nil, fmt.Errorf("Failed, did not find matching storage volume template for claim %s", pvcClaim.ClaimName)
+		}
+		storageString := storageSpec.Resources.Requests.Storage().String()
+		return &ResourceRequestValues{
+			Storage: storageString,
+		}, nil
+	}
+	return nil, fmt.Errorf("Failed, unsupported volume source: %v", defaultVolumeSource)
+}
+
+// FindStorageOverrideV1Beta1 finds and returns the correct storage override from the effective CR
+func FindStorageOverrideV1Beta1(effectiveCR *v1beta1.Verrazzano) (*ResourceRequestValues, error) {
+	if effectiveCR == nil || effectiveCR.Spec.DefaultVolumeSource == nil {
+		return nil, nil
+	}
+	defaultVolumeSource := effectiveCR.Spec.DefaultVolumeSource
+	if defaultVolumeSource.EmptyDir != nil {
+		return &ResourceRequestValues{
+			Storage: "",
+		}, nil
+	}
+	if defaultVolumeSource.PersistentVolumeClaim != nil {
+		pvcClaim := defaultVolumeSource.PersistentVolumeClaim
+		storageSpec, found := vzconfig.FindVolumeTemplate(pvcClaim.ClaimName, effectiveCR)
 		if !found {
 			return nil, fmt.Errorf("Failed, did not find matching storage volume template for claim %s", pvcClaim.ClaimName)
 		}
@@ -265,17 +290,34 @@ func CompareStorageOverrides(old *vzapi.Verrazzano, new *vzapi.Verrazzano, jsonN
 	return nil
 }
 
+// CompareStorageOverrides compares storage override settings for the VMI components
+func CompareStorageOverridesV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano, jsonName string) error {
+	// compare the storage overrides and reject if the type or size is different
+	oldSetting, err := FindStorageOverrideV1Beta1(old)
+	if err != nil {
+		return err
+	}
+	newSetting, err := FindStorageOverrideV1Beta1(new)
+	if err != nil {
+		return err
+	}
+	if !reflect.DeepEqual(oldSetting, newSetting) {
+		return fmt.Errorf("Can not change volume settings for %s", jsonName)
+	}
+	return nil
+}
+
 // CheckIngressesAndCerts checks the Ingress and Certs for the VMI components in the Post- function
 func CheckIngressesAndCerts(ctx spi.ComponentContext, comp spi.Component) error {
 	prefix := fmt.Sprintf("Component %s", comp.Name())
-	if !status.IngressesPresent(ctx.Log(), ctx.Client(), comp.GetIngressNames(ctx), prefix) {
+	if !ready.IngressesPresent(ctx.Log(), ctx.Client(), comp.GetIngressNames(ctx), prefix) {
 		return ctrlerrors.RetryableError{
 			Source:    comp.Name(),
 			Operation: "Check if Ingresses are present",
 		}
 	}
 
-	if readyStatus, certsNotReady := status.CertificatesAreReady(ctx.Client(), ctx.Log(), ctx.EffectiveCR(), comp.GetCertificateNames(ctx)); !readyStatus {
+	if readyStatus, certsNotReady := ready.CertificatesAreReady(ctx.Client(), ctx.Log(), ctx.EffectiveCR(), comp.GetCertificateNames(ctx)); !readyStatus {
 		ctx.Log().Progressf("Certificates not ready for component %s: %v", comp.Name(), certsNotReady)
 		return ctrlerrors.RetryableError{
 			Source:    comp.Name(),
@@ -285,7 +327,7 @@ func CheckIngressesAndCerts(ctx spi.ComponentContext, comp spi.Component) error 
 	return nil
 }
 
-//IsMultiNodeOpenSearch returns true if the VZ OpenSearch has more than 1 node.
+// IsMultiNodeOpenSearch returns true if the VZ OpenSearch has more than 1 node.
 func IsMultiNodeOpenSearch(vz *vzapi.Verrazzano) (bool, error) {
 	opensearch := vz.Spec.Components.Elasticsearch
 	var replicas int32
@@ -301,14 +343,14 @@ func IsMultiNodeOpenSearch(vz *vzapi.Verrazzano) (bool, error) {
 	return replicas > 1, nil
 }
 
-//addNodeGroupReplicas iterates through each OpenSearch node and sums the replicas
+// addNodeGroupReplicas iterates through each OpenSearch node and sums the replicas
 func addNodeGroupReplicas(os *vzapi.ElasticsearchComponent, replicas *int32) {
 	for _, node := range os.Nodes {
 		*replicas += node.Replicas
 	}
 }
 
-//addInstallArgReplicas sums the replicas from master, data, and ingest node install args.
+// addInstallArgReplicas sums the replicas from master, data, and ingest node install args.
 func addInstallArgReplicas(os *vzapi.ElasticsearchComponent, replicas *int32) error {
 	addStr := func(v string) error {
 		var val int32

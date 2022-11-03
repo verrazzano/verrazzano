@@ -2,18 +2,19 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def TESTS_FAILED = false
 
-def availableRegions = [ "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1",
-                         "eu-zurich-1", "me-jeddah-1", "sa-saopaulo-1", "uk-london-1" ]
+def availableRegions = [ "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1",
+                         "eu-zurich-1", "me-jeddah-1", "sa-saopaulo-1" ]
 def OKE_CLUSTER_PREFIX = ""
+def OKE_CLUSTER_ID = ""
 Collections.shuffle(availableRegions)
 
 pipeline {
     options {
-        timeout(time: 2, unit: 'HOURS')
+        timeout(time: 4, unit: 'HOURS')
         skipDefaultCheckout true
         timestamps ()
     }
@@ -31,18 +32,25 @@ pipeline {
     parameters {
         choice (name: 'KUBERNETES_CLUSTER_VERSION',
                 description: 'Kubernetes Version for OKE Cluster',
-                // 1st choice is the default value
-                choices: [ "v1.23.4", "v1.22.5", "v1.21.5"])
+                // 1st choice is the default value, use older version as default to ensure cluster will perform upgrade
+                choices: [ "v1.23.4", "v1.22.5", "v1.21.5", "v1.24.1" ])
         choice (name: 'OKE_NODE_POOL',
                 description: 'OKE node pool configuration',
                 // 1st choice is the default value
-                choices: [ "VM.Standard2.4-3", "VM.Standard2.4-5" ])
+                choices: [ "VM.Standard2.4-4", "VM.Standard2.4-2" ])
         choice (description: 'OCI region to launch OKE clusters in', name: 'OKE_CLUSTER_REGION',
             // 1st choice is the default value
             choices: availableRegions )
+        booleanParam (name: 'SKIP_KUBERNETES_UPGRADE',
+            description: 'Skip Kubernetes version upgrade (simulate upgrade, drain and replace worker nodes only)',
+            defaultValue: false)
         string (name: 'GIT_COMMIT_TO_USE',
                 defaultValue: 'NONE',
                 description: 'This is the full git commit hash from the source build to be used for all jobs',
+                trim: true)
+        string (name: 'VERRAZZANO_OPERATOR_IMAGE',
+                defaultValue: 'NONE',
+                description: 'Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the operator.yaml from VZ repo will be leveraged to create VZ platform operator',
                 trim: true)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'This is the wildcard DNS domain',
@@ -110,6 +118,7 @@ pipeline {
         INSTALL_PROFILE = "prod"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
+        HELIDON_TEST_NAMESPACE = "ha-hello-helidon"
 
         WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // required by WebLogic application and console ingress test
         DATABASE_PSW = credentials('todo-mysql-password') // required by console ingress test
@@ -244,7 +253,12 @@ pipeline {
                         sh """
                             TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=rollingupgrade-${env.BUILD_NUMBER}-${env.BRANCH_NAME}/${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh
                             kubectl get nodes
-                       """
+                        """
+
+                        script {
+                            OKE_CLUSTER_ID = sh(returnStdout: true, script: "cd ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/terraform/cluster && ./terraform output -raw oke_cluster_id").trim()
+                            echo "OKE cluster id: ${OKE_CLUSTER_ID}"
+                        }
                     }
                     post {
                         failure {
@@ -270,9 +284,6 @@ pipeline {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
 
-                            echo "Downloading platform operator from object storage"
-                            oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-
                             echo "Create the verrazzano-install namespace"
                             kubectl create namespace verrazzano-install
 
@@ -282,8 +293,20 @@ pipeline {
                             ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
                             ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
+                            if [ "NONE" == "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
+                                echo "Downloading platform operator from object storage"
+                                oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/platform-operator.yaml
+                            else
+                                echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
+                                env IMAGE_PULL_SECRETS=${IMAGE_PULL_SECRET} DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/platform-operator.yaml
+                            fi
+
                             echo "Installing Verrazzano"
-                            ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/downloaded-operator.yaml
+                            ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/platform-operator.yaml --timeout 45m --platform-operator-timeout 10m
+
+                            # For now, manually scale the VPO webhook to 3 replicas until we have hooks for it in the product
+                            kubectl  scale deployment -n verrazzano-install verrazzano-platform-operator-webhook --replicas 3
+                            kubectl  rollout status deployment -n verrazzano-install verrazzano-platform-operator-webhook -w --timeout 15m
                        """
                     }
                     post {
@@ -294,7 +317,7 @@ pipeline {
                             }
                         }
                         always {
-                            archiveArtifacts artifacts: '**/downloaded-operator.yaml', allowEmptyArchive: true
+                            archiveArtifacts artifacts: '**/platform-operator.yaml', allowEmptyArchive: true
                             // enable debug logging of Verrazzano api istio proxy
                             script {
                                 if (params.ENABLE_API_ENVOY_LOGGING) {
@@ -326,7 +349,7 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidon-install"
                     }
                     steps{
-                        runGinkgo('examples/helidon', '--namespace=hello-helidon --skipUndeploy=true --appconfig=examples/hello-helidon/hello-helidon-app-scaler-trait.yaml')
+                        runGinkgo("examples/helidon", "--namespace=${HELIDON_TEST_NAMESPACE} --skipUndeploy=true --appconfig=examples/hello-helidon/hello-helidon-app-scaler-trait.yaml")
                     }
                     post {
                         always {
@@ -339,33 +362,6 @@ pipeline {
                         failure {
                             script {
                                 TESTS_FAILED = true
-                            }
-                        }
-                    }
-                }
-
-                stage('Reschedule 50% of Worker Nodes') {
-                    when {
-                        expression { TESTS_FAILED == false }
-                    }
-                    environment {
-                        DUMP_DIRECTORY="${TEST_DUMP_ROOT}/scheduling"
-                    }
-                    steps {
-                        runGinkgoRandomize('ha/scheduling')
-                    }
-                    post {
-                        always {
-                            sh """
-                                kubectl get pods -A
-                            """
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-snapshots/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                        }
-                        failure {
-                            script {
-                                TESTS_FAILED = true
-                                dumpK8sCluster('reschedule-fail-cluster-snapshot')
                             }
                         }
                     }
@@ -400,6 +396,9 @@ pipeline {
                             }
                         }
                         stage ('console') {
+                            when {
+                                expression { false }
+                            }
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
                             }
@@ -422,7 +421,7 @@ pipeline {
                     }
                 }
 
-                stage('Parallel HA Tests and Rolling Update') {
+                stage('Parallel HA Tests and K8s Upgrade') {
                     when {
                         expression { TESTS_FAILED == false }
                     }
@@ -430,12 +429,13 @@ pipeline {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/ha-tests"
                     }
                     parallel {
-                        stage('Rolling Update') {
+                        stage('K8s In-place Upgrade') {
                             environment {
-                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/rollingupdate"
+                                DUMP_DIRECTORY="${TEST_DUMP_ROOT}/inplaceupgrade"
+                                OKE_CLUSTER_ID="${OKE_CLUSTER_ID}"
                             }
                             steps {
-                                runGinkgoRandomize('ha/rollingupdate')
+                                runGinkgoFailFast('ha/inplaceupgrade')
                             }
                         }
                         stage('HA Tests') {
@@ -443,12 +443,25 @@ pipeline {
                                 runGinkgoRandomize('ha/monitor')
                             }
                         }
+                        stage('Access Hello Helidon') {
+                            steps {
+                                runGinkgo("ha/helidon", "--namespace=${HELIDON_TEST_NAMESPACE}")
+                            }
+                        }
                         stage ('console') {
+                            when {
+                                expression { false }
+                            }
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
                             }
                             steps {
                                 sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
+                            }
+                            post {
+                                failure {
+                                    sh "${GO_REPO_PATH}/verrazzano/ci/scripts/save_console_test_artifacts.sh"
+                                }
                             }
                         }
                     }
@@ -548,7 +561,7 @@ def runGinkgoRandomize(testSuitePath) {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
             if [ -d "${testSuitePath}" ]; then
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+                ginkgo --timeout=90m -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
             fi
         """
     }
@@ -558,7 +571,16 @@ def runGinkgo(testSuitePath, arguments = '') {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- $arguments
+            ginkgo --timeout=90m -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- $arguments
+        """
+    }
+}
+
+def runGinkgoFailFast(testSuitePath, arguments = '') {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            ginkgo --timeout=90m -v --fail-fast --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/... -- $arguments
         """
     }
 }

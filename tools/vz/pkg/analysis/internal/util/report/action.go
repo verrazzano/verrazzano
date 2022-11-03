@@ -17,9 +17,9 @@ import (
 //		 will be evolving rapidly initially as we add analysis cases
 
 // Action describes what a user/developer should do to mitigate an issue that has been found. For example:
-//    - Description of the action if more general
-//    - Link(s) to a Runbook(s) are preferable here as instructions may evolve over time and may be complex
-//    - A list of Steps to take
+//   - Description of the action if more general
+//   - Link(s) to a Runbook(s) are preferable here as instructions may evolve over time and may be complex
+//   - A list of Steps to take
 type Action struct {
 	Summary string   // Required, Summary of the action to take
 	Links   []string // Optional, runbook or other related Links with action details
@@ -54,6 +54,7 @@ var RunbookLinks = map[string][]string{
 	PendingPods:               {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/pendingpods"},
 	PodProblemsNotReported:    {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/podproblemsnotreported"},
 	IngressNoIPFound:          {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip"},
+	IstioIngressNoIP:          {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/istioingressgatewaynoloadbalancerip"},
 	IngressShapeInvalid:       {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/ingressinvalidshape"},
 }
 
@@ -72,6 +73,7 @@ var KnownActions = map[string]Action{
 	PendingPods:               {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[PendingPods][0])},
 	PodProblemsNotReported:    {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[PodProblemsNotReported][0])},
 	IngressNoIPFound:          {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IngressNoIPFound][0])},
+	IstioIngressNoIP:          {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IstioIngressNoIP][0])},
 	IngressShapeInvalid:       {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IngressShapeInvalid][0])},
 }
 

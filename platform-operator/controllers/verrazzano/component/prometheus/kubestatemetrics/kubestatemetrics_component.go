@@ -4,7 +4,9 @@
 package kubestatemetrics
 
 import (
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -47,6 +49,14 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       AppendOverrides,
 			Dependencies:              []string{promoperator.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      deploymentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -60,7 +70,7 @@ func (c kubeStateMetricsComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // IsReady checks if the kube-state-metrics deployment is ready
 func (c kubeStateMetricsComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isDeploymentReady(ctx)
+		return c.isDeploymentReady(ctx)
 	}
 	return false
 }

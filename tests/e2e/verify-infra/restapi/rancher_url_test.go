@@ -6,31 +6,34 @@ package restapi_test
 import (
 	"context"
 	"fmt"
-	"net/http"
+	"reflect"
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	waitTimeout     = 5 * time.Minute
+	pollingInterval = 5 * time.Second
 )
 
 var _ = t.Describe("rancher", Label("f:infra-lcm",
 	"f:ui.console"), func() {
-	const (
-		waitTimeout     = 5 * time.Minute
-		pollingInterval = 5 * time.Second
-	)
 
-	t.Context("url test to", func() {
-		t.It("Fetch rancher url", func() {
+	t.Context("test to", func() {
+		t.It("Verify rancher access and configuration", func() {
 			if !pkg.IsManagedClusterProfile() {
 				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 				if err != nil {
@@ -38,17 +41,14 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					t.Fail(err.Error())
 				}
 
-				api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
-				rancherURL := pkg.EventuallyGetURLForIngress(t.Logs, api, "cattle-system", "rancher", "https")
-				httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
-				var httpResponse *pkg.HTTPResponse
+				start := time.Now()
+				err = pkg.VerifyRancherAccess(t.Logs)
+				if err != nil {
+					t.Logs.Error(fmt.Sprintf("Error verifying access to Rancher: %v", err))
+					t.Fail(err.Error())
+				}
 
-				Eventually(func() (*pkg.HTTPResponse, error) {
-					httpResponse, err = pkg.GetWebPageWithClient(httpClient, rancherURL, "")
-					return httpResponse, err
-				}, waitTimeout, pollingInterval).Should(pkg.HasStatus(http.StatusOK))
-
-				Expect(pkg.CheckNoServerHeader(httpResponse)).To(BeTrue(), "Found unexpected server header in response")
+				metrics.Emit(t.Metrics.With("rancher_access_elapsed_time", time.Since(start).Milliseconds()))
 
 				k8sClient, err := pkg.GetDynamicClientInCluster(kubeconfigPath)
 				if err != nil {
@@ -56,10 +56,10 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					t.Fail(err.Error())
 				}
 
-				start := time.Now()
+				start = time.Now()
 				t.Logs.Info("Verify local cluster status")
 				Eventually(func() (bool, error) {
-					clusterData, err := k8sClient.Resource(gvkToGvr(rancher.GVKCluster)).Get(context.Background(), rancher.ClusterLocal, v1.GetOptions{})
+					clusterData, err := k8sClient.Resource(pkg.GvkToGvr(rancher.GVKCluster)).Get(context.Background(), rancher.ClusterLocal, v1.GetOptions{})
 					if err != nil {
 						t.Logs.Error(fmt.Sprintf("Error getting local Cluster CR: %v", err))
 						return false, err
@@ -82,7 +82,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 				start = time.Now()
 				t.Logs.Info("Verify Local AuthConfig")
 				Eventually(func() (bool, error) {
-					localAuthConfigData, err := k8sClient.Resource(gvkToGvr(common.GVKAuthConfig)).Get(context.Background(), rancher.AuthConfigLocal, v1.GetOptions{})
+					localAuthConfigData, err := k8sClient.Resource(pkg.GvkToGvr(common.GVKAuthConfig)).Get(context.Background(), rancher.AuthConfigLocal, v1.GetOptions{})
 					if err != nil {
 						t.Logs.Error(fmt.Sprintf("error getting local authConfig: %v", err))
 						return false, err
@@ -97,7 +97,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					start = time.Now()
 					t.Logs.Info("Verify OCI driver status")
 					Eventually(func() (bool, error) {
-						ociDriverData, err := k8sClient.Resource(gvkToGvr(rancher.GVKNodeDriver)).Get(context.Background(), rancher.NodeDriverOCI, v1.GetOptions{})
+						ociDriverData, err := k8sClient.Resource(pkg.GvkToGvr(rancher.GVKNodeDriver)).Get(context.Background(), rancher.NodeDriverOCI, v1.GetOptions{})
 						if err != nil {
 							t.Logs.Error(fmt.Sprintf("Error getting OCI Driver CR: %v", err))
 							return false, err
@@ -109,7 +109,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					start = time.Now()
 					t.Logs.Info("Verify OKE driver status")
 					Eventually(func() (bool, error) {
-						okeDriverData, err := k8sClient.Resource(gvkToGvr(rancher.GVKKontainerDriver)).Get(context.Background(), rancher.KontainerDriverOKE, v1.GetOptions{})
+						okeDriverData, err := k8sClient.Resource(pkg.GvkToGvr(rancher.GVKKontainerDriver)).Get(context.Background(), rancher.KontainerDriverOKE, v1.GetOptions{})
 						if err != nil {
 							t.Logs.Error(fmt.Sprintf("Error getting OKE Driver CR: %v", err))
 							return false, err
@@ -119,66 +119,37 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					metrics.Emit(t.Metrics.With("get_oke_driver_state_elapsed_time", time.Since(start).Milliseconds()))
 
 					start = time.Now()
-					t.Logs.Info("Verify Keycloak AuthConfig")
-					keycloakURL := pkg.EventuallyGetURLForIngress(t.Logs, api, "keycloak", "keycloak", "https")
-					Eventually(func() (bool, error) {
-						authConfigData, err := k8sClient.Resource(gvkToGvr(common.GVKAuthConfig)).Get(context.Background(), common.AuthConfigKeycloak, v1.GetOptions{})
-						if err != nil {
-							t.Logs.Error(fmt.Sprintf("error getting keycloak oidc authConfig: %v", err))
-							return false, err
-						}
+					err = pkg.VerifyRancherKeycloakAuthConfig(t.Logs)
+					if err != nil {
+						t.Logs.Error(fmt.Sprintf("Error verifying Rancher/Keycloak integration: %v", err))
+						t.Fail(err.Error())
+					}
 
-						authConfigAttributes := authConfigData.UnstructuredContent()
-						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeAccessMode, authConfigAttributes[rancher.AuthConfigKeycloakAttributeAccessMode].(string), rancher.AuthConfigKeycloakAccessMode); err != nil {
-							return false, err
-						}
-
-						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeClientID, authConfigAttributes[rancher.AuthConfigKeycloakAttributeClientID].(string), rancher.AuthConfigKeycloakClientIDRancher); err != nil {
-							return false, err
-						}
-
-						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeGroupSearchEnabled, authConfigAttributes[rancher.AuthConfigKeycloakAttributeGroupSearchEnabled].(bool), true); err != nil {
-							return false, err
-						}
-
-						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeAuthEndpoint, authConfigAttributes[rancher.AuthConfigKeycloakAttributeAuthEndpoint].(string), keycloakURL+rancher.AuthConfigKeycloakURLPathAuthEndPoint); err != nil {
-							return false, err
-						}
-
-						if err = verifyAuthConfigAttribute(rancher.AuthConfigKeycloakAttributeRancherURL, authConfigAttributes[rancher.AuthConfigKeycloakAttributeRancherURL].(string), rancherURL+rancher.AuthConfigKeycloakURLPathVerifyAuth); err != nil {
-							return false, err
-						}
-
-						authConfigClientSecret := authConfigAttributes[common.AuthConfigKeycloakAttributeClientSecret].(string)
-						if authConfigClientSecret == "" {
-							err = fmt.Errorf("keycloak auth config attribute %s not correctly configured, value is empty", common.AuthConfigKeycloakAttributeClientSecret)
-							t.Logs.Error(err.Error())
-							return false, err
-						}
-
-						return true, nil
-					}, waitTimeout, pollingInterval).Should(Equal(true), "keycloak oidc authconfig not configured correctly")
 					metrics.Emit(t.Metrics.With("get_kc_authconfig_state_elapsed_time", time.Since(start).Milliseconds()))
 
 					start = time.Now()
 					t.Logs.Info("Verify Verrazzano rancher user")
+					var rancherUsername string
 					Eventually(func() (bool, error) {
-						userData, err := k8sClient.Resource(gvkToGvr(rancher.GVKUser)).Get(context.Background(), rancher.UserVerrazzano, v1.GetOptions{})
+						userList, err := k8sClient.Resource(pkg.GvkToGvr(rancher.GVKUser)).List(context.Background(), v1.ListOptions{})
 						if err != nil {
 							t.Logs.Error(fmt.Sprintf("error getting rancher verrazzano user: %v", err))
 							return false, err
 						}
-
-						userPrincipals, ok := userData.UnstructuredContent()[rancher.UserAttributePrincipalIDs].([]interface{})
-						if !ok {
-							err = fmt.Errorf("rancher verrazzano user configured incorrectly,principalIds empty")
-							t.Logs.Error(err.Error())
-							return false, err
-						}
-
-						for _, userPrincipal := range userPrincipals {
-							if strings.Contains(userPrincipal.(string), rancher.UserPrincipalKeycloakPrefix) {
-								return true, nil
+						for _, userData := range userList.Items {
+							userPrincipals, ok := userData.UnstructuredContent()[rancher.UserAttributePrincipalIDs].([]interface{})
+							if ok {
+								switch reflect.TypeOf(userPrincipals).Kind() {
+								case reflect.Slice:
+									listOfPrincipleIDs := reflect.ValueOf(userPrincipals)
+									for i := 0; i < listOfPrincipleIDs.Len(); i++ {
+										principleID := listOfPrincipleIDs.Index(i).Interface().(string)
+										if strings.Contains(principleID, rancher.UserPrincipalKeycloakPrefix) {
+											rancherUsername = userData.GetName()
+											return true, nil
+										}
+									}
+								}
 							}
 						}
 						return false, fmt.Errorf("Verrazzano rancher user is not mapped in keycloak")
@@ -188,14 +159,14 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					start = time.Now()
 					t.Logs.Info("Verify Verrazzano rancher user admin GlobalRoleBinding")
 					Eventually(func() (bool, error) {
-						grbData, err := k8sClient.Resource(gvkToGvr(rancher.GVKGlobalRoleBinding)).Get(context.Background(), rancher.GlobalRoleBindingVerrazzano, v1.GetOptions{})
+						grbData, err := k8sClient.Resource(pkg.GvkToGvr(rancher.GVKGlobalRoleBinding)).Get(context.Background(), rancher.GlobalRoleBindingVerrazzanoPrefix+rancherUsername, v1.GetOptions{})
 						if err != nil {
-							t.Logs.Error(fmt.Sprintf("error getting rancher verrazzano user global role binding: %v", err))
+							t.Logs.Error(fmt.Sprintf("error getting rancher verrazzano user global role binding for rancher user %s : %v", rancherUsername, err))
 							return false, err
 						}
 
 						grbAttributes := grbData.UnstructuredContent()
-						if grbAttributes[rancher.GlobalRoleBindingAttributeUserName].(string) != rancher.UserVerrazzano {
+						if grbAttributes[rancher.GlobalRoleBindingAttributeUserName].(string) != rancherUsername {
 							return false, fmt.Errorf("verrazzano rancher user global role binding user is invalid")
 						}
 
@@ -212,7 +183,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					Eventually(func() (bool, error) {
 						for _, grp := range rancher.GroupRolePairs {
 							name := fmt.Sprintf("crtb-%s-%s", grp[rancher.ClusterRoleKey], grp[rancher.GroupKey])
-							crtpData, err := k8sClient.Resource(gvkToGvr(rancher.GVKClusterRoleTemplateBinding)).Namespace(rancher.ClusterLocal).Get(context.Background(), name, v1.GetOptions{})
+							crtpData, err := k8sClient.Resource(pkg.GvkToGvr(rancher.GVKClusterRoleTemplateBinding)).Namespace(rancher.ClusterLocal).Get(context.Background(), name, v1.GetOptions{})
 							if err != nil {
 								return false, fmt.Errorf("error getting ClusterRoleTemplateBinding %s: %v", name, err)
 							}
@@ -234,12 +205,12 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					start = time.Now()
 					t.Logs.Info("Verify RoleTemplate are created for Keycloak groups ClusterRoleBindings")
 					Eventually(func() (bool, error) {
-						_, err := k8sClient.Resource(gvkToGvr(rancher.GVKRoleTemplate)).Get(context.Background(), rancher.VerrazzanoAdminRoleName, v1.GetOptions{})
+						_, err := k8sClient.Resource(pkg.GvkToGvr(rancher.GVKRoleTemplate)).Get(context.Background(), rancher.VerrazzanoAdminRoleName, v1.GetOptions{})
 						if err != nil {
 							return false, fmt.Errorf("error getting RoleTemplate %s: %v", rancher.VerrazzanoAdminRoleName, err)
 						}
 
-						_, err = k8sClient.Resource(gvkToGvr(rancher.GVKRoleTemplate)).Get(context.Background(), rancher.VerrazzanoMonitorRoleName, v1.GetOptions{})
+						_, err = k8sClient.Resource(pkg.GvkToGvr(rancher.GVKRoleTemplate)).Get(context.Background(), rancher.VerrazzanoMonitorRoleName, v1.GetOptions{})
 						if err != nil {
 							return false, fmt.Errorf("error getting RoleTemplate %s: %v", rancher.VerrazzanoMonitorRoleName, err)
 						}
@@ -247,34 +218,98 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 						return true, nil
 					}, waitTimeout, pollingInterval).Should(Equal(true), "RoleTemplate not found")
 					metrics.Emit(t.Metrics.With("get_roletemplate_elapsed_time", time.Since(start).Milliseconds()))
+					verifySettingValue(rancher.SettingUIPL, rancher.SettingUIPLValueVerrazzano, k8sClient)
+					verifyUILogoSetting(rancher.SettingUILogoLight, rancher.SettingUILogoLightLogoFilePath, k8sClient)
+					verifyUILogoSetting(rancher.SettingUILogoDark, rancher.SettingUILogoDarkLogoFilePath, k8sClient)
 
+				}
+
+				minVer15, err := pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
+				Expect(err).ToNot(HaveOccurred())
+				if minVer15 {
+					verifySettingValue(rancher.SettingUIPrimaryColor, rancher.SettingUIPrimaryColorValue, k8sClient)
+					verifySettingValue(rancher.SettingUILinkColor, rancher.SettingUILinkColorValue, k8sClient)
 				}
 			}
 		})
 	})
 })
 
-func gvkToGvr(gvk schema.GroupVersionKind) schema.GroupVersionResource {
-	resource := strings.ToLower(gvk.Kind)
-	if strings.HasSuffix(resource, "s") {
-		resource = resource + "es"
-	} else {
-		resource = resource + "s"
-	}
-
-	return schema.GroupVersionResource{Group: gvk.Group,
-		Version:  gvk.Version,
-		Resource: resource,
-	}
-}
-
-func verifyAuthConfigAttribute(name string, actual interface{}, expected interface{}) error {
-	if expected != actual {
-		err := fmt.Errorf("keycloak auth config attribute %s not correctly configured, expected %v, actual %v", name, expected, actual)
-		t.Logs.Error(err.Error())
-		return err
-	}
-	return nil
-}
-
 var _ = t.AfterEach(func() {})
+
+// verifyUILogoSetting verifies the value of ui logo related rancher setting
+// GIVEN a Verrazzano installation with ui settings (ui-logo-dark and ui-logo-light) populated
+// AND corresponding actual logo files present in specified path in a running rancher pod
+//
+//	WHEN value of the base64 encoded logo file is extracted from the setting CR specified by settingName
+//	AND compared with base64 encoded value of corresponding actual logo file present in running rancher pod
+//	THEN both the values are expected to be equal, otherwise the test scenario is deemed to have failed.
+func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dynamic.Interface) {
+	start := time.Now()
+	t.Logs.Infof("Verify %s setting", settingName)
+	Eventually(func() (bool, error) {
+		clusterData, err := dynamicClient.Resource(pkg.GvkToGvr(common.GVKSetting)).Get(context.Background(), settingName, v1.GetOptions{})
+		if err != nil {
+			t.Logs.Error(fmt.Sprintf("Error getting %s setting: %v", settingName, err))
+			return false, err
+		}
+
+		value := clusterData.UnstructuredContent()["value"].(string)
+		logoSVG := strings.Split(value, rancher.SettingUILogoValueprefix)[1]
+		cfg, err := k8sutil.GetKubeConfig()
+		if err != nil {
+			t.Logs.Error(fmt.Sprintf("Error getting client config to verify value of %s setting: %v", settingName, err))
+			return false, err
+		}
+
+		c, err := client.New(cfg, client.Options{})
+		if err != nil {
+			t.Logs.Error(fmt.Sprintf("Error getting client to verify value of %s setting: %v", settingName, err))
+			return false, err
+		}
+
+		pod, err := k8sutil.GetRunningPodForLabel(c, "app=rancher", "cattle-system")
+		if err != nil {
+			t.Logs.Error(fmt.Sprintf("Error getting running rancher pod to verify value of %s setting: %v", settingName, err))
+			return false, err
+		}
+
+		k8sClient, err := kubernetes.NewForConfig(cfg)
+		if err != nil {
+			t.Logs.Error(fmt.Sprintf("Error getting kube client to verify value of %s setting: %v", settingName, err))
+			return false, err
+		}
+
+		logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("cat %s | base64", logoPath)}
+		stdout, stderr, err := k8sutil.ExecPod(k8sClient, cfg, pod, "rancher", logoCommand)
+		if err != nil {
+			t.Logs.Error(fmt.Sprintf("Error executing command in rancher pod to verify value of %s setting: %v, stderr: %v", settingName, err, stderr))
+			return false, err
+		}
+
+		return stdout == string(logoSVG), nil
+	}, waitTimeout, pollingInterval).Should(Equal(true), fmt.Sprintf("rancher UI setting %s value does not match logo path %s", settingName, logoPath))
+	metrics.Emit(t.Metrics.With("get_ui_setting_elapsed_time", time.Since(start).Milliseconds()))
+
+}
+
+// verifySettingValue verifies the value of a rancher setting
+// GIVEN a Verrazzano installation with setting specified by settingName populated
+//
+//	WHEN value field of the setting CR specified by settingName is extracted
+//	AND compared with input expectedValue
+//	THEN both the values are expected to be equal, otherwise the test scenario is deemed to have failed.
+func verifySettingValue(settingName string, expectedValue string, k8sClient dynamic.Interface) {
+	start := time.Now()
+	t.Logs.Infof("Verify %s setting", settingName)
+	Eventually(func() (bool, error) {
+		clusterData, err := k8sClient.Resource(pkg.GvkToGvr(common.GVKSetting)).Get(context.Background(), settingName, v1.GetOptions{})
+		if err != nil {
+			t.Logs.Errorf("Error getting %s setting: %v", settingName, err.Error())
+			return false, err
+		}
+		value := clusterData.UnstructuredContent()["value"].(string)
+		return expectedValue == value, nil
+	}, waitTimeout, pollingInterval).Should(Equal(true), fmt.Sprintf("rancher %s setting not updated", settingName))
+	metrics.Emit(t.Metrics.With(fmt.Sprintf("get_%s_setting_elapsed_time", strings.ReplaceAll(settingName, "-", "")), time.Since(start).Milliseconds()))
+}

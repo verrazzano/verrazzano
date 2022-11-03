@@ -85,23 +85,32 @@ spec:
         domain: "nip.io"
     elasticsearch:
       enabled: true
-      installArgs:
-        - name: nodes.master.replicas
-          value: "3"
-        - name: nodes.master.requests.memory
-          value: "3G"
-        - name: nodes.master.requests.storage
-          value: "100Gi"
-        - name: nodes.ingest.replicas
-          value: "6"
-        - name: nodes.ingest.requests.memory
-          value: "32G"
-        - name: nodes.data.replicas
-          value: "6"
-        - name: nodes.data.requests.memory
-          value: "32G"
-        - name: nodes.data.requests.storage
-          value: "150Gi"
+      nodes:
+        - name: es-master
+          replicas: 3
+          storage:
+            size: 100Gi
+          resources:
+            requests:
+              memory: 3G
+          roles:
+            - master
+        - name: es-data
+          replicas: 6
+          storage:
+            size: 150Gi
+          roles:
+            - data
+          resources:
+            requests:
+              memory: 32G
+        - name: es-ingest
+          replicas: 6
+          resources:
+            requests:
+              memory: 32G
+          roles:
+            - ingest
     fluentd:
       enabled: true
       elasticsearchURL: "http://verrazzano-authproxy-elasticsearch:8775"
@@ -218,6 +227,38 @@ spec:
                           app.kubernetes.io/instance: keycloak
                           app.kubernetes.io/name: keycloak
                       topologyKey: kubernetes.io/hostname
+      mysql:
+        overrides:
+          - values:
+              serverInstances: 1
+              routerInstances: 1
+              router:
+                podSpec:
+                  affinity:
+                    podAntiAffinity:
+                      preferredDuringSchedulingIgnoredDuringExecution:
+                        - weight: 100
+                          podAffinityTerm:
+                            labelSelector:
+                              matchLabels:
+                                app.kubernetes.io/instance: mysql-innodbcluster-mysql-router
+                                app.kubernetes.io/name: mysql-router
+                            topologyKey: kubernetes.io/hostname
+              image:
+                pullPolicy: IfNotPresent
+                pullSecrets:
+                  enabled: false
+              podSpec:
+                affinity:
+                  podAntiAffinity:
+                    preferredDuringSchedulingIgnoredDuringExecution:
+                      - weight: 100
+                        podAffinityTerm:
+                          labelSelector:
+                            matchLabels:
+                              app.kubernetes.io/instance: mysql-innodbcluster-mysql-mysql-server
+                              app.kubernetes.io/name: mysql-innodbcluster-mysql-server
+                          topologyKey: kubernetes.io/hostname
     mySQLOperator:
       enabled: true
     kibana:

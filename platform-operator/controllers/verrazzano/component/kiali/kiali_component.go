@@ -6,14 +6,16 @@ package kiali
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"path/filepath"
+
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -60,10 +62,18 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), kialiOverridesFile),
-			Dependencies:              []string{istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_1_0,
-			Certificates:              certificates,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      kialiSystemName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
+			Certificates: certificates,
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
@@ -90,7 +100,7 @@ func (c kialiComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := removeDeploymentAndService(ctx); err != nil {
 		return err
 	}
-	return common.ApplyCRDYaml(ctx, config.GetHelmKialiChartsDir())
+	return nil
 }
 
 // removeDeploymentAndService removes the Kiali deployment and service during pre-upgrade.
@@ -137,7 +147,7 @@ func (c kialiComponent) PostUpgrade(ctx spi.ComponentContext) error {
 // IsReady Kiali-specific ready-check
 func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
-		return isKialiReady(context)
+		return c.isKialiReady(context)
 	}
 	return false
 }
@@ -171,7 +181,11 @@ func (c kialiComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c kialiComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
-	return nil
+	// Do not allow any changes except to enable the component post-install
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
+		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
+	}
+	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

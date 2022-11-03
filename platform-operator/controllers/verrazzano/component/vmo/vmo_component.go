@@ -5,6 +5,9 @@ package vmo
 
 import (
 	"context"
+	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 
@@ -51,7 +54,15 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			AppendOverridesFunc:       appendVMOOverrides,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
-			Dependencies:              []string{nginx.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName},
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -64,9 +75,17 @@ func (c vmoComponent) IsEnabled(effectiveCR runtime.Object) bool {
 // IsReady calls VMO isVmoReady function
 func (c vmoComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
-		return isVMOReady(context)
+		return c.isVMOReady(context)
 	}
 	return false
+}
+
+func (c vmoComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
+	available = c.IsReady(context)
+	if available {
+		return fmt.Sprintf("%s is available", c.Name()), true
+	}
+	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // IsInstalled checks if VMO is installed

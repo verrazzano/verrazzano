@@ -30,8 +30,9 @@ var vmiEnabledCR = vzapi.Verrazzano{
 
 // TestNewVMIResources tests that new VMI resources can be created from a CR
 // GIVEN a Verrazzano CR
-//  WHEN I create new VMI resources
-//  THEN the configuration in the CR is respected
+//
+//	WHEN I create new VMI resources
+//	THEN the configuration in the CR is respected
 func TestNewVMIResources(t *testing.T) {
 	r := &common.ResourceRequestValues{
 		Memory:  "",
@@ -46,7 +47,8 @@ func TestNewVMIResources(t *testing.T) {
 // TestNewPrometheusWithDefaultStorage tests that the default storage of Prometheus is 50Gi
 // GIVEN a Verrazzano CR
 // WHEN I create a new Prometheus resource
-//  THEN the storage is 50Gi
+//
+//	THEN the storage is 50Gi
 func TestNewPrometheusWithDefaultStorage(t *testing.T) {
 	prometheus := newPrometheus(&vmiEnabledCR, nil, nil)
 	assert.Equal(t, "50Gi", prometheus.Storage.Size)
@@ -55,7 +57,8 @@ func TestNewPrometheusWithDefaultStorage(t *testing.T) {
 // TestPrometheusWithStorageOverride tests that storage overrides are applied to Prometheus
 // GIVEN a Verrazzano CR and a storage override of 100Gi
 // WHEN I create a new Prometheus resource
-//  THEN the storage is 100Gi
+//
+//	THEN the storage is 100Gi
 func TestPrometheusWithStorageOverride(t *testing.T) {
 	prometheus := newPrometheus(&vmiEnabledCR, &common.ResourceRequestValues{Storage: "100Gi"}, nil)
 	assert.Equal(t, "100Gi", prometheus.Storage.Size)

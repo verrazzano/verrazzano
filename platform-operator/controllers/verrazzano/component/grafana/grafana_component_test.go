@@ -5,12 +5,14 @@ package grafana
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
@@ -221,7 +223,7 @@ func TestPreInstall(t *testing.T) {
 	// GIVEN Verrazzano is being installed
 	// WHEN the Grafana component PreInstall function is called
 	// THEN the function succeeds and the Grafana admin secret has been created
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -244,7 +246,7 @@ func TestPreUpgrade(t *testing.T) {
 	// GIVEN Verrazzano is being upgraded
 	// WHEN the Grafana component PreUpgrade function is called
 	// THEN the function succeeds and the Grafana admin secret has been created
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -281,7 +283,7 @@ func TestUpgrade(t *testing.T) {
 
 // testInstallOrUpgrade tests both the Grafana component Install and Update functions
 func testInstallOrUpgrade(t *testing.T, installOrUpgradeFunc func(spi.ComponentContext) error) {
-	client := fake.NewFakeClientWithScheme(testScheme)
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -343,4 +345,72 @@ func TestValidateUpdate(t *testing.T) {
 	// THEN the function does not return an error
 	newVz.Spec.Components.Grafana.Enabled = &trueValue
 	assert.NoError(t, NewComponent().ValidateUpdate(oldVz, newVz))
+}
+
+// TestValidateUpdateV1beta1 tests the Grafana component ValidateUpdate function
+func TestValidateUpdateV1beta1(t *testing.T) {
+	// GIVEN an old VZ with Grafana enabled and a new VZ with Grafana disabled
+	// WHEN we call the ValidateUpdate function
+	// THEN the function returns an error
+	oldVz := &v1beta1.Verrazzano{
+		Spec: v1beta1.VerrazzanoSpec{
+			Components: v1beta1.ComponentSpec{
+				Grafana: &v1beta1.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+
+	newVz := &v1beta1.Verrazzano{
+		Spec: v1beta1.VerrazzanoSpec{
+			Components: v1beta1.ComponentSpec{
+				Grafana: &v1beta1.GrafanaComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}
+
+	assert.Error(t, NewComponent().ValidateUpdateV1Beta1(oldVz, newVz))
+
+	// GIVEN an old VZ with Grafana enabled and a new VZ with Grafana enabled
+	// WHEN we call the ValidateUpdate function
+	// THEN the function does not return an error
+	newVz.Spec.Components.Grafana.Enabled = &trueValue
+	assert.NoError(t, NewComponent().ValidateUpdateV1Beta1(oldVz, newVz))
+}
+
+func TestValidateInstall(t *testing.T) {
+	svc := common.MkSvc(constants.IstioSystemNamespace, ComponentName)
+	dep := common.MkDep(constants.IstioSystemNamespace, ComponentName)
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{},
+			},
+		},
+	}
+	common.RunValidateInstallTest(t, NewComponent,
+		common.ValidateInstallTest{
+			Name:      "NoExistingGrafana",
+			WantErr:   "",
+			Appsv1Cli: common.MockGetAppsV1(),
+			Corev1Cli: common.MockGetCoreV1(),
+			Vz:        vz,
+		},
+		common.ValidateInstallTest{
+			Name:      "ExistingDeployment",
+			WantErr:   ComponentName,
+			Appsv1Cli: common.MockGetAppsV1(dep),
+			Corev1Cli: common.MockGetCoreV1(),
+			Vz:        vz,
+		},
+		common.ValidateInstallTest{
+			Name:      "ExistingService",
+			WantErr:   ComponentName,
+			Appsv1Cli: common.MockGetAppsV1(),
+			Corev1Cli: common.MockGetCoreV1(svc),
+			Vz:        vz,
+		})
 }

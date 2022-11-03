@@ -7,8 +7,10 @@ import (
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -24,8 +26,9 @@ func GetEnvName(vz *vzapi.Verrazzano) string {
 	return envName
 }
 
-// FindVolumeTemplate Find a named VolumeClaimTemplate in the list
-func FindVolumeTemplate(templateName string, templates []vzapi.VolumeClaimSpecTemplate) (*v1.PersistentVolumeClaimSpec, bool) {
+// FindVolumeTemplate Find a named VolumeClaimTemplate in the list for v1beta1.
+func FindVolumeTemplate(templateName string, object runtime.Object) (*v1.PersistentVolumeClaimSpec, bool) {
+	templates := getVolumeClaimSpecTemplates(object)
 	for i, template := range templates {
 		if templateName == template.Name {
 			return &templates[i].Spec, true
@@ -35,10 +38,17 @@ func FindVolumeTemplate(templateName string, templates []vzapi.VolumeClaimSpecTe
 }
 
 // GetWildcardDomain Get the wildcard domain from the Verrazzano config
-func GetWildcardDomain(dnsConfig *vzapi.DNSComponent) string {
+func GetWildcardDomain(DNS interface{}) string {
 	wildcardDomain := defaultWildcardDomain
-	if dnsConfig != nil && dnsConfig.Wildcard != nil && len(dnsConfig.Wildcard.Domain) > 0 {
-		wildcardDomain = dnsConfig.Wildcard.Domain
+	if dnsConfigv1alpha1, ok := DNS.(*vzapi.DNSComponent); ok {
+		if dnsConfigv1alpha1 != nil && dnsConfigv1alpha1.Wildcard != nil && len(dnsConfigv1alpha1.Wildcard.Domain) > 0 {
+			wildcardDomain = dnsConfigv1alpha1.Wildcard.Domain
+		}
+	}
+	if dnsConfigv1beta1, ok := DNS.(*v1beta1.DNSComponent); ok {
+		if dnsConfigv1beta1 != nil && dnsConfigv1beta1.Wildcard != nil && len(dnsConfigv1beta1.Wildcard.Domain) > 0 {
+			wildcardDomain = dnsConfigv1beta1.Wildcard.Domain
+		}
 	}
 	return wildcardDomain
 }
@@ -100,11 +110,21 @@ func BuildDNSDomain(client client.Client, vz *vzapi.Verrazzano) (string, error) 
 	return dnsDomain, nil
 }
 
-//GetIngressClassName gets the ingress class name or default of "nginx" if not specified
+// GetIngressClassName gets the ingress class name or default of "nginx" if not specified
 func GetIngressClassName(vz *vzapi.Verrazzano) string {
 	ingressComponent := vz.Spec.Components.Ingress
 	if ingressComponent != nil && ingressComponent.IngressClassName != nil && *ingressComponent.IngressClassName != "" {
 		return *ingressComponent.IngressClassName
 	}
 	return defaultIngressClassName
+}
+
+// getVolumeClaimSpecTemplates returns the volume claim specs in v1beta1.
+func getVolumeClaimSpecTemplates(object runtime.Object) []v1beta1.VolumeClaimSpecTemplate {
+	if effectiveCR, ok := object.(*vzapi.Verrazzano); ok {
+		return vzapi.ConvertVolumeClaimTemplateTo(effectiveCR.Spec.VolumeClaimSpecTemplates)
+	} else if effectiveCR, ok := object.(*v1beta1.Verrazzano); ok {
+		return effectiveCR.Spec.VolumeClaimSpecTemplates
+	}
+	return nil
 }

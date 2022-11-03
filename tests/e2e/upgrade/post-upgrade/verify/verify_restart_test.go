@@ -13,7 +13,6 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
@@ -32,16 +31,17 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
-	oneMinute   = 1 * time.Minute
-	twoMinutes  = 2 * time.Minute
-	fiveMinutes = 5 * time.Minute
+	shortWait  = 1 * time.Minute
+	mediumWait = 2 * time.Minute
+	longWait   = 5 * time.Minute
 
 	pollingInterval = 10 * time.Second
-	envoyImage      = "proxyv2:1.13.5"
+	envoyImage      = "proxyv2:1.14.3"
 	minimumVersion  = "1.1.0"
 )
 
@@ -65,7 +65,7 @@ var _ = t.BeforeSuite(func() {
 			return err
 		}
 		return err
-	}, oneMinute, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR")
+	}, shortWait, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR")
 })
 var _ = t.AfterSuite(func() {})
 var _ = t.AfterEach(func() {})
@@ -78,7 +78,7 @@ var _ = t.Describe("Post upgrade", Label("f:platform-lcm.upgrade"), func() {
 	t.ItMinimumVersion("pods in verrazzano-system have correct istio proxy image", minimumVersion, kubeconfigPath, func() {
 		Eventually(func() bool {
 			return pkg.CheckPodsForEnvoySidecar(constants.VerrazzanoSystemNamespace, envoyImage)
-		}, fiveMinutes, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in verrazzano-system")
+		}, longWait, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in verrazzano-system")
 	})
 
 	// GIVEN the ingress-nginx namespace
@@ -87,7 +87,7 @@ var _ = t.Describe("Post upgrade", Label("f:platform-lcm.upgrade"), func() {
 	t.ItMinimumVersion("pods in ingress-nginx have correct istio proxy image", minimumVersion, kubeconfigPath, func() {
 		Eventually(func() bool {
 			return pkg.CheckPodsForEnvoySidecar(constants.IngressNginxNamespace, envoyImage)
-		}, fiveMinutes, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in ingress-nginx")
+		}, longWait, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in ingress-nginx")
 	})
 
 	// GIVEN the keycloak namespace
@@ -96,7 +96,7 @@ var _ = t.Describe("Post upgrade", Label("f:platform-lcm.upgrade"), func() {
 	t.ItMinimumVersion("pods in keycloak have correct istio proxy image", minimumVersion, kubeconfigPath, func() {
 		Eventually(func() bool {
 			return pkg.CheckPodsForEnvoySidecar(constants.KeycloakNamespace, envoyImage)
-		}, fiveMinutes, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in keycloak")
+		}, longWait, pollingInterval).Should(BeTrue(), "Expected to find istio proxy image in keycloak")
 	})
 })
 
@@ -107,7 +107,7 @@ var _ = t.Describe("Application pods post-upgrade", Label("f:platform-lcm.upgrad
 		springbootNamespace   = "springboot"
 		todoListNamespace     = "todo-list"
 	)
-	t.DescribeTable("should contain Envoy sidecar 1.13.5",
+	t.DescribeTable("should contain Envoy sidecar 1.14.3",
 		func(namespace string, timeout time.Duration) {
 			exists, err := pkg.DoesNamespaceExist(namespace)
 			if err != nil {
@@ -121,10 +121,10 @@ var _ = t.Describe("Application pods post-upgrade", Label("f:platform-lcm.upgrad
 				t.Logs.Infof("Skipping test since namespace %s doesn't exist", namespace)
 			}
 		},
-		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", helloHelidonNamespace), helloHelidonNamespace, twoMinutes),
-		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", springbootNamespace), springbootNamespace, twoMinutes),
-		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", todoListNamespace), todoListNamespace, fiveMinutes),
-		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", bobsBooksNamespace), bobsBooksNamespace, fiveMinutes),
+		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", helloHelidonNamespace), helloHelidonNamespace, mediumWait),
+		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", springbootNamespace), springbootNamespace, mediumWait),
+		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", todoListNamespace), todoListNamespace, longWait),
+		t.Entry(fmt.Sprintf("pods in namespace %s have Envoy sidecar", bobsBooksNamespace), bobsBooksNamespace, longWait),
 	)
 })
 
@@ -142,7 +142,7 @@ var _ = t.Describe("Istio helm releases", Label("f:platform-lcm.upgrade"), func(
 			Eventually(func() bool {
 				installed, _ := helm.IsReleaseInstalled(release, constants.IstioSystemNamespace)
 				return installed
-			}, twoMinutes, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected to not find release %s in istio-system", release))
+			}, mediumWait, pollingInterval).Should(BeFalse(), fmt.Sprintf("Expected to not find release %s in istio-system", release))
 		},
 		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istiod), istiod),
 		t.Entry(fmt.Sprintf("istio-system doesn't contain release %s", istioBase), istioBase),
@@ -180,7 +180,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						return false
 					}
 					return deployment.Status.ReadyReplicas > 0
-				}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("Deployment %s for component %s is not ready", deploymentName, componentName))
+				}, mediumWait, pollingInterval).Should(BeTrue(), fmt.Sprintf("Deployment %s for component %s is not ready", deploymentName, componentName))
 			},
 			t.Entry("Checking Deployment coherence-operator", constants.VerrazzanoSystemNamespace, coherence.ComponentName, "coherence-operator"),
 			t.Entry("Checking Deployment oam-kubernetes-runtime", constants.VerrazzanoSystemNamespace, oam.ComponentName, "oam-kubernetes-runtime"),
@@ -242,7 +242,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						return false
 					}
 					return deployment.Status.ReadyReplicas > 0
-				}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("Deployment %s for component %s is not ready", deploymentName, componentName))
+				}, mediumWait, pollingInterval).Should(BeTrue(), fmt.Sprintf("Deployment %s for component %s is not ready", deploymentName, componentName))
 			},
 			t.Entry("Checking Deployment vmi-system-es-data-0", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-es-data-0"),
 			t.Entry("Checking Deployment vmi-system-es-data-1", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-es-data-1"),
@@ -278,7 +278,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						return false
 					}
 					return sts.Status.ReadyReplicas > 0
-				}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("Statefulset %s for component %s is not ready", stsName, componentName))
+				}, mediumWait, pollingInterval).Should(BeTrue(), fmt.Sprintf("Statefulset %s for component %s is not ready", stsName, componentName))
 			},
 			t.Entry("Checking StatefulSet vmi-system-es-master", constants.VerrazzanoSystemNamespace, appoper.ComponentName, "vmi-system-es-master"),
 			t.Entry("Checking StatefulSet keycloak", keycloak.ComponentNamespace, keycloak.ComponentName, "keycloak"),
@@ -304,7 +304,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						return false
 					}
 					return ds.Status.NumberReady > 0
-				}, twoMinutes, pollingInterval).Should(BeTrue(), fmt.Sprintf("DaemonSet %s for component %s is not ready", dsName, componentName))
+				}, mediumWait, pollingInterval).Should(BeTrue(), fmt.Sprintf("DaemonSet %s for component %s is not ready", dsName, componentName))
 			},
 			t.Entry("Checking StatefulSet fluentd", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "fluentd"),
 		)
@@ -320,7 +320,7 @@ var _ = t.Describe("Verify prometheus configmap reconciliation,", Label("f:platf
 		Eventually(func() bool {
 			_, _, _, err := pkg.GetPrometheusConfig()
 			return err != nil
-		}, twoMinutes, pollingInterval).Should(BeTrue(), "Prometheus VMI config should be removed after upgrade.")
+		}, mediumWait, pollingInterval).Should(BeTrue(), "Prometheus VMI config should be removed after upgrade.")
 	})
 })
 

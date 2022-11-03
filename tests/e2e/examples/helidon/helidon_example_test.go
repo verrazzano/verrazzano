@@ -5,7 +5,7 @@ package helidon
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -13,9 +13,9 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -181,17 +181,12 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 				Skip(skipVerifications)
 			}
 			Eventually(func() bool {
-				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"kubernetes.labels.app_oam_dev\\/name": helloHelidon,
-					"kubernetes.container_name":            "hello-helidon-container",
-				})
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
-			Eventually(func() bool {
-				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
-					"kubernetes.labels.app_oam_dev\\/component": "hello-helidon-component",
-					"kubernetes.labels.app_oam_dev\\/name":      helloHelidon,
-					"kubernetes.container_name":                 "hello-helidon-container",
-				})
+				return pkg.FindLog(indexName,
+					[]pkg.Match{
+						{Key: "kubernetes.labels.app_oam_dev\\/component", Value: "hello-helidon-component"},
+						{Key: "kubernetes.labels.app_oam_dev\\/name", Value: helloHelidon},
+						{Key: "kubernetes.container_name", Value: "hello-helidon-container"}},
+					[]pkg.Match{})
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 		})
 	})
@@ -254,7 +249,7 @@ func appEndpointAccessible(url string, hostname string) bool {
 	if err != nil {
 		t.Logs.Errorf("Unexpected error while making http request=%v", err)
 		if resp != nil && resp.Body != nil {
-			bodyRaw, err := ioutil.ReadAll(resp.Body)
+			bodyRaw, err := io.ReadAll(resp.Body)
 			if err != nil {
 				t.Logs.Errorf("Unexpected error while marshallling error response=%v", err)
 				return false
@@ -266,7 +261,7 @@ func appEndpointAccessible(url string, hostname string) bool {
 		return false
 	}
 
-	bodyRaw, err := ioutil.ReadAll(resp.Body)
+	bodyRaw, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
 		t.Logs.Errorf("Unexpected error marshallling response=%v", err)

@@ -18,18 +18,18 @@ const (
 	modeAlphaLower = 1
 )
 
-//GeneratePassword will generate a password of length
+// GeneratePassword will generate a password of length
 func GeneratePassword(length int) (string, error) {
 	return GeneratePasswordUsingMode(length, modeAlphaNum)
 }
 
-//GenerateRandomAlphaLower will generate a lower-case alpha string of length
-//Should be used only for generating semi-unique, non-cryptographic, non-secret strings -- NOT passwords!
+// GenerateRandomAlphaLower will generate a lower-case alpha string of length
+// Should be used only for generating semi-unique, non-cryptographic, non-secret strings -- NOT passwords!
 func GenerateRandomAlphaLower(length int) (string, error) {
 	return GeneratePasswordUsingMode(length, modeAlphaLower)
 }
 
-//GeneratePasswordUsingMode will generate a password of length with mode
+// GeneratePasswordUsingMode will generate a password of length with mode
 func GeneratePasswordUsingMode(length int, mode int) (string, error) {
 	if length < 1 {
 		return "", fmt.Errorf("cannot create password of length %d", length)
@@ -72,7 +72,7 @@ func makeAlphaLower(input string) (string, error) {
 	return strings.ToLower(reg.ReplaceAllString(input, "")), nil
 }
 
-//MaskFunction creates a function intended to mask passwords which are substrings in other strings
+// MaskFunction creates a function intended to mask passwords which are substrings in other strings
 // f := MaskFunction("pw=") creates a function that masks strings like so:
 // f("pw=xyz") = "pw=******"
 func MaskFunction(prefix string) func(string) string {

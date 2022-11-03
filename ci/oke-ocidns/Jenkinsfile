@@ -16,7 +16,7 @@ def testEnvironments = env.JOB_NAME.contains('oci-dns-acceptance')
                        : ["kind", "magicdns_oke", "ocidns_oke"]
 def acmeEnvironments = [ "staging", "production" ]
 def certIssuers = [ "self-signed", "acme" ]
-def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : env.JOB_NAME.contains('master') ? "phx-large" : "large"
 
 // pulling "ap-*" from the test regions given discovery of image pull issues
 def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
@@ -56,9 +56,19 @@ pipeline {
         choice (description: 'Specifies  DNS scope. Values: GLOBAL, PRIVATE. Default: GLOBAL',name: 'DNS_SCOPE',
             // 1st choice is the default value
             choices: [ "GLOBAL","PRIVATE" ])
+        choice (description: 'Specifies  Nginx LoadBalancer scope. Values: GLOBAL, PRIVATE. Default: GLOBAL',name: 'NGINX_LB_SCOPE',
+                    // 1st choice is the default value
+                    choices: [ "GLOBAL","PRIVATE" ])
+        choice (description: 'Specifies  Istio LoadBalancer scope. Values: GLOBAL, PRIVATE. Default: GLOBAL',name: 'ISTIO_LB_SCOPE',
+                    // 1st choice is the default value
+                    choices: [ "GLOBAL","PRIVATE" ])
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
                 // 1st choice is the default value
-                choices: [ "v1.22.5", "v1.21.5", "v1.20.8" ])
+                choices: [ "v1.24.1", "v1.23.4", "v1.22.5", "v1.21.5" ])
+        choice (name: 'CRD_API_VERSION',
+                description: 'This is the API crd version.',
+                // 1st choice is the default value
+                choices: [ "v1beta1", "v1alpha1"])
         choice (description: 'Certificate Issuer', name: 'CERT_ISSUER',
                 choices: certIssuers)
         choice (description: 'ACME Certificate Environment (Staging or Production)', name: 'ACME_ENVIRONMENT',
@@ -138,9 +148,9 @@ pipeline {
 
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
 
-        INSTALL_CONFIG_FILE_OCIDNS = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-ocidns.yaml"
-        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nipio.yaml"
-        INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/install-verrazzano-nodeport.yaml"
+        INSTALL_CONFIG_FILE_OCIDNS = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-ocidns.yaml"
+        INSTALL_CONFIG_FILE_NIPIO = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-nipio.yaml"
+        INSTALL_CONFIG_FILE_NODEPORT = "${WORKSPACE}/tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-nodeport.yaml"
 
         //OCI_DNS_ZONE_NAME="z${zoneId}.v8o.io"
         OCI_DNS_ZONE_NAME="${params.DNS_SCOPE == 'PRIVATE' ? "z${zoneId}-private.v8o.io" : "z${zoneId}.v8o.io"}"
@@ -260,6 +270,10 @@ pipeline {
                     def RUNNER_REGION = sh(returnStdout: true, script: "curl -s -H \"Authorization: Bearer Oracle\" http://169.254.169.254/opc/v2/instance/canonicalRegionName").trim()
                     env.TF_VAR_region = "${params.DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
                     env.OCI_CLI_REGION = "${params.DNS_SCOPE == 'PRIVATE' ? RUNNER_REGION : params.OKE_CLUSTER_REGION}"
+                    if (params.NGINX_LB_SCOPE == "PRIVATE" || params.ISTIO_LB_SCOPE == "PRIVATE")  {
+                        env.TF_VAR_region = RUNNER_REGION
+                        env.OCI_CLI_REGION = RUNNER_REGION
+                   }
                     println("runner region is ${RUNNER_REGION}, tf var region is ${env.TF_VAR_REGION}")
                         sh """
                             # get the ssh public key
@@ -362,8 +376,16 @@ pipeline {
             }
             steps {
                 script {
+
+                    println("+++++++++++++++++++ RUN DETAILS +++++++++++++++++++++++++")
+                    println("AUTH_TYPE = ${params.OCI_DNS_AUTH}")
+                    println("DNS_SCOPE = ${params.DNS_SCOPE}")
+                    println("NGINX_LB_SCOPE = ${params.NGINX_LB_SCOPE}")
+                    println("ISTIO_LB_SCOPE = ${params.ISTIO_LB_SCOPE}")
+                    println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+
                     sh """
-                        ${WORKSPACE}/tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS $CERT_ISSUER $ACME_ENVIRONMENT ${params.DNS_SCOPE}
+                        ${WORKSPACE}/tests/e2e/config/scripts/process_oci_dns_install_yaml.sh $INSTALL_CONFIG_FILE_OCIDNS $CERT_ISSUER $ACME_ENVIRONMENT ${params.DNS_SCOPE} ${params.NGINX_LB_SCOPE} ${params.ISTIO_LB_SCOPE}
                     """
                 }
             }
@@ -649,7 +671,7 @@ def runGinkgoFailFast(testSuitePath) {
 
 def dumpK8sCluster(dumpDirectory) {
     sh """
-        ${GO_REPO_PATH}/verrazzano/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
+        ${WORKSPACE}/ci/scripts/capture_cluster_snapshot.sh ${dumpDirectory}
     """
 }
 

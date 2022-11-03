@@ -8,7 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
-//ConvertFrom converts from v1beta1.Verrazzano to v1alpha1.Verrazzano
+// ConvertFrom converts from v1beta1.Verrazzano to v1alpha1.Verrazzano
 func (in *Verrazzano) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.Verrazzano)
 	if src == nil {
@@ -31,6 +31,7 @@ func (in *Verrazzano) ConvertFrom(srcRaw conversion.Hub) error {
 	in.Status.Conditions = convertConditionsFromV1Beta1(src.Status.Conditions)
 	in.Status.Components = convertComponentStatusMapFromV1Beta1(src.Status.Components)
 	in.Status.VerrazzanoInstance = convertVerrazzanoInstanceFromV1Beta1(src.Status.VerrazzanoInstance)
+	in.Status.Available = src.Status.Available
 	return nil
 }
 
@@ -69,6 +70,7 @@ func convertComponentStatusMapFromV1Beta1(components v1beta1.ComponentStatusMap)
 				Name:                     detail.Name,
 				Conditions:               convertConditionsFromV1Beta1(detail.Conditions),
 				State:                    CompStateType(detail.State),
+				Available:                detail.Available,
 				Version:                  detail.Version,
 				LastReconciledGeneration: detail.LastReconciledGeneration,
 				ReconcilingGeneration:    detail.ReconcilingGeneration,
@@ -114,7 +116,7 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		Elasticsearch:          convertOpenSearchFromV1Beta1(in.OpenSearch),
 		Fluentd:                convertFluentdFromV1Beta1(in.Fluentd),
 		Grafana:                convertGrafanaFromV1Beta1(in.Grafana),
-		Ingress:                convertIngressNGINXFromV1Beta1(in.Ingress),
+		Ingress:                convertIngressNGINXFromV1Beta1(in.IngressNGINX),
 		Istio:                  convertIstioFromV1Beta1(in.Istio),
 		JaegerOperator:         convertJaegerOperatorFromV1Beta1(in.JaegerOperator),
 		Kiali:                  convertKialiFromV1Beta1(in.Kiali),

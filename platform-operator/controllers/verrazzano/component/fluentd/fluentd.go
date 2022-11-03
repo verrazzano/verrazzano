@@ -9,11 +9,11 @@ import (
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/status"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -30,7 +30,7 @@ const (
 	fluentdEsConfig = "fluentd-es-config"
 )
 
-//checkSecretExists whether verrazzano-es-internal secret exists. Return error if secret does not exist.
+// checkSecretExists whether verrazzano-es-internal secret exists. Return error if secret does not exist.
 func checkSecretExists(ctx spi.ComponentContext) error {
 	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		// Check verrazzano-es-internal Secret. return error which will cause requeue
@@ -78,20 +78,9 @@ func loggingPreInstall(ctx spi.ComponentContext) error {
 }
 
 // isFluentdReady Fluentd component ready-check
-func isFluentdReady(ctx spi.ComponentContext) bool {
+func (c fluentdComponent) isFluentdReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-
-	// Check daemonsets
-	var daemonsets []types.NamespacedName
-	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
-		daemonsets = append(daemonsets,
-			types.NamespacedName{
-				Name:      ComponentName,
-				Namespace: ComponentNamespace,
-			})
-		return status.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonsets, 1, prefix)
-	}
-	return false
+	return ready.DaemonSetsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DaemonsetNames, 1, prefix)
 }
 
 // fluentdPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano Fluentd helm chart
@@ -101,7 +90,7 @@ func fluentdPreUpgrade(ctx spi.ComponentContext, namespace string) error {
 
 // This function is used to fixup the fluentd daemonset on a managed cluster so that helm upgrade of Verrazzano does
 // not fail.  Prior to Verrazzano v1.0.1, the mcagent would change the environment variables CLUSTER_NAME and
-// ELASTICSEARCH_URL on a managed cluster to use valueFrom (from a secret) instead of using a Value. The helm chart
+// OPENSEARCH_URL on a managed cluster to use valueFrom (from a secret) instead of using a Value. The helm chart
 // template for the fluentd daemonset expects a Value.
 func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, namespace string) error {
 	// Get the fluentd daemonset resource
@@ -127,7 +116,7 @@ func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, nam
 		return log.ErrorfNewErr("Failed, fluentd container not found in fluentd daemonset: %s", daemonSet.Name)
 	}
 
-	// Check if env variables CLUSTER_NAME and ELASTICSEARCH_URL are using valueFrom.
+	// Check if env variables CLUSTER_NAME and OPENSEARCH_URL are using valueFrom.
 	clusterNameIndex := -1
 	elasticURLIndex := -1
 	for i, env := range daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env {
@@ -135,7 +124,7 @@ func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, nam
 			clusterNameIndex = i
 			continue
 		}
-		if env.Name == constants.ElasticsearchURLEnvVar && env.ValueFrom != nil {
+		if env.Name == constants.OpensearchURLEnvVar && env.ValueFrom != nil {
 			elasticURLIndex = i
 		}
 	}
@@ -160,9 +149,9 @@ func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, nam
 	}
 
 	// The secret must contain the Elasticsearch endpoint's URL
-	elasticsearchURL, ok := sec.Data[constants.ElasticsearchURLData]
+	elasticsearchURL, ok := sec.Data[constants.OpensearchURLData]
 	if !ok {
-		return log.ErrorfNewErr("Failed, the secret named %s in namespace %s is missing the required field %s", sec.Name, sec.Namespace, constants.ElasticsearchURLData)
+		return log.ErrorfNewErr("Failed, the secret named %s in namespace %s is missing the required field %s", sec.Name, sec.Namespace, constants.OpensearchURLData)
 	}
 
 	// Update the daemonset to use a Value instead of the valueFrom
@@ -174,7 +163,7 @@ func fixupFluentdDaemonset(log vzlog.VerrazzanoLogger, client clipkg.Client, nam
 		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[elasticURLIndex].Value = string(elasticsearchURL)
 		daemonSet.Spec.Template.Spec.Containers[fluentdIndex].Env[elasticURLIndex].ValueFrom = nil
 	}
-	log.Debug("Updating fluentd daemonset to use valueFrom instead of Value for CLUSTER_NAME and ELASTICSEARCH_URL environment variables")
+	log.Debug("Updating fluentd daemonset to use valueFrom instead of Value for CLUSTER_NAME and OPENSEARCH_URL environment variables")
 	err = client.Update(context.TODO(), &daemonSet)
 	return err
 }

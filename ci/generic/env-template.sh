@@ -45,7 +45,7 @@ fi
 
 ### Common VZ Install customizations
 #
-# INSTALL_CONFIG_FILE_KIND    - the VZ install CR to use, default is ${TEST_SCRIPTS_DIR}/install-verrazzano-kind.yaml
+# INSTALL_CONFIG_FILE_KIND    - the VZ install CR to use, default is ${TEST_SCRIPTS_DIR}/v1beta1/install-verrazzano-kind.yaml
 # INSTALL_PROFILE             - the install profile to use (default is "dev")
 # VZ_ENVIRONMENT_NAME         - environmentName to use
 # ENABLE_API_ENVOY_LOGGING    - enables debug in the Istio Envoy containers
