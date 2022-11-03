@@ -45,7 +45,7 @@ func TestMetricDesc(t *testing.T) {
 
 func assertMetricDescList(t *testing.T, mdList []prometheus.Desc) {
 	const (
-		desc1 = `Desc{fqName: "psr_example_loop_count_total", help: "The total number of loop loops executed", constLabels: {}, variableLabels: []}`
+		desc1 = `Desc{fqName: "psr_example_loop_count_total", help: "The total number of loops executed", constLabels: {}, variableLabels: []}`
 		desc2 = `Desc{fqName: "psr_example_worker_thread_count_total", help: "The total number of worker threads (goroutines) running", constLabels: {}, variableLabels: []}`
 		desc3 = `Desc{fqName: "psr_example_worker_last_loop_nanoseconds", help: "The number of nanoseconds that the worker took to run the last loop of doing work", constLabels: {}, variableLabels: []}`
 		desc4 = `Desc{fqName: "psr_example_worker_running_seconds_total", help: "The total number of seconds that the worker has been running", constLabels: {}, variableLabels: []}`
