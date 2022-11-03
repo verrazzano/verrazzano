@@ -77,14 +77,6 @@ func updateCattleAgent(data [][]byte, log *zap.SugaredLogger) error {
 	}
 	log.Infof("Built Incluster config: %s, now applying manifest", config.Host)
 
-	// Data[8] contains the yaml for the cattle-credential used by the cattle-cluster-agent
-	err = resource.CreateOrUpdateResourceFromBytesUsingConfig(data[8], config)
-	if err != nil {
-		log.Errorf("failed to apply resource: %v", err)
-		return err
-	}
-	log.Infof("Successfully created new cattle-credential")
-
 	// Data[10] contains the yaml for the cattle-cluster-agent
 	//err := resource.CreateOrUpdateResourceFromBytes(data[10], log)
 	patch, err := yaml.ToJSON(data[10])
@@ -98,6 +90,15 @@ func updateCattleAgent(data [][]byte, log *zap.SugaredLogger) error {
 		log.Errorf("failed to apply resource: %v", err)
 		return err
 	}
+	log.Infof("Successfully patched cattle-cluster-agent")
+
+	// Data[8] contains the yaml for the cattle-credential used by the cattle-cluster-agent
+	err = resource.CreateOrUpdateResourceFromBytesUsingConfig(data[8], config)
+	if err != nil {
+		log.Errorf("failed to apply resource: %v", err)
+		return err
+	}
+	log.Infof("Successfully created new cattle-credential")
 
 	return nil
 }
