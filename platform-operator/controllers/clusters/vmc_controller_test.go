@@ -865,6 +865,11 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 			return resp, nil
 		})
 
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			return nil
+		})
+
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
@@ -908,6 +913,11 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 				Request:    &http.Request{Method: http.MethodDelete},
 			}
 			return resp, nil
+		})
+
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			return nil
 		})
 
 	mock.EXPECT().Status().Return(mockStatus)
