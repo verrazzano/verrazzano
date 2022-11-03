@@ -9,13 +9,11 @@ import (
 	"testing"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
-
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -329,16 +327,16 @@ func TestPreUpgrade(t *testing.T) {
 			expectErrMsg: "Failed to get webhook service verrazzano-monitoring/jaeger-operator-webhook-service",
 		},
 	}
-
+	helmcli.SetCmdRunner(os.GenericTestRunner{
+		StdOut: []byte(""),
+		StdErr: []byte("not found"),
+		Err:    fmt.Errorf("error_to_ignore"),
+	})
+	defer helmcli.SetDefaultRunner()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, &tt.actualCR, nil, false, profilesRelativePath)
-			helmcli.SetCmdRunner(os.GenericTestRunner{
-				StdOut: []byte(""),
-				StdErr: []byte("not found"),
-				Err:    fmt.Errorf("error_to_ignore"),
-			})
-			defer helmcli.SetDefaultRunner()
+
 			err := NewComponent().PreUpgrade(ctx)
 			if tt.expectError {
 				assert.NotNil(t, err)
@@ -368,8 +366,8 @@ func TestReassociateResources(t *testing.T) {
 			name: "Test ReassociateResources when Jaeger Operator component set to enabled",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				append(getJaegerOperatorObjects(1), getJaegerWebHookServiceObjects(),
-					getJaegerMetricsService(), getJaegerSecretObject(), getESSecretNoData())...,
-			).WithRuntimeObjects(getJaegerCertIssuer()).Build(),
+					getJaegerMetricsService(), getJaegerSecretObject(), getESSecretNoData(), getJaegerCertIssuer())...,
+			).Build(),
 			expectError:  false,
 			expectErrMsg: "_",
 		},
@@ -389,6 +387,13 @@ func TestReassociateResources(t *testing.T) {
 
 // TestUpgrade tests the IsEnabled function for the Jaeger Operator component
 func TestUpgrade(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	helmcli.SetCmdRunner(os.GenericTestRunner{
+		StdOut: []byte(""),
+		StdErr: []byte(""),
+		Err:    nil,
+	})
+	defer helmcli.SetDefaultRunner()
 	tests := []struct {
 		name         string
 		client       client.Client
@@ -406,8 +411,8 @@ func TestUpgrade(t *testing.T) {
 				getAllJaegerObjects(1, 1, 1)...,
 			).Build(),
 			actualCR:     vzapi.Verrazzano{},
-			expectError:  true,
-			expectErrMsg: "no such file or directory",
+			expectError:  false,
+			expectErrMsg: "_",
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
@@ -416,8 +421,8 @@ func TestUpgrade(t *testing.T) {
 			name:         "Test Upgrade when Jaeger Operator component set to enabled",
 			client:       fake.NewClientBuilder().WithScheme(testScheme).Build(),
 			actualCR:     *jaegerEnabledCR,
-			expectError:  true,
-			expectErrMsg: "no such file or directory",
+			expectError:  false,
+			expectErrMsg: "_",
 		},
 	}
 
@@ -1338,7 +1343,7 @@ func getESSecretNoData() client.Object {
 	}
 }
 
-func getJaegerCertIssuer() runtime.Object {
+func getJaegerCertIssuer() client.Object {
 	return &certv1.Issuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
