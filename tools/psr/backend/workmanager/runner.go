@@ -45,7 +45,7 @@ func NewRunner(worker spi.Worker, conf config.CommonConfig, log vzlog.Verrazzano
 	r := runner{Worker: worker, runnerMetrics: &runnerMetrics{
 		loopCount: metrics.MetricItem{
 			Name: "loop_count_total",
-			Help: "The total number of loop loops executed",
+			Help: "The total number of loops executed",
 			Type: prometheus.CounterValue,
 		},
 		workerThreadCount: metrics.MetricItem{
@@ -123,7 +123,7 @@ func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		atomic.StoreInt64(&r.runnerMetrics.workerLoopNanoSeconds.Val, time.Now().UnixNano()-startLoop)
 		atomic.StoreInt64(&r.runnerMetrics.workerDurationTotalSeconds.Val, durationSecondsTotal)
 		if r.Worker.WantLoopInfoLogged() {
-			log.Infof("Loop Count: %v, Total seconds from start of first work loop until now: %v", loopCount, durationSecondsTotal)
+			log.Infof("Loop Count: %v, Total seconds from start of the first worker loop until now: %v", loopCount, durationSecondsTotal)
 		}
 		if loopCount == conf.NumLoops && conf.NumLoops != config.UnlimitedWorkerLoops {
 			return nil
