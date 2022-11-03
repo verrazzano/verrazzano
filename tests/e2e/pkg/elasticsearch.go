@@ -248,13 +248,16 @@ func VerifyOpenSearchPlugins() error {
 			return err
 		}
 		expectedPluginCount := 0
+		installedPluginStr := ""
+		expectedPluginStr := fmt.Sprintf("%s %s %s", opensearchIndexManagement, opensearchJobScheduler, opensearchPrometheusExporter)
 		for _, plugin := range pluginsData {
 			if plugin.Component == opensearchIndexManagement || plugin.Component == opensearchJobScheduler || plugin.Component == opensearchPrometheusExporter {
+				installedPluginStr = installedPluginStr + plugin.Component + " "
 				expectedPluginCount++
 			}
 		}
 		if expectedPluginCount != 3 {
-			return fmt.Errorf("expected OpenSearch plugins are not installed")
+			return fmt.Errorf("expected %s OS plugins to be installed, but only %s are installed", expectedPluginStr, installedPluginStr)
 		}
 	}
 	return nil
