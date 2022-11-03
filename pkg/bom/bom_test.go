@@ -178,8 +178,6 @@ func TestFakeBom(t *testing.T) {
 	bom, err := NewBom(testBomFilePath)
 	assert.NoError(err, "error calling NewBom")
 	assert.Equal("ghcr.io", bom.bomDoc.Registry, "Wrong registry name")
-	//Added
-	//assert.Equal("VERRAZZANO_VERSION", bom.bomDoc.Version, "Wrong Version name")
 	assert.Len(bom.bomDoc.Components, 14, "incorrect number of Bom components")
 
 	validateImages(assert, &bom, true)
@@ -194,8 +192,6 @@ func TestRealBom(t *testing.T) {
 	bom, err := NewBom(realBomFilePath)
 	assert.NoError(err, "error calling NewBom")
 	assert.Equal("ghcr.io", bom.bomDoc.Registry, "Wrong registry name")
-	//Added
-	//assert.Equal(VERRAZZANO_VERSION, bom.bomDoc.Version, "Wrong Version name")
 	assert.Len(bom.bomDoc.Components, 14, "incorrect number of Bom components")
 
 	// Ignore the values in the real bom file since some will change every build
@@ -301,7 +297,6 @@ func TestBomComponentVersion(t *testing.T) {
 	assert.NotNil(t, c.Version)
 }
 
-// Added
 func TestBomGetComponentVersion(t *testing.T) {
 	bom, err := NewBom(realBomFilePath)
 	assert.NoError(t, err)
@@ -313,7 +308,6 @@ func TestBomGetComponentVersion(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// Added
 func TestGetSubcomponentImages(t *testing.T) {
 	bom, err := NewBom(testBomFilePath)
 	assert.NoError(t, err)
@@ -325,7 +319,6 @@ func TestGetSubcomponentImages(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// Added
 func TestGetSubcomponentImageCount(t *testing.T) {
 	bom, err := NewBom(testBomFilePath)
 	assert.NoError(t, err)
