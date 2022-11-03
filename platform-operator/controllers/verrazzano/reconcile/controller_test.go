@@ -46,13 +46,15 @@ import (
 )
 
 // For unit testing
-const testBomFilePath = "testdata/test_bom.json"
+const testBomFilePath = "../testdata/test_bom.json"
 
 // Generate mocks for the Kerberos Client and StatusWriter interfaces for use in tests.
-//go:generate mockgen -destination=../../mocks/controller_mock.go -package=mocks -copyright_file=../../hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
+//go:generate mockgen -destination=../../../mocks/controller_mock.go -package=mocks -copyright_file=../../../hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
 
 const installPrefix = "verrazzano-install-"
 const uninstallPrefix = "verrazzano-uninstall-"
+const relativeProfilesDir = "../../../manifests/profiles"
+const relativeHelmConfig = "../../../helm_config"
 
 type nsMatcher struct {
 	Name string
@@ -129,10 +131,10 @@ func TestInstall(t *testing.T) {
 			mockStatus := mocks.NewMockStatusWriter(mocker)
 			asserts.NotNil(mockStatus)
 
-			config.TestHelmConfigDir = "../../../helm_config"
+			config.TestHelmConfigDir = relativeHelmConfig
 			defer func() { config.TestHelmConfigDir = "" }()
 
-			config.TestProfilesDir = "../../../manifests/profiles"
+			config.TestProfilesDir = relativeProfilesDir
 			defer func() { config.TestProfilesDir = "" }()
 
 			verrazzanoToUse.TypeMeta = metav1.TypeMeta{
@@ -226,9 +228,9 @@ func TestInstallInitComponents(t *testing.T) {
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
 
-	config.TestHelmConfigDir = "../../../helm_config"
+	config.TestHelmConfigDir = relativeHelmConfig
 
-	config.TestProfilesDir = "../../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	verrazzanoToUse.TypeMeta = metav1.TypeMeta{
@@ -408,7 +410,7 @@ func TestCreateVerrazzanoWithOCIDNS(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
-	config.TestProfilesDir = "../../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Expect a call to get the Verrazzano resource.
@@ -538,7 +540,7 @@ func TestUninstallComplete(t *testing.T) {
 
 	expectIstioCertRemoval(mock, 1)
 
-	config.TestProfilesDir = "../../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
@@ -628,7 +630,7 @@ func TestUninstallStarted(t *testing.T) {
 
 	expectIstioCertRemoval(mock, 1)
 
-	config.TestProfilesDir = "../../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
@@ -729,7 +731,7 @@ func TestUninstallSucceeded(t *testing.T) {
 
 	expectIstioCertRemoval(mock, 1)
 
-	config.TestProfilesDir = "../../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
@@ -850,7 +852,7 @@ func TestVZSystemNamespaceGetError(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Name: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil())).
 		Return(errors.NewBadRequest(errMsg))
 
-	config.TestProfilesDir = "../../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
@@ -913,7 +915,7 @@ func TestVZSystemNamespaceCreateError(t *testing.T) {
 		Create(gomock.Any(), gomock.AssignableToTypeOf(&corev1.Namespace{})).
 		Return(errors.NewBadRequest(errMsg))
 
-	config.TestProfilesDir = "../../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
@@ -978,7 +980,7 @@ func TestGetOCIConfigSecretError(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoInstallNamespace, Name: "test-oci-config-secret"}, gomock.Not(gomock.Nil())).
 		Return(errors.NewBadRequest("failed to get Secret"))
 
-	config.TestProfilesDir = "../../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request

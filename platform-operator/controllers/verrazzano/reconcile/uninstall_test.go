@@ -78,7 +78,7 @@ func TestReconcileUninstalling(t *testing.T) {
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	defer config.Set(config.Get())
@@ -165,7 +165,7 @@ func TestReconcileUninstall(t *testing.T) {
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	defer config.Set(config.Get())
@@ -312,7 +312,7 @@ func TestUninstallVariations(t *testing.T) {
 			config.SetDefaultBomFilePath(unitTestBomFile)
 			asserts := assert.New(t)
 
-			config.TestProfilesDir = "../../manifests/profiles"
+			config.TestProfilesDir = relativeProfilesDir
 			defer func() { config.TestProfilesDir = "" }()
 
 			defer config.Set(config.Get())
