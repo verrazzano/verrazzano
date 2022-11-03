@@ -1,8 +1,4 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-# +psr:usecase:opensearch/getlogs.yaml
-# +psr:description:opensearch get logs from OpenSearch in-cluster with a 100ms delay
-
-PSR_ITERATION_COUNT: 100
 PSR_ITERNATION_SLEEP: 100ms
