@@ -51,6 +51,10 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "v1beta1", "v1alpha1"])
 
+        string (name: 'CONSOLE_REPO_BRANCH',
+                defaultValue: '',
+                description: 'The branch to check out after cloning the console repository.',
+                trim: true)
         string (name: 'GIT_COMMIT_TO_USE',
                 defaultValue: 'NONE',
                 description: 'This is the full git commit hash from the source build to be used for all jobs',
