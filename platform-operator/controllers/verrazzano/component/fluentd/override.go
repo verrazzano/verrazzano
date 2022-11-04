@@ -116,6 +116,7 @@ func appendFluentdLogging(client clipkg.Client, fluentd *vzapi.FluentdComponent,
 		return err
 	}
 	if registrationSecret == nil {
+		overrides.Logging.ClusterName = vzconst.MCLocalCluster
 		if len(fluentd.ElasticsearchURL) > 0 {
 			overrides.Logging.OpenSearchURL = fluentd.ElasticsearchURL
 		}
