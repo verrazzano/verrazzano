@@ -1012,7 +1012,7 @@ func SearchLog(index string, query ElasticQuery) map[string]interface{} {
 
 // PostElasticsearch POST the request entity body to Elasticsearch API path
 // The provided path is appended to the Elasticsearch base URL
-func PostElasticsearch(path string, body string) (*HTTPResponse, error) {
+func PostOpensearch(path string, body string) (*HTTPResponse, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf(kubeconfigErrorFormat, err))
