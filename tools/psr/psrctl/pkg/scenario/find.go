@@ -5,21 +5,21 @@ package scenario
 
 import "strings"
 
-// FindScenarioByID finds a Scenario by ID
+// FindScenarioByID finds a scenario by ID
 func FindScenarioByID(scenarioAbsDir string, ID string) (*Scenario, error) {
 	return findScenario(scenarioAbsDir, func(scenario Scenario) bool {
 		return strings.EqualFold(scenario.ID, ID)
 	})
 }
 
-// FindScenarioByName finds a Scenario by Name
+// FindScenarioByName finds a scenario by mame
 func FindScenarioByName(scenarioAbsDir string, name string) (*Scenario, error) {
 	return findScenario(scenarioAbsDir, func(scenario Scenario) bool {
 		return strings.EqualFold(scenario.Name, name)
 	})
 }
 
-// findScenario finds a Scenario
+// findScenario finds a scenario
 func findScenario(scenarioAbsDir string, f func(Scenario) bool) (*Scenario, error) {
 	scList, err := ListAvailableScenarios(scenarioAbsDir)
 	if err != nil {
