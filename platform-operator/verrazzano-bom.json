@@ -537,7 +537,7 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.6.0-20221104151527-fda95595",
+              "tag": "v2.6.0-20221104151527-fdadummy",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
