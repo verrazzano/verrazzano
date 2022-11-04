@@ -12,7 +12,7 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// GetManagedClusterRegistrationSecret fetches the managed cluster registraiton secret if it exists.
+// GetManagedClusterRegistrationSecret fetches the managed cluster registration secret if it exists.
 // returns nil if the secret is not found.
 func GetManagedClusterRegistrationSecret(client clipkg.Client) (*corev1.Secret, error) {
 	registrationSecret := &corev1.Secret{}
