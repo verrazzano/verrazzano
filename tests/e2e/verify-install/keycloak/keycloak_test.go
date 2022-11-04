@@ -430,13 +430,18 @@ func verifyVerrazzanoPKCEClientURIs(keycloakClient *Client, env string) bool {
 			t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
 			return false
 		}
-	} else if !(len(keycloakClient.RedirectUris) == 13) {
+	} else if !isMinVersion150 && len(keycloakClient.RedirectUris) != 13 {
 		t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Verify Correct number of WebOrigins
-	if len(keycloakClient.WebOrigins) != 7 {
+	if isMinVersion150 {
+		if !(len(keycloakClient.WebOrigins) == 9) {
+			t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
+			return false
+		}
+	} else if !isMinVersion150 && len(keycloakClient.WebOrigins) != 7 {
 		t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
 		return false
 	}
