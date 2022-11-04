@@ -106,7 +106,7 @@ func (w scaleWorker) WantIterationInfoLogged() bool {
 	return false
 }
 
-func (w scaleWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 
 	nextScale := &w.nextScale.val
 	tier := config.PsrEnv.GetEnv(openSearchTier)
