@@ -138,7 +138,7 @@ func getOpenSearchDashboardsURL(kubeconfigPath string) string {
 	}
 	ingressList, _ := clientset.NetworkingV1().Ingresses("verrazzano-system").List(context.TODO(), metav1.ListOptions{})
 	for _, ingress := range ingressList.Items {
-		if ingress.Name == "vmi-system-opensearchdashboards" {
+		if ingress.Name == "vmi-system-kibana" {
 			Log(Info, fmt.Sprintf("Found Kibana/OpenSearch Dashboards Ingress %v, host %s", ingress.Name, ingress.Spec.Rules[0].Host))
 			return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 		}

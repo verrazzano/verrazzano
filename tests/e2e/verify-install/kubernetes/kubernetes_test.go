@@ -160,7 +160,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 					return vzComponentPresent(name, "verrazzano-system")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
-			t.Entry("includes os-ingest", "vmi-system-os-ingest", isProdProfile),
+			t.Entry("includes es-ingest", "vmi-system-es-ingest", isProdProfile),
 			t.Entry("includes es-data", "vmi-system-es-data", isProdProfile),
 			t.Entry("includes es-master", "vmi-system-es-master", !isManagedClusterProfile),
 			t.Entry("includes es-kibana", "vmi-system-kibana", !isManagedClusterProfile),
