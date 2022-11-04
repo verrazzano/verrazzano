@@ -43,9 +43,6 @@ type OperatorConfig struct {
 	// The CertDir directory containing tls.crt and tls.key
 	CertDir string
 
-	// InitWebhooks enables initialization of webhooks for the operator
-	InitWebhooks bool
-
 	// MetricsAddr is the address the metric endpoint binds to
 	MetricsAddr string
 
@@ -55,14 +52,20 @@ type OperatorConfig struct {
 	// VersionCheckEnabled enables/disables version checking for upgrade.
 	VersionCheckEnabled bool
 
-	// WebhooksEnabled enables/disables Webhooks for the operator
-	WebhooksEnabled bool
+	// RunWebhooks Runs the webhooks instead of the operator instead of the operator reconciler
+	RunWebhooks bool
+
+	// RunWebhookInit Runs the webhook init path instead of the operator reconciler
+	RunWebhookInit bool
 
 	// WebhookValidationEnabled enables/disables webhook validation without removing the webhook itself
 	WebhookValidationEnabled bool
 
 	// VerrazzanoRootDir is the root Verrazzano directory in the image
 	VerrazzanoRootDir string
+
+	// HealthCheckPeriodSeconds period for health check background task in seconds; a value of 0 disables health checks
+	HealthCheckPeriodSeconds int64
 
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
@@ -71,13 +74,14 @@ type OperatorConfig struct {
 // The singleton instance of the operator config
 var instance = OperatorConfig{
 	CertDir:                  "/etc/webhook/certs",
-	InitWebhooks:             false,
 	MetricsAddr:              ":8080",
 	LeaderElectionEnabled:    false,
 	VersionCheckEnabled:      true,
-	WebhooksEnabled:          true,
+	RunWebhookInit:           false,
+	RunWebhooks:              false,
 	WebhookValidationEnabled: true,
 	VerrazzanoRootDir:        rootDir,
+	HealthCheckPeriodSeconds: 60,
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests

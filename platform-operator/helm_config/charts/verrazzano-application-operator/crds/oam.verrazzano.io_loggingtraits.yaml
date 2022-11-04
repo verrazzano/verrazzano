@@ -44,8 +44,8 @@ spec:
                 type: string
               loggingConfig:
                 description: 'The configuration provided by the user for the Fluentd
-                  configuration that consists of fluentd.conf: "<source>\n ... and
-                  so on ...\n".'
+                  configuration that consists of fluentd.conf: `<source>\n ... and
+                  so on ...\n`.'
                 type: string
               loggingImage:
                 description: The name of the custom Fluentd image.

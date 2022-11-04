@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -174,6 +175,18 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		}
 	}
 
+	log.Debugf("Pushing the Manifest objects for VMC %s", vmc.Name)
+	pushedManifest, err := r.pushManifestObjects(vmc)
+	if err != nil {
+		r.handleError(ctx, vmc, "Failed to push the Manifest objects", err, log)
+		r.setStatusConditionManifestPushed(vmc, corev1.ConditionFalse, fmt.Sprintf("Failed to push the manifest objects to the managed cluster: %v", err))
+		return newRequeueWithDelay(), err
+	}
+	if pushedManifest {
+		r.log.Info("Manifest objects have been successfully pushed to the managed cluster")
+		r.setStatusConditionManifestPushed(vmc, corev1.ConditionTrue, "Manifest objects pushed to the managed cluster")
+	}
+
 	r.setStatusConditionReady(vmc, "Ready")
 	statusErr := r.updateStatus(ctx, vmc)
 	if statusErr != nil {
@@ -310,24 +323,57 @@ func (r *VerrazzanoManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager) 
 
 // reconcileManagedClusterDelete performs all necessary cleanup during cluster deletion
 func (r *VerrazzanoManagedClusterReconciler) reconcileManagedClusterDelete(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	return r.deleteClusterPrometheusConfiguration(ctx, vmc)
+	if err := r.deleteClusterPrometheusConfiguration(ctx, vmc); err != nil {
+		return err
+	}
+	return r.deleteClusterFromRancher(ctx, vmc)
+}
+
+// deleteClusterFromRancher calls the Rancher API to delete the cluster associated with the VMC if the VMC has a cluster id set in the status.
+func (r *VerrazzanoManagedClusterReconciler) deleteClusterFromRancher(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	clusterID := vmc.Status.RancherRegistration.ClusterID
+	if clusterID == "" {
+		r.log.Debugf("VMC %s/%s has no Rancher cluster id, skipping delete", vmc.Namespace, vmc.Name)
+		return nil
+	}
+
+	rc, err := newRancherConfig(r.Client, r.log)
+	if err != nil {
+		msg := "Failed to create Rancher API client"
+		r.updateRancherStatus(ctx, vmc, clustersv1alpha1.DeleteFailed, clusterID, msg)
+		r.log.Errorf("Unable to connect to Rancher API on admin cluster while attempting delete operation: %v", err)
+		return err
+	}
+	if _, err = DeleteClusterFromRancher(rc, clusterID, r.log); err != nil {
+		msg := "Failed deleting cluster"
+		r.updateRancherStatus(ctx, vmc, clustersv1alpha1.DeleteFailed, clusterID, msg)
+		r.log.Errorf("Unable to delete Rancher cluster %s/%s: %v", vmc.Namespace, vmc.Name, err)
+		return err
+	}
+
+	return nil
 }
 
 func (r *VerrazzanoManagedClusterReconciler) setStatusConditionManagedCARetrieved(vmc *clustersv1alpha1.VerrazzanoManagedCluster, value corev1.ConditionStatus, msg string) {
 	now := metav1.Now()
-	r.setStatusCondition(vmc, clustersv1alpha1.Condition{Status: value, Type: clustersv1alpha1.ConditionManagedCARetrieved, Message: msg, LastTransitionTime: &now})
+	r.setStatusCondition(vmc, clustersv1alpha1.Condition{Status: value, Type: clustersv1alpha1.ConditionManagedCARetrieved, Message: msg, LastTransitionTime: &now}, false)
+}
+
+func (r *VerrazzanoManagedClusterReconciler) setStatusConditionManifestPushed(vmc *clustersv1alpha1.VerrazzanoManagedCluster, value corev1.ConditionStatus, msg string) {
+	now := metav1.Now()
+	r.setStatusCondition(vmc, clustersv1alpha1.Condition{Status: value, Type: clustersv1alpha1.ConditionManifestPushed, Message: msg, LastTransitionTime: &now}, true)
 }
 
 // setStatusConditionNotReady sets the status condition Ready = false on the VMC in memory - does NOT update the status in the cluster
 func (r *VerrazzanoManagedClusterReconciler) setStatusConditionNotReady(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, msg string) {
 	now := metav1.Now()
-	r.setStatusCondition(vmc, clustersv1alpha1.Condition{Status: corev1.ConditionFalse, Type: clustersv1alpha1.ConditionReady, Message: msg, LastTransitionTime: &now})
+	r.setStatusCondition(vmc, clustersv1alpha1.Condition{Status: corev1.ConditionFalse, Type: clustersv1alpha1.ConditionReady, Message: msg, LastTransitionTime: &now}, false)
 }
 
 // setStatusConditionReady sets the status condition Ready = true on the VMC in memory - does NOT update the status in the cluster
 func (r *VerrazzanoManagedClusterReconciler) setStatusConditionReady(vmc *clustersv1alpha1.VerrazzanoManagedCluster, msg string) {
 	now := metav1.Now()
-	r.setStatusCondition(vmc, clustersv1alpha1.Condition{Status: corev1.ConditionTrue, Type: clustersv1alpha1.ConditionReady, Message: msg, LastTransitionTime: &now})
+	r.setStatusCondition(vmc, clustersv1alpha1.Condition{Status: corev1.ConditionTrue, Type: clustersv1alpha1.ConditionReady, Message: msg, LastTransitionTime: &now}, false)
 }
 
 func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, msg string, err error, log vzlog.VerrazzanoLogger) {
@@ -340,7 +386,9 @@ func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vm
 	}
 }
 
-func (r *VerrazzanoManagedClusterReconciler) setStatusCondition(vmc *clustersv1alpha1.VerrazzanoManagedCluster, condition clustersv1alpha1.Condition) {
+// setStatusCondition updates the VMC status conditions based and replaces already created status conditions
+// the onTime flag updates the status condition if the time has changed
+func (r *VerrazzanoManagedClusterReconciler) setStatusCondition(vmc *clustersv1alpha1.VerrazzanoManagedCluster, condition clustersv1alpha1.Condition, onTime bool) {
 	r.log.Debugf("Entered setStatusCondition for VMC %s for condition %s = %s, existing conditions = %v",
 		vmc.Name, condition.Type, condition.Status, vmc.Status.Conditions)
 	var matchingCondition *clustersv1alpha1.Condition
@@ -348,7 +396,8 @@ func (r *VerrazzanoManagedClusterReconciler) setStatusCondition(vmc *clustersv1a
 	for i, existingCondition := range vmc.Status.Conditions {
 		if condition.Type == existingCondition.Type &&
 			condition.Status == existingCondition.Status &&
-			condition.Message == existingCondition.Message {
+			condition.Message == existingCondition.Message &&
+			(!onTime || condition.LastTransitionTime == existingCondition.LastTransitionTime) {
 			// the exact same condition already exists, don't update
 			conditionExists = true
 			break
@@ -387,8 +436,20 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 			vmc.Status.State = clustersv1alpha1.StateActive
 		}
 	}
+
+	// Fetch the existing VMC to avoid conflicts in the status update
+	existingVMC := &clustersv1alpha1.VerrazzanoManagedCluster{}
+	err := r.Get(context.TODO(), types.NamespacedName{Namespace: vmc.Namespace, Name: vmc.Name}, existingVMC)
+	if err != nil {
+		return err
+	}
+
+	// Replace the existing status conditions and state with the conditions generated from this reconcile
+	existingVMC.Status.Conditions = vmc.Status.Conditions
+	existingVMC.Status.State = vmc.Status.State
+
 	r.log.Debugf("Updating Status of VMC %s: %v", vmc.Name, vmc.Status.Conditions)
-	return r.Status().Update(ctx, vmc)
+	return r.Status().Update(ctx, existingVMC)
 }
 
 // getVerrazzanoResource gets the installed Verrazzano resource in the cluster (of which only one is expected)

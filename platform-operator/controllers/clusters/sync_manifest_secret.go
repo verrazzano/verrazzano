@@ -176,7 +176,16 @@ func (r *VerrazzanoManagedClusterReconciler) updateRancherStatus(ctx context.Con
 	vmc.Status.RancherRegistration.Status = status
 	vmc.Status.RancherRegistration.ClusterID = rancherClusterID
 	vmc.Status.RancherRegistration.Message = message
-	err := r.Status().Update(ctx, vmc)
+
+	// Fetch the existing VMC to avoid conflicts in the status update
+	existingVMC := &clusterapi.VerrazzanoManagedCluster{}
+	err := r.Get(context.TODO(), types.NamespacedName{Namespace: vmc.Namespace, Name: vmc.Name}, existingVMC)
+	if err != nil {
+		r.log.Errorf("Failed to get the existing VMC %s from the cluster: %v", vmc.Name, err)
+	}
+	existingVMC.Status.RancherRegistration = vmc.Status.RancherRegistration
+
+	err = r.Status().Update(ctx, existingVMC)
 	if err != nil {
 		r.log.Errorf("Failed to update Rancher registration status for VMC %s: %v", vmc.Name, err)
 	}

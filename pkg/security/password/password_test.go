@@ -4,9 +4,10 @@
 package password
 
 import (
-	"github.com/stretchr/testify/assert"
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestGeneratePassword tests generating random passwords
@@ -72,6 +73,32 @@ func TestMaskFunction(t *testing.T) {
 		t.Run(tt.input, func(t *testing.T) {
 			res := f(tt.input)
 			assert.Equal(t, tt.output, res)
+		})
+	}
+}
+
+// TestGenerateRandomAlphaLower tests GenerateRandomAlphaLower
+func TestGenerateRandomAlphaLower(t *testing.T) {
+	var tests = []struct {
+		length   int
+		hasError bool
+	}{
+		{-1, true},
+		{0, true},
+		{15, false},
+		{31, false},
+		{66, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(strconv.Itoa(tt.length), func(t *testing.T) {
+			pw, err := GenerateRandomAlphaLower(tt.length)
+			if tt.hasError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.length, len(pw))
+			}
 		})
 	}
 }

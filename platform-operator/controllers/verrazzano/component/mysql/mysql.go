@@ -19,6 +19,7 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -52,6 +53,7 @@ const (
 	deploymentFoundStage  = "deployment-found"
 	databaseDumpedStage   = "database-dumped"
 	pvcDeletedStage       = "pvc-deleted"
+	pvcRecreatedStage     = "pvc-recreated"
 	initdbScriptsFile     = "initdbScripts.create-db\\.sh"
 	backupHookScriptsFile = "configurationFiles.mysql-hook\\.sh"
 	dbMigrationSecret     = "db-migration"
@@ -240,12 +242,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 			if err != nil {
 				return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 			}
-			if isLegacyPersistentDatabase(compContext) {
-				kvs, err = appendLegacyUpgradePersistenceValues(&bomFile, kvs)
-				if err != nil {
-					return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-				}
-			} else {
+			if !isLegacyPersistentDatabase(compContext) {
 				// we are in the process of upgrading from a MySQL deployment using ephemeral storage, so we need to
 				// provide the sql initialization file
 				kvs, err = appendDatabaseInitializationValues(compContext, userPwd, kvs)
@@ -284,6 +281,12 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		return kvs, err
 	}
 	kvs = append(kvs, mySQLVersion)
+
+	// Apply overrides for which mysql-operator image to use in containers
+	kvs, err = generateMySQLOperatorOverrides(&bomFile, kvs)
+	if err != nil {
+		return kvs, err
+	}
 
 	repositorySetting, err := getRegistrySettings(&bomFile)
 	if err != nil {
@@ -324,6 +327,18 @@ func getMySQLVersion(bomFile *bom.Bom) (bom.KeyValue, error) {
 		return bom.KeyValue{}, err
 	}
 	return bom.KeyValue{Key: serverVersionKey, Value: version}, nil
+}
+
+func generateMySQLOperatorOverrides(bomFile *bom.Bom, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	_, images, err := bomFile.BuildImageStrings(mysqloperator.ComponentName)
+	if err != nil {
+		return kvs, err
+	}
+	if len(images) != 1 {
+		return kvs, fmt.Errorf("expected one image for %s, found %d", mysqloperator.ComponentName, len(images))
+	}
+	kvs = append(kvs, bom.KeyValue{Key: "mysqlOperator.image", Value: images[0]})
+	return kvs, nil
 }
 
 // preInstall creates and label the MySQL namespace
