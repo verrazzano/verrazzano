@@ -131,7 +131,7 @@ func (w postLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) e
 		return fmt.Errorf("POST request to URI %s received a nil response", req.URL.RequestURI())
 	}
 
-	if resp.StatusCode != 201 {
+	if resp.StatusCode != 200 && resp.StatusCode != 201 {
 		atomic.StoreInt64(&w.workerMetrics.openSearchPostFailureLatencyNanoSeconds.Val, time.Now().UnixNano()-startRequest)
 		atomic.AddInt64(&w.workerMetrics.openSearchPostFailureCountTotal.Val, 1)
 		return fmt.Errorf("OpenSearch POST request failed, returned %v status code with status: %s", resp.StatusCode, resp.Status)

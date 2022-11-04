@@ -4,6 +4,7 @@
 global:
   envVars:
     PSR_WORKER_TYPE: postlogs
+    LOG_ENTRIES: 1
 
 # activate subchart
 opensearch-authpol:
