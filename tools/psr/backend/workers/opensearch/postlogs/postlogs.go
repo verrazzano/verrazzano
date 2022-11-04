@@ -6,6 +6,7 @@ package postlogs
 import (
 	"bytes"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/security/password"
 	"io"
 	"net/http"
 	"net/url"
@@ -18,12 +19,12 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/getlogs"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 const LogEntries = "LOG_ENTRIES"
+const LogLength = "LOG_LENGTH"
 
 const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
 
@@ -95,6 +96,7 @@ func (w postLogs) GetWorkerDesc() spi.WorkerDesc {
 func (w postLogs) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{
 		{Key: LogEntries, DefaultVal: "1", Required: false},
+		{Key: LogLength, DefaultVal: "1", Required: false},
 	}
 }
 
@@ -104,12 +106,19 @@ func (w postLogs) WantLoopInfoLogged() bool {
 
 func (w postLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	c := http.Client{}
-	logCount, err := strconv.Atoi(config.PsrEnv.GetEnv(LogEntries))
+	logEntries, err := strconv.Atoi(config.PsrEnv.GetEnv(LogEntries))
+	if err != nil {
+		return err
+	}
+	logLength, err := strconv.Atoi(config.PsrEnv.GetEnv(LogLength))
 	if err != nil {
 		return err
 	}
 
-	body, bodyChars := getBody(logCount)
+	body, bodyChars, err := getBody(logEntries, logLength)
+	if err != nil {
+		return err
+	}
 
 	req := http.Request{
 		Method: "POST",
@@ -156,14 +165,16 @@ func (w postLogs) GetMetricList() []prometheus.Metric {
 	}
 }
 
-func getBody(n int) (io.ReadCloser, int64) {
+func getBody(logCount int, dataLength int) (io.ReadCloser, int64, error) {
 	var body string
-	for i := 0; i < n; i++ {
-		body = body + "{\"create\": {}}" + fmt.Sprintf(`
-{"field1":"%s","field2":"%s","field3":"%s","field4":"%s","field5":"%s","field6":"%s","field7":"%s","field8":"%s","field9":"%s","field10":"%s","@timestamp":"%v"}
-`, append(getlogs.GetRandomLowerAlpha(10), getTimestamp())...)
+	for i := 0; i < logCount; i++ {
+		data, err := password.GeneratePassword(dataLength)
+		if err != nil {
+			return nil, 0, err
+		}
+		body = body + "{\"create\": {}}\n" + fmt.Sprintf("{\"postlogs-data\":\"%s\",\"@timestamp\":\"%v\"}\n", data, getTimestamp())
 	}
-	return io.NopCloser(bytes.NewBuffer([]byte(body))), int64(len(body))
+	return io.NopCloser(bytes.NewBuffer([]byte(body))), int64(len(body)), nil
 }
 
 func getTimestamp() interface{} {
