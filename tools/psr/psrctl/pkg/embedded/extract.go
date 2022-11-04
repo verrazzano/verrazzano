@@ -22,21 +22,26 @@ type PsrManifests struct {
 
 var Manifests *PsrManifests
 
-// ExtractManifests extracts the manifests in the binary and writes them to a temp file.
+// InitGlobalManifests extracts the manifests in the binary and writes them to a temp file.
 // The package level Manifests var is set if this function succeeds.
-// The caller is expected to delete the temp directory when it is no longer needed.
-func ExtractManifests() (PsrManifests, error) {
+// The caller is expected to call CleanupManifests when they are no longer needed
+func InitGlobalManifests() error {
 	tmpDir, err := createPsrTempDir()
 	if err != nil {
-		return PsrManifests{}, err
+		return err
 	}
 
 	man, err := newPsrManifests(tmpDir)
 	if err != nil {
-		return PsrManifests{}, err
+		return err
 	}
 	Manifests = &man
-	return man, nil
+	return nil
+}
+
+// CleanupManifests deletes the manifests that were copied to a temp dir
+func CleanupManifests() {
+	os.RemoveAll(Manifests.RootTmpDir)
 }
 
 // createPsrTempDir creates a temp dir to hold the manifests files

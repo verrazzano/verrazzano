@@ -8,13 +8,13 @@ import (
 	"testing"
 )
 
-// TestAvailableScenarios tests the ListAvailableScenarios function
+// TestAvailableScenarios tests the ListScenarioManifests function
 // GIVEN a directory with more than one scenario
 //
-//	WHEN the ListAvailableScenarios function is called
+//	WHEN the ListScenarioManifests function is called
 //	THEN ensure that the resulting scenario list is correct
 func TestAvailableScenarios(t *testing.T) {
-	sList, err := ListAvailableScenarios("./testdata")
+	sList, err := ListScenarioManifests("./testdata")
 	assert.NoError(t, err)
 	assert.Equal(t, "OpenSearch-S1", sList[0].Name)
 	assert.Equal(t, "ops-s1", sList[0].ID)

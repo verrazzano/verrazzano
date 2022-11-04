@@ -34,7 +34,7 @@ func NewCmdExplain(vzHelper helpers.VZHelper) *cobra.Command {
 func explainCmdExplain(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	fmt.Println("Listing available scenarios ...")
 
-	scs, err := scenario.ListAvailableScenarios(embedded.Manifests.ScenarioAbsDir)
+	scs, err := scenario.ListScenarioManifests(embedded.Manifests.ScenarioAbsDir)
 	if err != nil {
 		fmt.Printf("%v", err)
 		return err

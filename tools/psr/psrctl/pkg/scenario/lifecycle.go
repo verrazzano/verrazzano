@@ -24,7 +24,7 @@ type WorkerType struct {
 }
 
 // InstallScenario installs a Helm chart for each use case in the scenario
-func InstallScenario(man *embedded.PsrManifests, sc *Scenario) (string, error) {
+func InstallScenario(man *embedded.PsrManifests, sc *ScenarioManifest) (string, error) {
 	// Helm install each use case
 	var i int
 	for _, uc := range sc.Usecases {
