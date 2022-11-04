@@ -46,7 +46,7 @@ func (w exampleWorker) GetMetricList() []prometheus.Metric {
 	return nil
 }
 
-func (w exampleWorker) WantIterationInfoLogged() bool {
+func (w exampleWorker) WantLoopInfoLogged() bool {
 	return true
 }
 

@@ -63,7 +63,7 @@ func (w logWriter) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{}
 }
 
-func (w logWriter) WantIterationInfoLogged() bool {
+func (w logWriter) WantLoopInfoLogged() bool {
 	return false
 }
 
