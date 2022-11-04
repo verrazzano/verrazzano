@@ -95,7 +95,7 @@ func (w getLogs) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{}
 }
 
-func (w getLogs) WantIterationInfoLogged() bool {
+func (w getLogs) WantLoopInfoLogged() bool {
 	return false
 }
 
