@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -21,6 +22,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 )
+
+const LogEntries = "LOG_ENTRIES"
 
 const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
 
@@ -90,7 +93,9 @@ func (w postLogs) GetWorkerDesc() spi.WorkerDesc {
 }
 
 func (w postLogs) GetEnvDescList() []osenv.EnvVarDesc {
-	return []osenv.EnvVarDesc{}
+	return []osenv.EnvVarDesc{
+		{Key: LogEntries, DefaultVal: "1", Required: false},
+	}
 }
 
 func (w postLogs) WantLoopInfoLogged() bool {
@@ -99,15 +104,19 @@ func (w postLogs) WantLoopInfoLogged() bool {
 
 func (w postLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	c := http.Client{}
+	logCount, err := strconv.Atoi(config.PsrEnv.GetEnv(LogEntries))
+	if err != nil {
+		return err
+	}
 
-	body, bodyChars := getBody()
+	body, bodyChars := getBody(logCount)
 
 	req := http.Request{
 		Method: "POST",
 		URL: &url.URL{
 			Scheme: "http",
 			Host:   osIngestService,
-			Path:   fmt.Sprintf("/verrazzano-application-%s/_doc", conf.Namespace),
+			Path:   fmt.Sprintf("/verrazzano-application-%s/_bulk", conf.Namespace),
 		},
 		Header: http.Header{"Content-Type": {"application/json"}},
 		Body:   body,
@@ -147,9 +156,13 @@ func (w postLogs) GetMetricList() []prometheus.Metric {
 	}
 }
 
-func getBody() (io.ReadCloser, int64) {
-	body := fmt.Sprintf(`{"field1": "%s", "field2": "%s", "field3": "%s", "field4": "%s", "@timestamp": "%v"}`,
-		append(getlogs.GetRandomLowerAlpha(4), getTimestamp())...)
+func getBody(n int) (io.ReadCloser, int64) {
+	var body string
+	for i := 0; i < n; i++ {
+		body = body + "{\"create\": {}}" + fmt.Sprintf(`
+{"field1":"%s","field2":"%s","field3":"%s","field4":"%s","field5":"%s","field6":"%s","field7":"%s","field8":"%s","field9":"%s","field10":"%s","@timestamp":"%v"}
+`, append(getlogs.GetRandomLowerAlpha(10), getTimestamp())...)
+	}
 	return io.NopCloser(bytes.NewBuffer([]byte(body))), int64(len(body))
 }
 
