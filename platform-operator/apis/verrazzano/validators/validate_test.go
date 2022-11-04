@@ -118,6 +118,127 @@ func TestValidateVersionBadBomfile(t *testing.T) {
 	assert.Contains(t, err.Error(), "unexpected end of JSON input")
 }
 
+func TestCheckUpgradeRequired(t *testing.T) {
+	//can insert a case for when semver returns an error
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	bomVersion, err := GetCurrentBomVersion()
+	assert.NoError(t, err)
+
+	currVersion := "An Invalid Version"
+	err = CheckUpgradeRequired(currVersion, bomVersion)
+	assert.Error(t, err)
+
+	currVersion = "1.1.5"
+	err = CheckUpgradeRequired(currVersion, bomVersion)
+	assert.NoError(t, err)
+
+	currVersion = "1.0.5"
+	err = CheckUpgradeRequired(currVersion, bomVersion)
+	assert.Error(t, err)
+
+	currVersion = ""
+	err = CheckUpgradeRequired(currVersion, bomVersion)
+	assert.NoError(t, err)
+
+}
+
+func TestValidateNewVersionforInvalidVersions(t *testing.T) {
+	//can add the case to test each of them separately, when they are invalid
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	bomVersion, err := GetCurrentBomVersion()
+	assert.NoError(t, err)
+
+	currStatusVerString := "dummystr1"
+	currSpecVerString := "dummmystr2"
+	newVerString := "dummystr3"
+
+	err = ValidateNewVersion(currStatusVerString, currSpecVerString, newVerString, bomVersion)
+	assert.Error(t, err)
+
+	currStatusVerString = "dummystr1"
+	currSpecVerString = "dummmystr2"
+	newVerString = "1.1.0"
+
+	err = ValidateNewVersion(currStatusVerString, currSpecVerString, newVerString, bomVersion)
+	assert.Error(t, err)
+
+	currStatusVerString = "1.0.0"
+	currSpecVerString = "dummmystr2"
+	newVerString = "1.1.0"
+
+	err = ValidateNewVersion(currStatusVerString, currSpecVerString, newVerString, bomVersion)
+	assert.Error(t, err)
+
+}
+
+func TestValidateNewVersion(t *testing.T) {
+	//can add the case to test each of them separately, when they are invalid
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	bomVersion, err := GetCurrentBomVersion()
+	assert.NoError(t, err)
+
+	currStatusVerString := "1.1.1"
+	currSpecVerString := "1.1.0"
+	newVerString := "1.1.2"
+
+	err = ValidateNewVersion(currStatusVerString, currSpecVerString, newVerString, bomVersion)
+	assert.Error(t, err)
+
+	currStatusVerString = "1.1.2"
+	currSpecVerString = "1.1.0"
+	newVerString = "1.1.0"
+
+	err = ValidateNewVersion(currStatusVerString, currSpecVerString, newVerString, bomVersion)
+	assert.Error(t, err)
+
+	currStatusVerString = "0.9.5"
+	currSpecVerString = "1.2.0"
+	newVerString = "1.1.0"
+
+	err = ValidateNewVersion(currStatusVerString, currSpecVerString, newVerString, bomVersion)
+	assert.Error(t, err)
+
+	currStatusVerString = "1.0.0"
+	currSpecVerString = "1.0.0"
+	newVerString = "1.1.0"
+
+	err = ValidateNewVersion(currStatusVerString, currSpecVerString, newVerString, bomVersion)
+	assert.NoError(t, err)
+
+}
+
+/*
+func TestValidatePrivateKey(t *testing.T) {
+    secretName :="mysecret"
+    var pemData = []byte(`
+    -----BEGIN PUBLIC KEY-----
+    MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAlRuRnThUjU8/prwYxbty
+    WPT9pURI3lbsKMiB6Fn/VHOKE13p4D8xgOCADpdRagdT6n4etr9atzDKUSvpMtR3
+    CP5noNc97WiNCggBjVWhs7szEe8ugyqF23XwpHQ6uV1LKH50m92MbOWfCtjU9p/x
+    qhNpQQ1AZhqNy5Gevap5k8XzRmjSldNAFZMY7Yv3Gi+nyCwGwpVtBUwhuLzgNFK/
+    yDtw2WcWmUU7NuC8Q6MWvPebxVtCfVp/iQU6q60yyt6aGOBkhAX0LpKAEhKidixY
+    nP9PNVBvxgu3XZ4P36gZV6+ummKdBVnc3NqwBLu5+CcdRdusmHPHd5pHf4/38Z3/
+    6qU2a/fPvWzceVTEgZ47QjFMTCTmCwNt29cvi7zZeQzjtwQgn4ipN9NibRH/Ax/q
+    TbIzHfrJ1xa2RteWSdFjwtxi9C20HUkjXSeI4YlzQMH0fPX6KCE7aVePTOnB69I/
+    a9/q96DiXZajwlpq3wFctrs1oXqBp5DVrCIj8hU2wNgB7LtQ1mCtsYz//heai0K9
+    PhE4X6hiE0YmeAZjR0uHl8M/5aW9xCoJ72+12kKpWAa0SFRWLy6FejNYCYpkupVJ
+    yecLk/4L1W0l6jQQZnWErXZYe0PNFcmwGXy1Rep83kfBRNKRy5tvocalLlwXLdUk
+    AIU+2GKjyT3iMuzZxxFxPFMCAwEAAQ==
+    -----END PUBLIC KEY-----
+    and some more`)
+
+    err :=ValidatePrivateKey(secretName,pemData)
+    assert.NoError(t, err)
+}*/
 // Test_validateSecretContents Tests validateSecretContents
 // GIVEN a call to validateSecretContents
 // WHEN the YAML bytes are not valid
