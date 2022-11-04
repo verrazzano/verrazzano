@@ -176,10 +176,6 @@ func TestValidateUpdateMethods(t *testing.T) {
 	err = rancherBackupEnabledCR.ConvertTo(v1beta1Vz)
 	err = NewComponent().ValidateUpdateV1Beta1(v1beta1Vz, &v1beta1.Verrazzano{})
 	assert.Error(t, err)
-
-	/*	// We should not get any error if rancher backup does not have any install overrides
-		err = NewComponent().ValidateUpdate(rancherBackupEnabledCR, rancherBackupEnabledCR)
-		assert.NoError(t, err)*/
 }
 
 func TestIsReady(t *testing.T) {
