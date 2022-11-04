@@ -332,9 +332,7 @@ func DeleteValidatingWebhookConfiguration(kubeClient kubernetes.Interface, name 
 		}
 		return err
 	}
-	err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(context.TODO(), name, metav1.DeleteOptions{})
-
-	return err
+	return kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(context.TODO(), name, metav1.DeleteOptions{})
 }
 
 // UpdateValidatingWebhookConfiguration sets the CABundle
@@ -358,7 +356,7 @@ func UpdateValidatingWebhookConfiguration(kubeClient kubernetes.Interface, name 
 }
 
 // UpdateConversionWebhookConfiguration sets the conversion webhook for the Verrazzano resource
-func UpdateConversionWebhookConfiguration(apiextClient *apiextensionsv1client.ApiextensionsV1Client, kubeClient kubernetes.Interface) error {
+func UpdateConversionWebhookConfiguration(apiextClient apiextensionsv1client.ApiextensionsV1Interface, kubeClient kubernetes.Interface) error {
 	crd, err := apiextClient.CustomResourceDefinitions().Get(context.TODO(), CRDName, metav1.GetOptions{})
 	if err != nil {
 		return err
