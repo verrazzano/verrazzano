@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
+	"strings"
 )
 
 // WorkerType is used to get the worker type from the worker use case YAML file.
@@ -25,6 +26,16 @@ type WorkerType struct {
 // StartScenario starts a Scenario by installing a Helm chart for each use case in the scenario
 func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 	helmReleases := []types.NamespacedName{}
+
+	running, err := m.FindRunningScenarios()
+	if err != nil {
+		return "", err
+	}
+	for _, sc := range running {
+		if strings.EqualFold(sc.ID, scman.ID) {
+			return "", fmt.Errorf("Scenario %s already running", sc.ID)
+		}
+	}
 
 	// Helm install each use case
 	var i int
@@ -63,7 +74,7 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 		ScenarioManifest: scman,
 	}
 
-	_, err := m.saveScenario(sc)
+	_, err = m.createScenarioConfigMap(sc)
 	if err != nil {
 		return "", err
 	}

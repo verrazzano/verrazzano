@@ -58,7 +58,8 @@ func RunCmdList(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return nil
 	}
 
-	fmt.Println("Running Scenarios...")
+	fmt.Println()
+	fmt.Println("Scenarios running in the cluster...")
 	for _, sc := range scenarios {
 		fmt.Println("----------------")
 		fmt.Printf("%s %s\n", "ID: ", sc.ID)
@@ -67,7 +68,7 @@ func RunCmdList(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		for _, h := range sc.HelmReleases {
 			fmt.Printf("%s/%s\n", h.Namespace, h.Name)
 		}
-
+		fmt.Println()
 	}
 
 	return nil

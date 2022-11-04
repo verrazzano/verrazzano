@@ -55,7 +55,7 @@ func (m Manager) FindRunningScenarios() ([]Scenario, error) {
 	return scenarios, nil
 }
 
-func (m Manager) saveScenario(scenario Scenario) (*corev1.ConfigMap, error) {
+func (m Manager) createScenarioConfigMap(scenario Scenario) (*corev1.ConfigMap, error) {
 	client, err := k8sutil.GetCoreV1Client(m.Log)
 	if err != nil {
 		return nil, m.Log.ErrorfNewErr("Failed to get CoreV1 client: %v", err)
