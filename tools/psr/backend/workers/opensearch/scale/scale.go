@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
+	er "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/update"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	oscomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
@@ -152,29 +153,43 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 		m = opensearch.OpensearchIngestNodeGroupModifier{NodeReplicas: replicas}
 	}
 
-	err := update.UpdateCRV1beta1(m)
-	if err != nil {
-		return fmt.Errorf("failed to scale OpenSearch %s replicas: %f", tier, err)
+	for {
+		err := update.UpdateCRV1beta1(m)
+		if err != nil {
+			if er.IsUpdateConflict(err) {
+				continue
+			} else {
+				return fmt.Errorf("failed to scale OpenSearch %s replicas: %f", tier, err)
+			}
+		} else {
+			break
+		}
 	}
 
-	// get the VZ CR
-	vz, err := pkg.GetVerrazzanoV1beta1()
-	if err != nil {
-		return err
-	}
+	for {
+		// get the VZ CR
+		vz, err := pkg.GetVerrazzanoV1beta1()
+		if err != nil {
+			return err
+		}
 
-	// get controller runtime client
-	client, err := pkg.GetPromOperatorClient()
-	if err != nil {
-		return err
-	}
+		// get controller runtime client
+		client, err := pkg.GetPromOperatorClient()
+		if err != nil {
+			return err
+		}
 
-	// check if actual number of replicas is equal to the expected number
-	ctx, _ := spicomponent.NewContext(log, client, nil, vz, false)
-	if oscomp.IsOSReady(ctx) {
-		finishWork(nextScale, metric, delta)
-		logMsg := fmt.Sprintf("OpenSearch %s tier scaled to %b replicas", tier, replicas)
-		log.Infof(logMsg)
+		// check if actual number of replicas is equal to the expected number
+		ctx, err := spicomponent.NewContext(log, client, nil, vz, false)
+		if err != nil {
+			return err
+		}
+		if oscomp.IsOSReady(ctx) {
+			finishWork(nextScale, metric, delta)
+			logMsg := fmt.Sprintf("OpenSearch %s tier scaled to %b replicas", tier, replicas)
+			log.Infof(logMsg)
+			break
+		}
 	}
 	return nil
 }
