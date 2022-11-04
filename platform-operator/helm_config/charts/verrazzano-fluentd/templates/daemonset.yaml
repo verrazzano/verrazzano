@@ -43,32 +43,20 @@ spec:
             - name: FLUENT_ELASTICSEARCH_SED_DISABLE
               value: "true"
             - name: ELASTICSEARCH_URL
-  {{- if .Values.logging.elasticsearchURL }}
-              value: {{ .Values.logging.elasticsearchURL }}
-  {{- else }}
-              value: http://verrazzano-authproxy-elasticsearch:8775
-  {{- end }}
+              value: {{ .Values.logging.osURL }}
             - name: CLUSTER_NAME
-              value: local
+              value: {{ .Values.logging.clusterName }}
             - name: ELASTICSEARCH_USER
               valueFrom:
                 secretKeyRef:
-                  key: username
-  {{- if .Values.logging.elasticsearchSecret }}
-                  name: {{ .Values.logging.elasticsearchSecret }}
-  {{- else }}
-                  name: verrazzano-es-internal
-  {{- end }}
+                  key: {{ .Values.logging.usernameKey }}
+                  name: {{ .Values.logging.credentialsSecret }}
                   optional: true
             - name: ELASTICSEARCH_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  key: password
-  {{- if .Values.logging.elasticsearchSecret }}
-                  name: {{ .Values.logging.elasticsearchSecret }}
-  {{- else }}
-                  name: verrazzano-es-internal
-  {{- end }}
+                  key: {{ .Values.logging.passwordKey }}
+                  name: {{ .Values.logging.credentialsSecret }}
                   optional: true
             - name: CA_FILE
               value: /fluentd/cacerts/all-ca-certs.pem
@@ -130,12 +118,8 @@ spec:
           emptyDir: {}
         - name: secret-volume
           secret:
-  {{- if .Values.logging.elasticsearchSecret }}
-            secretName: {{ .Values.logging.elasticsearchSecret }}
-  {{- else }}
-            secretName: verrazzano-es-internal
+            secretName: {{ .Values.logging.credentialsSecret }}
             optional: true
-  {{- end }}
   {{- if .Values.fluentd.oci }}
   {{- if .Values.fluentd.oci.apiSecret }}
         - name: oci-secret-volume
