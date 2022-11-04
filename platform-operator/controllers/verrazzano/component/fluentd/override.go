@@ -110,12 +110,13 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 }
 
 func appendFluentdLogging(client clipkg.Client, fluentd *vzapi.FluentdComponent, overrides *fluentdComponentValues) error {
-	overrides.Logging = &loggingValues{ConfigHash: HashSum(fluentd)}
+	overrides.Logging = &loggingValues{}
 	registrationSecret, err := common.GetManagedClusterRegistrationSecret(client)
 	if err != nil {
 		return err
 	}
 	if registrationSecret == nil {
+		overrides.Logging.ConfigHash = HashSum(fluentd)
 		overrides.Logging.ClusterName = vzconst.MCLocalCluster
 		if len(fluentd.ElasticsearchURL) > 0 {
 			overrides.Logging.OpenSearchURL = fluentd.ElasticsearchURL
@@ -125,6 +126,7 @@ func appendFluentdLogging(client clipkg.Client, fluentd *vzapi.FluentdComponent,
 		}
 		return nil
 	}
+	overrides.Logging.ConfigHash = HashSum(registrationSecret)
 	overrides.Logging.OpenSearchURL = string(registrationSecret.Data[vzconst.OpensearchURLData])
 	overrides.Logging.ClusterName = string(registrationSecret.Data[vzconst.ClusterNameData])
 	overrides.Logging.CredentialsSecret = vzconst.MCRegistrationSecret
