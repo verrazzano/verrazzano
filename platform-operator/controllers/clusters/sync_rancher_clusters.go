@@ -81,8 +81,10 @@ func (r *RancherClusterSyncer) syncRancherClusters(log vzlog.VerrazzanoLogger) {
 
 	// if the Rancher response did not change, there is nothing to do
 	if bytes.Equal(clustersResponseHash, newClustersResponseHash) {
-		log.Debug("Rancher clusters response did not change, nothing to sync")
-		return
+		// Temporarily disable cache check since it causes some updates to be missed
+		log.Debug("Cluster cache disabled, ignoring hash")
+		// log.Debug("Rancher clusters response did not change, nothing to sync")
+		// return
 	}
 
 	// for every cluster (ignoring "local") make sure a VMC exists
