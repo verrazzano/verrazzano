@@ -16,6 +16,7 @@ import (
 
 func main() {
 	// Extract the manifests and write them to a temp directory
+	// This sets the global embedded.Manifests var
 	err := embedded.InitGlobalManifests()
 	if err != nil {
 		fmt.Printf("Failed to initial manifests %v", err)

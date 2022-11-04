@@ -31,5 +31,5 @@ type Scenario struct {
 	HelmReleases []types.NamespacedName
 
 	// The scenario manifests that was used to run the scenario
-	ScenarioManifest
+	*ScenarioManifest
 }

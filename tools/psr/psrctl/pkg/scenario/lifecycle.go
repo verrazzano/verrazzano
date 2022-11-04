@@ -8,6 +8,7 @@ import (
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/embedded"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"path/filepath"
 	"sigs.k8s.io/yaml"
@@ -24,10 +25,12 @@ type WorkerType struct {
 }
 
 // InstallScenario installs a Helm chart for each use case in the scenario
-func InstallScenario(man *embedded.PsrManifests, sc *ScenarioManifest) (string, error) {
+func InstallScenario(log vzlog.VerrazzanoLogger, man *embedded.PsrManifests, scman *ScenarioManifest, namespace string) (string, error) {
+	helmReleases := []types.NamespacedName{}
+
 	// Helm install each use case
 	var i int
-	for _, uc := range sc.Usecases {
+	for _, uc := range scman.Usecases {
 		helmOverrides := []helmcli.HelmOverrides{}
 
 		// This is the usecase path, E.G. manifests/usecases/opensearch/getlogs/getlogs.yaml
@@ -35,7 +38,7 @@ func InstallScenario(man *embedded.PsrManifests, sc *ScenarioManifest) (string, 
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: ucOverride})
 
 		// This is the scenario override path for the use case
-		scOverride := filepath.Join(sc.ScenarioUsecaseOverridesDir, uc.OverrideFile)
+		scOverride := filepath.Join(scman.ScenarioUsecaseOverridesDir, uc.OverrideFile)
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: scOverride})
 
 		wType, err := readWorkerType(ucOverride)
@@ -44,13 +47,29 @@ func InstallScenario(man *embedded.PsrManifests, sc *ScenarioManifest) (string, 
 		}
 
 		// Build release name psr-<scenarioID>-workertype-<index>
-		rname := fmt.Sprintf("psr-%s-%s-%v", sc.ID, wType, i)
-		_, stderr, err := helmcli.Upgrade(vzlog.DefaultLogger(), rname, "default", man.WorkerChartAbsDir, true, false, helmOverrides)
+		relname := fmt.Sprintf("psr-%s-%s-%v", scman.ID, wType, i)
+		_, stderr, err := helmcli.Upgrade(log, relname, namespace, man.WorkerChartAbsDir, true, false, helmOverrides)
 		if err != nil {
 			return string(stderr), err
 		}
+		helmReleases = append(helmReleases, types.NamespacedName{
+			Namespace: namespace,
+			Name:      relname,
+		})
+
 		i = i + 1
 	}
+
+	sc := Scenario{
+		HelmReleases: []types.NamespacedName{{
+			Namespace: namespace,
+			Name:      scman.ID,
+		}},
+		ScenarioManifest: scman,
+	}
+
+	saveScenario(log, sc, namespace)
+
 	return "", nil
 }
 

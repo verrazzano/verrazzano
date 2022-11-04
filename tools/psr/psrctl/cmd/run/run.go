@@ -6,6 +6,7 @@ package run
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/embedded"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
@@ -51,7 +52,7 @@ func runCmdRun(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 
 	fmt.Printf("Starting scenario %s\n", sc.ID)
-	msg, err := scenario.InstallScenario(embedded.Manifests, sc)
+	msg, err := scenario.InstallScenario(vzlog.DefaultLogger(), embedded.Manifests, sc, "default")
 	if err != nil {
 		// Cobra will display failure message
 		return fmt.Errorf("Failed to run scenario %s: %v\n%s", scenarioID, err, msg)

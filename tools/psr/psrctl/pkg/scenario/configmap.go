@@ -4,26 +4,55 @@
 package scenario
 
 import (
+	"context"
+	"encoding/base64"
+	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	yaml2 "gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/yaml"
 )
 
-func saveScenario(log vzlog.VerrazzanoLogger, scenario Scenario, namespace string) error {
+const (
+	PsrPrefix = "psr"
+)
 
-	yaml, err := yaml2.Marshal(scenario)
+type yamlMap struct {
+	yMap map[string]string
+}
+
+func saveScenario(log vzlog.VerrazzanoLogger, scenario Scenario, namespace string) (*corev1.ConfigMap, error) {
+	client, err := k8sutil.GetCoreV1Client(log)
 	if err != nil {
-		return log.ErrorfNewErr("Failed to mashal scenario to YAML: %v", err)
+		return nil, log.ErrorfNewErr("Failed to get CoreV1 client: %v", err)
 	}
-	scenario 
 
-	cm  := corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            sm.ID,
-			Namespace:       namespace,
-		},
-		Data:       nil,
+	y, err := yaml.Marshal(scenario)
+	if err != nil {
+		return nil, log.ErrorfNewErr("Failed to mashal scenario to YAML: %v", err)
 	}
-},
+	// convert to base64
+	encoded := base64.StdEncoding.EncodeToString(y)
+
+	cmIn := corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      buildConfigmapName(scenario.ID),
+			Namespace: namespace,
+			Labels: map[string]string{
+				LabelScenarioKey:   "true",
+				LabelScenarioIdKey: scenario.ScenarioManifest.ID},
+		},
+		Data: map[string]string{"scenario": encoded},
+	}
+
+	cmNew, err := client.ConfigMaps(namespace).Create(context.TODO(), &cmIn, metav1.CreateOptions{})
+	if err != nil {
+		return nil, log.ErrorfNewErr("Failed to create scenario ConfigMap %s/%s: %v", cmIn.Namespace, cmIn.Name, err)
+	}
+	return cmNew, nil
+}
+
+func buildConfigmapName(name string) string {
+	return fmt.Sprintf("%s%s%s", PsrPrefix, "-", name)
+}
