@@ -5,11 +5,19 @@ package scenario
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/embedded"
 	"k8s.io/apimachinery/pkg/types"
 	"testing"
 )
 
 func Test(t *testing.T) {
+	m := Manager{
+		Namespace: "default",
+		Log:       vzlog.DefaultLogger(),
+		Manifest: embedded.PsrManifests{
+			ScenarioAbsDir: "./testdata",
+		},
+	}
 	sc := Scenario{
 		HelmReleases: []types.NamespacedName{{
 			Namespace: "ns1",
@@ -28,5 +36,5 @@ func Test(t *testing.T) {
 		},
 	}
 
-	saveScenario(vzlog.DefaultLogger(), sc, "ns1")
+	m.saveScenario(sc)
 }

@@ -4,9 +4,13 @@
 package scenario
 
 const (
-	// LabelScenarioKey has a bool value to indicate a resource is part of a scenario
-	LabelScenarioKey = "psr.verrazzano.io/scenario"
+	// LabelScenario has a bool value to indicate a resource is part of a scenario
+	LabelScenario = "psr.verrazzano.io/scenario"
 
-	// LabelScenarioIdKey has a string value with the scenario ID
-	LabelScenarioIdKey = "psr.verrazzano.io/scenario.id"
+	// LabelScenarioId has a string value with the scenario ID
+	LabelScenarioId = "psr.verrazzano.io/scenario-id"
+
+	// DataScenarioKey is the configmap key for the data field which
+	// has a base64 encoded Scenario
+	DataScenarioKey = "scenario"
 )

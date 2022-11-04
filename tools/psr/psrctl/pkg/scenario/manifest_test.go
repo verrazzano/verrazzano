@@ -17,11 +17,11 @@ import (
 //	THEN ensure that the resulting scenario list is correct
 func TestAvailableScenarios(t *testing.T) {
 	m := Manager{
-		Log: vzlog.DefaultLogger(),
+		Namespace: "default",
+		Log:       vzlog.DefaultLogger(),
 		Manifest: embedded.PsrManifests{
 			ScenarioAbsDir: "./testdata",
 		},
-		Namespace: "default",
 	}
 	sList, err := m.ListScenarioManifests()
 	assert.NoError(t, err)

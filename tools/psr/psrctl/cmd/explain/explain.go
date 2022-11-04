@@ -6,6 +6,7 @@ package explain
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/embedded"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
@@ -34,13 +35,18 @@ func NewCmdExplain(vzHelper helpers.VZHelper) *cobra.Command {
 func explainCmdExplain(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	fmt.Println("Listing available scenarios ...")
 
-	scs, err := scenario.ListScenarioManifests(embedded.Manifests.ScenarioAbsDir)
+	m := scenario.Manager{
+		Namespace: "default",
+		Log:       vzlog.DefaultLogger(),
+		Manifest:  *embedded.Manifests,
+	}
+
+	scs, err := m.ListScenarioManifests()
 	if err != nil {
 		fmt.Printf("%v", err)
 		return err
 	}
 	for _, sc := range scs {
-		fmt.Println()
 		fmt.Printf("Name: %s\n", sc.Name)
 		fmt.Printf("ID: %s\n", sc.ID)
 		fmt.Printf("Description: %s\n", sc.Description)

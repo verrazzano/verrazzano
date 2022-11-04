@@ -22,8 +22,8 @@ type WorkerType struct {
 	}
 }
 
-// InstallScenario installs a Helm chart for each use case in the scenario
-func (m Manager) InstallScenario(scman *ScenarioManifest) (string, error) {
+// StartScenario starts a Scenario by installing a Helm chart for each use case in the scenario
+func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 	helmReleases := []types.NamespacedName{}
 
 	// Helm install each use case
@@ -59,10 +59,7 @@ func (m Manager) InstallScenario(scman *ScenarioManifest) (string, error) {
 	}
 
 	sc := Scenario{
-		HelmReleases: []types.NamespacedName{{
-			Namespace: m.Namespace,
-			Name:      scman.ID,
-		}},
+		HelmReleases:     helmReleases,
 		ScenarioManifest: scman,
 	}
 

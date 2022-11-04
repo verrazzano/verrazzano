@@ -44,9 +44,9 @@ func NewCmdStart(vzHelper helpers.VZHelper) *cobra.Command {
 // RunCmdStart - Run the "psrctl start" command
 func RunCmdStart(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	m := scenario.Manager{
-		Log:       vzlog.DefaultLogger(),
-		Manifest:  embedded.PsrManifests{},
 		Namespace: "default",
+		Log:       vzlog.DefaultLogger(),
+		Manifest:  *embedded.Manifests,
 	}
 
 	scman, err := m.FindScenarioManifestByID(scenarioID)
@@ -58,7 +58,7 @@ func RunCmdStart(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 
 	fmt.Printf("Starting scenario %s\n", scman.ID)
-	msg, err := m.InstallScenario(scman)
+	msg, err := m.StartScenario(scman)
 	if err != nil {
 		// Cobra will display failure message
 		return fmt.Errorf("Failed to Start scenario %s: %v\n%s", scenarioID, err, msg)
