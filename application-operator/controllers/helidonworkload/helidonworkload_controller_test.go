@@ -44,6 +44,7 @@ import (
 const (
 	namespace          = "unit-test-namespace"
 	testRestartVersion = "new-restart"
+	helidonWorkload    = "testdata/templates/helidon_workload.yaml"
 )
 
 // TestReconcilerSetupWithManager test the creation of the VerrazzanoHelidonWorkload reconciler.
@@ -508,7 +509,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
-			assert.NoError(updateObjectFromYAMLTemplate(workload, "testdata/templates/helidon_workload.yaml", params))
+			assert.NoError(updateObjectFromYAMLTemplate(workload, helidonWorkload, params))
 			return nil
 		}).Times(1)
 
@@ -867,7 +868,7 @@ func TestReconcileRestart(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
-			assert.NoError(updateObjectFromYAMLTemplate(workload, "testdata/templates/helidon_workload.yaml", params))
+			assert.NoError(updateObjectFromYAMLTemplate(workload, helidonWorkload, params))
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
 			return nil
@@ -991,26 +992,22 @@ func TestAddMetrics(t *testing.T) {
 	testNamespace := "test-namespace"
 	loggingSecretName := "test-secret-name"
 	params := map[string]string{
-		"##APPCONF_NAME##":          appConfigName,
-		"##APPCONF_NAMESPACE##":     testNamespace,
-		"##COMPONENT_NAME##":        componentName,
-		"##SCOPE_NAME##":            "test-scope",
-		"##SCOPE_NAMESPACE##":       testNamespace,
-		"##INGEST_URL##":            "http://test-ingest-host:9200",
-		"##INGEST_SECRET_NAME##":    loggingSecretName,
-		"##FLUENTD_IMAGE##":         "test-fluentd-image-name",
-		"##WORKLOAD_APIVER##":       "oam.verrazzano.io/v1alpha1",
-		"##WORKLOAD_KIND##":         "VerrazzanoHelidonWorkload",
-		"##WORKLOAD_NAME##":         "test-workload-name",
-		"##WORKLOAD_NAMESPACE##":    testNamespace,
-		"##DEPLOYMENT_NAME##":       "test-deployment",
-		"##CONTAINER_NAME##":        "test-container",
-		"##CONTAINER_IMAGE##":       "test-container-image",
-		"##CONTAINER_PORT_NAME##":   "http",
-		"##CONTAINER_PORT_NUMBER##": "8080",
-		"##LOGGING_SCOPE_NAME##":    "test-logging-scope",
-		"##INGRESS_TRAIT_NAME##":    "test-ingress-trait",
-		"##INGRESS_TRAIT_PATH##":    "/test-ingress-path",
+		"##APPCONF_NAME##":       appConfigName,
+		"##APPCONF_NAMESPACE##":  testNamespace,
+		"##COMPONENT_NAME##":     componentName,
+		"##SCOPE_NAME##":         "test-scope",
+		"##SCOPE_NAMESPACE##":    testNamespace,
+		"##INGEST_URL##":         "http://test-ingest-host:9200",
+		"##INGEST_SECRET_NAME##": loggingSecretName,
+		"##FLUENTD_IMAGE##":      "test-fluentd-image-name",
+		"##WORKLOAD_APIVER##":    "oam.verrazzano.io/v1alpha1",
+		"##WORKLOAD_KIND##":      "VerrazzanoHelidonWorkload",
+		"##WORKLOAD_NAME##":      "test-workload-name",
+		"##WORKLOAD_NAMESPACE##": testNamespace,
+		"##DEPLOYMENT_NAME##":    "test-deployment",
+		"##LOGGING_SCOPE_NAME##": "test-logging-scope",
+		"##INGRESS_TRAIT_NAME##": "test-ingress-trait",
+		"##INGRESS_TRAIT_PATH##": "/test-ingress-path",
 	}
 
 	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: componentName}
@@ -1025,7 +1022,7 @@ func TestAddMetrics(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), request, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload1 *vzapi.VerrazzanoHelidonWorkload) error {
-			assert.NoError(updateObjectFromYAMLTemplate(workload1, "testdata/templates/helidon_workload.yaml", params))
+			assert.NoError(updateObjectFromYAMLTemplate(workload1, helidonWorkload, params))
 			workload1.ObjectMeta.Labels = labels
 			workload1.ObjectMeta.Annotations = annotations
 			return nil
@@ -1034,7 +1031,7 @@ func TestAddMetrics(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), request, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload1 *oamapi.ApplicationConfiguration) error {
-			assert.NoError(updateObjectFromYAMLTemplate(workload1, "testdata/templates/helidon_workload.yaml", params))
+			assert.NoError(updateObjectFromYAMLTemplate(workload1, helidonWorkload, params))
 			workload1.ObjectMeta.Labels = labels
 			workload1.ObjectMeta.Annotations = annotations
 			workload1.Spec.Components = []oamapi.ApplicationConfigurationComponent{{ComponentName: componentName, Traits: []oamapi.ComponentTrait{{Trait: runtime.RawExtension{Raw: []byte(`{"app":"hello"}`)}}}}}
