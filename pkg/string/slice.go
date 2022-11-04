@@ -67,15 +67,21 @@ func SliceAddString(slice []string, s string) ([]string, bool) {
 }
 
 // compareSlices compares 2 string slices after sorting
-func CompareTwoSlices(slice1 []string, slice2 []string) bool {
-	sort.Strings(slice1)
-	sort.Strings(slice2)
+func AreSlicesEqualWithoutOrder(slice1 []string, slice2 []string) bool {
+	s1 := make([]string, len(slice1))
+	s2 := make([]string, len(slice2))
+	copy(s1, slice1)
+	copy(s2, slice2)
 
-	if len(slice1) != len(slice2) {
+	if len(s1) != len(s2) {
 		return false
 	}
-	for i, v := range slice1 {
-		if v != slice2[i] {
+
+	sort.Strings(s1)
+	sort.Strings(s2)
+
+	for i, v := range s1 {
+		if v != s2[i] {
 			return false
 		}
 	}
