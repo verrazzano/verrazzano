@@ -22,7 +22,6 @@ import (
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
@@ -306,7 +305,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload *vzapi.Verrazzano
 
 	// Attempt to get the existing Domain. This is used in the case where we don't want to update the Fluentd image.
 	// In this case we obtain the previous Fluentd image and set that on the new Domain.
-	var existingDomain wls.Domain
+	var existingDomain unstructured.Unstructured
 	domainExists := true
 	domainKey := types.NamespacedName{Name: u.GetName(), Namespace: workload.Namespace}
 	if err := r.Get(ctx, domainKey, &existingDomain); err != nil {
