@@ -279,25 +279,6 @@ func Test_updateEnvValue(t *testing.T) {
 	asserts.Equal(t, newValue, newEnvs[1].Value, "expected env value")
 }
 
-func getTestDeploymentSpec(secretVersion string) appsv1.DeploymentSpec {
-	return appsv1.DeploymentSpec{
-		Template: corev1.PodTemplateSpec{
-			Spec: corev1.PodSpec{
-				Containers: []corev1.Container{
-					{
-						Env: []corev1.EnvVar{
-							{
-								Name:  registrationSecretVersion,
-								Value: secretVersion,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
 // Test_discardStatusMessages tests the discardStatusMessages function
 func Test_discardStatusMessages(t *testing.T) {
 	statusUpdateChan := make(chan clusters.StatusUpdateMessage, 12)
