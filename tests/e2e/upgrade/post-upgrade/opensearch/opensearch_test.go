@@ -116,7 +116,7 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 				if err := json.Unmarshal(data, &dataMap); err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("OpenSearch: Error unmarshalling test document: %v", err))
 				}
-				query := pkg.ElasticQuery{
+				query := pkg.OpenQuery{
 					Filters: []pkg.Match{
 						{Key: "type", Value: dataMap["type"].(string)}},
 					MustNot: []pkg.Match{},
