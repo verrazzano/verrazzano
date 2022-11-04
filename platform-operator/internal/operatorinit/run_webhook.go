@@ -12,6 +12,7 @@ import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
@@ -68,6 +69,9 @@ func StartWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 	if err := updateWebhooks(log, mgr, config.CertDir); err != nil {
 		return err
 	}
+
+	installv1alpha1.SetComponentValidator(validator.ComponentValidatorImpl{})
+	installv1beta1.SetComponentValidator(validator.ComponentValidatorImpl{})
 
 	// +kubebuilder:scaffold:builder
 	log.Info("Starting webhook controller-runtime manager")

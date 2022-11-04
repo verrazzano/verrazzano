@@ -6,9 +6,13 @@ package scenario
 import (
 	"github.com/verrazzano/verrazzano/pkg/files"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sigs.k8s.io/yaml"
 )
+
+// The required use case overrides directory
+const usecaseOverrideDir = "usecase-overrides"
 
 func ListAvailableScenarios(scenarioAbsDir string) ([]Scenario, error) {
 	scenarios := []Scenario{}
@@ -25,6 +29,9 @@ func ListAvailableScenarios(scenarioAbsDir string) ([]Scenario, error) {
 		if err := yaml.Unmarshal(data, &sc); err != nil {
 			return nil, err
 		}
+
+		// Build the parent directory name that has the scenario.yaml.
+		sc.ScenarioUsecaseOverridesDir = filepath.Join(filepath.Dir(f), usecaseOverrideDir)
 		scenarios = append(scenarios, sc)
 	}
 	return scenarios, nil

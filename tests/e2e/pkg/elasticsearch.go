@@ -27,10 +27,7 @@ import (
 
 const (
 	// ISO8601Layout defines the timestamp format
-	ISO8601Layout                = "2006-01-02T15:04:05.999999999-07:00"
-	opensearchIndexManagement    = "opensearch-index-management"
-	opensearchJobScheduler       = "opensearch-job-scheduler"
-	opensearchPrometheusExporter = "prometheus-exporter"
+	ISO8601Layout = "2006-01-02T15:04:05.999999999-07:00"
 )
 
 // GetOpenSearchSystemIndex in Verrazzano 1.3.0, indices in the verrazzano-system namespace have been migrated
@@ -227,35 +224,6 @@ func (u ElasticSearchISMPolicyAddModifier) ModifyCR(cr *vzapi.Verrazzano) {
 
 func (u ElasticSearchISMPolicyRemoveModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
-}
-
-// VerifyOpenSearchPlugins checks that the OpenSearch plugins are installed
-func VerifyOpenSearchPlugins() error {
-	resp, err := doGetElasticSearchURL("%s/_cat/plugins?format=json")
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode == http.StatusOK {
-		out := string(resp.Body)
-		missingPluginsStr := ""
-
-		missingPlugins := checkMissingPlugin(out, opensearchJobScheduler, &missingPluginsStr)
-		missingPlugins = missingPlugins || checkMissingPlugin(out, opensearchIndexManagement, &missingPluginsStr)
-		missingPlugins = missingPlugins || checkMissingPlugin(out, opensearchPrometheusExporter, &missingPluginsStr)
-
-		if missingPlugins {
-			return fmt.Errorf("missing OpenSearch plugins that were not installed: %s", missingPluginsStr)
-		}
-	}
-	return nil
-}
-
-func checkMissingPlugin(response string, plugin string, missingPluginsStr *string) bool {
-	if !strings.Contains(response, plugin) {
-		*missingPluginsStr = *missingPluginsStr + plugin + " "
-		return true
-	}
-	return false
 }
 
 // GetOpenSearchAppIndex in Verrazzano 1.3.0, application indices have been migrated to data streams

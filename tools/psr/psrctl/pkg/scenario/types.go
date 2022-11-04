@@ -16,4 +16,8 @@ type Scenario struct {
 	ID          string
 	Description string
 	Usecases    []Usecase
+
+	// This is  the directory that contains scenario usecase-overrides.  It is not specified by the user,
+	// but built at runtime
+	ScenarioUsecaseOverridesDir string
 }
