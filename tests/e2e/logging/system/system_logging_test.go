@@ -578,7 +578,7 @@ func validateOpensearchRecords(hitValidator pkg.ElasticsearchHitValidator, index
 	var result map[string]interface{}
 	json.Unmarshal(resp.Body, &result)
 
-	if !pkg.ValidateElasticsearchHits(result, hitValidator, exceptions) {
+	if !pkg.ValidateOpensearchHits(result, hitValidator, exceptions) {
 		pkg.Log(pkg.Info, fmt.Sprintf("Found invalid (or zero) log records in %s logs", appName))
 		return false
 	}

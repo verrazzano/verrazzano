@@ -40,7 +40,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 						return "", err
 					}
 					api := pkg.EventuallyGetAPIEndpoint(kubeConfigPath)
-					esURL, err := api.GetElasticURL()
+					esURL, err := api.GetOpenURL()
 					if err != nil {
 						t.Logs.Errorf("Error getting Elasticsearch URL: %v", err)
 						return "", err
@@ -71,7 +71,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 						return "", err
 					}
 					api := pkg.EventuallyGetAPIEndpoint(kubeConfigPath)
-					esURL, err := api.GetElasticURL()
+					esURL, err := api.GetOpenURL()
 					if err != nil {
 						t.Logs.Errorf("Error getting Elasticsearch URL: %v", err)
 						return "", err
