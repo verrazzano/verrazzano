@@ -5,10 +5,11 @@ package dnsac
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
