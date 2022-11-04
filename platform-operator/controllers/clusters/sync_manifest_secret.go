@@ -69,15 +69,15 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 		var clusterID string
 		rc, err := newRancherConfig(r.Client, r.log)
 		if err != nil {
-			msg := fmt.Sprintf("Failed to create Rancher API client: %v", err)
+			msg := "Failed to create Rancher API client"
 			r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, "", msg)
 			r.log.Infof("Unable to connect to Rancher API on admin cluster, manifest secret will not contain Rancher YAML: %v", err)
 		} else {
 			var rancherYAML string
 			rancherYAML, clusterID, err = registerManagedClusterWithRancher(rc, vmc.Name, vmc.Status.RancherRegistration.ClusterID, r.log)
 			if err != nil {
-				msg := fmt.Sprintf("Failed to register managed cluster with Rancher: %v", err)
-				r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, clusterID, msg)
+				msg := "Failed to register managed cluster with Rancher"
+				r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, vmc.Status.RancherRegistration.ClusterID, msg)
 				r.log.Info("Failed to register managed cluster, manifest secret will not contain Rancher YAML")
 			} else if len(rancherYAML) == 0 {
 				// we successfully called the Rancher API but for some reason the returned registration manifest YAML is empty,
