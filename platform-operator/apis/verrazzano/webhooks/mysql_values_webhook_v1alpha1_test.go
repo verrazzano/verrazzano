@@ -19,7 +19,7 @@ import (
 func newMysqlValuesValidatorV1alpha1() MysqlValuesValidatorV1alpha1 {
 	scheme := newV1alpha1Scheme()
 	decoder, _ := admission.NewDecoder(scheme)
-	v := MysqlValuesValidatorV1alpha1{decoder: decoder}
+	v := MysqlValuesValidatorV1alpha1{decoder: decoder, BomVersion: MinVersion}
 	return v
 }
 
@@ -58,7 +58,7 @@ func TestValidationWarningForServerPodSpecV1alpha1(t *testing.T) {
 		},
 	}
 
-	req := newAdmissionRequest(admissionv1.Update, newVz)
+	req := newAdmissionRequest(admissionv1.Update, newVz, &v1alpha1.Verrazzano{})
 	res := m.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected request to be allowed with warnings")
 	asrt.Len(res.Warnings, 1, "Expected there to be one warning")
@@ -91,7 +91,7 @@ func TestNoValidationWarningForRouterPodSpecV1alpha1(t *testing.T) {
 		},
 	}
 
-	req := newAdmissionRequest(admissionv1.Update, newVz)
+	req := newAdmissionRequest(admissionv1.Update, newVz, &v1alpha1.Verrazzano{})
 	res := m.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected request to be allowed with warnings")
 	asrt.Len(res.Warnings, 0, "Expected there to be one warning")
@@ -123,7 +123,7 @@ func TestNoValidationWarningWithoutServerPodSpecV1alpha1(t *testing.T) {
 		},
 	}
 
-	req := newAdmissionRequest(admissionv1.Update, newVz)
+	req := newAdmissionRequest(admissionv1.Update, newVz, &v1alpha1.Verrazzano{})
 	res := m.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, "Expected request to be allowed with warnings")
 	asrt.Len(res.Warnings, 0, "Expected there to be one warning")
