@@ -3,6 +3,7 @@
 package k8sutil_test
 
 import (
+	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"net/url"
@@ -311,6 +312,29 @@ func TestExecPod(t *testing.T) {
 	stdout, _, err := k8sutil.ExecPod(client, cfg, pod, "container", []string{"run", "some", "command"})
 	assert.Nil(t, err)
 	assert.Equal(t, resultString, stdout)
+
+}
+
+// TestExecPodFailure tests running a command on a remote pod
+// GIVEN a pod in a cluster and a command to run on that pod
+//
+//	WHEN ExecPod is called
+//	THEN ExecPod return the stdout, and error
+func TestExecPodFailure(t *testing.T) {
+	k8sutil.NewPodExecutor = spdyfake.NewPodExecutor
+	resultErr := errors.New("error")
+	spdyfake.PodExecResult = func(url *url.URL) (string, string, error) { return resultString, "", resultErr }
+	cfg, client := spdyfake.NewClientsetConfig()
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "ns",
+			Name:      "name",
+		},
+	}
+	stdout, _, err := k8sutil.ExecPod(client, cfg, pod, "container", []string{"run", "some", "command"})
+	assert.NotNil(t, err)
+	assert.Equal(t, "", stdout)
+
 }
 
 // TestExecPodNoTty tests running a command on a remote pod with no tty
@@ -331,6 +355,27 @@ func TestExecPodNoTty(t *testing.T) {
 	stdout, _, err := k8sutil.ExecPodNoTty(client, cfg, pod, "container", []string{"run", "some", "command"})
 	assert.Nil(t, err)
 	assert.Equal(t, resultString, stdout)
+}
+
+// TestExecPodNoTtyFailure tests running a command on a remote pod with no tty
+// GIVEN a pod in a cluster and a command to run on that pod
+//
+//	WHEN ExecPodNoTty is called
+//	THEN ExecPodNoTty return the stdout, and error
+func TestExecPodNoTtyFailure(t *testing.T) {
+	k8sutil.NewPodExecutor = spdyfake.NewPodExecutor
+	resultErr := errors.New("error")
+	spdyfake.PodExecResult = func(url *url.URL) (string, string, error) { return resultString, "", resultErr }
+	cfg, client := spdyfake.NewClientsetConfig()
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "ns",
+			Name:      "name",
+		},
+	}
+	stdout, _, err := k8sutil.ExecPodNoTty(client, cfg, pod, "container", []string{"run", "some", "command"})
+	assert.NotNil(t, err)
+	assert.Equal(t, "", stdout)
 }
 
 // TestGetURLForIngress tests getting the host URL from an ingress
