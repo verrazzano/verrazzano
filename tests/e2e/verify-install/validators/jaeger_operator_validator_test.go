@@ -54,6 +54,9 @@ func runValidatorTest() {
 	}
 	vzClient := client.VerrazzanoV1beta1().Verrazzanos(cr.Namespace)
 	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
+	if err != nil {
+		t.Logs.Infof("Update error: %s", err.Error())
+	}
 	Expect(err).ToNot(BeNil())
 	Expect(err.Error()).To(ContainSubstring("the Jaeger Operator Helm chart value nameOverride cannot be overridden"))
 }
