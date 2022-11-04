@@ -110,6 +110,7 @@ var volumeClaims map[string]*corev1.PersistentVolumeClaim
 var t = framework.NewTestFramework("keycloak")
 
 var isMinVersion140 bool
+var isMinVersion150 bool
 var isKeycloakEnabled bool
 
 var _ = t.BeforeSuite(func() {
@@ -125,6 +126,7 @@ var _ = t.BeforeSuite(func() {
 	}
 	isKeycloakEnabled = pkg.IsKeycloakEnabled(kubeconfigPath)
 	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+	isMinVersion150, err = pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
@@ -423,7 +425,10 @@ func getKeycloakClientByClientID(keycloakClients KeycloakClients, clientID strin
 
 func verifyVerrazzanoPKCEClientURIs(keycloakClient *Client, env string) bool {
 	// Verify Correct number of RedirectURIs
-	if len(keycloakClient.RedirectUris) != 13 {
+	if len(keycloakClient.RedirectUris) != 17 && isMinVersion150 {
+		t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
+		return false
+	} else if len(keycloakClient.RedirectUris) != 13 {
 		t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
@@ -467,25 +472,25 @@ func verifyVerrazzanoPKCEClientURIs(keycloakClient *Client, env string) bool {
 		return false
 	}
 
-	// Elasticsearch
+	// Opensearch
 	if !verifyURIs(keycloakClient.RedirectUris, "opensearch.vmi.system."+env, 2) {
-		t.Logs.Error(fmt.Printf("Expected 2 Elasticsearch redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
+		t.Logs.Error(fmt.Printf("Expected 2 Opensearch redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	if !verifyURIs(keycloakClient.WebOrigins, "opensearch.vmi.system."+env, 1) {
-		t.Logs.Error(fmt.Printf("Expected 1 Elasticsearch weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
+		t.Logs.Error(fmt.Printf("Expected 1 Opensearch weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
-	// Kibana
-	if !verifyURIs(keycloakClient.RedirectUris, "opensearchdashboards.vmi.system."+env, 2) {
-		t.Logs.Error(fmt.Printf("Expected 2 Kibana redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
+	// Opensearchdashboards
+	if !(isMinVersion150 && verifyURIs(keycloakClient.RedirectUris, "opensearchdashboards.vmi.system."+env, 2)) {
+		t.Logs.Error(fmt.Printf("Expected 2 Opensearchdashboards redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	if !verifyURIs(keycloakClient.WebOrigins, "opensearchdashboards.vmi.system."+env, 1) {
-		t.Logs.Error(fmt.Printf("Expected 1 Kibana weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
+		t.Logs.Error(fmt.Printf("Expected 1 Opensearchdashboards weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
