@@ -94,7 +94,7 @@ func updateAdminClusterDNS() string {
 }
 
 func systemOpenSearch() bool {
-	return !pkg.UseExternalElasticsearch() &&
+	return !pkg.UseExternalOpensearch() &&
 		(adminFluentd == nil || reflect.DeepEqual(*adminFluentd, vzapi.FluentdComponent{}))
 }
 
