@@ -207,7 +207,7 @@ func testVMCDeletion(rc *clusters.RancherConfig, client *versioned.Clientset, cl
 
 	// The VMC should have the clusterID field set before we attempt to delete it
 	Eventually(func() bool {
-		pkg.Log(pkg.Info, fmt.Sprintf("Attempting to delete VMC %s", clusterName))
+		pkg.Log(pkg.Info, fmt.Sprintf("Waiting for Rancher registraion to occur for VMC %s", clusterName))
 		vmc, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Get(context.TODO(), clusterName, metav1.GetOptions{})
 		if err != nil {
 			pkg.Log(pkg.Error, fmt.Sprintf("Failed to get VMC %s from the cluster", clusterName))
