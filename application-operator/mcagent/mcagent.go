@@ -136,9 +136,11 @@ func (s *Syncer) ProcessAgentThread() error {
 		s.Log.Errorf("Failed to synchronize cluster CA certificates: %v", err)
 	}
 
-	err = s.syncCattleClusterAgent()
+	// Sync cattle-cluster-agent deployment
+	err = s.syncCattleClusterAgent("")
 	if err != nil {
-		s.Log.Errorf("Failed to synchronize Cattle cluster agent: %v", err)
+		// we couldn't sync the cattle-cluster-agent - but we should keep going with the rest of the work
+		s.Log.Errorf("Failed to synchronize cattle-cluster-agent: %v", err)
 	}
 
 	// if managed cluster information resulted in a change, the fluentd daemonset needs to be restarted and Jaeger CR
