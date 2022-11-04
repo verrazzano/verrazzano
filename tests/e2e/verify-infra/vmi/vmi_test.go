@@ -39,6 +39,7 @@ const (
 )
 
 var t = framework.NewTestFramework("vmi")
+var isMinVersion150 bool
 
 func vmiIngressURLs() (map[string]string, error) {
 	clientset, err := k8sutil.GetKubernetesClientset()
@@ -54,10 +55,6 @@ func vmiIngressURLs() (map[string]string, error) {
 
 	for _, ingress := range ingressList.Items {
 		var ingressRules = ingress.Spec.Rules
-		if len(ingressRules) != 1 {
-			return nil, fmt.Errorf("expected ingress %s in namespace %s to have 1 ingress rule, but had %v",
-				ingress.Name, ingress.Namespace, ingressRules)
-		}
 		ingressURLs[ingress.Name] = fmt.Sprintf("https://%s/", ingressRules[0].Host)
 	}
 	return ingressURLs, nil
@@ -106,6 +103,14 @@ var (
 var _ = t.BeforeSuite(func() {
 	var err error
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	isMinVersion150, err = pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
+	if err != nil {
+		Fail(err.Error())
+	}
 
 	Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
 		vzCRD, err = verrazzanoInstallerCRD()
