@@ -4,6 +4,7 @@
 package envdnscm
 
 import (
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	"log"
 	"os"
 	"os/exec"
@@ -16,7 +17,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
 )
 
 const (

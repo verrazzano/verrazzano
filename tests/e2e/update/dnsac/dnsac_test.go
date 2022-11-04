@@ -5,6 +5,7 @@ package dnsac
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	"reflect"
 	"strings"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	corev1 "k8s.io/api/core/v1"
 )
 

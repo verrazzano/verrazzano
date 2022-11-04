@@ -5,10 +5,10 @@ package overrides
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 

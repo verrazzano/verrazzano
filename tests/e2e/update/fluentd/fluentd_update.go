@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	"strings"
 	"time"
 
@@ -20,7 +21,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	pcons "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

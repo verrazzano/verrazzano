@@ -5,6 +5,7 @@ package fluentdextes
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -16,7 +17,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	"github.com/verrazzano/verrazzano/tests/e2e/update/fluentd"
 	corev1 "k8s.io/api/core/v1"
 )
