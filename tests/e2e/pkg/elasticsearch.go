@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -227,6 +228,15 @@ func (u ElasticSearchISMPolicyAddModifier) ModifyCR(cr *vzapi.Verrazzano) {
 
 func (u ElasticSearchISMPolicyRemoveModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
+}
+
+func TestOpenSearchPlugins(pollingInterval time.Duration, waitTimeout time.Duration) {
+	if UseExternalElasticsearch() {
+		ginkgo.Skip("Skip External OpenSearch")
+	}
+	gomega.Eventually(func() error {
+		return VerifyOpenSearchPlugins()
+	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(gomega.BeNil())
 }
 
 // VerifyOpenSearchPlugins checks that the OpenSearch plugins are installed
