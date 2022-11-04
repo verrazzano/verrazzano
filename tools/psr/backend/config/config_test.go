@@ -76,56 +76,56 @@ func TestWorkerType(t *testing.T) {
 	}
 }
 
-// TestIterationSleep tests the Config interface
-// GIVEN a config map with environment vars iteration sleep
+// TestLoopSleep tests the Config interface
+// GIVEN a config map with environment vars loop sleep
 //
 //	WHEN the GetCommonConfig is called
 //	THEN ensure that the resulting configuration is correct
-func TestIterationSleep(t *testing.T) {
+func TestLoopSleep(t *testing.T) {
 	var tests = []struct {
-		name           string
-		envMap         map[string]string
-		envKey         string
-		iterationSleep time.Duration
-		expectErr      bool
+		name      string
+		envMap    map[string]string
+		envKey    string
+		loopSleep time.Duration
+		expectErr bool
 	}{
 		{name: "DefaultSleep",
-			iterationSleep: time.Second,
-			expectErr:      false,
+			loopSleep: time.Second,
+			expectErr: false,
 			envMap: map[string]string{
 				PsrWorkerType: WorkerTypeWriteLogs,
 			},
 		},
 		{name: "TenMilliSleep",
-			iterationSleep: 10 * time.Millisecond,
-			expectErr:      false,
+			loopSleep: 10 * time.Millisecond,
+			expectErr: false,
 			envMap: map[string]string{
-				PsrWorkerType:     WorkerTypeWriteLogs,
-				PsrIterationSleep: "10ms",
+				PsrWorkerType: WorkerTypeWriteLogs,
+				PsrLoopSleep:  "10ms",
 			},
 		},
 		{name: "TenNanoSleep",
-			iterationSleep: 10 * time.Nanosecond,
-			expectErr:      false,
+			loopSleep: 10 * time.Nanosecond,
+			expectErr: false,
 			envMap: map[string]string{
-				PsrWorkerType:     WorkerTypeWriteLogs,
-				PsrIterationSleep: "10ns",
+				PsrWorkerType: WorkerTypeWriteLogs,
+				PsrLoopSleep:  "10ns",
 			},
 		},
 		// Test min sleep of 10ns
 		{name: "TenNanoSleepMin",
-			iterationSleep: 10 * time.Nanosecond,
-			expectErr:      false,
+			loopSleep: 10 * time.Nanosecond,
+			expectErr: false,
 			envMap: map[string]string{
-				PsrWorkerType:     WorkerTypeWriteLogs,
-				PsrIterationSleep: "1ns",
+				PsrWorkerType: WorkerTypeWriteLogs,
+				PsrLoopSleep:  "1ns",
 			},
 		},
 		{name: "BadNumericStringFormat",
 			expectErr: true,
 			envMap: map[string]string{
-				PsrWorkerType:     WorkerTypeWriteLogs,
-				PsrIterationSleep: "10xyz",
+				PsrWorkerType: WorkerTypeWriteLogs,
+				PsrLoopSleep:  "10xyz",
 			},
 		},
 	}
@@ -144,7 +144,7 @@ func TestIterationSleep(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, test.iterationSleep, cc.IterationSleepNanos)
+				assert.Equal(t, test.loopSleep, cc.LoopSleepNanos)
 			}
 		})
 	}

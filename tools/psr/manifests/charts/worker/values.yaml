@@ -3,7 +3,7 @@
 
 imagePullSecrets: [ ]
 
-imageName: ghcr.io/verrazzano/psr-backend:local-12aa43e
+imageName: ghcr.io/verrazzano/psr-backend:local-b72e5a0
 imagePullPolicy: IfNotPresent
 
 replicas: 1
@@ -12,13 +12,13 @@ replicas: 1
 global:
   envVars:
     PSR_WORKER_TYPE: example
-    PSR_ITERATION_SLEEP: 1s
+    PSR_LOOP_SLEEP: 1s
     PSR_WORKER_THREAD_COUNT: 1
 
 # appType can be either oam or k8s, which are just Kubernetes deployments
 appType: oam
 
 # Each worker that has a subchart needs to override this property
-getlogs:
+opensearch-authpol:
   enabled: false
 

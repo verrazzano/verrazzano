@@ -19,15 +19,23 @@ const (
 	// By default, the worker runs until the pod terminates
 	PsrDuration = "PSR_DURATION"
 
-	// PsrIterationSleep specified the sleep duration between iterations
+	// PsrLoopSleep specified the sleep duration between loops
 	// of work actions using a duration string ("4m or 2h")
 	// For example, delay 1 second between logging
 	// By default, the worker does not delay
-	PsrIterationSleep = "PSR_ITERATION_SLEEP"
+	PsrLoopSleep = "PSR_LOOP_SLEEP"
+
+	// PsrNumLoops specifies the number of loops
+	// of work actions.  The default is -1 (forever)
+	// By default, the worker iterates forever
+	PsrNumLoops = "PSR_NUM_ITERATIONS"
 
 	// PsrWorkerThreadCount specifies the number of worker threads to run.
 	// By default, there is one thread per worker
 	PsrWorkerThreadCount = "PSR_WORKER_THREAD_COUNT"
+
+	// PsrWorkerNamespace is the namespace of the PSR release
+	PsrWorkerNamespace = "NAMESPACE"
 )
 
 // Define worker types
@@ -35,14 +43,22 @@ const (
 	WorkerTypeExample   = "example"
 	WorkerTypeWriteLogs = "writelogs"
 	WorkerTypeGetLogs   = "getlogs"
+	WorkerTypeHTTPGet   = "httpget"
+	WorkerTypePostLogs  = "postlogs"
+)
+
+const (
+	UnlimitedWorkerLoops = -1
 )
 
 var PsrEnv = osenv.NewEnv()
 
 type CommonConfig struct {
-	WorkerType          string
-	IterationSleepNanos time.Duration
-	WorkerThreadCount   int
+	WorkerType        string
+	LoopSleepNanos    time.Duration
+	NumLoops          int64
+	WorkerThreadCount int
+	Namespace         string
 }
 
 // GetCommonConfig loads the common config from env vars
@@ -50,15 +66,17 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 	dd := []osenv.EnvVarDesc{
 		{Key: PsrWorkerType, DefaultVal: "", Required: true},
 		{Key: PsrDuration, DefaultVal: "", Required: false},
-		{Key: PsrIterationSleep, DefaultVal: "1s", Required: false},
+		{Key: PsrLoopSleep, DefaultVal: "1s", Required: false},
+		{Key: PsrNumLoops, DefaultVal: "-1", Required: false},
 		{Key: PsrWorkerThreadCount, DefaultVal: "1", Required: false},
+		{Key: PsrWorkerNamespace, DefaultVal: "", Required: false},
 	}
 	if err := PsrEnv.LoadFromEnv(dd); err != nil {
 		return CommonConfig{}, err
 	}
-	sleepDuration, err := time.ParseDuration(PsrEnv.GetEnv(PsrIterationSleep))
+	sleepDuration, err := time.ParseDuration(PsrEnv.GetEnv(PsrLoopSleep))
 	if err != nil {
-		return CommonConfig{}, log.ErrorfNewErr("Error parsing iteration sleep duration: %v", err)
+		return CommonConfig{}, log.ErrorfNewErr("Error parsing loop sleep duration: %v", err)
 	}
 	// Sleep at least 10 nanos
 	if sleepDuration < (10 * time.Nanosecond) {
@@ -74,9 +92,16 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 		threadCount = 100
 	}
 
+	numLoops, err := strconv.Atoi(PsrEnv.GetEnv(PsrNumLoops))
+	if err != nil {
+		return CommonConfig{}, log.ErrorfNewErr("Failed to convert ENV var %s to integer", PsrNumLoops)
+	}
+
 	return CommonConfig{
-		WorkerType:          PsrEnv.GetEnv(PsrWorkerType),
-		IterationSleepNanos: sleepDuration,
-		WorkerThreadCount:   threadCount,
+		WorkerType:        PsrEnv.GetEnv(PsrWorkerType),
+		LoopSleepNanos:    sleepDuration,
+		NumLoops:          int64(numLoops),
+		WorkerThreadCount: threadCount,
+		Namespace:         PsrEnv.GetEnv(PsrWorkerNamespace),
 	}, nil
 }

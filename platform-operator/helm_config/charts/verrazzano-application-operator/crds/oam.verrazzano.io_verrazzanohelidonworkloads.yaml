@@ -7323,7 +7323,7 @@ spec:
                       description: Namespace of the related resource.
                       type: string
                     role:
-                      description: Role of the related resource.  For example, `Deployment`.
+                      description: Role of the related resource, for example, `Deployment`.
                       type: string
                   required:
                   - apiversion

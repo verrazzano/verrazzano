@@ -10,12 +10,6 @@ spec:
   components:
     opensearch:
       nodes:
-        - name: es-data
-          roles:
-          - data
-        - name: es-ingest
-          roles:
-          - ingest
         - name: es-master
           replicas: 1
           resources:
