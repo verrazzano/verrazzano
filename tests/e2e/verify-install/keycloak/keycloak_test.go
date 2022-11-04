@@ -425,9 +425,11 @@ func getKeycloakClientByClientID(keycloakClients KeycloakClients, clientID strin
 
 func verifyVerrazzanoPKCEClientURIs(keycloakClient *Client, env string) bool {
 	// Verify Correct number of RedirectURIs
-	if !(isMinVersion150 && len(keycloakClient.RedirectUris) == 17) {
-		t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
-		return false
+	if isMinVersion150 {
+		if !(len(keycloakClient.RedirectUris) == 17) {
+			t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
+			return false
+		}
 	} else if !(len(keycloakClient.RedirectUris) == 13) {
 		t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
 		return false
