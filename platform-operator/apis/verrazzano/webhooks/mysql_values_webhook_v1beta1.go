@@ -93,10 +93,10 @@ func getVersion(statusVersion string, newSpecVersion string, bomVersion string) 
 	if len(newSpecVersion) == 0 {
 		// Version field in new spec is not set, use the version in the status field
 		if len(statusVersion) == 0 {
-			return statusVersion
+			return bomVersion
 		}
 		// Use the version of the BOM in the image; likely there's an install in progress here
-		return bomVersion
+		return statusVersion
 	}
 	return newSpecVersion
 }
