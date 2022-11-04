@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package run
+package list
 
 import (
 	"fmt"
@@ -14,10 +14,10 @@ import (
 )
 
 const (
-	CommandName = "run"
-	helpShort   = "Run a PSR test scenario"
-	helpLong    = `The command 'run' executes a PSR test scenario consisting of one or more use cases`
-	helpExample = `psrctl run -s ops-s1`
+	CommandName = "list"
+	helpShort   = "List all of the running PSR scenarios"
+	helpLong    = `The command 'list' lists the PSR scenarios that are running in the cluster`
+	helpExample = `psrctl list `
 )
 
 const (
@@ -28,10 +28,10 @@ const (
 
 var scenarioID string
 
-func NewCmdRun(vzHelper helpers.VZHelper) *cobra.Command {
+func NewCmdList(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return runCmdRun(cmd, vzHelper)
+		return RunCmdList(cmd, vzHelper)
 	}
 	cmd.Args = cobra.ExactArgs(0)
 	cmd.Example = helpExample
@@ -41,23 +41,27 @@ func NewCmdRun(vzHelper helpers.VZHelper) *cobra.Command {
 	return cmd
 }
 
-// runCmdRun - run the "psrctl run" command
-func runCmdRun(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	sc, err := scenario.FindScenarioByID(embedded.Manifests.ScenarioAbsDir, scenarioID)
-	if err != nil {
-		return fmt.Errorf("Failed to find scenario %s: %v", scenarioID, err)
-	}
-	if sc == nil {
-		return fmt.Errorf("Failed to find scenario with ID %s", scenarioID)
+// RunCmdList - Run the "psrctl List" command
+func RunCmdList(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+	m := scenario.Manager{
+		Log:       vzlog.DefaultLogger(),
+		Manifest:  embedded.PsrManifests{},
+		Namespace: "",
 	}
 
-	fmt.Printf("Starting scenario %s\n", sc.ID)
-	msg, err := scenario.InstallScenario(vzlog.DefaultLogger(), embedded.Manifests, sc, "default")
+	scenarios, err := m.FindRunningScenarios()
 	if err != nil {
-		// Cobra will display failure message
-		return fmt.Errorf("Failed to run scenario %s: %v\n%s", scenarioID, err, msg)
+		return fmt.Errorf("Failed to find running scenarios %s: %v", scenarioID, err)
 	}
-	fmt.Printf("ScenarioManifest %s successfully started\n", sc.ID)
+	if len(scenarios) == 0 {
+		fmt.Println("There are no scenarios running in the cluster")
+		return nil
+	}
+
+	fmt.Println("Running Scenarios...")
+	for _, sc := range scenarios {
+		fmt.Println(sc.ID, sc.Description)
+	}
 
 	return nil
 }

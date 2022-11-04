@@ -15,7 +15,7 @@ func Test(t *testing.T) {
 			Namespace: "ns1",
 			Name:      "name1",
 		}},
-		ScenarioManifest: ScenarioManifest{
+		ScenarioManifest: &ScenarioManifest{
 			Name:        "os1-name",
 			ID:          "os1-id",
 			Description: "test scenario",

@@ -5,6 +5,8 @@ package scenario
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/embedded"
 	"testing"
 )
 
@@ -14,7 +16,14 @@ import (
 //	WHEN the ListScenarioManifests function is called
 //	THEN ensure that the resulting scenario list is correct
 func TestAvailableScenarios(t *testing.T) {
-	sList, err := ListScenarioManifests("./testdata")
+	m := Manager{
+		Log: vzlog.DefaultLogger(),
+		Manifest: embedded.PsrManifests{
+			ScenarioAbsDir: "./testdata",
+		},
+		Namespace: "default",
+	}
+	sList, err := m.ListScenarioManifests()
 	assert.NoError(t, err)
 	assert.Equal(t, "OpenSearch-S1", sList[0].Name)
 	assert.Equal(t, "ops-s1", sList[0].ID)

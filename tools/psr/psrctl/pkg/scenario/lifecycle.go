@@ -6,8 +6,6 @@ package scenario
 import (
 	"fmt"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/embedded"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"path/filepath"
@@ -25,7 +23,7 @@ type WorkerType struct {
 }
 
 // InstallScenario installs a Helm chart for each use case in the scenario
-func InstallScenario(log vzlog.VerrazzanoLogger, man *embedded.PsrManifests, scman *ScenarioManifest, namespace string) (string, error) {
+func (m Manager) InstallScenario(scman *ScenarioManifest) (string, error) {
 	helmReleases := []types.NamespacedName{}
 
 	// Helm install each use case
@@ -34,7 +32,7 @@ func InstallScenario(log vzlog.VerrazzanoLogger, man *embedded.PsrManifests, scm
 		helmOverrides := []helmcli.HelmOverrides{}
 
 		// This is the usecase path, E.G. manifests/usecases/opensearch/getlogs/getlogs.yaml
-		ucOverride := filepath.Join(man.UseCasesAbsDir, uc.UsecasePath)
+		ucOverride := filepath.Join(m.Manifest.UseCasesAbsDir, uc.UsecasePath)
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: ucOverride})
 
 		// This is the scenario override path for the use case
@@ -48,12 +46,12 @@ func InstallScenario(log vzlog.VerrazzanoLogger, man *embedded.PsrManifests, scm
 
 		// Build release name psr-<scenarioID>-workertype-<index>
 		relname := fmt.Sprintf("psr-%s-%s-%v", scman.ID, wType, i)
-		_, stderr, err := helmcli.Upgrade(log, relname, namespace, man.WorkerChartAbsDir, true, false, helmOverrides)
+		_, stderr, err := helmcli.Upgrade(m.Log, relname, m.Namespace, m.Manifest.WorkerChartAbsDir, true, false, helmOverrides)
 		if err != nil {
 			return string(stderr), err
 		}
 		helmReleases = append(helmReleases, types.NamespacedName{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Name:      relname,
 		})
 
@@ -62,14 +60,16 @@ func InstallScenario(log vzlog.VerrazzanoLogger, man *embedded.PsrManifests, scm
 
 	sc := Scenario{
 		HelmReleases: []types.NamespacedName{{
-			Namespace: namespace,
+			Namespace: m.Namespace,
 			Name:      scman.ID,
 		}},
 		ScenarioManifest: scman,
 	}
 
-	saveScenario(log, sc, namespace)
-
+	_, err := m.saveScenario(sc)
+	if err != nil {
+		return "", err
+	}
 	return "", nil
 }
 
