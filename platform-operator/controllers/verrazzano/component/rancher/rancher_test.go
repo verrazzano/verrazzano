@@ -14,6 +14,7 @@ import (
 	"k8s.io/api/core/v1"
 	networking "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -113,6 +114,15 @@ func createRancherPodListWithAllRunning() v1.PodList {
 	}
 }
 
+func createFirstLoginSetting() unstructured.Unstructured {
+	firstLoginSetting := unstructured.Unstructured{
+		Object: map[string]interface{}{},
+	}
+	firstLoginSetting.SetGroupVersionKind(GVKSetting)
+	firstLoginSetting.SetName(SettingFirstLogin)
+	return firstLoginSetting
+}
+
 func createRancherPodListWithNoneRunning() v1.PodList {
 	return v1.PodList{
 		Items: []v1.Pod{
@@ -178,8 +188,9 @@ func createAdminSecret() v1.Secret {
 
 // TestUseAdditionalCAs verifies that additional CAs should be used when specified in the Verrazzano CR
 // GIVEN a Verrazzano CR
-//  WHEN useAdditionalCAs is called
-//  THEN useAdditionalCAs return true or false if additional CAs are required
+//
+//	WHEN useAdditionalCAs is called
+//	THEN useAdditionalCAs return true or false if additional CAs are required
 func TestUseAdditionalCAs(t *testing.T) {
 	var tests = []struct {
 		in  vzapi.Acme
@@ -198,8 +209,9 @@ func TestUseAdditionalCAs(t *testing.T) {
 
 // TestGetRancherHostname verifies the Rancher hostname can be generated
 // GIVEN a Verrazzano CR
-//  WHEN getRancherHostname is called
-//  THEN getRancherHostname should return the Rancher hostname
+//
+//	WHEN getRancherHostname is called
+//	THEN getRancherHostname should return the Rancher hostname
 func TestGetRancherHostname(t *testing.T) {
 	expected := fmt.Sprintf("%s.%s.rancher", common.RancherName, vzAcmeDev.Spec.EnvironmentName)
 	actual, _ := getRancherHostname(fake.NewFakeClientWithScheme(getScheme()), &vzAcmeDev)
@@ -208,8 +220,9 @@ func TestGetRancherHostname(t *testing.T) {
 
 // TestGetRancherHostnameNotFound verifies the Rancher hostname can not be generated in the CR is invalid
 // GIVEN an invalid Verrazzano CR
-//  WHEN getRancherHostname is called
-//  THEN getRancherHostname should return an error
+//
+//	WHEN getRancherHostname is called
+//	THEN getRancherHostname should return an error
 func TestGetRancherHostnameNotFound(t *testing.T) {
 	_, err := getRancherHostname(fake.NewFakeClientWithScheme(getScheme()), &vzapi.Verrazzano{})
 	assert.NotNil(t, err)
