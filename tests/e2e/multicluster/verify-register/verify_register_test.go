@@ -256,7 +256,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			if err != nil {
 				Fail(err.Error())
 			}
-			if pkg.UseExternalOpensearch() {
+			if pkg.UseExternalElasticsearch() {
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "external-es-secret")
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in admin cluster fluentd Daemonset setting")
@@ -349,7 +349,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			if minimalVerification {
 				Skip("Skipping since not part of minimal verification")
 			}
-			if pkg.UseExternalOpensearch() {
+			if pkg.UseExternalElasticsearch() {
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "verrazzano-cluster-registration")
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in managed cluster fluentd Daemonset setting")
@@ -462,7 +462,7 @@ func assertRegistrationSecret() {
 	regSecret, err := pkg.GetSecret(verrazzanoSystemNamespace, "verrazzano-cluster-registration")
 	Expect(err).To(BeNil())
 	Expect(regSecret).To(Not(BeNil()))
-	if pkg.UseExternalOpensearch() {
+	if pkg.UseExternalElasticsearch() {
 		Expect(string(regSecret.Data["es-url"])).To(Equal(externalEsURL))
 		esSecret, err := pkg.GetSecretInCluster("verrazzano-system", "external-es-secret", os.Getenv("ADMIN_KUBECONFIG"))
 		Expect(err).To(BeNil())

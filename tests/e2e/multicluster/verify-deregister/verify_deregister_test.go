@@ -36,7 +36,7 @@ var _ = t.Describe("Multi Cluster Verify Deregister", Label("f:multicluster.dere
 		})
 
 		t.It("admin cluster Fluentd should point to the correct ES", func() {
-			if pkg.UseExternalOpensearch() {
+			if pkg.UseExternalElasticsearch() {
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "external-es-secret")
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in admin cluster fluentd Daemonset setting")
