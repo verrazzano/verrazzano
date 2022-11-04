@@ -361,7 +361,7 @@ func getElasticSearchUsernamePassword(kubeconfigPath string) (username, password
 	return "verrazzano", password, err
 }
 
-// getElasticSearchWithBasicAuth access ES with GET using basic auth, using a given kubeconfig
+// getOpenSearchWithBasicAuth access ES with GET using basic auth, using a given kubeconfig
 func getElasticSearchWithBasicAuth(url string, hostHeader string, username string, password string, kubeconfigPath string) (*HTTPResponse, error) {
 	retryableClient, err := getElasticSearchClient(kubeconfigPath)
 	if err != nil {
