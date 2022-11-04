@@ -15,7 +15,6 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -149,23 +148,21 @@ func newVMC(rancherCluster RancherCluster) *clustersv1alpha1.VerrazzanoManagedCl
 	}
 }
 
-// deleteVMCs deletes any auto-created VMCs that are no longer in Rancher
+// deleteVMCs deletes any VMCs associated with clusters that are no longer in Rancher
 func (r *RancherClusterSyncer) deleteVMCs(rancherClusters []RancherCluster, log vzlog.VerrazzanoLogger) error {
-	// list the VMCs using a selector to only get the auto-created resources
 	vmcList := &clustersv1alpha1.VerrazzanoManagedClusterList{}
-	selector := &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{createdByLabel: createdByVerrazzano})}
-	if err := r.List(context.TODO(), vmcList, &client.ListOptions{Namespace: constants.VerrazzanoMultiClusterNamespace}, selector); err != nil {
+	if err := r.List(context.TODO(), vmcList, &client.ListOptions{Namespace: constants.VerrazzanoMultiClusterNamespace}); err != nil {
 		log.Errorf("Unable to list VMCs: %v", err)
 		return err
 	}
 
-	// for each VMC, if a cluster does not exist in Rancher, delete the VMC
+	// for each VMC, if a cluster does not exist in Rancher and the cluster id is set in the status, delete the VMC
 	for i := range vmcList.Items {
 		vmc := vmcList.Items[i] // avoids "G601: Implicit memory aliasing in for loop" linter error
 		if vmc.Name == localClusterName {
 			continue
 		}
-		if !clusterInRancher(vmc.Name, rancherClusters) {
+		if len(vmc.Status.RancherRegistration.ClusterID) > 0 && !clusterInRancher(vmc.Name, rancherClusters) {
 			log.Infof("Deleting VMC %s because it is no longer in Rancher", vmc.Name)
 			if err := r.Delete(context.TODO(), &vmc); err != nil {
 				log.Errorf("Unable to delete VMC: %v", err)

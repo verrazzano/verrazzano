@@ -19,11 +19,13 @@ func TestConfigDefaults(t *testing.T) {
 	conf := Get()
 
 	asserts.Equal("/etc/webhook/certs", conf.CertDir, "CertDir is incorrect")
-	asserts.False(conf.InitWebhooks, "InitWebhooks is incorrect")
+	asserts.False(conf.RunWebhookInit, "RunWebhookInit is incorrect")
+	asserts.False(conf.RunWebhooks, "RunWebhooks is correct")
 	asserts.False(conf.LeaderElectionEnabled, "LeaderElectionEnabled is incorrect")
 	asserts.Equal(":8080", conf.MetricsAddr, "MetricsAddr is incorrect")
+	asserts.Equal(int64(60), conf.HealthCheckPeriodSeconds, "Default health check period is correct")
 	asserts.True(conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
-	asserts.True(conf.WebhooksEnabled, "WebhooksEnabled is incorrect")
+	asserts.False(conf.RunWebhooks, "RunWebhooks is incorrect")
 	asserts.True(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
 	asserts.Equal(conf.VerrazzanoRootDir, "/verrazzano", "VerrazzanoRootDir is incorrect")
 	asserts.Equal("/verrazzano/platform-operator/helm_config", GetHelmConfigDir(), "GetHelmConfigDir() is incorrect")
@@ -48,23 +50,24 @@ func TestSetConfig(t *testing.T) {
 
 	Set(OperatorConfig{
 		CertDir:                  "/test/certs",
-		InitWebhooks:             true,
+		RunWebhookInit:           true,
 		MetricsAddr:              "1111",
 		LeaderElectionEnabled:    true,
 		VersionCheckEnabled:      false,
-		WebhooksEnabled:          false,
+		RunWebhooks:              true,
 		WebhookValidationEnabled: false,
 		VerrazzanoRootDir:        "/root",
+		HealthCheckPeriodSeconds: int64(0),
 	})
 
 	conf := Get()
 
 	asserts.Equal("/test/certs", conf.CertDir, "CertDir is incorrect")
-	asserts.True(conf.InitWebhooks, "InitWebhooks is incorrect")
+	asserts.True(conf.RunWebhookInit, "RunWebhookInit is incorrect")
 	asserts.True(conf.LeaderElectionEnabled, "LeaderElectionEnabled is incorrect")
 	asserts.Equal("1111", conf.MetricsAddr, "MetricsAddr is incorrect")
 	asserts.False(conf.VersionCheckEnabled, "VersionCheckEnabled is incorrect")
-	asserts.False(conf.WebhooksEnabled, "WebhooksEnabled is incorrect")
+	asserts.True(conf.RunWebhooks, "RunWebhooks is incorrect")
 	asserts.False(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
 	asserts.Equal("/root", conf.VerrazzanoRootDir, "VerrazzanoRootDir is incorrect")
 	asserts.Equal("/root/platform-operator/helm_config", GetHelmConfigDir(), "GetHelmConfigDir() is incorrect")

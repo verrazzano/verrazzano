@@ -25,6 +25,8 @@ def COMPARISON_URL_ON_FAILURE = ""
 
 @Field
 def backendTestsUpToDate              = false // If true, indicates that the backend tests already passed at the latest commit
+@Field
+def backendTestsUpToDateFailed        = false // If true, indicates that the backend tests already ran and failed at the latest commit
 
 // Non Fields
 def branchSpecificSchedule = getCronSchedule()
@@ -90,9 +92,11 @@ pipeline {
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
         STABLE_COMMIT_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-stable-commit.txt"
+        LAST_BACKEND_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-backend-run-commit.txt"
         CLEAN_BACKEND_OS_LOCATION = "${CLEAN_BRANCH_NAME}-last-clean-backend-test/verrazzano_backend-commit.txt"
 
         STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
+        LAST_BACKEND_LOCATION = "${WORKSPACE}/last-backend-run-commit.txt"
         CLEAN_BACKEND_LOCATION = "${WORKSPACE}/last-clean-backend-commit.txt"
 
         OCI_OS_REGION="us-phoenix-1"
@@ -177,6 +181,15 @@ pipeline {
         }
     }
     post {
+        always {
+            script {
+                sh """
+                    # Update the last backend commit
+                    echo "git-commit=${env.GIT_COMMIT}" > commit-used.txt
+                    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${LAST_BACKEND_OS_LOCATION} --file commit-used.txt
+                """
+            }
+        }
         failure {
             script {
                 if (isAlertingEnabled()) {
@@ -208,6 +221,12 @@ def preliminaryChecks() {
 
     if (LAST_CLEAN_BACKEND_COMMIT == GIT_COMMIT_TO_USE) {
         backendTestsUpToDate = true
+    } else {
+        // Check if we are still at the same commit previously run (if so we know it wasn't clean and it failed in some way)
+        LAST_BACKEND_RUN_COMMIT=getLastBackendRunCommit()
+        if (LAST_BACKEND_RUN_COMMIT != null && LAST_BACKEND_RUN_COMMIT == GIT_COMMIT_TO_USE) {
+            backendTestsUpToDateFailed = true
+        }
     }
 
     echo "Up to date: ${backendTestsUpToDate}"
@@ -221,6 +240,9 @@ def preliminaryChecks() {
     }
     if (backendTestsUpToDate) {
         currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE"
+    }
+    if (backendTestsUpToDateFailed) {
+        currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE-FAILED"
     }
     if (params.FORCE) {
         currentBuild.displayName = "${currentBuild.displayName} : FORCE"
@@ -333,9 +355,38 @@ def getLastCleanBackendCommit() {
     return cleanBackendsCommitProps['git-commit']
 }
 
+// Returns the last run commit for the Backend, or null if the commit file does not exist yet.
+// - fails the pipeline if any error other than 404 is returned by the OCI CLI
+def getLastBackendRunCommit() {
+    lastBackendCommitCommandOutput = sh (
+        label: "Get last clean backend commit ID",
+        script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${LAST_BACKEND_OS_LOCATION} --file ${LAST_BACKEND_LOCATION} 2>&1 || true",
+        returnStdout: true
+        ).trim()
+    echo "command out: ${lastBackendCommitCommandOutput}"
+    if (lastBackendCommitCommandOutput.length() > 0) {
+        // We can get warning messages here as well even when the command succeeded, so be more precise on the checking
+        if (lastBackendCommitCommandOutput =~ /(.*)status(.*)\d{1,4}(.*)/) {
+            // If we think we had a status: NNN, we ignore 404 and fail for others
+            assert lastBackendCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last backend commit from ObjectStore: ${lastBackendCommitCommandOutput}"
+        } else {
+            // If we got here, we have some message that may or may not be an error. If we don't see the file, we assume it was an error
+            sh """
+                if [ ! -f ${LAST_BACKEND_LOCATION} ]; then
+                    echo "An unexpected error occurred getting last backend run commit from ObjectStore: ${lastBackendCommitCommandOutput}"
+                    exit 1
+                fi
+            """
+        }
+    }
+    // Get the commit ID for the last known clean pass of the Backend tests
+    def lastBackendCommitProps = readProperties file: "${LAST_BACKEND_LOCATION}"
+    return lastBackendCommitProps['git-commit']
+}
+
 // Checks all the conditions gating test execution and coallates the result
 def runTests() {
-  return params.FORCE || ( ! backendTestsUpToDate && ! params.DRY_RUN )
+  return params.FORCE || ( ! backendTestsUpToDate && ! backendTestsUpToDateFailed && ! params.DRY_RUN )
 }
 
 def isAlertingEnabled() {

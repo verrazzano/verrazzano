@@ -10,7 +10,9 @@ import (
 	metrics2 "github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/example"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/http/get"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/getlogs"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/postlogs"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/writelogs"
 	"sync"
 )
@@ -68,15 +70,19 @@ func StartWorkerRunners(log vzlog.VerrazzanoLogger) error {
 	return nil
 }
 
-// getWorker returns a worker given the	 name of the worker
+// getWorker returns a worker given the name of the worker
 func getWorker(wt string) (spi.Worker, error) {
 	switch wt {
 	case config.WorkerTypeExample:
 		return example.NewExampleWorker()
+	case config.WorkerTypeHTTPGet:
+		return http.NewHTTPGetWorker()
 	case config.WorkerTypeWriteLogs:
 		return writelogs.NewWriteLogsWorker()
 	case config.WorkerTypeGetLogs:
 		return getlogs.NewGetLogsWorker()
+	case config.WorkerTypePostLogs:
+		return postlogs.NewPostLogsWorker()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}

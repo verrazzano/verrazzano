@@ -40,8 +40,8 @@ const (
 	clusterID2 = "c-2rd1k"
 	clusterID3 = "c-9gx3y"
 
-	preExistingClusterNotLabeled = "test-cluster-not-labeled"
-	preExistingClusterLabeled    = "test-cluster-labeled"
+	preExistingClusterNoClusterID   = "test-cluster-no-cluster-id"
+	preExistingClusterWithClusterID = "test-cluster-with-cluster-id"
 )
 
 var testScheme = runtime.NewScheme()
@@ -97,15 +97,15 @@ func TestSyncRancherClusters(t *testing.T) {
 	asserts.Equal("true", cr.Labels[vzconst.VerrazzanoManagedLabelKey])
 	asserts.Equal(clusterID2, cr.Status.RancherRegistration.ClusterID)
 
-	// the pre-existing VMC that is not labeled (so not auto-created) should still be here
-	err = r.Get(context.TODO(), types.NamespacedName{Name: preExistingClusterNotLabeled, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
+	// the pre-existing VMC that has no cluster id in the status should still be here
+	err = r.Get(context.TODO(), types.NamespacedName{Name: preExistingClusterNoClusterID, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
 	asserts.NoError(err)
 
 	// also assert that the pre-existing VMC did not have labels added
 	asserts.Empty(cr.Labels)
 
-	// the pre-existing VMC that is labeled (so auto-created) should have been deleted
-	err = r.Get(context.TODO(), types.NamespacedName{Name: preExistingClusterLabeled, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
+	// the pre-existing VMC that had a cluster id in the status should have been deleted
+	err = r.Get(context.TODO(), types.NamespacedName{Name: preExistingClusterWithClusterID, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
 	asserts.True(errors.IsNotFound(err))
 }
 
@@ -248,16 +248,18 @@ func createK8sFake() client.Client {
 		},
 		&clustersv1alpha1.VerrazzanoManagedCluster{
 			ObjectMeta: v1.ObjectMeta{
-				Name:      preExistingClusterNotLabeled,
+				Name:      preExistingClusterNoClusterID,
 				Namespace: constants.VerrazzanoMultiClusterNamespace,
 			},
 		},
 		&clustersv1alpha1.VerrazzanoManagedCluster{
 			ObjectMeta: v1.ObjectMeta{
-				Name:      preExistingClusterLabeled,
+				Name:      preExistingClusterWithClusterID,
 				Namespace: constants.VerrazzanoMultiClusterNamespace,
-				Labels: map[string]string{
-					createdByLabel: createdByVerrazzano,
+			},
+			Status: clustersv1alpha1.VerrazzanoManagedClusterStatus{
+				RancherRegistration: clustersv1alpha1.RancherRegistration{
+					ClusterID: "c-v76wj",
 				},
 			},
 		}).Build()

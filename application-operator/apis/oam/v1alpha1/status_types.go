@@ -15,7 +15,7 @@ type QualifiedResourceRelation struct {
 	Name string `json:"name"`
 	// Namespace of the related resource.
 	Namespace string `json:"namespace"`
-	// Role of the related resource.  For example, `Deployment`.
+	// Role of the related resource, for example, `Deployment`.
 	Role string `json:"role"`
 }
 
