@@ -181,7 +181,7 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		}
 	}
 
-	// Update verrazzano-pkce client redirect and web origin uris if deprecated OS host exists in the ingress
+	// Update verrazzano-pkce client redirect and web origin uris if deprecated host exists in the ingress
 	osHostExists, err := k8sutil.DoesIngressHostExist(constants.VerrazzanoSystemNamespace, constants.OpensearchIngress)
 	if err != nil {
 		return err

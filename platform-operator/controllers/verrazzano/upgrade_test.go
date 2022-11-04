@@ -1657,7 +1657,6 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 	assert.Equal(t, "https://"+consoleURL, *instanceInfo.ConsoleURL)
 	assert.Equal(t, "https://"+rancherURL, *instanceInfo.RancherURL)
 	assert.Equal(t, "https://"+keycloakURL, *instanceInfo.KeyCloakURL)
-	fmt.Println("https://"+esURL+" "+"-----", *instanceInfo.KibanaURL)
 	assert.Equal(t, "https://"+esURL, *instanceInfo.ElasticURL)
 	assert.Equal(t, "https://"+grafanaURL, *instanceInfo.GrafanaURL)
 	assert.Equal(t, "https://"+kialiURL, *instanceInfo.KialiURL)
