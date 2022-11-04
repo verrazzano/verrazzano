@@ -101,13 +101,13 @@
           "name": "istiod",
           "images": [
             {
-              "image": "pilot",
-              "tag": "1.13.5",
+              "image": "pilot-jenkins",
+              "tag": "1.13.5-1-20221103131708-70a481e9",
               "helmFullImageKey": "values.pilot.image"
             },
             {
-              "image": "proxyv2",
-              "tag": "1.13.5",
+              "image": "proxyv2-jenkins",
+              "tag": "1.13.5-1-20221103131708-70a481e9",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -186,8 +186,8 @@
               "helmTagKey": "nodeExporter.imageVersion"
             },
             {
-              "image": "proxyv2",
-              "tag": "1.13.5",
+              "image": "proxyv2-jenkins",
+              "tag": "1.13.5-1-20221103131708-70a481e9",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -225,8 +225,8 @@
               "helmTagKey": "monitoringOperator.imageVersion"
             },
             {
-              "image": "proxyv2",
-              "tag": "1.13.5",
+              "image": "proxyv2-jenkins",
+              "tag": "1.13.5-1-20221103131708-70a481e9",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
