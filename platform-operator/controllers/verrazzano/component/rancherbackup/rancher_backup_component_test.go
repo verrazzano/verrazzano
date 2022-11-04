@@ -166,26 +166,126 @@ func TestInstallUpgrade(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestValidateUpdate(t *testing.T) {
-	//We expect error if rancher backup is disabled in new CR
+func TestValidateUpdateMethods(t *testing.T) {
+	// We expect error if rancher backup is disabled in new CR
 	err := NewComponent().ValidateUpdate(rancherBackupEnabledCR, &v1alpha1.Verrazzano{})
 	assert.Error(t, err)
 
-	//We should not get any error if rancher backup does not have any install overrides
-	err = NewComponent().ValidateUpdate(rancherBackupEnabledCR, rancherBackupEnabledCR)
-	assert.NoError(t, err)
+	// We expect error if rancher backup is disabled in new CR
+	v1beta1Vz := &v1beta1.Verrazzano{}
+	err = rancherBackupEnabledCR.ConvertTo(v1beta1Vz)
+	err = NewComponent().ValidateUpdateV1Beta1(v1beta1Vz, &v1beta1.Verrazzano{})
+	assert.Error(t, err)
+
+	/*	// We should not get any error if rancher backup does not have any install overrides
+		err = NewComponent().ValidateUpdate(rancherBackupEnabledCR, rancherBackupEnabledCR)
+		assert.NoError(t, err)*/
+}
+
+func TestIsReady(t *testing.T) {
+	fakeReadyClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       ComponentName,
+				Namespace:  ComponentNamespace,
+				Finalizers: []string{"fake-finalizer"},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": ComponentName},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      ComponentName + "-95d8c5d96-m6mbr",
+				Labels: map[string]string{
+					"pod-template-hash": "95d8c5d96",
+					"app":               ComponentName,
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        ComponentName + "-95d8c5d96",
+				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+			},
+		},
+	).Build()
+
+	fakeUnReadyClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       ComponentNamespace,
+				Finalizers: []string{"fake-finalizer"},
+			},
+		},
+	).Build()
+
+	var tests = []struct {
+		testName string
+		ctx      spi.ComponentContext
+		isReady  bool
+	}{
+		{
+			"should be ready",
+			spi.NewFakeContext(fakeReadyClient, &v1alpha1.Verrazzano{}, nil, true),
+			true,
+		},
+		{
+			"should not be ready due to deployment",
+			spi.NewFakeContext(fakeUnReadyClient, &v1alpha1.Verrazzano{}, nil, true),
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			assert.Equal(t, tt.isReady, NewComponent().IsReady(tt.ctx))
+		})
+	}
+}
+
+func TestPreInstall(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       ComponentName,
+				Finalizers: []string{"fake-finalizer"},
+			},
+		},
+	).Build()
+	// Expect error as it will not be able to locate crds
+	ctx := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
+	assert.Error(t, NewComponent().PreInstall(ctx))
+
+	// Setting right path so that crds can be located and it returns no error
+	oldConfig := config.Get()
+	defer config.Set(oldConfig)
+	config.Set(config.OperatorConfig{
+		VerrazzanoRootDir: "../../../../..",
+	})
+	ctx = spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
+	assert.NoError(t, NewComponent().PreInstall(ctx))
 }
 
 func TestMonitorOverrides(t *testing.T) {
-	//Returns false if Backup component is not enabled
+	// Returns false if Backup component is not enabled
 	ctx := spi.NewFakeContext(nil, &v1alpha1.Verrazzano{}, nil, false)
 	assert.False(t, NewComponent().MonitorOverrides(ctx))
 
-	//Returns true if Backup component is enabled
+	// Returns true if Backup component is enabled
 	ctx = spi.NewFakeContext(nil, rancherBackupEnabledCR, nil, false)
 	assert.True(t, NewComponent().MonitorOverrides(ctx))
 
-	//Check if Monitoring changes value is returned as set
+	// Check if Monitoring changes value is returned as set
 	ctx = spi.NewFakeContext(nil, &v1alpha1.Verrazzano{
 		Spec: v1alpha1.VerrazzanoSpec{
 			Components: v1alpha1.ComponentSpec{
