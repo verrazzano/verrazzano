@@ -175,7 +175,7 @@ func ImportClusterToRancher(rc *RancherConfig, clusterName string, log vzlog.Ver
 		// if we've already imported this cluster, we get an HTTP 422, so attempt to fetch the existing cluster
 		// and get the cluster ID from the response
 		log.Debugf("Cluster %s already registered with Rancher, attempting to fetch it", clusterName)
-		clusterID, err := getClusterIDFromRancher(rc, clusterName, log)
+		clusterID, err := GetClusterIDFromRancher(rc, clusterName, log)
 		if err != nil {
 			return "", err
 		}
@@ -215,8 +215,8 @@ func DeleteClusterFromRancher(rc *RancherConfig, clusterID string, log vzlog.Ver
 	return true, nil
 }
 
-// getClusterIDFromRancher attempts to fetch the cluster from Rancher by name and pull out the cluster ID
-func getClusterIDFromRancher(rc *RancherConfig, clusterName string, log vzlog.VerrazzanoLogger) (string, error) {
+// GetClusterIDFromRancher attempts to fetch the cluster from Rancher by name and pull out the cluster ID
+func GetClusterIDFromRancher(rc *RancherConfig, clusterName string, log vzlog.VerrazzanoLogger) (string, error) {
 	action := http.MethodGet
 
 	reqURL := rc.BaseURL + clustersByNamePath + clusterName
