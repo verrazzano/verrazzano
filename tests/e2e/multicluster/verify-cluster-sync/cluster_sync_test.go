@@ -159,6 +159,11 @@ func testRancherClusterDeletion(rc *clusters.RancherConfig, client *versioned.Cl
 	// WHEN the Rancher cluster is appropriately labeled
 	// THEN the VMC for the cluster is deleted
 
+	// The VMC should have the clusterID field set before we attempt to delete
+	Eventually(func() bool {
+		return verifyRancherRegistration(clusterName)
+	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
+
 	// Delete cluster using Rancher API
 	deleted, err := clusters.DeleteClusterFromRancher(rc, clusterID, vzlog.DefaultLogger())
 	Expect(err).ShouldNot(HaveOccurred())
@@ -205,19 +210,9 @@ func testVMCDeletion(rc *clusters.RancherConfig, client *versioned.Clientset, cl
 	// WHEN the Rancher sync process runs
 	// THEN a Rancher cluster with that name should be deleted
 
-	// The VMC should have the clusterID field set before we attempt to delete it
+	// The VMC should have the clusterID field set before we attempt to delete
 	Eventually(func() bool {
-		pkg.Log(pkg.Info, fmt.Sprintf("Waiting for Rancher registraion to occur for VMC %s", clusterName))
-		vmc, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Get(context.TODO(), clusterName, metav1.GetOptions{})
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Failed to get VMC %s from the cluster", clusterName))
-			return false
-		}
-		if vmc.Status.RancherRegistration.ClusterID == "" {
-			pkg.Log(pkg.Info, fmt.Sprintf("Cluster ID was empty for VMC %s, waiting until it is set to delete", clusterName))
-			return false
-		}
-		return true
+		return verifyRancherRegistration(clusterName)
 	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 
 	// Delete the VMC resource in the cluster
@@ -229,6 +224,20 @@ func testVMCDeletion(rc *clusters.RancherConfig, client *versioned.Clientset, cl
 	Eventually(func() bool {
 		return clusterExistsInRancher(rc, clusterName)
 	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeFalse())
+}
+
+func verifyRancherRegistration(clusterName string) bool {
+	pkg.Log(pkg.Info, fmt.Sprintf("Waiting for Rancher registraion to occur for VMC %s", clusterName))
+	vmc, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Get(context.TODO(), clusterName, metav1.GetOptions{})
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get VMC %s from the cluster", clusterName))
+		return false
+	}
+	if vmc.Status.RancherRegistration.ClusterID == "" {
+		pkg.Log(pkg.Info, fmt.Sprintf("Cluster ID was empty for VMC %s, waiting until it is set to delete", clusterName))
+		return false
+	}
+	return true
 }
 
 // clusterExistsInRancher returns true if the cluster is listed by the Rancher API
