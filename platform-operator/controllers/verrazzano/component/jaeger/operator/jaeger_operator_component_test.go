@@ -12,6 +12,7 @@ import (
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -20,6 +21,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/stretchr/testify/assert"
@@ -185,6 +187,8 @@ func TestIsInstalled(t *testing.T) {
 
 // TestPreUpgrade tests the PreUpgrade function for the Jaeger Operator component
 func TestPreUpgrade(t *testing.T) {
+	k8sutil.SetFakeClient(k8sfake.NewSimpleClientset(getJaegerWebHookServiceObjects()))
+	defer k8sutil.ClearFakeClient()
 	tests := []struct {
 		name         string
 		client       client.Client
