@@ -338,13 +338,6 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 			return kvs, ctx.Log().ErrorfNewErr("Failed applying the Istio Overrides for Prometheus")
 		}
 
-		// Disable HTTP2 to allow mTLS communication with the application Istio sidecars
-		// kvs = append(kvs, []bom.KeyValue{
-		// 	{Key: "prometheus.prometheusSpec.containers[0].name", Value: prometheusName},
-		// 	{Key: "prometheus.prometheusSpec.containers[0].env[0].name", Value: "PROMETHEUS_COMMON_DISABLE_HTTP2"},
-		// 	{Key: "prometheus.prometheusSpec.containers[0].env[0].value", Value: `"1"`},
-		// }...)
-
 		kvs, err = appendAdditionalVolumeOverrides(ctx,
 			"prometheus.prometheusSpec.volumeMounts",
 			"prometheus.prometheusSpec.volumes",
