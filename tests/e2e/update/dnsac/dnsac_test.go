@@ -5,7 +5,6 @@ package dnsac
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	"reflect"
 	"strings"
 	"time"
