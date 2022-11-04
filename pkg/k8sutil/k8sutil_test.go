@@ -3,7 +3,9 @@
 package k8sutil_test
 
 import (
+	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"net/url"
 	"os"
 	"testing"
@@ -27,6 +29,7 @@ const dummyKubeConfig = "dummy-kubeconfig"
 const dummyk8sHost = "http://localhost"
 const appConfigName = "test"
 const appConfigNamespace = "test"
+const resultString = "{\"result\":\"result\"}"
 
 func TestGetKubeConfigLocationEnvVarTestKubeconfig(t *testing.T) {
 	asserts := assert.New(t)
@@ -298,7 +301,7 @@ func TestGetHostnameFromGatewayGatewaysForAppConfigExists(t *testing.T) {
 //	THEN ExecPod return the stdout, stderr, and a nil error
 func TestExecPod(t *testing.T) {
 	k8sutil.NewPodExecutor = spdyfake.NewPodExecutor
-	spdyfake.PodExecResult = func(url *url.URL) (string, string, error) { return "{\"result\":\"result\"}", "", nil }
+	spdyfake.PodExecResult = func(url *url.URL) (string, string, error) { return resultString, "", nil }
 	cfg, client := spdyfake.NewClientsetConfig()
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -308,7 +311,71 @@ func TestExecPod(t *testing.T) {
 	}
 	stdout, _, err := k8sutil.ExecPod(client, cfg, pod, "container", []string{"run", "some", "command"})
 	assert.Nil(t, err)
-	assert.Equal(t, "{\"result\":\"result\"}", stdout)
+	assert.Equal(t, resultString, stdout)
+
+}
+
+// TestExecPodFailure tests running a command on a remote pod
+// GIVEN a pod in a cluster and a command to run on that pod
+//
+//	WHEN ExecPod is called
+//	THEN ExecPod return the stdout, and error
+func TestExecPodFailure(t *testing.T) {
+	k8sutil.NewPodExecutor = spdyfake.NewPodExecutor
+	resultErr := errors.New("error")
+	spdyfake.PodExecResult = func(url *url.URL) (string, string, error) { return resultString, "", resultErr }
+	cfg, client := spdyfake.NewClientsetConfig()
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "ns",
+			Name:      "name",
+		},
+	}
+	stdout, _, err := k8sutil.ExecPod(client, cfg, pod, "container", []string{"run", "some", "command"})
+	assert.NotNil(t, err)
+	assert.Equal(t, "", stdout)
+
+}
+
+// TestExecPodNoTty tests running a command on a remote pod with no tty
+// GIVEN a pod in a cluster and a command to run on that pod
+//
+//	WHEN ExecPodNoTty is called
+//	THEN ExecPodNoTty return the stdout, stderr, and a nil error
+func TestExecPodNoTty(t *testing.T) {
+	k8sutil.NewPodExecutor = spdyfake.NewPodExecutor
+	spdyfake.PodExecResult = func(url *url.URL) (string, string, error) { return resultString, "", nil }
+	cfg, client := spdyfake.NewClientsetConfig()
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "ns",
+			Name:      "name",
+		},
+	}
+	stdout, _, err := k8sutil.ExecPodNoTty(client, cfg, pod, "container", []string{"run", "some", "command"})
+	assert.Nil(t, err)
+	assert.Equal(t, resultString, stdout)
+}
+
+// TestExecPodNoTtyFailure tests running a command on a remote pod with no tty
+// GIVEN a pod in a cluster and a command to run on that pod
+//
+//	WHEN ExecPodNoTty is called
+//	THEN ExecPodNoTty return the stdout, and error
+func TestExecPodNoTtyFailure(t *testing.T) {
+	k8sutil.NewPodExecutor = spdyfake.NewPodExecutor
+	resultErr := errors.New("error")
+	spdyfake.PodExecResult = func(url *url.URL) (string, string, error) { return resultString, "", resultErr }
+	cfg, client := spdyfake.NewClientsetConfig()
+	pod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "ns",
+			Name:      "name",
+		},
+	}
+	stdout, _, err := k8sutil.ExecPodNoTty(client, cfg, pod, "container", []string{"run", "some", "command"})
+	assert.NotNil(t, err)
+	assert.Equal(t, "", stdout)
 }
 
 // TestGetURLForIngress tests getting the host URL from an ingress
@@ -341,7 +408,7 @@ func TestGetURLForIngress(t *testing.T) {
 	asserts.Error(err)
 }
 
-// TestGetRunningPodForLabel tests getting a running pod for a labe;
+// TestGetRunningPodForLabel tests getting a running pod for a label
 // GIVEN a running pod  with a label in a namespace in a cluster
 //
 //	WHEN GetRunningPodForLabel is called with that label and namespace
@@ -361,4 +428,160 @@ func TestGetRunningPodForLabel(t *testing.T) {
 	pod, err := k8sutil.GetRunningPodForLabel(client, "key=value", pod.GetNamespace())
 	assert.Nil(t, err)
 	assert.Equal(t, "name", pod.Name)
+}
+
+// TestGetCoreV1Client tests getting a CoreV1Client
+//
+//	WHEN GetCoreV1Client is called
+//	THEN GetCoreV1Client returns a client and a nil error
+func TestGetCoreV1Client(t *testing.T) {
+	asserts := assert.New(t)
+	// Preserve previous env var value
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
+	// Unset KUBECONFIG environment variable
+	wd, err := os.Getwd()
+	asserts.NoError(err)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
+	asserts.NoError(err)
+	client, err := k8sutil.GetCoreV1Client()
+	assert.Nil(t, err)
+	assert.NotNil(t, client)
+	// Reset env variables
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
+	asserts.NoError(err)
+
+}
+
+// TestGetAppsV1Client tests getting a AppsV1Client
+//
+//	WHEN GetAppsV1Client is called
+//	THEN GetAppsV1Client returns a client and a nil error
+func TestGetAppsV1Client(t *testing.T) {
+	asserts := assert.New(t)
+	// Preserve previous env var value
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
+	// Unset KUBECONFIG environment variable
+	wd, err := os.Getwd()
+	asserts.NoError(err)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
+	asserts.NoError(err)
+	client, err := k8sutil.GetAppsV1Client()
+	assert.Nil(t, err)
+	assert.NotNil(t, client)
+	// Reset env variables
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
+	asserts.NoError(err)
+
+}
+
+// TestGetKubernetesClientsetOrDie tests getting a KubernetesClientset
+//
+//	WHEN GetKubernetesClientsetOrDie is called
+//	THEN GetKubernetesClientsetOrDie return clientset
+func TestGetKubernetesClientsetOrDie(t *testing.T) {
+	asserts := assert.New(t)
+	// Preserve previous env var value
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
+	// Unset KUBECONFIG environment variable
+	wd, err := os.Getwd()
+	asserts.NoError(err)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
+	asserts.NoError(err)
+	clientset := k8sutil.GetKubernetesClientsetOrDie()
+	asserts.NotNil(clientset)
+	// Reset env variables
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
+	asserts.NoError(err)
+
+}
+
+// TestGetDynamicClientInCluster tests getting a dynamic client
+// GIVEN a kubeconfigpath
+//
+//	WHEN GetDynamicClientInCluster is called
+//	THEN GetDynamicClientInCluster returns a client and a nil error
+func TestGetDynamicClientInCluster(t *testing.T) {
+	client, err := k8sutil.GetDynamicClientInCluster(dummyKubeConfig)
+	assert.Nil(t, err)
+	assert.NotNil(t, client)
+
+}
+
+// TestGetKubeConfigGivenPathAndContextWithNoKubeConfigPath tests getting a KubeConfig
+// GIVEN a kubecontext but kubeConfigPath is missing
+//
+//	WHEN GetKubeConfigGivenPathAndContext is called
+//	THEN GetKubeConfigGivenPathAndContext return the err and
+func TestGetKubeConfigGivenPathAndContextWithNoKubeConfigPath(t *testing.T) {
+	config, err := k8sutil.GetKubeConfigGivenPathAndContext("", "test")
+	assert.Error(t, err)
+	assert.Nil(t, config)
+
+}
+
+// TestErrorIfDeploymentExistsNoDeploy checks errors for deployments
+// GIVEN a deployment doesn't exist
+//
+//	WHEN ErrorIfDeploymentExists is called
+//	THEN ErrorIfDeploymentExists return a nil error
+func TestErrorIfDeploymentExistsNoDeploy(t *testing.T) {
+	k8sutil.GetAppsV1Func = common.MockGetAppsV1()
+	err := k8sutil.ErrorIfDeploymentExists(appConfigNamespace, appConfigName)
+	assert.Nil(t, err)
+}
+
+// TestErrorIfDeploymentExists checks errors for deployments
+// GIVEN a deployment exist already
+//
+//	WHEN ErrorIfDeploymentExists is called
+//	THEN ErrorIfDeploymentExists return an error
+func TestErrorIfDeploymentExists(t *testing.T) {
+	dep := common.MkDep(appConfigNamespace, appConfigName)
+	k8sutil.GetAppsV1Func = common.MockGetAppsV1(dep)
+	err := k8sutil.ErrorIfDeploymentExists(appConfigNamespace, appConfigName)
+	assert.NotNil(t, err)
+}
+
+// TestErrorIfServiceExistsNoSvc checks errors for service
+// GIVEN a service doesn't exist
+//
+//	WHEN ErrorIfServiceExists is called
+//	THEN ErrorIfServiceExists returns a nil error
+func TestErrorIfServiceExistsNoSvc(t *testing.T) {
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1()
+	err := k8sutil.ErrorIfServiceExists(appConfigNamespace, appConfigName)
+	assert.Nil(t, err)
+}
+
+// TestErrorIfServiceExists checks errors for service
+// GIVEN a service exist already
+//
+//	WHEN ErrorIfServiceExists is called
+//	THEN ErrorIfServiceExists returns an error
+func TestErrorIfServiceExists(t *testing.T) {
+	svc := common.MkSvc(appConfigNamespace, appConfigName)
+	k8sutil.GetCoreV1Func = common.MockGetCoreV1(svc)
+	err := k8sutil.ErrorIfServiceExists(appConfigNamespace, appConfigName)
+	assert.NotNil(t, err)
+}
+
+// TestGetCertManagerClientset tests getting a cert manager clientset
+//
+//	WHEN GetCertManagerClienset is called
+//	THEN GetCertManagerClienset return a non nil client and a nil error
+func TestGetCertManagerClientset(t *testing.T) {
+	asserts := assert.New(t)
+	// Preserve previous env var value
+	prevEnvVarKubeConfig := os.Getenv(k8sutil.EnvVarKubeConfig)
+	// Unset KUBECONFIG environment variable
+	wd, err := os.Getwd()
+	asserts.NoError(err)
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
+	asserts.NoError(err)
+	client, err := k8sutil.GetCertManagerClienset()
+	assert.Nil(t, err)
+	assert.NotNil(t, client)
+	// Reset env variables
+	err = os.Setenv(k8sutil.EnvVarKubeConfig, prevEnvVarKubeConfig)
+	asserts.NoError(err)
 }
