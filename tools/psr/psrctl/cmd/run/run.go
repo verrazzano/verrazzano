@@ -44,22 +44,19 @@ func NewCmdRun(vzHelper helpers.VZHelper) *cobra.Command {
 func runCmdRun(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	sc, err := scenario.FindScenarioByID(embedded.Manifests.ScenarioAbsDir, scenarioID)
 	if err != nil {
-		fmt.Printf("Failed to find scenario %s: %v", scenarioID, err)
-		return err
+		return fmt.Errorf("Failed to find scenario %s: %v", scenarioID, err)
 	}
 	if sc == nil {
-		fmt.Printf("Failed to find scenario with ID %s: %v", scenarioID, err)
-		return err
+		return fmt.Errorf("Failed to find scenario with ID %s", scenarioID)
 	}
 
 	fmt.Printf("Starting scenario %s\n", sc.ID)
 	msg, err := scenario.InstallScenario(embedded.Manifests, sc)
 	if err != nil {
 		// Cobra will display failure message
-		e := fmt.Errorf("Failed to run scenario %s: %v\n%s\n", scenarioID, err, msg)
-		return e
+		return fmt.Errorf("Failed to run scenario %s: %v\n%s", scenarioID, err, msg)
 	}
-	fmt.Printf("Scenario %s successfully installed\n", sc.ID)
+	fmt.Printf("Scenario %s successfully started\n", sc.ID)
 
 	return nil
 }

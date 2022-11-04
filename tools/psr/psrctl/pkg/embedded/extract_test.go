@@ -20,7 +20,7 @@ func TestEmbeddedManifests(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 	assertDirExists(t, tmpDir)
 
-	man, err := NewPsrManifests(tmpDir)
+	man, err := newPsrManifests(tmpDir)
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 	assertDirExists(t, man.ScenarioAbsDir)
