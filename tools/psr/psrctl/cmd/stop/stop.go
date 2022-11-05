@@ -46,6 +46,7 @@ func RunCmdStop(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("Failed to create scenario Manager %v", err)
 	}
 
+	fmt.Printf("Stopping scenario %s\n", scenarioID)
 	msg, err := m.StopScenarioByID(scenarioID)
 	if err != nil {
 		// Cobra will display failure message
