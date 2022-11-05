@@ -67,7 +67,10 @@ const (
 	caCert                     = "ca.crt"
 	privateCAValue             = "true"
 	useBundledSystemChartValue = "true"
+	SettingFirstLogin          = "first-login"
 )
+
+var GVKSetting = common.GetRancherMgmtAPIGVKForKind("Setting")
 
 func useAdditionalCAs(acme vzapi.Acme) bool {
 	return acme.Environment != "production"
@@ -277,6 +280,27 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 			return err
 		}
 		log.Infof("Rancher IsReady: Deleted clusterrepos.catalog.cattle.io %s", name)
+	}
+
+	return nil
+}
+
+// disableFirstLogin disables the verrazzano user first log in
+func disableFirstLogin(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	c := ctx.Client()
+	firstLoginSetting := unstructured.Unstructured{}
+	firstLoginSetting.SetGroupVersionKind(GVKSetting)
+	firstLoginSettingName := types.NamespacedName{Name: SettingFirstLogin}
+	err := c.Get(context.Background(), firstLoginSettingName, &firstLoginSetting)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed getting first-login setting: %s", err.Error())
+	}
+
+	firstLoginSetting.UnstructuredContent()["value"] = "false"
+	err = c.Update(context.Background(), &firstLoginSetting)
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed updating first-login setting: %s", err.Error())
 	}
 
 	return nil
