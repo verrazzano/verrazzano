@@ -36,5 +36,5 @@ func Test(t *testing.T) {
 		},
 	}
 
-	m.createScenarioConfigMap(sc)
+	m.createConfigMap(sc)
 }

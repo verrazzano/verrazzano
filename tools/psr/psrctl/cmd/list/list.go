@@ -6,8 +6,6 @@ package list
 import (
 	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/embedded"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -43,10 +41,9 @@ func NewCmdList(vzHelper helpers.VZHelper) *cobra.Command {
 
 // RunCmdList - Run the "psrctl List" command
 func RunCmdList(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	m := scenario.Manager{
-		Log:       vzlog.DefaultLogger(),
-		Manifest:  embedded.PsrManifests{},
-		Namespace: "",
+	m, err := scenario.NewManager("default")
+	if err != nil {
+		return fmt.Errorf("Failed to create scenario Manager %v", err)
 	}
 
 	scenarios, err := m.FindRunningScenarios()

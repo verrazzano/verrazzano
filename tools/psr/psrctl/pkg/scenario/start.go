@@ -23,10 +23,11 @@ type WorkerType struct {
 	}
 }
 
-// StartScenario starts a Scenario by installing a Helm chart for each use case in the scenario
+// StartScenario starts a Scenario
 func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 	helmReleases := []types.NamespacedName{}
 
+	// Make sure the scenario is not running already
 	running, err := m.FindRunningScenarios()
 	if err != nil {
 		return "", err
@@ -57,7 +58,7 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 
 		// Build release name psr-<scenarioID>-workertype-<index>
 		relname := fmt.Sprintf("psr-%s-%s-%v", scman.ID, wType, i)
-		_, stderr, err := helmcli.Upgrade(m.Log, relname, m.Namespace, m.Manifest.WorkerChartAbsDir, true, false, helmOverrides)
+		_, stderr, err := helmcli.Upgrade(m.Log, relname, m.Namespace, m.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 		if err != nil {
 			return string(stderr), err
 		}
@@ -65,16 +66,15 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 			Namespace: m.Namespace,
 			Name:      relname,
 		})
-
 		i = i + 1
 	}
 
+	// Save the scenario in a ConfigMap
 	sc := Scenario{
 		HelmReleases:     helmReleases,
 		ScenarioManifest: scman,
 	}
-
-	_, err = m.createScenarioConfigMap(sc)
+	_, err = m.createConfigMap(sc)
 	if err != nil {
 		return "", err
 	}

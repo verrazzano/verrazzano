@@ -4,6 +4,9 @@
 package scenario
 
 const (
+	// PsrPrefix is the prefix used for PSR names
+	PsrPrefix = "psr"
+
 	// LabelScenario has a bool value to indicate a resource is part of a scenario
 	LabelScenario = "psr.verrazzano.io/scenario"
 

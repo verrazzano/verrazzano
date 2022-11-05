@@ -45,20 +45,20 @@ func (m Manager) ListScenarioManifests() ([]ScenarioManifest, error) {
 
 // FindScenarioManifestByID finds a ScenarioManifest by ID
 func (m Manager) FindScenarioManifestByID(ID string) (*ScenarioManifest, error) {
-	return m.findScenarioManifest(m.Manifest.ScenarioAbsDir, func(scenario ScenarioManifest) bool {
+	return m.findScenarioManifest(func(scenario ScenarioManifest) bool {
 		return strings.EqualFold(scenario.ID, ID)
 	})
 }
 
 // FindScenarioManifestByName finds a ScenarioManifest by mame
 func (m Manager) FindScenarioManifestByName(name string) (*ScenarioManifest, error) {
-	return m.findScenarioManifest(m.Manifest.ScenarioAbsDir, func(scenario ScenarioManifest) bool {
+	return m.findScenarioManifest(func(scenario ScenarioManifest) bool {
 		return strings.EqualFold(scenario.Name, name)
 	})
 }
 
 // findScenarioManifest finds a ScenarioManifest
-func (m Manager) findScenarioManifest(scenarioAbsDir string, f func(ScenarioManifest) bool) (*ScenarioManifest, error) {
+func (m Manager) findScenarioManifest(f func(ScenarioManifest) bool) (*ScenarioManifest, error) {
 	scList, err := m.ListScenarioManifests()
 	if err != nil {
 		return nil, err
