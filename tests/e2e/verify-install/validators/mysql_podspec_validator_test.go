@@ -3,7 +3,6 @@
 package validators
 
 import (
-	"fmt"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -148,7 +147,6 @@ func checkExpectations(err error, updater *mysqlPodSpecUpdater) {
 		}
 	}
 	Expect(err).ToNot(BeNil())
-	Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("spec.environmentName %s is too long", illegalEnvironmentName)))
 	Expect(updater.hasWarnings()).To(BeTrue())
 	Expect(updater.hasWarningText(warningSubstring))
 }
