@@ -9,6 +9,7 @@ import (
 	"errors"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
+	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	fakeapiExt "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
@@ -16,7 +17,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	fake2 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1/fake"
 	testing2 "k8s.io/client-go/testing"
+	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,13 +36,62 @@ import (
 func TestCreateWebhookCertificates(t *testing.T) {
 	asserts := assert.New(t)
 	client := fake.NewSimpleClientset()
-	_ = CreateWebhookCertificates(zap.S(), client, "/etc/webhook/certs")
+
+	// create temp dir for certs
+	tempDir, err := os.MkdirTemp("", "certs")
+	t.Logf("Using temp dir %s", tempDir)
+	defer func() {
+		err := os.RemoveAll(tempDir)
+		if err != nil {
+			t.Logf("Error removing tempdir %s", tempDir)
+		}
+	}()
+	asserts.Nil(err)
+
+	err = CreateWebhookCertificates(zap.S(), client, tempDir)
+	asserts.Nil(err)
+
+	// Verify generated certs
+	cert1 := validateFile(asserts, tempDir+"/tls.crt", "-----BEGIN CERTIFICATE-----")
+	key1 := validateFile(asserts, tempDir+"/tls.key", "-----BEGIN RSA PRIVATE KEY-----")
+
+	// Verify generated secrets
 	var secret *v1.Secret
-	secret, err := client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+	secret, err = client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
 	_, err2 := client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
 	asserts.Nil(err, "error should not be returned setting up certificates")
 	asserts.Nil(err2, "error should not be returned setting up certificates")
 	asserts.NotEmpty(string(secret.Data[certKey]))
+
+	// create temp dir for certs
+	tempDir2, err := os.MkdirTemp("", "certs")
+	t.Logf("Using temp dir %s", tempDir2)
+	defer func() {
+		err := os.RemoveAll(tempDir2)
+		if err != nil {
+			t.Logf("Error removing tempdir %s", tempDir2)
+		}
+	}()
+	asserts.Nil(err)
+
+	// Call it again, should create new certs in location with identical contents
+	err = CreateWebhookCertificates(zap.S(), client, tempDir2)
+	asserts.Nil(err)
+	asserts.Nil(err)
+
+	// Verify generated certs
+	cert2 := validateFile(asserts, tempDir+"/tls.crt", "-----BEGIN CERTIFICATE-----")
+	key2 := validateFile(asserts, tempDir+"/tls.key", "-----BEGIN RSA PRIVATE KEY-----")
+
+	asserts.Equalf(cert1, cert2, "Certs did not match")
+	asserts.Equalf(key1, key2, "Keys did not match")
+}
+
+func validateFile(asserts *assert.Assertions, certFile string, certPrefix string) []byte {
+	file, err := ioutil.ReadFile(certFile)
+	asserts.Nilf(err, "Error reading file", certFile)
+	asserts.True(strings.Contains(string(file), certPrefix))
+	return file
 }
 
 // TestUpdateValidatingnWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-platform-operator
