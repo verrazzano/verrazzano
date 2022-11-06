@@ -224,22 +224,7 @@ func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commo
 
 func createCACertSecretIfNecessary(log *zap.SugaredLogger, secretsClient corev1.SecretInterface, ca *x509.Certificate,
 	caPrivKey *rsa.PrivateKey, caBytes []byte) (*x509.Certificate, *rsa.PrivateKey, error) {
-	// PEM encode CA cert
-	caPEM := new(bytes.Buffer)
-	_ = pem.Encode(caPEM, &pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: caBytes,
-	})
-
-	// PEM encode CA cert
-	caKeyPEM := new(bytes.Buffer)
-	_ = pem.Encode(caKeyPEM, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(caPrivKey),
-	})
-
-	caPEMBytes := caPEM.Bytes()
-	caKeyPEMBytes := caKeyPEM.Bytes()
+	caPEMBytes, caKeyPEMBytes := encodeCABytes(caBytes, caPrivKey)
 
 	webhookCA := v1.Secret{}
 	webhookCA.Namespace = OperatorNamespace
@@ -263,6 +248,26 @@ func createCACertSecretIfNecessary(log *zap.SugaredLogger, secretsClient corev1.
 		return nil, nil, createError
 	}
 	return ca, caPrivKey, nil
+}
+
+func encodeCABytes(caBytes []byte, caPrivKey *rsa.PrivateKey) ([]byte, []byte) {
+	// PEM encode CA cert
+	caPEM := new(bytes.Buffer)
+	_ = pem.Encode(caPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: caBytes,
+	})
+
+	// PEM encode CA cert
+	caKeyPEM := new(bytes.Buffer)
+	_ = pem.Encode(caKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(caPrivKey),
+	})
+
+	caPEMBytes := caPEM.Bytes()
+	caKeyPEMBytes := caKeyPEM.Bytes()
+	return caPEMBytes, caKeyPEMBytes
 }
 
 func decodeExistingSecretData(secret *v1.Secret) (*x509.Certificate, *rsa.PrivateKey, error) {

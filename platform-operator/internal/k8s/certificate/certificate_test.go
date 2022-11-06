@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
 	"io/ioutil"
@@ -16,6 +17,7 @@ import (
 	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	fake2 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1/fake"
+	fakecorev1 "k8s.io/client-go/kubernetes/typed/core/v1/fake"
 	testing2 "k8s.io/client-go/testing"
 	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -87,11 +89,94 @@ func TestCreateWebhookCertificates(t *testing.T) {
 	asserts.Equalf(key1, key2, "Keys did not match")
 }
 
-func validateFile(asserts *assert.Assertions, certFile string, certPrefix string) []byte {
-	file, err := ioutil.ReadFile(certFile)
-	asserts.Nilf(err, "Error reading file", certFile)
-	asserts.True(strings.Contains(string(file), certPrefix))
-	return file
+// TestCreateWebhookCertificates tests that the certificates needed for webhooks are created
+// GIVEN an output directory for certificates
+//
+//	WHEN I call CreateWebhookCertificates
+//	THEN all the needed certificate artifacts are created
+func TestCreateWebhookCertificatesErrorOnCreate(t *testing.T) {
+	asserts := assert.New(t)
+	client := fake.NewSimpleClientset()
+
+	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)
+
+	log := zap.S()
+	ca, caKey, err := createCACert(log, client, commonName)
+	asserts.Nil(err)
+	_, err = client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+	asserts.Nil(err)
+	//// CA private key
+	//caPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
+	//asserts.Nil(err)
+	//
+	//caBytes, err := x509.CreateCertificate(cryptorand.Reader, ca, ca, &caKey.PublicKey, caPrivKey)
+	//asserts.Nil(err)
+	//caPemBytes, caKeyPemBytes := encodeCABytes(caBytes, caKey)
+	//
+	//caData := make(map[string][]byte, 2)
+	//caSecret := &v1.Secret{
+	//	ObjectMeta: metav1.ObjectMeta{Name: OperatorCA, Namespace: OperatorNamespace},
+	//	Data:       caData,
+	//}
+	//caSecret.Data[certKey] = caPemBytes
+	//caSecret.Data[privKey] = caKeyPemBytes
+	//_, err = client.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), caSecret, metav1.CreateOptions{})
+	//asserts.Nil(err)
+
+	//tlsData := make(map[string][]byte, 2)
+	serverPEM, serverKeyPEM, err := createTLSCert(log, client, commonName, ca, caKey)
+	asserts.Nil(err)
+	//tlsSecret := &v1.Secret{
+	//	ObjectMeta: metav1.ObjectMeta{Name: OperatorTLS, Namespace: OperatorNamespace},
+	//}
+	_, err = client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
+	asserts.Nil(err)
+	//tlsSecret.Data[certKey] = serverPEM
+	//tlsSecret.Data[privKey] = serverKeyPEM
+	//_, err = client.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), tlsSecret, metav1.CreateOptions{})
+	//asserts.Nil(err)
+
+	// create temp dir for certs
+	tempDir, err := os.MkdirTemp("", "certs")
+	t.Logf("Using temp dir %s", tempDir)
+	defer func() {
+		err := os.RemoveAll(tempDir)
+		if err != nil {
+			t.Logf("Error removing tempdir %s", tempDir)
+		}
+	}()
+	asserts.Nil(err)
+
+	getCAInvokes := 0
+	getTLSInvokes := 0
+	client.CoreV1().(*fakecorev1.FakeCoreV1).
+		PrependReactor("get", "secrets",
+			func(action testing2.Action) (handled bool, obj runtime.Object, err error) {
+				getActionImpl := action.(testing2.GetActionImpl)
+				resName := getActionImpl.GetName()
+				if resName == OperatorCA {
+					getCAInvokes++
+					if getCAInvokes > 1 {
+						return false, nil, nil
+					}
+				} else if resName == OperatorTLS {
+					getTLSInvokes++
+					if getTLSInvokes > 1 {
+						return false, nil, nil
+					}
+				}
+				return true, nil, errors2.NewNotFound(action.GetResource().GroupResource(), getActionImpl.GetName())
+			})
+
+	err = CreateWebhookCertificates(log, client, tempDir)
+	asserts.Nil(err)
+
+	// Verify generated certs
+	cert1 := validateFile(asserts, tempDir+"/tls.crt", "-----BEGIN CERTIFICATE-----")
+	key1 := validateFile(asserts, tempDir+"/tls.key", "-----BEGIN RSA PRIVATE KEY-----")
+
+	asserts.Equalf(serverPEM, cert1, "Certs did not match")
+	asserts.Equalf(serverKeyPEM, key1, "Keys did not match")
 }
 
 // TestUpdateValidatingnWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-platform-operator
@@ -384,4 +469,11 @@ func createInvalidExpectedValidatingWebhook(kubeClient *fake.Clientset, whName s
 		},
 	}
 	return kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
+}
+
+func validateFile(asserts *assert.Assertions, certFile string, certPrefix string) []byte {
+	file, err := ioutil.ReadFile(certFile)
+	asserts.Nilf(err, "Error reading file", certFile)
+	asserts.True(strings.Contains(string(file), certPrefix))
+	return file
 }
