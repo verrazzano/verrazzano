@@ -35,7 +35,7 @@ const (
 )
 
 type scaleWorker struct {
-	spi.Worker
+	spi.Worker     // delete this
 	metricDescList []prometheus.Desc
 	*workerMetrics
 	*nextScale
@@ -104,7 +104,7 @@ func (w scaleWorker) GetEnvDescList() []osenv.EnvVarDesc {
 	}
 }
 
-func (w scaleWorker) WantIterationInfoLogged() bool {
+func (w scaleWorker) WantLoopInfoLogged() bool {
 	return false
 }
 
@@ -160,14 +160,14 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 	for {
 		err := update.UpdateCRV1beta1(m)
 		if err != nil {
-			if er.IsUpdateConflict(err) {
+			if er.IsUpdateConflict(err) || er.IsReconcileError(err) {
+				time.Sleep(3 * time.Second)
 				continue
 			} else {
 				return fmt.Errorf("failed to scale OpenSearch %s replicas: %f", tier, err)
 			}
-		} else {
-			break
 		}
+		break
 	}
 
 	for {
@@ -194,7 +194,7 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 			log.Infof(logMsg)
 			break
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(3 * time.Second)
 	}
 	return nil
 }
