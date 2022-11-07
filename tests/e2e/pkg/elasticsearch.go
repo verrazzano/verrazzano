@@ -910,7 +910,7 @@ func isException(log string, exceptions []*regexp.Regexp) bool {
 // FindLog returns true if a recent log record can be found in the index with matching filters.
 func FindLog(index string, match []Match, mustNot []Match) bool {
 	after := time.Now().Add(-24 * time.Hour)
-	query := OpenQuery{
+	query := OpensearchQuery{
 		Filters: match,
 		MustNot: mustNot,
 	}
@@ -924,7 +924,7 @@ func FindLog(index string, match []Match, mustNot []Match) bool {
 
 // FindAnyLog returns true if a log record of any time can be found in the index with matching filters.
 func FindAnyLog(index string, match []Match, mustNot []Match) bool {
-	query := OpenQuery{
+	query := OpensearchQuery{
 		Filters: match,
 		MustNot: mustNot,
 	}
@@ -940,7 +940,7 @@ const numberOfErrorsToLog = 5
 
 // NoLog returns true if no matched log record can be found in the index.
 func NoLog(index string, match []Match, mustNot []Match) bool {
-	query := OpenQuery{
+	query := OpensearchQuery{
 		Filters: match,
 		MustNot: mustNot,
 	}
@@ -963,24 +963,24 @@ func NoLog(index string, match []Match, mustNot []Match) bool {
 	return false
 }
 
-var openQueryTemplate *template.Template
+var opensearchQueryTemplate *template.Template
 
 // SearchLog search recent log records for the index with matching filters.
-func SearchLog(index string, query OpenQuery) map[string]interface{} {
+func SearchLog(index string, query OpensearchQuery) map[string]interface{} {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf(kubeconfigErrorFormat, err))
 		return nil
 	}
-	if openQueryTemplate == nil {
+	if opensearchQueryTemplate == nil {
 		temp, err := template.New("esQueryTemplate").Parse(queryTemplate)
 		if err != nil {
 			Log(Error, fmt.Sprintf("Error: %v", err))
 		}
-		openQueryTemplate = temp
+		opensearchQueryTemplate = temp
 	}
 	var buffer bytes.Buffer
-	err = openQueryTemplate.Execute(&buffer, query)
+	err = opensearchQueryTemplate.Execute(&buffer, query)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error: %v", err))
 	}
@@ -1144,8 +1144,8 @@ func CheckForDataStream(name string) bool {
 	return true
 }
 
-// OpenQuery describes an Opensearch Query
-type OpenQuery struct {
+// OpensearchQuery describes an Opensearch Query
+type OpensearchQuery struct {
 	Filters []Match
 	MustNot []Match
 }

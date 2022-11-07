@@ -14,49 +14,49 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-// Open contains information about the Opensearch instance
-type Open struct {
-	ClusterName   string      `json:"cluster_name"`
-	EsVersion     OpenVersion `json:"version"`
+// Opensearch contains information about the Opensearch instance
+type Opensearch struct {
+	ClusterName   string            `json:"cluster_name"`
+	EsVersion     OpensearchVersion `json:"version"`
 	binding       string
 	vmiHTTPClient *retryablehttp.Client
 }
 
-// OpenVersion contains information about the version of Opensearch instance
-type OpenVersion struct {
+// OpensearchVersion contains information about the version of Opensearch instance
+type OpensearchVersion struct {
 	Number       string `json:"number"`
 	Distribution string `json:"distribution"`
 }
 
-// GetOpen gets Open representing the opensearch cluster with the binding name
-func GetOpen(binding string) *Open {
-	return &Open{
+// GetOpensearch gets Opensearch representing the opensearch cluster with the binding name
+func GetOpensearch(binding string) *Opensearch {
+	return &Opensearch{
 		binding: binding,
 	}
 }
 
 // PodsRunning checks if all opensearch required pods are running
-func (e *Open) PodsRunning() bool {
-	expectedOpenPods := []string{
+func (e *Opensearch) PodsRunning() bool {
+	expectedOpensearchPods := []string{
 		fmt.Sprintf("vmi-%s-es-master", e.binding),
 		fmt.Sprintf("vmi-%s-kibana", e.binding),
 		fmt.Sprintf("vmi-%s-grafana", e.binding),
 		fmt.Sprintf("vmi-%s-prometheus", e.binding),
 		fmt.Sprintf("vmi-%s-api", e.binding)}
-	running, _ := pkg.PodsRunning("verrazzano-system", expectedOpenPods)
+	running, _ := pkg.PodsRunning("verrazzano-system", expectedOpensearchPods)
 
 	if running {
-		expectedOpenPods = []string{
+		expectedOpensearchPods = []string{
 			fmt.Sprintf("vmi-%s-es-ingest", e.binding),
 			fmt.Sprintf("vmi-%s-es-data", e.binding)}
-		running, _ = pkg.PodsRunning("verrazzano-system", expectedOpenPods)
+		running, _ = pkg.PodsRunning("verrazzano-system", expectedOpensearchPods)
 	}
 
 	return running
 }
 
 // getResponseBody gets the response body for the specified path from opensearch cluster
-func (e *Open) getResponseBody(path string) ([]byte, error) {
+func (e *Opensearch) getResponseBody(path string) ([]byte, error) {
 	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
@@ -64,7 +64,7 @@ func (e *Open) getResponseBody(path string) ([]byte, error) {
 	}
 
 	api := pkg.EventuallyGetAPIEndpoint(kubeConfigPath)
-	esURL, err := api.GetOpenURL()
+	esURL, err := api.GetOpensearchURL()
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting Opensearch URL: %v", err))
 		return nil, err
@@ -81,7 +81,7 @@ func (e *Open) getResponseBody(path string) ([]byte, error) {
 }
 
 // Connect checks if the Opensearch cluster can be connected
-func (e *Open) Connect() bool {
+func (e *Opensearch) Connect() bool {
 	body, err := e.getResponseBody("/")
 	if err != nil {
 		return false
@@ -90,7 +90,7 @@ func (e *Open) Connect() bool {
 	return err == nil
 }
 
-func (e *Open) retryGet(url, username, password string, kubeconfigPath string) ([]byte, error) {
+func (e *Opensearch) retryGet(url, username, password string, kubeconfigPath string) ([]byte, error) {
 	req, _ := retryablehttp.NewRequest("GET", url, nil)
 	req.SetBasicAuth(username, password)
 	client, err := e.GetVmiHTTPClient(kubeconfigPath)
@@ -120,7 +120,7 @@ func (e *Open) retryGet(url, username, password string, kubeconfigPath string) (
 	return httpResp.Body, nil
 }
 
-func (e *Open) GetVmiHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
+func (e *Opensearch) GetVmiHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
 	if e.vmiHTTPClient == nil {
 		var err error
 		e.vmiHTTPClient, err = pkg.GetVerrazzanoHTTPClient(kubeconfigPath)
@@ -132,7 +132,7 @@ func (e *Open) GetVmiHTTPClient(kubeconfigPath string) (*retryablehttp.Client, e
 }
 
 // ListIndices lists Opensearch indices
-func (e *Open) ListIndices() []string {
+func (e *Opensearch) ListIndices() []string {
 	idx := []string{}
 	for i := range e.getIndices() {
 		idx = append(idx, i)
@@ -141,7 +141,7 @@ func (e *Open) ListIndices() []string {
 }
 
 // getIndices gets index metadata (aliases, mappings, and settings) of all Opensearch indices in the given cluster
-func (e *Open) getIndices() map[string]interface{} {
+func (e *Opensearch) getIndices() map[string]interface{} {
 	body, err := e.getResponseBody("/_all")
 	if err != nil {
 		pkg.Log(pkg.Info, fmt.Sprintf("Error ListIndices error: %v", err))
@@ -153,14 +153,14 @@ func (e *Open) getIndices() map[string]interface{} {
 }
 
 // CheckTLSSecret checks the Opensearch secret
-func (e *Open) CheckTLSSecret() bool {
+func (e *Opensearch) CheckTLSSecret() bool {
 	secretName := fmt.Sprintf("%v-tls", e.binding)
 	return pkg.SecretsCreated("verrazzano-system", secretName)
 }
 
 // CheckHealth checks the health status of Opensearch cluster
 // Returns true if the health status is green otherwise false
-func (e *Open) CheckHealth(kubeconfigPath string) bool {
+func (e *Opensearch) CheckHealth(kubeconfigPath string) bool {
 	supported, err := pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano version: %v", err))
@@ -195,7 +195,7 @@ func (e *Open) CheckHealth(kubeconfigPath string) bool {
 
 // CheckIndicesHealth checks the health status of indices in a cluster
 // Returns true if the health status of all the indices is green otherwise false
-func (e *Open) CheckIndicesHealth(kubeconfigPath string) bool {
+func (e *Opensearch) CheckIndicesHealth(kubeconfigPath string) bool {
 	supported, err := pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano version: %v", err))
@@ -234,7 +234,7 @@ func (e *Open) CheckIndicesHealth(kubeconfigPath string) bool {
 }
 
 // //Check the Opensearch certificate
-// func (e *Open) CheckCertificate() bool {
+// func (e *Opensearch) CheckCertificate() bool {
 //	certList, _ := pkg.ListCertificates("verrazzano-system")
 //	for _, cert := range certList.Items {
 //		if cert.Name == fmt.Sprintf("%v-tls", e.binding) {
@@ -251,7 +251,7 @@ func (e *Open) CheckIndicesHealth(kubeconfigPath string) bool {
 // }
 
 // CheckIngress checks the Opensearch Ingress
-func (e *Open) CheckIngress() bool {
+func (e *Opensearch) CheckIngress() bool {
 	ingressList, err := pkg.ListIngresses("verrazzano-system")
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Could not get list of ingresses: %v", err))
