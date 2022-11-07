@@ -356,7 +356,6 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 	})
 	t.Context("WebLogic logging.", Label("f:observability.logging.es"), func() {
 		var bobsIndexName string
-		var err error
 		Eventually(func() error {
 			bobsIndexName, err = pkg.GetOpenSearchAppIndex(namespace)
 			return err
@@ -574,7 +573,6 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 	})
 	t.Context("Coherence logging.", Label("f:observability.logging.es"), func() {
 		var indexName string
-		var err error
 		Eventually(func() error {
 			indexName, err = pkg.GetOpenSearchAppIndex(namespace)
 			return err

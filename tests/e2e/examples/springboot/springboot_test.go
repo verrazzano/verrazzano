@@ -111,7 +111,6 @@ var _ = t.Describe("Spring Boot test", Label("f:app-lcm.oam",
 
 	t.Context("for Logging.", Label("f:observability.logging.es"), FlakeAttempts(5), func() {
 		var indexName string
-		var err error
 		Eventually(func() error {
 			indexName, err = pkg.GetOpenSearchAppIndex(namespace)
 			return err
