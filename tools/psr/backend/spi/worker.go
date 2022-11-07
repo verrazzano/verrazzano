@@ -33,8 +33,8 @@ type Worker interface {
 	// DoWork implements the worker use case
 	DoWork(config.CommonConfig, vzlog.VerrazzanoLogger) error
 
-	// WantIterationInfoLogged returns true if the runner should log information for each iteration
-	WantIterationInfoLogged() bool
+	// WantLoopInfoLogged returns true if the runner should log information for each loop
+	WantLoopInfoLogged() bool
 
 	// WorkerMetricsProvider is an interface to get prometheus metrics information for the worker
 	WorkerMetricsProvider

@@ -20,6 +20,7 @@ spec:
             spec:
               scraper: verrazzano-system/vmi-system-prometheus-0
               path: "/metrics"
+              port: 9090
         - trait:
             apiVersion: core.oam.dev/v1alpha2
             kind: ManualScalerTrait

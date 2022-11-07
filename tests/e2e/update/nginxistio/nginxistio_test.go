@@ -12,27 +12,20 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"sigs.k8s.io/yaml"
-
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-
-	"github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	. "github.com/onsi/ginkgo/v2"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
-
+	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
+	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/yaml"
 )
 
 const (

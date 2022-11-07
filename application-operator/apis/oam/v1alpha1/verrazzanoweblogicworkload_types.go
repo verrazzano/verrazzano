@@ -20,9 +20,9 @@ type VerrazzanoWebLogicWorkloadSpec struct {
 type VerrazzanoWebLogicWorkloadStatus struct {
 	// The last generation of the Verrazzano WebLogic workload that was reconciled.
 	LastGeneration string `json:"lastGeneration,omitempty"`
-	// The last value of the verrazzano.io/restart-version annotation.
+	// The last value of the `verrazzano.io/restart-version` annotation.
 	LastRestartVersion string `json:"lastRestartVersion,omitempty"`
-	// The last value of the verrazzano.io/lifecycle-action.
+	// The last value of the `verrazzano.io/lifecycle-action`.
 	LastLifecycleAction string `json:"lastLifecycleAction,omitempty"`
 }
 
