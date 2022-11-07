@@ -320,6 +320,7 @@ func GetExternalOpenSearchURL(kubeconfigPath string) string {
 
 // GetSystemOpenSearchIngressURL gets the system Opensearch Ingress host in the given cluster
 func GetSystemOpenSearchIngressURL(kubeconfigPath string) string {
+	minVZVersion150, _ := IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
@@ -327,8 +328,11 @@ func GetSystemOpenSearchIngressURL(kubeconfigPath string) string {
 	}
 	ingressList, _ := clientset.NetworkingV1().Ingresses(VerrazzanoNamespace).List(context.TODO(), metav1.ListOptions{})
 	for _, ingress := range ingressList.Items {
-		if ingress.Name == "vmi-system-os-ingest" {
-			Log(Info, fmt.Sprintf("Found Elasticsearch Ingress %v, host %s", ingress.Name, ingress.Spec.Rules[0].Host))
+		if minVZVersion150 && ingress.Name == "vmi-system-os-ingest" {
+			Log(Info, fmt.Sprintf("Found Opensearch Ingress %v, host %s", ingress.Name, ingress.Spec.Rules[0].Host))
+			return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
+		} else if !minVZVersion150 && ingress.Name == "vmi-system-es-ingest" {
+			Log(Info, fmt.Sprintf("Found Opensearch Ingress %v, host %s", ingress.Name, ingress.Spec.Rules[0].Host))
 			return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 		}
 	}
