@@ -17,7 +17,7 @@ import (
 const (
 	CommandName = "explain"
 	helpShort   = "Explain a PSR scenario that can be started"
-	helpLong    = `The command 'explain' explains scenarios manifests that can be started.  The scenarios are represented by
+	helpLong    = `The command 'explain' describes scenarios that can be started.  The scenarios are represented by
 manifest files built into the psrctl binary.  Multiple scenarios can be started in the same namespace.`
 	helpExample = `
 psrctl explain 
