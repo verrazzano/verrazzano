@@ -29,7 +29,6 @@ const LogLength = "LOG_LENGTH"
 const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
 
 type postLogs struct {
-	spi.Worker
 	metricDescList []prometheus.Desc
 	*workerMetrics
 }
@@ -87,7 +86,7 @@ func NewPostLogsWorker() (spi.Worker, error) {
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w postLogs) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		EnvName:     config.WorkerTypePostLogs,
+		WorkerType:  config.WorkerTypePostLogs,
 		Description: "The postlogs worker performs POST requests on the OpenSearch endpoint",
 		MetricsName: "postlogs",
 	}

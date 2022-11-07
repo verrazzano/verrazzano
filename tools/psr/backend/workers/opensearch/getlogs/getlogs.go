@@ -27,7 +27,6 @@ const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
 const letters = "abcdefghijklmnopqrstuvwxyz"
 
 type getLogs struct {
-	spi.Worker
 	metricDescList []prometheus.Desc
 	*workerMetrics
 }
@@ -85,7 +84,7 @@ func NewGetLogsWorker() (spi.Worker, error) {
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w getLogs) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		EnvName:     config.WorkerTypeGetLogs,
+		WorkerType:  config.WorkerTypeGetLogs,
 		Description: "The log getter worker performs GET requests on the OpenSearch endpoint",
 		MetricsName: "getlogs",
 	}

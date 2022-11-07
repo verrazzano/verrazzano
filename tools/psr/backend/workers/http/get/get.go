@@ -16,6 +16,8 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 )
 
+var httpGetFunc func(url string) (resp *http.Response, err error) = http.Get
+
 const (
 	// ServiceName specifies the name of the service in the local cluster
 	// By default, the ServiceName is not specified
@@ -34,13 +36,12 @@ const (
 	Path = "PATH"
 )
 
-type get struct {
-	spi.Worker
+type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetrics
 }
 
-var _ spi.Worker = get{}
+var _ spi.Worker = worker{}
 
 // workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
 type workerMetrics struct {
@@ -50,7 +51,7 @@ type workerMetrics struct {
 }
 
 func NewHTTPGetWorker() (spi.Worker, error) {
-	w := get{workerMetrics: &workerMetrics{
+	w := worker{workerMetrics: &workerMetrics{
 		getRequestsCountTotal: metrics.MetricItem{
 			Name: "get_request_count_total",
 			Help: "The total number of GET requests",
@@ -77,15 +78,15 @@ func NewHTTPGetWorker() (spi.Worker, error) {
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
-func (w get) GetWorkerDesc() spi.WorkerDesc {
+func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		EnvName:     config.WorkerTypeHTTPGet,
+		WorkerType:  config.WorkerTypeHTTPGet,
 		Description: "The get worker makes GET request on the given endpoint",
-		MetricsName: "httpget",
+		MetricsName: config.WorkerTypeHTTPGet,
 	}
 }
 
-func (w get) GetEnvDescList() []osenv.EnvVarDesc {
+func (w worker) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{
 		{Key: ServiceName, DefaultVal: "", Required: true},
 		{Key: ServiceNamespace, DefaultVal: "", Required: true},
@@ -94,11 +95,11 @@ func (w get) GetEnvDescList() []osenv.EnvVarDesc {
 	}
 }
 
-func (w get) GetMetricDescList() []prometheus.Desc {
+func (w worker) GetMetricDescList() []prometheus.Desc {
 	return w.metricDescList
 }
 
-func (w get) GetMetricList() []prometheus.Metric {
+func (w worker) GetMetricList() []prometheus.Metric {
 	return []prometheus.Metric{
 		w.getRequestsCountTotal.BuildMetric(),
 		w.getRequestsSucceededCountTotal.BuildMetric(),
@@ -106,23 +107,25 @@ func (w get) GetMetricList() []prometheus.Metric {
 	}
 }
 
-func (w get) WantLoopInfoLogged() bool {
+func (w worker) WantLoopInfoLogged() bool {
 	return false
 }
 
-func (w get) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	var lc, ls, lf int64
 	//increment getRequestsCountTotal
 	lc = atomic.AddInt64(&w.workerMetrics.getRequestsCountTotal.Val, 1)
-	resp, err := http.Get("http://" + config.PsrEnv.GetEnv(ServiceName) +
+	resp, err := httpGetFunc("http://" + config.PsrEnv.GetEnv(ServiceName) +
 		"." + config.PsrEnv.GetEnv(ServiceNamespace) +
 		".svc.cluster.local:" +
 		config.PsrEnv.GetEnv(ServicePort) +
 		"/" + config.PsrEnv.GetEnv(Path))
 	if err != nil {
+		lf = atomic.AddInt64(&w.workerMetrics.getRequestsFailedCountTotal.Val, 1)
 		return err
 	}
 	if resp == nil {
+		lf = atomic.AddInt64(&w.workerMetrics.getRequestsFailedCountTotal.Val, 1)
 		return fmt.Errorf("GET request to endpoint received a nil response")
 	}
 	if resp.StatusCode == 200 {

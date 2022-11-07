@@ -16,7 +16,8 @@ import (
 const (
 	CommandName = "start"
 	helpShort   = "Start a PSR scenario"
-	helpLong    = `The command 'start' starts a PSR scenario in the specified namespace`
+	helpLong    = `The command 'start' starts a PSR scenario in the specified namespace. 
+Multiple scenarios can be started in the same namespace.`
 	helpExample = `psrctl start -s ops-s1`
 )
 

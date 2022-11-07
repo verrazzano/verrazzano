@@ -15,7 +15,6 @@ import (
 )
 
 type logWriter struct {
-	spi.Worker
 	metricDescList []prometheus.Desc
 	*workerMetrics
 }
@@ -52,7 +51,7 @@ func NewWriteLogsWorker() (spi.Worker, error) {
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w logWriter) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		EnvName:     config.WorkerTypeWriteLogs,
+		WorkerType:  config.WorkerTypeWriteLogs,
 		Description: "The writelogs worker writes logs to STDOUT, putting a load on OpenSearch",
 		MetricsName: "writelogs",
 	}
