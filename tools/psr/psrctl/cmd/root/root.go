@@ -13,9 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
 
-var kubeconfig string
-var context string
-
 const (
 	CommandName = "psrctl"
 	helpShort   = "The psrctl tool runs PSR scenarios in a Verrazzano environment"
@@ -36,10 +33,6 @@ All scenario and use case configuration is controlled by YAML files that are com
 // NewRootCmd - create the root cobra command
 func NewRootCmd(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
-
-	// Add global flags
-	//cmd.PersistentFlags().StringVar(&kubeconfig, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
-	//cmd.PersistentFlags().StringVar(&context, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)
 
 	// Add commands
 	cmd.AddCommand(explain.NewCmdExplain(vzHelper))
