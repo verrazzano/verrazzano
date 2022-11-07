@@ -8,4 +8,8 @@ const (
 	FlagNamespace      = "namespace"
 	FlagNamespaceShort = "n"
 	FlagNamespaceHelp  = "specifies the namespace"
+
+	FlagVerbose      = "verbose"
+	FlagVerboseShort = "v"
+	FlagVerboseHelp  = "verbose output"
 )

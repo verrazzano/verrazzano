@@ -31,7 +31,7 @@ func NewCmdList(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.Example = helpExample
 
 	cmd.PersistentFlags().StringVarP(&scenarioID, constants.FlagScenario, constants.FlagsScenarioShort, "", constants.FlagScenarioHelp)
-	cmd.PersistentFlags().StringVarP(&namespace, constants.FlagNamespace, constants.FlagNamespaceShort, "default", constants.FlagNamespaceHelp)
+	cmd.PersistentFlags().StringVarP(&namespace, constants.FlagNamespace, constants.FlagNamespaceShort, "", constants.FlagNamespaceHelp)
 
 	return cmd
 }
@@ -49,7 +49,11 @@ func RunCmdList(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("Failed to find running scenarios %s: %v", scenarioID, err)
 	}
 	if len(scenarios) == 0 {
-		fmt.Println("There are no scenarios running in the cluster")
+		if len(namespace) == 0 {
+			fmt.Println("There are no scenarios running in the cluster")
+		} else {
+			fmt.Printf("There are no scenarios running in namespace %s\n", namespace)
+		}
 		return nil
 	}
 
