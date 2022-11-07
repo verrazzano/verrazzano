@@ -17,6 +17,11 @@ import (
 )
 
 const (
+	replicasOverrides = `
+{
+  "routerInstances": 3,
+  "serverInstances": 3
+}`
 	modifiedServerPodSpec = `
 {
   "podSpec": {
@@ -194,11 +199,18 @@ func TestNoValidationWarningForRouterPodSpecV1beta1(t *testing.T) {
 				Keycloak: &v1beta1.KeycloakComponent{
 					MySQL: v1beta1.MySQLComponent{
 						InstallOverrides: v1beta1.InstallOverrides{
-							ValueOverrides: []v1beta1.Overrides{{
-								Values: &apiextensionsv1.JSON{
-									Raw: []byte(modifiedRouterPodSpec),
+							ValueOverrides: []v1beta1.Overrides{
+								{
+									Values: &apiextensionsv1.JSON{
+										Raw: []byte(replicasOverrides),
+									},
 								},
-							}},
+								{
+									Values: &apiextensionsv1.JSON{
+										Raw: []byte(modifiedRouterPodSpec),
+									},
+								},
+							},
 						},
 					},
 				},
@@ -226,11 +238,18 @@ func TestNoValidationWarningWithoutServerPodSpecV1beta1(t *testing.T) {
 				Keycloak: &v1beta1.KeycloakComponent{
 					MySQL: v1beta1.MySQLComponent{
 						InstallOverrides: v1beta1.InstallOverrides{
-							ValueOverrides: []v1beta1.Overrides{{
-								Values: &apiextensionsv1.JSON{
-									Raw: []byte(noPodSpec),
+							ValueOverrides: []v1beta1.Overrides{
+								{
+									Values: &apiextensionsv1.JSON{
+										Raw: []byte(replicasOverrides),
+									},
 								},
-							}},
+								{
+									Values: &apiextensionsv1.JSON{
+										Raw: []byte(noPodSpec),
+									},
+								},
+							},
 						},
 					},
 				},

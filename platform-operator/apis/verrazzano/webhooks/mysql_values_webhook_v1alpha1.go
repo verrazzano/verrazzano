@@ -12,7 +12,6 @@ import (
 	k8sadmission "k8s.io/api/admission/v1"
 	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
-	"sigs.k8s.io/yaml"
 )
 
 // MysqlValuesValidatorV1alpha1 is a struct holding objects used during validation.
@@ -30,8 +29,6 @@ func (v *MysqlValuesValidatorV1alpha1) InjectDecoder(d *admission.Decoder) error
 // Handle performs validation of created or updated Verrazzano resources.
 func (v *MysqlValuesValidatorV1alpha1) Handle(ctx context.Context, req admission.Request) admission.Response {
 	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "verrazzano-platform-mysqlinstalloverrides")
-
-	log.Infof("Processing MySQL install override values")
 	vz := &v1alpha1.Verrazzano{}
 	err := v.decoder.Decode(req, vz)
 	if err != nil {
@@ -60,24 +57,16 @@ func (v *MysqlValuesValidatorV1alpha1) validateMysqlValuesV1alpha1(log *zap.Suga
 	if isMinVersion(versionToCompare, MinVersion) {
 		if newVz.Spec.Components.Keycloak != nil {
 			// compare overrides from current and previous VZ
-			var overrides []byte
-			var err error
-			if len(newVz.Spec.Components.Keycloak.MySQL.ValueOverrides) > 0 {
-				overrides, err = yaml.Marshal(newVz.Spec.Components.Keycloak.MySQL.ValueOverrides)
-			}
-			if err != nil {
-				return admission.Errored(http.StatusBadRequest, err)
-			}
-			log.Debugf("Validating v1alpha1 MySQL overrides")
-			currentOverrides := string(overrides)
-			serverPodSpecValue, err := extractValueFromOverrideString(currentOverrides, "0.values.podSpec")
-			if err != nil {
-				return admission.Errored(http.StatusBadRequest, err)
-			}
-
-			if serverPodSpecValue != nil {
-				response = admission.Allowed("").WithWarnings("Modifications to MySQL server pod specs do not trigger an automatic restart of the stateful set. " +
-					"Please refer to the documentation for a rolling restart: https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#rollout")
+			newMySQLOverrides := newVz.Spec.Components.Keycloak.MySQL.ValueOverrides
+			for _, override := range newMySQLOverrides {
+				var err error
+				hasWarning, warning, err := inspectOverride(override.Values)
+				if err != nil {
+					return admission.Errored(http.StatusBadRequest, err)
+				}
+				if hasWarning {
+					response = admission.Allowed("").WithWarnings(warning)
+				}
 			}
 		}
 	}

@@ -3,30 +3,25 @@
 package validators
 
 import (
-	"context"
-
-	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
+	"time"
 )
 
-// runValidatorTest Attempt to use an illegal overrides value on the Jaeger operator configuration
-func runValidatorTest() {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Fail(err.Error())
-		return
-	}
-	cr, err := pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
-	if err != nil {
-		Fail(err.Error())
-		return
-	}
+const (
+	waitTimeout     = 3 * time.Minute
+	pollingInterval = 10 * time.Second
+
+	expectedJaegerErrorMessage = "the Jaeger Operator Helm chart value nameOverride cannot be overridden"
+)
+
+type jaegerIllegalUpdater struct{}
+
+func (j jaegerIllegalUpdater) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
 	// Attempt to make an illegal edit to the Jaeger configuration to ensure its component validation is working properly
 	trueValue := true
 	if cr.Spec.Components.JaegerOperator == nil {
@@ -40,23 +35,49 @@ func runValidatorTest() {
 	cr.Spec.Components.JaegerOperator.InstallOverrides.ValueOverrides = append(
 		cr.Spec.Components.JaegerOperator.InstallOverrides.ValueOverrides,
 		v1beta1.Overrides{Values: illegalValuesObj})
+}
 
-	t.Logs.Infof("Attempting to set an illegal override value for Jaeger component: %v", string(illegalValuesObj.Raw))
-	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
-	if err != nil {
-		Fail(err.Error())
-		return
+func (j jaegerIllegalUpdater) ModifyCR(cr *v1alpha1.Verrazzano) {
+	// Attempt to make an illegal edit to the Jaeger configuration to ensure its component validation is working properly
+	trueValue := true
+	if cr.Spec.Components.JaegerOperator == nil {
+		cr.Spec.Components.JaegerOperator = &v1alpha1.JaegerOperatorComponent{}
 	}
-	client, err := vpoClient.NewForConfig(config)
-	if err != nil {
-		Fail(err.Error())
-		return
+	cr.Spec.Components.JaegerOperator.Enabled = &trueValue
+	illegalOverride := `{"nameOverride": "testjaeger"}`
+	illegalValuesObj := &apiextensionsv1.JSON{
+		Raw: []byte(illegalOverride),
 	}
-	vzClient := client.VerrazzanoV1beta1().Verrazzanos(cr.Namespace)
-	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
-	if err != nil {
+	cr.Spec.Components.JaegerOperator.InstallOverrides.ValueOverrides = append(
+		cr.Spec.Components.JaegerOperator.InstallOverrides.ValueOverrides,
+		v1alpha1.Overrides{Values: illegalValuesObj})
+}
+
+var _ update.CRModifier = jaegerIllegalUpdater{}
+var _ update.CRModifierV1beta1 = jaegerIllegalUpdater{}
+
+// runValidatorTestV1Beta1 Attempt to use an illegal overrides value on the Jaeger operator configuration using the v1beta1 API
+func runValidatorTestV1Beta1() {
+	Eventually(func() bool {
+		err := update.UpdateCRV1beta1(jaegerIllegalUpdater{})
+		if err == nil {
+			t.Logs.Info("Did not get an error on illegal update")
+			return false
+		}
 		t.Logs.Infof("Update error: %s", err.Error())
-	}
-	Expect(err).ToNot(BeNil())
-	Expect(err.Error()).To(ContainSubstring("the Jaeger Operator Helm chart value nameOverride cannot be overridden"))
+		return strings.Contains(err.Error(), expectedJaegerErrorMessage)
+	}, waitTimeout, pollingInterval).Should(BeTrue())
+}
+
+// runValidatorTestV1Alpha1 Attempt to use an illegal overrides value on the Jaeger operator configuration using the v1alpha1 API
+func runValidatorTestV1Alpha1() {
+	Eventually(func() bool {
+		err := update.UpdateCR(jaegerIllegalUpdater{})
+		if err == nil {
+			t.Logs.Info("Did not get an error on illegal update")
+			return false
+		}
+		t.Logs.Infof("Update error: %s", err.Error())
+		return strings.Contains(err.Error(), expectedJaegerErrorMessage)
+	}, waitTimeout, pollingInterval).Should(BeTrue())
 }
