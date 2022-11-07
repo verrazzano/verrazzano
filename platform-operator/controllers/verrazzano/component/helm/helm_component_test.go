@@ -995,7 +995,7 @@ func fakePreUpgrade(log vzlog.VerrazzanoLogger, client clipkg.Client, release st
 
 // TestIsAvailable tests IsAvailable to check whether a component is available for end users
 func TestIsAvailable(t *testing.T) {
-
+	deploymentName := "testDeployment"
 	tests := []struct {
 		name          string
 		component     HelmComponent
@@ -1024,6 +1024,18 @@ func TestIsAvailable(t *testing.T) {
 			spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false),
 			"",
 			true,
+		},
+		// GIVEN Helm component with AvailabilityObjects
+		// WHEN  IsAvailable is called
+		// THEN false is returned if component is not available
+		{
+			"TestIsAvailableWithAvailableObject",
+			HelmComponent{
+				AvailabilityObjects: &ready.AvailabilityObjects{DeploymentNames: []types.NamespacedName{{testNs, deploymentName}}},
+			},
+			spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false),
+			fmt.Sprintf("waiting for deployment %s/%s to exist", testNs, deploymentName),
+			false,
 		},
 	}
 	for _, tt := range tests {
