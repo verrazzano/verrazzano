@@ -14,8 +14,8 @@ import (
 
 const (
 	CommandName = "list"
-	helpShort   = "List all of the running PSR scenarios"
-	helpLong    = `The command 'list' lists the PSR scenarios that are running in the cluster`
+	helpShort   = "List the running PSR scenarios"
+	helpLong    = `The command 'list' lists the PSR scenarios that are running in the specified namespace or the cluster`
 	helpExample = `
 psrctl list 
 psrctl list -A
