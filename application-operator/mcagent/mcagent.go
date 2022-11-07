@@ -18,7 +18,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,7 +55,6 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 		if err != nil {
 			s.Log.Errorf("Failed processing multi-cluster resources: %v", err)
 		}
-		s.updateDeployment("verrazzano-monitoring-operator")
 		s.configureJaegerCR(false)
 		if !s.AgentReadyToSync() {
 			// there is no admin cluster we are connected to, so nowhere to send any status updates
@@ -256,46 +254,6 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	}
 
 	return clientset, nil
-}
-
-// reconfigure deployment if cluster registration has been changed
-func (s *Syncer) updateDeployment(name string) {
-	// Get the deployment
-	deploymentName := types.NamespacedName{Name: name, Namespace: constants.VerrazzanoSystemNamespace}
-	deployment := appsv1.Deployment{}
-	err := s.LocalClient.Get(context.TODO(), deploymentName, &deployment)
-	if err != nil {
-		s.Log.Errorf("Failed to find the deployment %s: %v", deploymentName, err)
-		return
-	}
-	if len(deployment.Spec.Template.Spec.Containers) < 1 {
-		s.Log.Debugf("No container defined in the deployment %s", deploymentName)
-		return
-	}
-
-	// get the cluster name
-	secretVersion := ""
-	regSecret := corev1.Secret{}
-	regErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &regSecret)
-	if regErr != nil {
-		if client.IgnoreNotFound(regErr) != nil {
-			return
-		}
-	} else {
-		secretVersion = regSecret.ResourceVersion
-	}
-	secretVersionEnv := getEnvValue(&deployment.Spec.Template.Spec.Containers, registrationSecretVersion)
-
-	// CreateOrUpdate updates the deployment if cluster registration secret version changed
-	if secretVersionEnv != secretVersion {
-		controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &deployment, func() error {
-			s.Log.Debugf("Update the deployment %s, registration secret version from %q to %q", deploymentName, secretVersionEnv, secretVersion)
-			// update the container env
-			env := updateEnvValue(deployment.Spec.Template.Spec.Containers[0].Env, registrationSecretVersion, secretVersion)
-			deployment.Spec.Template.Spec.Containers[0].Env = env
-			return nil
-		})
-	}
 }
 
 func getEnvValue(containers *[]corev1.Container, envName string) string {

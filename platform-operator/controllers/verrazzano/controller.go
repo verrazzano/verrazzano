@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
+	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	"io"
@@ -876,7 +877,7 @@ func (r *Reconciler) isManagedClusterRegistrationSecret(o client.Object) bool {
 	if secret.Namespace != vzconst.VerrazzanoSystemNamespace || secret.Name != vzconst.MCRegistrationSecret {
 		return false
 	}
-	r.AddWatch(fluentd.ComponentName)
+	r.AddWatch(fluentd.ComponentName, jaegeroperator.ComponentName)
 	return true
 }
 

@@ -220,20 +220,26 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	createInstance, err := isCreateDefaultJaegerInstance(ctx)
-	if err != nil {
-		return err
-	}
-	if createInstance {
-		// Create Jaeger secret with the OpenSearch credentials
-		return createJaegerSecret(ctx)
-	}
-	return nil
+	return checkCreateJaegerSecrets(ctx)
 }
 
 // Upgrade jaegeroperator component for upgrade processing.
 func (c jaegerOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
 	return c.HelmComponent.Install(ctx)
+}
+
+func (c jaegerOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
+	installed, err := c.IsInstalled(ctx)
+	if err != nil {
+		return err
+	}
+	if installed {
+		if err := checkCreateJaegerSecrets(ctx); err != nil {
+			return err
+		}
+		err = c.Install(ctx)
+	}
+	return err
 }
 
 // IsInstalled checks if jaeger is installed
