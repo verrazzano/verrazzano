@@ -1,0 +1,12 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+name: opensearch-s1
+ID: ops-s1
+description: |
+  This is a scenario that writes logs to STDOUT and gets logs from OpenSearch at a moderated rate. 
+  The purpose of the scenario is to test a moderate load on both Fluend and OpenSearch by logging records.
+usecases:
+  - usecasePath: opensearch/writelogs.yaml
+    overrideFile: writelogs.yaml
+    description: write logs to STDOUT 10 times a second

@@ -2,15 +2,19 @@
 Features:
 
 - Separated Verrazzano Platform Operator and Verrazzano Platform Webhooks into separate deployments for scalability and resiliency.
-
-Features:
 - Added component availability to Verrazzano custom resource, displayed in the resource's status printout.
+- Rancher clusters are automatically synchronized with VerrazzanoManagedCluster resources. Creating a cluster in Rancher results in a VMC creation and deleting a cluster in Rancher results in a VMC deletion.
+- Applying the Rancher cluster registration manifest to a managed cluster causes additional Verrazzano resources to automatically transfer to the managed cluster.
 
 Component version updates:
 
-- Coherence Operator v3.2.8
-- MySQL Server 8.0.30
+- Coherence Operator v3.2.9
+- MySQL Server 8.0.31
 - oam-kubernetes-runtime 0.3.3
+- NGINX Ingress Controller v1.3.1
+- Prometheus v2.38.0
+- Prometheus Operator v0.59.1
+- External DNS v0.12.2
 
 Components added:
 - MySQL Operator 8.0.30-2.0.6

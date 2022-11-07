@@ -54,7 +54,8 @@ spec:
                   that was reconciled.
                 type: string
               lastRestartVersion:
-                description: The last value of the verrazzano.io/restart-version annotation.
+                description: The last value of the `verrazzano.io/restart-version`
+                  annotation.
                 type: string
             type: object
         type: object

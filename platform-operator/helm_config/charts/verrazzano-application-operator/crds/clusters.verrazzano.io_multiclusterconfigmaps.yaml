@@ -23,7 +23,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: MultiClusterConfigMap specifies the Multi Cluster ConfigMap API.
+        description: MultiClusterConfigMap specifies the MultiCluster ConfigMap API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -38,10 +38,10 @@ spec:
           metadata:
             type: object
           spec:
-            description: The desired state of a Multi Cluster ConfigMap resource.
+            description: The desired state of a MultiCluster ConfigMap resource.
             properties:
               placement:
-                description: Clusters in which the config map is to be created.
+                description: Clusters in which the ConfigMap is to be created.
                 properties:
                   clusters:
                     description: List of clusters.
@@ -59,7 +59,7 @@ spec:
                 - clusters
                 type: object
               template:
-                description: The embedded Kubernetes config map.
+                description: The embedded Kubernetes ConfigMap.
                 properties:
                   binaryData:
                     additionalProperties:
@@ -79,7 +79,7 @@ spec:
                       ConfigMap defined in <a href="https://github.com/kubernetes/api/blob/master/core/v1/types.go">types.go</a>.
                     type: boolean
                   metadata:
-                    description: Metadata describing the config map.
+                    description: Metadata describing the ConfigMap.
                     properties:
                       annotations:
                         additionalProperties:
@@ -104,13 +104,13 @@ spec:
             - template
             type: object
           status:
-            description: The observed state of a Multi Cluster ConfigMap resource.
+            description: The observed state of a MultiCluster ConfigMap resource.
             properties:
               clusters:
                 description: Status information for each cluster.
                 items:
-                  description: ClusterLevelStatus describes the status of the multi
-                    cluster resource in a specific cluster.
+                  description: ClusterLevelStatus describes the status of the multicluster
+                    resource in a specific cluster.
                   properties:
                     lastUpdateTime:
                       description: Last update time of the resource state in this
@@ -134,7 +134,7 @@ spec:
               conditions:
                 description: The current state of a multicluster resource.
                 items:
-                  description: Condition describes current state of a multi cluster
+                  description: Condition describes current state of a multicluster
                     resource.
                   properties:
                     lastTransitionTime:

@@ -122,6 +122,9 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 	expectSyncAgent(t, mock, testManagedCluster, rancherEnabled, false)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectRancherConfigK8sCalls(t, mock)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -192,6 +195,9 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster, false, true)
 	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectRancherConfigK8sCalls(t, mock)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -262,6 +268,9 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster, false, true)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectRancherConfigK8sCalls(t, mock)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, "", func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -335,6 +344,9 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	expectRancherConfigK8sCalls(t, mock)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectSyncCACertRancherHTTPCalls(t, mockRequestSender, "")
+	expectRancherConfigK8sCalls(t, mock)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectPushManifestRequests(mockRequestSender)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", false, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -406,6 +418,9 @@ func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncCACertRancherHTTPCalls(t, mockRequestSender, `{"data":{"ca.crt":"base64-ca-cert"}}`)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, true)
+	expectRancherConfigK8sCalls(t, mock)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectPushManifestRequests(mockRequestSender)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
 		prometheusYaml := configMap.Data["prometheus.yml"]
@@ -484,6 +499,9 @@ scrape_configs:
 	expectSyncAgent(t, mock, testManagedCluster, false, false)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectRancherConfigK8sCalls(t, mock)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, jobs, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 
@@ -566,6 +584,9 @@ scrape_configs:
 	expectSyncAgent(t, mock, testManagedCluster, false, true)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
+	expectRancherConfigK8sCalls(t, mock)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, jobs, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 
@@ -638,6 +659,9 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	expectSyncAgent(t, mock, testManagedCluster, false, true)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, true, rancherManifestYAML)
+	expectRancherConfigK8sCalls(t, mock)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -755,96 +779,31 @@ func TestCreateVMCSyncRoleBindingFailed(t *testing.T) {
 // THEN ensure the object is not processed
 func TestDeleteVMC(t *testing.T) {
 	namespace := "verrazzano-install"
-	labels := map[string]string{"label1": "test"}
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
-	mockStatus := mocks.NewMockStatusWriter(mocker)
-	asserts.NotNil(mockStatus)
 
-	// Expect a call to get the VerrazzanoManagedCluster resource.
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
-			vmc.TypeMeta = metav1.TypeMeta{
-				APIVersion: apiVersion,
-				Kind:       kind}
-			vmc.ObjectMeta = metav1.ObjectMeta{
-				Namespace:         name.Namespace,
-				Name:              name.Name,
-				DeletionTimestamp: &metav1.Time{Time: time.Now()},
-				Labels:            labels,
-				Finalizers:        []string{finalizerName}}
-			vmc.Status = clustersapi.VerrazzanoManagedClusterStatus{
-				PrometheusHost: getPrometheusHost(),
+	mockRequestSender := mocks.NewMockRequestSender(mocker)
+	savedRancherHTTPClient := rancherHTTPClient
+	defer func() {
+		rancherHTTPClient = savedRancherHTTPClient
+	}()
+	rancherHTTPClient = mockRequestSender
+
+	// Expect all of the calls when deleting a VMC
+	expectMockCallsForDelete(t, mock, namespace)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+
+	// Expect an API call to delete the Rancher cluster
+	mockRequestSender.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod("DELETE", clustersPath+"/"+unitTestRancherClusterID)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			r := io.NopCloser(bytes.NewReader([]byte("")))
+			resp := &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       r,
 			}
-
-			return nil
-		})
-
-	jobs := `  - ` + constants.PrometheusJobNameKey + `: test
-    scrape_interval: 20s
-    scrape_timeout: 15s
-    scheme: http
-  - ` + constants.PrometheusJobNameKey + `: test2
-    scrape_interval: 20s
-    scrape_timeout: 15s
-    scheme: http`
-
-	// Expect a call to get the additional scrape config secret - return it configured with the two scrape jobs
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				constants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
-			}
-			return nil
-		})
-
-	// Expect a call to get the additional scrape config secret (we call controllerruntime.CreateOrUpdate so it fetches again) - return it
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				constants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
-			}
-			return nil
-		})
-
-	// Expect a call to update the additional scrape config secret
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
-			// validate that the scrape config for the managed cluster is no longer present
-			scrapeConfigs, err := metricsutils.ParseScrapeConfig(string(secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]))
-			if err != nil {
-				return err
-			}
-			asserts.Len(scrapeConfigs.Children(), 1, "Expected only one scrape config")
-			scrapeJobName := scrapeConfigs.Children()[0].Search(constants.PrometheusJobNameKey).Data()
-			asserts.Equal("test2", scrapeJobName)
-			return nil
-		})
-
-	// Expect a call to get the managed cluster TLS certs secret - return it configured with two managed cluster certs
-	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromManagedClusterCACertsSecretName}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				"ca-test":  []byte("ca-cert-1"),
-				"ca-test2": []byte("ca-cert-1"),
-			}
-			return nil
-		})
-
-	// Expect a call to update the managed cluster TLS certs secret
-	mock.EXPECT().
-		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
-			// validate that the cert for the cluster being deleted is no longer present
-			asserts.Len(secret.Data, 1, "Expected only one managed cluster cert")
-			asserts.Contains(secret.Data, "ca-test2", "Expected to find cert for managed cluster not being deleted")
-			return nil
+			return resp, nil
 		})
 
 	// Expect a call to update the VerrazzanoManagedCluster finalizer
@@ -865,6 +824,120 @@ func TestDeleteVMC(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(false, result.Requeue)
 	asserts.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// TestDeleteVMCFailedDeletingRancherCluster tests deleting a VMC when there are errors attempting to
+// delete the Rancher cluster.
+func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
+	namespace := "verrazzano-install"
+	asserts := assert.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+	mockStatus := mocks.NewMockStatusWriter(mocker)
+	asserts.NotNil(mockStatus)
+
+	mockRequestSender := mocks.NewMockRequestSender(mocker)
+	savedRancherHTTPClient := rancherHTTPClient
+	defer func() {
+		rancherHTTPClient = savedRancherHTTPClient
+	}()
+	rancherHTTPClient = mockRequestSender
+
+	// GIVEN a VMC is being deleted
+	//  WHEN we fail creating a Rancher API client that will be used to delete the cluster in Rancher
+	//  THEN the appropriate status is set on the VMC and the finalizer is not removed
+
+	// Expect all of the calls when deleting a VMC
+	expectMockCallsForDelete(t, mock, namespace)
+
+	// Expect an HTTP request to fetch the admin token from Rancher - return an error
+	mockRequestSender.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			asserts.Equal(loginQueryString, req.URL.RawQuery)
+
+			r := io.NopCloser(bytes.NewReader([]byte("")))
+			resp := &http.Response{
+				StatusCode: http.StatusBadRequest,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodDelete},
+			}
+			return resp, nil
+		})
+
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			return nil
+		})
+
+	mock.EXPECT().Status().Return(mockStatus)
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(clustersapi.DeleteFailed, vmc.Status.RancherRegistration.Status)
+			asserts.Equal("Failed to create Rancher API client", vmc.Status.RancherRegistration.Message)
+			return nil
+		})
+
+	// Create and make the request
+	request := newRequest(namespace, testManagedCluster)
+	reconciler := newVMCReconciler(mock)
+	result, err := reconciler.Reconcile(context.TODO(), request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(true, result.Requeue)
+
+	// GIVEN a VMC is being deleted
+	//  WHEN we fail attempting to delete the cluster in Rancher
+	//  THEN the appropriate status is set on the VMC and the finalizer is not removed
+
+	mock = mocks.NewMockClient(mocker)
+	mockStatus = mocks.NewMockStatusWriter(mocker)
+	mockRequestSender = mocks.NewMockRequestSender(mocker)
+	rancherHTTPClient = mockRequestSender
+
+	// Expect all of the calls when deleting a VMC
+	expectMockCallsForDelete(t, mock, namespace)
+	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+
+	// Expect an API call to delete the Rancher cluster - return an error
+	mockRequestSender.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod("DELETE", clustersPath+"/"+unitTestRancherClusterID)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			r := io.NopCloser(bytes.NewReader([]byte("")))
+			resp := &http.Response{
+				StatusCode: http.StatusConflict,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodDelete},
+			}
+			return resp, nil
+		})
+
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			return nil
+		})
+
+	mock.EXPECT().Status().Return(mockStatus)
+	mockStatus.EXPECT().
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(clustersapi.DeleteFailed, vmc.Status.RancherRegistration.Status)
+			asserts.Equal("Failed deleting cluster", vmc.Status.RancherRegistration.Message)
+			return nil
+		})
+
+	// Create and make the request
+	request = newRequest(namespace, testManagedCluster)
+	reconciler = newVMCReconciler(mock)
+	result, err = reconciler.Reconcile(context.TODO(), request)
+
+	// Validate the results
+	mocker.Finish()
+	asserts.NoError(err)
+	asserts.Equal(true, result.Requeue)
 }
 
 // TestSyncManifestSecretFailRancherRegistration tests syncing the manifest secret
@@ -919,6 +992,12 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 	mock.EXPECT().
 		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress) error {
+			return nil
+		})
+
+	// Expect to get existing VMC for status update
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: clusterName}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
 			return nil
 		})
 
@@ -1016,6 +1095,12 @@ func TestSyncManifestSecretEmptyRancherManifest(t *testing.T) {
 	// Expect all the calls needed to register the cluster with Rancher - note we are passing an empty string for the Rancher manifest YAML
 	// that will be returned when calling the Rancher API
 	expectRegisterClusterWithRancher(t, mock, mockRequestSender, testManagedCluster, false, "")
+
+	// Expect to get existing VMC for status update
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			return nil
+		})
 
 	// Expect the Rancher registration status to be set appropriately
 	mock.EXPECT().Status().Return(mockStatus)
@@ -1369,6 +1454,12 @@ func TestUpateStatus(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 	asserts.NotNil(mockStatus)
+
+	// Expect the requests for the existing VMC resource
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			return nil
+		}).AnyTimes()
 
 	// GIVEN a VMC with a status state unset and the last agent connect time set
 	// WHEN the updateStatus function is called
@@ -1831,6 +1922,12 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 	// Expect all the calls needed to register the cluster with Rancher
 	expectRegisterClusterWithRancher(t, mock, mockRequestSender, name, clusterAlreadyRegistered, expectedRancherYAML)
 
+	// Expect to get existing VMC for status update
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			return nil
+		})
+
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
@@ -1861,6 +1958,20 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(vmc.Spec.ManagedClusterManifestSecret, GetManifestSecretName(name), "Manifest secret testManagedCluster did not match")
 			return nil
+		})
+}
+
+func expectPushManifestRequests(mockRequestSender *mocks.MockRequestSender) {
+	mockRequestSender.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clustersPath+"/"+unitTestRancherClusterID)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			var resp *http.Response
+			r := io.NopCloser(bytes.NewReader([]byte(`{"state":"inactive", "agentImage":"test"}`)))
+			resp = &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       r,
+			}
+			return resp, nil
 		})
 }
 
@@ -2197,6 +2308,11 @@ func getCaCrt() string {
 }
 
 func expectStatusUpdateReadyCondition(asserts *assert.Assertions, mock *mocks.MockClient, mockStatus *mocks.MockStatusWriter, expectReady corev1.ConditionStatus, msg string, assertManagedCACondition bool) {
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			return nil
+		})
+
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
@@ -2294,4 +2410,100 @@ func expectRancherConfigK8sCalls(t *testing.T, k8sMock *mocks.MockClient) {
 	k8sMock.EXPECT().
 		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: constants.AdditionalTLS}), gomock.Not(gomock.Nil())).
 		Return(errors.NewNotFound(schema.GroupResource{Group: rancherNamespace, Resource: "Secret"}, constants.AdditionalTLS))
+}
+
+// expectMockCallsForDelete mocks expectations for the VMC deletion scenario. These are the common mock expectations across
+// tests that exercise delete functionality. Individual tests add mock expectations after these to test various scenarios.
+func expectMockCallsForDelete(t *testing.T, mock *mocks.MockClient, namespace string) {
+	asserts := assert.New(t)
+
+	// Expect a call to get the VerrazzanoManagedCluster resource.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			vmc.TypeMeta = metav1.TypeMeta{
+				APIVersion: apiVersion,
+				Kind:       kind}
+			vmc.ObjectMeta = metav1.ObjectMeta{
+				Namespace:         name.Namespace,
+				Name:              name.Name,
+				DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				Finalizers:        []string{finalizerName}}
+			vmc.Status = clustersapi.VerrazzanoManagedClusterStatus{
+				PrometheusHost: getPrometheusHost(),
+				RancherRegistration: clustersapi.RancherRegistration{
+					ClusterID: unitTestRancherClusterID,
+				},
+			}
+
+			return nil
+		})
+
+	jobs := `  - ` + constants.PrometheusJobNameKey + `: test
+    scrape_interval: 20s
+    scrape_timeout: 15s
+    scheme: http
+  - ` + constants.PrometheusJobNameKey + `: test2
+    scrape_interval: 20s
+    scrape_timeout: 15s
+    scheme: http`
+
+	// Expect a call to get the additional scrape config secret - return it configured with the two scrape jobs
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				constants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
+			}
+			return nil
+		})
+
+	// Expect a call to get the additional scrape config secret (we call controllerruntime.CreateOrUpdate so it fetches again) - return it
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: constants.PromAdditionalScrapeConfigsSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				constants.PromAdditionalScrapeConfigsSecretKey: []byte(jobs),
+			}
+			return nil
+		})
+
+	// Expect a call to update the additional scrape config secret
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
+			// validate that the scrape config for the managed cluster is no longer present
+			scrapeConfigs, err := metricsutils.ParseScrapeConfig(string(secret.Data[constants.PromAdditionalScrapeConfigsSecretKey]))
+			if err != nil {
+				return err
+			}
+			asserts.Len(scrapeConfigs.Children(), 1, "Expected only one scrape config")
+			scrapeJobName := scrapeConfigs.Children()[0].Search(constants.PrometheusJobNameKey).Data()
+			asserts.Equal("test2", scrapeJobName)
+			return nil
+		})
+
+	// Expect a call to get the managed cluster TLS certs secret - return it configured with two managed cluster certs
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: vpoconstants.VerrazzanoMonitoringNamespace, Name: vpoconstants.PromManagedClusterCACertsSecretName}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			secret.Data = map[string][]byte{
+				"ca-test":  []byte("ca-cert-1"),
+				"ca-test2": []byte("ca-cert-1"),
+			}
+			return nil
+		})
+
+	// Expect a call to update the managed cluster TLS certs secret
+	mock.EXPECT().
+		Update(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
+			// validate that the cert for the cluster being deleted is no longer present
+			asserts.Len(secret.Data, 1, "Expected only one managed cluster cert")
+			asserts.Contains(secret.Data, "ca-test2", "Expected to find cert for managed cluster not being deleted")
+			return nil
+		})
+
+	// Expect Rancher k8s calls to configure the API client
+	expectRancherConfigK8sCalls(t, mock)
 }
