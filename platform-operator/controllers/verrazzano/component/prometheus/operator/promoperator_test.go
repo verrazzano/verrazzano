@@ -180,7 +180,7 @@ func TestAppendOverrides(t *testing.T) {
 	var err error
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 29)
+	assert.Len(t, kvs, 26)
 
 	assert.Equal(t, "ghcr.io/verrazzano/prometheus-config-reloader", bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.repository"))
 	assert.NotEmpty(t, bom.FindKV(kvs, "prometheusOperator.prometheusConfigReloader.image.tag"))
@@ -215,7 +215,7 @@ func TestAppendOverrides(t *testing.T) {
 
 	kvs, err = AppendOverrides(ctx, "", "", "", kvs)
 	assert.NoError(t, err)
-	assert.Len(t, kvs, 29)
+	assert.Len(t, kvs, 26)
 
 	assert.Equal(t, "false", bom.FindKV(kvs, "prometheusOperator.admissionWebhooks.certManager.enabled"))
 
@@ -247,6 +247,7 @@ func TestPreInstallUpgrade(t *testing.T) {
 	// GIVEN the Prometheus Operator is being installed or upgraded
 	// WHEN the preInstallUpgrade function is called
 	// THEN the component namespace is created in the cluster
+	config.TestHelmConfigDir = "../../../../../thirdparty"
 	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
 
@@ -1048,6 +1049,57 @@ func TestResetVolumeReclaimPolicy(t *testing.T) {
 	// validate that the expected error is returned
 	err = resetVolumeReclaimPolicy(ctx)
 	assert.ErrorContains(t, err, "Failed resetting reclaim policy")
+}
+
+// TestCreateUpdateServiceMonitors tests the createUpdateServiceMonitors function
+func TestCreateUpdateServiceMonitors(t *testing.T) {
+	endPoints := make([]promoperapi.Endpoint, 0)
+	endPoint := promoperapi.Endpoint{
+		Port:                 "8080",
+		TargetPort:           nil,
+		Path:                 "test",
+		Scheme:               "https",
+		Params:               nil,
+		Interval:             "10",
+		ScrapeTimeout:        "5",
+		TLSConfig:            nil,
+		BearerTokenFile:      "",
+		BearerTokenSecret:    corev1.SecretKeySelector{},
+		Authorization:        nil,
+		HonorLabels:          false,
+		HonorTimestamps:      nil,
+		BasicAuth:            nil,
+		OAuth2:               nil,
+		MetricRelabelConfigs: nil,
+		RelabelConfigs:       nil,
+		ProxyURL:             nil,
+		FollowRedirects:      nil,
+		EnableHttp2:          nil,
+	}
+
+	endPoints = append(endPoints, endPoint)
+
+	clientWithSM := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&promoperapi.ServiceMonitor{
+			TypeMeta:   metav1.TypeMeta{Kind: promoperapi.ServiceMonitorsKind, APIVersion: promoperapi.Version},
+			ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "testServiceMonitor"},
+			Spec: promoperapi.ServiceMonitorSpec{
+				JobLabel:              "test",
+				TargetLabels:          nil,
+				PodTargetLabels:       nil,
+				Endpoints:             endPoints,
+				Selector:              metav1.LabelSelector{},
+				NamespaceSelector:     promoperapi.NamespaceSelector{},
+				SampleLimit:           0,
+				TargetLimit:           0,
+				LabelLimit:            0,
+				LabelNameLengthLimit:  0,
+				LabelValueLengthLimit: 0,
+			},
+		}).Build()
+
+	err := createOrUpdateServiceMonitors(spi.NewFakeContext(clientWithSM, &vzapi.Verrazzano{}, nil, false))
+	assert.NoError(t, err)
 }
 
 // TestAppendResourceRequestOverrides tests the appendResourceRequestOverrides function
