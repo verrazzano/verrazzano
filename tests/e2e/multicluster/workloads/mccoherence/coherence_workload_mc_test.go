@@ -310,7 +310,7 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 							m[labelApp] = appName
 							m[clusterNameMetricsLabel] = clusterName
 							return pkg.MetricsExistInCluster(jvmUptime, m, adminKubeconfig)
-						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find coherence metric %s", jvmUptime)
+						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find coherence metric %s", jvmUptime))
 					},
 					func() {
 						clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
@@ -319,7 +319,7 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 							m[labelApp] = appName
 							m[clusterNameMetricsLabel] = clusterName
 							return pkg.MetricsExistInCluster(vendorRequestsCount, m, adminKubeconfig)
-						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find coherence metric %s", vendorRequestsCount)
+						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find coherence metric %s", vendorRequestsCount))
 					},
 					func() {
 						clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
@@ -328,7 +328,7 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 							m[labelNS] = appNamespace
 							m[clusterNameMetricsLabel] = clusterName
 							return pkg.MetricsExistInCluster(memUsageBytes, m, adminKubeconfig)
-						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find coherence metric %s", memUsageBytes)
+						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find coherence metric %s", memUsageBytes))
 					},
 					func() {
 						clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
@@ -337,7 +337,7 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 							m[labelCluster] = cohClusterName
 							m[clusterNameMetricsLabel] = clusterName
 							return pkg.MetricsExistInCluster(clusterSize, m, adminKubeconfig)
-						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find coherence metric %s", clusterSize)
+						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find coherence metric %s", clusterSize))
 					},
 					func() {
 						clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
@@ -346,7 +346,7 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 							m[labelCluster] = cohClusterName
 							m[clusterNameMetricsLabel] = clusterName
 							return pkg.MetricsExistInCluster(serviceMessagesLocal, m, adminKubeconfig)
-						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find coherence metric %s", serviceMessagesLocal)
+						}, longWaitTimeout, longPollingInterval).Should(BeTrue(), fmt.Sprintf("Expected to find coherence metric %s", serviceMessagesLocal))
 					},
 				)
 			})
