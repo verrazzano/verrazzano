@@ -353,7 +353,7 @@ func repairMySQLRouterPodsCrashLoopBackoff(client *kubernetes.Clientset) {
 					if waiting.Reason == "CrashLoopBackOff" {
 						// Terminate the pod
 						t.Logs.Infof("Terminating pod %s/%s because it was stuck in CrashLoopBackOff", pod.Namespace, pod.Name)
-						if err = client.CoreV1().Pods(constants.MySQLOperatorNamespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{}); err != nil {
+						if err = client.CoreV1().Pods(pod.Namespace).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{}); err != nil {
 							return err
 						}
 					}
