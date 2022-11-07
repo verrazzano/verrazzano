@@ -336,18 +336,18 @@ func repairMySQLRouterPodsCrashLoopBackoff(client *kubernetes.Clientset) {
 		}
 		selector := labels.NewSelector().Add(*mysqldReq)
 
-		list, err := client.CoreV1().Pods(constants.KeycloakNamespace).List(context.TODO(), metav1.ListOptions{
+		podList, err := client.CoreV1().Pods(constants.KeycloakNamespace).List(context.TODO(), metav1.ListOptions{
 			LabelSelector: selector.String(),
 		})
 		if err != nil {
 			return err
 		}
-		if len(list.Items) == 0 {
+		if len(podList.Items) == 0 {
 			return fmt.Errorf("no pods found matching selector %s", selector.String())
 		}
 
-		for i := range list.Items {
-			pod := list.Items[i]
+		for i := range podList.Items {
+			pod := podList.Items[i]
 			for _, container := range pod.Status.ContainerStatuses {
 				if waiting := container.State.Waiting; waiting != nil {
 					if waiting.Reason == "CrashLoopBackOff" {
@@ -359,7 +359,6 @@ func repairMySQLRouterPodsCrashLoopBackoff(client *kubernetes.Clientset) {
 					}
 				}
 			}
-
 		}
 		return nil
 	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
