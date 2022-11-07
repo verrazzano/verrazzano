@@ -166,12 +166,13 @@ func TestInstallUpgrade(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// GIVEN a verrazzano CR with enabled rancher backup
+// WHEN ValidateUpdate, ValidateUpdateV1Beta1 func is called
+// THEN if we try to disable rancher backup an Error is thrown
 func TestValidateUpdateMethods(t *testing.T) {
-	// We expect error if rancher backup is disabled in new CR
 	err := NewComponent().ValidateUpdate(rancherBackupEnabledCR, &v1alpha1.Verrazzano{})
 	assert.Error(t, err)
 
-	// We expect error if rancher backup is disabled in new CR
 	v1beta1Vz := &v1beta1.Verrazzano{}
 	_ = rancherBackupEnabledCR.ConvertTo(v1beta1Vz)
 	err = NewComponent().ValidateUpdateV1Beta1(v1beta1Vz, &v1beta1.Verrazzano{})
@@ -232,11 +233,17 @@ func TestIsReady(t *testing.T) {
 		ctx      spi.ComponentContext
 		isReady  bool
 	}{
+		// GIVEN a verrazzano CR with required deployments
+		// WHEN IsReady func is called
+		// THEN true is returned
 		{
 			"should be ready",
 			spi.NewFakeContext(fakeReadyClient, &v1alpha1.Verrazzano{}, nil, true),
 			true,
 		},
+		// GIVEN a verrazzano CR with no deployments
+		// WHEN IsReady func is called
+		// THEN false is returned
 		{
 			"should not be ready due to deployment",
 			spi.NewFakeContext(fakeUnReadyClient, &v1alpha1.Verrazzano{}, nil, true),
@@ -251,6 +258,9 @@ func TestIsReady(t *testing.T) {
 	}
 }
 
+// GIVEN a verrazzano CR
+// WHEN PreInstall func is called it tries to install crds
+// THEN true is returned if successful else false is returned in case of failure
 func TestPreInstall(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&corev1.Namespace{
@@ -274,6 +284,9 @@ func TestPreInstall(t *testing.T) {
 	assert.NoError(t, NewComponent().PreInstall(ctx))
 }
 
+// GIVEN a verrazzano CR
+// WHEN MonitorOverrides func is called it checks if InstallOverrides are set
+// THEN true is returned if InstallOverrides are set else false
 func TestMonitorOverrides(t *testing.T) {
 	// Returns false if Backup component is not enabled
 	ctx := spi.NewFakeContext(nil, &v1alpha1.Verrazzano{}, nil, false)
