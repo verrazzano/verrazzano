@@ -15,7 +15,7 @@ import (
 type VerrazzanoManagedClusterSpec struct {
 	// The name of a Secret that contains the CA certificate of the managed cluster. This is used to configure the
 	// admin cluster to scrape metrics from the Prometheus endpoint on the managed cluster. See the pre-registration
-	// <a href="../../../../../docs/setup/install/multicluster/#preregistration-setup">instructions</a>
+	// <a href="../../../../docs/setup/install/multicluster/#preregistration-setup">instructions</a>
 	// for how to create this Secret.
 	CASecret string `json:"caSecret,omitempty"`
 
@@ -81,6 +81,7 @@ type RancherRegistrationStatus string
 const (
 	RegistrationCompleted RancherRegistrationStatus = "Completed"
 	RegistrationFailed    RancherRegistrationStatus = "Failed"
+	DeleteFailed          RancherRegistrationStatus = "DeleteFailed"
 )
 
 // RancherRegistration defines the Rancher registration state for a managed cluster.

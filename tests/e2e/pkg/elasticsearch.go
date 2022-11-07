@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -62,8 +63,8 @@ const (
 
 // Error logging formats
 const (
-	queryErrorFormat      = "Error retrieving Elasticsearch query results: url=%s, error=%s"
-	queryStatusFormat     = "Error retrieving Elasticsearch query results: url=%s, status=%d"
+	queryErrorFormat      = "Error retrieving Opensearch query results: url=%s, error=%s"
+	queryStatusFormat     = "Error retrieving Opensearch query results: url=%s, status=%d"
 	kubeconfigErrorFormat = "Error getting kubeconfig: %v"
 )
 
@@ -229,6 +230,15 @@ func (u ElasticSearchISMPolicyRemoveModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 }
 
+func TestOpenSearchPlugins(pollingInterval time.Duration, waitTimeout time.Duration) {
+	if UseExternalElasticsearch() {
+		ginkgo.Skip("Skip External OpenSearch")
+	}
+	gomega.Eventually(func() error {
+		return VerifyOpenSearchPlugins()
+	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(gomega.BeNil())
+}
+
 // VerifyOpenSearchPlugins checks that the OpenSearch plugins are installed
 func VerifyOpenSearchPlugins() error {
 	resp, err := doGetElasticSearchURL("%s/_cat/plugins?format=json")
@@ -288,7 +298,7 @@ func UseExternalElasticsearch() bool {
 	return os.Getenv("EXTERNAL_ELASTICSEARCH") == "true"
 }
 
-// GetExternalOpenSearchURL gets the external Elasticsearch URL
+// GetExternalOpenSearchURL gets the external Opensearch URL
 func GetExternalOpenSearchURL(kubeconfigPath string) string {
 	opensearchSvc := "opensearch-cluster-master"
 	// the equivalent of kubectl get svc opensearchSvc -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
@@ -308,7 +318,7 @@ func GetExternalOpenSearchURL(kubeconfigPath string) string {
 	return ""
 }
 
-// GetSystemOpenSearchIngressURL gets the system Elasticsearch Ingress host in the given cluster
+// GetSystemOpenSearchIngressURL gets the system Opensearch Ingress host in the given cluster
 func GetSystemOpenSearchIngressURL(kubeconfigPath string) string {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {

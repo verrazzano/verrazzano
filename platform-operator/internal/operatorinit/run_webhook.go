@@ -12,6 +12,7 @@ import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
@@ -68,6 +69,9 @@ func StartWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 	if err := updateWebhooks(log, mgr, config.CertDir); err != nil {
 		return err
 	}
+
+	installv1alpha1.SetComponentValidator(validator.ComponentValidatorImpl{})
+	installv1beta1.SetComponentValidator(validator.ComponentValidatorImpl{})
 
 	// +kubebuilder:scaffold:builder
 	log.Info("Starting webhook controller-runtime manager")
@@ -146,13 +150,13 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 // updateWebhookConfigurations Creates or updates the webhook configurations as needed
 func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.SugaredLogger, conf *rest.Config) error {
 	log.Debug("Delete old VPO webhook configuration")
-	if err := certificate.DeleteValidatingWebhookConfiguration(kubeClient, certificate.OldOperatorName); err != nil {
+	if err := deleteValidatingWebhookConfiguration(kubeClient, certificate.OldOperatorName); err != nil {
 		return fmt.Errorf("Failed to delete old webhook configuration: %v", err)
 	}
 
 	log.Debug("Updating VPO webhook configuration")
 
-	if err := certificate.UpdateValidatingWebhookConfiguration(kubeClient, certificate.OperatorName); err != nil {
+	if err := updateValidatingWebhookConfiguration(kubeClient, certificate.OperatorName); err != nil {
 		return fmt.Errorf("Failed to update validation webhook configuration: %v", err)
 	}
 
@@ -162,16 +166,16 @@ func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.Suga
 		return fmt.Errorf("Failed to get apix clientset: %v", err)
 	}
 
-	if err := certificate.UpdateConversionWebhookConfiguration(apixClient, kubeClient); err != nil {
+	if err := updateConversionWebhookConfiguration(apixClient, kubeClient); err != nil {
 		return fmt.Errorf("Failed to update conversion webhook: %v", err)
 	}
 
-	if err := certificate.UpdateMutatingWebhookConfiguration(kubeClient, constants.MysqlBackupMutatingWebhookName); err != nil {
+	if err := updateMutatingWebhookConfiguration(kubeClient, constants.MysqlBackupMutatingWebhookName); err != nil {
 		return fmt.Errorf("Failed to update pod mutating webhook configuration: %v", err)
 	}
 
 	log.Debug("Updating MySQL install values webhook configuration")
-	if err := certificate.UpdateValidatingWebhookConfiguration(kubeClient, webhooks.MysqlInstallValuesWebhook); err != nil {
+	if err := updateValidatingWebhookConfiguration(kubeClient, webhooks.MysqlInstallValuesWebhook); err != nil {
 		return fmt.Errorf("Failed to update validation webhook configuration: %v", err)
 	}
 	return nil
