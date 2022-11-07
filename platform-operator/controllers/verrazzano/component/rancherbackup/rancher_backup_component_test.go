@@ -178,6 +178,8 @@ func TestValidateUpdateMethods(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// TestIsReady verifies component IsReady checks presence of the
+// Rancher Backup operator deployment
 func TestIsReady(t *testing.T) {
 	fakeReadyClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{
