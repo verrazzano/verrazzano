@@ -6,6 +6,8 @@ package start
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -13,39 +15,50 @@ import (
 
 const (
 	CommandName = "start"
-	helpShort   = "Start a PSR test scenario"
-	helpLong    = `The command 'start' executes a PSR test scenario consisting of one or more use cases`
-	helpExample = `
-psrctl start scenario-1`
+	helpShort   = "Start a PSR scenario"
+	helpLong    = `The command 'start' starts a PSR scenario in the specified namespace`
+	helpExample = `psrctl start -s ops-s1`
 )
+
+var scenarioID string
+var namespace string
 
 func NewCmdStart(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return startCmdStart(cmd, vzHelper)
+		return RunCmdStart(cmd, vzHelper)
 	}
+	cmd.Args = cobra.ExactArgs(0)
 	cmd.Example = helpExample
+
+	cmd.PersistentFlags().StringVarP(&scenarioID, constants.FlagScenario, constants.FlagsScenarioShort, "", constants.FlagScenarioHelp)
+	cmd.PersistentFlags().StringVarP(&namespace, constants.FlagNamespace, constants.FlagNamespaceShort, "default", constants.FlagNamespaceHelp)
 
 	return cmd
 }
 
-// startCmdStart - start the "psrctl start" command
-func startCmdStart(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	fmt.Println("Starting example scenario...")
-
-	msg, err := scenario.InstallScenario()
-
-	fmt.Println("Helm results...")
-	fmt.Println()
-	fmt.Println(msg)
-	fmt.Println()
-
+// RunCmdStart - Run the "psrctl start" command
+func RunCmdStart(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+	m, err := scenario.NewManager(namespace)
 	if err != nil {
-		fmt.Printf("%v", err)
-		return err
+		return fmt.Errorf("Failed to create scenario Manager %v", err)
 	}
 
-	fmt.Println("Example Scenario successfully installed")
+	scman, err := m.FindScenarioManifestByID(scenarioID)
+	if err != nil {
+		return fmt.Errorf("Failed to find scenario manifest %s: %v", scenarioID, err)
+	}
+	if scman == nil {
+		return fmt.Errorf("Failed to find scenario manifest with ID %s", scenarioID)
+	}
+
+	fmt.Printf("Starting scenario %s\n", scman.ID)
+	msg, err := m.StartScenario(scman)
+	if err != nil {
+		// Cobra will display failure message
+		return fmt.Errorf("Failed to start scenario %s/%s: %v\n%s", namespace, scenarioID, err, msg)
+	}
+	fmt.Printf("Scenario %s successfully started\n", scman.ID)
 
 	return nil
 }

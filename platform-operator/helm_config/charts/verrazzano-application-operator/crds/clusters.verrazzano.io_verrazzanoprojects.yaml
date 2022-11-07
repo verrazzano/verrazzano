@@ -92,7 +92,7 @@ spec:
                       description: NetworkPolicyTemplate contains the metadata and
                         specification of a Kubernetes NetworkPolicy. <div class="alert
                         alert-warning" role="alert"> <h4 class="alert-heading">NOTE</h4>
-                        To add an application NetworkPolicy, see <a href="../../../../../docs/networking/security/net-security/#networkpolicies-for-applications">NetworkPolicies
+                        To add an application NetworkPolicy, see <a href="../../../../docs/networking/security/net-security/#networkpolicies-for-applications">NetworkPolicies
                         for applications</a>. </div>
                       properties:
                         metadata:
@@ -140,9 +140,7 @@ spec:
                                             is not defined or if the port field is
                                             defined as a named (string) port. The
                                             endPort must be equal or greater than
-                                            port. This feature is in Beta state and
-                                            is enabled by default. It can be disabled
-                                            using the Feature Gate "NetworkPolicyEndPort".
+                                            port.
                                           format: int32
                                           type: integer
                                         port:
@@ -534,9 +532,7 @@ spec:
                                             is not defined or if the port field is
                                             defined as a named (string) port. The
                                             endPort must be equal or greater than
-                                            port. This feature is in Beta state and
-                                            is enabled by default. It can be disabled
-                                            using the Feature Gate "NetworkPolicyEndPort".
+                                            port.
                                           format: int32
                                           type: integer
                                         port:

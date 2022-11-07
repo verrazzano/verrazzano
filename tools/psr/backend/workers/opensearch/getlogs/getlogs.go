@@ -95,7 +95,7 @@ func (w getLogs) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{}
 }
 
-func (w getLogs) WantIterationInfoLogged() bool {
+func (w getLogs) WantLoopInfoLogged() bool {
 	return false
 }
 
@@ -208,12 +208,12 @@ func getBody() io.ReadCloser {
       ]
     }
   }
-}`, GetRandomLowerAlpha(10)...)
+}`, getRandomLowerAlpha(10)...)
 	return io.NopCloser(bytes.NewBuffer([]byte(body)))
 }
 
-// GetRandomLowerAlpha returns an array of len n of random lowercase letters
-func GetRandomLowerAlpha(n int) []interface{} {
+// getRandomLowerAlpha returns an array of len n of random lowercase letters
+func getRandomLowerAlpha(n int) []interface{} {
 	var str []interface{}
 	for i := 0; i < n; i++ {
 		str = append(str, string(letters[rand.Intn(len(letters))])) //nolint:gosec //#gosec G404

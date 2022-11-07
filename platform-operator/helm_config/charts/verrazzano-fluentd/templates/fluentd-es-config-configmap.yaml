@@ -9,13 +9,5 @@ metadata:
   labels:
     app: {{ .Values.logging.name }}
 data:
-  {{- if .Values.logging.elasticsearchURL }}
-  es-url: {{ .Values.logging.elasticsearchURL }}
-  {{- else }}
-  es-url: http://verrazzano-authproxy-elasticsearch:8775
-  {{- end }}
-  {{- if .Values.logging.elasticsearchSecret }}
-  es-secret: {{ .Values.logging.elasticsearchSecret }}
-  {{- else }}
-  es-secret: verrazzano-es-internal
-  {{- end }}
+  es-url: {{ .Values.logging.osURL }}
+  es-secret: {{ .Values.logging.credentialsSecret }}
