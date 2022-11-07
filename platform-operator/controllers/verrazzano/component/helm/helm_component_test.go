@@ -884,7 +884,7 @@ func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string,
 	return []byte("success"), []byte(""), nil
 }
 
-// TestGetName tests all the getter function of HelmComponent e.g. Namespace, ShouldInstallBeforeUpgrade etc.
+// TestHelmComponent tests all the getter function of HelmComponent e.g. Namespace, ShouldInstallBeforeUpgrade etc.
 // GIVEN a HelmComponent
 //
 //	WHEN I call any getter function of HelmComponent
