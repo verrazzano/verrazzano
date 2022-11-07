@@ -213,7 +213,7 @@ func TestPreUpgrade(t *testing.T) {
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
 			//      with no pre-existing Jaeger operator objects,
 			// WHEN we call PreUpgrade on the Jaeger Operator component,
-			// THEN the call returns the expected error that conveys that the requried
+			// THEN the call returns the expected error that conveys that the required
 			//      jaeger-operator deployment is missing.
 			name:         "Test PreUpgrade when Jaeger operator deployment is missing",
 			client:       fake.NewClientBuilder().WithScheme(testScheme).Build(),
@@ -359,7 +359,8 @@ func TestPreUpgrade(t *testing.T) {
 
 // TestReassociateResources re-associate jaeger resource post upgrade
 func TestReassociateResources(t *testing.T) {
-	certv1.AddToScheme(testScheme)
+	err := certv1.AddToScheme(testScheme)
+	assert.NoError(t, err)
 	tests := []struct {
 		name         string
 		client       client.Client
@@ -1151,10 +1152,9 @@ func TestMonitorOverrides(t *testing.T) {
 			false,
 		},
 	}
-	client := createFakeClient()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(client, tt.actualCR, nil, false, profilesRelativePath)
+			ctx := spi.NewFakeContext(createFakeClient(), tt.actualCR, nil, false, profilesRelativePath)
 			if tt.expectTrue {
 				assert.True(t, NewComponent().MonitorOverrides(ctx), tt.name)
 			} else {
