@@ -173,7 +173,7 @@ func TestValidateUpdateMethods(t *testing.T) {
 
 	// We expect error if rancher backup is disabled in new CR
 	v1beta1Vz := &v1beta1.Verrazzano{}
-	err = rancherBackupEnabledCR.ConvertTo(v1beta1Vz)
+	_ = rancherBackupEnabledCR.ConvertTo(v1beta1Vz)
 	err = NewComponent().ValidateUpdateV1Beta1(v1beta1Vz, &v1beta1.Verrazzano{})
 	assert.Error(t, err)
 }
