@@ -88,13 +88,7 @@ func loggingPreInstall(ctx spi.ComponentContext) error {
 // isFluentdReady Fluentd component ready-check
 func (c fluentdComponent) isFluentdReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	daemonset := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
-	return ready.DaemonSetsAreReady(ctx.Log(), ctx.Client(), daemonset, 1, prefix)
+	return ready.DaemonSetsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 // fluentdPreUpgrade contains code that is run prior to helm upgrade for the Verrazzano Fluentd helm chart
