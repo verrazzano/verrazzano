@@ -140,7 +140,13 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 		}
 	}
 	var instanceInfo *installv1alpha1.InstanceInfo
-	if conditionType == installv1alpha1.CondInstallComplete {
+	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus.Name, componentStatus.Conditions, condition)
+
+	// Set the state of resource
+	componentStatus.State = checkCondtitionType(conditionType)
+
+	// Set the version of component when install and upgrade complete
+	if conditionType == installv1alpha1.CondInstallComplete || conditionType == installv1alpha1.CondUpgradeComplete {
 		instanceInfo = vzinstance.GetInstanceInfo(compContext)
 		if componentStatus.ReconcilingGeneration > 0 {
 			componentStatus.LastReconciledGeneration = componentStatus.ReconcilingGeneration
@@ -152,14 +158,6 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 		if componentStatus.ReconcilingGeneration == 0 {
 			componentStatus.ReconcilingGeneration = cr.Generation
 		}
-	}
-	componentStatus.Conditions = appendConditionIfNecessary(log, componentStatus.Name, componentStatus.Conditions, condition)
-
-	// Set the state of resource
-	componentStatus.State = checkCondtitionType(conditionType)
-
-	// Set the version of component when install and upgrade complete
-	if conditionType == installv1alpha1.CondInstallComplete || conditionType == installv1alpha1.CondUpgradeComplete {
 		if bomFile, err := r.getBOM(); err == nil {
 			if component, er := bomFile.GetComponent(componentName); er == nil {
 				componentStatus.Version = component.Version
