@@ -8,6 +8,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"time"
+)
+
+const (
+	waitTimeout     = 3 * time.Minute
+	pollingInterval = 10 * time.Second
 )
 
 type jaegerIllegalUpdater struct{}
@@ -49,20 +55,24 @@ var _ update.CRModifierV1beta1 = jaegerIllegalUpdater{}
 
 // runValidatorTestV1Beta1 Attempt to use an illegal overrides value on the Jaeger operator configuration using the v1beta1 API
 func runValidatorTestV1Beta1() {
-	err := update.UpdateCRV1beta1(jaegerIllegalUpdater{})
-	if err != nil {
+	Eventually(func() bool {
+		err := update.UpdateCRV1beta1(jaegerIllegalUpdater{})
+		if err == nil {
+			t.Fail("Did not get an error on illegal update")
+		}
 		t.Logs.Infof("Update error: %s", err.Error())
-	}
-	Expect(err).ToNot(BeNil())
-	Expect(err.Error()).To(ContainSubstring("the Jaeger Operator Helm chart value nameOverride cannot be overridden"))
+		return Expect(err.Error()).To(ContainSubstring("the Jaeger Operator Helm chart value nameOverride cannot be overridden"))
+	}, waitTimeout, pollingInterval).Should(Not(BeNil()))
 }
 
 // runValidatorTestV1Alpha1 Attempt to use an illegal overrides value on the Jaeger operator configuration using the v1alpha1 API
 func runValidatorTestV1Alpha1() {
-	err := update.UpdateCR(jaegerIllegalUpdater{})
-	if err != nil {
+	Eventually(func() bool {
+		err := update.UpdateCR(jaegerIllegalUpdater{})
+		if err == nil {
+			t.Fail("Did not get an error on illegal update")
+		}
 		t.Logs.Infof("Update error: %s", err.Error())
-	}
-	Expect(err).ToNot(BeNil())
-	Expect(err.Error()).To(ContainSubstring("the Jaeger Operator Helm chart value nameOverride cannot be overridden"))
+		return Expect(err.Error()).To(ContainSubstring("the Jaeger Operator Helm chart value nameOverride cannot be overridden"))
+	}, waitTimeout, pollingInterval).Should(Not(BeNil()))
 }

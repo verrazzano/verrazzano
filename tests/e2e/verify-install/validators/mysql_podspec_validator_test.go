@@ -136,17 +136,20 @@ func runMySQLPodspecEditWarningTestV1Alpha1() {
 }
 
 func checkExpectations(err error, updater *mysqlPodSpecUpdater) {
-	t.Logs.Infof("Verifies that an update to the MySQL overrides containing a podSpec value issues a warning to " +
-		"the user; also makes an illegal edit to avoid mutating the system but also generate the warning")
-	if err != nil {
-		t.Logs.Infof("Update error: %s", err.Error())
-	}
-	if updater.hasWarnings() {
-		for _, warning := range updater.warnings {
-			t.Logs.Infof("Warning: %v", warning)
+	Eventually(func() bool {
+		t.Logs.Infof("Verifies that an update to the MySQL overrides containing a podSpec value issues a warning to " +
+			"the user; also makes an illegal edit to avoid mutating the system but also generate the warning")
+		if err == nil {
+			t.Fail("Did not get an error on illegal update")
 		}
-	}
-	Expect(err).ToNot(BeNil())
-	Expect(updater.hasWarnings()).To(BeTrue())
-	Expect(updater.hasWarningText(warningSubstring))
+		if err != nil {
+			t.Logs.Infof("Update error: %s", err.Error())
+		}
+		if updater.hasWarnings() {
+			for _, warning := range updater.warnings {
+				t.Logs.Infof("Warning: %v", warning)
+			}
+		}
+		return updater.hasWarnings() && updater.hasWarningText(warningSubstring)
+	}, waitTimeout, pollingInterval).Should(BeTrue())
 }
