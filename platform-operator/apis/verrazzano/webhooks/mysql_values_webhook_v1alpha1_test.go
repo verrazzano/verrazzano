@@ -82,11 +82,18 @@ func TestValidationWarningForServerPodSpecV1alpha1(t *testing.T) {
 			test.newVz.Spec.Components.Keycloak = &v1alpha1.KeycloakComponent{
 				MySQL: v1alpha1.MySQLComponent{
 					InstallOverrides: v1alpha1.InstallOverrides{
-						ValueOverrides: []v1alpha1.Overrides{{
-							Values: &apiextensionsv1.JSON{
-								Raw: []byte(modifiedServerPodSpec),
+						ValueOverrides: []v1alpha1.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(replicasOverrides),
+								},
 							},
-						}},
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(modifiedServerPodSpec),
+								},
+							},
+						},
 					},
 				},
 			}
@@ -149,11 +156,18 @@ func TestNoValidationWarningWithoutServerPodSpecV1alpha1(t *testing.T) {
 				Keycloak: &v1alpha1.KeycloakComponent{
 					MySQL: v1alpha1.MySQLComponent{
 						InstallOverrides: v1alpha1.InstallOverrides{
-							ValueOverrides: []v1alpha1.Overrides{{
-								Values: &apiextensionsv1.JSON{
-									Raw: []byte(noPodSpec),
+							ValueOverrides: []v1alpha1.Overrides{
+								{
+									Values: &apiextensionsv1.JSON{
+										Raw: []byte(replicasOverrides),
+									},
 								},
-							}},
+								{
+									Values: &apiextensionsv1.JSON{
+										Raw: []byte(noPodSpec),
+									},
+								},
+							},
 						},
 					},
 				},
