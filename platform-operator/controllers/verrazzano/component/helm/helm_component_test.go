@@ -43,9 +43,10 @@ type helmFakeRunner struct {
 }
 
 const (
-	testBomFilePath = "../../testdata/test_bom.json"
-	overrideJSON    = "{\"serviceAccount\": {\"create\": false}}"
-	unexpectedError = "unexpected error"
+	testBomFilePath     = "../../testdata/test_bom.json"
+	overrideJSON        = "{\"serviceAccount\": {\"create\": false}}"
+	unexpectedError     = "unexpected error"
+	notFoundErrorString = "not found"
 )
 
 var (
@@ -1385,8 +1386,8 @@ func TestUninstall(t *testing.T) {
 			helmOverride: func() {
 				helm.SetCmdRunner(genericHelmTestRunner{
 					stdOut: []byte(""),
-					stdErr: []byte("not found"),
-					err:    fmt.Errorf("not found"),
+					stdErr: []byte(notFoundErrorString),
+					err:    fmt.Errorf(notFoundErrorString),
 				})
 			},
 			ctx:           fakeContextWithSecret,
@@ -1633,8 +1634,8 @@ func TestHelmComponentUpgrade(t *testing.T) {
 			func() {
 				helm.SetCmdRunner(genericHelmTestRunner{
 					stdOut: []byte(""),
-					stdErr: []byte("not found"),
-					err:    fmt.Errorf(unexpectedError),
+					stdErr: []byte(notFoundErrorString),
+					err:    fmt.Errorf(notFoundErrorString),
 				})
 			},
 			false,
