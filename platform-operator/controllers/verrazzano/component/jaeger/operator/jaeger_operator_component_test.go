@@ -199,7 +199,8 @@ func TestPreUpgrade(t *testing.T) {
 		{
 			// GIVEN a default Verrazzano custom resource all Jaeger Operator services and secrets
 			// WHEN we call PreUpgrade on the Jaeger Operator component,
-			// THEN the call returns the expected error,
+			// THEN the call returns the expected error that conveys that a
+			//      conflicting Jaeger instance already exists,
 			name: "Test PreUpgrade with conflicting Jaeger instance",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				getAllJaegerObjects(1, 1, 1)...,
@@ -212,7 +213,8 @@ func TestPreUpgrade(t *testing.T) {
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
 			//      with no pre-existing Jaeger operator objects,
 			// WHEN we call PreUpgrade on the Jaeger Operator component,
-			// THEN the call returns the expected error.
+			// THEN the call returns the expected error that conveys that the requried
+			//      jaeger-operator deployment is missing.
 			name:         "Test PreUpgrade when Jaeger operator deployment is missing",
 			client:       fake.NewClientBuilder().WithScheme(testScheme).Build(),
 			actualCR:     *jaegerEnabledCR,
@@ -265,7 +267,8 @@ func TestPreUpgrade(t *testing.T) {
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
 			//       and Jaeger operator objects are available with OpenSearch secret missing,
 			// WHEN we call PreUpgrade on the Jaeger Operator component,
-			// THEN the call returns error.
+			// THEN the call returns the expected error that conveys that the required secret containing the credentials
+			//      for connecting to OpenSearch is missing.
 			name: "Test PreUpgrade when OpenSearch secret is missing",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				append(getJaegerOperatorObjects(1), getJaegerWebHookServiceObjects(),
@@ -279,7 +282,8 @@ func TestPreUpgrade(t *testing.T) {
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled and custom Jaeger secret
 			//       and other Jaeger operator objects are available
 			// WHEN we call PreUpgrade on the Jaeger Operator component
-			// THEN the call returns the expected error
+			// THEN the call returns the expected error that conveys that there is no secret object for the
+			//      secret name provided by the user.
 			name: "Test PreUpgrade with non existent custom Jaeger password",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				append(getJaegerOperatorObjects(1), getJaegerWebHookServiceObjects(),
@@ -321,7 +325,8 @@ func TestPreUpgrade(t *testing.T) {
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
 			//       and Jaeger operator objects with missing Jaeger webhook service
 			// WHEN we call IsInstalled on the Jaeger Operator component
-			// THEN the call returns the expected error
+			// THEN the call returns the expected error that conveys that the required jaeger-operator-webhook
+			//      service is missing.
 			name: "Test PreUpgrade when Jaeger Operator component set to enabled",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				append(getJaegerOperatorObjects(1), getJaegerMetricsService())...,
@@ -365,7 +370,7 @@ func TestReassociateResources(t *testing.T) {
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
 			//       and all Jaeger operator objects are available,
-			// WHEN we call ReassociateResources on the Jaeger Operator component
+			// WHEN ReassociateResources is invoked on the Jaeger Operator component
 			// THEN the call returns no error
 			name: "Test ReassociateResources when Jaeger Operator component set to enabled",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
@@ -389,7 +394,7 @@ func TestReassociateResources(t *testing.T) {
 	}
 }
 
-// TestUpgrade tests the IsEnabled function for the Jaeger Operator component
+// TestUpgrade tests the Upgrade function for the Jaeger Operator component
 func TestUpgrade(t *testing.T) {
 	config.SetDefaultBomFilePath(testBomFilePath)
 	helmcli.SetCmdRunner(os.GenericTestRunner{
@@ -407,9 +412,9 @@ func TestUpgrade(t *testing.T) {
 	}{
 		{
 			// GIVEN a default Verrazzano custom resource
-			//       and all Jaeger Operator objects are available,
-			// WHEN we call Upgrade on the Jaeger Operator component,
-			// THEN the call returns the expected error
+			//       and all required Jaeger Operator objects are available,
+			// WHEN Upgrade function is invoked on the Jaeger Operator component,
+			// THEN the call returns no error
 			name: "Test Upgrade when using default Verrazzano CR",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 				getAllJaegerObjects(1, 1, 1)...,
@@ -420,8 +425,9 @@ func TestUpgrade(t *testing.T) {
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
-			// WHEN we call IsInstalled on the Jaeger Operator component
-			// THEN the call returns true
+			//       with no Jaeger related objects,
+			// WHEN Upgrade is invoked on the Jaeger Operator component
+			// THEN the call returns no error
 			name:         "Test Upgrade when Jaeger Operator component set to enabled",
 			client:       fake.NewClientBuilder().WithScheme(testScheme).Build(),
 			actualCR:     *jaegerEnabledCR,
