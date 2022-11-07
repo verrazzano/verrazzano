@@ -8,6 +8,8 @@ def GIT_COMMIT_TO_USE = ""
 @Field
 def LAST_CLEAN_PERIODIC_COMMIT = ""
 @Field
+def LAST_PERIODIC_RUN_COMMIT = ""
+@Field
 def VERRAZZANO_DEV_VERSION = ""
 @Field
 def RELEASABLE_IMAGES_OBJECT_STORE = ""
@@ -37,6 +39,8 @@ def verrazzanoImagesFile           = "verrazzano_images.txt"
 def verrazzanoImagesBuildNumber    = 0     // will be set to actual build number when the job is run
 @Field
 def periodicsUpToDate              = false // If true, indicates that the periodics already passed at the latest commit
+@Field
+def periodicsUpToDateFailed        = false // If true, indicates that the periodics already ran and failed at the latest commit
 
 // Non Fields
 def branchSpecificSchedule = getCronSchedule()
@@ -103,9 +107,11 @@ pipeline {
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
         STABLE_COMMIT_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-stable-commit.txt"
+        LAST_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-periodic-run-commit.txt"
         CLEAN_PERIODIC_OS_LOCATION = "${CLEAN_BRANCH_NAME}-last-clean-periodic-test/verrazzano_periodic-commit.txt"
 
         STABLE_COMMIT_LOCATION = "${WORKSPACE}/last-stable-commit.txt"
+        LAST_PERIODIC_LOCATION = "${WORKSPACE}/last-periodic-run-commit.txt"
         CLEAN_PERIODIC_LOCATION = "${WORKSPACE}/last-clean-periodic-commit.txt"
 
         OCI_OS_REGION="us-phoenix-1"
@@ -574,6 +580,11 @@ pipeline {
                 } else {
                     println("Cannot copy ${verrazzanoImagesFile} from the project ${verrazzanoImagesJobProjectName} - no build number is available to copy from.")
                 }
+                sh """
+                    # Update the last periodic commit
+                    echo "git-commit=${env.GIT_COMMIT}" > commit-used.txt
+                    oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${LAST_PERIODIC_OS_LOCATION} --file commit-used.txt
+                """
             }
             archiveArtifacts artifacts: "**/prerelease_validation.out,**/release_status.out,**/${verrazzanoImagesFile},**/${verrazzanoDistributionsFile}", allowEmptyArchive: true
         }
@@ -607,7 +618,14 @@ def preliminaryChecks() {
     echo "Last clean periodics commit: ${LAST_CLEAN_PERIODIC_COMMIT}"
 
     if (LAST_CLEAN_PERIODIC_COMMIT == GIT_COMMIT_TO_USE) {
+        // If we had a clean periodic run and the commit hasn't changed
         periodicsUpToDate = true
+    } else {
+        // Check if we are still at the same commit previously run (if so we know it wasn't clean and it failed in some way)
+        LAST_PERIODIC_RUN_COMMIT=getLastPeriodicRunCommit()
+        if (LAST_PERIODIC_RUN_COMMIT != null && LAST_PERIODIC_RUN_COMMIT == GIT_COMMIT_TO_USE) {
+            periodicsUpToDateFailed = true
+        }
     }
 
     echo "Up to date: ${periodicsUpToDate}"
@@ -621,6 +639,9 @@ def preliminaryChecks() {
     }
     if (periodicsUpToDate) {
         currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE"
+    }
+    if (periodicsUpToDateFailed) {
+        currentBuild.displayName = "${currentBuild.displayName} : UP-TO-DATE-FAILED"
     }
     if (params.FORCE) {
         currentBuild.displayName = "${currentBuild.displayName} : FORCE"
@@ -727,7 +748,7 @@ def getLastCleanPeriodicCommit() {
             // If we got here, we have some message that may or may not be an error. If we don't see the file, we assume it was an error
             sh """
                 if [ ! -f ${CLEAN_PERIODIC_LOCATION} ]; then
-                    echo "An unexpected error occurred getting last periodic commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
+                    echo "An unexpected error occurred getting last clean periodic commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
                     exit 1
                 fi
             """
@@ -738,9 +759,38 @@ def getLastCleanPeriodicCommit() {
     return cleanPeriodicsCommitProps['git-commit']
 }
 
+// Returns the last run commit for the periodics, or null if the commit file does not exist yet.
+// - fails the pipeline if any error other than 404 is returned by the OCI CLI
+def getLastPeriodicRunCommit() {
+    lastPeriodicCommitCommandOutput = sh (
+        label: "Get last clean periodic commit ID",
+        script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${LAST_PERIODIC_OS_LOCATION} --file ${LAST_PERIODIC_LOCATION} 2>&1 || true",
+        returnStdout: true
+        ).trim()
+    echo "command out: ${lastPeriodicCommitCommandOutput}"
+    if (lastPeriodicCommitCommandOutput.length() > 0) {
+        // We can get warning messages here as well even when the command succeeded, so be more precise on the checking
+        if (lastPeriodicCommitCommandOutput =~ /(.*)status(.*)\d{1,4}(.*)/) {
+            // If we think we had a status: NNN, we ignore 404 and fail for others
+            assert lastPeriodicCommitCommandOutput =~ /(.*)status(.*)404(.*)/ : "An unexpected error occurred getting last periodic commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
+        } else {
+            // If we got here, we have some message that may or may not be an error. If we don't see the file, we assume it was an error
+            sh """
+                if [ ! -f ${LAST_PERIODIC_LOCATION} ]; then
+                    echo "An unexpected error occurred getting last periodic run commit from ObjectStore: ${lastPeriodicCommitCommandOutput}"
+                    exit 1
+                fi
+            """
+        }
+    }
+    // Get the commit ID for the last known clean pass of the Periodic tests
+    def lastPeriodicsCommitProps = readProperties file: "${LAST_PERIODIC_LOCATION}"
+    return lastPeriodicsCommitProps['git-commit']
+}
+
 // Checks all the conditions gating test execution and coallates the result
 def runTests() {
-  return params.FORCE || ( ! periodicsUpToDate && ! params.DRY_RUN )
+  return params.FORCE || ( ! periodicsUpToDate && ! periodicsUpToDateFailed && ! params.DRY_RUN )
 }
 
 def isAlertingEnabled() {

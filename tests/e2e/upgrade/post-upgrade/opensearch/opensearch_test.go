@@ -177,4 +177,12 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 		}
 	})
 
+	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Expect(err).To(BeNil(), fmt.Sprintf(pkg.KubeConfigErrorFmt, err))
+	}
+	t.ItMinimumVersion("Verify OpenSearch plugins have been installed", "1.3.0", kubeConfigPath, func() {
+		pkg.TestOpenSearchPlugins(pollingInterval, waitTimeout)
+	})
+
 })

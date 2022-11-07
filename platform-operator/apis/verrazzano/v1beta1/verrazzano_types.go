@@ -401,7 +401,7 @@ type OpenSearchComponent struct {
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 	// A list of OpenSearch node groups. For sample usage, see
-	// <a href="../../../../../docs/customize/opensearch/">Customize OpenSearch</a>.
+	// <a href="../../../../docs/customize/opensearch/">Customize OpenSearch</a>.
 	// +optional
 	// +patchMergeKey=name
 	// +patchStrategy=merge,retainKeys
@@ -701,7 +701,7 @@ type IngressNginxComponent struct {
 	// The ingress type. Valid values are `LoadBalancer` and `NodePort`. The default value is `LoadBalancer`. If the ingress
 	// type is `NodePort`, then a valid and accessible IP address must be specified using the `controller.service.externalIPs`
 	// key in the [InstallOverrides](#install.verrazzano.io/v1beta1.InstallOverrides). For sample usage, see
-	// <a href="../../../../../docs/customize/externallbs/">External Load Balancers</a>.
+	// <a href="../../../../docs/customize/externallbs/">External Load Balancers</a>.
 	// +optional
 	Type IngressType `json:"type,omitempty"`
 }
