@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	"io"
@@ -842,12 +843,41 @@ func (r *Reconciler) watchResources(namespace string, name string, log vzlog.Ver
 	}
 
 	log.Debugf("Watching for backup jobs to activate reconcile for Verrazzano CR %s/%s", namespace, name)
-	return r.Controller.Watch(
+	err = r.Controller.Watch(
 		&source.Kind{Type: &batchv1.Job{}},
 		createReconcileEventHandler(namespace, name),
 		createPredicate(func(e event.CreateEvent) bool {
 			return r.isMysqlOperatorJob(e, log)
 		}))
+	if err != nil {
+		return err
+	}
+	log.Debugf("Watching for the registration secret to reconcile Verrzzano CR %s/%s", namespace, name)
+	return r.Controller.Watch(
+		&source.Kind{Type: &corev1.Secret{}},
+		createReconcileEventHandler(namespace, name),
+		// Reconcile if there is an event related to the registration secret
+		predicate.Funcs{
+			CreateFunc: func(e event.CreateEvent) bool {
+				return r.isManagedClusterRegistrationSecret(e.Object)
+			},
+			DeleteFunc: func(e event.DeleteEvent) bool {
+				return r.isManagedClusterRegistrationSecret(e.Object)
+			},
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				return r.isManagedClusterRegistrationSecret(e.ObjectNew)
+			},
+		},
+	)
+}
+
+func (r *Reconciler) isManagedClusterRegistrationSecret(o client.Object) bool {
+	secret := o.(*corev1.Secret)
+	if secret.Namespace != vzconst.VerrazzanoSystemNamespace || secret.Name != vzconst.MCRegistrationSecret {
+		return false
+	}
+	r.AddWatch(fluentd.ComponentName)
+	return true
 }
 
 // isMysqlOperatorJob returns true if the job is spawned directly or indirectly by MySQL operator
@@ -952,10 +982,12 @@ func initUnitTesing() {
 }
 
 // AddWatch adds a component to the watched set
-func (r *Reconciler) AddWatch(name string) {
+func (r *Reconciler) AddWatch(names ...string) {
 	r.WatchMutex.Lock()
 	defer r.WatchMutex.Unlock()
-	r.WatchedComponents[name] = true
+	for _, name := range names {
+		r.WatchedComponents[name] = true
+	}
 }
 
 func (r *Reconciler) ClearWatch(name string) {
