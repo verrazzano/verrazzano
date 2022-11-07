@@ -7,12 +7,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
+	"testing"
 )
 
 // For unit testing
@@ -21,9 +22,8 @@ const (
 	testBomFilePath            = "../testdata/test_bom.json"
 	invalidTestBomFilePath     = "../testdata/invalid_test_bom.json"
 	invalidPathTestBomFilePath = "../testdata/invalid_test_bom_path.json"
-
-	v0170 = "v0.17.0"
-	v110  = "v1.1.0"
+	v0170                      = "v0.17.0"
+	v110                       = "v1.1.0"
 )
 
 // TestGetCurrentBomVersion Tests basic getBomVersion() happy path
@@ -116,6 +116,22 @@ func TestValidateVersionBadBomfile(t *testing.T) {
 	err := ValidateVersion(v0170)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unexpected end of JSON input")
+}
+
+func TestValidateVersionNotEqual(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
+	requestedVersion := "1.1.1"
+	err := ValidateVersion(requestedVersion)
+	assert.Error(t, err)
+
+	requestedVersion = "1.1.0"
+	err = ValidateVersion(requestedVersion)
+	assert.NoError(t, err)
+
 }
 
 func TestCheckUpgradeRequired(t *testing.T) {
@@ -216,6 +232,64 @@ func TestValidateNewVersion(t *testing.T) {
 
 }
 
+func TestGetSupportedKubernetesVersion(t *testing.T) {
+	config.SetDefaultBomFilePath(invalidTestBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	_, err := getSupportedKubernetesVersions()
+	assert.Error(t, err)
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	var versionArray = []string{"v1.20.0", "v1.21.0", "v1.22.0", "v1.23.0", "v1.24.0"}
+	kubeSupportedVersions, err := getSupportedKubernetesVersions()
+	assert.NoError(t, err)
+	assert.Equal(t, kubeSupportedVersions, versionArray)
+}
+
+func TestValidateFluentdConfigData(t *testing.T) {
+	testSecret := corev1.Secret{}
+	testSecret.Name = "testSecret"
+
+	err := ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	/*testSecret.Data = map[string][]byte{}
+	  testSecret.Data[FluentdOCISecretConfigEntry] = []byte{}
+	  //_, err = os.CreateTemp(os.TempDir(), validateTempFilePattern)
+	  err = ValidateFluentdConfigData(&testSecret)
+	  assert.NoError(t,err)*/
+}
+
+func TestValidateSecretkey(t *testing.T) {
+	testSecret := corev1.Secret{}
+	testSecret.Name = "testSecret"
+	testSecret.Data = map[string][]byte{}
+
+	expectedBytes := []byte(nil)
+	secretBytes, err := ValidateSecretKey(&testSecret, "testKey", &AuthData{})
+	assert.Error(t, err)
+	assert.Equal(t, expectedBytes, secretBytes)
+
+	testSecret.Data["testKey"] = []byte("secret")
+	expectedBytes = []byte("secret")
+	secretBytes, err = ValidateSecretKey(&testSecret, "testKey", &AuthData{})
+	assert.NoError(t, err)
+	assert.Equal(t, expectedBytes, secretBytes)
+
+	//can add one more case for last 2 lines
+}
+func TestCombineErrors(t *testing.T) {
+	errorData := []error(nil)
+
+	err := CombineErrors(errorData)
+	assert.NoError(t, err)
+
+	//errorData = []error{fmt.Errorf("error1"),fmt.Errorf("error2")}
+	//assert.Error(t, err)
+
+}
+
 /*
 func TestValidatePrivateKey(t *testing.T) {
     secretName :="mysecret"
@@ -243,6 +317,32 @@ func TestValidatePrivateKey(t *testing.T) {
 // GIVEN a call to validateSecretContents
 // WHEN the YAML bytes are not valid
 // THEN an error is returned
+/*func TestGetInstallSecret(t *testing.T) {
+    var c client.Client
+
+}*/
+
+func TestValidateUpgradeRequest(t *testing.T) {
+	config.SetDefaultBomFilePath(invalidTestBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
+	err := ValidateUpgradeRequest("1.1.0", "1.1.0", "1.1.0")
+	assert.Error(t, err)
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+
+	err = ValidateUpgradeRequest("1.1.1", "1.1.1", "1.1.1")
+	assert.Error(t, err)
+
+	err = ValidateUpgradeRequest("", "1.0.5", "1.0.5")
+	assert.Error(t, err)
+
+	err = ValidateUpgradeRequest("1.1.0", "1.1.0", "1.1.0")
+	assert.NoError(t, err)
+}
+
 func Test_validateSecretContents(t *testing.T) {
 	err := ValidateSecretContents("mysecret", []byte("foo"), &AuthData{})
 	assert.Error(t, err)
