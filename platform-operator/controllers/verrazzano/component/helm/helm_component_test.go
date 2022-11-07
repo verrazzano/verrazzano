@@ -1031,7 +1031,7 @@ func TestIsAvailable(t *testing.T) {
 		{
 			"TestIsAvailableWithAvailableObject",
 			HelmComponent{
-				AvailabilityObjects: &ready.AvailabilityObjects{DeploymentNames: []types.NamespacedName{{testNs, deploymentName}}},
+				AvailabilityObjects: &ready.AvailabilityObjects{DeploymentNames: []types.NamespacedName{{Namespace: testNs, Name: deploymentName}}},
 			},
 			spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false),
 			fmt.Sprintf("waiting for deployment %s/%s to exist", testNs, deploymentName),
