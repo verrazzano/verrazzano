@@ -13,7 +13,7 @@ const ESCaBundleKey = "es-ca-bundle"
 // AdminCaBundleKey is the admin CA cert key in the registration secret
 const AdminCaBundleKey = "ca-bundle"
 
-// FluentdESCaBundleKey is the CA cert key in the Verrazzano CRD fluentd Elasticsearch secret
+// FluentdESCaBundleKey is the CA cert key in the Verrazzano CRD fluentd Opensearch secret
 const FluentdESCaBundleKey = "ca-bundle"
 
 // JaegerOSTLSKey is the key in registration secret containing TLS key used by Jaeger to connect to OpenSearch storage
@@ -58,7 +58,7 @@ const JaegerOSUsernameKey = "ES_USERNAME"
 // TokenKey is the key for the service account token
 const TokenKey = "token"
 
-// ESURLKey is the key for Elasticsearch URL
+// ESURLKey is the key for Opensearch URL
 const ESURLKey = "es-url"
 
 // JaegerOSURLKey is the key in registration secret containing Jaeger OpenSearch URL
