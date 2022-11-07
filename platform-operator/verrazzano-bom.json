@@ -536,7 +536,7 @@
           "name": "kube-state-metrics",
           "images": [
             {
-              "image": "kube-state-metrics-private",
+              "image": "kube-state-metrics-jenkins",
               "tag": "v2.6.0-20221104151527-fda95595",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
