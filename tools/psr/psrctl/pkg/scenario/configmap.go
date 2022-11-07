@@ -29,7 +29,7 @@ func (m Manager) createConfigMap(scenario Scenario) (*corev1.ConfigMap, error) {
 			Namespace: m.Namespace,
 			Labels: map[string]string{
 				LabelScenario:   "true",
-				LabelScenarioId: scenario.ScenarioManifest.ID},
+				LabelScenarioID: scenario.ScenarioManifest.ID},
 		},
 		Data: map[string]string{"scenario": encoded},
 	}
@@ -60,7 +60,7 @@ func (m Manager) getAllConfigMaps() ([]corev1.ConfigMap, error) {
 func (m Manager) getConfigMapByID(ID string) (*corev1.ConfigMap, error) {
 	// Find the scenario configmaps in the cluster
 	req1, _ := labels.NewRequirement(LabelScenario, selection.Exists, nil)
-	req2, _ := labels.NewRequirement(LabelScenarioId, selection.Equals, []string{ID})
+	req2, _ := labels.NewRequirement(LabelScenarioID, selection.Equals, []string{ID})
 	cms, err := m.getConfigMapsByLabels(*req1, *req2)
 	if err != nil {
 		return nil, err
