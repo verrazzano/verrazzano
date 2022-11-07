@@ -6,6 +6,7 @@ package stop
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -25,6 +26,7 @@ const (
 )
 
 var scenarioID string
+var namespace string
 
 func NewCmdStop(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -34,14 +36,15 @@ func NewCmdStop(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.Args = cobra.ExactArgs(0)
 	cmd.Example = helpExample
 
-	cmd.PersistentFlags().StringVarP(&scenarioID, flagScenario, flagsScenarioShort, "", flagScenarioHelp)
+	cmd.PersistentFlags().StringVarP(&scenarioID, constants.FlagScenario, constants.FlagsScenarioShort, "", constants.FlagScenarioHelp)
+	cmd.PersistentFlags().StringVarP(&namespace, constants.FlagNamespace, constants.FlagNamespaceShort, "default", constants.FlagNamespaceHelp)
 
 	return cmd
 }
 
 // RunCmdStop - Run the "psrctl Stop" command
 func RunCmdStop(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	m, err := scenario.NewManager("default")
+	m, err := scenario.NewManager(namespace)
 	if err != nil {
 		return fmt.Errorf("Failed to create scenario Manager %v", err)
 	}
@@ -50,7 +53,7 @@ func RunCmdStop(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	msg, err := m.StopScenarioByID(scenarioID)
 	if err != nil {
 		// Cobra will display failure message
-		return fmt.Errorf("Failed to stop scenario %s: %v\n%s", scenarioID, err, msg)
+		return fmt.Errorf("Failed to stop scenario %s/%s: %v\n%s", namespace, scenarioID, err, msg)
 	}
 	fmt.Printf("Scenario %s successfully stopped\n", scenarioID)
 

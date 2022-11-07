@@ -66,7 +66,7 @@ func (m Manager) getConfigMapByID(ID string) (*corev1.ConfigMap, error) {
 		return nil, err
 	}
 	if len(cms) == 0 {
-		return nil, fmt.Errorf("Failed to find ConfigMap for scenario with ID %s", ID)
+		return nil, fmt.Errorf("Failed to find ConfigMap in namespace `%s` with label `%s` matching `%s`", m.Namespace, LabelScenarioID, ID)
 	}
 	return &cms[0], nil
 }
@@ -80,7 +80,7 @@ func (m Manager) getConfigMapsByLabels(requirements ...labels.Requirement) ([]co
 	}
 	cms, err := m.Client.ConfigMaps(m.Namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
-		return nil, m.Log.ErrorfNewErr("Failed to find scenario ConfigMaps: %v", err)
+		return nil, m.Log.ErrorfNewErr("Failed to list ConfigMaps in namespace %s: %v", m.Namespace, err)
 	}
 	return cms.Items, nil
 }
