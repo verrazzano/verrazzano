@@ -8,26 +8,25 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	"go.uber.org/zap"
-	"io/ioutil"
-	v1 "k8s.io/api/core/v1"
-	v12 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	fakeapiExt "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	errors2 "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
-	fake2 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1/fake"
-	fakecorev1 "k8s.io/client-go/kubernetes/typed/core/v1/fake"
-	testing2 "k8s.io/client-go/testing"
 	"os"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"go.uber.org/zap"
 	adminv1 "k8s.io/api/admissionregistration/v1"
+	v1 "k8s.io/api/core/v1"
+	v12 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	fakeapiExt "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
+	fake2 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1/fake"
+	fakecorev1 "k8s.io/client-go/kubernetes/typed/core/v1/fake"
+	testing2 "k8s.io/client-go/testing"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
 // TestCreateWebhookCertificates tests that the certificates needed for webhooks are created
@@ -89,52 +88,34 @@ func TestCreateWebhookCertificates(t *testing.T) {
 	asserts.Equalf(key1, key2, "Keys did not match")
 }
 
-// TestCreateWebhookCertificates tests that the certificates needed for webhooks are created
-// GIVEN an output directory for certificates
+// TestCreateWebhookCertificatesRaceCondition the handling of the race condition for the CA and TLS
+// certificates creation
+// GIVEN a call to CreateWebhookCertificates
 //
-//	WHEN I call CreateWebhookCertificates
-//	THEN all the needed certificate artifacts are created
-func TestCreateWebhookCertificatesErrorOnCreate(t *testing.T) {
+//	WHEN the secrets initially do not exist at the beginning of the method invocation, but later do on the Create call
+//	THEN the previously stored secret data is used for the generated certificate/key files
+func TestCreateWebhookCertificatesRaceCondition(t *testing.T) {
 	asserts := assert.New(t)
 	client := fake.NewSimpleClientset()
 
 	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)
 
 	log := zap.S()
+
+	// Call the internal routines to create the cert data and secrets within the fake client;
+	// later we will simulate the race condition using reactors with the fake
+
+	// Create the CA cert and key, and verify the secret is tracked in the fake client
 	ca, caKey, err := createCACert(log, client, commonName)
 	asserts.Nil(err)
 	_, err = client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
 	asserts.Nil(err)
-	//// CA private key
-	//caPrivKey, err := rsa.GenerateKey(cryptorand.Reader, 4096)
-	//asserts.Nil(err)
-	//
-	//caBytes, err := x509.CreateCertificate(cryptorand.Reader, ca, ca, &caKey.PublicKey, caPrivKey)
-	//asserts.Nil(err)
-	//caPemBytes, caKeyPemBytes := encodeCABytes(caBytes, caKey)
-	//
-	//caData := make(map[string][]byte, 2)
-	//caSecret := &v1.Secret{
-	//	ObjectMeta: metav1.ObjectMeta{Name: OperatorCA, Namespace: OperatorNamespace},
-	//	Data:       caData,
-	//}
-	//caSecret.Data[certKey] = caPemBytes
-	//caSecret.Data[privKey] = caKeyPemBytes
-	//_, err = client.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), caSecret, metav1.CreateOptions{})
-	//asserts.Nil(err)
 
-	//tlsData := make(map[string][]byte, 2)
+	// Create the TLS cert and key, and verify the secret is tracked in the fake client
 	serverPEM, serverKeyPEM, err := createTLSCert(log, client, commonName, ca, caKey)
 	asserts.Nil(err)
-	//tlsSecret := &v1.Secret{
-	//	ObjectMeta: metav1.ObjectMeta{Name: OperatorTLS, Namespace: OperatorNamespace},
-	//}
 	_, err = client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
 	asserts.Nil(err)
-	//tlsSecret.Data[certKey] = serverPEM
-	//tlsSecret.Data[privKey] = serverKeyPEM
-	//_, err = client.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), tlsSecret, metav1.CreateOptions{})
-	//asserts.Nil(err)
 
 	// create temp dir for certs
 	tempDir, err := os.MkdirTemp("", "certs")
@@ -147,6 +128,13 @@ func TestCreateWebhookCertificatesErrorOnCreate(t *testing.T) {
 	}()
 	asserts.Nil(err)
 
+	// Simulate the race condition where the secrets do not exist when CreateWebhookCertificates is called
+	// but do exist when it attempts to create them later in the routine.
+	//
+	// We do this by having the initial secret Get() operations return a NotExists error,
+	// but later the Create() calls return an Already exists error (the code before this causes the
+	// secrets to exist in the fake client).
+
 	getCAInvokes := 0
 	getTLSInvokes := 0
 	client.CoreV1().(*fakecorev1.FakeCoreV1).
@@ -157,14 +145,17 @@ func TestCreateWebhookCertificatesErrorOnCreate(t *testing.T) {
 				if resName == OperatorCA {
 					getCAInvokes++
 					if getCAInvokes > 1 {
+						// Return not handled so the test secret is returned
 						return false, nil, nil
 					}
 				} else if resName == OperatorTLS {
 					getTLSInvokes++
 					if getTLSInvokes > 1 {
+						// Return not handled so the test secret is returned
 						return false, nil, nil
 					}
 				}
+				// Return not found on the initial Get call for each secret
 				return true, nil, errors2.NewNotFound(action.GetResource().GroupResource(), getActionImpl.GetName())
 			})
 
@@ -190,10 +181,8 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 
 	kubeClient := fake.NewSimpleClientset()
 
-	caSecret, caCert, err := createExpectedCASecret(kubeClient, asserts)
+	_, caCert, err := createExpectedCASecret(kubeClient)
 	asserts.Nilf(err, "Unexpected error creating expected CA secret", err)
-
-	kubeClient.CoreV1().Secrets(OperatorNamespace).Create(context.TODO(), caSecret, metav1.CreateOptions{})
 
 	wh, err := createExpectedValidatingWebhook(kubeClient, OperatorName)
 	asserts.Nilf(err, "error should not be returned creating validation webhook configuration: %v", err)
@@ -217,7 +206,7 @@ func TestUpdateValidatingnWebhookConfigurationFail(t *testing.T) {
 
 	kubeClient := fake.NewSimpleClientset()
 
-	_, _, err := createExpectedCASecret(kubeClient, asserts)
+	_, _, err := createExpectedCASecret(kubeClient)
 	asserts.Nilf(err, "Unexpected error creating expected CA secret", err)
 
 	_, err = createInvalidExpectedValidatingWebhook(kubeClient, OperatorName)
@@ -238,7 +227,7 @@ func TestUpdateConversionWebhookConfiguration(t *testing.T) {
 
 	kubeClient := fake.NewSimpleClientset()
 
-	_, caCert, err := createExpectedCASecret(kubeClient, asserts)
+	_, caCert, err := createExpectedCASecret(kubeClient)
 	asserts.Nilf(err, "Unexpected error creating expected CA secret", err)
 
 	apiExtClient := fakeapiExt.NewSimpleClientset().ApiextensionsV1()
@@ -272,7 +261,7 @@ func TestUpdateMutatingWebhookConfiguration(t *testing.T) {
 
 	kubeClient := fake.NewSimpleClientset()
 
-	_, caCert, err := createExpectedCASecret(kubeClient, asserts)
+	_, caCert, err := createExpectedCASecret(kubeClient)
 	asserts.Nilf(err, "Unexpected error creating expected CA secret", err)
 
 	_, err = createExpectedMutatingWebhook(kubeClient)
@@ -313,7 +302,7 @@ func TestUpdateMutatingWebhookConfigurationNoWebhook(t *testing.T) {
 
 	kubeClient := fake.NewSimpleClientset()
 
-	_, _, err := createExpectedCASecret(kubeClient, asserts)
+	_, _, err := createExpectedCASecret(kubeClient)
 	asserts.Nilf(err, "Unexpected error creating expected CA secret", err)
 
 	err = UpdateMutatingWebhookConfiguration(kubeClient, constants.MysqlBackupMutatingWebhookName)
@@ -367,14 +356,14 @@ func TestDeleteValidatingWebhookConfigurationErrorOnGet(t *testing.T) {
 	kubeClient.AdmissionregistrationV1().(*fake2.FakeAdmissionregistrationV1).
 		PrependReactor("get", "validatingwebhookconfigurations",
 			func(action testing2.Action) (handled bool, ret runtime.Object, err error) {
-				return true, nil, errors.New("Error deleting validating webhook")
+				return true, nil, errors.New("error deleting validating webhook")
 			})
 
 	err := DeleteValidatingWebhookConfiguration(kubeClient, "foo")
 	asserts.NotNilf(err, "No expected error returned when deleting webhook", err)
 }
 
-func createExpectedCASecret(kubeClient *fake.Clientset, asserts *assert.Assertions) (*v1.Secret, bytes.Buffer, error) {
+func createExpectedCASecret(kubeClient *fake.Clientset) (*v1.Secret, bytes.Buffer, error) {
 	var caCert bytes.Buffer
 	caCert.WriteString("Fake CABundle")
 
@@ -472,7 +461,7 @@ func createInvalidExpectedValidatingWebhook(kubeClient *fake.Clientset, whName s
 }
 
 func validateFile(asserts *assert.Assertions, certFile string, certPrefix string) []byte {
-	file, err := ioutil.ReadFile(certFile)
+	file, err := os.ReadFile(certFile)
 	asserts.Nilf(err, "Error reading file", certFile)
 	asserts.True(strings.Contains(string(file), certPrefix))
 	return file
