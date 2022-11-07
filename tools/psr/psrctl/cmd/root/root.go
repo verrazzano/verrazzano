@@ -6,7 +6,9 @@ package root
 import (
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/explain"
-	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/run"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/list"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/start"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/stop"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/version"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -42,7 +44,9 @@ func NewRootCmd(vzHelper helpers.VZHelper) *cobra.Command {
 
 	// Add commands
 	cmd.AddCommand(explain.NewCmdExplain(vzHelper))
-	cmd.AddCommand(run.NewCmdRun(vzHelper))
+	cmd.AddCommand(start.NewCmdStart(vzHelper))
+	cmd.AddCommand(stop.NewCmdStop(vzHelper))
+	cmd.AddCommand(list.NewCmdList(vzHelper))
 	cmd.AddCommand(version.NewCmdVersion(vzHelper))
 
 	return cmd
