@@ -181,7 +181,7 @@ func testRancherClusterDeletion(rc *clusters.RancherConfig, client *versioned.Cl
 		pkg.Log(pkg.Info, "Waiting for VMC to remain deleted")
 		_, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Get(context.TODO(), clusterName, metav1.GetOptions{})
 		return errors.IsNotFound(err)
-	}).WithPolling(pollingInterval).WithTimeout(shortWaitTimeout).Should(BeFalse())
+	}).WithPolling(pollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 }
 
 // testVMCCreation tests a VMC created for a managed cluster
