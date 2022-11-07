@@ -8,12 +8,15 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"strings"
 	"time"
 )
 
 const (
 	waitTimeout     = 3 * time.Minute
 	pollingInterval = 10 * time.Second
+
+	expectedJaegerErrorMessage = "the Jaeger Operator Helm chart value nameOverride cannot be overridden"
 )
 
 type jaegerIllegalUpdater struct{}
@@ -62,7 +65,7 @@ func runValidatorTestV1Beta1() {
 			return false
 		}
 		t.Logs.Infof("Update error: %s", err.Error())
-		return Expect(err.Error()).To(ContainSubstring("the Jaeger Operator Helm chart value nameOverride cannot be overridden"))
+		return strings.Contains(err.Error(), expectedJaegerErrorMessage)
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 }
 
@@ -75,6 +78,6 @@ func runValidatorTestV1Alpha1() {
 			return false
 		}
 		t.Logs.Infof("Update error: %s", err.Error())
-		return Expect(err.Error()).To(ContainSubstring("the Jaeger Operator Helm chart value nameOverride cannot be overridden"))
+		return strings.Contains(err.Error(), expectedJaegerErrorMessage)
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 }
