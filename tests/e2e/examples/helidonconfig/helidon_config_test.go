@@ -7,17 +7,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -191,8 +189,13 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 	})
 
 	t.Context("Logging.", Label("f:observability.logging.es"), func() {
-		indexName, err := pkg.GetOpenSearchAppIndex(namespace)
-		Expect(err).To(BeNil())
+		var indexName string
+		var err error
+		Eventually(func() error {
+			indexName, err = pkg.GetOpenSearchAppIndex(namespace)
+			return err
+		}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Expected to get OpenSearch App Index")
+
 		// GIVEN an application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found

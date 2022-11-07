@@ -7,14 +7,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
@@ -356,8 +355,13 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		})
 	})
 	t.Context("WebLogic logging.", Label("f:observability.logging.es"), func() {
-		bobsIndexName, err := pkg.GetOpenSearchAppIndex(namespace)
-		Expect(err).To(BeNil())
+		var bobsIndexName string
+		var err error
+		Eventually(func() error {
+			bobsIndexName, err = pkg.GetOpenSearchAppIndex(namespace)
+			return err
+		}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Expected to get OpenSearch App Index")
+
 		// GIVEN a WebLogic application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
@@ -569,8 +573,13 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		)
 	})
 	t.Context("Coherence logging.", Label("f:observability.logging.es"), func() {
-		indexName, err := pkg.GetOpenSearchAppIndex(namespace)
-		Expect(err).To(BeNil())
+		var indexName string
+		var err error
+		Eventually(func() error {
+			indexName, err = pkg.GetOpenSearchAppIndex(namespace)
+			return err
+		}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Expected to get OpenSearch App Index")
+
 		// GIVEN a Coherence application with logging enabled
 		// WHEN the Elasticsearch index is retrieved
 		// THEN verify that it is found
