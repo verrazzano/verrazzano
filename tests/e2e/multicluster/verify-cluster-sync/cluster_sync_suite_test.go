@@ -10,7 +10,7 @@ import (
 	"github.com/onsi/gomega"
 )
 
-func TestKubernetes(t *testing.T) {
+func TestClusterSync(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(t, "Default Rancher Cluster Sync Suite")
 }
