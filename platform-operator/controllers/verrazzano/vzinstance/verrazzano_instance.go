@@ -58,13 +58,14 @@ func GetInstanceInfo(ctx spi.ComponentContext) *v1alpha1.InstanceInfo {
 		KialiURL:      getComponentIngressURL(ingressList.Items, ctx, kiali.ComponentName, constants.KialiIngress),
 		JaegerURL:     getComponentIngressURL(ingressList.Items, ctx, jaegeroperator.ComponentName, constants.JaegerIngress),
 	}
+	zap.S().Infof("InstanceInfo - Debug: %v", instanceInfo)
 	return instanceInfo
 }
 
 func getComponentIngressURL(ingresses []networkingv1.Ingress, compContext spi.ComponentContext, componentName string, ingressName string) *string {
 	found, comp := registry.FindComponent(componentName)
 	if !found {
-		zap.S().Debugf("No component %s found", componentName)
+		zap.S().Infof("No component %s found", componentName)
 		return nil
 	}
 	for _, compIngressName := range comp.GetIngressNames(compContext) {
@@ -72,14 +73,14 @@ func getComponentIngressURL(ingresses []networkingv1.Ingress, compContext spi.Co
 			return getSystemIngressURL(ingresses, compContext, compIngressName.Namespace, compIngressName.Name)
 		}
 	}
-	zap.S().Debugf("No ingress %s found for component %s", ingressName, componentName)
+	zap.S().Infof("No ingress %s found for component %s", ingressName, componentName)
 	return nil
 }
 
 func getSystemIngressURL(ingresses []networkingv1.Ingress, compContext spi.ComponentContext, namespace string, name string) *string {
 	var ingress = findIngress(ingresses, namespace, name)
 	if ingress == nil {
-		zap.S().Debugf("No ingress found for %s/%s", namespace, name)
+		zap.S().Infof("No ingress found for %s/%s", namespace, name)
 		return nil
 	}
 	url := fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
