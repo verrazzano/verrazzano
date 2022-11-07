@@ -5,7 +5,6 @@ package clusters
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -15,16 +14,11 @@ import (
 
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/test/mockmatchers"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -102,97 +96,6 @@ func TestCreateOrUpdateSecretRancherProxy(t *testing.T) {
 	}
 }
 
-var fakeRC = RancherConfig{
-	BaseURL:                  "https://myBaseURL",
-	CertificateAuthorityData: []byte("testcadata"),
-	Host:                     "myRancherHost",
-	APIAccessToken:           "MyAccessToken",
-}
-
-func TestImportClusterToRancher(t *testing.T) {
-	tests := []struct {
-		name           string
-		httpStatusCode int
-		clusterID      string
-		expectErr      bool
-	}{
-		{name: "Import ok", httpStatusCode: http.StatusCreated, clusterID: "some-cluster1", expectErr: false},
-		{name: "Import bad status", httpStatusCode: http.StatusBadRequest, clusterID: "", expectErr: true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
-			mocker := gomock.NewController(t)
-			mockRequestSender := mocks.NewMockRequestSender(mocker)
-			rancherHTTPClient = mockRequestSender
-			clusterName := "rancher-import-test"
-
-			// Expect an HTTP request to import the cluster to Rancher and return created
-			mockRequestSender.EXPECT().
-				Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clusterPath)).
-				DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-					r := io.NopCloser(bytes.NewReader([]byte(`{"id":"` + tt.clusterID + `"}`)))
-					resp := &http.Response{
-						StatusCode: tt.httpStatusCode,
-						Body:       r,
-						Request:    &http.Request{Method: http.MethodPost},
-					}
-					return resp, nil
-				})
-			clusterID, err := ImportClusterToRancher(&fakeRC, clusterName, vzlog.DefaultLogger())
-
-			if tt.expectErr {
-				asserts.Error(t, err)
-			} else {
-				asserts.NoError(t, err)
-				asserts.Equal(t, tt.clusterID, clusterID)
-			}
-			mocker.Finish()
-		})
-	}
-}
-
-func TestDeleteClusterFromRancher(t *testing.T) {
-	tests := []struct {
-		name           string
-		httpStatusCode int
-		expectErr      bool
-	}{
-		{name: "Delete ok", httpStatusCode: http.StatusOK, expectErr: false},
-		{name: "Delete not found", httpStatusCode: http.StatusNotFound, expectErr: false},
-		{name: "Delete bad status", httpStatusCode: http.StatusBadRequest, expectErr: true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mocker := gomock.NewController(t)
-			mockRequestSender := mocks.NewMockRequestSender(mocker)
-			rancherHTTPClient = mockRequestSender
-			clusterID := "my-cluster-id"
-
-			// Expect an HTTP request to delete the cluster from Rancher and return 200
-			mockRequestSender.EXPECT().
-				Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clustersPath+"/"+clusterID)).
-				DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-					r := io.NopCloser(bytes.NewReader([]byte(`{"somejsonkey":"some-json-value"}`)))
-					resp := &http.Response{
-						StatusCode: tt.httpStatusCode,
-						Body:       r,
-					}
-					return resp, nil
-				})
-			deleted, err := DeleteClusterFromRancher(&fakeRC, clusterID, vzlog.DefaultLogger())
-
-			if tt.expectErr {
-				asserts.Error(t, err)
-			} else {
-				asserts.NoError(t, err)
-				asserts.True(t, deleted)
-			}
-			mocker.Finish()
-		})
-	}
-}
-
 func addNotFoundMock(httpMock *mocks.MockRequestSender, secret *corev1.Secret, clusterID string) *mocks.MockRequestSender {
 	httpMock.EXPECT().Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, getTestPath(secret, clusterID, false))).
 		Return(&http.Response{StatusCode: 404, Body: io.NopCloser(bytes.NewReader([]byte("")))}, fmt.Errorf("not found")).AnyTimes()
@@ -224,42 +127,4 @@ func getTestPath(secret *corev1.Secret, clusterID string, create bool) string {
 		return k8sClustersPath + clusterID + fmt.Sprintf(secretCreateTemplate, secret.GetNamespace())
 	}
 	return k8sClustersPath + clusterID + fmt.Sprintf(secretPathTemplate, secret.GetNamespace(), secret.GetName())
-}
-
-// expectRancherConfigK8sCalls asserts all of the expected calls on the Kubernetes client mock
-// when creating a new Rancher config for the purpose of making http calls
-func expectRancherConfigK8sCalls(t *testing.T, k8sMock *mocks.MockClient) {
-	// Expect a call to get the ingress host name
-	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, ingress *networkingv1.Ingress) error {
-			rule := networkingv1.IngressRule{Host: "rancher.unit-test.com"}
-			ingress.Spec.Rules = append(ingress.Spec.Rules, rule)
-			return nil
-		})
-
-	// Expect a call to get the secret with the Rancher root CA cert
-	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherTLSSecret}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				"ca.crt": {},
-			}
-			return nil
-		})
-
-	// Expect a call to get the Rancher admin secret
-	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherAdminSecret}), gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
-			secret.Data = map[string][]byte{
-				"password": []byte("super-secret"),
-			}
-			return nil
-		})
-
-	// Expect a call to get the Rancher additional CA secret
-	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: constants.AdditionalTLS}), gomock.Not(gomock.Nil())).
-		Return(errors.NewNotFound(schema.GroupResource{Group: rancherNamespace, Resource: "Secret"}, constants.AdditionalTLS))
 }

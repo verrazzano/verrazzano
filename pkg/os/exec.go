@@ -37,7 +37,7 @@ func (r DefaultRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err err
 		err = cmd.Run()
 	}
 	if err != nil {
-		return stdoutBuffer.Bytes(), stderrBuffer.Bytes(), fmt.Errorf("failed to run '%s :  Error %s", cmd, err)
+		return stdoutBuffer.Bytes(), stderrBuffer.Bytes(), fmt.Errorf("Failed to run '%s :  Error %s", cmd, err)
 	}
 	return stdoutBuffer.Bytes(), stderrBuffer.Bytes(), nil
 }

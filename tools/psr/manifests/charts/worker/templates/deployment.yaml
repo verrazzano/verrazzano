@@ -31,9 +31,13 @@ spec:
           env:
             {{- range $key, $val := .Values.global.envVars }}
             - name: {{ $key }}
-              value: {{ $val }}
+              value: {{ $val | quote}}
               {{- end }}
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
           ports:
             - containerPort: 8080
-              protocol: TCP
+              name: backend
 {{- end }}

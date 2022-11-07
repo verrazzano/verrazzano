@@ -57,7 +57,7 @@ type WorkloadSelector struct {
 	// +optional
 	NamespaceSelector metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 
-	// Scopes the template to a specifically labelled object instance.
+	// Scopes the template to a specifically-labelled object instance.
 	// +optional
 	ObjectSelector metav1.LabelSelector `json:"objectSelector,omitempty"`
 

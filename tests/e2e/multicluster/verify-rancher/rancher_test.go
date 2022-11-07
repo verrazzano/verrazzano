@@ -57,7 +57,7 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 			return pkg.LogIndexFound(indexName)
 		}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index cattle-system")
 
-		Expect(getNumBadSocketMessages()).To(BeNumerically("<", 20))
+		Expect(getNumBadSocketMessages()).To(BeNumerically("<", 25))
 	})
 
 	t.Context("When the VMC is updated to the status of the managed cluster", func() {

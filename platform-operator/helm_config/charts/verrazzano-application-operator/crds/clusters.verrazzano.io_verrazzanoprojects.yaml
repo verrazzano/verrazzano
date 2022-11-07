@@ -23,7 +23,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: VerrazzanoProject is the Schema for the verrazzanoprojects API
+        description: VerrazzanoProject specifies the Verrazzano Projects API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -38,18 +38,18 @@ spec:
           metadata:
             type: object
           spec:
-            description: VerrazzanoProjectSpec defines the desired state of VerrazzanoProject
+            description: The desired state of a Verrazzano Project resource.
             properties:
               placement:
-                description: Clusters in which the namespaces in this project are
-                  to be placed
+                description: Clusters on which the namespaces are to be created.
                 properties:
                   clusters:
+                    description: List of clusters.
                     items:
-                      description: Cluster where multi cluster resources are placed
+                      description: Cluster contains the name of a single cluster.
                       properties:
                         name:
-                          description: the name of the cluster
+                          description: The name of a cluster.
                           type: string
                       required:
                       - name
@@ -59,19 +59,20 @@ spec:
                 - clusters
                 type: object
               template:
-                description: ProjectTemplate contains the resources for a project
+                description: The project template.
                 properties:
                   namespaces:
+                    description: The list of application namespaces to create for
+                      this project.
                     items:
-                      description: NamespaceTemplate has the metadata and spec of
-                        the underlying namespace
+                      description: NamespaceTemplate contains the metadata and specification
+                        of a Kubernetes namespace.
                       properties:
                         metadata:
                           type: object
                           x-kubernetes-preserve-unknown-fields: true
                         spec:
-                          description: NamespaceSpec describes the attributes on a
-                            Namespace.
+                          description: The specification of a namespace.
                           properties:
                             finalizers:
                               description: 'Finalizers is an opaque list of values
@@ -83,22 +84,22 @@ spec:
                                 type: string
                               type: array
                           type: object
-                      required:
-                      - metadata
                       type: object
                     type: array
                   networkPolicies:
-                    description: Network policies applied to namespaces in the project
+                    description: Network policies applied to namespaces in the project.
                     items:
-                      description: NetworkPolicyTemplate has the metadata and spec
-                        of the underlying NetworkPolicy
+                      description: NetworkPolicyTemplate contains the metadata and
+                        specification of a Kubernetes NetworkPolicy. <div class="alert
+                        alert-warning" role="alert"> <h4 class="alert-heading">NOTE</h4>
+                        To add an application NetworkPolicy, see <a href="../../../../docs/networking/security/net-security/#networkpolicies-for-applications">NetworkPolicies
+                        for applications</a>. </div>
                       properties:
                         metadata:
                           type: object
                           x-kubernetes-preserve-unknown-fields: true
                         spec:
-                          description: NetworkPolicySpec specifies the NetworkPolicy
-                            for a specific namespace / pod combination.
+                          description: The specification of a network policy.
                           properties:
                             egress:
                               description: List of egress rules to be applied to the
@@ -139,9 +140,7 @@ spec:
                                             is not defined or if the port field is
                                             defined as a named (string) port. The
                                             endPort must be equal or greater than
-                                            port. This feature is in Beta state and
-                                            is enabled by default. It can be disabled
-                                            using the Feature Gate "NetworkPolicyEndPort".
+                                            port.
                                           format: int32
                                           type: integer
                                         port:
@@ -533,9 +532,7 @@ spec:
                                             is not defined or if the port field is
                                             defined as a named (string) port. The
                                             endPort must be equal or greater than
-                                            port. This feature is in Beta state and
-                                            is enabled by default. It can be disabled
-                                            using the Feature Gate "NetworkPolicyEndPort".
+                                            port.
                                           format: int32
                                           type: integer
                                         port:
@@ -636,16 +633,14 @@ spec:
                           required:
                           - podSelector
                           type: object
-                      required:
-                      - metadata
                       type: object
                     type: array
                   security:
-                    description: Security specifies the project security configuration
+                    description: The project security configuration.
                     properties:
                       projectAdminSubjects:
-                        description: ProjectAdminSubjects specifies the list of subjects
-                          that should be bound to the verrazzano-project-admin role
+                        description: The subjects to bind to the `verrazzano-project-admin`
+                          role.
                         items:
                           description: Subject contains a reference to the object
                             or user identities a role binding applies to.  This can
@@ -679,8 +674,8 @@ spec:
                           type: object
                         type: array
                       projectMonitorSubjects:
-                        description: ProjectMonitorBinding specifies the subject that
-                          should be bound to the verrazzano-project-monitor role
+                        description: The subjects to bind to the `verrazzano-project-monitoring`
+                          role.
                         items:
                           description: Subject contains a reference to the object
                             or user identities a role binding applies to.  This can
@@ -722,25 +717,26 @@ spec:
             - template
             type: object
           status:
-            description: MultiClusterResourceStatus represents the status of a multi-cluster
-              resource, including cluster-level status information
+            description: The observed state of a Verrazzano Project resource.
             properties:
               clusters:
+                description: Status information for each cluster.
                 items:
-                  description: ClusterLevelStatus describes the status of the multi
-                    cluster resource in a specific cluster
+                  description: ClusterLevelStatus describes the status of the multicluster
+                    resource in a specific cluster.
                   properties:
                     lastUpdateTime:
-                      description: LastUpdateTime of the resource state in this cluster
+                      description: Last update time of the resource state in this
+                        cluster.
                       type: string
                     message:
-                      description: Message with details about the status in this cluster
+                      description: Message details about the status in this cluster.
                       type: string
                     name:
-                      description: Name of the cluster
+                      description: Name of the cluster.
                       type: string
                     state:
-                      description: State of the resource in this cluster
+                      description: State of the resource in this cluster.
                       type: string
                   required:
                   - lastUpdateTime
@@ -749,10 +745,9 @@ spec:
                   type: object
                 type: array
               conditions:
-                description: The latest available observations of an object's current
-                  state.
+                description: The current state of a multicluster resource.
                 items:
-                  description: Condition describes current state of a multi cluster
+                  description: Condition describes current state of a multicluster
                     resource.
                   properties:
                     lastTransitionTime:
@@ -760,11 +755,11 @@ spec:
                         to another.
                       type: string
                     message:
-                      description: Human readable message indicating details about
-                        last transition.
+                      description: A message with details about the last transition.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: 'Status of the condition: one of `True`, `False`,
+                        or `Unknown`.'
                       type: string
                     type:
                       description: Type of condition.
@@ -775,7 +770,11 @@ spec:
                   type: object
                 type: array
               state:
-                description: State of the multi cluster resource
+                description: 'The state of the multicluster resource. State values
+                  are case-sensitive and formatted as follows: <ul><li>`Failed`: deployment
+                  to cluster failed</li><li>`Pending`: deployment to cluster is in
+                  progress</li><li>`Succeeded`: deployment to cluster successfully
+                  completed</li></ul>'
                 type: string
             type: object
         required:

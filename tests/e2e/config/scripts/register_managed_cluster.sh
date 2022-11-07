@@ -93,6 +93,14 @@ if [ $((MAJOR_VERSION)) -eq 1 ] && [ $((MINOR_VERSION)) -lt 4 ] ; then
     description: "VerrazzanoManagedCluster object for ${MANAGED_CLUSTER_NAME}"
     caSecret: ca-secret-${MANAGED_CLUSTER_NAME}
 EOF
+
+  # wait for VMC to be ready - that means the manifest has been created
+  echo "Creating VMC for ${MANAGED_CLUSTER_NAME}"
+  kubectl --kubeconfig ${ADMIN_KUBECONFIG} wait --for=condition=Ready --timeout=60s vmc ${MANAGED_CLUSTER_NAME} -n verrazzano-mc
+  if [ $? -ne 0 ]; then
+    echo "VMC ${MANAGED_CLUSTER_NAME} not ready after 60 seconds. Registration failed."
+    exit 1
+  fi
 else
   # create VerrazzanoManagedCluster on admin, note caSecret is not specified and will be auto populated
   kubectl --kubeconfig ${ADMIN_KUBECONFIG} apply -f <<EOF -
@@ -104,35 +112,43 @@ else
   spec:
     description: "VerrazzanoManagedCluster object for ${MANAGED_CLUSTER_NAME}"
 EOF
+
+  retries=0
+  while [ ${retries} -lt 10 ] && [ "$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vmc -n verrazzano-mc ${MANAGED_CLUSTER_NAME} -o jsonpath='{.status.rancherRegistration.status}')" != 'Completed' ] ; do
+    echo "Verrazzano Rancher registration incomplete, checking again in 30s"
+    ((retries=retries+1))
+    sleep 30
+  done
 fi
 
-# wait for VMC to be ready - that means the manifest has been created
-echo "Creating VMC for ${MANAGED_CLUSTER_NAME}"
-kubectl --kubeconfig ${ADMIN_KUBECONFIG} wait --for=condition=Ready --timeout=60s vmc ${MANAGED_CLUSTER_NAME} -n verrazzano-mc
-if [ $? -ne 0 ]; then
-  echo "VMC ${MANAGED_CLUSTER_NAME} not ready after 60 seconds. Registration failed."
-  exit 1
-fi
+echo "----------BEGIN VMC ${MANAGED_CLUSTER_NAME} contents----------"
+kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vmc -n verrazzano-mc ${MANAGED_CLUSTER_NAME} -o yaml
+echo "----------END VMC ${MANAGED_CLUSTER_NAME} contents----------"
 
-# get the admin user token from the Rancher API
-RANCHER_URL=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vz -o jsonpath='{.items[0].status.instance.rancherUrl}')
-echo "RANCHER_URL: ${RANCHER_URL}"
-RANCHER_ADMIN_PASS=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret -n cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode)
-echo "RANCHER_ADMIN_PASS: ${RANCHER_ADMIN_PASS}"
-RANCHER_TOKEN=$(curl -s -k -X POST -H 'Content-Type: application/json' "${RANCHER_URL}/v3-public/localProviders/local?action=login"  -d "{\"username\":\"admin\", \"password\":\"${RANCHER_ADMIN_PASS}\"}"| jq -r ".token")
-echo "RANCHER_TOKEN: ${RANCHER_TOKEN}"
-if [ -z "${RANCHER_TOKEN}" ] ; then
-  echo "Rancher token for admin user not found"
-  exit 1
-fi
+if [ $((MAJOR_VERSION)) -eq 1 ] && [ $((MINOR_VERSION)) -lt 5 ] ; then
+  kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret verrazzano-cluster-${MANAGED_CLUSTER_NAME}-manifest -n verrazzano-mc -o jsonpath={.data.yaml} | base64 --decode > register-${MANAGED_CLUSTER_NAME}.yaml
+else
+   echo "Admin cluster VZ version is >= 1.5, getting the manifest directly from Rancher"
+  # get the admin user token from the Rancher API
+  RANCHER_URL=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} get vz -o jsonpath='{.items[0].status.instance.rancherUrl}')
+  echo "RANCHER_URL: ${RANCHER_URL}"
+  RANCHER_ADMIN_PASS=$(kubectl --kubeconfig ${ADMIN_KUBECONFIG} get secret -n cattle-system rancher-admin-secret -o jsonpath={.data.password} | base64 --decode)
+  echo "RANCHER_ADMIN_PASS: ${RANCHER_ADMIN_PASS}"
+  RANCHER_TOKEN=$(curl -s -k -X POST -H 'Content-Type: application/json' "${RANCHER_URL}/v3-public/localProviders/local?action=login"  -d "{\"username\":\"admin\", \"password\":\"${RANCHER_ADMIN_PASS}\"}"| jq -r ".token")
+  echo "RANCHER_TOKEN: ${RANCHER_TOKEN}"
+  if [ -z "${RANCHER_TOKEN}" ] ; then
+    echo "Rancher token for admin user not found"
+    exit 1
+  fi
 
-# Use the admin token to apply the manifest to the managed cluster
-RANCHER_CLUSTER_ID=$(curl -s -k -X GET -H "Authorization: Bearer ${RANCHER_TOKEN}" "${RANCHER_URL}/v3/clusters?name=${MANAGED_CLUSTER_NAME}" | jq -r '.data[0].id')
-echo "RANCHER_CLUSTER_ID: ${RANCHER_CLUSTER_ID}"
-MC_RANCHER_TOKEN=$(curl -s -k -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer ${RANCHER_TOKEN}" "${RANCHER_URL}/v3/clusterregistrationtoken" \
-                   -d "{\"type\":\"clusterRegistrationToken\", \"clusterId\":\"${RANCHER_CLUSTER_ID}\"}"| jq -r ".token")
-echo "MC_RANCHER_TOKEN: ${MC_RANCHER_TOKEN}"
-curl -s -k -X GET -H "Authorization: Bearer ${RANCHER_TOKEN}" "${RANCHER_URL}/v3/import/${MC_RANCHER_TOKEN}_${RANCHER_CLUSTER_ID}.yaml" > register-"${MANAGED_CLUSTER_NAME}".yaml
+  # Use the admin token to apply the manifest to the managed cluster
+  RANCHER_CLUSTER_ID=$(curl -s -k -X GET -H "Authorization: Bearer ${RANCHER_TOKEN}" "${RANCHER_URL}/v3/clusters?name=${MANAGED_CLUSTER_NAME}" | jq -r '.data[0].id')
+  echo "RANCHER_CLUSTER_ID: ${RANCHER_CLUSTER_ID}"
+  MC_RANCHER_TOKEN=$(curl -s -k -X POST -H 'Content-Type: application/json' -H "Authorization: Bearer ${RANCHER_TOKEN}" "${RANCHER_URL}/v3/clusterregistrationtoken" \
+                     -d "{\"type\":\"clusterRegistrationToken\", \"clusterId\":\"${RANCHER_CLUSTER_ID}\"}"| jq -r ".token")
+  echo "MC_RANCHER_TOKEN: ${MC_RANCHER_TOKEN}"
+  curl -s -k -X GET -H "Authorization: Bearer ${RANCHER_TOKEN}" "${RANCHER_URL}/v3/import/${MC_RANCHER_TOKEN}_${RANCHER_CLUSTER_ID}.yaml" > register-"${MANAGED_CLUSTER_NAME}".yaml
+fi
 
 echo "----------BEGIN register-${MANAGED_CLUSTER_NAME}.yaml contents----------"
 cat register-${MANAGED_CLUSTER_NAME}.yaml
