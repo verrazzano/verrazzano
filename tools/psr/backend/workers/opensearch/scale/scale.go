@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"sync/atomic"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	er "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -107,8 +108,11 @@ func (w scaleWorker) WantIterationInfoLogged() bool {
 	return false
 }
 
+// DoWork continuously scales a specified OpenSearch out and in by modifying the VZ CR
+// It uses the nextScale value to determine which direction OpenSearch should be scaled next
+// This worker is blocking until the current scaling of replicas has completed and OpenSearch reaches a "ready" state
+// Verrazzano installed using the v1beta1 API is assumed
 func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-
 	nextScale := &w.nextScale.val
 	tier := config.PsrEnv.GetEnv(openSearchTier)
 
@@ -190,6 +194,7 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 			log.Infof(logMsg)
 			break
 		}
+		time.Sleep(100 * time.Millisecond)
 	}
 	return nil
 }
