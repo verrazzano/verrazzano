@@ -154,8 +154,8 @@ func (r *VerrazzanoManagedClusterReconciler) syncCACertSecret(vmc *clusterapi.Ve
 			vmc.Spec.CASecret = caSecretName
 			// update the VMC with ca secret name
 			r.log.Infof("Updating VMC %s with managed cluster CA secret %s", vmc.Name, caSecretName)
-			// Replace the update call with a new pointer
-			// That way, the existing VMC status updates do not get overwritten by the existing objects
+			// Replace the VMC in the update call with a copy
+			// That way the existing VMC status updates do not get overwritten by the update
 			updateVMC := vmc.DeepCopy()
 			err = r.Update(context.TODO(), updateVMC)
 			if err != nil {

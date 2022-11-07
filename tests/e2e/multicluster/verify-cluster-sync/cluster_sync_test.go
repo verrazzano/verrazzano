@@ -170,7 +170,7 @@ func testRancherClusterDeletion(rc *clusters.RancherConfig, client *versioned.Cl
 	Expect(deleted).To(BeTrue())
 
 	// Eventually, a VMC with that cluster name should be deleted
-	Eventually(func() bool {
+	Consistently(func() bool {
 		pkg.Log(pkg.Info, "Waiting for VMC to be deleted")
 		_, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Get(context.TODO(), clusterName, metav1.GetOptions{})
 		return errors.IsNotFound(err)
@@ -221,7 +221,7 @@ func testVMCDeletion(rc *clusters.RancherConfig, client *versioned.Clientset, cl
 		return client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Delete(context.TODO(), clusterName, metav1.DeleteOptions{})
 	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeNil())
 
-	Eventually(func() bool {
+	Consistently(func() bool {
 		return clusterExistsInRancher(rc, clusterName)
 	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeFalse())
 }
