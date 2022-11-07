@@ -391,6 +391,40 @@ func TestDeleteFD(t *testing.T) {
 	}
 }
 
+// TestDeleteFTDefaultConfig tests deleteFT with rest client from the default config
+// GIVEN a filepath and args
+//
+//	WHEN TestDeleteFTDefaultConfig is called
+//	THEN it fails to get the default restclient
+func TestDeleteFTDefaultConfig(t *testing.T) {
+	var tests = []struct {
+		name    string
+		file    string
+		args    map[string]interface{}
+		isError bool
+	}{
+		{
+			"should fail to delete a template file",
+			testdata + "/templated_service.yaml",
+			map[string]interface{}{"namespace": "default"},
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
+			y := k8sutil.NewYAMLApplier(c, "")
+			err := y.DeleteFTDefaultConfig(tt.file, tt.args)
+			if tt.isError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestDeleteAll(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	y := k8sutil.NewYAMLApplier(c, "")
