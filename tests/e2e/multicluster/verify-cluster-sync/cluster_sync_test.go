@@ -23,8 +23,9 @@ import (
 )
 
 const (
-	waitTimeout     = 10 * time.Minute
-	pollingInterval = 10 * time.Second
+	waitTimeout      = 10 * time.Minute
+	shortWaitTimeout = time.Minute
+	pollingInterval  = 10 * time.Second
 )
 
 var t = framework.NewTestFramework("cluster_sync_test")
@@ -170,11 +171,17 @@ func testRancherClusterDeletion(rc *clusters.RancherConfig, client *versioned.Cl
 	Expect(deleted).To(BeTrue())
 
 	// Eventually, a VMC with that cluster name should be deleted
-	Consistently(func() bool {
+	Eventually(func() bool {
 		pkg.Log(pkg.Info, "Waiting for VMC to be deleted")
 		_, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Get(context.TODO(), clusterName, metav1.GetOptions{})
 		return errors.IsNotFound(err)
 	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
+
+	Consistently(func() bool {
+		pkg.Log(pkg.Info, "Waiting for VMC to remain deleted")
+		_, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Get(context.TODO(), clusterName, metav1.GetOptions{})
+		return errors.IsNotFound(err)
+	}).WithPolling(pollingInterval).WithTimeout(shortWaitTimeout).Should(BeFalse())
 }
 
 // testVMCCreation tests a VMC created for a managed cluster
@@ -221,9 +228,13 @@ func testVMCDeletion(rc *clusters.RancherConfig, client *versioned.Clientset, cl
 		return client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Delete(context.TODO(), clusterName, metav1.DeleteOptions{})
 	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeNil())
 
-	Consistently(func() bool {
+	Eventually(func() bool {
 		return clusterExistsInRancher(rc, clusterName)
 	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeFalse())
+
+	Consistently(func() bool {
+		return clusterExistsInRancher(rc, clusterName)
+	}).WithPolling(pollingInterval).WithTimeout(shortWaitTimeout).Should(BeFalse())
 }
 
 func verifyRancherRegistration(clusterName string) bool {
