@@ -140,7 +140,8 @@ func checkExpectations(err error, updater *mysqlPodSpecUpdater) {
 		t.Logs.Infof("Verifies that an update to the MySQL overrides containing a podSpec value issues a warning to " +
 			"the user; also makes an illegal edit to avoid mutating the system but also generate the warning")
 		if err == nil {
-			t.Fail("Did not get an error on illegal update")
+			t.Logs.Info("Did not get an error on illegal update")
+			return false
 		}
 		if err != nil {
 			t.Logs.Infof("Update error: %s", err.Error())
