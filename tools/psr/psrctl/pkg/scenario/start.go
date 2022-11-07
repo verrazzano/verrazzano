@@ -60,7 +60,7 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 		relname := fmt.Sprintf("psr-%s-%s-%v", scman.ID, wType, i)
 
 		if m.Verbose {
-			fmt.Printf("Installing use case %s as helm release %s/%s\n", uc.UsecasePath, m.Namespace, relname)
+			fmt.Printf("Installing use case %s as Helm release %s/%s\n", uc.UsecasePath, m.Namespace, relname)
 		}
 		_, stderr, err := helmcli.Upgrade(m.Log, relname, m.Namespace, m.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 		if err != nil {
