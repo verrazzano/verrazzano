@@ -6,17 +6,22 @@ package operator
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"testing"
 
+	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/os"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/stretchr/testify/assert"
@@ -37,6 +42,7 @@ const (
 	defaultJaegerDisabledJSON    = "{\"jaeger\":{\"create\": false}}"
 	defaultJaegerEnabledJSON     = "{\"jaeger\":{\"create\": true}}"
 	k8sAppNameLabel              = "app.kubernetes.io/name"
+	k8sInstanceNameLabel         = "app.kubernetes.io/instance"
 	podTemplateHashLabel         = "pod-template-hash"
 	deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
 )
@@ -46,11 +52,13 @@ var jaegerEnabledCR = &vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Components: vzapi.ComponentSpec{
 			JaegerOperator: &vzapi.JaegerOperatorComponent{
-				Enabled: &enabled,
+				Enabled: &trueValue,
 			},
 		},
 	},
 }
+
+var jaegerOverrideJSONString = "{\"jaeger\":{\"create\": true, \"spec\":{\"storage\":{\"secretName\":\"test-secret\"}}}}"
 
 type ingressTestStruct struct {
 	name   string
@@ -105,6 +113,503 @@ func TestIsEnabled(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, nil, false, profilesRelativePath)
 			assert.Equal(t, tt.expectTrue, NewComponent().IsEnabled(ctx.EffectiveCR()))
+		})
+	}
+}
+
+// TestIsInstalled tests the IsEnabled function for the Jaeger Operator component
+func TestIsInstalled(t *testing.T) {
+	falseValue := false
+	tests := []struct {
+		name       string
+		client     client.Client
+		actualCR   vzapi.Verrazzano
+		expectTrue bool
+	}{
+		{
+			// GIVEN a default Verrazzano custom resource
+			// WHEN we call IsInstalled on the Jaeger Operator component
+			// THEN the call returns false
+			name:       "Test IsInstalled when using default Verrazzano CR",
+			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
+			actualCR:   vzapi.Verrazzano{},
+			expectTrue: false,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			// WHEN we call IsInstalled on the Jaeger Operator component
+			// THEN the call returns true
+			name: "Test IsInstalled when Jaeger Operator component set to enabled",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getJaegerOperatorObjects(1)...,
+			).Build(),
+			actualCR:   *jaegerEnabledCR,
+			expectTrue: true,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       and Jaeger operator pod is not available
+			// WHEN we call IsInstalled on the Jaeger Operator component
+			// THEN the call returns false
+			name:       "Test IsInstalled when Jaeger Operator component set to enabled",
+			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
+			actualCR:   *jaegerEnabledCR,
+			expectTrue: false,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator disabled
+			// WHEN we call IsInstalled on the Jaeger Operator component
+			// THEN the call returns false
+			name:   "Test IsInstalled when Jaeger Operator component set to disabled",
+			client: fake.NewClientBuilder().WithScheme(testScheme).Build(),
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						JaegerOperator: &vzapi.JaegerOperatorComponent{
+							Enabled: &falseValue,
+						},
+					},
+				},
+			},
+			expectTrue: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, &tt.actualCR, nil, false, profilesRelativePath)
+			isInstalled, err := NewComponent().IsInstalled(ctx)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectTrue, isInstalled)
+		})
+	}
+}
+
+// TestPreUpgrade tests the PreUpgrade function for the Jaeger Operator component
+func TestPreUpgrade(t *testing.T) {
+	k8sutil.SetFakeClient(k8sfake.NewSimpleClientset(getJaegerWebHookServiceObjects()))
+	defer k8sutil.ClearFakeClient()
+	tests := []struct {
+		name         string
+		client       client.Client
+		actualCR     vzapi.Verrazzano
+		expectError  bool
+		expectErrMsg string
+	}{
+		{
+			// GIVEN a default Verrazzano custom resource all Jaeger Operator services and secrets
+			// WHEN we call PreUpgrade on the Jaeger Operator component,
+			// THEN the call returns the expected error that conveys that a
+			//      conflicting Jaeger instance already exists,
+			name: "Test PreUpgrade with conflicting Jaeger instance",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 1, 1)...,
+			).Build(),
+			actualCR:     vzapi.Verrazzano{},
+			expectError:  true,
+			expectErrMsg: "Conflicting Jaeger instance verrazzano-monitoring/jaeger-operator-jaeger exists!",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//      with no pre-existing Jaeger operator objects,
+			// WHEN we call PreUpgrade on the Jaeger Operator component,
+			// THEN the call returns the expected error that conveys that the required
+			//      jaeger-operator deployment is missing.
+			name:         "Test PreUpgrade when Jaeger operator deployment is missing",
+			client:       fake.NewClientBuilder().WithScheme(testScheme).Build(),
+			actualCR:     *jaegerEnabledCR,
+			expectError:  true,
+			expectErrMsg: "Failed to get deployment verrazzano-monitoring/jaeger-operator",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       with all Jaeger operator objects and the ES secret does not have any data,
+			// WHEN we call PreUpgrade on the Jaeger Operator component,
+			// THEN the call returns no error.
+			name: "Test PreUpgrade when all Jaeger Operator objects are available with no data in ES secret",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				append(getJaegerOperatorObjects(1), getJaegerWebHookServiceObjects(),
+					getJaegerMetricsService(), getJaegerSecretObject(), getESSecretNoData())...,
+			).Build(),
+			actualCR:     *jaegerEnabledCR,
+			expectError:  false,
+			expectErrMsg: "_",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       and Jaeger operator objects available and data filled in Jaeger ES secret,
+			// WHEN we call PreUpgrade on the Jaeger Operator component,
+			// THEN the call returns no error
+			name: "Test PreUpgrade when Jaeger Operator objects are available with no data in ES secret",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				append(getJaegerOperatorObjects(1), getJaegerWebHookServiceObjects(),
+					getJaegerMetricsService(), getJaegerSecretObject(), getESSecretWithData())...,
+			).Build(),
+			actualCR:     *jaegerEnabledCR,
+			expectError:  false,
+			expectErrMsg: "_",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       and Jaeger operator objects are available
+			// WHEN we call PreUpgrade on the Jaeger Operator component
+			// THEN the call returns no error
+			name: "Test PreUpgrade when Jaeger Operator objects are available and Jaeger instance create disabled",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				append(getJaegerOperatorObjects(1), getJaegerWebHookServiceObjects(),
+					getJaegerMetricsService(), getJaegerSecretObject(), getESSecretNoData())...,
+			).Build(),
+			actualCR:     getVZCRWithCustomJaegerCROverride(jaegerDisabledJSON),
+			expectError:  false,
+			expectErrMsg: "_",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       and Jaeger operator objects are available with OpenSearch secret missing,
+			// WHEN we call PreUpgrade on the Jaeger Operator component,
+			// THEN the call returns the expected error that conveys that the required secret containing the credentials
+			//      for connecting to OpenSearch is missing.
+			name: "Test PreUpgrade when OpenSearch secret is missing",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				append(getJaegerOperatorObjects(1), getJaegerWebHookServiceObjects(),
+					getJaegerMetricsService(), getJaegerSecretObject())...,
+			).Build(),
+			actualCR:     *jaegerEnabledCR,
+			expectError:  true,
+			expectErrMsg: "secrets \"verrazzano-es-internal\" not found",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled and custom Jaeger secret
+			//       and other Jaeger operator objects are available
+			// WHEN we call PreUpgrade on the Jaeger Operator component
+			// THEN the call returns the expected error that conveys that there is no secret object for the
+			//      secret name provided by the user.
+			name: "Test PreUpgrade with non existent custom Jaeger password",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				append(getJaegerOperatorObjects(1), getJaegerWebHookServiceObjects(),
+					getJaegerMetricsService(), getJaegerSecretObject())...,
+			).Build(),
+			actualCR:     getVZCRWithCustomJaegerCROverride(jaegerOverrideJSONString),
+			expectError:  true,
+			expectErrMsg: "test-secret not found in namespace verrazzano-install",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       and Jaeger operator objects are available,
+			// WHEN we call IsInstalled on the Jaeger Operator component,
+			// THEN the call returns no error.
+			name: "Test PreUpgrade with existent custom Jaeger password",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				append(getJaegerOperatorObjects(1), getJaegerWebHookServiceObjects(),
+					getJaegerMetricsService(), getJaegerSecretObject(), getCustomSecretWithData())...,
+			).Build(),
+			actualCR:     getVZCRWithCustomJaegerCROverride(jaegerOverrideJSONString),
+			expectError:  false,
+			expectErrMsg: "_",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       and Jaeger operator objects are available and custom secret,
+			// WHEN we call IsInstalled on the Jaeger Operator component,
+			// THEN the call returns no error.
+			name: "Test PreUpgrade with custom Jaeger password",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				append(getLabeledJaegerOperatorDeploy(1), getJaegerWebHookServiceObjects(),
+					getJaegerMetricsService(), getJaegerSecretObject(), getCustomSecretWithData())...,
+			).Build(),
+			actualCR:     getVZCRWithCustomJaegerCROverride(jaegerOverrideJSONString),
+			expectError:  false,
+			expectErrMsg: "_",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       and Jaeger operator objects with missing Jaeger webhook service
+			// WHEN we call IsInstalled on the Jaeger Operator component
+			// THEN the call returns the expected error that conveys that the required jaeger-operator-webhook
+			//      service is missing.
+			name: "Test PreUpgrade when Jaeger Operator component set to enabled",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				append(getJaegerOperatorObjects(1), getJaegerMetricsService())...,
+			).Build(),
+			actualCR:     *jaegerEnabledCR,
+			expectError:  true,
+			expectErrMsg: "Failed to get webhook service verrazzano-monitoring/jaeger-operator-webhook-service",
+		},
+	}
+	helmcli.SetCmdRunner(os.GenericTestRunner{
+		StdOut: []byte(""),
+		StdErr: []byte("not found"),
+		Err:    fmt.Errorf("error_to_ignore"),
+	})
+	defer helmcli.SetDefaultRunner()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, &tt.actualCR, nil, false, profilesRelativePath)
+
+			err := NewComponent().PreUpgrade(ctx)
+			if tt.expectError {
+				assert.NotNil(t, err)
+				//assert.Contains(t, err.Error(), tt.expectErrMsg)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestReassociateResources re-associate jaeger resource post upgrade
+func TestReassociateResources(t *testing.T) {
+	err := certv1.AddToScheme(testScheme)
+	assert.NoError(t, err)
+	tests := []struct {
+		name         string
+		client       client.Client
+		actualCR     vzapi.Verrazzano
+		expectError  bool
+		expectErrMsg string
+	}{
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       and all Jaeger operator objects are available,
+			// WHEN ReassociateResources is invoked on the Jaeger Operator component
+			// THEN the call returns no error
+			name: "Test ReassociateResources when Jaeger Operator component set to enabled",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				append(getJaegerOperatorObjects(1), getJaegerWebHookServiceObjects(),
+					getJaegerMetricsService(), getJaegerSecretObject(), getESSecretNoData(), getJaegerCertIssuer())...,
+			).Build(),
+			expectError:  false,
+			expectErrMsg: "_",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ReassociateResources(tt.client)
+			if tt.expectError {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.expectErrMsg)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestUpgrade tests the Upgrade function for the Jaeger Operator component
+func TestUpgrade(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	helmcli.SetCmdRunner(os.GenericTestRunner{
+		StdOut: []byte(""),
+		StdErr: []byte(""),
+		Err:    nil,
+	})
+	defer helmcli.SetDefaultRunner()
+	tests := []struct {
+		name         string
+		client       client.Client
+		actualCR     vzapi.Verrazzano
+		expectError  bool
+		expectErrMsg string
+	}{
+		{
+			// GIVEN a default Verrazzano custom resource
+			//       and all required Jaeger Operator objects are available,
+			// WHEN Upgrade function is invoked on the Jaeger Operator component,
+			// THEN the call returns no error
+			name: "Test Upgrade when using default Verrazzano CR",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 1, 1)...,
+			).Build(),
+			actualCR:     vzapi.Verrazzano{},
+			expectError:  false,
+			expectErrMsg: "_",
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
+			//       with no Jaeger related objects,
+			// WHEN Upgrade is invoked on the Jaeger Operator component
+			// THEN the call returns no error
+			name:         "Test Upgrade when Jaeger Operator component set to enabled",
+			client:       fake.NewClientBuilder().WithScheme(testScheme).Build(),
+			actualCR:     *jaegerEnabledCR,
+			expectError:  false,
+			expectErrMsg: "_",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, &tt.actualCR, nil, false, profilesRelativePath)
+			err := NewComponent().Upgrade(ctx)
+			if tt.expectError {
+				assert.NotNil(t, err)
+				assert.Contains(t, err.Error(), tt.expectErrMsg)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestIsAvailable tests the IsAvailable function for the Jaeger Operator component
+func TestIsAvailable(t *testing.T) {
+	tests := []struct {
+		name       string
+		client     client.Client
+		cr         *vzapi.Verrazzano
+		expectTrue bool
+		dryRun     bool
+	}{
+		{
+			// GIVEN the Jaeger Operator deployment does not exist
+			// WHEN we call IsAvailable
+			// THEN the call returns false
+			name:       "Test IsAvailable when Jaeger Operator deployment does not exist",
+			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
+			cr:         &vzapi.Verrazzano{},
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN the Jaeger Operator deployment does not exist, and dry run is false
+			// WHEN we call IsAvailable
+			// THEN the call returns false
+			name:       "Test IsAvailable when Jaeger Operator deployment does not exist",
+			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
+			cr:         &vzapi.Verrazzano{},
+			expectTrue: false,
+			dryRun:     false,
+		},
+		//0XX
+		{
+			// GIVEN Jaeger operator, collector and query have no available pods,
+			// WHEN we call IsAvailable,
+			// THEN the call returns false.
+			name: "Test IsAvailable when Jaeger Operator, Collector and Query are not available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(0, 0, 0)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator and collector have no available pods, but query has available pods,
+			// WHEN we call IsAvailable,
+			// THEN the call returns false.
+			name: "Test IsAvailable when Jaeger Operator and Collector are not available but Query is available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(0, 0, 1)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator and query have no available pods, but collector has available pods
+			// WHEN we call IsAvailable
+			// THEN the call returns false
+			name: "Test IsAvailable when Jaeger Operator and Query are not available but Collector is available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(0, 1, 0)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator has no available pods, but collector and query have available pods
+			// WHEN we call IsAvailable,
+			// THEN the call returns false.
+			name: "Test IsAvailable when Jaeger Operator is not available but Query and Collector are available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(0, 1, 1)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: false,
+			dryRun:     true,
+		},
+		//1XX
+		{
+			// GIVEN Jaeger operator has available pods but collector and query have no available pods,
+			// WHEN we call IsAvailable,
+			// THEN the call returns false.
+			name: "Test IsAvailable when Jaeger Operator is available but Collector and Query are not available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 0, 0)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator and query have available pods but collector has no available pods,
+			// WHEN we call IsAvailable,
+			// THEN the call returns false.
+			name: "Test IsAvailable when Jaeger Operator and Query are available but Collector is not available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 0, 1)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator and collector have available pods but query has no available pods,
+			// WHEN we call IsAvailable,
+			// THEN the call returns false.
+			name: "Test IsAvailable when Jaeger Operator and Collector are available but Query is not available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 1, 0)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: false,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator, collector and query have available pods,
+			// WHEN we call IsAvailable,
+			// THEN the call returns false.
+			name: "Test IsAvailable when Jaeger Operator, Collector and Query pods are available",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 1, 1)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: true,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator has available pods and VZ managed default jaeger CR is disabled,
+			// WHEN we call IsAvailable,
+			// THEN the call returns true.
+			name: "Test IsAvailable when Jaeger Operator is available but default Jaeger CR is disabled",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getAllJaegerObjects(1, 1, 1)...,
+			).Build(),
+			cr:         jaegerEnabledCR,
+			expectTrue: true,
+			dryRun:     true,
+		},
+		{
+			// GIVEN Jaeger operator has available pods and VZ managed default jaeger CR is explicitly enabled without
+			//       deployments for collector and query components,
+			// WHEN we call IsReady,
+			// THEN the call returns false.
+			name: "Test IsReady when Jaeger Operator is available and default Jaeger CR is enabled without query and collector deployments",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				getJaegerOperatorObjects(1)...,
+			).Build(),
+			cr:         getSingleOverrideCRAlpha(defaultJaegerEnabledJSON),
+			expectTrue: false,
+			dryRun:     true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, tt.cr, nil, tt.dryRun, profilesRelativePath)
+			_, isAvailable := NewComponent().IsAvailable(ctx)
+			assert.Equal(t, tt.expectTrue, isAvailable)
 		})
 	}
 }
@@ -647,10 +1152,9 @@ func TestMonitorOverrides(t *testing.T) {
 			false,
 		},
 	}
-	client := createFakeClient()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := spi.NewFakeContext(client, tt.actualCR, nil, false, profilesRelativePath)
+			ctx := spi.NewFakeContext(createFakeClient(), tt.actualCR, nil, false, profilesRelativePath)
 			if tt.expectTrue {
 				assert.True(t, NewComponent().MonitorOverrides(ctx), tt.name)
 			} else {
@@ -736,10 +1240,126 @@ func getIngressTests(isUpgradeOperation bool) []ingressTestStruct {
 	}
 }
 
+func getVZCRWithCustomJaegerCROverride(override string) vzapi.Verrazzano {
+	return vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &trueValue,
+					InstallOverrides: vzapi.InstallOverrides{
+						MonitorChanges: &trueValue,
+						ValueOverrides: []vzapi.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(override),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func getAllJaegerObjects(operatorReplicas, collectorReplicas, queryReplicas int32) []client.Object {
 	allJaegerObjects := append(getJaegerOperatorObjects(operatorReplicas), getJaegerCollectorObjects(collectorReplicas)...)
 	allJaegerObjects = append(allJaegerObjects, getJaegerQueryObjects(queryReplicas)...)
 	return allJaegerObjects
+}
+
+func getLabeledJaegerOperatorDeploy(replicas int32) []client.Object {
+	jaegerOperatorObjects := getJaegerOperatorObjects(replicas)
+	labeledJaegerOperatorDeploy := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      deploymentName,
+			Labels:    map[string]string{k8sAppNameLabel: ComponentName, k8sInstanceNameLabel: ComponentName},
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{k8sAppNameLabel: ComponentName, k8sInstanceNameLabel: ComponentName},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: replicas,
+			ReadyReplicas:     replicas,
+			Replicas:          1,
+			UpdatedReplicas:   1,
+		},
+	}
+	return append([]client.Object{labeledJaegerOperatorDeploy}, jaegerOperatorObjects[1:]...)
+}
+
+func getJaegerWebHookServiceObjects() client.Object {
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      ComponentWebhookServiceName,
+		},
+	}
+}
+
+func getJaegerSecretObject() client.Object {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      ComponentSecretName,
+		},
+	}
+}
+
+func getJaegerMetricsService() client.Object {
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      ComponentServiceName,
+		},
+	}
+}
+
+func getCustomSecretWithData() client.Object {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoInstallNamespace,
+			Name:      "test-secret",
+		},
+		Data: map[string][]byte{
+			"ES_USERNAME": []byte("abcd"),
+			"ES_PASSWORD": []byte("xyz"),
+		},
+	}
+}
+
+func getESSecretWithData() client.Object {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      globalconst.VerrazzanoESInternal,
+		},
+		Data: map[string][]byte{
+			"ES_USERNAME": []byte("abcd"),
+			"ES_PASSWORD": []byte("xyz"),
+		},
+	}
+}
+
+func getESSecretNoData() client.Object {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      globalconst.VerrazzanoESInternal,
+		},
+	}
+}
+
+func getJaegerCertIssuer() client.Object {
+	return &certv1.Issuer{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      "jaeger-operator-selfsigned-issuer",
+		},
+	}
 }
 
 // getJaegerOperatorObjects returns the K8S objects for the Jaeger Operator component.
