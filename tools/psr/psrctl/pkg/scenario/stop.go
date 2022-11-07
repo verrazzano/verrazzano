@@ -4,6 +4,7 @@
 package scenario
 
 import (
+	"fmt"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 )
 
@@ -19,6 +20,9 @@ func (m Manager) StopScenarioByID(ID string) (string, error) {
 	}
 	// Delete Helm releases
 	for _, h := range sc.HelmReleases {
+		if m.Verbose {
+			fmt.Printf("Uninstalling Helm release %s/%s\n", h.Namespace, h.Name)
+		}
 		_, stderr, err := helmcli.Uninstall(m.Log, h.Name, h.Namespace, m.DryRun)
 		if err != nil {
 			return string(stderr), err
