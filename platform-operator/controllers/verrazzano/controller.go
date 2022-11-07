@@ -877,7 +877,7 @@ func (r *Reconciler) isManagedClusterRegistrationSecret(o client.Object) bool {
 	if secret.Namespace != vzconst.VerrazzanoSystemNamespace || secret.Name != vzconst.MCRegistrationSecret {
 		return false
 	}
-	r.AddWatch(fluentd.ComponentName, jaegeroperator.ComponentName)
+	r.AddWatch(fluentd.ComponentJSONName, jaegeroperator.ComponentJSONName)
 	return true
 }
 
