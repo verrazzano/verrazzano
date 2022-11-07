@@ -4,6 +4,7 @@
 package reconcile
 
 import (
+	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -135,7 +136,11 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 			}
 			compLog.Progressf("Component %s pre-install is running ", compName)
 			if err := comp.PreInstall(compContext); err != nil {
-				compLog.ErrorfThrottled("Error running PreInstall for component %s: %v", compName, err)
+				// Only log this error if this is not a RetryableError
+				if _, ok := err.(spi2.RetryableError); !ok {
+					compLog.ErrorfThrottled("Error running PreInstall for component %s: %v", compName, err)
+				}
+
 				return ctrl.Result{Requeue: true}
 			}
 
@@ -163,7 +168,11 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 		case compStatePostInstall:
 			compLog.Oncef("Component %s post-install running", compName)
 			if err := comp.PostInstall(compContext); err != nil {
-				compLog.ErrorfThrottled("Error running PostInstall for component %s: %v", compName, err)
+				// Only log this error if this is not a RetryableError
+				if _, ok := err.(spi2.RetryableError); !ok {
+					compLog.ErrorfThrottled("Error running PostInstall for component %s: %v", compName, err)
+				}
+
 				return ctrl.Result{Requeue: true}
 			}
 
