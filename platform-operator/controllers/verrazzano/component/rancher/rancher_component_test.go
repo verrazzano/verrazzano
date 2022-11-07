@@ -581,6 +581,103 @@ func TestMonitorOverrides(t *testing.T) {
 	}
 }
 
+// TestIsKeycloakAuthEnabled tests the isKeycloakAuthEnabled func call
+func TestIsKeycloakAuthEnabled(t *testing.T) {
+	tests := []struct {
+		name      string
+		vz        vzapi.Verrazzano
+		isEnabled bool
+	}{
+		// GIVEN a VZ CR with empty component spec
+		// WHEN a call to isKeycloakAuthEnabled func is made
+		// THEN the func returns a true boolean value
+		{
+			name:      "Return true for empty CR i.e. default values",
+			vz:        vzapi.Verrazzano{},
+			isEnabled: true,
+		},
+		// GIVEN a VZ CR with keycloak explicitly disabled
+		// WHEN a call to isKeycloakAuthEnabled func is made
+		// THEN the func returns a false boolean value
+		{
+			name: "Return false if keycloak component is explicitly disabled in the CR",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{
+							KeycloakAuthEnabled: getBoolPtr(true),
+						},
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: getBoolPtr(false),
+						},
+					},
+				},
+			},
+			isEnabled: false,
+		},
+		// GIVEN a VZ CR with keycloak auth explicitly disabled in the rancher component spec
+		// WHEN a call to isKeycloakAuthEnabled func is made
+		// THEN the func returns a false boolean value
+		{
+			name: "Return false if keycloak auth is explicitly disabled in the rancher component spec",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{
+							KeycloakAuthEnabled: getBoolPtr(false),
+						},
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: getBoolPtr(true),
+						},
+					},
+				},
+			},
+			isEnabled: false,
+		},
+		// GIVEN a VZ CR with keycloak and rancher keycloak auth explicitly enabled
+		// WHEN a call to isKeycloakAuthEnabled func is made
+		// THEN the func returns a true boolean value
+		{
+			name: "Return true if the required values are explicitly set to true in the CR",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{
+							KeycloakAuthEnabled: getBoolPtr(true),
+						},
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: getBoolPtr(true),
+						},
+					},
+				},
+			},
+			isEnabled: true,
+		},
+		// GIVEN a VZ CR with nil rancher component value
+		// WHEN a call to isKeycloakAuthEnabled func is made
+		// THEN the func returns a true boolean value
+		{
+			name: "Return true if rancher component is nil in the CR and keycloak is explicitly enabled",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: getBoolPtr(true),
+						},
+					},
+				},
+			},
+			isEnabled: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			val := isKeycloakAuthEnabled(&tt.vz)
+			assert.Equal(t, val, tt.isEnabled)
+		})
+	}
+}
+
 // TestIsReady verifies that a ready-state Rancher shows as ready
 // GIVEN a ready Rancher install
 //
