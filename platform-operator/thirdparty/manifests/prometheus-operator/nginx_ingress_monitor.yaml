@@ -15,6 +15,7 @@ spec:
   selector: {}
   podMetricsEndpoints:
   - port: http-metrics
+    enableHttp2: false
     relabelings:
       - sourceLabels:
           - __meta_kubernetes_pod_name
