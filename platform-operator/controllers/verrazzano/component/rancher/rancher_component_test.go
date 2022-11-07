@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	dynfake "k8s.io/client-go/dynamic/fake"
@@ -675,6 +676,36 @@ func TestIsKeycloakAuthEnabled(t *testing.T) {
 			val := isKeycloakAuthEnabled(&tt.vz)
 			assert.Equal(t, val, tt.isEnabled)
 		})
+	}
+}
+
+// TestCreateOrUpdateClusterRoleTemplateBindings tests the following scenario
+// GIVEN a slice of group role pairs
+// WHEN createOrUpdateClusterRoleTemplateBindings is called
+// THEN the cluster role template bindings are created or updated for the given cluster role and group
+func TestCreateOrUpdateClusterRoleTemplateBindings(t *testing.T) {
+	asserts := assert.New(t)
+	cli := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: ClusterLocal,
+			},
+		},
+	).Build()
+	fakeCtx := spi.NewFakeContext(cli, &vzapi.Verrazzano{}, nil, false)
+
+	asserts.NoError(createOrUpdateClusterRoleTemplateBindings(fakeCtx))
+	for _, grp := range GroupRolePairs {
+		obj := unstructured.Unstructured{}
+		obj.SetGroupVersionKind(GVKClusterRoleTemplateBinding)
+		nsn := types.NamespacedName{Name: fmt.Sprintf("crtb-%s-%s", grp[ClusterRoleKey], grp[GroupKey]), Namespace: ClusterLocal}
+		asserts.NoError(cli.Get(context.Background(), nsn, &obj))
+
+		data := obj.UnstructuredContent()
+
+		asserts.Equal(ClusterLocal, data[ClusterRoleTemplateBindingAttributeClusterName])
+		asserts.Equal(GroupPrincipalKeycloakPrefix+grp[GroupKey], data[ClusterRoleTemplateBindingAttributeGroupPrincipalName])
+		asserts.Equal(grp[ClusterRoleKey], data[ClusterRoleTemplateBindingAttributeRoleTemplateName])
 	}
 }
 
