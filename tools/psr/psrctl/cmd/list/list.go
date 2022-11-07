@@ -16,11 +16,16 @@ const (
 	CommandName = "list"
 	helpShort   = "List all of the running PSR scenarios"
 	helpLong    = `The command 'list' lists the PSR scenarios that are running in the cluster`
-	helpExample = `psrctl list `
+	helpExample = `
+psrctl list 
+psrctl list -A
+psrctl list -n foo
+`
 )
 
 var scenarioID string
 var namespace string
+var allNamepaces bool
 
 func NewCmdList(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -31,13 +36,17 @@ func NewCmdList(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.Example = helpExample
 
 	cmd.PersistentFlags().StringVarP(&scenarioID, constants.FlagScenario, constants.FlagsScenarioShort, "", constants.FlagScenarioHelp)
-	cmd.PersistentFlags().StringVarP(&namespace, constants.FlagNamespace, constants.FlagNamespaceShort, "", constants.FlagNamespaceHelp)
+	cmd.PersistentFlags().StringVarP(&namespace, constants.FlagNamespace, constants.FlagNamespaceShort, "default", constants.FlagNamespaceHelp)
+	cmd.PersistentFlags().BoolVarP(&allNamepaces, constants.FlagAll, constants.FlagAllShort, false, constants.FlagAllHelp)
 
 	return cmd
 }
 
 // RunCmdList - Run the "psrctl List" command
 func RunCmdList(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+	if allNamepaces {
+		namespace = ""
+	}
 	m, err := scenario.NewManager(namespace)
 
 	if err != nil {
@@ -58,12 +67,18 @@ func RunCmdList(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 
 	fmt.Println()
-	fmt.Println("Scenarios running in the cluster...")
+	if len(namespace) > 0 {
+		fmt.Printf("Scenarios running in namespace %s\n", namespace)
+	} else {
+		fmt.Println("Scenarios running in the cluster")
+	}
+
 	for _, sc := range scenarios {
 		fmt.Println("----------------")
+		fmt.Printf("Namespace: %s\n", sc.Namespace)
 		fmt.Printf("%s %s\n", "ID: ", sc.ID)
 		fmt.Printf("%s %s\n", "Description: ", sc.Description)
-		fmt.Println("Helm releases...")
+		fmt.Println("Helm releases:")
 		for _, h := range sc.HelmReleases {
 			fmt.Printf("%s/%s\n", h.Namespace, h.Name)
 		}

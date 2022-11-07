@@ -34,7 +34,7 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 	}
 	for _, sc := range running {
 		if strings.EqualFold(sc.ID, scman.ID) {
-			return "", fmt.Errorf("Scenario %s already running", sc.ID)
+			return "", fmt.Errorf("Scenario %s already running in namespace %s", sc.ID, m.Namespace)
 		}
 	}
 
@@ -58,6 +58,10 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 
 		// Build release name psr-<scenarioID>-workertype-<index>
 		relname := fmt.Sprintf("psr-%s-%s-%v", scman.ID, wType, i)
+
+		if m.Verbose {
+			fmt.Printf("Installing use case %s as helm release %s/%s\n", uc.UsecasePath, m.Namespace, relname)
+		}
 		_, stderr, err := helmcli.Upgrade(m.Log, relname, m.Namespace, m.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 		if err != nil {
 			return string(stderr), err
@@ -71,6 +75,7 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 
 	// Save the scenario in a ConfigMap
 	sc := Scenario{
+		Namespace:        m.Namespace,
 		HelmReleases:     helmReleases,
 		ScenarioManifest: scman,
 	}

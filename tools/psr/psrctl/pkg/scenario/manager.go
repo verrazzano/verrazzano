@@ -18,6 +18,7 @@ type Manager struct {
 	Manifest  embedded.PsrManifests
 	Namespace string
 	DryRun    bool
+	Verbose   bool
 }
 
 // NewManager returns a scenario Manager
@@ -31,6 +32,7 @@ func NewManager(namespace string) (Manager, error) {
 		Log:       vzlog.DefaultLogger(),
 		Manifest:  *embedded.Manifests,
 		Client:    client,
+		Verbose:   true,
 	}
 	return m, nil
 }

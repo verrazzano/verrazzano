@@ -1,15 +1,19 @@
 package constants
 
 const (
-	FlagScenario       = "scenarioID"
+	FlagScenario       = "scenario"
 	FlagsScenarioShort = "s"
-	FlagScenarioHelp   = "specifies the scenario ID"
+	FlagScenarioHelp   = "the scenario ID"
 
 	FlagNamespace      = "namespace"
 	FlagNamespaceShort = "n"
-	FlagNamespaceHelp  = "specifies the namespace"
+	FlagNamespaceHelp  = "the namespace for the scenario"
 
 	FlagVerbose      = "verbose"
 	FlagVerboseShort = "v"
 	FlagVerboseHelp  = "verbose output"
+
+	FlagAll      = "all-namespaces"
+	FlagAllShort = "A"
+	FlagAllHelp  = "all namespaces"
 )
