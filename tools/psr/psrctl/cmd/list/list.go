@@ -6,6 +6,7 @@ package list
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -18,13 +19,8 @@ const (
 	helpExample = `psrctl list `
 )
 
-const (
-	flagScenario       = "scenarioID"
-	flagsScenarioShort = "s"
-	flagScenarioHelp   = "specifies the scenario ID"
-)
-
 var scenarioID string
+var namespace string
 
 func NewCmdList(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -34,14 +30,16 @@ func NewCmdList(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.Args = cobra.ExactArgs(0)
 	cmd.Example = helpExample
 
-	cmd.PersistentFlags().StringVarP(&scenarioID, flagScenario, flagsScenarioShort, "", flagScenarioHelp)
+	cmd.PersistentFlags().StringVarP(&scenarioID, constants.FlagScenario, constants.FlagsScenarioShort, "", constants.FlagScenarioHelp)
+	cmd.PersistentFlags().StringVarP(&namespace, constants.FlagNamespace, constants.FlagNamespaceShort, "default", constants.FlagNamespaceHelp)
 
 	return cmd
 }
 
 // RunCmdList - Run the "psrctl List" command
 func RunCmdList(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	m, err := scenario.NewManager("default")
+	m, err := scenario.NewManager(namespace)
+
 	if err != nil {
 		return fmt.Errorf("Failed to create scenario Manager %v", err)
 	}
