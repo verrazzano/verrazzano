@@ -21,13 +21,17 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
 	// ISO8601Layout defines the timestamp format
-	ISO8601Layout = "2006-01-02T15:04:05.999999999-07:00"
+	ISO8601Layout                = "2006-01-02T15:04:05.999999999-07:00"
+	opensearchIndexManagement    = "opensearch-index-management"
+	opensearchJobScheduler       = "opensearch-job-scheduler"
+	opensearchPrometheusExporter = "prometheus-exporter"
 )
 
 // GetOpenSearchSystemIndex in Verrazzano 1.3.0, indices in the verrazzano-system namespace have been migrated
@@ -224,6 +228,44 @@ func (u ElasticSearchISMPolicyAddModifier) ModifyCR(cr *vzapi.Verrazzano) {
 
 func (u ElasticSearchISMPolicyRemoveModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
+}
+
+func TestOpenSearchPlugins(pollingInterval time.Duration, waitTimeout time.Duration) {
+	if UseExternalElasticsearch() {
+		ginkgo.Skip("Skip External OpenSearch")
+	}
+	gomega.Eventually(func() error {
+		return VerifyOpenSearchPlugins()
+	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(gomega.BeNil())
+}
+
+// VerifyOpenSearchPlugins checks that the OpenSearch plugins are installed
+func VerifyOpenSearchPlugins() error {
+	resp, err := doGetElasticSearchURL("%s/_cat/plugins?format=json")
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode == http.StatusOK {
+		out := string(resp.Body)
+		missingPluginsStr := ""
+
+		missingPlugins := checkMissingPlugin(out, opensearchJobScheduler, &missingPluginsStr)
+		missingPlugins = missingPlugins || checkMissingPlugin(out, opensearchIndexManagement, &missingPluginsStr)
+		missingPlugins = missingPlugins || checkMissingPlugin(out, opensearchPrometheusExporter, &missingPluginsStr)
+
+		if missingPlugins {
+			return fmt.Errorf("missing OpenSearch plugins that were not installed: %s", missingPluginsStr)
+		}
+	}
+	return nil
+}
+
+func checkMissingPlugin(response string, plugin string, missingPluginsStr *string) bool {
+	if !strings.Contains(response, plugin) {
+		*missingPluginsStr = *missingPluginsStr + plugin + " "
+		return true
+	}
+	return false
 }
 
 // GetOpenSearchAppIndex in Verrazzano 1.3.0, application indices have been migrated to data streams
