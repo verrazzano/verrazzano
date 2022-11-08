@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -128,6 +129,8 @@ util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_d
 EOF
 `
 	innoDBClusterStatusOnline = "ONLINE"
+	mySQLComponentLabel       = "component"
+	mySQLDComponentName       = "mysqld"
 )
 
 var (
@@ -184,11 +187,40 @@ func (c mysqlComponent) isMySQLReady(ctx spi.ComponentContext) bool {
 		}
 	}
 	ready := k8sready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.StatefulsetNames, int32(serverReplicas), prefix)
+
+	// Temporary work around for issue where MySQL pod readiness gates not all met
+	if !ready {
+		c.repairMySQLPodsWaitingReadinessGates()
+	}
+
 	if ready && routerReplicas > 0 {
 		ready = k8sready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployment, int32(routerReplicas), prefix)
 	}
 
 	return ready && checkDbMigrationJobCompletion(ctx) && isInnoDBClusterOnline(ctx)
+}
+
+// repairMySQLPodsWaitingReadinessGates - temporary work around to repair issue were a MySQL pod
+// can be stuck waiting for its readiness gates to be met.
+func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentContext) error {
+	if c.LastTimeStartedWatchForRepair.IsZero() {
+		*c.LastTimeStartedWatchForRepair = time.Now()
+		return nil
+	}
+
+	// Initiate repair only if time to wait period has been exceeded
+	expiredTime := c.LastTimeStartedWatchForRepair.Add(5 * time.Minute)
+	if time.Now().After(expiredTime) {
+		// Check if the current not ready is due to readiness gates not met
+		ctx.Log().Info("Cleaning up any MySQL pods stuck restarting after a node drain")
+
+		selector := metav1.LabelSelectorRequirement{mySQLComponentLabel, metav1.LabelSelectorOpIn, []string{mySQLDComponentName}}
+		podList := k8sready.GetPodsList(ctx.Log(), ctx.Client(), types.NamespacedName{Namespace: ComponentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
+		if podList == nil || len(podList.Items) == 0 {
+			return fmt.Errorf("no pods found matching selector %s", selector.String())
+		}
+
+	}
 }
 
 // isInnoDBClusterOnline returns true if the InnoDBCluster resource cluster status is online

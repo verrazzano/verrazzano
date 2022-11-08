@@ -5,9 +5,11 @@ package mysql
 
 import (
 	"fmt"
+	"path/filepath"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -39,8 +41,13 @@ const DeploymentPersistentVolumeClaim = "mysql"
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "keycloak.mysql"
 
+// Last time the MySQL StatefulSet was ready
+var lastTimeStatefulSetReady time.Time
+
 // mysqlComponent represents an MySQL component
 type mysqlComponent struct {
+	LastTimeStartedWatchForRepair *time.Time
+
 	helm.HelmComponent
 }
 
@@ -54,6 +61,7 @@ func NewComponent() spi.Component {
 	const MySQLOperatorComponentName = "mysql-operator"
 
 	return mysqlComponent{
+		&lastTimeStatefulSetReady,
 		helm.HelmComponent{
 			ReleaseName:               helmReleaseName,
 			JSONName:                  ComponentJSONName,
@@ -82,7 +90,12 @@ func NewComponent() spi.Component {
 // IsReady calls MySQL isMySQLReady function
 func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
-		return c.isMySQLReady(context)
+		ready := c.isMySQLReady(context)
+		if ready {
+			// Once ready, zero out the timestamp
+			*c.LastTimeStartedWatchForRepair = time.Time{}
+		}
+		return ready
 	}
 	return false
 }
