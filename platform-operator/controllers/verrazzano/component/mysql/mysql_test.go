@@ -6,7 +6,13 @@ package mysql
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"net/url"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -39,6 +45,7 @@ const (
 	profilesDir  = "../../../../manifests/profiles"
 	notDepFound  = "not-deployment-found"
 	notPVCDelete = "not-pvc-deleted"
+	weakPass     = "weakPass"
 )
 
 var testScheme = runtime.NewScheme()
@@ -1854,4 +1861,79 @@ func TestGetMySQLPod(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestDumpDatabase tests the dumpDatabase func call
+// GIVEN db migration and mysql secret in Keycloak namespace
+// WHEN dumpDatabase func is called for MySQL to dump the instance to its mounted PV
+// THEN no error is returned on success and db migration secret is updated
+func TestDumpDatabase(t *testing.T) {
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
+		config, k := k8sutilfake.NewClientsetConfig()
+		return config, k, nil
+	}
+	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {
+		return "", "", nil
+	}
+	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"app":     "mysql",
+					"release": "mysql",
+				},
+			},
+		},
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: ComponentNamespace,
+			},
+			Data: map[string][]byte{rootPasswordKey: []byte(weakPass)},
+		},
+	).Build()
+
+	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
+	assert.NoError(t, dumpDatabase(fakeCtx))
+	sec := v1.Secret{}
+	assert.NoError(t, cli.Get(context.Background(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, &sec))
+	assert.Equal(t, string(sec.Data[databaseDumpedStage]), "true")
+}
+
+// TestDumpDatabaseWithExecErrors tests dumpDatabase func call for pod exec error
+// GIVEN db migration and mysql secret
+// WHEN dumpDatabase func is called and the pod execs are not successful
+// THEN an error is returned and the mysql password is masked in the error message
+func TestDumpDatabaseWithExecErrors(t *testing.T) {
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
+		config, k := k8sutilfake.NewClientsetConfig()
+		return config, k, nil
+	}
+	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {
+		return "", "", fmt.Errorf("blah blah")
+	}
+	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"app":     "mysql",
+					"release": "mysql",
+				},
+			},
+		},
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: ComponentNamespace,
+			},
+			Data: map[string][]byte{rootPasswordKey: []byte(weakPass)},
+		},
+	).Build()
+	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
+	err := dumpDatabase(fakeCtx)
+	assert.Error(t, err)
+	assert.False(t, strings.Contains(err.Error(), weakPass))
+	assert.True(t, strings.Contains(err.Error(), fmt.Sprintf("-p******")))
 }
