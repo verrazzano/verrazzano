@@ -14,6 +14,10 @@ import (
 	"testing"
 )
 
+type fakeEnv struct {
+	data map[string]string
+}
+
 type fakeHttp struct {
 	resp        *http.Response
 	httpDoError error
@@ -22,12 +26,6 @@ type fakeHttp struct {
 type fakeBody struct {
 	bodyData      string
 	httpReadError error
-}
-
-var _ httpClientI = &fakeHttp{}
-
-type fakeEnv struct {
-	data map[string]string
 }
 
 var _ httpClientI = &fakeHttp{}
@@ -214,10 +212,6 @@ func TestDoWork(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			f := httpClient
-			defer func() {
-				httpClient = f
-			}()
 			var resp *http.Response
 			if !test.nilResp {
 				resp = &http.Response{
@@ -226,6 +220,11 @@ func TestDoWork(t *testing.T) {
 					ContentLength: int64(len(test.bodyData)),
 				}
 			}
+
+			c := httpClient
+			defer func() {
+				httpClient = c
+			}()
 			httpClient = &fakeHttp{
 				httpDoError: test.doworkError,
 				resp:        resp,
@@ -233,6 +232,9 @@ func TestDoWork(t *testing.T) {
 
 			wi, err := NewPostLogsWorker()
 			w := wi.(worker)
+
+			err = config.PsrEnv.LoadFromEnv(w.GetEnvDescList())
+			assert.NoError(t, err)
 
 			err = w.DoWork(config.CommonConfig{
 				WorkerType: "Fake",
@@ -243,8 +245,8 @@ func TestDoWork(t *testing.T) {
 				assert.Error(t, err)
 			}
 
-			//assert.Equal(t, int64(test.successCount), w.openSearchGetSuccessCountTotal.Val)
-			//assert.Equal(t, int64(test.failureCount), w.openSearchGetFailureCountTotal.Val)
+			assert.Equal(t, int64(test.successCount), w.openSearchPostSuccessCountTotal.Val)
+			assert.Equal(t, int64(test.failureCount), w.openSearchPostFailureCountTotal.Val)
 		})
 	}
 }
@@ -271,4 +273,8 @@ func (f fakeBody) Read(d []byte) (n int, err error) {
 
 func (f fakeBody) Close() error {
 	return nil
+}
+
+func (f *fakeEnv) GetEnv(key string) string {
+	return f.data[key]
 }

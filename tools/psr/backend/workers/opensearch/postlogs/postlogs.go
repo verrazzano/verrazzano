@@ -141,9 +141,11 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 	startRequest := time.Now().UnixNano()
 	resp, err := c.Do(&req)
 	if err != nil {
+		atomic.AddInt64(&w.workerMetrics.openSearchPostFailureCountTotal.Val, 1)
 		return err
 	}
 	if resp == nil {
+		atomic.AddInt64(&w.workerMetrics.openSearchPostFailureCountTotal.Val, 1)
 		return fmt.Errorf("POST request to URI %s received a nil response", req.URL.RequestURI())
 	}
 

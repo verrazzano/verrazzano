@@ -23,10 +23,6 @@ type fakeBody struct {
 	data string
 }
 
-type fakeEnv struct {
-	data map[string]string
-}
-
 // TestGetters tests the worker getters
 // GIVEN a worker
 //
