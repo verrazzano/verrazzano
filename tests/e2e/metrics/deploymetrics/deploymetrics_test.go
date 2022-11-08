@@ -170,7 +170,7 @@ func undeployMetricsApplication() {
 		return podsNotRunning
 	}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
 
-	isVzMinVer14, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
+	isVzMinVer14, _ := pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfig)
 	if isVzMinVer14 {
 		Eventually(func() bool {
 			serviceName, err := getPromJobName()

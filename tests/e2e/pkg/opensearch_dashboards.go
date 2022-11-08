@@ -8,13 +8,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/go-retryablehttp"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"net/http"
 	"reflect"
 	"strings"
 	"text/template"
 
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -132,7 +132,7 @@ func PostOpensearchDashboards(path string, body string, additionalHeaders ...str
 // getOpenSearchDashboardsURL gets the OpenSearch Dashboards Ingress host in the given cluster
 func getOpenSearchDashboardsURL(kubeconfigPath string) string {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
-	isMinversion150, _ := IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
+	isMinversion150, _ := IsVerrazzanoMinVersionEventually("1.5.0", kubeconfigPath)
 
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
