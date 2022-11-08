@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/onsi/gomega"
+
 	"github.com/google/uuid"
 	certmanagerv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	vaoClient "github.com/verrazzano/verrazzano/application-operator/clientset/versioned"
@@ -618,6 +620,17 @@ func IsVerrazzanoMinVersion(minVersion string, kubeconfigPath string) (bool, err
 		return false, nil
 	}
 	return IsMinVersion(vzVersion, minVersion)
+}
+
+// IsVerrazzanoMinVersionEventually returns true if the installed Verrazzano version >= minVersion
+func IsVerrazzanoMinVersionEventually(minVersion string, kubeconfigPath string) (bool, error) {
+	var isMinVersion bool
+	var err error
+	gomega.Eventually(func() error {
+		isMinVersion, err = IsVerrazzanoMinVersion(minVersion, kubeconfigPath)
+		return err
+	}, waitTimeout, pollingInterval).Should(gomega.BeNil())
+	return isMinVersion, err
 }
 
 // IsMinVersion returns true if the given version >= minVersion
