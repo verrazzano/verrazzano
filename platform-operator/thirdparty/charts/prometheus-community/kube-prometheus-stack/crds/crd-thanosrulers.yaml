@@ -19,6 +19,7 @@ spec:
     - ruler
     singular: thanosruler
   scope: Namespaced
+  preserveUnknownFields: false
   versions:
   - additionalPrinterColumns:
     - description: The desired replicas number of Thanos Rulers

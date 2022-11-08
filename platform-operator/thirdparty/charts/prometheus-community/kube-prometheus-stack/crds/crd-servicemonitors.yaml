@@ -19,6 +19,7 @@ spec:
     - smon
     singular: servicemonitor
   scope: Namespaced
+  preserveUnknownFields: false
   versions:
   - name: v1
     schema:
