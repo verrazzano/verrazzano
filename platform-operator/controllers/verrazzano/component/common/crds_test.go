@@ -46,16 +46,20 @@ func TestIsApplyCRDYamlInvalidChart(t *testing.T) {
 	assert.Error(t, ApplyCRDYaml(spi.NewFakeContext(fakeClient, nil, nil, false), ""))
 }
 
-// TestConvertVerrazzanoCR tests the applyCRDYaml function
-// GIVEN a call to ApplyCRDYaml
-// WHEN the ConvertVerrazzanoCR is called
-// THEN an appropriate error is returned
+// TestConvertVerrazzanoCR tests the ConvertVerrazzanoCR function
 func TestConvertVerrazzanoCR(t *testing.T) {
 	vz := vzapi.Verrazzano{}
-	convertedVZ := v1beta1.Verrazzano{}
+	convertVZ := v1beta1.Verrazzano{}
 	config.TestHelmConfigDir = "invalidPath"
-	err := ConvertVerrazzanoCR(&vz, &convertedVZ)
+	// GIVEN old Vz and a newer version of Vz
+	// WHEN the ConvertVerrazzanoCR is called
+	// THEN no error is returned
+	err := ConvertVerrazzanoCR(&vz, &convertVZ)
 	assert.Nil(t, err)
-	err = ConvertVerrazzanoCR(nil, &convertedVZ)
+
+	// GIVEN a nil old Vz and a valid new Vz
+	// WHEN the ConvertVerrazzanoCR is called
+	// THEN an appropriate error is returned
+	err = ConvertVerrazzanoCR(nil, &convertVZ)
 	assert.Error(t, err)
 }

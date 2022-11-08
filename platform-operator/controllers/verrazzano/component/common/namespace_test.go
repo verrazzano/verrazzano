@@ -43,22 +43,24 @@ func TestCreateAndLabelNamespaces(t *testing.T) {
 
 }
 
-// TestCreateAndLabelNamespaces tests the CreateAndLabelNamespaces function
+// TestCreateAndLabelNamespaces tests the CheckExistingNamespace function
 func TestCheckExistingNamespace(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = vzapi.AddToScheme(scheme)
-
-	// GIVEN a component context and a Verrazzano CR
-	// WHEN  the CreateOrUpdateSystemComponentIngress function is called
-	// THEN  the function call succeeds and the expected ingress has been created
-
 	var list = []corev1.Namespace{}
 	ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "namespace1"}}
 	list = append(list, ns)
 
+	// GIVEN a component context and a Verrazzano CR
+	// WHEN  the CreateOrUpdateSystemComponentIngress function is called
+	// THEN  the function call succeeds and the expected ingress has been created
 	err := CheckExistingNamespace(list, isRancherNamespace)
 	assert.Error(t, err)
+
+	// GIVEN a component context and a Verrazzano CR
+	// WHEN  the CreateOrUpdateSystemComponentIngress function is called
+	// THEN  the function call succeeds and the expected ingress has been created
 	err = CheckExistingNamespace(nil, isRancherNamespace)
 	assert.NoError(t, err)
 

@@ -170,16 +170,25 @@ func TestGetRancherMgmtApiGVKForKind(t *testing.T) {
 	assert.Equal(t, "kind", kind.Kind)
 
 }
+
+// TestGetAdditionalCA tests the GetAdditionalCA function
+// GIVEN a client and secret doesn't exist
+// WHEN  the GetAdditionalCA function is called
+// THEN  the function call fails and returns empty slice
 func TestGetAdditionalCA(t *testing.T) {
 	cli := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects().Build()
-
-	bytep := GetAdditionalCA(cli)
-	assert.Equal(t, []byte{}, bytep)
+	cakey := GetAdditionalCA(cli)
+	assert.Equal(t, []byte{}, cakey)
 
 }
+
+// TestCertPool tests the CertPool function
+// GIVEN a component context
+// WHEN  the CertPool function is called
+// THEN  the function call succeeds and new certpool is returned
 func TestCertPool(t *testing.T) {
-	bytep := []byte{}
-	cert := CertPool(bytep)
-	assert.NotNil(t, cert)
+	certs := []byte{}
+	certPool := CertPool(certs)
+	assert.NotNil(t, certPool)
 
 }
