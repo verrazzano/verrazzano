@@ -6,13 +6,14 @@ package mysqloperator
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
+	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -26,6 +27,7 @@ import (
 // WHEN there is a valid MySQL Operator configuration
 // THEN the correct Helm overrides are returned
 func TestGetInstallOverrides(t *testing.T) {
+	overridesValue := []byte("{\"key1\": \"value1\"}")
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
@@ -33,7 +35,7 @@ func TestGetInstallOverrides(t *testing.T) {
 					InstallOverrides: vzapi.InstallOverrides{
 						ValueOverrides: []vzapi.Overrides{
 							{Values: &apiextensionsv1.JSON{
-								Raw: []byte("{\"key1\": \"value1\"}")},
+								Raw: overridesValue},
 							},
 						},
 					},
@@ -44,7 +46,7 @@ func TestGetInstallOverrides(t *testing.T) {
 
 	comp := NewComponent()
 	overrides := comp.GetOverrides(vz).([]vzapi.Overrides)
-	assert.Equal(t, []byte("{\"key1\": \"value1\"}"), overrides[0].Values.Raw)
+	assert.Equal(t, overridesValue, overrides[0].Values.Raw)
 
 	vz = &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
@@ -64,7 +66,7 @@ func TestGetInstallOverrides(t *testing.T) {
 					InstallOverrides: v1beta1.InstallOverrides{
 						ValueOverrides: []v1beta1.Overrides{
 							{Values: &apiextensionsv1.JSON{
-								Raw: []byte("{\"key1\": \"value1\"}")},
+								Raw: overridesValue},
 							},
 						},
 					},
@@ -74,7 +76,7 @@ func TestGetInstallOverrides(t *testing.T) {
 	}
 
 	overrides2 := comp.GetOverrides(beta1vz).([]v1beta1.Overrides)
-	assert.Equal(t, []byte("{\"key1\": \"value1\"}"), overrides2[0].Values.Raw)
+	assert.Equal(t, overridesValue, overrides2[0].Values.Raw)
 }
 
 // TestIsMySQLOperatorReady tests the isReady function

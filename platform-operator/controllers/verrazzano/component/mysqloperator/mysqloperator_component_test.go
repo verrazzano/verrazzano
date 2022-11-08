@@ -4,22 +4,23 @@
 package mysqloperator
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -28,6 +29,25 @@ var testScheme = runtime.NewScheme()
 func init() {
 	_ = scheme.AddToScheme(testScheme)
 	_ = vzapi.AddToScheme(testScheme)
+}
+
+const (
+	serverErr = "server-error"
+	testName1 = "MySQL Operator explicitly enabled, Keycloak disabled"
+	testName2 = "MySQL Operator and Keycloak explicitly disabled"
+	testName3 = "MySQL Operator explicitly disabled, Keycloak enabled"
+)
+
+type erroringFakeClient struct {
+	client.Client
+}
+
+func (e *erroringFakeClient) Get(_ context.Context, _ types.NamespacedName, _ client.Object) error {
+	return fmt.Errorf(serverErr)
+}
+
+func (e *erroringFakeClient) List(_ context.Context, _ client.ObjectList, _ ...client.ListOption) error {
+	return fmt.Errorf(serverErr)
 }
 
 // TestIsEnabled tests the IsEnabled function
@@ -44,7 +64,7 @@ func TestIsEnabled(t *testing.T) {
 		want bool
 	}{
 		{
-			name: "MySQL Operator explicitly enabled, Keycloak disabled",
+			name: testName1,
 			vz: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
@@ -55,7 +75,7 @@ func TestIsEnabled(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "MySQL Operator and Keycloak explicitly disabled",
+			name: testName2,
 			vz: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
@@ -105,7 +125,7 @@ func TestValidateInstall(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name: "MySQL Operator explicitly enabled, Keycloak disabled",
+			name: testName1,
 			vz: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
@@ -116,18 +136,7 @@ func TestValidateInstall(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name: "MySQL Operator explicitly disabled, Keycloak enabled",
-			vz: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						MySQLOperator: &vzapi.MySQLOperatorComponent{
-							Enabled: &falseValue},
-						Keycloak: &vzapi.KeycloakComponent{
-							Enabled: &trueValue}}}},
-			expectError: true,
-		},
-		{
-			name: "MySQL Operator and Keycloak explicitly disabled",
+			name: testName2,
 			vz: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
@@ -136,6 +145,17 @@ func TestValidateInstall(t *testing.T) {
 						Keycloak: &vzapi.KeycloakComponent{
 							Enabled: &falseValue}}}},
 			expectError: false,
+		},
+		{
+			name: testName3,
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						MySQLOperator: &vzapi.MySQLOperatorComponent{
+							Enabled: &falseValue},
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: &trueValue}}}},
+			expectError: true,
 		},
 		{
 			name: "Keycloak enabled, MySQL Operator component nil",
@@ -178,12 +198,7 @@ func TestValidateInstall(t *testing.T) {
 func TestPreInstall(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 	enabled := true
-	mocker := gomock.NewController(t)
-	mockClient := mocks.NewMockClient(mocker)
-
-	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: ComponentNamespace}, gomock.Not(gomock.Nil())).
-		Return(fmt.Errorf("server error"))
+	erroringClient := &erroringFakeClient{fakeClient}
 
 	tests := []struct {
 		name string
@@ -211,8 +226,8 @@ func TestPreInstall(t *testing.T) {
 		},
 		{
 			name: "PreInstallServerError",
-			ctx:  spi.NewFakeContext(mockClient, &vzapi.Verrazzano{}, nil, false),
-			err:  fmt.Errorf("Failed to create or update the mysql-operator namespace: server error"),
+			ctx:  spi.NewFakeContext(erroringClient, &vzapi.Verrazzano{}, nil, false),
+			err:  fmt.Errorf("Failed to create or update the mysql-operator namespace: %s", serverErr),
 		},
 	}
 
@@ -229,12 +244,7 @@ func TestPreInstall(t *testing.T) {
 // THEN return the expected error
 func TestPreUpgrade(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
-	mocker := gomock.NewController(t)
-	mockClient := mocks.NewMockClient(mocker)
-
-	mockClient.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}, gomock.Not(gomock.Nil())).
-		Return(fmt.Errorf("server error"))
+	erroringClient := &erroringFakeClient{fakeClient}
 
 	tests := []struct {
 		name string
@@ -250,8 +260,8 @@ func TestPreUpgrade(t *testing.T) {
 		{
 			// If the mysql-operator deployment is not found for any reason, return a retryable error
 			name: "PreUpgradeServerError",
-			ctx:  spi.NewFakeContext(mockClient, &vzapi.Verrazzano{}, nil, false),
-			err:  ctrlerrors.RetryableError{Source: ComponentName, Cause: fmt.Errorf("server error")},
+			ctx:  spi.NewFakeContext(erroringClient, &vzapi.Verrazzano{}, nil, false),
+			err:  ctrlerrors.RetryableError{Source: ComponentName, Cause: fmt.Errorf(serverErr)},
 		},
 	}
 
@@ -285,12 +295,7 @@ func TestPreUninstall(t *testing.T) {
 		},
 	).Build()
 
-	mocker := gomock.NewController(t)
-	mockClient := mocks.NewMockClient(mocker)
-
-	mockClient.EXPECT().
-		List(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).
-		Return(fmt.Errorf("server error"))
+	erroringClient := &erroringFakeClient{fakeClient}
 
 	tests := []struct {
 		name string
@@ -309,8 +314,8 @@ func TestPreUninstall(t *testing.T) {
 		},
 		{
 			name: "PreUninstallServerError",
-			ctx:  spi.NewFakeContext(mockClient, nil, nil, false),
-			err:  fmt.Errorf("server error"),
+			ctx:  spi.NewFakeContext(erroringClient, nil, nil, false),
+			err:  fmt.Errorf(serverErr),
 		},
 	}
 
@@ -392,7 +397,7 @@ func TestValidateInstallV1Beta1(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name: "MySQL Operator explicitly enabled, Keycloak disabled",
+			name: testName1,
 			vz: &installv1beta1.Verrazzano{
 				Spec: installv1beta1.VerrazzanoSpec{
 					Components: installv1beta1.ComponentSpec{
@@ -403,19 +408,7 @@ func TestValidateInstallV1Beta1(t *testing.T) {
 			expectError: false,
 		},
 		{
-			// MySQL Operator must be enabled if keycloak is enabled
-			name: "MySQL Operator explicitly disabled, Keycloak enabled",
-			vz: &installv1beta1.Verrazzano{
-				Spec: installv1beta1.VerrazzanoSpec{
-					Components: installv1beta1.ComponentSpec{
-						MySQLOperator: &installv1beta1.MySQLOperatorComponent{
-							Enabled: &falseValue},
-						Keycloak: &installv1beta1.KeycloakComponent{
-							Enabled: &trueValue}}}},
-			expectError: true,
-		},
-		{
-			name: "MySQL Operator and Keycloak explicitly disabled",
+			name: testName2,
 			vz: &installv1beta1.Verrazzano{
 				Spec: installv1beta1.VerrazzanoSpec{
 					Components: installv1beta1.ComponentSpec{
@@ -424,6 +417,18 @@ func TestValidateInstallV1Beta1(t *testing.T) {
 						Keycloak: &installv1beta1.KeycloakComponent{
 							Enabled: &falseValue}}}},
 			expectError: false,
+		},
+		{
+			// MySQL Operator must be enabled if keycloak is enabled
+			name: testName3,
+			vz: &installv1beta1.Verrazzano{
+				Spec: installv1beta1.VerrazzanoSpec{
+					Components: installv1beta1.ComponentSpec{
+						MySQLOperator: &installv1beta1.MySQLOperatorComponent{
+							Enabled: &falseValue},
+						Keycloak: &installv1beta1.KeycloakComponent{
+							Enabled: &trueValue}}}},
+			expectError: true,
 		},
 	}
 	for _, tt := range tests {
