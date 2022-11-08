@@ -82,7 +82,7 @@ const kcInitContainerValueTemplate = `
           mountPath: /cacerts
 `
 
-var pkceTmpl = `
+const pkceTmpl = `
 {
       "clientId" : "verrazzano-pkce",
       "enabled": true,
@@ -370,7 +370,7 @@ const rancherClientTmpl = `
 }
 `
 
-var pkceClientUrisTemplate = `
+const pkceClientUrisTemplate = `
 	"redirectUris": [
 	  "https://verrazzano.{{.DNSSubDomain}}/*",
 	  "https://verrazzano.{{.DNSSubDomain}}/verrazzano/authcallback",
@@ -384,7 +384,11 @@ var pkceClientUrisTemplate = `
 	  "https://opensearchdashboards.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://jaeger.{{.DNSSubDomain}}/*"
+	  "https://jaeger.{{.DNSSubDomain}}/*"{{ if .osHostExists}},
+      "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
+      "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+      "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
+      "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback"{{end}}
 	],
 	"webOrigins": [
 	  "https://verrazzano.{{.DNSSubDomain}}",
@@ -393,42 +397,11 @@ var pkceClientUrisTemplate = `
 	  "https://grafana.vmi.system.{{.DNSSubDomain}}",
 	  "https://opensearchdashboards.vmi.system.{{.DNSSubDomain}}",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}",
-	  "https://jaeger.{{.DNSSubDomain}}"
+	  "https://jaeger.{{.DNSSubDomain}}"{{ if .osHostExists}},
+      "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
+      "https://kibana.vmi.system.{{.DNSSubDomain}}"
+ {{end}} 
 	]
-`
-
-var pkceClientUrisTemplateForDeprecatedOSHosts = `
-
-		"redirectUris": [
-		  "https://verrazzano.{{.DNSSubDomain}}/*",
-		  "https://verrazzano.{{.DNSSubDomain}}/verrazzano/authcallback",
-		  "https://opensearch.vmi.system.{{.DNSSubDomain}}/*",
-		  "https://opensearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-		  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
-		  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-		  "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
-		  "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-		  "https://grafana.vmi.system.{{.DNSSubDomain}}/*",
-		  "https://grafana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-		  "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
-		  "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-		  "https://opensearchdashboards.vmi.system.{{.DNSSubDomain}}/*",
-		  "https://opensearchdashboards.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-		  "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
-		  "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-		  "https://jaeger.{{.DNSSubDomain}}/*"
-		],
-		"webOrigins": [
-		  "https://verrazzano.{{.DNSSubDomain}}",
-		  "https://opensearch.vmi.system.{{.DNSSubDomain}}",
-	      "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
-		  "https://prometheus.vmi.system.{{.DNSSubDomain}}",
-		  "https://grafana.vmi.system.{{.DNSSubDomain}}",
-	      "https://kibana.vmi.system.{{.DNSSubDomain}}",
-		  "https://opensearchdashboards.vmi.system.{{.DNSSubDomain}}",
-		  "https://kiali.vmi.system.{{.DNSSubDomain}}",
-		  "https://jaeger.{{.DNSSubDomain}}"
-		]
 `
 
 const rancherClientUrisTemplate = `
@@ -500,6 +473,7 @@ type KeycloakClientSecret struct {
 
 type templateData struct {
 	DNSSubDomain string
+	osHostExists bool
 }
 
 // imageData needed for template rendering
@@ -1448,6 +1422,15 @@ func upgradeStatefulSet(ctx spi.ComponentContext) error {
 
 func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string, error) {
 	data := templateData{}
+
+	// Update verrazzano-pkce client redirect and web origin uris if deprecated host exists in the ingress
+	osHostExists, err := DoesIngressHostExist(ctx, constants.VerrazzanoSystemNamespace, constants.OpensearchIngress)
+	if err != nil {
+		return "", err
+	}
+	// Set bool value if deprecated host exists
+	data.osHostExists = osHostExists
+
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
 	if err != nil {
