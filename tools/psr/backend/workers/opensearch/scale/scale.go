@@ -5,24 +5,26 @@ package scale
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
+	psrvz "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/verrazzano"
+	controllerruntime "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	er "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/pkg/k8s/update"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	oscomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/update/opensearch"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/common"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
+	psropensearch "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/opensearch"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
-	crtpkg "sigs.k8s.io/controller-runtime/pkg/client"
+
+	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
 const (
@@ -37,10 +39,12 @@ const (
 )
 
 type scaleWorker struct {
-	spi.Worker     // delete this
 	metricDescList []prometheus.Desc
 	*workerMetrics
 	*nextScale
+
+	// ctrlRuntimeClient is a controller-runtime client
+	ctrlRuntimeClient client.Client
 }
 
 type nextScale struct {
@@ -61,7 +65,6 @@ type workerMetrics struct {
 }
 
 func NewScaleWorker() (spi.Worker, error) {
-
 	w := scaleWorker{
 		workerMetrics: &workerMetrics{
 			scaleOutCountTotal: metrics.MetricItem{
@@ -85,13 +88,33 @@ func NewScaleWorker() (spi.Worker, error) {
 		*w.scaleInCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
 	}
 
+	c, err := createClient()
+	if err != nil {
+		return nil, err
+	}
+
+	w.ctrlRuntimeClient = c
+
 	return w, nil
+}
+
+func createClient() (client.Client, error) {
+	cfg, err := controllerruntime.GetConfig()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get controller-runtime config %v", err)
+	}
+	c, err := client.New(cfg, client.Options{})
+	if err != nil {
+		return nil, fmt.Errorf("Failed to create a controller-runtime client %v", err)
+	}
+	_ = vzv1alpha1.AddToScheme(c.Scheme())
+	return c, nil
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w scaleWorker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		EnvName:     config.WorkerTypeScale,
+		WorkerType:  config.WorkerTypeScale,
 		Description: "Worker to scale the number of specified OpenSearch tiers",
 		MetricsName: "scale",
 	}
@@ -148,7 +171,7 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 		delta = -1
 	}
 
-	var m update.CRModifierV1beta1
+	var m update.CRModifier
 
 	switch tier {
 	case masterTier:
@@ -160,17 +183,17 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 	}
 
 	for {
-		err := update.UpdateCRV1beta1(m)
+		err := psrvz.UpdateCR(w.ctrlRuntimeClient, m)
 		if err != nil {
 			if er.IsUpdateConflict(err) {
 				time.Sleep(3 * time.Second)
 				logMsg := fmt.Sprintf("VZ conflict error, retrying")
 				log.Infof(logMsg)
 				continue
-			} else if er.IsReconcileError(err) {
-				logMsg := fmt.Sprintf("VZ CR in state Reconciling, not Ready yet")
-				log.Infof(logMsg)
-				break
+				//} else if er.IsUpdateConflict(err) {
+				//	logMsg := fmt.Sprintf("VZ CR in state Reconciling, not Ready yet")
+				//	log.Infof(logMsg)
+				//	break
 			} else {
 				return fmt.Errorf("failed to scale OpenSearch %s replicas: %f", tier, err)
 			}
@@ -180,24 +203,12 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 
 	for {
 		// get the VZ CR
-		vz, err := pkg.GetVerrazzanoV1beta1()
+		vz, err := pkg.GetVerrazzano()
 		if err != nil {
 			return err
 		}
 
-		// get controller runtime client
-		kubeConfig, err := k8sutil.GetKubeConfig()
-		client, err := crtpkg.New(kubeConfig, crtpkg.Options{})
-		if err != nil {
-			return err
-		}
-
-		// check if actual number of replicas is equal to the expected number
-		ctx, err := common.NewContext(log, client, nil, vz, false)
-		if err != nil {
-			return err
-		}
-		if oscomp.IsOSReady(ctx) {
+		if psropensearch.IsOSReady(w.ctrlRuntimeClient, vz) {
 			finishWork(nextScale, metric, delta)
 			logMsg := fmt.Sprintf("OpenSearch %s tier scaled to %b replicas", tier, replicas)
 			log.Infof(logMsg)
