@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	//"encoding/pem"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -14,6 +15,14 @@ import (
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"testing"
+	//"k8s.io/apimachinery/pkg/api/errors"
+	//clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	//"k8s.io/apimachinery/pkg/runtime"
+	//metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	//"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	//"github.com/oracle/oci-go-sdk/v53/common"
+	//"sigs.k8s.io/controller-runtime"
+	//"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // For unit testing
@@ -101,6 +110,7 @@ func TestValidateVersionInvalidVersionCheckingDisabled(t *testing.T) {
 // WHEN the version provided is not valid version
 // THEN an error is returned
 func TestValidateVersionInvalidVersion(t *testing.T) {
+	assert.NoError(t, ValidateVersion(""))
 	assert.Error(t, ValidateVersion("blah"))
 }
 
@@ -254,11 +264,51 @@ func TestValidateFluentdConfigData(t *testing.T) {
 	err := ValidateFluentdConfigData(&testSecret)
 	assert.Error(t, err)
 
-	/*testSecret.Data = map[string][]byte{}
-	  testSecret.Data[FluentdOCISecretConfigEntry] = []byte{}
-	  //_, err = os.CreateTemp(os.TempDir(), validateTempFilePattern)
-	  err = ValidateFluentdConfigData(&testSecret)
-	  assert.NoError(t,err)*/
+	testSecret.Data = map[string][]byte{}
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n fingerprint=fingerprint \n key_file=/root/.oci/key \n tenancy=tenancy-ocid \n region=mumbai")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user= \n fingerprint=fingerprint \n key_file=/root/.oci/key \n tenancy=tenancy-ocid \n region=mumbai")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user= blah \n key_file=/root/.oci/key \n tenancy=tenancy-ocid \n region=mumbai")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user= blah \n fingerprint= \n key_file=/root/.oci/key \n tenancy=tenancy-ocid \n region=mumbai")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user=blah \n fingerprint=fingerprint \n key_file=/root/.oci/key \n region=mumbai")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user= blah \n fingerprint=fingerprint \n key_file=/root/.oci/key \n tenancy= \n region=mumbai ")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user= blah \n fingerprint=fingerprint \n key_file=/root/.oci/key \n tenancy=tenancy-ocid \n")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user= blah \n fingerprint=fingerprint \n key_file=/root/.oci/key \n tenancy=tenancy-oci \n region=")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user= blah \n fingerprint=fingerprint \n key_file=/root/.oci/key \n tenancy=tenancy-oci \n region=mumbai")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.NoError(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user= blah \n fingerprint=fingerprint \n key_file= \n tenancy=tenancy-oci \n region=mumbai")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
 }
 
 func TestValidateSecretkey(t *testing.T) {
@@ -285,42 +335,16 @@ func TestCombineErrors(t *testing.T) {
 	err := CombineErrors(errorData)
 	assert.NoError(t, err)
 
-	//errorData = []error{fmt.Errorf("error1"),fmt.Errorf("error2")}
-	//assert.Error(t, err)
-
 }
 
-/*
 func TestValidatePrivateKey(t *testing.T) {
-    secretName :="mysecret"
-    var pemData = []byte(`
-    -----BEGIN PUBLIC KEY-----
-    MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAlRuRnThUjU8/prwYxbty
-    WPT9pURI3lbsKMiB6Fn/VHOKE13p4D8xgOCADpdRagdT6n4etr9atzDKUSvpMtR3
-    CP5noNc97WiNCggBjVWhs7szEe8ugyqF23XwpHQ6uV1LKH50m92MbOWfCtjU9p/x
-    qhNpQQ1AZhqNy5Gevap5k8XzRmjSldNAFZMY7Yv3Gi+nyCwGwpVtBUwhuLzgNFK/
-    yDtw2WcWmUU7NuC8Q6MWvPebxVtCfVp/iQU6q60yyt6aGOBkhAX0LpKAEhKidixY
-    nP9PNVBvxgu3XZ4P36gZV6+ummKdBVnc3NqwBLu5+CcdRdusmHPHd5pHf4/38Z3/
-    6qU2a/fPvWzceVTEgZ47QjFMTCTmCwNt29cvi7zZeQzjtwQgn4ipN9NibRH/Ax/q
-    TbIzHfrJ1xa2RteWSdFjwtxi9C20HUkjXSeI4YlzQMH0fPX6KCE7aVePTOnB69I/
-    a9/q96DiXZajwlpq3wFctrs1oXqBp5DVrCIj8hU2wNgB7LtQ1mCtsYz//heai0K9
-    PhE4X6hiE0YmeAZjR0uHl8M/5aW9xCoJ72+12kKpWAa0SFRWLy6FejNYCYpkupVJ
-    yecLk/4L1W0l6jQQZnWErXZYe0PNFcmwGXy1Rep83kfBRNKRy5tvocalLlwXLdUk
-    AIU+2GKjyT3iMuzZxxFxPFMCAwEAAQ==
-    -----END PUBLIC KEY-----
-    and some more`)
+	secretName := "mysecret"
+	var pemData = []byte{}
 
-    err :=ValidatePrivateKey(secretName,pemData)
-    assert.NoError(t, err)
-}*/
-// Test_validateSecretContents Tests validateSecretContents
-// GIVEN a call to validateSecretContents
-// WHEN the YAML bytes are not valid
-// THEN an error is returned
-/*func TestGetInstallSecret(t *testing.T) {
-    var c client.Client
+	err := ValidatePrivateKey(secretName, pemData)
+	assert.Error(t, err)
 
-}*/
+}
 
 func TestValidateUpgradeRequest(t *testing.T) {
 	config.SetDefaultBomFilePath(invalidTestBomFilePath)
@@ -343,10 +367,17 @@ func TestValidateUpgradeRequest(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// Test_validateSecretContents Tests validateSecretContents
+// GIVEN a call to validateSecretContents
+// WHEN the YAML bytes are not valid
+// THEN an error is returned
 func Test_validateSecretContents(t *testing.T) {
 	err := ValidateSecretContents("mysecret", []byte("foo"), &AuthData{})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "error unmarshaling JSON")
+
+	err = ValidateSecretContents("mysecret", []byte("a: 1\nb: 2"), &AuthData{})
+	assert.NoError(t, err)
 }
 
 // Test_validateSecretContentsEmpty Tests validateSecretContents
