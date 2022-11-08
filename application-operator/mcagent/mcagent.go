@@ -125,6 +125,13 @@ func (s *Syncer) ProcessAgentThread() error {
 		// we couldn't delete the managed cluster resources - but we should keep going with the rest of the work
 		s.Log.Errorf("Failed to sync the deregistration process: %v", err)
 	}
+
+	// Check whether the admin or local clusters' CA certs have rolled, and sync as necessary
+	_, err = s.syncClusterCAs()
+	if err != nil {
+		// we couldn't sync the cluster CAs - but we should keep going with the rest of the work
+		s.Log.Errorf("Failed to synchronize cluster CA certificates: %v", err)
+	}
 	return nil
 }
 
