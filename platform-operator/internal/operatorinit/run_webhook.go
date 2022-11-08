@@ -4,6 +4,7 @@ package operatorinit
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"os"
 
 	"github.com/pkg/errors"
@@ -66,7 +67,7 @@ func StartWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 		return fmt.Errorf("Error creating controller runtime manager: %v", err)
 	}
 
-	if err := updateWebhooks(log, mgr, config.CertDir); err != nil {
+	if err := updateWebhooks(log, mgr, config); err != nil {
 		return err
 	}
 
@@ -82,7 +83,7 @@ func StartWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 }
 
 // updateWebhooks Updates the webhook configurations and sets up the controllerruntime Manager for the webhook
-func updateWebhooks(log *zap.SugaredLogger, mgr manager.Manager, certsDir string) error {
+func updateWebhooks(log *zap.SugaredLogger, mgr manager.Manager, config internalconfig.OperatorConfig) error {
 	log.Infof("Start called for pod %s", os.Getenv("HOSTNAME"))
 	conf, err := ctrl.GetConfig()
 	if err != nil {
@@ -104,14 +105,14 @@ func updateWebhooks(log *zap.SugaredLogger, mgr manager.Manager, certsDir string
 	if err := createOrUpdateNetworkPolicies(conf, log, kubeClient); err != nil {
 		return err
 	}
-	if err := setupWebhooksWithManager(log, mgr, kubeClient, dynamicClient, certsDir); err != nil {
+	if err := setupWebhooksWithManager(log, mgr, kubeClient, dynamicClient, config); err != nil {
 		return err
 	}
 	return nil
 }
 
 // setupWebhooksWithManager Sets up the webhook with the controllerruntime Manager instance
-func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeClient *kubernetes.Clientset, dynamicClient dynamic.Interface, certsDir string) error {
+func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeClient *kubernetes.Clientset, dynamicClient dynamic.Interface, config internalconfig.OperatorConfig) error {
 	// Setup the validation webhook
 	log.Debug("Setting up Verrazzano webhook with manager")
 	if err := (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
@@ -121,7 +122,7 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 		return fmt.Errorf("Failed to setup install.v1beta1.Verrazzano webhook with manager: %v", err)
 	}
 
-	mgr.GetWebhookServer().CertDir = certsDir
+	mgr.GetWebhookServer().CertDir = config.CertDir
 
 	// register MySQL backup job mutating webhook
 	mgr.GetWebhookServer().Register(
@@ -136,8 +137,12 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 		},
 	)
 	// register MySQL install values webhooks
-	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1beta1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1beta1{}})
-	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1alpha1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1alpha1{}})
+	bomFile, err := bom.NewBom(internalconfig.GetDefaultBOMFilePath())
+	if err != nil {
+		return err
+	}
+	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1beta1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1beta1{BomVersion: bomFile.GetVersion()}})
+	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1alpha1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1alpha1{BomVersion: bomFile.GetVersion()}})
 
 	// Set up the validation webhook for VMC
 	log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
