@@ -231,7 +231,7 @@ func (u OpenSearchISMPolicyRemoveModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 func TestOpenSearchPlugins(pollingInterval time.Duration, waitTimeout time.Duration) {
-	if UseExternalElasticsearch() {
+	if UseExternalOpensearch() {
 		ginkgo.Skip("Skip External OpenSearch")
 	}
 	gomega.Eventually(func() error {
@@ -241,7 +241,7 @@ func TestOpenSearchPlugins(pollingInterval time.Duration, waitTimeout time.Durat
 
 // VerifyOpenSearchPlugins checks that the OpenSearch plugins are installed
 func VerifyOpenSearchPlugins() error {
-	resp, err := doGetElasticSearchURL("%s/_cat/plugins?format=json")
+	resp, err := doGetOpenSearchURL("%s/_cat/plugins?format=json")
 	if err != nil {
 		return err
 	}
