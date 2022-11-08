@@ -2,10 +2,10 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ template "kube-prometheus-stack.fullname" . }}-thanos-sidecar
+  name: {{ template "kube-prometheus-stack.fullname" . }}-thanos-discovery
   namespace: {{ template "kube-prometheus-stack.namespace" . }}
   labels:
-    app: {{ template "kube-prometheus-stack.name" . }}-thanos-sidecar
+    app: {{ template "kube-prometheus-stack.name" . }}-thanos-discovery
 {{ include "kube-prometheus-stack.labels" . | indent 4 }}
 spec:
   selector:
