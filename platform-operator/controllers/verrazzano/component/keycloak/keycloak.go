@@ -374,13 +374,11 @@ const argocdClientTmpl = `
 {
       "clientId": "argocd",
       "name": "argocd",
-      //
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      ` + rancherClientUrisTemplate + `,
-      //
+      ` + argocdClientUrisTemplate + `,
       "notBefore": 0,
       "bearerOnly": false,
       "consentRequired": false,
@@ -391,7 +389,6 @@ const argocdClientTmpl = `
       "publicClient": false,
       "frontchannelLogout": false,
       "protocol": "openid-connect",
-      //saml
       "attributes": {
         "id.token.as.detached.signature": "false",
         "saml.assertion.signature": "false",
@@ -425,7 +422,6 @@ const argocdClientTmpl = `
           "protocol": "openid-connect",
           "protocolMapper": "oidc-group-membership-mapper",
           "consentRequired": false,
-          // argocd mandated values
           "config": {
             "full.path": "false",
             "id.token.claim": "true",
@@ -488,17 +484,8 @@ const rancherClientUrisTemplate = `
 `
 
 const argocdClientUrisTemplate = `
-    "rootURL": [
-        "https://argocd.{{.DNSSubDomain}}"
-    ],
 	"redirectUris": [
         "https://argocd.{{.DNSSubDomain}}/auth/callback"
-    ],
-    "baseURL": [
-        "/applications"
-    ],
-    "adminURL": [
-        "https://argocd.{{.DNSSubDomain}}"
     ],
 	"webOrigins": [
 		"https://argocd.{{.DNSSubDomain}}"
@@ -873,20 +860,8 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	if vzconfig.IsArgoCDEnabled(ctx.ActualCR()) {
-		// Creating rancher client
+		// Creating argocd client
 		err = createOrUpdateClient(ctx, cfg, cli, "argocd", argocdClientTmpl, argocdClientUrisTemplate, true)
-		if err != nil {
-			return err
-		}
-
-		// Update Keycloak AuthConfig for Rancher with client secret
-		err = updateRancherClientSecretForKeycloakAuthConfig(ctx)
-		if err != nil {
-			return err
-		}
-
-		// Add view-users role to verrazzano user
-		err = addClientRoleToUser(ctx, cfg, cli, vzUserName, realmManagement, vzSysRealm, viewUsersRole)
 		if err != nil {
 			return err
 		}
@@ -1620,7 +1595,7 @@ func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error
 	return clientSecret.Value, nil
 }
 
-// GetRancherClientSecretFromKeycloak returns the secret from rancher client in Keycloak
+// GetArgoCDClientSecretFromKeycloak returns the secret from rancher client in Keycloak
 func GetArgoCDClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error) {
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
