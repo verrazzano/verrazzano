@@ -117,7 +117,6 @@ kubernetes_sd_configs:
   namespaces:
     names:
     - ##NAMESPACE##
-enableHttp2: false
 relabel_configs:
 - action: replace
   source_labels: null
@@ -163,7 +162,6 @@ kubernetes_sd_configs:
   namespaces:
     names:
     - ##NAMESPACE##
-enableHttp2: false
 relabel_configs:
 - action: replace
   source_labels: null

@@ -14,7 +14,6 @@ spec:
     any: true
   podMetricsEndpoints:
   - path: /stats/prometheus
-    enableHttp2: false
     relabelings:
       - sourceLabels:
           - __meta_kubernetes_pod_container_port_name

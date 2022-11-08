@@ -1,7 +1,7 @@
 // Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package verrazzano
+package reconcile
 
 import (
 	"context"
@@ -50,7 +50,7 @@ import (
 )
 
 // unitTestBomFIle is used for unit test
-const unitTestBomFile = "../../verrazzano-bom.json"
+const unitTestBomFile = "../../../verrazzano-bom.json"
 
 // ingress list constants
 const dnsDomain = "myenv.testverrazzano.com"
@@ -132,7 +132,7 @@ func TestUpgradeNoVersion(t *testing.T) {
 		config.SetDefaultBomFilePath("")
 	}()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Stubout the call to check the chart status
@@ -237,7 +237,7 @@ func TestUpgradeSameVersion(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
@@ -281,7 +281,7 @@ func TestUpgradeInitComponents(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
@@ -355,7 +355,7 @@ func TestUpgradeStarted(t *testing.T) {
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
@@ -412,7 +412,7 @@ func TestDeleteDuringUpgrade(t *testing.T) {
 		},
 	).Build()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
@@ -496,7 +496,7 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
@@ -579,7 +579,7 @@ func TestUpgradeCompleted(t *testing.T) {
 		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole,
 	).Build()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
@@ -676,7 +676,7 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole,
 	).Build()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
@@ -720,7 +720,7 @@ func TestUpgradeHelmError(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
@@ -887,7 +887,7 @@ func TestUpgradeComponent(t *testing.T) {
 	})
 	defer registry.ResetGetComponentsFn()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Set mock component expectations
@@ -990,7 +990,7 @@ func TestUpgradeComponentWithBlockingStatus(t *testing.T) {
 	})
 	defer registry.ResetGetComponentsFn()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Set mock component expectations
@@ -1089,7 +1089,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	})
 	defer registry.ResetGetComponentsFn()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Set enabled mock component expectations
@@ -1189,7 +1189,7 @@ func TestRetryUpgrade(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
@@ -1247,7 +1247,7 @@ func TestTransitionToPausedUpgradeFromFailed(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
@@ -1304,7 +1304,7 @@ func TestTransitionToPausedUpgradeFromStarted(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
@@ -1360,7 +1360,7 @@ func TestTransitionFromPausedUpgrade(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
@@ -1421,7 +1421,7 @@ func TestDontRetryUpgrade(t *testing.T) {
 	defer config.Set(config.Get())
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
@@ -1627,7 +1627,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request
@@ -1800,7 +1800,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 	})
 	defer helm.SetDefaultChartStatusFunction()
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	// Create and make the request

@@ -19,4 +19,8 @@ const (
 	FlagAll      = "all-namespaces"
 	FlagAllShort = "A"
 	FlagAllHelp  = "all namespaces"
+
+	FlagScenarioDir      = "scenario-directory"
+	FlagScenarioDirShort = "d"
+	FlagScenarioDirHelp  = `a directory that contains a scenario directory at any level in the directory tree.  This allows you to run scenarios that are not compiled into the psrctl binary.`
 )
