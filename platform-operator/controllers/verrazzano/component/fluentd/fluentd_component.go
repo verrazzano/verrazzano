@@ -74,7 +74,7 @@ func NewComponent() spi.Component {
 			Dependencies:              []string{networkpolicies.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{
-				DeploymentNames: []types.NamespacedName{
+				DaemonsetNames: []types.NamespacedName{
 					{
 						Name:      ComponentName,
 						Namespace: ComponentNamespace,
