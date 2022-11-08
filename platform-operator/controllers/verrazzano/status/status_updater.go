@@ -63,6 +63,9 @@ func NewStatusUpdater(client clipkg.Client) *VerrazzanoStatusUpdater {
 
 // Update initiates an asynchronous Verrazzano status update
 func (v *VerrazzanoStatusUpdater) Update(event *UpdateEvent) {
+	if event != nil && event.Verrazzano != nil {
+		event.merge(event.Verrazzano)
+	}
 	v.updateChannel <- event
 }
 
