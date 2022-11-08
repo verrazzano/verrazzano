@@ -34,6 +34,7 @@ type httpClientI interface {
 var httpClient httpClientI = &http.Client{}
 var _ httpClientI = &http.Client{}
 
+// worker contains the data to perform work
 type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetrics

@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -147,6 +148,7 @@ func TestDoWork(t *testing.T) {
 			name:         "3",
 			bodyData:     "testRespError",
 			statusCode:   500,
+			doworkError:  errors.New("error"),
 			reqCount:     1,
 			successCount: 0,
 			failureCount: 1,
@@ -211,7 +213,7 @@ func (f fakeBody) ReadAll(d []byte) (n int, err error) {
 
 func (f fakeBody) Read(d []byte) (n int, err error) {
 	copy(d, f.data)
-	return len(f.data), nil
+	return len(f.data), io.EOF
 }
 
 func (f fakeBody) Close() error {
