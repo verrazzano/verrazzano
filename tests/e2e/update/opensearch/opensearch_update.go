@@ -8,7 +8,6 @@ import (
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
@@ -31,10 +30,6 @@ type OpensearchAllNodeRolesModifier struct {
 
 func (u OpensearchCleanUpModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
-}
-
-func (u OpensearchCleanUpModifier) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
-	cr.Spec.Components.OpenSearch = &v1beta1.OpenSearchComponent{}
 }
 
 type OpensearchMasterNodeGroupModifier struct {
@@ -105,57 +100,6 @@ func (u OpensearchDataNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 				Replicas:  u.NodeReplicas,
 				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole},
 				Storage:   newNodeStorage(u.NodeStorage),
-				Resources: newResources(u.NodeMemory),
-			},
-		)
-}
-
-func (u OpensearchMasterNodeGroupModifier) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
-	if cr.Spec.Components.OpenSearch == nil {
-		cr.Spec.Components.OpenSearch = &v1beta1.OpenSearchComponent{}
-	}
-	cr.Spec.Components.OpenSearch.Nodes = []v1beta1.OpenSearchNode{}
-	cr.Spec.Components.OpenSearch.Nodes =
-		append(cr.Spec.Components.OpenSearch.Nodes,
-			v1beta1.OpenSearchNode{
-				Name:      string(vmov1.MasterRole),
-				Replicas:  u.NodeReplicas,
-				Roles:     []vmov1.NodeRole{vmov1.MasterRole},
-				Resources: newResources(u.NodeMemory),
-				Storage:   (*v1beta1.OpenSearchNodeStorage)(newNodeStorage(u.NodeStorage)),
-			},
-		)
-}
-
-func (u OpensearchIngestNodeGroupModifier) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
-	if cr.Spec.Components.OpenSearch == nil {
-		cr.Spec.Components.OpenSearch = &v1beta1.OpenSearchComponent{}
-	}
-	cr.Spec.Components.OpenSearch.Nodes = []v1beta1.OpenSearchNode{}
-	cr.Spec.Components.OpenSearch.Nodes =
-		append(cr.Spec.Components.OpenSearch.Nodes,
-			v1beta1.OpenSearchNode{
-				Name:      string(vmov1.IngestRole),
-				Replicas:  u.NodeReplicas,
-				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.IngestRole},
-				Storage:   (*v1beta1.OpenSearchNodeStorage)(newNodeStorage(u.NodeStorage)),
-				Resources: newResources(u.NodeMemory),
-			},
-		)
-}
-
-func (u OpensearchDataNodeGroupModifier) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
-	if cr.Spec.Components.OpenSearch == nil {
-		cr.Spec.Components.OpenSearch = &v1beta1.OpenSearchComponent{}
-	}
-	cr.Spec.Components.OpenSearch.Nodes = []v1beta1.OpenSearchNode{}
-	cr.Spec.Components.OpenSearch.Nodes =
-		append(cr.Spec.Components.OpenSearch.Nodes,
-			v1beta1.OpenSearchNode{
-				Name:      string(vmov1.DataRole),
-				Replicas:  u.NodeReplicas,
-				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole},
-				Storage:   (*v1beta1.OpenSearchNodeStorage)(newNodeStorage(u.NodeStorage)),
 				Resources: newResources(u.NodeMemory),
 			},
 		)

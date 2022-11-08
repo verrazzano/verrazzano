@@ -48,11 +48,6 @@ func IsUpdateConflict(err error) bool {
 	return strings.Contains(err.Error(), "the object has been modified; please apply your changes to the latest version")
 }
 
-// IsReconcileError returns true if the error is due to the VZ CR being in a Reconciling state
-func IsReconcileError(err error) bool {
-	return strings.Contains(err.Error(), "CR in state Reconciling, not Ready yet")
-}
-
 // ShouldLogKubenetesAPIError returns true if error should be logged.  This is used
 // when calling the Kubernetes API, so conflict and webhook
 // errors are not logged, the controller will just retry.

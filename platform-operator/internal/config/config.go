@@ -4,10 +4,10 @@
 package config
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 const (

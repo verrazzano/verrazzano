@@ -5,7 +5,6 @@ package opensearch
 
 import (
 	"fmt"
-
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -38,8 +37,8 @@ func IsSingleDataNodeCluster(ctx spi.ComponentContext) bool {
 	return findESReplicas(ctx, "data") <= 1
 }
 
-// IsOSReady checks if the OpenSearch resources are ready
-func IsOSReady(ctx spi.ComponentContext) bool {
+// isOSReady checks if the OpenSearch resources are ready
+func isOSReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	if vzconfig.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
 		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
