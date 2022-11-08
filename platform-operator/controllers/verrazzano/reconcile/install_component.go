@@ -150,7 +150,11 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 			// If component is not installed,install it
 			compLog.Oncef("Component %s install started ", compName)
 			if err := comp.Install(compContext); err != nil {
-				compLog.ErrorfThrottled("Error running Install for component %s: %v", compName, err)
+				// Only log this error if this is not a RetryableError
+				if _, ok := err.(spi2.RetryableError); !ok {
+					compLog.ErrorfThrottled("Error running Install for component %s: %v", compName, err)
+				}
+
 				return ctrl.Result{Requeue: true}
 			}
 
