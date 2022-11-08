@@ -384,37 +384,6 @@ func GetDynamicClientInCluster(kubeconfigPath string) (dynamic.Interface, error)
 	return dynamic.NewForConfig(config)
 }
 
-// DoesIngressHostExist returns true if ingress exists
-func DoesIngressHostExist(namespace string, ingressName string) (bool, error) {
-	osIngest, err := GetIngress(namespace, ingressName)
-	if err != nil {
-		return false, err
-	}
-	if osIngest != nil && osIngest.Spec.Rules[0].Size() > 1 {
-		for _, rule := range osIngest.Spec.Rules {
-			if strings.HasPrefix(rule.Host, "elasticsearch") {
-				return true, nil
-			}
-		}
-	}
-	return false, nil
-}
-
-// GetIngress returns the ingress given a namespace and ingress name
-func GetIngress(namespace string, ingressName string) (*networkingv1.Ingress, error) {
-	// Get the Kubernetes clientset
-	clientSet, err := GetKubernetesClientset()
-	if err != nil {
-		return nil, err
-	}
-	ingress, err := clientSet.NetworkingV1().Ingresses(namespace).Get(context.TODO(), ingressName, metav1.GetOptions{})
-	if err != nil {
-
-		return nil, fmt.Errorf("Failed to get Ingress %s in namespace %s: %v ", ingressName, namespace, err)
-	}
-	return ingress, nil
-}
-
 // GetHostFromIngress returns the url for an Ingress
 func GetURLForIngress(client client.Client, name string, namespace string, scheme string) (string, error) {
 	var ingress = &networkingv1.Ingress{}

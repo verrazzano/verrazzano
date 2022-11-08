@@ -1617,3 +1617,20 @@ func addClientRoleToUser(ctx spi.ComponentContext, cfg *restclient.Config, cli k
 	ctx.Log().Oncef("Added client role %s to the user %s", roleName, userName)
 	return nil
 }
+
+// DoesIngressHostExist returns true if ingress host exists
+func DoesIngressHostExist(ctx spi.ComponentContext, namespace string, ingressName string) (bool, error) {
+	ingress := &networkv1.Ingress{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: ingressName}, ingress)
+	if err != nil {
+		return false, err
+	}
+	if ingress != nil && ingress.Spec.Rules[0].Size() > 1 {
+		for _, rule := range ingress.Spec.Rules {
+			if strings.HasPrefix(rule.Host, "elasticsearch") {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}

@@ -8,7 +8,6 @@ import (
 	"fmt"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -182,7 +181,7 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	}
 
 	// Update verrazzano-pkce client redirect and web origin uris if deprecated host exists in the ingress
-	osHostExists, err := k8sutil.DoesIngressHostExist(constants.VerrazzanoSystemNamespace, constants.OpensearchIngress)
+	osHostExists, err := DoesIngressHostExist(ctx, constants.VerrazzanoSystemNamespace, constants.OpensearchIngress)
 	if err != nil {
 		return err
 	}
@@ -218,7 +217,7 @@ func (c KeycloakComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verr
 	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c KeycloakComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// Do not allow any changes except to enable the component post-install
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
