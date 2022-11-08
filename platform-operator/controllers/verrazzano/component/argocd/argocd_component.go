@@ -82,6 +82,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	kvs = append(kvs, bom.KeyValue{Key: "global.image.repository", Value: images[1].Value})
 	kvs = append(kvs, bom.KeyValue{Key: "global.image.tag", Value: images[0].Value})
 	kvs = append(kvs, bom.KeyValue{Key: "server.ingress.enabled", Value: "true"})
+	kvs = append(kvs, bom.KeyValue{Key: "dex.enabled", Value: "false"})
 
 	return kvs, nil
 }

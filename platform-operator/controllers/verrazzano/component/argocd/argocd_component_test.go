@@ -87,9 +87,6 @@ func TestIsReady(t *testing.T) {
 		newReadyDeployment(ComponentNamespace, common.ArgoCDApplicationSetController),
 		newPod(ComponentNamespace, common.ArgoCDApplicationSetController),
 		newReplicaSet(ComponentNamespace, common.ArgoCDApplicationSetController),
-		newReadyDeployment(ComponentNamespace, common.ArgoCDDexServer),
-		newPod(ComponentNamespace, common.ArgoCDDexServer),
-		newReplicaSet(ComponentNamespace, common.ArgoCDDexServer),
 		newReadyDeployment(ComponentNamespace, common.ArgoCDNotificationController),
 		newPod(ComponentNamespace, common.ArgoCDNotificationController),
 		newReplicaSet(ComponentNamespace, common.ArgoCDNotificationController),
@@ -118,16 +115,6 @@ func TestIsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      common.ArgoCDApplicationSetController,
-			},
-			Status: appsv1.DeploymentStatus{
-				AvailableReplicas: 0,
-				Replicas:          1,
-			},
-		},
-		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: ComponentNamespace,
-				Name:      common.ArgoCDDexServer,
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 0,

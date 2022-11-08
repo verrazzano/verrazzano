@@ -23,11 +23,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	ArgoCDIngressCAName = "tls-argocd-ingress"
-	ArgoCDCACert        = "ca.crt"
-)
-
 const oidcConfigTemplate = `
      name: Keycloak
      issuer: "{{.KeycloakUrl}}"
@@ -40,7 +35,7 @@ const oidcConfigTemplate = `
 
 type oideConfigTemplateData struct {
 	KeycloakUrl string
-	CaCert      []byte
+	CaCert      string
 }
 
 // patchArgoCDSecret
@@ -81,6 +76,7 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 
 	ctx.Log().Debugf("Getting ArgoCD TLS root CA")
 	caCert, err := GetRootCA(ctx)
+	ctx.Log().Infof("%s  - this is cacert", caCert)
 	if err != nil {
 		ctx.Log().Errorf("Failed to get ArgoCD TLS root CA: %v", err)
 		return err
@@ -90,10 +86,20 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
+
+	secret := &corev1.Secret{}
+	nsName := types.NamespacedName{
+		Namespace: constants.ArgoCDNamespace,
+		Name:      common.ArgoCDIngressCAName}
+
+	if err := ctx.Client().Get(context.TODO(), nsName, secret); err != nil {
+		return err
+	}
+
 	var b bytes.Buffer
 	var data = oideConfigTemplateData{}
 	data.KeycloakUrl = fmt.Sprintf("https://%s/%s", keycloakHost, "auth/realms/verrazzano-system")
-	data.CaCert = caCert
+	data.CaCert = string(caCert)
 	err = t.Execute(&b, &data)
 	if err != nil {
 		return err
@@ -121,7 +127,7 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 	return err
 }
 
-// patchArgoCDConfigMap
+// patchArgoCDRbacConfigMap
 func patchArgoCDRbacConfigMap(ctx spi.ComponentContext) error {
 	rbaccm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -154,13 +160,13 @@ func GetRootCA(ctx spi.ComponentContext) ([]byte, error) {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
 		Namespace: constants.ArgoCDNamespace,
-		Name:      ArgoCDIngressCAName}
+		Name:      common.ArgoCDIngressCAName}
 
 	if err := ctx.Client().Get(context.TODO(), nsName, secret); err != nil {
 		return nil, err
 	}
 
-	return secret.Data[ArgoCDCACert], nil
+	return secret.Data[common.ArgoCDCACert], nil
 }
 
 func getArgoCDHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {

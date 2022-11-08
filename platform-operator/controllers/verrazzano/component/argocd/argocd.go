@@ -45,10 +45,6 @@ func isArgoCDReady(ctx spi.ComponentContext) bool {
 			Namespace: ComponentNamespace,
 		},
 		{
-			Name:      common.ArgoCDDexServer,
-			Namespace: ComponentNamespace,
-		},
-		{
 			Name:      common.ArgoCDNotificationController,
 			Namespace: ComponentNamespace,
 		},
