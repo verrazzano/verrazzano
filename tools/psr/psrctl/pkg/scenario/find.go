@@ -22,7 +22,16 @@ const usecaseOverrideDir = "usecase-overrides"
 // each use case. The name of the parent directory, for example s1, is irrelevant.
 func (m Manager) ListScenarioManifests() ([]ScenarioManifest, error) {
 	scenarios := []ScenarioManifest{}
-	sfiles, err := files.GetMatchingFiles(m.Manifest.ScenarioAbsDir, regexp.MustCompile("scenario.yaml"))
+
+	// Default to the scenarios built into the image. However, the user can
+	// override this dir for some operations, like start
+	scenariosDir := m.Manifest.ScenarioAbsDir
+	if len(m.ExternalScenarioDir) > 0 {
+		scenariosDir = m.ExternalScenarioDir
+	}
+
+	// Find all the directories that contain scenario.yaml file
+	sfiles, err := files.GetMatchingFiles(scenariosDir, regexp.MustCompile("scenario.yaml"))
 	if err != nil {
 		return nil, err
 	}
