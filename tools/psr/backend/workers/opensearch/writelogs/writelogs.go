@@ -15,13 +15,12 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 )
 
-type logWriter struct {
-	spi.Worker
+type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetrics
 }
 
-var _ spi.Worker = logWriter{}
+var _ spi.Worker = worker{}
 
 // workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
 type workerMetrics struct {
@@ -30,7 +29,7 @@ type workerMetrics struct {
 }
 
 func NewWriteLogsWorker() (spi.Worker, error) {
-	w := logWriter{workerMetrics: &workerMetrics{
+	w := worker{workerMetrics: &workerMetrics{
 		loggedLinesCountTotal: metrics.MetricItem{
 			Name: "logged_lines_count_total",
 			Help: "The total number of lines logged",
@@ -51,23 +50,23 @@ func NewWriteLogsWorker() (spi.Worker, error) {
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
-func (w logWriter) GetWorkerDesc() spi.WorkerDesc {
+func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		EnvName:     config.WorkerTypeWriteLogs,
+		WorkerType:  config.WorkerTypeWriteLogs,
 		Description: "The writelogs worker writes logs to STDOUT, putting a load on OpenSearch",
 		MetricsName: "writelogs",
 	}
 }
 
-func (w logWriter) GetEnvDescList() []osenv.EnvVarDesc {
+func (w worker) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{}
 }
 
-func (w logWriter) WantLoopInfoLogged() bool {
+func (w worker) WantLoopInfoLogged() bool {
 	return false
 }
 
-func (w logWriter) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	lc := atomic.AddInt64(&w.workerMetrics.loggedLinesCountTotal.Val, 1)
 	logMsg := fmt.Sprintf("Writelogs worker logging line %v", lc)
 	log.Infof(logMsg)
@@ -75,11 +74,11 @@ func (w logWriter) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 	return nil
 }
 
-func (w logWriter) GetMetricDescList() []prometheus.Desc {
+func (w worker) GetMetricDescList() []prometheus.Desc {
 	return w.metricDescList
 }
 
-func (w logWriter) GetMetricList() []prometheus.Metric {
+func (w worker) GetMetricList() []prometheus.Metric {
 	return []prometheus.Metric{
 		w.loggedLinesCountTotal.BuildMetric(),
 		w.loggedCharsCountTotal.BuildMetric(),

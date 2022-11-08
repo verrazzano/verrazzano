@@ -15,22 +15,25 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 )
 
-type exampleWorker struct {
+type state struct {
 	loggedLinesTotal int64
+}
+type exampleWorker struct {
+	*state
 }
 
 var _ spi.Worker = exampleWorker{}
 
 func NewExampleWorker() (spi.Worker, error) {
-	return exampleWorker{}, nil
+	return exampleWorker{&state{}}, nil
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w exampleWorker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		EnvName:     config.WorkerTypeExample,
+		WorkerType:  config.WorkerTypeExample,
 		Description: "Example worker that demonstrates executing a fake use case",
-		MetricsName: "example",
+		MetricsName: config.WorkerTypeExample,
 	}
 }
 
@@ -52,6 +55,6 @@ func (w exampleWorker) WantLoopInfoLogged() bool {
 
 func (w exampleWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	log.Infof("Example Worker doing work")
-	atomic.AddInt64(&w.loggedLinesTotal, 1)
+	w.state.loggedLinesTotal++
 	return nil
 }

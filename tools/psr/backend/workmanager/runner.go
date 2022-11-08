@@ -107,7 +107,7 @@ func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		err := r.Worker.DoWork(conf, log)
 		if err != nil {
 			r.prevWorkFailed = true
-			log.Errorf("Failed calling %s to do work: %v", r.Worker.GetWorkerDesc().EnvName, err)
+			log.Errorf("Failed calling %s to do work: %v", r.Worker.GetWorkerDesc().WorkerType, err)
 		} else {
 			if r.prevWorkFailed {
 				// If we had a failure on the prev call then log success so you can tell
