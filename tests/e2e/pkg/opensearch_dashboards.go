@@ -132,7 +132,6 @@ func PostOpensearchDashboards(path string, body string, additionalHeaders ...str
 // getOpenSearchDashboardsURL gets the OpenSearch Dashboards Ingress host in the given cluster
 func getOpenSearchDashboardsURL(kubeconfigPath string) string {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
-	isMinversion150, _ := IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
 
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
@@ -140,7 +139,7 @@ func getOpenSearchDashboardsURL(kubeconfigPath string) string {
 	}
 	ingressList, _ := clientset.NetworkingV1().Ingresses("verrazzano-system").List(context.TODO(), metav1.ListOptions{})
 	for _, ingress := range ingressList.Items {
-		if (isMinversion150 && ingress.Name == "vmi-system-opensearchdashboards") || (!isMinversion150 && ingress.Name == "vmi-system-kibana") {
+		if ingress.Name == "vmi-system-opensearchdashboards" || ingress.Name == "vmi-system-kibana" {
 			Log(Info, fmt.Sprintf("Found Kibana/OpenSearch Dashboards Ingress %v, host %s", ingress.Name, ingress.Spec.Rules[0].Host))
 			return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 		}
