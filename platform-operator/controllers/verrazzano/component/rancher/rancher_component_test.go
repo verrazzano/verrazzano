@@ -67,7 +67,7 @@ func getValue(kvs []bom.KeyValue, key string) (string, bool) {
 //	THEN AppendOverrides should add registry overrides
 func TestAppendRegistryOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzAcmeDev, nil, false)
-	config.SetDefaultBomFilePath("../../testdata/test_bom.json")
+	config.SetDefaultBomFilePath(testBomFilePath)
 	registry := "foobar"
 	imageRepo := "barfoo"
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
@@ -94,7 +94,7 @@ func TestAppendRegistryOverrides(t *testing.T) {
 func TestAppendImageOverrides(t *testing.T) {
 	a := assert.New(t)
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzapi.Verrazzano{}, nil, false)
-	config.SetDefaultBomFilePath("../../testdata/test_bom.json")
+	config.SetDefaultBomFilePath(testBomFilePath)
 	_ = os.Unsetenv(constants.RegistryOverrideEnvVar)
 
 	// construct an expected image list
@@ -139,7 +139,7 @@ func TestAppendImageOverrides(t *testing.T) {
 //	THEN AppendOverrides should add private CA overrides
 func TestAppendCAOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzDefaultCA, nil, false)
-	config.SetDefaultBomFilePath("../../testdata/test_bom.json")
+	config.SetDefaultBomFilePath(testBomFilePath)
 	kvs, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.Nil(t, err)
 	v, ok := getValue(kvs, ingressTLSSourceKey)
