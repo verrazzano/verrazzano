@@ -5,7 +5,6 @@ package scale
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -13,11 +12,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	er "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/update"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	oscomp "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
-	spicomponent "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/update/opensearch"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/common"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
@@ -186,16 +186,14 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 		}
 
 		// get controller runtime client
-		//client, err := pkg.GetPromOperatorClient()
 		kubeConfig, err := k8sutil.GetKubeConfig()
-		//client, err := vpoClient.NewForConfig(kubeConfig)
 		client, err := crtpkg.New(kubeConfig, crtpkg.Options{})
 		if err != nil {
 			return err
 		}
 
 		// check if actual number of replicas is equal to the expected number
-		ctx, err := spicomponent.NewContext(log, client, nil, vz, false)
+		ctx, err := common.NewContext(log, client, nil, vz, false)
 		if err != nil {
 			return err
 		}
