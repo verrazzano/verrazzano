@@ -160,9 +160,15 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 	for {
 		err := update.UpdateCRV1beta1(m)
 		if err != nil {
-			if er.IsUpdateConflict(err) || er.IsReconcileError(err) {
+			if er.IsUpdateConflict(err) {
 				time.Sleep(3 * time.Second)
+				logMsg := fmt.Sprintf("VZ conflict error, retrying")
+				log.Infof(logMsg)
 				continue
+			} else if er.IsReconcileError(err) {
+				logMsg := fmt.Sprintf("VZ CR in state Reconciling, not Ready yet")
+				log.Infof(logMsg)
+				break
 			} else {
 				return fmt.Errorf("failed to scale OpenSearch %s replicas: %f", tier, err)
 			}
@@ -194,6 +200,8 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 			log.Infof(logMsg)
 			break
 		}
+		logMsg := fmt.Sprintf("Waiting for OpenSearch to enter Ready state")
+		log.Infof(logMsg)
 		time.Sleep(3 * time.Second)
 	}
 	return nil
