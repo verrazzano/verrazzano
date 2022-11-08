@@ -27,13 +27,10 @@ spec:
 {{- if not (.Values.defaultRules.disabled.KubeVersionMismatch | default false) }}
     - alert: KubeVersionMismatch
       annotations:
-{{- if .Values.defaultRules.additionalRuleAnnotations }}
-{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
-{{- end }}
         description: There are {{`{{`}} $value {{`}}`}} different semantic versions of Kubernetes components running.
         runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubeversionmismatch
         summary: Different semantic versions of Kubernetes components running.
-      expr: count by (cluster) (count by (git_version, cluster) (label_replace(kubernetes_build_info{job!~"kube-dns|coredns"},"git_version","$1","git_version","(v[0-9]*.[0-9]*).*"))) > 1
+      expr: count(count by (git_version) (label_replace(kubernetes_build_info{job!~"kube-dns|coredns"},"git_version","$1","git_version","(v[0-9]*.[0-9]*).*"))) > 1
       for: 15m
       labels:
         severity: warning
@@ -44,16 +41,13 @@ spec:
 {{- if not (.Values.defaultRules.disabled.KubeClientErrors | default false) }}
     - alert: KubeClientErrors
       annotations:
-{{- if .Values.defaultRules.additionalRuleAnnotations }}
-{{ toYaml .Values.defaultRules.additionalRuleAnnotations | indent 8 }}
-{{- end }}
         description: Kubernetes API server client '{{`{{`}} $labels.job {{`}}`}}/{{`{{`}} $labels.instance {{`}}`}}' is experiencing {{`{{`}} $value | humanizePercentage {{`}}`}} errors.'
         runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubeclienterrors
         summary: Kubernetes API server client is experiencing errors.
       expr: |-
-        (sum(rate(rest_client_requests_total{code=~"5.."}[5m])) by (cluster, instance, job, namespace)
+        (sum(rate(rest_client_requests_total{code=~"5.."}[5m])) by (instance, job, namespace)
           /
-        sum(rate(rest_client_requests_total[5m])) by (cluster, instance, job, namespace))
+        sum(rate(rest_client_requests_total[5m])) by (instance, job, namespace))
         > 0.01
       for: 15m
       labels:
