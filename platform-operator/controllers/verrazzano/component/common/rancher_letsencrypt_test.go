@@ -5,7 +5,13 @@ package common
 
 import (
 	"errors"
+	"github.com/golang/mock/gomock"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"io"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 	"strings"
 	"testing"
@@ -83,4 +89,54 @@ func TestBuildLetsEncryptChain(t *testing.T) {
 	err := builder.buildLetsEncryptStagingChain()
 	assert.Nil(t, err)
 	assert.Equal(t, "certcertcert", string(builder.cert))
+}
+
+// TestBuildLetsEncryptChain verifies building the LetsEncrypt staging certificate chain
+// GIVEN a certBuilder
+//
+//	WHEN buildLetsEncryptStagingChain is called
+//	THEN buildLetsEncryptStagingChain should build the cert chain for LetsEncrypt
+func TestProcessAdditionalCertificates(t *testing.T) {
+	mock := gomock.NewController(t)
+	client := mocks.NewMockClient(mock)
+	//ns := corev1.Namespace{ObjectMeta: v12.ObjectMeta{Name: "cattle-system"}}
+	var a bool = true
+	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v12.ObjectMeta{Namespace: "foo"}}, nil, false)
+	vz := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManager: &vzapi.CertManagerComponent{
+					Enabled:     &a,
+					Certificate: vzapi.Certificate{Acme: vzapi.Acme{Environment: "dev"}},
+				},
+			},
+		},
+	}
+
+	client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil).AnyTimes()
+	client.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	err := ProcessAdditionalCertificates(ctx.Log(), client, &vz)
+	assert.Nil(t, err)
+
+}
+
+// TestBuildLetsEncryptChain verifies building the LetsEncrypt staging certificate chain
+// GIVEN a certBuilder
+//
+//	WHEN buildLetsEncryptStagingChain is called
+//	THEN buildLetsEncryptStagingChain should build the cert chain for LetsEncrypt
+func TestProcessAdditionalCertificatesFailure(t *testing.T) {
+	mock := gomock.NewController(t)
+	client := mocks.NewMockClient(mock)
+	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v12.ObjectMeta{Namespace: "foo"}}, nil, false)
+	vz := vzapi.Verrazzano{}
+
+	client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil).AnyTimes()
+	client.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil).AnyTimes()
+	client.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	err := ProcessAdditionalCertificates(ctx.Log(), client, &vz)
+	assert.Nil(t, err)
+
 }

@@ -170,3 +170,16 @@ func TestGetRancherMgmtApiGVKForKind(t *testing.T) {
 	assert.Equal(t, "kind", kind.Kind)
 
 }
+func TestGetAdditionalCA(t *testing.T) {
+	cli := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects().Build()
+
+	bytep := GetAdditionalCA(cli)
+	assert.Equal(t, []byte{}, bytep)
+
+}
+func TestCertPool(t *testing.T) {
+	bytep := []byte{}
+	cert := CertPool(bytep)
+	assert.NotNil(t, cert)
+
+}

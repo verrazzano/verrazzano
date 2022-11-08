@@ -4,6 +4,8 @@
 package common
 
 import (
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -42,4 +44,18 @@ func TestIsApplyCRDYamlInvalidChart(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	config.TestHelmConfigDir = "invalidPath"
 	assert.Error(t, ApplyCRDYaml(spi.NewFakeContext(fakeClient, nil, nil, false), ""))
+}
+
+// TestConvertVerrazzanoCR tests the applyCRDYaml function
+// GIVEN a call to ApplyCRDYaml
+// WHEN the ConvertVerrazzanoCR is called
+// THEN an appropriate error is returned
+func TestConvertVerrazzanoCR(t *testing.T) {
+	vz := vzapi.Verrazzano{}
+	convertedVZ := v1beta1.Verrazzano{}
+	config.TestHelmConfigDir = "invalidPath"
+	err := ConvertVerrazzanoCR(&vz, &convertedVZ)
+	assert.Nil(t, err)
+	err = ConvertVerrazzanoCR(nil, &convertedVZ)
+	assert.Error(t, err)
 }
