@@ -26,3 +26,4 @@ spec:
       - action: replace
         targetLabel: verrazzano_cluster
         replacement: local
+    enableHttp2: false
