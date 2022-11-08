@@ -21,7 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 )
 
-const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
+const osIngestService = "vmi-system-os-ingest.verrazzano-system:9200"
 
 const letters = "abcdefghijklmnopqrstuvwxyz"
 
@@ -207,12 +207,12 @@ func getBody() io.ReadCloser {
       ]
     }
   }
-}`, GetRandomLowerAlpha(10)...)
+}`, getRandomLowerAlpha(10)...)
 	return io.NopCloser(bytes.NewBuffer([]byte(body)))
 }
 
-// GetRandomLowerAlpha returns an array of len n of random lowercase letters
-func GetRandomLowerAlpha(n int) []interface{} {
+// getRandomLowerAlpha returns an array of len n of random lowercase letters
+func getRandomLowerAlpha(n int) []interface{} {
 	var str []interface{}
 	for i := 0; i < n; i++ {
 		str = append(str, string(letters[rand.Intn(len(letters))])) //nolint:gosec //#gosec G404

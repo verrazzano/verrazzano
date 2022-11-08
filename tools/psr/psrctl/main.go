@@ -16,12 +16,13 @@ import (
 
 func main() {
 	// Extract the manifests and write them to a temp directory
-	man, err := embedded.ExtractManifests()
+	// This sets the global embedded.Manifests var
+	err := embedded.InitGlobalManifests()
 	if err != nil {
-		fmt.Printf("Unable to extract manifests from psrctl binary %v", err)
+		fmt.Printf("Failed to initial manifests %v", err)
 		os.Exit(1)
 	}
-	defer os.RemoveAll(man.RootTmpDir)
+	defer embedded.CleanupManifests()
 
 	flags := pflag.NewFlagSet("psrctl", pflag.ExitOnError)
 	pflag.CommandLine = flags

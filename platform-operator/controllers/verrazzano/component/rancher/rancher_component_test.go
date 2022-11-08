@@ -4,6 +4,7 @@
 package rancher
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -12,12 +13,16 @@ import (
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
@@ -27,12 +32,23 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/dynamic"
+	dynfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+)
+
+const (
+	testBomFilePath      = "../../testdata/test_bom.json"
+	profilesRelativePath = "../../../../manifests/profiles"
 )
 
 func getValue(kvs []bom.KeyValue, key string) (string, bool) {
@@ -51,7 +67,7 @@ func getValue(kvs []bom.KeyValue, key string) (string, bool) {
 //	THEN AppendOverrides should add registry overrides
 func TestAppendRegistryOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzAcmeDev, nil, false)
-	config.SetDefaultBomFilePath("../../testdata/test_bom.json")
+	config.SetDefaultBomFilePath(testBomFilePath)
 	registry := "foobar"
 	imageRepo := "barfoo"
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
@@ -78,7 +94,7 @@ func TestAppendRegistryOverrides(t *testing.T) {
 func TestAppendImageOverrides(t *testing.T) {
 	a := assert.New(t)
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzapi.Verrazzano{}, nil, false)
-	config.SetDefaultBomFilePath("../../testdata/test_bom.json")
+	config.SetDefaultBomFilePath(testBomFilePath)
 	_ = os.Unsetenv(constants.RegistryOverrideEnvVar)
 
 	// construct an expected image list
@@ -123,7 +139,7 @@ func TestAppendImageOverrides(t *testing.T) {
 //	THEN AppendOverrides should add private CA overrides
 func TestAppendCAOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzDefaultCA, nil, false)
-	config.SetDefaultBomFilePath("../../testdata/test_bom.json")
+	config.SetDefaultBomFilePath(testBomFilePath)
 	kvs, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.Nil(t, err)
 	v, ok := getValue(kvs, ingressTLSSourceKey)
@@ -191,6 +207,506 @@ func TestPreInstall(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret).Build()
 	ctx := spi.NewFakeContext(c, &vzDefaultCA, nil, false)
 	assert.Nil(t, NewComponent().PreInstall(ctx))
+}
+
+// TestPreUpgrade tests the PreUpgrade func call
+func TestPreUpgrade(t *testing.T) {
+	asserts := assert.New(t)
+	three := int32(3)
+	// create a fake dynamic client to serve the Setting and ClusterRepo resources
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(getScheme(), newClusterRepoResources()...)
+
+	// override the getDynamicClientFunc for unit testing and reset it when done
+	prevGetDynamicClientFunc := getDynamicClientFunc
+	getDynamicClientFunc = func() (dynamic.Interface, error) { return fakeDynamicClient, nil }
+	defer func() {
+		getDynamicClientFunc = prevGetDynamicClientFunc
+	}()
+
+	tests := []struct {
+		name              string
+		rancherDeployment appsv1.Deployment
+		wantErr           bool
+	}{
+		// GIVEN rancher deployment with 0 available replicas
+		// WHEN PreUpgrade is called
+		// THEN no error is returned and ClusterRepos resources are deleted
+		{
+			name: "PreUpgrade should not return an error when rancher deployment status has 0 available replicas",
+			rancherDeployment: appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{Name: ComponentName, Namespace: ComponentNamespace},
+				Spec:       appsv1.DeploymentSpec{Replicas: &three},
+				Status: appsv1.DeploymentStatus{
+					AvailableReplicas: 0,
+				},
+			},
+			wantErr: false,
+		},
+
+		// GIVEN a rancher deployment with some available and non zero replicas
+		// WHEN PreUpgrade func is called
+		// THEN the replicas are set to 0 in the deployment spec and a RetryableError is thrown
+		{
+			name: "PreUpgrade should return a retryable error when rancher deployment has available replicas",
+			rancherDeployment: appsv1.Deployment{
+				ObjectMeta: metav1.ObjectMeta{Name: ComponentName, Namespace: ComponentNamespace},
+				Spec:       appsv1.DeploymentSpec{Replicas: &three},
+				Status: appsv1.DeploymentStatus{
+					AvailableReplicas: three,
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&tt.rancherDeployment).Build()
+			fakeCtx := spi.NewFakeContext(cli, &vzapi.Verrazzano{}, nil, false)
+			err := NewComponent().PreUpgrade(fakeCtx)
+			if tt.wantErr {
+				asserts.Equal(err, ctrlerrors.RetryableError{Source: ComponentName})
+				obj := appsv1.Deployment{}
+				asserts.NoError(cli.Get(context.Background(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &obj))
+				asserts.Equal(*obj.Spec.Replicas, int32(0))
+			} else {
+				asserts.Nil(err)
+				// validate that the Setting and ClusterRepo resources have been deleted
+				_, err = fakeDynamicClient.Resource(cattleSettingsGVR).Get(context.TODO(), chartDefaultBranchName, metav1.GetOptions{})
+				asserts.True(errors.IsNotFound(err))
+
+				_, err = fakeDynamicClient.Resource(cattleClusterReposGVR).Get(context.TODO(), rancherChartsClusterRepoName, metav1.GetOptions{})
+				asserts.True(errors.IsNotFound(err))
+				_, err = fakeDynamicClient.Resource(cattleClusterReposGVR).Get(context.TODO(), rancherPartnerChartsClusterRepoName, metav1.GetOptions{})
+				asserts.True(errors.IsNotFound(err))
+				_, err = fakeDynamicClient.Resource(cattleClusterReposGVR).Get(context.TODO(), rancherRke2ChartsClusterRepoName, metav1.GetOptions{})
+				asserts.True(errors.IsNotFound(err))
+
+				// this ClusterRepo should not have been deleted
+				_, err = fakeDynamicClient.Resource(cattleClusterReposGVR).Get(context.TODO(), "app-charts", metav1.GetOptions{})
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestInstall tests the Install func call
+func TestInstall(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	helm.SetUpgradeFunc(fakeUpgrade)
+	defer helm.SetDefaultUpgradeFunc()
+	helmcli.SetChartStateFunction(func(releaseName string, namespace string) (string, error) {
+		return helmcli.ChartStatusDeployed, nil
+	})
+	defer helmcli.SetDefaultChartStateFunction()
+
+	cli := createFakeTestClient(&v1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
+	}, &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: ComponentName, Namespace: ComponentNamespace},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{Name: ComponentName},
+					},
+				}},
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 3,
+		},
+	})
+	cliMissingIngress := createFakeTestClient(&appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: ComponentName, Namespace: ComponentNamespace},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{Name: ComponentName},
+					},
+				}},
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 3,
+		},
+	})
+
+	cliMissingDeployment := createFakeTestClient(&v1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
+	})
+
+	cliMissingContainerSpec := createFakeTestClient(&v1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ComponentName,
+			Namespace: ComponentNamespace,
+		},
+	}, &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: ComponentName, Namespace: ComponentNamespace},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 3,
+		},
+	})
+	tests := []struct {
+		name        string
+		c           client.Client
+		vz          vzapi.Verrazzano
+		wantErr     bool
+		errContains string
+	}{
+		// GIVEN an environment with correct rancher deployment and ingress along with the Verrazzano resource
+		// WHEN a call to Rancher Install is made
+		// THEN no error is returned and rancher resources are patched as expected
+		{
+			name: "Install should not return an error for default values",
+			c:    cli,
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{
+							Enabled: getBoolPtr(true),
+						},
+						DNS: &vzapi.DNSComponent{
+							External: &vzapi.External{Suffix: "blah"},
+						},
+						CertManager: &vzapi.CertManagerComponent{
+							Enabled: getBoolPtr(true),
+						},
+					},
+				},
+			},
+			wantErr:     false,
+			errContains: "",
+		},
+		// GIVEN an env with correct rancher deployment and Verrazzano resource but missing rancher ingress
+		// WHEN a call to rancher Install is made
+		// THEN an error is returned complaining about missing rancher ingress
+		{
+			name: "Install should return an error in case of missing rancher ingress",
+			c:    cliMissingIngress,
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{
+							Enabled: getBoolPtr(true),
+						},
+						DNS: &vzapi.DNSComponent{
+							External: &vzapi.External{Suffix: "blah"},
+						},
+						CertManager: &vzapi.CertManagerComponent{
+							Enabled: getBoolPtr(true),
+						},
+					},
+				},
+			},
+			wantErr:     true,
+			errContains: "ingresses.networking.k8s.io \"rancher\" not found",
+		},
+		// GIVEN an env with correct rancher ingress and Verrazzano resource but missing rancher deployment
+		// WHEN a call to rancher Install is made
+		// THEN an error is returned complaining about missing rancher deployment
+		{
+			name: "Install should return an error in case of missing rancher deployment",
+			c:    cliMissingDeployment,
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{
+							Enabled: getBoolPtr(true),
+						},
+						DNS: &vzapi.DNSComponent{
+							External: &vzapi.External{Suffix: "blah"},
+						},
+						CertManager: &vzapi.CertManagerComponent{
+							Enabled: getBoolPtr(true),
+						},
+					},
+				},
+			},
+			wantErr:     true,
+			errContains: "deployments.apps \"rancher\" not found",
+		},
+		// GIVEN an env with correct rancher ingress and Verrazzano resource but the deployment is missing rancher container
+		// WHEN a call to rancher Install is made
+		// THEN an error is returned complaining about the missing rancher container
+		{
+			name: "Install should return an error in case of deployment missing the rancher container",
+			c:    cliMissingContainerSpec,
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{
+							Enabled: getBoolPtr(true),
+						},
+						DNS: &vzapi.DNSComponent{
+							External: &vzapi.External{Suffix: "blah"},
+						},
+						CertManager: &vzapi.CertManagerComponent{
+							Enabled: getBoolPtr(true),
+						},
+					},
+				},
+			},
+			wantErr:     true,
+			errContains: "container 'rancher' was not found",
+		},
+		// GIVEN an env with correct rancher deployment and ingress but the Verrazzano resource is missing cm component
+		// WHEN a call to rancher install is made
+		// THEN an error is returned complaining about missing cm component from the CR
+		{
+			name: "Install should return an error if cm component is missing from the VZ CR",
+			c:    cli,
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{
+							Enabled: getBoolPtr(true),
+						},
+						DNS: &vzapi.DNSComponent{
+							External: &vzapi.External{Suffix: "blah"},
+						},
+					},
+				},
+			},
+			wantErr:     true,
+			errContains: "Failed to find certManager component in effective cr",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.c, &tt.vz, nil, false)
+			err := NewComponent().Install(ctx)
+			if !tt.wantErr {
+				assert.NoError(t, err)
+				ingress := v1.Ingress{}
+				deployment := appsv1.Deployment{}
+				assert.NoError(t, tt.c.Get(context.Background(), types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}, &ingress))
+				assert.NoError(t, tt.c.Get(context.Background(), types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}, &deployment))
+
+				assert.Equal(t, "true", ingress.Annotations["kubernetes.io/tls-acme"])
+				assert.Equal(t, "HTTPS", ingress.Annotations["nginx.ingress.kubernetes.io/backend-protocol"])
+				assert.Equal(t, "true", ingress.Annotations["nginx.ingress.kubernetes.io/force-ssl-redirect"])
+
+				assert.Equal(t, deployment.Spec.Template.Spec.Containers[0].SecurityContext.Capabilities.Add[0], corev1.Capability("MKNOD"))
+			} else {
+				assert.ErrorContains(t, err, tt.errContains)
+			}
+		})
+	}
+}
+
+// TestMonitorOverrides tests the monitor overrides function
+func TestMonitorOverrides(t *testing.T) {
+	tests := []struct {
+		name       string
+		actualCR   *vzapi.Verrazzano
+		expectTrue bool
+	}{
+		// GIVEN a default Verrazzano custom resource,
+		// WHEN we call MonitorOverrides on the Rancher component,
+		// THEN it returns false
+		{
+			"Monitor changes should be true by default when actual VZ spec does not have a Rancher Component section",
+			&vzapi.Verrazzano{},
+			// True because Rancher is enabled be default in the effective CR
+			true,
+		},
+		// GIVEN a Verrazzano custom resource with a Rancher Component in the spec section,
+		// WHEN we call MonitorOverrides on the Rancher component,
+		// THEN it returns true
+		{
+			"Monitor changes should be true by default when the actual VZ spec has a Rancher Component section",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{},
+					},
+				},
+			},
+			true,
+		},
+		// GIVEN a Verrazzano custom resource with a Rancher Component in the spec section
+		//       with monitor changes flag explicitly set to true,
+		// WHEN we call MonitorOverrides on the Rancher component,
+		// THEN it returns true
+		{
+			"Monitor changes should be true when set explicitly in the VZ CR",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: getBoolPtr(true),
+							},
+						},
+					},
+				},
+			},
+			true,
+		},
+		// GIVEN a Verrazzano custom resource with a Rancher Component in the spec section
+		//       with monitor changes flag explicitly set to false,
+		// WHEN we call MonitorOverrides on the Rancher component,
+		// THEN it returns false
+		{
+			"Monitor changes should be false when set explicitly in the actual VZ CR",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: getBoolPtr(false),
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
+	}
+	client := createFakeTestClient()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(client, tt.actualCR, nil, false, profilesRelativePath)
+			if tt.expectTrue {
+				assert.True(t, NewComponent().MonitorOverrides(ctx), tt.name)
+			} else {
+				assert.False(t, NewComponent().MonitorOverrides(ctx), tt.name)
+			}
+		})
+	}
+}
+
+// TestIsKeycloakAuthEnabled tests the isKeycloakAuthEnabled func call
+func TestIsKeycloakAuthEnabled(t *testing.T) {
+	tests := []struct {
+		name      string
+		vz        vzapi.Verrazzano
+		isEnabled bool
+	}{
+		// GIVEN a VZ CR with empty component spec
+		// WHEN a call to isKeycloakAuthEnabled func is made
+		// THEN the func returns a true boolean value
+		{
+			name:      "Return true for empty CR i.e. default values",
+			vz:        vzapi.Verrazzano{},
+			isEnabled: true,
+		},
+		// GIVEN a VZ CR with keycloak explicitly disabled
+		// WHEN a call to isKeycloakAuthEnabled func is made
+		// THEN the func returns a false boolean value
+		{
+			name: "Return false if keycloak component is explicitly disabled in the CR",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{
+							KeycloakAuthEnabled: getBoolPtr(true),
+						},
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: getBoolPtr(false),
+						},
+					},
+				},
+			},
+			isEnabled: false,
+		},
+		// GIVEN a VZ CR with keycloak auth explicitly disabled in the rancher component spec
+		// WHEN a call to isKeycloakAuthEnabled func is made
+		// THEN the func returns a false boolean value
+		{
+			name: "Return false if keycloak auth is explicitly disabled in the rancher component spec",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{
+							KeycloakAuthEnabled: getBoolPtr(false),
+						},
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: getBoolPtr(true),
+						},
+					},
+				},
+			},
+			isEnabled: false,
+		},
+		// GIVEN a VZ CR with keycloak and rancher keycloak auth explicitly enabled
+		// WHEN a call to isKeycloakAuthEnabled func is made
+		// THEN the func returns a true boolean value
+		{
+			name: "Return true if the required values are explicitly set to true in the CR",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Rancher: &vzapi.RancherComponent{
+							KeycloakAuthEnabled: getBoolPtr(true),
+						},
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: getBoolPtr(true),
+						},
+					},
+				},
+			},
+			isEnabled: true,
+		},
+		// GIVEN a VZ CR with nil rancher component value
+		// WHEN a call to isKeycloakAuthEnabled func is made
+		// THEN the func returns a true boolean value
+		{
+			name: "Return true if rancher component is nil in the CR and keycloak is explicitly enabled",
+			vz: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Keycloak: &vzapi.KeycloakComponent{
+							Enabled: getBoolPtr(true),
+						},
+					},
+				},
+			},
+			isEnabled: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			val := isKeycloakAuthEnabled(&tt.vz)
+			assert.Equal(t, val, tt.isEnabled)
+		})
+	}
+}
+
+// TestCreateOrUpdateClusterRoleTemplateBindings tests the following scenario
+// GIVEN a slice of group role pairs
+// WHEN createOrUpdateClusterRoleTemplateBindings is called
+// THEN the cluster role template bindings are created or updated for the given cluster role and group
+func TestCreateOrUpdateClusterRoleTemplateBindings(t *testing.T) {
+	asserts := assert.New(t)
+	cli := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: ClusterLocal,
+			},
+		},
+	).Build()
+	fakeCtx := spi.NewFakeContext(cli, &vzapi.Verrazzano{}, nil, false)
+
+	asserts.NoError(createOrUpdateClusterRoleTemplateBindings(fakeCtx))
+	for _, grp := range GroupRolePairs {
+		obj := unstructured.Unstructured{}
+		obj.SetGroupVersionKind(GVKClusterRoleTemplateBinding)
+		nsn := types.NamespacedName{Name: fmt.Sprintf("crtb-%s-%s", grp[ClusterRoleKey], grp[GroupKey]), Namespace: ClusterLocal}
+		asserts.NoError(cli.Get(context.Background(), nsn, &obj))
+
+		data := obj.UnstructuredContent()
+
+		asserts.Equal(ClusterLocal, data[ClusterRoleTemplateBindingAttributeClusterName])
+		asserts.Equal(GroupPrincipalKeycloakPrefix+grp[GroupKey], data[ClusterRoleTemplateBindingAttributeGroupPrincipalName])
+		asserts.Equal(grp[ClusterRoleKey], data[ClusterRoleTemplateBindingAttributeRoleTemplateName])
+	}
 }
 
 // TestIsReady verifies that a ready-state Rancher shows as ready
@@ -579,4 +1095,20 @@ func TestValidateInstall(t *testing.T) {
 			Corev1Cli: common.MockGetCoreV1(namespaceWithoutLabels),
 			Vz:        vz,
 		})
+}
+
+func createFakeTestClient(extraObjs ...client.Object) client.Client {
+	objs := []client.Object{}
+	objs = append(objs, extraObjs...)
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(objs...).Build()
+	return c
+}
+
+// fakeUpgrade override the upgrade function during unit tests
+func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	return []byte("success"), []byte(""), nil
+}
+
+func getBoolPtr(b bool) *bool {
+	return &b
 }

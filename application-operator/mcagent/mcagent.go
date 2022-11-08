@@ -18,7 +18,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,7 +55,6 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 		if err != nil {
 			s.Log.Errorf("Failed processing multi-cluster resources: %v", err)
 		}
-		s.configureLogging(false)
 		s.configureJaegerCR(false)
 		if !s.AgentReadyToSync() {
 			// there is no admin cluster we are connected to, so nowhere to send any status updates
@@ -142,7 +140,6 @@ func (s *Syncer) ProcessAgentThread() error {
 	if managedClusterResult != controllerutil.OperationResultNone {
 		// configure logging and force a restart of the fluentd daemonset since CA or registration
 		// were updated
-		s.configureLogging(true)
 		s.configureJaegerCR(true)
 	}
 	return nil
@@ -259,38 +256,6 @@ func getAdminClient(secret *corev1.Secret) (client.Client, error) {
 	return clientset, nil
 }
 
-// reconfigure Fluentd by restarting Fluentd DaemonSet if ManagedClusterName has been changed
-func (s *Syncer) configureLogging(forceRestart bool) {
-	loggingName := types.NamespacedName{Name: vzconstants.FluentdDaemonSetName, Namespace: constants.VerrazzanoSystemNamespace}
-	daemonSet := appsv1.DaemonSet{}
-	err := s.LocalClient.Get(context.TODO(), loggingName, &daemonSet)
-	if err != nil {
-		s.Log.Errorf("Failed to find the logging DaemonSet %s: %v", loggingName, err)
-		return
-	}
-
-	regSecret := corev1.Secret{}
-	regErr := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: constants.MCRegistrationSecret, Namespace: constants.VerrazzanoSystemNamespace}, &regSecret)
-	if regErr != nil {
-		if client.IgnoreNotFound(regErr) != nil {
-			return
-		}
-	}
-
-	// CreateOrUpdate updates the fluentd daemonset - if no changes to the daemonset after we mutate it in memory,
-	// controllerutil will not update it
-	controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &daemonSet, func() error {
-		if forceRestart {
-			if daemonSet.Spec.Template.ObjectMeta.Annotations == nil {
-				daemonSet.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
-			}
-			daemonSet.Spec.Template.ObjectMeta.Annotations[vzconstants.VerrazzanoRestartAnnotation] = time.Now().Format(time.RFC3339)
-		}
-		s.updateLoggingDaemonSet(regSecret, &daemonSet)
-		return nil
-	})
-}
-
 func getEnvValue(containers *[]corev1.Container, envName string) string {
 	for _, container := range *containers {
 		for _, env := range container.Env {
@@ -300,130 +265,6 @@ func getEnvValue(containers *[]corev1.Container, envName string) string {
 		}
 	}
 	return ""
-}
-
-func (s *Syncer) updateLoggingDaemonSet(regSecret corev1.Secret, ds *appsv1.DaemonSet) {
-	isManaged := false
-	if regSecret.ResourceVersion != "" && regSecret.Data != nil {
-		isManaged = true
-	}
-
-	vzESURL, vzESSecret, err := s.getVzESURLSecret()
-	if err != nil {
-		return
-	}
-
-	ds.Spec.Template.Spec.Volumes = updateLoggingDaemonsetVolumes(isManaged, vzESSecret, ds.Spec.Template.Spec.Volumes)
-	for i, c := range ds.Spec.Template.Spec.Containers {
-		if c.Name == "fluentd" {
-			ds.Spec.Template.Spec.Containers[i].Env = updateLoggingDaemonsetEnv(regSecret, isManaged, vzESURL, vzESSecret, ds.Spec.Template.Spec.Containers[i].Env)
-		}
-	}
-}
-
-const (
-	defaultClusterName   = constants.DefaultClusterName
-	defaultSecretName    = "verrazzano-es-internal" //nolint:gosec //#gosec G101
-	esConfigMapName      = "fluentd-es-config"
-	esConfigMapURLKey    = "es-url"
-	esConfigMapSecretKey = "es-secret"
-)
-
-func updateLoggingDaemonsetEnv(regSecret corev1.Secret, isManaged bool, vzESURL, vzESSecret string, old []corev1.EnvVar) []corev1.EnvVar {
-	var esSecretName string
-	var esURL string
-	var clusterName string
-	var usernameKey string
-	var passwordKey string
-	if isManaged {
-		esSecretName = constants.MCRegistrationSecret
-		esURL = string(regSecret.Data[constants.ElasticsearchURLData])
-		clusterName = string(regSecret.Data[constants.ClusterNameData])
-		usernameKey = constants.ElasticsearchUsernameData
-		passwordKey = constants.ElasticsearchPasswordData
-	} else {
-		esSecretName = vzESSecret
-		esURL = vzESURL
-		clusterName = defaultClusterName
-		usernameKey = constants.VerrazzanoUsernameData
-		passwordKey = constants.VerrazzanoPasswordData
-	}
-
-	var new []corev1.EnvVar
-	for _, env := range old {
-		if env.Name == constants.FluentdClusterNameEnvVar {
-			new = append(new, corev1.EnvVar{
-				Name:  env.Name,
-				Value: clusterName,
-			})
-		} else if env.Name == constants.FluentdElasticsearchURLEnvVar {
-			new = append(new, corev1.EnvVar{
-				Name:  env.Name,
-				Value: esURL,
-			})
-		} else if env.Name == constants.FluentdElasticsearchUserEnvVar {
-			new = append(new, corev1.EnvVar{
-				Name: env.Name,
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: esSecretName,
-						},
-						Key: usernameKey,
-						Optional: func(opt bool) *bool {
-							return &opt
-						}(true),
-					},
-				},
-			})
-		} else if env.Name == constants.FluentdElasticsearchPwdEnvVar {
-			new = append(new, corev1.EnvVar{
-				Name: env.Name,
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: esSecretName,
-						},
-						Key: passwordKey,
-						Optional: func(opt bool) *bool {
-							return &opt
-						}(true),
-					},
-				},
-			})
-		} else {
-			new = append(new, env)
-		}
-	}
-	return new
-}
-
-func updateLoggingDaemonsetVolumes(isManaged bool, vzESSecret string, old []corev1.Volume) []corev1.Volume {
-	secretName := constants.MCRegistrationSecret
-	if !isManaged {
-		secretName = vzESSecret
-	}
-	var new []corev1.Volume
-	isOptional := false
-	if secretName == defaultSecretName {
-		// the default secret might not exist on a managed cluster until registration is completed.
-		// make it optional so that fluentd still comes up
-		isOptional = true
-	}
-	for _, vol := range old {
-		if vol.Name == "secret-volume" {
-			new = append(new, corev1.Volume{
-				Name: vol.Name,
-				VolumeSource: corev1.VolumeSource{
-					Secret: &corev1.SecretVolumeSource{
-						SecretName: secretName, Optional: &isOptional},
-				},
-			})
-		} else {
-			new = append(new, vol)
-		}
-	}
-	return new
 }
 
 func updateEnvValue(envs []corev1.EnvVar, envName string, newValue string) []corev1.EnvVar {
@@ -463,22 +304,4 @@ func (s *Syncer) GetPrometheusHost() (string, error) {
 		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", constants.VerrazzanoSystemNamespace, constants.VzPrometheusIngress, err)
 	}
 	return ingress.Spec.Rules[0].Host, nil
-}
-
-// getVzESURLSecret returns the elasticsearchURL and elasticsearchSecret from Verrazzano CR
-func (s *Syncer) getVzESURLSecret() (string, string, error) {
-	url := vzconstants.DefaultOpensearchURL
-	secret := defaultSecretName
-	esConfig := corev1.ConfigMap{}
-	err := s.LocalClient.Get(context.TODO(), types.NamespacedName{Name: esConfigMapName, Namespace: constants.VerrazzanoSystemNamespace}, &esConfig)
-	if err != nil {
-		s.Log.Errorf("Failed to find the ConfigMap %s/%s: %v", constants.VerrazzanoSystemNamespace, esConfigMapName, err)
-	}
-	if len(esConfig.Data[esConfigMapURLKey]) > 0 {
-		url = esConfig.Data[esConfigMapURLKey]
-	}
-	if len(esConfig.Data[esConfigMapSecretKey]) > 0 {
-		secret = esConfig.Data[esConfigMapSecretKey]
-	}
-	return url, secret, nil
 }

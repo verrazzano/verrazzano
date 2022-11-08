@@ -11,5 +11,5 @@ usecases:
     overrideFile: getlogs-fast.yaml
     description: getlogs from Opensearch 1000 times a second
   - usecasePath: opensearch/writelogs.yaml
-    overrideFile: writelogs.yaml
+    overrideFile: writelogs-fast.yaml
     description: write logs to STDOUT 1000 times a second

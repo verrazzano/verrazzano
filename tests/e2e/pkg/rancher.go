@@ -19,6 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -58,11 +59,14 @@ func GetURLForIngress(log *zap.SugaredLogger, api *APIEndpoint, namespace string
 
 func GetRancherAdminToken(log *zap.SugaredLogger, httpClient *retryablehttp.Client, rancherURL string) string {
 	var err error
-	secret, err := GetSecret("cattle-system", "rancher-admin-secret")
-	if err != nil {
-		log.Error(fmt.Sprintf("Error getting rancher-admin-secret: %v", err))
-		return ""
-	}
+	var secret *corev1.Secret
+	gomega.Eventually(func() error {
+		secret, err = GetSecret("cattle-system", "rancher-admin-secret")
+		if err != nil {
+			log.Error(fmt.Sprintf("Error getting rancher-admin-secret, retrying: %v", err))
+		}
+		return err
+	}, waitTimeout, pollingInterval).Should(gomega.BeNil())
 
 	var rancherAdminPassword []byte
 	var ok bool

@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/rest"
 )
 
 const (
@@ -68,7 +69,9 @@ func GetCRV1beta1() *v1beta1.Verrazzano {
 	return vz
 }
 
-// UpdateCR updates the CR with the given CRModifier.
+// UpdateCR updates the CR with the given CRModifier
+// - if the CRModifier implements rest.WarningHandler it will be added to the client config
+//
 // First it waits for CR to be "Ready" before using the specified CRModifier modifies the CR.
 // Then, it updates the modified.
 // Any error during the process will cause Ginkgo Fail.
@@ -89,6 +92,7 @@ func UpdateCR(m CRModifier) error {
 	if err != nil {
 		return err
 	}
+	addWarningHandlerIfNecessary(m, config)
 	client, err := vpoClient.NewForConfig(config)
 	if err != nil {
 		return err
@@ -121,6 +125,7 @@ func UpdateCRV1beta1WithRetries(m CRModifierV1beta1, pollingInterval, waitTime t
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
+		addWarningHandlerIfNecessary(m, config)
 		client, err := vpoClient.NewForConfig(config)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
@@ -136,7 +141,16 @@ func UpdateCRV1beta1WithRetries(m CRModifierV1beta1, pollingInterval, waitTime t
 	}).WithPolling(pollingInterval).WithTimeout(waitTime).Should(gomega.BeTrue())
 }
 
+func addWarningHandlerIfNecessary(m interface{}, config *rest.Config) {
+	warningHandler, implementsWarningHandler := m.(rest.WarningHandler)
+	if implementsWarningHandler {
+		config.WarningHandler = warningHandler
+	}
+}
+
 // UpdateCRV1beta1 updates the CR with the given CRModifierV1beta1.
+// - if the modifier implements rest.WarningHandler it will be added to the client config
+//
 // First it waits for CR to be "Ready" before using the specified CRModifierV1beta1 modifies the CR.
 // Then, it updates the modified.
 // Any error during the process will cause Ginkgo Fail.
@@ -157,6 +171,7 @@ func UpdateCRV1beta1(m CRModifierV1beta1) error {
 	if err != nil {
 		return err
 	}
+	addWarningHandlerIfNecessary(m, config)
 	client, err := vpoClient.NewForConfig(config)
 	if err != nil {
 		return err
@@ -167,6 +182,9 @@ func UpdateCRV1beta1(m CRModifierV1beta1) error {
 }
 
 // UpdateCRWithRetries updates the CR with the given CRModifier.
+// UpdateCRV1beta1 updates the CR with the given CRModifierV1beta1.
+// - if the modifier implements rest.WarningHandler it will be added to the client config
+//
 // If the update fails, it retries by getting the latest version of CR and applying the same
 // update till it succeeds or timesout.
 func UpdateCRWithRetries(m CRModifier, pollingInterval, timeout time.Duration) {
@@ -174,6 +192,7 @@ func UpdateCRWithRetries(m CRModifier, pollingInterval, timeout time.Duration) {
 }
 
 // RetryUpdate tries update with kubeconfigPath
+// - if the modifier implements rest.WarningHandler it will be added to the client config
 func RetryUpdate(m CRModifier, kubeconfigPath string, waitForReady bool, pollingInterval, timeout time.Duration) {
 	gomega.Eventually(func() bool {
 		var err error
@@ -199,6 +218,7 @@ func RetryUpdate(m CRModifier, kubeconfigPath string, waitForReady bool, polling
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
+		addWarningHandlerIfNecessary(m, config)
 		client, err := vpoClient.NewForConfig(config)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
@@ -238,6 +258,7 @@ func UpdateCRExpectError(m CRModifier) error {
 		pkg.Log(pkg.Error, err.Error())
 		return err
 	}
+	addWarningHandlerIfNecessary(m, config)
 	client, err := vpoClient.NewForConfig(config)
 	if err != nil {
 		pkg.Log(pkg.Error, err.Error())
