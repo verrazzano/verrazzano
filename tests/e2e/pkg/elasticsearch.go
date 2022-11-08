@@ -198,11 +198,11 @@ type IndexListData struct {
 	PriStoreSize string `json:"priStoreSize"`
 }
 
-type ElasticSearchISMPolicyAddModifier struct{}
+type OpenSearchISMPolicyAddModifier struct{}
 
-type ElasticSearchISMPolicyRemoveModifier struct{}
+type OpenSearchISMPolicyRemoveModifier struct{}
 
-func (u ElasticSearchISMPolicyAddModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (u OpenSearchISMPolicyAddModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	if cr.Spec.Components.Elasticsearch.Policies == nil {
 		cr.Spec.Components.Elasticsearch.Policies = []vmov1.IndexManagementPolicy{
@@ -226,7 +226,7 @@ func (u ElasticSearchISMPolicyAddModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	}
 }
 
-func (u ElasticSearchISMPolicyRemoveModifier) ModifyCR(cr *vzapi.Verrazzano) {
+func (u OpenSearchISMPolicyRemoveModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 }
 
@@ -294,7 +294,7 @@ func isUsingDataStreams(kubeconfigPath string) (bool, error) {
 	return IsVerrazzanoMinVersion("1.3.0", kubeConfig)
 }
 
-func UseExternalElasticsearch() bool {
+func UseExternalOpensearch() bool {
 	return os.Getenv("EXTERNAL_ELASTICSEARCH") == "true"
 }
 
@@ -335,17 +335,17 @@ func GetSystemOpenSearchIngressURL(kubeconfigPath string) string {
 	return ""
 }
 
-// getElasticSearchURL returns VMI or external ES URL depending on env var EXTERNAL_ELASTICSEARCH
-func getElasticSearchURL(kubeconfigPath string) string {
-	if UseExternalElasticsearch() {
+// getOpenSearchURL returns VMI or external ES URL depending on env var EXTERNAL_ELASTICSEARCH
+func getOpenSearchURL(kubeconfigPath string) string {
+	if UseExternalOpensearch() {
 		return GetExternalOpenSearchURL(kubeconfigPath)
 	}
 	return GetSystemOpenSearchIngressURL(kubeconfigPath)
 }
 
-// getElasticSearchUsernamePassword returns the username/password for connecting to opensearch
-func getElasticSearchUsernamePassword(kubeconfigPath string) (username, password string, err error) {
-	if UseExternalElasticsearch() {
+// getOpenSearchUsernamePassword returns the username/password for connecting to opensearch
+func getOpenSearchUsernamePassword(kubeconfigPath string) (username, password string, err error) {
+	if UseExternalOpensearch() {
 		esSecret, err := GetSecretInCluster(VerrazzanoNamespace, "external-es-secret", kubeconfigPath)
 		if err != nil {
 			Log(Error, fmt.Sprintf("Failed to get external-es-secret secret: %v", err))
@@ -361,37 +361,37 @@ func getElasticSearchUsernamePassword(kubeconfigPath string) (username, password
 }
 
 // getOpenSearchWithBasicAuth access ES with GET using basic auth, using a given kubeconfig
-func getElasticSearchWithBasicAuth(url string, hostHeader string, username string, password string, kubeconfigPath string) (*HTTPResponse, error) {
-	retryableClient, err := getElasticSearchClient(kubeconfigPath)
+func getOpenSearchWithBasicAuth(url string, hostHeader string, username string, password string, kubeconfigPath string) (*HTTPResponse, error) {
+	retryableClient, err := getOpenSearchClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
 	return doReq(url, "GET", "", hostHeader, username, password, nil, retryableClient)
 }
 
-// postElasticSearchWithBasicAuth retries POST using basic auth
-func postElasticSearchWithBasicAuth(url, body, username, password, kubeconfigPath string) (*HTTPResponse, error) {
-	retryableClient, err := getElasticSearchClient(kubeconfigPath)
+// postOpenSearchWithBasicAuth retries POST using basic auth
+func postOpenSearchWithBasicAuth(url, body, username, password, kubeconfigPath string) (*HTTPResponse, error) {
+	retryableClient, err := getOpenSearchClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
 	return doReq(url, "POST", "application/json", "", username, password, strings.NewReader(body), retryableClient)
 }
 
-// deleteElasticSearchWithBasicAuth retries DELETE using basic auth
-func deleteElasticSearchWithBasicAuth(url, body, username, password, kubeconfigPath string) (*HTTPResponse, error) {
-	retryableClient, err := getElasticSearchClient(kubeconfigPath)
+// deleteOpenSearchWithBasicAuth retries DELETE using basic auth
+func deleteOpenSearchWithBasicAuth(url, body, username, password, kubeconfigPath string) (*HTTPResponse, error) {
+	retryableClient, err := getOpenSearchClient(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
 	return doReq(url, "DELETE", "application/json", "", username, password, strings.NewReader(body), retryableClient)
 }
 
-// getElasticSearchClient returns ES client to perform http operations
-func getElasticSearchClient(kubeconfigPath string) (*retryablehttp.Client, error) {
+// getOpenSearchClient returns ES client to perform http operations
+func getOpenSearchClient(kubeconfigPath string) (*retryablehttp.Client, error) {
 	var retryableClient *retryablehttp.Client
 	var err error
-	if UseExternalElasticsearch() {
+	if UseExternalOpensearch() {
 		caCert, err := getExternalESCACert(kubeconfigPath)
 		if err != nil {
 			return nil, err
@@ -426,21 +426,21 @@ func getExternalESCACert(kubeconfigPath string) ([]byte, error) {
 	return certSecret.Data["ca-bundle"], nil
 }
 
-// listSystemElasticSearchIndices lists the system Elasticsearch indices in the given cluster
-func listSystemElasticSearchIndices(kubeconfigPath string) []string {
+// listSystemOpenSearchIndices lists the system Opensearch indices in the given cluster
+func listSystemOpenSearchIndices(kubeconfigPath string) []string {
 	list := []string{}
-	url := fmt.Sprintf("%s/_all", getElasticSearchURL(kubeconfigPath))
-	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	url := fmt.Sprintf("%s/_all", getOpenSearchURL(kubeconfigPath))
+	username, password, err := getOpenSearchUsernamePassword(kubeconfigPath)
 	if err != nil {
 		return list
 	}
-	resp, err := getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
+	resp, err := getOpenSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting Elasticsearch indices: url=%s, error=%v", url, err))
+		Log(Error, fmt.Sprintf("Error getting Opensearch indices: url=%s, error=%v", url, err))
 		return list
 	}
 	if resp.StatusCode != http.StatusOK {
-		Log(Error, fmt.Sprintf("Error retrieving Elasticsearch indices: url=%s, status=%d", url, resp.StatusCode))
+		Log(Error, fmt.Sprintf("Error retrieving Opensearch indices: url=%s, status=%d", url, resp.StatusCode))
 		return list
 	}
 	Log(Debug, fmt.Sprintf("indices: %s", resp.Body))
@@ -452,8 +452,8 @@ func listSystemElasticSearchIndices(kubeconfigPath string) []string {
 	return list
 }
 
-// querySystemElasticSearch searches the Elasticsearch index with the fields in the given cluster
-func querySystemElasticSearch(index string, fields map[string]string, kubeconfigPath string) map[string]interface{} {
+// querySystemOpenSearch searches the Opensearch index with the fields in the given cluster
+func querySystemOpenSearch(index string, fields map[string]string, kubeconfigPath string) map[string]interface{} {
 	query := ""
 	for name, value := range fields {
 		fieldQuery := fmt.Sprintf("%s:%s", name, value)
@@ -464,12 +464,12 @@ func querySystemElasticSearch(index string, fields map[string]string, kubeconfig
 		}
 	}
 	var result map[string]interface{}
-	url := fmt.Sprintf("%s/%s/_doc/_search?q=%s", getElasticSearchURL(kubeconfigPath), index, query)
-	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	url := fmt.Sprintf("%s/%s/_doc/_search?q=%s", getOpenSearchURL(kubeconfigPath), index, query)
+	username, password, err := getOpenSearchUsernamePassword(kubeconfigPath)
 	if err != nil {
 		return result
 	}
-	resp, err := getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
+	resp, err := getOpenSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf(queryErrorFormat, url, err))
 		return result
@@ -483,7 +483,7 @@ func querySystemElasticSearch(index string, fields map[string]string, kubeconfig
 	return result
 }
 
-// queryDocumentsOlderThan searches the Elasticsearch index with the fields in the given cluster
+// queryDocumentsOlderThan searches the Opensearch index with the fields in the given cluster
 func queryDocumentsOlderThan(index string, retentionPeriod string, kubeconfigPath string) (SearchResult, error) {
 	var result SearchResult
 
@@ -494,12 +494,12 @@ func queryDocumentsOlderThan(index string, retentionPeriod string, kubeconfigPat
 	}
 
 	query := "@timestamp:<now-" + retentionPeriod
-	url := fmt.Sprintf("%s/%s/_search?q=%s", getElasticSearchURL(kubeconfigPath), index, url2.QueryEscape(query))
-	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	url := fmt.Sprintf("%s/%s/_search?q=%s", getOpenSearchURL(kubeconfigPath), index, url2.QueryEscape(query))
+	username, password, err := getOpenSearchUsernamePassword(kubeconfigPath)
 	if err != nil {
 		return result, nil
 	}
-	resp, err := getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
+	resp, err := getOpenSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf(queryErrorFormat, url, err))
 		return result, nil
@@ -513,7 +513,7 @@ func queryDocumentsOlderThan(index string, retentionPeriod string, kubeconfigPat
 	return result, nil
 }
 
-// LogIndexFound confirms a named index can be found in Elasticsearch in the cluster specified in the environment
+// LogIndexFound confirms a named index can be found in Opensearch in the cluster specified in the environment
 func LogIndexFound(indexName string) bool {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -524,10 +524,10 @@ func LogIndexFound(indexName string) bool {
 	return LogIndexFoundInCluster(indexName, kubeconfigPath)
 }
 
-// LogIndexFoundInCluster confirms a named index can be found in Elasticsearch on the given cluster
+// LogIndexFoundInCluster confirms a named index can be found in Opensearch on the given cluster
 func LogIndexFoundInCluster(indexName, kubeconfigPath string) bool {
 	Log(Info, fmt.Sprintf("Looking for log index %s in cluster with kubeconfig %s", indexName, kubeconfigPath))
-	for _, name := range listSystemElasticSearchIndices(kubeconfigPath) {
+	for _, name := range listSystemOpenSearchIndices(kubeconfigPath) {
 		// If old index or data stream backend index, return true
 		backendIndexRe := regexp.MustCompile(`^\.ds-` + indexName + `-\d+$`)
 		if name == indexName || backendIndexRe.MatchString(name) {
@@ -590,7 +590,7 @@ func ContainsIndicesOlderThanRetentionPeriod(indexMetadataList []IndexMetadata, 
 // GetDataStream return the data stream object with the given
 func GetDataStream(dataStreamName string) (DataStream, error) {
 	var dataStream DataStream
-	resp, err := doGetElasticSearchURL(getDataStreamURLFormat + dataStreamName)
+	resp, err := doGetOpenSearchURL(getDataStreamURLFormat + dataStreamName)
 	if err != nil {
 		return dataStream, err
 	}
@@ -609,7 +609,7 @@ func GetDataStream(dataStreamName string) (DataStream, error) {
 
 // IsDataStreamSupported returns true if data stream is supported false otherwise
 func IsDataStreamSupported() bool {
-	resp, err := doGetElasticSearchURL(listDataStreamURLFormat)
+	resp, err := doGetOpenSearchURL(listDataStreamURLFormat)
 	if err != nil {
 		Log(Error, err.Error())
 		return false
@@ -657,7 +657,7 @@ func ListSystemIndices() []string {
 
 func ListApplicationIndices() []string {
 	var indexList []string
-	resp, err := doGetElasticSearchURL("%s/_cat/indices?format=json")
+	resp, err := doGetOpenSearchURL("%s/_cat/indices?format=json")
 	if err != nil {
 		return indexList
 	}
@@ -698,25 +698,25 @@ func isSystemIndex(indexName string) bool {
 	return false
 }
 
-// doGetElasticSearchURL helper method to execute a GET request to elastic search url and return the response
-func doGetElasticSearchURL(urlFormat string) (*HTTPResponse, error) {
+// doGetOpenSearchURL helper method to execute a GET request to open search url and return the response
+func doGetOpenSearchURL(urlFormat string) (*HTTPResponse, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return nil, err
 	}
-	url := fmt.Sprintf(urlFormat, getElasticSearchURL(kubeconfigPath))
-	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	url := fmt.Sprintf(urlFormat, getOpenSearchURL(kubeconfigPath))
+	username, password, err := getOpenSearchUsernamePassword(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
-	return getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
+	return getOpenSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
 }
 
 // GetApplicationDataStreamNames returns the data stream names of all application logs having
 // prefix 'verrazzano-application-'
 func GetApplicationDataStreamNames() ([]string, error) {
 	result := []string{}
-	resp, err := doGetElasticSearchURL("%s/_data_stream")
+	resp, err := doGetOpenSearchURL("%s/_data_stream")
 	if err != nil {
 		return result, err
 	}
@@ -738,12 +738,12 @@ func DeleteApplicationDataStream(datastreamName string) error {
 	if err != nil {
 		return err
 	}
-	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	username, password, err := getOpenSearchUsernamePassword(kubeconfigPath)
 	if err != nil {
 		return err
 	}
-	url := fmt.Sprintf(deleteDataStreamURLFormat, getElasticSearchURL(kubeconfigPath), datastreamName)
-	resp, err := deleteElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
+	url := fmt.Sprintf(deleteDataStreamURLFormat, getOpenSearchURL(kubeconfigPath), datastreamName)
+	resp, err := deleteOpenSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
 	if err != nil {
 		return err
 	}
@@ -756,7 +756,7 @@ func DeleteApplicationDataStream(datastreamName string) error {
 // GetIndexMetadata returns the metadata of the index
 func GetIndexMetadata(indexName string) (IndexMetadata, error) {
 	result := IndexMetadata{}
-	resp, err := doGetElasticSearchURL("%s/" + indexName + "/_settings")
+	resp, err := doGetOpenSearchURL("%s/" + indexName + "/_settings")
 	if err != nil {
 		return result, err
 	}
@@ -772,7 +772,7 @@ func GetIndexMetadata(indexName string) (IndexMetadata, error) {
 // datastream
 func GetIndexMetadataForDataStream(dataStreamName string) ([]IndexMetadata, error) {
 	result := []IndexMetadata{}
-	resp, err := doGetElasticSearchURL("%s/" + dataStreamName + "/_settings")
+	resp, err := doGetOpenSearchURL("%s/" + dataStreamName + "/_settings")
 	if err != nil {
 		return result, err
 	}
@@ -801,7 +801,7 @@ func LogRecordFound(indexName string, after time.Time, fields map[string]string)
 // LogRecordFoundInCluster confirms a recent log record for the index with matching fields can be found
 // in the given cluster
 func LogRecordFoundInCluster(indexName string, after time.Time, fields map[string]string, kubeconfigPath string) bool {
-	searchResult := querySystemElasticSearch(indexName, fields, kubeconfigPath)
+	searchResult := querySystemOpenSearch(indexName, fields, kubeconfigPath)
 	if len(searchResult) == 0 {
 		Log(Info, fmt.Sprintf("Expected to find log record matching fields %v", fields))
 		return false
@@ -862,16 +862,16 @@ func findHits(searchResult map[string]interface{}, after *time.Time) bool {
 	return false
 }
 
-// ElasticsearchHit is the type used for a Elasticsearch hit returned in a search query result
-type ElasticsearchHit map[string]interface{}
+// OpensearchHit is the type used for a Opensearch hit returned in a search query result
+type OpensearchHit map[string]interface{}
 
-// ElasticsearchHitValidator is a function that validates a hit returned in a search query result
-type ElasticsearchHitValidator func(hit ElasticsearchHit) bool
+// OpensearchHitValidator is a function that validates a hit returned in a search query result
+type OpensearchHitValidator func(hit OpensearchHit) bool
 
-// ValidateElasticsearchHits invokes the HitValidator on every hit in the searchResults.
+// ValidateOpensearchHits invokes the HitValidator on every hit in the searchResults.
 // The first invalid hit found will return in false being returned.
 // Otherwise true will be returned.
-func ValidateElasticsearchHits(searchResults map[string]interface{}, hitValidator ElasticsearchHitValidator, exceptions []*regexp.Regexp) bool {
+func ValidateOpensearchHits(searchResults map[string]interface{}, hitValidator OpensearchHitValidator, exceptions []*regexp.Regexp) bool {
 	hits := Jq(searchResults, "hits", "hits")
 	if hits == nil {
 		Log(Info, "Expected to find hits in log record query results")
@@ -910,7 +910,7 @@ func isException(log string, exceptions []*regexp.Regexp) bool {
 // FindLog returns true if a recent log record can be found in the index with matching filters.
 func FindLog(index string, match []Match, mustNot []Match) bool {
 	after := time.Now().Add(-24 * time.Hour)
-	query := ElasticQuery{
+	query := OpenQuery{
 		Filters: match,
 		MustNot: mustNot,
 	}
@@ -924,7 +924,7 @@ func FindLog(index string, match []Match, mustNot []Match) bool {
 
 // FindAnyLog returns true if a log record of any time can be found in the index with matching filters.
 func FindAnyLog(index string, match []Match, mustNot []Match) bool {
-	query := ElasticQuery{
+	query := OpenQuery{
 		Filters: match,
 		MustNot: mustNot,
 	}
@@ -940,7 +940,7 @@ const numberOfErrorsToLog = 5
 
 // NoLog returns true if no matched log record can be found in the index.
 func NoLog(index string, match []Match, mustNot []Match) bool {
-	query := ElasticQuery{
+	query := OpenQuery{
 		Filters: match,
 		MustNot: mustNot,
 	}
@@ -963,24 +963,24 @@ func NoLog(index string, match []Match, mustNot []Match) bool {
 	return false
 }
 
-var elasticQueryTemplate *template.Template
+var openQueryTemplate *template.Template
 
 // SearchLog search recent log records for the index with matching filters.
-func SearchLog(index string, query ElasticQuery) map[string]interface{} {
+func SearchLog(index string, query OpenQuery) map[string]interface{} {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf(kubeconfigErrorFormat, err))
 		return nil
 	}
-	if elasticQueryTemplate == nil {
+	if openQueryTemplate == nil {
 		temp, err := template.New("esQueryTemplate").Parse(queryTemplate)
 		if err != nil {
 			Log(Error, fmt.Sprintf("Error: %v", err))
 		}
-		elasticQueryTemplate = temp
+		openQueryTemplate = temp
 	}
 	var buffer bytes.Buffer
-	err = elasticQueryTemplate.Execute(&buffer, query)
+	err = openQueryTemplate.Execute(&buffer, query)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error: %v", err))
 	}
@@ -990,13 +990,13 @@ func SearchLog(index string, query ElasticQuery) map[string]interface{} {
 		return nil
 	}
 	var result map[string]interface{}
-	url := fmt.Sprintf("%s/%s/_search", getElasticSearchURL(kubeconfigPath), index)
-	username, password, err := getElasticSearchUsernamePassword(configPath)
+	url := fmt.Sprintf("%s/%s/_search", getOpenSearchURL(kubeconfigPath), index)
+	username, password, err := getOpenSearchUsernamePassword(configPath)
 	if err != nil {
 		return result
 	}
 	Log(Debug, fmt.Sprintf("Search: %v \nQuery: \n%v", url, buffer.String()))
-	resp, err := postElasticSearchWithBasicAuth(url, buffer.String(), username, password, configPath)
+	resp, err := postOpenSearchWithBasicAuth(url, buffer.String(), username, password, configPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf(queryErrorFormat, url, err))
 		return result
@@ -1009,26 +1009,31 @@ func SearchLog(index string, query ElasticQuery) map[string]interface{} {
 	return result
 }
 
+<<<<<<< HEAD
 // PostElasticsearch POST the request entity body to Elasticsearch API path
 // The provided path is appended to the Elasticsearch base URL
+=======
+// PostOpensearch POST the request entity body to Opensearch API path
+// The provided path is appended to the Opensearch base URL
+>>>>>>> d1a8c7b3e (master rebase to address pr merge conflcits)
 func PostOpensearch(path string, body string) (*HTTPResponse, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf(kubeconfigErrorFormat, err))
 		return nil, err
 	}
-	url := fmt.Sprintf("%s/%s", getElasticSearchURL(kubeconfigPath), path)
+	url := fmt.Sprintf("%s/%s", getOpenSearchURL(kubeconfigPath), path)
 	configPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf(kubeconfigErrorFormat, err))
 		return nil, err
 	}
-	username, password, err := getElasticSearchUsernamePassword(configPath)
+	username, password, err := getOpenSearchUsernamePassword(configPath)
 	if err != nil {
 		return nil, err
 	}
 	Log(Debug, fmt.Sprintf("REST API path: %v \nQuery: \n%v", url, body))
-	resp, err := postElasticSearchWithBasicAuth(url, body, username, password, configPath)
+	resp, err := postOpenSearchWithBasicAuth(url, body, username, password, configPath)
 	return resp, err
 }
 
@@ -1039,7 +1044,7 @@ func IndicesNotExists(patterns []string) bool {
 		return false
 	}
 	Log(Debug, fmt.Sprintf("Looking for indices in cluster using kubeconfig %s", kubeconfigPath))
-	for _, name := range listSystemElasticSearchIndices(kubeconfigPath) {
+	for _, name := range listSystemOpenSearchIndices(kubeconfigPath) {
 		for _, pattern := range patterns {
 			matched, _ := regexp.MatchString(pattern, name)
 			if matched {
@@ -1056,12 +1061,12 @@ func ISMPolicyExists(policyName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	username, password, err := getOpenSearchUsernamePassword(kubeconfigPath)
 	if err != nil {
 		return false, err
 	}
-	url := fmt.Sprintf("%s/_plugins/_ism/policies/%s", getElasticSearchURL(kubeconfigPath), policyName)
-	resp, err := getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
+	url := fmt.Sprintf("%s/_plugins/_ism/policies/%s", getOpenSearchURL(kubeconfigPath), policyName)
+	resp, err := getOpenSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
 	if err != nil {
 		return false, err
 	}
@@ -1074,12 +1079,12 @@ func GetISMPolicy(policyName string) (ISMPolicy, error) {
 	if err != nil {
 		return result, err
 	}
-	username, password, err := getElasticSearchUsernamePassword(kubeconfigPath)
+	username, password, err := getOpenSearchUsernamePassword(kubeconfigPath)
 	if err != nil {
 		return result, err
 	}
-	url := fmt.Sprintf("%s/_plugins/_ism/policies/%s", getElasticSearchURL(kubeconfigPath), policyName)
-	resp, err := getElasticSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
+	url := fmt.Sprintf("%s/_plugins/_ism/policies/%s", getOpenSearchURL(kubeconfigPath), policyName)
+	resp, err := getOpenSearchWithBasicAuth(url, "", username, password, kubeconfigPath)
 	if err != nil {
 		return result, err
 	}
@@ -1127,25 +1132,25 @@ func GetISMRolloverPeriod(policyName string) (string, error) {
 
 func CheckForDataStream(name string) bool {
 	url := getDataStreamURLFormat + name
-	resp, err := doGetElasticSearchURL(url)
+	resp, err := doGetOpenSearchURL(url)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting Elasticsearch data streams: url=%s, error=%v", url, err))
+		Log(Error, fmt.Sprintf("Error getting Opensearch data streams: url=%s, error=%v", url, err))
 		return false
 	}
 	if resp.StatusCode != http.StatusOK {
-		Log(Error, fmt.Sprintf("Error retrieving Elasticsearch data streams: url=%s, status=%d", url, resp.StatusCode))
+		Log(Error, fmt.Sprintf("Error retrieving Opensearch data streams: url=%s, status=%d", url, resp.StatusCode))
 		return false
 	}
 	return true
 }
 
-// ElasticQuery describes an Elasticsearch Query
-type ElasticQuery struct {
+// OpenQuery describes an Opensearch Query
+type OpenQuery struct {
 	Filters []Match
 	MustNot []Match
 }
 
-// Match describes a match_phrase in Elasticsearch Query
+// Match describes a match_phrase in Opensearch Query
 type Match struct {
 	Key   string
 	Value string
