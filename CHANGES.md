@@ -8,13 +8,9 @@ Features:
 
 Component version updates:
 
-- Coherence Operator v3.2.9
-- MySQL Server 8.0.31
+- Coherence Operator v3.2.8
+- MySQL Server 8.0.30
 - oam-kubernetes-runtime 0.3.3
-- NGINX Ingress Controller v1.3.1
-- Prometheus v2.38.0
-- Prometheus Operator v0.59.1
-- External DNS v0.12.2
 
 Components added:
 - MySQL Operator 8.0.30-2.0.6

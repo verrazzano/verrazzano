@@ -6,11 +6,15 @@ package mysql
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"net/url"
 	"os"
+	"strings"
 	"testing"
 
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -18,6 +22,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
@@ -26,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -37,7 +45,29 @@ const (
 	profilesDir  = "../../../../manifests/profiles"
 	notDepFound  = "not-deployment-found"
 	notPVCDelete = "not-pvc-deleted"
+	weakPass     = "weakPass"
 )
+
+var testScheme = runtime.NewScheme()
+
+func init() {
+	_ = k8scheme.AddToScheme(testScheme)
+	_ = vzapi.AddToScheme(testScheme)
+}
+
+type erroringFakeClient struct {
+	client.Client
+}
+
+const tooManyRequests = "too many requests"
+
+func (e *erroringFakeClient) Get(_ context.Context, _ client.ObjectKey, _ client.Object) error {
+	return errors.NewTooManyRequests(tooManyRequests, 0)
+}
+
+func (e *erroringFakeClient) List(_ context.Context, _ client.ObjectList, _ ...client.ListOption) error {
+	return errors.NewTooManyRequests(tooManyRequests, 0)
+}
 
 var crEnabled = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
@@ -1670,4 +1700,240 @@ func newInnoDBCluster(status string) *unstructured.Unstructured {
 	innoDBCluster.SetName(helmReleaseName)
 	unstructured.SetNestedField(innoDBCluster.Object, status, innoDBClusterStatusFields...)
 	return &innoDBCluster
+}
+
+// TestPreInstall tests the PreInstall func call
+func TestPreInstall(t *testing.T) {
+	asserts := assert.New(t)
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&v1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace},
+		},
+	).Build()
+	badClient := &erroringFakeClient{fakeClient}
+	tests := []struct {
+		name    string
+		cli     client.Client
+		dryRun  bool
+		wantErr bool
+	}{
+		// GIVEN ComponentContext with DryRun enabled
+		// WHEN PreInstall func is called
+		// THEN the method returns nil
+		{
+			"Dry run enabled",
+			fakeClient,
+			true,
+			false,
+		},
+		// GIVEN mysql component namespace
+		// WHEN PreInstall func is called
+		// THEN no error is returned and the component namespace is labeled as expected
+		{
+			"Component ns should have the expected labels",
+			fakeClient,
+			false,
+			false,
+		},
+		// GIVEN a condition where api server will return an error
+		// WHEN PreInstall func is called
+		// THEN a RetryableError is returned as expected
+		{
+			"api server error",
+			badClient,
+			false,
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeCtx := spi.NewFakeContext(tt.cli, &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Istio: &vzapi.IstioComponent{
+							InjectionEnabled: getBoolPtr(true),
+						},
+					},
+				},
+			}, nil, tt.dryRun)
+			err := preInstall(fakeCtx, ComponentNamespace)
+			if !tt.wantErr {
+				asserts.Nil(err)
+				if !tt.dryRun {
+					ns := v1.Namespace{}
+					asserts.NoError(tt.cli.Get(context.Background(), types.NamespacedName{Name: ComponentNamespace}, &ns))
+					asserts.Equal(ComponentNamespace, ns.Labels["verrazzano.io/namespace"])
+					asserts.Equal("enabled", ns.Labels["istio-injection"])
+				}
+			} else {
+				asserts.ErrorContains(err, tooManyRequests)
+			}
+		})
+	}
+}
+
+// TestPostInstall tests the PostInstall func call
+func TestPostInstall(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	tests := []struct {
+		name    string
+		cli     client.Client
+		dryRun  bool
+		wantErr bool
+	}{
+		// GIVEN ComponentContext with DryRun enabled
+		// WHEN PostInstall func is called
+		// THEN the method returns nil
+		{
+			"Dry run enabled",
+			fakeClient,
+			true,
+			false,
+		},
+		// GIVEN ComponentContext with DryRun disabled
+		// WHEN PostInstall func is called
+		// THEN no error is returned
+		{
+			"Dry run disabled",
+			fakeClient,
+			false,
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeCtx := spi.NewFakeContext(tt.cli, nil, nil, tt.dryRun)
+			assert.NoError(t, postInstall(fakeCtx))
+		})
+	}
+}
+
+// TestGetMySQLPod tests the getMySQLPod method
+func TestGetMySQLPod(t *testing.T) {
+	cliWithPod := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"app":     "mysql",
+					"release": "mysql",
+				},
+			},
+		},
+	).Build()
+	badCli := &erroringFakeClient{cliWithPod}
+	tests := []struct {
+		name        string
+		cli         client.Client
+		wantErr     bool
+		errContains string
+	}{
+		// GIVEN that the api call to list pods will be unsuccessful
+		// WHEN getMySQLPod func is called
+		// THEN the method returns the error thrown by the api server
+		{
+			"api server error",
+			badCli,
+			true,
+			tooManyRequests,
+		},
+		// GIVEN an environment with MySQL pod exisiting with correct labels
+		// WHEN getMySQLPod func is called
+		// THEN the MySQL pod is present in the pod list and no error is returned
+		{
+			"MySQL pod with correct labels",
+			cliWithPod,
+			false,
+			"",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeCtx := spi.NewFakeContext(tt.cli, &vzapi.Verrazzano{}, nil, false)
+			pod, err := getMySQLPod(fakeCtx)
+			if tt.wantErr {
+				assert.ErrorContains(t, err, tt.errContains)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, pod)
+				assert.Equal(t, map[string]string{"app": "mysql", "release": "mysql"}, pod.Labels)
+			}
+		})
+	}
+}
+
+// TestDumpDatabase tests the dumpDatabase func call
+// GIVEN db migration and mysql secret in Keycloak namespace
+// WHEN dumpDatabase func is called for MySQL to dump the instance to its mounted PV
+// THEN no error is returned on success and db migration secret is updated
+func TestDumpDatabase(t *testing.T) {
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
+		config, k := k8sutilfake.NewClientsetConfig()
+		return config, k, nil
+	}
+	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {
+		return "", "", nil
+	}
+	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"app":     "mysql",
+					"release": "mysql",
+				},
+			},
+		},
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: ComponentNamespace,
+			},
+			Data: map[string][]byte{rootPasswordKey: []byte(weakPass)},
+		},
+	).Build()
+
+	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
+	assert.NoError(t, dumpDatabase(fakeCtx))
+	sec := v1.Secret{}
+	assert.NoError(t, cli.Get(context.Background(), types.NamespacedName{Namespace: ComponentNamespace, Name: dbMigrationSecret}, &sec))
+	assert.Equal(t, string(sec.Data[databaseDumpedStage]), "true")
+}
+
+// TestDumpDatabaseWithExecErrors tests dumpDatabase func call for pod exec error
+// GIVEN db migration and mysql secret
+// WHEN dumpDatabase func is called and the pod execs are not successful
+// THEN an error is returned and the mysql password is masked in the error message
+func TestDumpDatabaseWithExecErrors(t *testing.T) {
+	k8sutil.NewPodExecutor = k8sutilfake.NewPodExecutor
+	k8sutil.ClientConfig = func() (*rest.Config, kubernetes.Interface, error) {
+		config, k := k8sutilfake.NewClientsetConfig()
+		return config, k, nil
+	}
+	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {
+		return "", "", fmt.Errorf("blah blah")
+	}
+	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"app":     "mysql",
+					"release": "mysql",
+				},
+			},
+		},
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: ComponentNamespace,
+			},
+			Data: map[string][]byte{rootPasswordKey: []byte(weakPass)},
+		},
+	).Build()
+	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
+	err := dumpDatabase(fakeCtx)
+	assert.Error(t, err)
+	assert.False(t, strings.Contains(err.Error(), weakPass))
+	assert.True(t, strings.Contains(err.Error(), "-p******"))
 }
