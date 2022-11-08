@@ -25,10 +25,12 @@ func GetEffectiveCR(actualCR *v1alpha1.Verrazzano) (*v1alpha1.Verrazzano, error)
 	if actualCR == nil {
 		return nil, nil
 	}
+	implicitProfiles := []string{string(v1alpha1.None), baseProfile}
 	// Identify the set of profiles, base + declared
-	profiles := []string{baseProfile, string(v1alpha1.Prod)}
+	var profiles []string
+	profiles = append(implicitProfiles, string(v1alpha1.Prod))
 	if len(actualCR.Spec.Profile) > 0 {
-		profiles = append([]string{baseProfile}, strings.Split(string(actualCR.Spec.Profile), ",")...)
+		profiles = append(implicitProfiles, strings.Split(string(actualCR.Spec.Profile), ",")...)
 	}
 	var profileFiles []string
 	for _, profile := range profiles {
@@ -58,10 +60,12 @@ func GetEffectiveV1beta1CR(actualCR *v1beta1.Verrazzano) (*v1beta1.Verrazzano, e
 	if actualCR == nil {
 		return nil, nil
 	}
+	implicitProfiles := []string{string(v1beta1.None), baseProfile}
 	// Identify the set of profiles, base + declared
-	profiles := []string{baseProfile, string(v1beta1.Prod)}
+	var profiles []string
+	profiles = append(implicitProfiles, string(v1beta1.Prod))
 	if len(actualCR.Spec.Profile) > 0 {
-		profiles = append([]string{baseProfile}, strings.Split(string(actualCR.Spec.Profile), ",")...)
+		profiles = append(implicitProfiles, strings.Split(string(actualCR.Spec.Profile), ",")...)
 	}
 	var profileFiles []string
 	for _, profile := range profiles {
