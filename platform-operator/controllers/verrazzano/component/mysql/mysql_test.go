@@ -6,12 +6,9 @@ package mysql
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 	"testing"
 
-	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -19,6 +16,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+
+	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -54,6 +55,10 @@ type erroringFakeClient struct {
 const tooManyRequests = "too many requests"
 
 func (e *erroringFakeClient) Get(_ context.Context, _ client.ObjectKey, _ client.Object) error {
+	return errors.NewTooManyRequests(tooManyRequests, 0)
+}
+
+func (e *erroringFakeClient) List(_ context.Context, _ client.ObjectList, _ ...client.ListOption) error {
 	return errors.NewTooManyRequests(tooManyRequests, 0)
 }
 
@@ -1794,6 +1799,59 @@ func TestPostInstall(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fakeCtx := spi.NewFakeContext(tt.cli, nil, nil, tt.dryRun)
 			assert.NoError(t, postInstall(fakeCtx))
+		})
+	}
+}
+
+// TestGetMySQLPod tests the getMySQLPod method
+func TestGetMySQLPod(t *testing.T) {
+	cliWithPod := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"app":     "mysql",
+					"release": "mysql",
+				},
+			},
+		},
+	).Build()
+	badCli := &erroringFakeClient{cliWithPod}
+	tests := []struct {
+		name        string
+		cli         client.Client
+		wantErr     bool
+		errContains string
+	}{
+		// GIVEN that the api call to list pods will be unsuccessful
+		// WHEN getMySQLPod func is called
+		// THEN the method returns the error thrown by the api server
+		{
+			"api server error",
+			badCli,
+			true,
+			tooManyRequests,
+		},
+		// GIVEN an environment with MySQL pod exisiting with correct labels
+		// WHEN getMySQLPod func is called
+		// THEN the MySQL pod is present in the pod list and no error is returned
+		{
+			"MySQL pod with correct labels",
+			cliWithPod,
+			false,
+			"",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeCtx := spi.NewFakeContext(tt.cli, &vzapi.Verrazzano{}, nil, false)
+			pod, err := getMySQLPod(fakeCtx)
+			if tt.wantErr {
+				assert.ErrorContains(t, err, tt.errContains)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, pod)
+				assert.Equal(t, map[string]string{"app": "mysql", "release": "mysql"}, pod.Labels)
+			}
 		})
 	}
 }
