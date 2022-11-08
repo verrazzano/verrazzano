@@ -3,6 +3,8 @@
 
 package scenario
 
+import "k8s.io/apimachinery/pkg/types"
+
 // Usecase specifies a PSR usecase that does a single worker task running in a pod
 type Usecase struct {
 	UsecasePath  string
@@ -10,8 +12,9 @@ type Usecase struct {
 	Description  string
 }
 
-// Scenario specifies a PSR scenario which consists of multiple use cases
-type Scenario struct {
+// ScenarioManifest specifies a PSR scenario manifest which consists of multiple use cases
+// The manifest represents files on disk, not a runtime scenario.
+type ScenarioManifest struct {
 	Name        string
 	ID          string
 	Description string
@@ -20,4 +23,16 @@ type Scenario struct {
 	// This is  the directory that contains scenario usecase-overrides.  It is not specified by the user,
 	// but built at runtime
 	ScenarioUsecaseOverridesDir string
+}
+
+// Scenario specifies a PSR scenario that was installed in the cluster
+type Scenario struct {
+	// The namespace where the scenario is installed
+	Namespace string
+
+	// The namespaced names of the helm releases that comprise the scenario
+	HelmReleases []types.NamespacedName
+
+	// The scenario manifests that was used to run the scenario
+	*ScenarioManifest
 }
