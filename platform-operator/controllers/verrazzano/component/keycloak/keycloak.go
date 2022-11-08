@@ -384,7 +384,7 @@ const pkceClientUrisTemplate = `
 	  "https://opensearchdashboards.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://jaeger.{{.DNSSubDomain}}/*"{{ if .osHostExists}},
+	  "https://jaeger.{{.DNSSubDomain}}/*"{{ if .OSHostExists}},
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
       "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
@@ -397,7 +397,7 @@ const pkceClientUrisTemplate = `
 	  "https://grafana.vmi.system.{{.DNSSubDomain}}",
 	  "https://opensearchdashboards.vmi.system.{{.DNSSubDomain}}",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}",
-	  "https://jaeger.{{.DNSSubDomain}}"{{ if .osHostExists}},
+	  "https://jaeger.{{.DNSSubDomain}}"{{ if .OSHostExists}},
       "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
       "https://kibana.vmi.system.{{.DNSSubDomain}}"
  {{end}} 
@@ -473,7 +473,7 @@ type KeycloakClientSecret struct {
 
 type templateData struct {
 	DNSSubDomain string
-	osHostExists bool
+	OSHostExists bool
 }
 
 // imageData needed for template rendering
@@ -1429,7 +1429,7 @@ func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string,
 		return "", err
 	}
 	// Set bool value if deprecated host exists
-	data.osHostExists = osHostExists
+	data.OSHostExists = osHostExists
 
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
