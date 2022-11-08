@@ -26,12 +26,20 @@ const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
 
 const letters = "abcdefghijklmnopqrstuvwxyz"
 
-type getLogs struct {
+// Use an http client interface so that we can override http.Client for unit tests
+type httpClientI interface {
+	Do(_ *http.Request) (resp *http.Response, err error)
+}
+
+var httpClient httpClientI = &http.Client{}
+var _ httpClientI = &http.Client{}
+
+type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetrics
 }
 
-var _ spi.Worker = getLogs{}
+var _ spi.Worker = worker{}
 
 // workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
 type workerMetrics struct {
@@ -43,7 +51,7 @@ type workerMetrics struct {
 }
 
 func NewGetLogsWorker() (spi.Worker, error) {
-	w := getLogs{workerMetrics: &workerMetrics{
+	w := worker{workerMetrics: &workerMetrics{
 		openSearchGetSuccessCountTotal: metrics.MetricItem{
 			Name: "opensearch_get_success_count_total",
 			Help: "The total number of successful OpenSearch GET requests",
@@ -82,7 +90,7 @@ func NewGetLogsWorker() (spi.Worker, error) {
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
-func (w getLogs) GetWorkerDesc() spi.WorkerDesc {
+func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
 		WorkerType:  config.WorkerTypeGetLogs,
 		Description: "The log getter worker performs GET requests on the OpenSearch endpoint",
@@ -90,16 +98,16 @@ func (w getLogs) GetWorkerDesc() spi.WorkerDesc {
 	}
 }
 
-func (w getLogs) GetEnvDescList() []osenv.EnvVarDesc {
+func (w worker) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{}
 }
 
-func (w getLogs) WantLoopInfoLogged() bool {
+func (w worker) WantLoopInfoLogged() bool {
 	return false
 }
 
-func (w getLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-	c := http.Client{}
+func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+	c := httpClient
 	req := http.Request{
 		URL: &url.URL{
 			Scheme: "http",
@@ -134,11 +142,11 @@ func (w getLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) er
 	return nil
 }
 
-func (w getLogs) GetMetricDescList() []prometheus.Desc {
+func (w worker) GetMetricDescList() []prometheus.Desc {
 	return w.metricDescList
 }
 
-func (w getLogs) GetMetricList() []prometheus.Metric {
+func (w worker) GetMetricList() []prometheus.Metric {
 	return []prometheus.Metric{
 		w.openSearchGetSuccessCountTotal.BuildMetric(),
 		w.openSearchGetFailureCountTotal.BuildMetric(),
