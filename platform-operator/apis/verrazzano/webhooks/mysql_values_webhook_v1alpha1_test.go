@@ -15,6 +15,12 @@ import (
 	"testing"
 )
 
+const (
+	allowedFailureMessage         = "Expected request to be allowed"
+	noWarningsFailureMessage      = "Expected there to be no warnings"
+	expectedWarningFailureMessage = "Expected there to be one warning"
+)
+
 // newMysqlValuesValidatorV1alpha1 creates a new MysqlValuesValidatorV1alpha1
 func newMysqlValuesValidatorV1alpha1() MysqlValuesValidatorV1alpha1 {
 	scheme := newV1alpha1Scheme()
@@ -99,12 +105,12 @@ func TestValidationWarningForServerPodSpecV1alpha1(t *testing.T) {
 			}
 			req := newAdmissionRequest(admissionv1.Update, test.newVz, test.oldVz)
 			res := m.Handle(context.TODO(), req)
-			asrt.True(res.Allowed, "Expected request to be allowed")
+			asrt.True(res.Allowed, allowedFailureMessage)
 			if test.shouldWarn {
-				asrt.Len(res.Warnings, 1, "Expected there to be one warning")
+				asrt.Len(res.Warnings, 1, expectedWarningFailureMessage)
 				asrt.Contains(res.Warnings[0], "Modifications to MySQL server pod specs do not trigger an automatic restart of the stateful set.", "expected specific warning about stateful set restart")
 			} else {
-				asrt.Len(res.Warnings, 0, "Expected there to be no warnings")
+				asrt.Len(res.Warnings, 0, noWarningsFailureMessage)
 			}
 		})
 	}
@@ -138,8 +144,8 @@ func TestNoValidationWarningForRouterPodSpecV1alpha1(t *testing.T) {
 
 	req := newAdmissionRequest(admissionv1.Update, newVz, &v1alpha1.Verrazzano{})
 	res := m.Handle(context.TODO(), req)
-	asrt.True(res.Allowed, "Expected request to be allowed")
-	asrt.Len(res.Warnings, 0, "Expected there to be no warnings")
+	asrt.True(res.Allowed, allowedFailureMessage)
+	asrt.Len(res.Warnings, 0, noWarningsFailureMessage)
 }
 
 // TestNoValidationWarningWithoutServerPodSpec tests not presenting a user warning
@@ -177,6 +183,6 @@ func TestNoValidationWarningWithoutServerPodSpecV1alpha1(t *testing.T) {
 
 	req := newAdmissionRequest(admissionv1.Update, newVz, &v1alpha1.Verrazzano{})
 	res := m.Handle(context.TODO(), req)
-	asrt.True(res.Allowed, "Expected request to be allowed")
-	asrt.Len(res.Warnings, 0, "Expected there to be no warnings")
+	asrt.True(res.Allowed, allowedFailureMessage)
+	asrt.Len(res.Warnings, 0, noWarningsFailureMessage)
 }
