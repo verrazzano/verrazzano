@@ -328,8 +328,8 @@ func GetSystemOpenSearchIngressURL(kubeconfigPath string) string {
 	}
 	ingressList, _ := clientset.NetworkingV1().Ingresses(VerrazzanoNamespace).List(context.TODO(), metav1.ListOptions{})
 	for _, ingress := range ingressList.Items {
-		if ingress.Name == "vmi-system-es-ingest" {
-			Log(Info, fmt.Sprintf("Found Elasticsearch Ingress %v, host %s", ingress.Name, ingress.Spec.Rules[0].Host))
+		if ingress.Name == "vmi-system-os-ingest" || ingress.Name == "vmi-system-es-ingest" {
+			Log(Info, fmt.Sprintf("Found Opensearch Ingress %v, host %s", ingress.Name, ingress.Spec.Rules[0].Host))
 			return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 		}
 	}
