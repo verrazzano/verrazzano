@@ -6,6 +6,7 @@ package mysql
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 	"testing"
 
@@ -38,6 +39,23 @@ const (
 	notDepFound  = "not-deployment-found"
 	notPVCDelete = "not-pvc-deleted"
 )
+
+var testScheme = runtime.NewScheme()
+
+func init() {
+	_ = k8scheme.AddToScheme(testScheme)
+	_ = vzapi.AddToScheme(testScheme)
+}
+
+type erroringFakeClient struct {
+	client.Client
+}
+
+const tooManyRequests = "too many requests"
+
+func (e *erroringFakeClient) Get(_ context.Context, _ client.ObjectKey, _ client.Object) error {
+	return errors.NewTooManyRequests(tooManyRequests, 0)
+}
 
 var crEnabled = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
@@ -1670,4 +1688,112 @@ func newInnoDBCluster(status string) *unstructured.Unstructured {
 	innoDBCluster.SetName(helmReleaseName)
 	unstructured.SetNestedField(innoDBCluster.Object, status, innoDBClusterStatusFields...)
 	return &innoDBCluster
+}
+
+// TestPreInstall tests the PreInstall func call
+func TestPreInstall(t *testing.T) {
+	asserts := assert.New(t)
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&v1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{Name: ComponentNamespace},
+		},
+	).Build()
+	badClient := &erroringFakeClient{fakeClient}
+	tests := []struct {
+		name    string
+		cli     client.Client
+		dryRun  bool
+		wantErr bool
+	}{
+		// GIVEN ComponentContext with DryRun enabled
+		// WHEN PreInstall func is called
+		// THEN the method returns nil
+		{
+			"Dry run enabled",
+			fakeClient,
+			true,
+			false,
+		},
+		// GIVEN mysql component namespace
+		// WHEN PreInstall func is called
+		// THEN no error is returned and the component namespace is labeled as expected
+		{
+			"Component ns should have the expected labels",
+			fakeClient,
+			false,
+			false,
+		},
+		// GIVEN a condition where api server will return an error
+		// WHEN PreInstall func is called
+		// THEN a RetryableError is returned as expected
+		{
+			"api server error",
+			badClient,
+			false,
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeCtx := spi.NewFakeContext(tt.cli, &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Istio: &vzapi.IstioComponent{
+							InjectionEnabled: getBoolPtr(true),
+						},
+					},
+				},
+			}, nil, tt.dryRun)
+			err := preInstall(fakeCtx, ComponentNamespace)
+			if !tt.wantErr {
+				asserts.Nil(err)
+				if !tt.dryRun {
+					ns := v1.Namespace{}
+					asserts.NoError(tt.cli.Get(context.Background(), types.NamespacedName{Name: ComponentNamespace}, &ns))
+					asserts.Equal(ComponentNamespace, ns.Labels["verrazzano.io/namespace"])
+					asserts.Equal("enabled", ns.Labels["istio-injection"])
+				}
+			} else {
+				asserts.ErrorContains(err, tooManyRequests)
+			}
+		})
+	}
+}
+
+// TestPostInstall tests the PostInstall func call
+func TestPostInstall(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	tests := []struct {
+		name    string
+		cli     client.Client
+		dryRun  bool
+		wantErr bool
+	}{
+		// GIVEN ComponentContext with DryRun enabled
+		// WHEN PostInstall func is called
+		// THEN the method returns nil
+		{
+			"Dry run enabled",
+			fakeClient,
+			true,
+			false,
+		},
+		// GIVEN ComponentContext with DryRun disabled
+		// WHEN PostInstall func is called
+		// THEN no error is returned
+		{
+			"Dry run disabled",
+			fakeClient,
+			false,
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeCtx := spi.NewFakeContext(tt.cli, nil, nil, tt.dryRun)
+			assert.NoError(t, postInstall(fakeCtx))
+		})
+	}
 }
