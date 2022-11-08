@@ -138,8 +138,8 @@ func TestNoValidationWarningForRouterPodSpecV1alpha1(t *testing.T) {
 
 	req := newAdmissionRequest(admissionv1.Update, newVz, &v1alpha1.Verrazzano{})
 	res := m.Handle(context.TODO(), req)
-	asrt.True(res.Allowed, "Expected request to be allowed with warnings")
-	asrt.Len(res.Warnings, 0, "Expected there to be one warning")
+	asrt.True(res.Allowed, "Expected request to be allowed")
+	asrt.Len(res.Warnings, 0, "Expected there to be no warnings")
 }
 
 // TestNoValidationWarningWithoutServerPodSpec tests not presenting a user warning
@@ -177,6 +177,6 @@ func TestNoValidationWarningWithoutServerPodSpecV1alpha1(t *testing.T) {
 
 	req := newAdmissionRequest(admissionv1.Update, newVz, &v1alpha1.Verrazzano{})
 	res := m.Handle(context.TODO(), req)
-	asrt.True(res.Allowed, "Expected request to be allowed with warnings")
-	asrt.Len(res.Warnings, 0, "Expected there to be one warning")
+	asrt.True(res.Allowed, "Expected request to be allowed")
+	asrt.Len(res.Warnings, 0, "Expected there to be no warnings")
 }
