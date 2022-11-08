@@ -14,11 +14,7 @@ import (
 	"testing"
 )
 
-type fakeEnv struct {
-	data map[string]string
-}
-
-type fakeHttp struct {
+type fakeHTTP struct {
 	resp        *http.Response
 	httpDoError error
 }
@@ -28,7 +24,7 @@ type fakeBody struct {
 	httpReadError error
 }
 
-var _ httpClientI = &fakeHttp{}
+var _ httpClientI = &fakeHTTP{}
 
 // TestGetters tests the worker getters
 // GIVEN a worker
@@ -102,6 +98,7 @@ func TestGetMetricDescList(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			wi, err := NewPostLogsWorker()
+			assert.NoError(t, err)
 			w := wi.(worker)
 			assert.NoError(t, err)
 			dl := w.GetMetricDescList()
@@ -225,12 +222,14 @@ func TestDoWork(t *testing.T) {
 			defer func() {
 				httpClient = c
 			}()
-			httpClient = &fakeHttp{
+			httpClient = &fakeHTTP{
 				httpDoError: test.doworkError,
 				resp:        resp,
 			}
 
 			wi, err := NewPostLogsWorker()
+			assert.NoError(t, err)
+
 			w := wi.(worker)
 
 			err = config.PsrEnv.LoadFromEnv(w.GetEnvDescList())
@@ -251,7 +250,7 @@ func TestDoWork(t *testing.T) {
 	}
 }
 
-func (f *fakeHttp) Do(_ *http.Request) (resp *http.Response, err error) {
+func (f *fakeHTTP) Do(_ *http.Request) (resp *http.Response, err error) {
 	return f.resp, f.httpDoError
 }
 
@@ -273,8 +272,4 @@ func (f fakeBody) Read(d []byte) (n int, err error) {
 
 func (f fakeBody) Close() error {
 	return nil
-}
-
-func (f *fakeEnv) GetEnv(key string) string {
-	return f.data[key]
 }

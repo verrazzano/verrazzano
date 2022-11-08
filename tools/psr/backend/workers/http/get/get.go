@@ -16,7 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 )
 
-var httpGetFunc func(url string) (resp *http.Response, err error) = http.Get
+var httpGetFunc = http.Get
 
 const (
 	// ServiceName specifies the name of the service in the local cluster
@@ -121,11 +121,11 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 		config.PsrEnv.GetEnv(ServicePort) +
 		"/" + config.PsrEnv.GetEnv(Path))
 	if err != nil {
-		lf = atomic.AddInt64(&w.workerMetrics.getRequestsFailedCountTotal.Val, 1)
+		atomic.AddInt64(&w.workerMetrics.getRequestsFailedCountTotal.Val, 1)
 		return err
 	}
 	if resp == nil {
-		lf = atomic.AddInt64(&w.workerMetrics.getRequestsFailedCountTotal.Val, 1)
+		atomic.AddInt64(&w.workerMetrics.getRequestsFailedCountTotal.Val, 1)
 		return fmt.Errorf("GET request to endpoint received a nil response")
 	}
 	if resp.StatusCode == 200 {

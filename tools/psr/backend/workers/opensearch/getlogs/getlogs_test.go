@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-type fakeHttp struct {
+type fakeHTTP struct {
 	resp        *http.Response
 	httpDoError error
 }
@@ -24,7 +24,7 @@ type fakeBody struct {
 	httpReadError error
 }
 
-var _ httpClientI = &fakeHttp{}
+var _ httpClientI = &fakeHTTP{}
 
 // TestGetters tests the worker getters
 // GIVEN a worker
@@ -62,6 +62,7 @@ func TestGetMetricDescList(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			wi, err := NewGetLogsWorker()
+			assert.NoError(t, err)
 			w := wi.(worker)
 			assert.NoError(t, err)
 			dl := w.GetMetricDescList()
@@ -184,12 +185,13 @@ func TestDoWork(t *testing.T) {
 					ContentLength: int64(len(test.bodyData)),
 				}
 			}
-			httpClient = &fakeHttp{
+			httpClient = &fakeHTTP{
 				httpDoError: test.doworkError,
 				resp:        resp,
 			}
 
 			wi, err := NewGetLogsWorker()
+			assert.NoError(t, err)
 			w := wi.(worker)
 
 			err = w.DoWork(config.CommonConfig{
@@ -207,7 +209,7 @@ func TestDoWork(t *testing.T) {
 	}
 }
 
-func (f *fakeHttp) Do(_ *http.Request) (resp *http.Response, err error) {
+func (f *fakeHTTP) Do(_ *http.Request) (resp *http.Response, err error) {
 	return f.resp, f.httpDoError
 }
 

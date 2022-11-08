@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-type fakeHttp struct {
+type fakeHTTP struct {
 	error
 	resp     *http.Response
 	bodyData string
@@ -211,15 +211,15 @@ func TestDoWork(t *testing.T) {
 					ContentLength: int64(len(test.bodyData)),
 				}
 			}
-			httpGetFunc = fakeHttp{
+			httpGetFunc = fakeHTTP{
 				bodyData: test.bodyData,
 				error:    test.getError,
 				resp:     resp,
 			}.Get
 
 			wi, err := NewHTTPGetWorker()
+			assert.NoError(t, err)
 			w := wi.(worker)
-
 			err = w.DoWork(config.CommonConfig{
 				WorkerType: "Fake",
 			}, vzlog.DefaultLogger())
@@ -236,7 +236,7 @@ func TestDoWork(t *testing.T) {
 	}
 }
 
-func (f fakeHttp) Get(url string) (resp *http.Response, err error) {
+func (f fakeHTTP) Get(url string) (resp *http.Response, err error) {
 	return f.resp, f.error
 }
 
