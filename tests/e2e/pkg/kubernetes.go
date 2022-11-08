@@ -626,7 +626,7 @@ func IsVerrazzanoMinVersionEventually(minVersion string, kubeconfigPath string) 
 	var isMinVersion bool
 	var err error
 	gomega.Eventually(func() error {
-		isMinVersion, err = IsVerrazzanoMinVersionEventually(minVersion, kubeconfigPath)
+		isMinVersion, err = IsVerrazzanoMinVersion(minVersion, kubeconfigPath)
 		return err
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil())
 	return isMinVersion, err
