@@ -247,7 +247,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			t.Entry("Checking Deployment vmi-system-es-data-0", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-es-data-0"),
 			t.Entry("Checking Deployment vmi-system-es-data-1", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-es-data-1"),
 			t.Entry("Checking Deployment vmi-system-es-data-2", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-es-data-2"),
-			t.Entry("Checking Deployment vmi-system-es-ingest", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-es-ingest"),
+			t.Entry("Checking Deployment vmi-system-os-ingest", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-os-ingest"),
 		)
 	})
 

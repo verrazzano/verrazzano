@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package verrazzano
+package reconcile
 
 import (
 	"context"
@@ -78,7 +78,7 @@ func TestReconcileUninstalling(t *testing.T) {
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	defer config.Set(config.Get())
@@ -165,7 +165,7 @@ func TestReconcileUninstall(t *testing.T) {
 	config.SetDefaultBomFilePath(unitTestBomFile)
 	asserts := assert.New(t)
 
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 	defer func() { config.TestProfilesDir = "" }()
 
 	defer config.Set(config.Get())
@@ -312,7 +312,7 @@ func TestUninstallVariations(t *testing.T) {
 			config.SetDefaultBomFilePath(unitTestBomFile)
 			asserts := assert.New(t)
 
-			config.TestProfilesDir = "../../manifests/profiles"
+			config.TestProfilesDir = relativeProfilesDir
 			defer func() { config.TestProfilesDir = "" }()
 
 			defer config.Set(config.Get())
