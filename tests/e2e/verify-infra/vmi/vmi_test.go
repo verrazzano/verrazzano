@@ -333,7 +333,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		size = override.Spec.Resources.Requests.Storage().String()
 	}
 
-	minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
+	minVer14, err := pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfig)
 	Expect(err).ToNot(HaveOccurred())
 
 	expectedPromReplicas, err := getExpectedPrometheusReplicaCount(kubeconfig)

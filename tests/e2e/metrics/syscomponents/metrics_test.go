@@ -9,12 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
 const (
@@ -117,7 +116,7 @@ var _ = t.BeforeSuite(func() {
 		}
 	}
 
-	isMinVersion110, err = pkg.IsVerrazzanoMinVersion("1.1.0", adminKubeConfig)
+	isMinVersion110, err = pkg.IsVerrazzanoMinVersionEventually("1.1.0", adminKubeConfig)
 	if err != nil {
 		Fail(err.Error())
 	}
@@ -218,7 +217,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 						job: pilot,
 					}
 
-					minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeConfig)
+					minVer14, err := pkg.IsVerrazzanoMinVersionEventually("1.4.0", adminKubeConfig)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf(failedVerifyVersionMsg, err))
 						return false
@@ -240,7 +239,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 					job: oldPrometheus,
 				}
 
-				minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeConfig)
+				minVer14, err := pkg.IsVerrazzanoMinVersionEventually("1.4.0", adminKubeConfig)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf(failedVerifyVersionMsg, err))
 					return false

@@ -182,7 +182,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 		t.DescribeTable("VMI components that don't exist in older versions are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
-					ok, _ := pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
+					ok, _ := pkg.IsVerrazzanoMinVersionEventually("1.1.0", kubeconfigPath)
 					if !ok {
 						// skip test
 						fmt.Printf("Skipping Kiali check since version < 1.1.0")

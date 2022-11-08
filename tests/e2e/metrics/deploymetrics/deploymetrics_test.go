@@ -9,11 +9,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -72,7 +71,7 @@ var _ = clusterDump.BeforeSuite(func() {
 
 	// Create a service in VZ versions 1.4.0 and greater, so that a servicemonitor will be generated
 	// by Verrazzano for Prometheus Operator
-	isVzMinVer14, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
+	isVzMinVer14, _ := pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfig)
 	if isVzMinVer14 {
 		Eventually(func() error {
 			promJobName, err := getPromJobName()
@@ -208,7 +207,7 @@ var _ = t.Describe("DeployMetrics Application test", Label("f:app-lcm.oam"), fun
 			if skipVerify {
 				Skip(skipVerifications)
 			}
-			isVzMinVer14, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
+			isVzMinVer14, _ := pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfig)
 			if isVzMinVer14 {
 				serviceName, err := getPromJobName()
 				if err != nil {
@@ -273,7 +272,7 @@ func getClusterNameForPromQuery() (string, error) {
 	if err != nil {
 		return kubeConfigPath, err
 	}
-	isMinVersion110, err := pkg.IsVerrazzanoMinVersion("1.1.0", kubeConfigPath)
+	isMinVersion110, err := pkg.IsVerrazzanoMinVersionEventually("1.1.0", kubeConfigPath)
 	if err != nil {
 		return "", err
 	}
@@ -309,7 +308,7 @@ func getPromJobName() (string, error) {
 	if err != nil {
 		return kubeconfig, err
 	}
-	usesServiceMonitor, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfig)
+	usesServiceMonitor, err := pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfig)
 	if err != nil {
 		return kubeconfig, err
 	}
