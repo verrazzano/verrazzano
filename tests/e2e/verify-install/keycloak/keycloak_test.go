@@ -30,6 +30,11 @@ const (
 	viewUsersRole     = "view-users"
 	osdURI            = "opensearchdashboards.vmi.system."
 	osURI             = "opensearch.vmi.system."
+	grafanaURI        = "grafana.vmi.system."
+	prometheusURI     = "prometheus.vmi.system."
+	kialiURI          = "kiali.vmi.system."
+	verrazzanoURI     = "verrazzano."
+	rancherURI        = "rancher."
 )
 
 // KeycloakClients represents an array of clients currently configured in Keycloak
@@ -451,34 +456,34 @@ func verifyVerrazzanoPKCEClientURIs(keycloakClient *Client, env string) bool {
 	}
 
 	// Kiali
-	if !verifyURIs(keycloakClient.RedirectUris, "kiali.vmi.system."+env, 2) {
+	if !verifyURIs(keycloakClient.RedirectUris, kialiURI+env, 2) {
 		t.Logs.Error(fmt.Printf("Expected 2 Kiali redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, "kiali.vmi.system."+env, 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, kialiURI+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Kiali weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Prometheus
-	if !verifyURIs(keycloakClient.RedirectUris, "prometheus.vmi.system."+env, 2) {
+	if !verifyURIs(keycloakClient.RedirectUris, prometheusURI+env, 2) {
 		t.Logs.Error(fmt.Printf("Expected 2 Prometheus redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, "prometheus.vmi.system."+env, 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, prometheusURI+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Prometheus weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Grafana
-	if !verifyURIs(keycloakClient.RedirectUris, "grafana.vmi.system."+env, 2) {
+	if !verifyURIs(keycloakClient.RedirectUris, grafanaURI+env, 2) {
 		t.Logs.Error(fmt.Printf("Expected 2 Grafana redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, "grafana.vmi.system."+env, 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, grafanaURI+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Grafana weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
@@ -506,12 +511,12 @@ func verifyVerrazzanoPKCEClientURIs(keycloakClient *Client, env string) bool {
 	}
 
 	// Verrazzano
-	if !verifyURIs(keycloakClient.RedirectUris, "verrazzano."+env, 2) {
+	if !verifyURIs(keycloakClient.RedirectUris, verrazzanoURI+env, 2) {
 		t.Logs.Error(fmt.Printf("Expected 2 Verrazzano redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, "verrazzano."+env, 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, verrazzanoURI+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Verrazzano weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
@@ -533,12 +538,12 @@ func verifyRancherClientURIs(keycloakClient *Client, env string) bool {
 	}
 
 	// Verify rancher redirectUI
-	if !verifyURIs(keycloakClient.RedirectUris, "rancher."+env, 1) {
+	if !verifyURIs(keycloakClient.RedirectUris, rancherURI+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Rancher redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 	// Verify rancher web origin
-	if !verifyURIs(keycloakClient.WebOrigins, "rancher."+env, 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, rancherURI+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Rancher weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
