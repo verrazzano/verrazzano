@@ -23,6 +23,10 @@ type fakeBody struct {
 	data string
 }
 
+type fakeEnv struct {
+	data map[string]string
+}
+
 // TestGetters tests the worker getters
 // GIVEN a worker
 //
@@ -97,6 +101,55 @@ func TestGetMetricList(t *testing.T) {
 	}
 }
 
+// TestGetEnvDescList tests the GetEnvDescList method
+// GIVEN a worker
+//
+//	WHEN the GetEnvDescList methods is called
+//	THEN ensure that the correct results are returned
+func TestGetEnvDescList(t *testing.T) {
+	tests := []struct {
+		name     string
+		key      string
+		defval   string
+		required bool
+	}{
+		{name: "1",
+			key:      ServiceName,
+			defval:   "",
+			required: true,
+		},
+		{name: "2",
+			key:      ServiceNamespace,
+			defval:   "",
+			required: true,
+		},
+		{name: "3",
+			key:      ServicePort,
+			defval:   "",
+			required: true,
+		},
+		{name: "4",
+			key:      Path,
+			defval:   "",
+			required: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			w, err := NewHTTPGetWorker()
+			assert.NoError(t, err)
+			el := w.GetEnvDescList()
+			for _, e := range el {
+				if e.Key == test.key {
+					assert.Equal(t, test.defval, e.DefaultVal)
+					assert.Equal(t, test.required, e.Required)
+				}
+			}
+		})
+	}
+}
+
 // TestDoWork tests the DoWork method
 // GIVEN a worker
 //
@@ -106,8 +159,10 @@ func TestDoWork(t *testing.T) {
 	tests := []struct {
 		name         string
 		bodyData     string
-		error        error
+		getError     error
+		doworkError  error
 		statusCode   int
+		nilResp      bool
 		reqCount     int
 		successCount int
 		failureCount int
@@ -121,17 +176,26 @@ func TestDoWork(t *testing.T) {
 			failureCount: 0,
 		},
 		{
-			name:         "1",
+			name:         "2",
 			bodyData:     "testerror",
-			error:        errors.New("error"),
+			getError:     errors.New("error"),
 			reqCount:     1,
 			successCount: 0,
 			failureCount: 1,
 		},
 		{
-			name:         "1",
+			name:         "3",
 			bodyData:     "testRespError",
 			statusCode:   500,
+			reqCount:     1,
+			successCount: 0,
+			failureCount: 1,
+		},
+		{
+			name:         "4",
+			bodyData:     "testNilResp",
+			doworkError:  errors.New("GET request to endpoint received a nil response"),
+			nilResp:      true,
 			reqCount:     1,
 			successCount: 0,
 			failureCount: 1,
@@ -143,14 +207,18 @@ func TestDoWork(t *testing.T) {
 			defer func() {
 				httpGetFunc = f
 			}()
-			httpGetFunc = fakeHttp{
-				bodyData: test.bodyData,
-				error:    test.error,
-				resp: &http.Response{
+			var resp *http.Response
+			if !test.nilResp {
+				resp = &http.Response{
 					StatusCode:    test.statusCode,
 					Body:          &fakeBody{data: test.bodyData},
 					ContentLength: int64(len(test.bodyData)),
-				},
+				}
+			}
+			httpGetFunc = fakeHttp{
+				bodyData: test.bodyData,
+				error:    test.getError,
+				resp:     resp,
 			}.Get
 
 			wi, err := NewHTTPGetWorker()
@@ -159,7 +227,7 @@ func TestDoWork(t *testing.T) {
 			err = w.DoWork(config.CommonConfig{
 				WorkerType: "Fake",
 			}, vzlog.DefaultLogger())
-			if test.error == nil {
+			if test.doworkError == nil && test.getError == nil {
 				assert.NoError(t, err)
 			} else {
 				assert.Error(t, err)
