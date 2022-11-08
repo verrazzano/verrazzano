@@ -28,6 +28,8 @@ const (
 	vzSysRealm        = "verrazzano-system"
 	realmMgmt         = "realm-management"
 	viewUsersRole     = "view-users"
+	osdURI            = "opensearchdashboards.vmi.system."
+	osURI             = "opensearch.vmi.system."
 )
 
 // KeycloakClients represents an array of clients currently configured in Keycloak
@@ -482,23 +484,23 @@ func verifyVerrazzanoPKCEClientURIs(keycloakClient *Client, env string) bool {
 	}
 
 	// Opensearch
-	if !verifyURIs(keycloakClient.RedirectUris, "opensearch.vmi.system."+env, 2) {
+	if !verifyURIs(keycloakClient.RedirectUris, osURI+env, 2) {
 		t.Logs.Error(fmt.Printf("Expected 2 Opensearch redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, "opensearch.vmi.system."+env, 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, osURI+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Opensearch weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Opensearchdashboards
-	if !(isMinVersion150 && verifyURIs(keycloakClient.RedirectUris, "opensearchdashboards.vmi.system."+env, 2)) {
+	if !(isMinVersion150 && verifyURIs(keycloakClient.RedirectUris, osdURI+env, 2)) {
 		t.Logs.Error(fmt.Printf("Expected 2 Opensearchdashboards redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, "opensearchdashboards.vmi.system."+env, 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, osdURI+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Opensearchdashboards weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
