@@ -1935,5 +1935,5 @@ func TestDumpDatabaseWithExecErrors(t *testing.T) {
 	err := dumpDatabase(fakeCtx)
 	assert.Error(t, err)
 	assert.False(t, strings.Contains(err.Error(), weakPass))
-	assert.True(t, strings.Contains(err.Error(), fmt.Sprintf("-p******")))
+	assert.True(t, strings.Contains(err.Error(), "-p******"))
 }
