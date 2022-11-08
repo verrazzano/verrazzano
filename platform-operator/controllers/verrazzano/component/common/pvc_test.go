@@ -43,7 +43,7 @@ func TestDeleteExistingVolumeClaim(t *testing.T) {
 	client.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	client.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil).AnyTimes()
 
-	pvc := types.NamespacedName{"pvc", "pvc1"}
+	pvc := types.NamespacedName{Namespace: "pvc", Name: "pvc1"}
 	err := DeleteExistingVolumeClaim(ctx, pvc)
 	assert.Nil(t, err)
 
@@ -77,7 +77,7 @@ func TestUpdateExistingVolumeClaims(t *testing.T) {
 		return nil
 	})
 
-	pvc := types.NamespacedName{"pvc", "pvc1"}
+	pvc := types.NamespacedName{Namespace: "pvc", Name: "pvc1"}
 	err := UpdateExistingVolumeClaims(ctx, pvc, "test", "test1")
 	assert.Nil(t, err)
 

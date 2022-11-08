@@ -26,7 +26,7 @@ func TestCreateAndLabelNamespaces(t *testing.T) {
 	_ = vzapi.AddToScheme(scheme)
 
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
-	var a bool = true
+	a := true
 	vz := &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{

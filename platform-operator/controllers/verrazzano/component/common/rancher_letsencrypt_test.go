@@ -7,7 +7,6 @@ import (
 	"errors"
 	"github.com/golang/mock/gomock"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"io"
@@ -100,14 +99,14 @@ func TestProcessAdditionalCertificates(t *testing.T) {
 	mock := gomock.NewController(t)
 	client := mocks.NewMockClient(mock)
 	//ns := corev1.Namespace{ObjectMeta: v12.ObjectMeta{Name: "cattle-system"}}
-	var a bool = true
+	a := true
 	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v12.ObjectMeta{Namespace: "foo"}}, nil, false)
-	vz := vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				CertManager: &vzapi.CertManagerComponent{
+	vz := v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				CertManager: &v1alpha1.CertManagerComponent{
 					Enabled:     &a,
-					Certificate: vzapi.Certificate{Acme: vzapi.Acme{Environment: "dev"}},
+					Certificate: v1alpha1.Certificate{Acme: v1alpha1.Acme{Environment: "dev"}},
 				},
 			},
 		},
@@ -130,7 +129,7 @@ func TestProcessAdditionalCertificatesFailure(t *testing.T) {
 	mock := gomock.NewController(t)
 	client := mocks.NewMockClient(mock)
 	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v12.ObjectMeta{Namespace: "foo"}}, nil, false)
-	vz := vzapi.Verrazzano{}
+	vz := v1alpha1.Verrazzano{}
 
 	client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil).AnyTimes()
 	client.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil).AnyTimes()
