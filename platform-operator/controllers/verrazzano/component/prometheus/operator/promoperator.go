@@ -14,7 +14,6 @@ import (
 
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -106,11 +105,6 @@ func preInstallUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	err := common.ApplyCRDYaml(ctx, config.GetHelmPromOpChartsDir())
-	if err != nil {
-		return err
-	}
-
 	// Remove any existing volume claims from old VMO-managed Prometheus persistent volumes
 	return updateExistingVolumeClaims(ctx)
 }
@@ -142,9 +136,6 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	if err := createOrUpdateNetworkPolicies(ctx); err != nil {
-		return err
-	}
-	if err := createOrUpdateServiceMonitors(ctx); err != nil {
 		return err
 	}
 	if err := common.UpdatePrometheusAnnotations(ctx, ComponentNamespace, ComponentName); err != nil {
@@ -337,6 +328,13 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		if err != nil {
 			return kvs, ctx.Log().ErrorfNewErr("Failed applying the Istio Overrides for Prometheus")
 		}
+
+		// Disable HTTP2 to allow mTLS communication with the application Istio sidecars
+		kvs = append(kvs, []bom.KeyValue{
+			{Key: "prometheus.prometheusSpec.containers[0].name", Value: prometheusName},
+			{Key: "prometheus.prometheusSpec.containers[0].env[0].name", Value: "PROMETHEUS_COMMON_DISABLE_HTTP2"},
+			{Key: "prometheus.prometheusSpec.containers[0].env[0].value", Value: `"1"`},
+		}...)
 
 		kvs, err = appendAdditionalVolumeOverrides(ctx,
 			"prometheus.prometheusSpec.volumeMounts",
@@ -661,47 +659,6 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed creating/updating Prometheus auth policy: %v", err)
 	}
 	return err
-}
-
-// createOrUpdateServiceMonitors creates or updates service monitors to meet operator requirements
-func createOrUpdateServiceMonitors(ctx spi.ComponentContext) error {
-	smList := &promoperapi.ServiceMonitorList{}
-	enableHTTP2 := false
-	err := ctx.Client().List(context.TODO(), smList)
-	if err != nil {
-		return err
-	}
-	for _, sm := range smList.Items {
-		var endPoints []promoperapi.Endpoint
-		for _, ep := range sm.Spec.Endpoints {
-			if ep.Scheme == "https" {
-				ep.EnableHttp2 = &enableHTTP2
-			}
-			endPoints = append(endPoints, ep)
-		}
-		sm.Spec.Endpoints = endPoints
-		smSpec := sm.Spec.DeepCopy()
-		_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), sm, func() error {
-			sm.Spec = promoperapi.ServiceMonitorSpec{
-				JobLabel:              smSpec.JobLabel,
-				TargetLabels:          smSpec.TargetLabels,
-				PodTargetLabels:       smSpec.PodTargetLabels,
-				Endpoints:             smSpec.Endpoints,
-				Selector:              smSpec.Selector,
-				NamespaceSelector:     smSpec.NamespaceSelector,
-				SampleLimit:           smSpec.SampleLimit,
-				TargetLimit:           smSpec.TargetLimit,
-				LabelLimit:            smSpec.LabelLimit,
-				LabelNameLengthLimit:  smSpec.LabelNameLengthLimit,
-				LabelValueLengthLimit: smSpec.LabelValueLengthLimit,
-			}
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // createOrUpdateNetworkPolicies creates or updates network policies for this component

@@ -18,7 +18,6 @@ spec:
   endpoints:
     - path: /metrics
       targetPort: http-metrics
-      enableHttp2: false
     {{ if .isIstioEnabled }}
       scheme: https
       tlsConfig:
