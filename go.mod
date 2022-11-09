@@ -18,7 +18,6 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f
 	github.com/hashicorp/go-retryablehttp v0.6.8
-	github.com/jetstack/cert-manager v1.7.1
 	github.com/onsi/ginkgo/v2 v2.1.4
 	github.com/onsi/gomega v1.19.0
 	github.com/oracle/oci-go-sdk/v53 v53.1.0
