@@ -139,18 +139,20 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 		return err
 	}
 
-	// Wait until OpenSearch is ready
-	_, err = waitOpenSearchReady(log, w.ctrlRuntimeClient, true)
+	//// Wait until OpenSearch is ready
+	//_, err = waitOpenSearchReady(log, w.ctrlRuntimeClient, true)
+	//if err != nil {
+	//	log.Progress("Failed to wait for OpenSearch to be ready after update.  The test results are not valid %v", err)
+	//	return err
+	//}
+
+	// Create a modifier that is used to update the Verrazzno CR opensearch replica field
+	m, desiredReplicas, err := getUpdateModifier(cr, tier)
 	if err != nil {
-		log.Progress("Failed to wait for OpenSearch to be ready after update.  The test results are not valid %v", err)
 		return err
 	}
 
-	// Create a modifier that is used to update the Verrazzno CR opensearch replica field
-	m, err := getUpdateModifier(cr, tier)
-	if err != nil {
-		return err
-	}
+	log.Infof("Updating Verrazzano CR OpenSearch %s tier, scaling to %v replicas", tier, desiredReplicas)
 
 	// Update the CR to change the replica count
 	err = updateCr(log, w.ctrlRuntimeClient, m)
@@ -186,20 +188,20 @@ func (w scaleWorker) GetMetricList() []prometheus.Metric {
 	}
 }
 
-func getUpdateModifier(cr *vzv1alpha1.Verrazzano, tier string) (*update.CRModifier, error) {
+func getUpdateModifier(cr *vzv1alpha1.Verrazzano, tier string) (*update.CRModifier, int, error) {
 	// Get the current opensearch replica field for the tier in the VZ CR
 	currentReplicas := getCurrentReplicas(cr, tier)
 
 	max, err := strconv.Atoi(config.PsrEnv.GetEnv(maxReplicaCount))
 	if err != nil {
-		return nil, fmt.Errorf("maxReplicaCount can not be parsed to an integer: %f", err)
+		return nil, 0, fmt.Errorf("maxReplicaCount can not be parsed to an integer: %f", err)
 	}
 	min, err := strconv.Atoi(config.PsrEnv.GetEnv(minReplicaCount))
 	if err != nil {
-		return nil, fmt.Errorf("minReplicaCount can not be parsed to an integer: %f", err)
+		return nil, 0, fmt.Errorf("minReplicaCount can not be parsed to an integer: %f", err)
 	}
 	if min < 1 {
-		return nil, fmt.Errorf("minReplicaCount can not be less than 1")
+		return nil, 0, fmt.Errorf("minReplicaCount can not be less than 1")
 	}
 	var desiredReplicas int32
 	if currentReplicas == min {
@@ -212,22 +214,26 @@ func getUpdateModifier(cr *vzv1alpha1.Verrazzano, tier string) (*update.CRModifi
 
 	switch tier {
 	case masterTier:
-		if len(cr.Spec.Components.Elasticsearch.Nodes) == 1 {
-			m = update.OpensearchAllNodeRolesModifier{NodeReplicas: desiredReplicas}
-		} else {
-			m = update.OpensearchAllNodeRolesModifier{NodeReplicas: desiredReplicas}
-		}
-
+		//if len(cr.Spec.Components.Elasticsearch.Nodes) == 1 {
+		//	m = update.OpensearchAllNodeRolesModifier{NodeReplicas: desiredReplicas}
+		//} else {
+		//	m = update.OpensearchMasterNodeGroupModifier{NodeReplicas: desiredReplicas}
+		//}
+		m = update.OpensearchMasterNodeGroupModifier{NodeReplicas: desiredReplicas}
 	case dataTier:
 		m = update.OpensearchDataNodeGroupModifier{NodeReplicas: desiredReplicas}
 	case ingestTier:
 		m = update.OpensearchIngestNodeGroupModifier{NodeReplicas: desiredReplicas}
 	}
-	return &m, nil
+	return &m, int(desiredReplicas), nil
 }
 
 // Get current replicas in the VZ CR elasticesearch component for the current tier
 func getCurrentReplicas(cr *vzv1alpha1.Verrazzano, tier string) int {
+	if cr.Spec.Components.Elasticsearch == nil || cr.Spec.Components.Elasticsearch.Nodes == nil {
+		return 1
+	}
+
 	for _, node := range cr.Spec.Components.Elasticsearch.Nodes {
 		for _, nodeRole := range node.Roles {
 			if string(nodeRole) == tier {
@@ -271,7 +277,7 @@ func waitReady(log vzlog.VerrazzanoLogger, desiredReady bool) (cr *vzv1alpha1.Ve
 		if ready == desiredReady {
 			break
 		}
-		log.Progress("Waiting for Verrazzano CR ready state to be %v", desiredReady)
+		log.Progressf("Waiting for Verrazzano CR ready state to be %v", desiredReady)
 		time.Sleep(3 * time.Second)
 	}
 	return cr, err
@@ -291,7 +297,7 @@ func waitOpenSearchReady(log vzlog.VerrazzanoLogger, ctrlRuntimeClient client.Cl
 		if ready == desiredReady {
 			break
 		}
-		log.Progress("Waiting for OpenSearch  ready state to be %v", desiredReady)
+		log.Progressf("Waiting for OpenSearch  ready state to be %v", desiredReady)
 		time.Sleep(3 * time.Second)
 	}
 	return cr, err
