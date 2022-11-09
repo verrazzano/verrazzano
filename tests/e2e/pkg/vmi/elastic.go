@@ -258,7 +258,7 @@ func (e *Elastic) CheckIngress() bool {
 		return false
 	}
 	for _, ingress := range ingressList.Items {
-		if ingress.Name == fmt.Sprintf("vmi-%v-os-ingest", e.binding) {
+		if ingress.Name == fmt.Sprintf("vmi-%v-es-ingest", e.binding) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Found Ingress %v for binding %v", ingress.Name, e.binding))
 			return true
 		}
