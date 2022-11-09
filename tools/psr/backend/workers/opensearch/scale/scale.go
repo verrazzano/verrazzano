@@ -139,13 +139,6 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 		return err
 	}
 
-	//// Wait until OpenSearch is ready
-	//_, err = waitOpenSearchReady(log, w.ctrlRuntimeClient, true)
-	//if err != nil {
-	//	log.Progress("Failed to wait for OpenSearch to be ready after update.  The test results are not valid %v", err)
-	//	return err
-	//}
-
 	// Create a modifier that is used to update the Verrazzno CR opensearch replica field
 	m, desiredReplicas, err := getUpdateModifier(cr, tier)
 	if err != nil {
@@ -166,13 +159,13 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 		log.Progress("Failed to wait for Verrazzano to be NOT ready after update.  The test results are not valid %v", err)
 		return err
 	}
-
-	// Wait until OpenSearch is NOT ready
-	_, err = waitOpenSearchReady(log, w.ctrlRuntimeClient, false)
-	if err != nil {
-		log.Progress("Failed to wait for OpenSearch to be NOT ready after update.  The test results are not valid %v", err)
-		return err
-	}
+	//
+	//// Wait until OpenSearch is NOT ready
+	//_, err = waitOpenSearchReady(log, w.ctrlRuntimeClient, false)
+	//if err != nil {
+	//	log.Progress("Failed to wait for OpenSearch to be NOT ready after update.  The test results are not valid %v", err)
+	//	return err
+	//}
 
 	return nil
 }
