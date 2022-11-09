@@ -797,8 +797,8 @@ func TestIsVeleroEnabled(t *testing.T) {
 
 // TestIsCertManagerEnabled tests the IsCertManagerEnabled function
 // GIVEN a call to IsCertManagerEnabled
-//
-// THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
+// WHEN the CertManager component is explicitly disabled
+// THEN return false, true otherwise (enabled by default)
 func TestIsCertManagerEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.True(IsCertManagerEnabled(nil))
@@ -845,8 +845,8 @@ func TestIsCertManagerEnabled(t *testing.T) {
 
 // TestIsKubeStateMetricsEnabled tests the IsKubeStateMetricsEnabled function
 // GIVEN a call to IsKubeStateMetricsEnabled
-//
-// THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
+// WHEN the KubeStateMetrics component is explicitly enabled
+// THEN return true, false otherwise (disabled by default)
 func TestIsKubeStateMetricsEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.False(IsKubeStateMetricsEnabled(nil))
@@ -893,8 +893,8 @@ func TestIsKubeStateMetricsEnabled(t *testing.T) {
 
 // TestIsAuthProxyEnabled tests the IsAuthProxyEnabled function
 // GIVEN a call to IsAuthProxyEnabled
-//
-// THEN the value of the Enabled flag is returned if present, true otherwise (enabled by default)
+// WHEN the AuthProxy component is explicitly disabled
+// THEN return false, true otherwise (enabled by default)
 func TestIsAuthProxyEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.True(IsAuthProxyEnabled(nil))
@@ -941,8 +941,8 @@ func TestIsAuthProxyEnabled(t *testing.T) {
 
 // TestIsRancherBackupEnabled tests the IsRancherBackupEnabled function
 // GIVEN a call to IsRancherBackupEnabled
-//
-// THEN the value of the Enabled flag is returned if present, false otherwise (disabled by default)
+// WHEN the RancherBackup component is explicitly enabled
+// THEN return true, false otherwise (disabled by default)
 func TestIsRancherBackupEnabled(t *testing.T) {
 	asserts := assert.New(t)
 	asserts.False(IsRancherBackupEnabled(nil))
@@ -987,6 +987,10 @@ func TestIsRancherBackupEnabled(t *testing.T) {
 		}}))
 }
 
+// TestIsPrometheusComponentsEnabled tests whether the PrometheusComponents are enabled or not
+// GIVEN a call to isEnabled function of a Prometheus component
+// WHEN the Prometheus component is explicitly enabled or disabled
+// THEN return the value as expected in the enabled variable
 func TestIsPrometheusComponentsEnabled(t *testing.T) {
 	var tests = []struct {
 		name      string

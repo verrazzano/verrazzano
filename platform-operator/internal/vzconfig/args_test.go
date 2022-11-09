@@ -30,8 +30,8 @@ const (
 
 // TestCheckExternalIPsArgs tests CheckExternalIPsArgs
 // GIVEN a v1alpha1 VZ CR with ExternalIP IstioOverrides
-// THEN return an error
-// IF the override key is not found or the IP is not valid
+// WHEN the override key is not found or the IP is invalid
+// THEN return an error, nil otherwise
 func TestCheckExternalIPsArgs(t *testing.T) {
 	asserts := assert.New(t)
 
@@ -52,8 +52,8 @@ func TestCheckExternalIPsArgs(t *testing.T) {
 
 // TestCheckExternalIPsOverridesArgs tests CheckExternalIPsOverridesArgs
 // GIVEN a v1beta1 VZ CR with ExternalIP IstioOverrides
-// THEN return an error
-// IF the IP is not valid
+// WHEN the IP is not valid
+// THEN return an error, nil otherwise
 func TestCheckExternalIPsOverridesArgs(t *testing.T) {
 	asserts := assert.New(t)
 
@@ -69,8 +69,8 @@ func TestCheckExternalIPsOverridesArgs(t *testing.T) {
 
 // TestCheckExternalIPsOverridesArgsWithPaths tests CheckExternalIPsOverridesArgsWithPaths
 // GIVEN a v1beta1 VZ CR with ExternalIP IstioOverrides
-// THEN return an error
-// IF the IP is not valid
+// WHEN the IP is not valid
+// THEN return an error, nil otherwise
 func TestCheckExternalIPsOverridesArgsWithPaths(t *testing.T) {
 	asserts := assert.New(t)
 
