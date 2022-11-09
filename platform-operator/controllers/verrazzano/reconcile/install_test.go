@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package verrazzano
+package reconcile
 
 import (
 	"context"
@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const testBomFile = "../../verrazzano-bom.json"
+const testBomFile = "../../../verrazzano-bom.json"
 const fakeCompReleaseName = "verrazzano-authproxy"
 
 var (
@@ -392,7 +392,7 @@ func testUpdate(t *testing.T,
 	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
 		return helm.ChartStatusDeployed, nil
 	})
-	config.TestProfilesDir = "../../manifests/profiles"
+	config.TestProfilesDir = relativeProfilesDir
 
 	// Create and make the request
 	request := newRequest(namespace, name)

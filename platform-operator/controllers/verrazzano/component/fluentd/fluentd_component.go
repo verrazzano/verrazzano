@@ -165,6 +165,17 @@ func (c fluentdComponent) PreInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
+func (c fluentdComponent) Reconcile(ctx spi.ComponentContext) error {
+	installed, err := c.IsInstalled(ctx)
+	if err != nil {
+		return err
+	}
+	if installed {
+		err = c.Install(ctx)
+	}
+	return err
+}
+
 // Install Fluentd component install processing
 func (c fluentdComponent) Install(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.Install(ctx); err != nil {

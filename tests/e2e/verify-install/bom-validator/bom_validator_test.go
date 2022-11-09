@@ -6,7 +6,6 @@ package bomvalidator
 import (
 	"encoding/json"
 	"fmt"
-	corev1 "k8s.io/api/core/v1"
 	"log"
 	"os"
 	"regexp"
@@ -17,12 +16,13 @@ import (
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	platformOperatorPodNameSearchString = "verrazzano-platform-operator"                                                       // Pod Substring for finding the platform operator pod
-	rancherWarningMessage               = "Rancher determined the image version is sufficient and does not need to be updated" // For known Rancher component upgrade behavior during VZ upgrade
+	platformOperatorPodNameSearchString = "verrazzano-platform-operator"                          // Pod Substring for finding the platform operator pod
+	rancherWarningMessage               = "Rancher shell image version may be old due to upgrade" // For known Rancher component upgrade behavior during VZ upgrade
 )
 
 type imageDetails struct {
@@ -63,14 +63,10 @@ type knownIssues struct {
 	message       string
 }
 
-// Mainly a workaround for Rancher additional images. Rancher only updates these images to the latest
-// version mentioned in the BOM file if the cluster contains image versions older than the minimum image versions as specified by rancher.
+// Rancher Helm pods hang around for 1 hour, so during an upgrade there will be a mix of old and new Rancher
+// shell images, so exclude that image from validation
 var knownImageIssues = map[string]knownIssues{
-	"rancher-webhook": {message: rancherWarningMessage},
-	"fleet-agent":     {message: rancherWarningMessage},
-	"fleet":           {message: rancherWarningMessage},
-	"gitjob":          {message: rancherWarningMessage},
-	"shell":           {message: rancherWarningMessage},
+	"shell": {message: rancherWarningMessage},
 }
 
 // BOM validations validates the images of below allowed namespaces only

@@ -10,6 +10,11 @@ image:
   terminationGracePeriodSeconds: 60
 
 logging:
+  credentialsSecret: 'my-secret'
+  usernameKey: username
+  passwordKey: password
+  clusterName: local
+  osURL: 'https://my-opensearch:9200'
   name: fluentd
   # NOTE: The fluentd-kubernetes-daemonset image now comes from the bill of materials file (verrazzano-bom.json).
 

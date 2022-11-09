@@ -16,12 +16,14 @@ import (
 const (
 	CommandName = "start"
 	helpShort   = "Start a PSR scenario"
-	helpLong    = `The command 'start' starts a PSR scenario in the specified namespace`
+	helpLong    = `The command 'start' starts a PSR scenario in the specified namespace. 
+Multiple scenarios can be started in the same namespace.`
 	helpExample = `psrctl start -s ops-s1`
 )
 
 var scenarioID string
 var namespace string
+var scenarioDir string
 
 func NewCmdStart(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -33,13 +35,14 @@ func NewCmdStart(vzHelper helpers.VZHelper) *cobra.Command {
 
 	cmd.PersistentFlags().StringVarP(&scenarioID, constants.FlagScenario, constants.FlagsScenarioShort, "", constants.FlagScenarioHelp)
 	cmd.PersistentFlags().StringVarP(&namespace, constants.FlagNamespace, constants.FlagNamespaceShort, "default", constants.FlagNamespaceHelp)
+	cmd.PersistentFlags().StringVarP(&scenarioDir, constants.FlagScenarioDir, constants.FlagScenarioDirShort, "", constants.FlagScenarioDirHelp)
 
 	return cmd
 }
 
 // RunCmdStart - Run the "psrctl start" command
 func RunCmdStart(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	m, err := scenario.NewManager(namespace)
+	m, err := scenario.NewManager(namespace, scenarioDir)
 	if err != nil {
 		return fmt.Errorf("Failed to create scenario Manager %v", err)
 	}

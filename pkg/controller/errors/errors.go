@@ -42,6 +42,12 @@ func (r RetryableError) Error() string {
 	return builder.String()
 }
 
+// IsRetryableError returns true if the error is a RetryableError.
+func IsRetryableError(err error) bool {
+	_, ok := err.(RetryableError)
+	return ok
+}
+
 // IsUpdateConflict returns true if the error is an update conflict error. This is occurs when the controller-runtime cache
 // is out of sync with the etc database
 func IsUpdateConflict(err error) bool {

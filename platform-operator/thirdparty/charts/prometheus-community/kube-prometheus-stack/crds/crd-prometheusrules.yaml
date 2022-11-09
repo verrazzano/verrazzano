@@ -19,6 +19,7 @@ spec:
     - promrule
     singular: prometheusrule
   scope: Namespaced
+  preserveUnknownFields: false
   versions:
   - name: v1
     schema:

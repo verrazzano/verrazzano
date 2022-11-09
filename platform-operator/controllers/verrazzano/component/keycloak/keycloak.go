@@ -374,26 +374,33 @@ const pkceClientUrisTemplate = `
 	"redirectUris": [
 	  "https://verrazzano.{{.DNSSubDomain}}/*",
 	  "https://verrazzano.{{.DNSSubDomain}}/verrazzano/authcallback",
-	  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
-	  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://opensearch.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://opensearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://grafana.vmi.system.{{.DNSSubDomain}}/*",
 	  "https://grafana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
-	  "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://opensearchdashboards.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://opensearchdashboards.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://jaeger.{{.DNSSubDomain}}/*"
+	  "https://jaeger.{{.DNSSubDomain}}/*"{{ if .OSHostExists}},
+      "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
+      "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+      "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
+      "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback"{{end}}
 	],
 	"webOrigins": [
 	  "https://verrazzano.{{.DNSSubDomain}}",
-	  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
+	  "https://opensearch.vmi.system.{{.DNSSubDomain}}",
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}",
 	  "https://grafana.vmi.system.{{.DNSSubDomain}}",
-	  "https://kibana.vmi.system.{{.DNSSubDomain}}",
+	  "https://opensearchdashboards.vmi.system.{{.DNSSubDomain}}",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}",
-	  "https://jaeger.{{.DNSSubDomain}}"
+	  "https://jaeger.{{.DNSSubDomain}}"{{ if .OSHostExists}},
+      "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
+      "https://kibana.vmi.system.{{.DNSSubDomain}}"
+ {{end}} 
 	]
 `
 
@@ -466,6 +473,7 @@ type KeycloakClientSecret struct {
 
 type templateData struct {
 	DNSSubDomain string
+	OSHostExists bool
 }
 
 // imageData needed for template rendering
@@ -1414,6 +1422,15 @@ func upgradeStatefulSet(ctx spi.ComponentContext) error {
 
 func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string, error) {
 	data := templateData{}
+
+	// Update verrazzano-pkce client redirect and web origin uris if deprecated host exists in the ingress
+	osHostExists, err := DoesIngressHostExist(ctx, constants.VerrazzanoSystemNamespace, constants.OpensearchIngress)
+	if err != nil {
+		return "", err
+	}
+	// Set bool value if deprecated host exists
+	data.OSHostExists = osHostExists
+
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
 	if err != nil {
@@ -1582,4 +1599,21 @@ func addClientRoleToUser(ctx spi.ComponentContext, cfg *restclient.Config, cli k
 	}
 	ctx.Log().Oncef("Added client role %s to the user %s", roleName, userName)
 	return nil
+}
+
+// DoesIngressHostExist returns true if ingress host exists
+func DoesIngressHostExist(ctx spi.ComponentContext, namespace string, ingressName string) (bool, error) {
+	ingress := &networkv1.Ingress{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: ingressName}, ingress)
+	if err != nil {
+		return false, err
+	}
+	if ingress != nil && ingress.Spec.Rules[0].Size() > 1 {
+		for _, rule := range ingress.Spec.Rules {
+			if strings.HasPrefix(rule.Host, "elasticsearch") {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }

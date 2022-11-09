@@ -1,9 +1,10 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package verrazzano
+package reconcile
 
 import (
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -135,7 +136,10 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 			}
 			compLog.Progressf("Component %s pre-install is running ", compName)
 			if err := comp.PreInstall(compContext); err != nil {
-				compLog.ErrorfThrottled("Error running PreInstall for component %s: %v", compName, err)
+				if !ctrlerrors.IsRetryableError(err) {
+					compLog.ErrorfThrottled("Error running PreInstall for component %s: %v", compName, err)
+				}
+
 				return ctrl.Result{Requeue: true}
 			}
 
@@ -145,7 +149,10 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 			// If component is not installed,install it
 			compLog.Oncef("Component %s install started ", compName)
 			if err := comp.Install(compContext); err != nil {
-				compLog.ErrorfThrottled("Error running Install for component %s: %v", compName, err)
+				if !ctrlerrors.IsRetryableError(err) {
+					compLog.ErrorfThrottled("Error running Install for component %s: %v", compName, err)
+				}
+
 				return ctrl.Result{Requeue: true}
 			}
 
@@ -163,7 +170,10 @@ func (r *Reconciler) installSingleComponent(spiCtx spi.ComponentContext, install
 		case compStatePostInstall:
 			compLog.Oncef("Component %s post-install running", compName)
 			if err := comp.PostInstall(compContext); err != nil {
-				compLog.ErrorfThrottled("Error running PostInstall for component %s: %v", compName, err)
+				if !ctrlerrors.IsRetryableError(err) {
+					compLog.ErrorfThrottled("Error running PostInstall for component %s: %v", compName, err)
+				}
+
 				return ctrl.Result{Requeue: true}
 			}
 
