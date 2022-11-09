@@ -857,7 +857,6 @@ func TestCreateScrapeConfigFromTrait(t *testing.T) {
 	_ = promoperapi.AddToScheme(scheme)
 	_ = vzapi.AddToScheme(scheme)
 	_ = oamcore.SchemeBuilder.AddToScheme(scheme)
-	jobName := fmt.Sprintf("%s_%s_%s", foo, "default", bar)
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&k8score.Namespace{}).Build()
 	testWorkLoad := unstructured.Unstructured{}
 	testWorkLoad.SetGroupVersionKind(oamcore.ContainerizedWorkloadGroupVersionKind)
@@ -992,10 +991,7 @@ func TestCreateScrapeConfigFromTrait(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			name, job, err := createScrapeConfigFromTrait(context.Background(), &tt.trait, 0, tt.secret, tt.workload, c)
-			if len(name) > 0 {
-				asserts.Equal(t, jobName, name)
-			}
+			_, job, err := createScrapeConfigFromTrait(context.Background(), &tt.trait, 0, tt.secret, tt.workload, c)
 			if tt.wantErr {
 				asserts.ErrorContains(t, err, tt.errContains)
 			} else {
@@ -1005,9 +1001,7 @@ func TestCreateScrapeConfigFromTrait(t *testing.T) {
 				} else {
 					asserts.NotNil(t, job)
 					asserts.True(t, job.Exists("scheme"))
-					if tt.secret != nil {
-						asserts.True(t, job.Exists(basicAuthLabel))
-					}
+					asserts.Equal(t, tt.secret != nil, job.Exists(basicAuthLabel))
 				}
 			}
 		})
