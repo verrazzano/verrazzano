@@ -91,13 +91,19 @@ type jaegerMCData struct {
 }
 
 func createOrUpdateMCJaeger(client clipkg.Client) error {
+	// Fetch the registration secret
 	registrationSecret, err := common.GetManagedClusterRegistrationSecret(client)
 	if err != nil {
 		return err
 	}
+	// If there is no registration secret, skip MC Jaeger creation
 	if registrationSecret == nil {
 		return nil
 	}
+	if err := createOrUpdateMCSecret(client, registrationSecret); err != nil {
+		return err
+	}
+	// Render and install the MC Jaeger instance
 	buf := &bytes.Buffer{}
 	if err := renderManagedClusterInstance(registrationSecret, buf); err != nil {
 		return err

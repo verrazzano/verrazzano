@@ -238,10 +238,7 @@ func (c jaegerOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
 		return err
 	}
 	if installed {
-		if err := createJaegerSecrets(ctx); err != nil {
-			return err
-		}
-		err = c.Install(ctx)
+		return createOrUpdateMCJaeger(ctx.Client())
 	}
 	return err
 }

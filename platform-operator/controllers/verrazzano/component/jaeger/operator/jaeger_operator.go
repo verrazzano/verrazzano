@@ -784,20 +784,18 @@ func createJaegerSecrets(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	if registrationSecret == nil {
-		createInstance, err := isCreateDefaultJaegerInstance(ctx)
-		if err != nil {
-			return err
-		}
-		if createInstance {
-			// Create Jaeger secret with the OpenSearch credentials
-			return createJaegerSecret(ctx)
-		}
+	if registrationSecret != nil {
 		return nil
 	}
-
-	// Create the managed cluster Jaeger secret
-	return createOrUpdateMCSecret(ctx.Client(), registrationSecret)
+	createInstance, err := isCreateDefaultJaegerInstance(ctx)
+	if err != nil {
+		return err
+	}
+	if createInstance {
+		// Create Jaeger secret with the OpenSearch credentials
+		return createJaegerSecret(ctx)
+	}
+	return nil
 }
 
 func buildJaegerHostnameForDomain(dnsDomain string) string {
