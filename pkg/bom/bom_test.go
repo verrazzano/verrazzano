@@ -5,6 +5,7 @@ package bom
 
 import (
 	"fmt"
+	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -262,4 +263,24 @@ func TestBomImageOverrides(t *testing.T) {
 	img := sc.Images[0]
 	assert.Equal(t, "testRegistry", bom.ResolveRegistry(sc, img))
 	assert.Equal(t, "testRepository", bom.ResolveRepo(sc, img))
+}
+
+// TestParseBom tests loading a bom json into a struct
+// GIVEN a json file
+// WHEN I call ParseBom
+// THEN the correct Verrazzano bom is returned when json is valid, else an error is returned
+func TestParseBom(t *testing.T) {
+	assert := assert.New(t)
+	bom, err := ParseBom("invalid")
+	assert.Error(err, "should have returned error parsing invalid bom")
+
+	jsonBom, err := ioutil.ReadFile(realBomFilePath)
+	assert.NoError(err, "error while reading bom file")
+	bom, err = ParseBom(string(jsonBom))
+	assert.NoError(err, "error parsing valid bom")
+	assert.Equal("ghcr.io", bom.bomDoc.Registry, "Wrong registry name")
+	assert.Len(bom.bomDoc.Components, 14, "incorrect number of Bom components")
+
+	// Ignore the values in the real bom file since some will change every build
+	validateImages(assert, &bom, false)
 }

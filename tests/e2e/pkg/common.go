@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	v12 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"io/ioutil"
 	"net/http"
 	neturl "net/url"
@@ -19,12 +18,15 @@ import (
 	"sync"
 	"time"
 
+	v12 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/onsi/ginkgo/v2"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -641,4 +643,32 @@ func CalculateSeconds(age string) (int64, error) {
 		return number, nil
 	}
 	return 0, fmt.Errorf("conversion to seconds for time unit %s is unsupported", match[2])
+}
+
+// GetBOM - get the BOM from the platform operator in the cluster
+func GetBOM() (*bom.Bom, error) {
+	vpo := "verrazzano-platform-operator"
+	vpoNamespace := "verrazzano-install"
+	pods, err := GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": vpo}}, vpoNamespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting %s pods", vpo)
+	}
+
+	if len(pods) == 0 {
+		return nil, fmt.Errorf("invalid number of %s pods", vpo)
+	}
+
+	//  Get the BOM from platform-operator
+	var command = []string{"cat", "/verrazzano/platform-operator/verrazzano-bom.json"}
+	stdout, stderr, err := Execute(pods[0].GetName(), pods[0].Spec.Containers[0].Name, vpoNamespace, command)
+	if err != nil {
+		return nil, fmt.Errorf("error executing command on %s pod, error: %s, stderr: %s, stdout: %s", vpo, err.Error(), stderr, stdout)
+	}
+
+	if len(stdout) == 0 {
+		return nil, fmt.Errorf("error retrieving BOM from platform operator, zero length")
+	}
+
+	bom, err := bom.ParseBom(stdout)
+	return &bom, err
 }

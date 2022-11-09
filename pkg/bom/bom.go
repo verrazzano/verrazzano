@@ -127,14 +127,8 @@ func NewBom(bomPath string) (Bom, error) {
 	if err != nil {
 		return Bom{}, err
 	}
-	bom := Bom{
-		subComponentMap: make(map[string]*BomSubComponent),
-	}
-	err = bom.init(string(jsonBom))
-	if err != nil {
-		return Bom{}, err
-	}
-	return bom, nil
+
+	return ParseBom(string(jsonBom))
 }
 
 // Initialize the BomInfo.  Load the Bom from the JSON file and build
@@ -342,4 +336,16 @@ func FindKV(kvs []KeyValue, key string) string {
 		}
 	}
 	return ""
+}
+
+// ParseBom - create a new bom from a JSON string
+func ParseBom(bomJson string) (Bom, error) {
+	bom := Bom{
+		subComponentMap: make(map[string]*BomSubComponent),
+	}
+	err := bom.init(bomJson)
+	if err != nil {
+		return Bom{}, err
+	}
+	return bom, nil
 }
