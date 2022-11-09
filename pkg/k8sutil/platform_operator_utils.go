@@ -4,9 +4,13 @@ package k8sutil
 
 import (
 	"fmt"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"os/exec"
 	"strings"
 )
+
+// cmdRunner needed for unit tests
+var runner vzos.CmdRunner = vzos.DefaultRunner{}
 
 // GetInstalledBOMData Exec's into the Platform Operator pod and returns the installed BOM file data as JSON
 func GetInstalledBOMData(kubeconfigPath string) ([]byte, error) {
@@ -21,11 +25,11 @@ func GetInstalledBOMData(kubeconfigPath string) ([]byte, error) {
 	if len(kubeconfigArgs) > 0 {
 		listPodsArgs = append(listPodsArgs, kubeconfigArgs...)
 	}
-	podListOutput, err := exec.Command("kubectl", listPodsArgs...).Output()
+	cmd := exec.Command("kubectl", listPodsArgs...)
+	podListOutput, _, err := runner.Run(cmd)
 	if err != nil {
 		return []byte{}, err
 	}
-
 	var platformOperatorPodName = ""
 	vzInstallPods := string(podListOutput)
 	vzInstallPodArray := strings.Split(vzInstallPods, "\n")
@@ -46,7 +50,8 @@ func GetInstalledBOMData(kubeconfigPath string) ([]byte, error) {
 	if len(kubeconfigPath) > 0 {
 		getBOMArgs = append(getBOMArgs, "--kubeconfig", kubeconfigPath)
 	}
-	bomBytes, err := exec.Command("kubectl", getBOMArgs...).Output()
+	cmd = exec.Command("kubectl", getBOMArgs...)
+	bomBytes, _, err := runner.Run(cmd)
 	if err != nil {
 		return []byte{}, err
 	}
@@ -54,4 +59,14 @@ func GetInstalledBOMData(kubeconfigPath string) ([]byte, error) {
 		return bomBytes, fmt.Errorf("Error retrieving BOM from platform operator, no data found")
 	}
 	return bomBytes, nil
+}
+
+// SetCmdRunner sets the command runner as needed by unit tests
+func SetCmdRunner(r vzos.CmdRunner) {
+	runner = r
+}
+
+// SetDefaultRunner sets the command runner to default
+func SetDefaultRunner() {
+	runner = vzos.DefaultRunner{}
 }

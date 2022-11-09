@@ -1006,7 +1006,7 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(clustersapi.RegistrationFailed, vmc.Status.RancherRegistration.Status)
-			asserts.Equal("Failed to create Rancher API client: Failed, Rancher ingress cattle-system/rancher is missing host names", vmc.Status.RancherRegistration.Message)
+			asserts.Contains(vmc.Status.RancherRegistration.Message, "Failed to create Rancher API client")
 			return nil
 		})
 

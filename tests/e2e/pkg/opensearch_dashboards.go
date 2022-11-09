@@ -32,11 +32,11 @@ func ListIndexPatterns(kubeconfigPath string) []string {
 	}
 	resp, err := getOpenSearchDashboardsWithBasicAuth(url, "", username, password, kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting Elasticsearch indices: url=%s, error=%v", url, err))
+		Log(Error, fmt.Sprintf("Error getting Opensearch indices: url=%s, error=%v", url, err))
 		return list
 	}
 	if resp.StatusCode != http.StatusOK {
-		Log(Error, fmt.Sprintf("Error retrieving Elasticsearch indices: url=%s, status=%d", url, resp.StatusCode))
+		Log(Error, fmt.Sprintf("Error retrieving Opensearch indices: url=%s, status=%d", url, resp.StatusCode))
 		return list
 	}
 	Log(Debug, fmt.Sprintf("indices: %s", resp.Body))
@@ -106,7 +106,7 @@ func CreateIndexPattern(pattern string) map[string]interface{} {
 	return result
 }
 
-// PostOpensearchDashboards POST the request entity body to Elasticsearch API path
+// PostOpensearchDashboards POST the request entity body to Opensearch API path
 // The provided path is appended to the OpenSearchDashboards base URL
 func PostOpensearchDashboards(path string, body string, additionalHeaders ...string) (*HTTPResponse, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()

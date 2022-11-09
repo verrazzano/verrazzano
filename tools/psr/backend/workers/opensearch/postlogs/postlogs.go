@@ -9,28 +9,39 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"sync/atomic"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/security/password"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/getlogs"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+const LogEntries = "LOG_ENTRIES"
+const LogLength = "LOG_LENGTH"
+
 const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
 
-type postLogs struct {
-	spi.Worker
+// Use an http client interface so that we can override http.Client for unit tests
+type httpClientI interface {
+	Do(_ *http.Request) (resp *http.Response, err error)
+}
+
+var httpClient httpClientI = &http.Client{}
+var _ httpClientI = &http.Client{}
+
+type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetrics
 }
 
-var _ spi.Worker = postLogs{}
+var _ spi.Worker = worker{}
 
 // workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
 type workerMetrics struct {
@@ -42,7 +53,7 @@ type workerMetrics struct {
 }
 
 func NewPostLogsWorker() (spi.Worker, error) {
-	w := postLogs{workerMetrics: &workerMetrics{
+	w := worker{workerMetrics: &workerMetrics{
 		openSearchPostSuccessCountTotal: metrics.MetricItem{
 			Name: "opensearch_post_success_count_total",
 			Help: "The total number of successful OpenSearch POST requests",
@@ -81,33 +92,47 @@ func NewPostLogsWorker() (spi.Worker, error) {
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
-func (w postLogs) GetWorkerDesc() spi.WorkerDesc {
+func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		EnvName:     config.WorkerTypePostLogs,
+		WorkerType:  config.WorkerTypePostLogs,
 		Description: "The postlogs worker performs POST requests on the OpenSearch endpoint",
 		MetricsName: "postlogs",
 	}
 }
 
-func (w postLogs) GetEnvDescList() []osenv.EnvVarDesc {
-	return []osenv.EnvVarDesc{}
+func (w worker) GetEnvDescList() []osenv.EnvVarDesc {
+	return []osenv.EnvVarDesc{
+		{Key: LogEntries, DefaultVal: "1", Required: false},
+		{Key: LogLength, DefaultVal: "1", Required: false},
+	}
 }
 
-func (w postLogs) WantLoopInfoLogged() bool {
+func (w worker) WantLoopInfoLogged() bool {
 	return false
 }
 
-func (w postLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-	c := http.Client{}
+func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+	c := httpClient
+	logEntries, err := strconv.Atoi(config.PsrEnv.GetEnv(LogEntries))
+	if err != nil {
+		return err
+	}
+	logLength, err := strconv.Atoi(config.PsrEnv.GetEnv(LogLength))
+	if err != nil {
+		return err
+	}
 
-	body, bodyChars := getBody()
+	body, bodyChars, err := getBody(logEntries, logLength)
+	if err != nil {
+		return err
+	}
 
 	req := http.Request{
 		Method: "POST",
 		URL: &url.URL{
 			Scheme: "http",
 			Host:   osIngestService,
-			Path:   fmt.Sprintf("/verrazzano-application-%s/_doc", conf.Namespace),
+			Path:   fmt.Sprintf("/verrazzano-application-%s/_bulk", conf.Namespace),
 		},
 		Header: http.Header{"Content-Type": {"application/json"}},
 		Body:   body,
@@ -116,13 +141,15 @@ func (w postLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) e
 	startRequest := time.Now().UnixNano()
 	resp, err := c.Do(&req)
 	if err != nil {
+		atomic.AddInt64(&w.workerMetrics.openSearchPostFailureCountTotal.Val, 1)
 		return err
 	}
 	if resp == nil {
+		atomic.AddInt64(&w.workerMetrics.openSearchPostFailureCountTotal.Val, 1)
 		return fmt.Errorf("POST request to URI %s received a nil response", req.URL.RequestURI())
 	}
 
-	if resp.StatusCode != 201 {
+	if resp.StatusCode != 200 && resp.StatusCode != 201 {
 		atomic.StoreInt64(&w.workerMetrics.openSearchPostFailureLatencyNanoSeconds.Val, time.Now().UnixNano()-startRequest)
 		atomic.AddInt64(&w.workerMetrics.openSearchPostFailureCountTotal.Val, 1)
 		return fmt.Errorf("OpenSearch POST request failed, returned %v status code with status: %s", resp.StatusCode, resp.Status)
@@ -133,11 +160,11 @@ func (w postLogs) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) e
 	return nil
 }
 
-func (w postLogs) GetMetricDescList() []prometheus.Desc {
+func (w worker) GetMetricDescList() []prometheus.Desc {
 	return w.metricDescList
 }
 
-func (w postLogs) GetMetricList() []prometheus.Metric {
+func (w worker) GetMetricList() []prometheus.Metric {
 	return []prometheus.Metric{
 		w.openSearchPostSuccessCountTotal.BuildMetric(),
 		w.openSearchPostFailureCountTotal.BuildMetric(),
@@ -147,10 +174,16 @@ func (w postLogs) GetMetricList() []prometheus.Metric {
 	}
 }
 
-func getBody() (io.ReadCloser, int64) {
-	body := fmt.Sprintf(`{"field1": "%s", "field2": "%s", "field3": "%s", "field4": "%s", "@timestamp": "%v"}`,
-		append(getlogs.GetRandomLowerAlpha(4), getTimestamp())...)
-	return io.NopCloser(bytes.NewBuffer([]byte(body))), int64(len(body))
+func getBody(logCount int, dataLength int) (io.ReadCloser, int64, error) {
+	var body string
+	for i := 0; i < logCount; i++ {
+		data, err := password.GeneratePassword(dataLength)
+		if err != nil {
+			return nil, 0, err
+		}
+		body = body + "{\"create\": {}}\n" + fmt.Sprintf("{\"postlogs-data\":\"%s\",\"@timestamp\":\"%v\"}\n", data, getTimestamp())
+	}
+	return io.NopCloser(bytes.NewBuffer([]byte(body))), int64(len(body)), nil
 }
 
 func getTimestamp() interface{} {
