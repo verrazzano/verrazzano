@@ -8,7 +8,6 @@ Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 Copyright (C) 2021, 2022, Oracle and/or its affiliates.
 Copyright (C) 2021, Oracle and/or its affiliates.
 Copyright (C) 2022, Oracle and/or its affiliates.
-Copyright (C) 2022, Oracle and/or its affiliates.
 Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
 Copyright (c) 2015-2021 Bitnami
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
@@ -884,6 +883,7 @@ Copyright 2017-2020, Google LLC.
 Copyright 2018 Google LLC. All Rights Reserved.
 Copyright 2019 Google LLC. All Rights Reserved.
 Copyright 2020 Google LLC. All Rights Reserved.
+Copyright 2020 Google LLC. All Rights Reserved.\n" +
 Copyright 2021 Google LLC. All Rights Reserved.
 Copyright 2022 Google LLC. All Rights Reserved.
 
@@ -2548,6 +2548,8 @@ Copyright 2016 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
+Copyright 2019 The Go Authors. All rights reserved.\n// Use of this source code is governed by a BSD-style\n// license that can be found in the LICENSE file.\n\npackage diff_test\n\nimport (\n\t\"fmt\"\n\t\"math/rand\"\n\t\"strings\"\n\t\"testing\"\n\n\t\"github.com/google/safehtml/template\"\n\t\"golang.org/x/tools/internal/lsp/diff\"\n\t\"golang.org/x/tools/internal/lsp/diff/difftest\"\n\t\"golang.org/x/tools/internal/span\"\n)\n"
+Copyright 2019 The Go Authors. All rights reserved.\n// Use of this source code is governed by a BSD-style\n// license that can be found in the LICENSE file.\n\npackage diff_test\n\nimport (\n\t\"fmt\"\n\t\"math/rand\"\n\t\"strings\"\n\t\"testing\"\n\n\t\"golang.org/x/tools/internal/lsp/diff\"\n\t\"golang.org/x/tools/internal/lsp/diff/difftest\"\n\t\"golang.org/x/tools/internal/span\"\n)\n"
 Copyright 2020 The Go Authors. All rights reserved.
 Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2022 The Go Authors. All rights reserved.
@@ -4253,4 +4255,4 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 === ATTRIBUTION-HELPER-GENERATED:
 === Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-92-g92f80ee4 GitCommit:92f80ee4d79a936be2aa36fc3b46588ca9455e46 GitTreeState:clean BuildDate:2022-11-04T20:47:41Z GoVersion:go1.19.2 Compiler:gc Platform:darwin/amd64}
-=== License file based on go.mod with md5 sum:  6c811c83030c5c81fdcd546942250d18
+=== License file based on go.mod with md5 sum:  e3f9184f5b2bda090fdb3b42eb38340f
