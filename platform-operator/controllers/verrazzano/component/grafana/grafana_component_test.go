@@ -84,6 +84,34 @@ func TestIsEnabled(t *testing.T) {
 	}
 }
 
+func TestName(t *testing.T) {
+	assert.Equal(t, "grafana", NewComponent().Name())
+}
+
+func TestNamespace(t *testing.T) {
+	assert.Equal(t, "verrazzano-system", NewComponent().Namespace())
+}
+
+func TestShouldInstallBeforeUpgrade(t *testing.T) {
+	assert.Equal(t, false, NewComponent().ShouldInstallBeforeUpgrade())
+}
+
+func TestGetDependencies(t *testing.T) {
+	assert.Equal(t, []string{"verrazzano-network-policies", "verrazzano-monitoring-operator"}, NewComponent().GetDependencies())
+}
+
+func TestGetJSONName(t *testing.T) {
+	assert.Equal(t, "grafana", NewComponent().GetJSONName())
+}
+
+func TestGetMinVerrazzanoVersion(t *testing.T) {
+	assert.Equal(t, "1.0.0", NewComponent().GetMinVerrazzanoVersion())
+}
+
+func TestIsOperatorInstallSupported(t *testing.T) {
+	assert.Equal(t, true, NewComponent().IsOperatorInstallSupported())
+}
+
 // TestGetIngressNames tests getting Grafana ingress names
 func TestGetIngressNames(t *testing.T) {
 	grafanaIngressNames := types.NamespacedName{
