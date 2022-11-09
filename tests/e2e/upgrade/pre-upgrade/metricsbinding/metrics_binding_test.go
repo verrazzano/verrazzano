@@ -53,14 +53,14 @@ func WhenMetricsBindingInstalledIt(description string, f func()) {
 			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		})
 	}
-	vz14OrLater, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+	vz14OrLater, err := pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfigPath)
 	if err != nil {
 		t.It(description, func() {
 			Fail(fmt.Sprintf("Failed to check Verrazzano version less than 1.4.0: %s", err.Error()))
 		})
 	}
 	below14 := !vz14OrLater
-	above12, err := pkg.IsVerrazzanoMinVersion("1.2.0", kubeconfigPath)
+	above12, err := pkg.IsVerrazzanoMinVersionEventually("1.2.0", kubeconfigPath)
 	if err != nil {
 		t.It(description, func() {
 			Fail(fmt.Sprintf("Failed to check Verrazzano version at or above 1.2.0: %s", err.Error()))

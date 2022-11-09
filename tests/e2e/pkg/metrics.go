@@ -92,7 +92,7 @@ func MetricsExistInCluster(metricsName string, keyMap map[string]string, kubecon
 // GetClusterNameMetricLabel returns the label name used for labeling metrics with the Verrazzano cluster
 // This is different in pre-1.1 VZ releases versus later releases
 func GetClusterNameMetricLabel(kubeconfigPath string) (string, error) {
-	isVz11OrGreater, err := IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
+	isVz11OrGreater, err := IsVerrazzanoMinVersionEventually("1.1.0", kubeconfigPath)
 	if err != nil {
 		Log(Error, fmt.Sprintf("Error checking Verrazzano min version == 1.1: %t", err))
 		return "verrazzano_cluster", err // callers can choose to ignore the error

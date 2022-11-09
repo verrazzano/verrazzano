@@ -6,13 +6,13 @@ package system
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"regexp"
 	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
@@ -96,7 +96,7 @@ var _ = t.Describe("Elasticsearch system component data", Label("f:observability
 		valid = validateWeblogicOperatorLogs() && valid
 		kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 		Expect(err).To(BeNil())
-		isJaegerSupported, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeConfigPath)
+		isJaegerSupported, err := pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeConfigPath)
 		Expect(err).To(BeNil())
 		if isJaegerSupported {
 			valid = validateJaegerCollectorLogs() && valid
