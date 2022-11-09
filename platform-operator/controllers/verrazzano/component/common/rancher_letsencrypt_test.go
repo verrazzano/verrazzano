@@ -91,7 +91,7 @@ func TestBuildLetsEncryptChain(t *testing.T) {
 }
 
 // TestProcessAdditionalCertificates verifies building the LetsEncrypt staging certificate chain
-// GIVEN a logger, client and vz instance with valid Certmanager spec
+// GIVEN a logger, client and Verrazzano CR with valid Certmanager spec
 //
 //	WHEN ProcessAdditionalCertificates is called
 //	THEN ProcessAdditionalCertificates should process the additional certs successfully with no error
