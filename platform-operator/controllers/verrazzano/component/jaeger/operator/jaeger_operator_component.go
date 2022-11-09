@@ -139,7 +139,7 @@ func (c jaegerOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := c.createOrUpdateJaegerResources(ctx); err != nil {
 		return err
 	}
-	if err := createOrUpdateMCJaeger(ctx.Client()); err != nil {
+	if _, err := createOrUpdateMCJaeger(ctx.Client()); err != nil {
 		return err
 	}
 	// these need to be set for helm component post install processing
@@ -232,15 +232,22 @@ func (c jaegerOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
 	return c.HelmComponent.Install(ctx)
 }
 
+// Reconcile configures the managed cluster or local cluster Jaeger instance, if Jaeger operator
+// is installed.
 func (c jaegerOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
 	installed, err := c.IsInstalled(ctx)
-	if err != nil {
+	if !installed {
 		return err
 	}
-	if installed {
-		return createOrUpdateMCJaeger(ctx.Client())
+	created, err := createOrUpdateMCJaeger(ctx.Client())
+	if created || err != nil {
+		return err
 	}
-	return err
+	// create the local cluster Jaeger instance if we did not create the managed cluster instance
+	if err := createJaegerSecrets(ctx); err != nil {
+		return err
+	}
+	return c.Install(ctx)
 }
 
 // IsInstalled checks if jaeger is installed

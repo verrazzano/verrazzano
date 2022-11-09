@@ -90,35 +90,35 @@ type jaegerMCData struct {
 	IsForceRecreate bool
 }
 
-func createOrUpdateMCJaeger(client clipkg.Client) error {
+func createOrUpdateMCJaeger(client clipkg.Client) (bool, error) {
 	// Fetch the registration secret
 	registrationSecret, err := common.GetManagedClusterRegistrationSecret(client)
 	if err != nil {
-		return err
+		return false, err
 	}
 	// If there is no registration secret, skip MC Jaeger creation
 	if registrationSecret == nil {
-		return nil
+		return false, nil
 	}
 	if err := createOrUpdateMCSecret(client, registrationSecret); err != nil {
-		return err
+		return false, err
 	}
 	// Render and install the MC Jaeger instance
 	buf := &bytes.Buffer{}
 	if err := renderManagedClusterInstance(registrationSecret, buf); err != nil {
-		return err
+		return false, err
 	}
 	// Unmarshal the YAML into an object
 	u := &unstructured.Unstructured{Object: map[string]interface{}{}}
 	err = yaml.Unmarshal(buf.Bytes(), u)
 	if err != nil {
-		return fmt.Errorf("failed to unmarshal jaeger YAML: %v", err)
+		return false, fmt.Errorf("failed to unmarshal jaeger YAML: %v", err)
 
 	}
 	// Make a copy of the spec field
 	jaegerSpec, _, err := unstructured.NestedFieldCopy(u.Object, "spec")
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// Create or update the Jaeger CR.  Always replace the entire spec.
@@ -133,7 +133,7 @@ func createOrUpdateMCJaeger(client clipkg.Client) error {
 		}
 		return nil
 	})
-	return err
+	return err == nil, err
 }
 
 // renderManagedClusterInstance renders the values for a managed cluster Jaeger instance into the provided buffer
