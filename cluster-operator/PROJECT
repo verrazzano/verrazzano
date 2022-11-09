@@ -1,0 +1,18 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+domain: verrazzano.io
+layout:
+- go.kubebuilder.io/v3
+projectName: cluster-operator
+repo: github.com/verrazzano/verrazzano
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: verrazzano.io
+  group: clusters.verrazzano.io
+  kind: VerrazzanoManagedCluster
+  path: github.com/verrazzano/verrazzano/api/v1alpha1
+  version: v1alpha1
+version: "3"
