@@ -13,19 +13,18 @@ import (
 	"os"
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 // TestSyncer_syncCattleClusterAgent tests the syncCattleClusterAgent of Syncer
-// WHEN trying to sync the cattle-cluster-agent
-// IF there exists no previous cattle agent hash
-// THEN update the cattle-agent deployment, create the cattle credential and update the hash
+// GIVEN a call to syncCattleClusterAgent
+// WHEN there exists no previous cattle agent hash
+// THEN update the cattle-cluster-agent deployment, create the cattle-credential secret and update the hash
 func TestSyncer_syncCattleClusterAgent(t *testing.T) {
 	asserts := assert.New(t)
 	log := zap.S().With("test")
@@ -63,8 +62,8 @@ func TestSyncer_syncCattleClusterAgent(t *testing.T) {
 }
 
 // TestSyncer_syncCattleClusterAgent2 tests the syncCattleClusterAgent of Syncer
-// WHEN trying to sync the cattle-cluster-agent
-// IF the registration manifest doesn't have all the resources
+// GIVEN a call to syncCattleClusterAgent
+// WHEN the registration manifest doesn't have the required resources
 // THEN do nothing and return
 func TestSyncer_syncCattleClusterAgent2(t *testing.T) {
 	asserts := assert.New(t)
