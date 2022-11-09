@@ -15,7 +15,7 @@ spec:
   values:
     global:
       hub: ghcr.io/verrazzano
-      tag: 1.14.3
+      tag: 1.15.1
       multiCluster:
         enabled: false
       istioNamespace: istio-system

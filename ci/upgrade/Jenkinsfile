@@ -320,6 +320,9 @@ pipeline {
                 OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
             }
             steps {
+                script {
+                    VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
+                }
                 sh """
                 # dump the app pods before updating the VPO so they can be compared after the VPO is updated
                 echo "Application pods before VPO update:"
@@ -329,7 +332,7 @@ pipeline {
                 # Download the operator.yaml for the target version that we are upgrading to
                 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
                 cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/upgrade-test-operator.yaml
-                VERRAZZANO_DEV_VERSION = sh(returnStdout: true, script: "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file - | jq -r '.version'").trim()
+
                 ${GO_REPO_PATH}/vz upgrade --operator-file ${WORKSPACE}/upgrade-test-operator.yaml --version ${VERRAZZANO_DEV_VERSION}
 
                 # ensure operator pod is up
