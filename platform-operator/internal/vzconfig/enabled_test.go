@@ -3,13 +3,13 @@
 package vzconfig
 
 import (
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"testing"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 
 	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var (
@@ -25,6 +25,9 @@ var (
 func TestIsExternalDNSEnabledDefault(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	assert.False(t, IsExternalDNSEnabled(vz))
+
+	vzv1beta1 := &installv1beta1.Verrazzano{}
+	assert.False(t, IsExternalDNSEnabled(vzv1beta1))
 }
 
 // TestIsExternalDNSEnabledOCIDNS tests the IsExternalDNSEnabled function
@@ -46,6 +49,19 @@ func TestIsExternalDNSEnabledOCIDNS(t *testing.T) {
 		},
 	}
 	assert.True(t, IsExternalDNSEnabled(vz))
+
+	vzv1beta1 := &installv1beta1.Verrazzano{
+		Spec: installv1beta1.VerrazzanoSpec{
+			EnvironmentName: "myenv",
+			Components: installv1beta1.ComponentSpec{
+				DNS: &installv1beta1.DNSComponent{
+					OCI: &installv1beta1.OCI{
+						DNSZoneName: "mydomain.com"},
+				},
+			},
+		},
+	}
+	assert.True(t, IsExternalDNSEnabled(vzv1beta1))
 }
 
 // TestIsExternalDNSEnabledWildcardDNS tests the IsExternalDNSEnabled function
@@ -67,6 +83,20 @@ func TestIsExternalDNSEnabledWildcardDNS(t *testing.T) {
 		},
 	}
 	assert.False(t, IsExternalDNSEnabled(vz))
+
+	vzv1beta := &installv1beta1.Verrazzano{
+		Spec: installv1beta1.VerrazzanoSpec{
+			EnvironmentName: "myenv",
+			Components: installv1beta1.ComponentSpec{
+				DNS: &installv1beta1.DNSComponent{
+					Wildcard: &installv1beta1.Wildcard{
+						Domain: "xip.io",
+					},
+				},
+			},
+		},
+	}
+	assert.False(t, IsExternalDNSEnabled(vzv1beta))
 }
 
 // TestIsExternalDNSEnabledExternalDNS tests the IsExternalDNSEnabled function
@@ -123,6 +153,22 @@ func TestIsRancherEnabled(t *testing.T) {
 				},
 			},
 		}}))
+	asserts.True(IsRancherEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Rancher: &installv1beta1.RancherComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsRancherEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Rancher: &installv1beta1.RancherComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
 }
 
 // TestIsKeycloakEnabled tests the IsKeycloakEnabled function
@@ -151,6 +197,22 @@ func TestIsKeycloakEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Keycloak: &vzapi.KeycloakComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsKeycloakEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Keycloak: &installv1beta1.KeycloakComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsKeycloakEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Keycloak: &installv1beta1.KeycloakComponent{
 					Enabled: &falseValue,
 				},
 			},
@@ -187,6 +249,22 @@ func TestIsConsoleEnabled(t *testing.T) {
 				},
 			},
 		}}))
+	asserts.True(IsConsoleEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Console: &installv1beta1.ConsoleComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsConsoleEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Console: &installv1beta1.ConsoleComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
 }
 
 // TestIsFluentdEnabled tests the IsFluentdEnabled function
@@ -215,6 +293,22 @@ func TestIsFluentdEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Fluentd: &vzapi.FluentdComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsFluentdEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Fluentd: &installv1beta1.FluentdComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsFluentdEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Fluentd: &installv1beta1.FluentdComponent{
 					Enabled: &falseValue,
 				},
 			},
@@ -251,6 +345,22 @@ func TestIsGrafanaEnabled(t *testing.T) {
 				},
 			},
 		}}))
+	asserts.True(IsGrafanaEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Grafana: &installv1beta1.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsGrafanaEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Grafana: &installv1beta1.GrafanaComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
 }
 
 // TestIsElasticsearchEnabled tests the IsOpenSearchEnabled function
@@ -279,6 +389,22 @@ func TestIsElasticsearchEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Elasticsearch: &vzapi.ElasticsearchComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsOpenSearchEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				OpenSearch: &installv1beta1.OpenSearchComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsOpenSearchEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				OpenSearch: &installv1beta1.OpenSearchComponent{
 					Enabled: &falseValue,
 				},
 			},
@@ -315,6 +441,22 @@ func TestIsKibanaEnabled(t *testing.T) {
 				},
 			},
 		}}))
+	asserts.True(IsOpenSearchDashboardsEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				OpenSearchDashboards: &installv1beta1.OpenSearchDashboardsComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsOpenSearchDashboardsEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				OpenSearchDashboards: &installv1beta1.OpenSearchDashboardsComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
 }
 
 // TestIsPrometheusEnabled tests the IsPrometheusEnabled function
@@ -343,6 +485,22 @@ func TestIsPrometheusEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Prometheus: &vzapi.PrometheusComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsPrometheusEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Prometheus: &installv1beta1.PrometheusComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsPrometheusEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Prometheus: &installv1beta1.PrometheusComponent{
 					Enabled: &falseValue,
 				},
 			},
@@ -379,6 +537,22 @@ func TestIsKialiEnabled(t *testing.T) {
 				},
 			},
 		}}))
+	asserts.True(IsKialiEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Kiali: &installv1beta1.KialiComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsKialiEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Kiali: &installv1beta1.KialiComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
 }
 
 // TestIsIstioEnabled tests the IsIstioEnabled function
@@ -407,6 +581,22 @@ func TestIsIstioEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				Istio: &vzapi.IstioComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsIstioEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Istio: &installv1beta1.IstioComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsIstioEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Istio: &installv1beta1.IstioComponent{
 					Enabled: &falseValue,
 				},
 			},
@@ -443,6 +633,22 @@ func TestIsNGINXEnabled(t *testing.T) {
 				},
 			},
 		}}))
+	asserts.True(IsNGINXEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				IngressNGINX: &installv1beta1.IngressNginxComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsNGINXEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				IngressNGINX: &installv1beta1.IngressNginxComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
 }
 
 // TestIsJaegerOperatorEnabled tests the IsJaegerOperatorEnabled function
@@ -471,6 +677,22 @@ func TestIsJaegerOperatorEnabled(t *testing.T) {
 		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
 				JaegerOperator: &vzapi.JaegerOperatorComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsJaegerOperatorEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				JaegerOperator: &installv1beta1.JaegerOperatorComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsJaegerOperatorEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				JaegerOperator: &installv1beta1.JaegerOperatorComponent{
 					Enabled: &falseValue,
 				},
 			},
@@ -507,6 +729,22 @@ func TestIsApplicationOperatorEnabled(t *testing.T) {
 				},
 			},
 		}}))
+	asserts.True(IsApplicationOperatorEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				ApplicationOperator: &installv1beta1.ApplicationOperatorComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsApplicationOperatorEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				ApplicationOperator: &installv1beta1.ApplicationOperatorComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
 }
 
 // TestIsVeleroEnabled tests the IsVeleroEnabled function
@@ -539,6 +777,381 @@ func TestIsVeleroEnabled(t *testing.T) {
 				},
 			},
 		}}))
+	asserts.True(IsVeleroEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Velero: &installv1beta1.VeleroComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsVeleroEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				Velero: &installv1beta1.VeleroComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
+// TestIsCertManagerEnabled tests the IsCertManagerEnabled function
+// GIVEN a call to IsCertManagerEnabled
+// WHEN the CertManager component is explicitly disabled
+// THEN return false, true otherwise (enabled by default)
+func TestIsCertManagerEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.True(IsCertManagerEnabled(nil))
+	asserts.True(IsCertManagerEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.True(IsCertManagerEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManager: &vzapi.CertManagerComponent{},
+			},
+		}}))
+	asserts.True(IsCertManagerEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManager: &vzapi.CertManagerComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsCertManagerEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				CertManager: &vzapi.CertManagerComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsCertManagerEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				CertManager: &installv1beta1.CertManagerComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsCertManagerEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				CertManager: &installv1beta1.CertManagerComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
+// TestIsKubeStateMetricsEnabled tests the IsKubeStateMetricsEnabled function
+// GIVEN a call to IsKubeStateMetricsEnabled
+// WHEN the KubeStateMetrics component is explicitly enabled
+// THEN return true, false otherwise (disabled by default)
+func TestIsKubeStateMetricsEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.False(IsKubeStateMetricsEnabled(nil))
+	asserts.False(IsKubeStateMetricsEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsKubeStateMetricsEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				KubeStateMetrics: &vzapi.KubeStateMetricsComponent{},
+			},
+		}}))
+	asserts.True(IsKubeStateMetricsEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				KubeStateMetrics: &vzapi.KubeStateMetricsComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsKubeStateMetricsEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				KubeStateMetrics: &vzapi.KubeStateMetricsComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsKubeStateMetricsEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				KubeStateMetrics: &installv1beta1.KubeStateMetricsComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsKubeStateMetricsEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				KubeStateMetrics: &installv1beta1.KubeStateMetricsComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
+// TestIsAuthProxyEnabled tests the IsAuthProxyEnabled function
+// GIVEN a call to IsAuthProxyEnabled
+// WHEN the AuthProxy component is explicitly disabled
+// THEN return false, true otherwise (enabled by default)
+func TestIsAuthProxyEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.True(IsAuthProxyEnabled(nil))
+	asserts.True(IsAuthProxyEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.True(IsAuthProxyEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				AuthProxy: &vzapi.AuthProxyComponent{},
+			},
+		}}))
+	asserts.True(IsAuthProxyEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				AuthProxy: &vzapi.AuthProxyComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsAuthProxyEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				AuthProxy: &vzapi.AuthProxyComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsAuthProxyEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				AuthProxy: &installv1beta1.AuthProxyComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsAuthProxyEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				AuthProxy: &installv1beta1.AuthProxyComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
+// TestIsRancherBackupEnabled tests the IsRancherBackupEnabled function
+// GIVEN a call to IsRancherBackupEnabled
+// WHEN the RancherBackup component is explicitly enabled
+// THEN return true, false otherwise (disabled by default)
+func TestIsRancherBackupEnabled(t *testing.T) {
+	asserts := assert.New(t)
+	asserts.False(IsRancherBackupEnabled(nil))
+	asserts.False(IsRancherBackupEnabled(&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{}}))
+	asserts.False(IsRancherBackupEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				RancherBackup: &vzapi.RancherBackupComponent{},
+			},
+		}}))
+	asserts.True(IsRancherBackupEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				RancherBackup: &vzapi.RancherBackupComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsRancherBackupEnabled(
+		&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				RancherBackup: &vzapi.RancherBackupComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+	asserts.True(IsRancherBackupEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				RancherBackup: &installv1beta1.RancherBackupComponent{
+					Enabled: &trueValue,
+				},
+			},
+		}}))
+	asserts.False(IsRancherBackupEnabled(
+		&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{
+			Components: installv1beta1.ComponentSpec{
+				RancherBackup: &installv1beta1.RancherBackupComponent{
+					Enabled: &falseValue,
+				},
+			},
+		}}))
+}
+
+// TestIsPrometheusComponentsEnabled tests whether the PrometheusComponents are enabled or not
+// GIVEN a call to isEnabled function of a Prometheus component
+// WHEN the Prometheus component is explicitly enabled or disabled
+// THEN return the value as expected in the enabled variable
+func TestIsPrometheusComponentsEnabled(t *testing.T) {
+	var tests = []struct {
+		name      string
+		cr        runtime.Object
+		enabled   bool
+		isEnabled func(object runtime.Object) bool
+	}{
+		// Prometheus Operator
+		{
+			"Prometheus Operator enabled when empty v1alpha1 CR",
+			&vzapi.Verrazzano{},
+			true,
+			IsPrometheusOperatorEnabled,
+		},
+		{
+			"Prometheus Operator enabled when empty v1beta1 CR",
+			&installv1beta1.Verrazzano{},
+			true,
+			IsPrometheusOperatorEnabled,
+		},
+		{
+			"Prometheus Operator enabled when component enabled, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &trueValue}}}},
+			true,
+			IsPrometheusOperatorEnabled,
+		},
+		{
+			"Prometheus Operator enabled when component enabled, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{PrometheusOperator: &installv1beta1.PrometheusOperatorComponent{Enabled: &trueValue}}}},
+			true,
+			IsPrometheusOperatorEnabled,
+		},
+		{
+			"Prometheus Operator disabled when component disabled, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{PrometheusOperator: &vzapi.PrometheusOperatorComponent{Enabled: &falseValue}}}},
+			false,
+			IsPrometheusOperatorEnabled,
+		},
+		{
+			"Prometheus Operator disabled when component disabled, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{PrometheusOperator: &installv1beta1.PrometheusOperatorComponent{Enabled: &falseValue}}}},
+			false,
+			IsPrometheusOperatorEnabled,
+		},
+		// Prometheus Adapter
+		{
+			"Prometheus Adapter disabled when empty v1alpha1 CR",
+			&vzapi.Verrazzano{},
+			false,
+			IsPrometheusAdapterEnabled,
+		},
+		{
+			"Prometheus Adapter disabled when empty v1beta1 CR",
+			&installv1beta1.Verrazzano{},
+			false,
+			IsPrometheusAdapterEnabled,
+		},
+		{
+			"Prometheus Adapter enabled when component enabled, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{PrometheusAdapter: &vzapi.PrometheusAdapterComponent{Enabled: &trueValue}}}},
+			true,
+			IsPrometheusAdapterEnabled,
+		},
+		{
+			"Prometheus Adapter enabled when component enabled, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{PrometheusAdapter: &installv1beta1.PrometheusAdapterComponent{Enabled: &trueValue}}}},
+			true,
+			IsPrometheusAdapterEnabled,
+		},
+		{
+			"Prometheus Adapter disabled when component disabled, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{PrometheusAdapter: &vzapi.PrometheusAdapterComponent{Enabled: &falseValue}}}},
+			false,
+			IsPrometheusAdapterEnabled,
+		},
+		{
+			"Prometheus Adapter disabled when component disabled, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{PrometheusAdapter: &installv1beta1.PrometheusAdapterComponent{Enabled: &falseValue}}}},
+			false,
+			IsPrometheusAdapterEnabled,
+		},
+		// Prometheus Pushgateway
+		{
+			"Prometheus Pushgateway disabled when empty v1alpha1 CR",
+			&vzapi.Verrazzano{},
+			false,
+			IsPrometheusPushgatewayEnabled,
+		},
+		{
+			"Prometheus Pushgateway disabled when empty v1beta1 CR",
+			&installv1beta1.Verrazzano{},
+			false,
+			IsPrometheusPushgatewayEnabled,
+		},
+		{
+			"Prometheus Pushgateway enabled when component enabled, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{PrometheusPushgateway: &vzapi.PrometheusPushgatewayComponent{Enabled: &trueValue}}}},
+			true,
+			IsPrometheusPushgatewayEnabled,
+		},
+		{
+			"Prometheus Pushgateway enabled when component enabled, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{PrometheusPushgateway: &installv1beta1.PrometheusPushgatewayComponent{Enabled: &trueValue}}}},
+			true,
+			IsPrometheusPushgatewayEnabled,
+		},
+		{
+			"Prometheus Pushgateway disabled when component disabled, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{PrometheusPushgateway: &vzapi.PrometheusPushgatewayComponent{Enabled: &falseValue}}}},
+			false,
+			IsPrometheusPushgatewayEnabled,
+		},
+		{
+			"Prometheus Pushgateway disabled when component disabled, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{PrometheusPushgateway: &installv1beta1.PrometheusPushgatewayComponent{Enabled: &falseValue}}}},
+			false,
+			IsPrometheusPushgatewayEnabled,
+		},
+		// Prometheus NodeExporter
+		{
+			"Prometheus NodeExporter enabled when empty v1alpha1 CR",
+			&vzapi.Verrazzano{},
+			true,
+			IsPrometheusNodeExporterEnabled,
+		},
+		{
+			"Prometheus NodeExporter enabled when empty v1beta1 CR",
+			&installv1beta1.Verrazzano{},
+			true,
+			IsPrometheusNodeExporterEnabled,
+		},
+		{
+			"Prometheus NodeExporter enabled when component enabled, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{PrometheusNodeExporter: &vzapi.PrometheusNodeExporterComponent{Enabled: &trueValue}}}},
+			true,
+			IsPrometheusNodeExporterEnabled,
+		},
+		{
+			"Prometheus NodeExporter enabled when component enabled, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{PrometheusNodeExporter: &installv1beta1.PrometheusNodeExporterComponent{Enabled: &trueValue}}}},
+			true,
+			IsPrometheusNodeExporterEnabled,
+		},
+		{
+			"Prometheus NodeExporter disabled when component disabled, v1alpha1 CR",
+			&vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{PrometheusNodeExporter: &vzapi.PrometheusNodeExporterComponent{Enabled: &falseValue}}}},
+			false,
+			IsPrometheusNodeExporterEnabled,
+		},
+		{
+			"Prometheus NodeExporter disabled when component disabled, v1beta1 CR",
+			&installv1beta1.Verrazzano{Spec: installv1beta1.VerrazzanoSpec{Components: installv1beta1.ComponentSpec{PrometheusNodeExporter: &installv1beta1.PrometheusNodeExporterComponent{Enabled: &falseValue}}}},
+			false,
+			IsPrometheusNodeExporterEnabled,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.enabled, tt.isEnabled(tt.cr))
+		})
+	}
 }
 
 func TestIsComponentEnabled(t *testing.T) {
