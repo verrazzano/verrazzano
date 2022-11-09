@@ -37,14 +37,14 @@ const (
 type scaleWorker struct {
 	metricDescList []prometheus.Desc
 	*workerMetrics
-	*nextScale
+	*state
 
 	// ctrlRuntimeClient is a controller-runtime client
 	ctrlRuntimeClient client.Client
 }
 
-type nextScale struct {
-	val string
+type state struct {
+	init bool
 }
 
 var _ spi.Worker = scaleWorker{}
@@ -159,13 +159,6 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 		log.Progress("Failed to wait for Verrazzano to be NOT ready after update.  The test results are not valid %v", err)
 		return err
 	}
-	//
-	//// Wait until OpenSearch is NOT ready
-	//_, err = waitOpenSearchReady(log, w.ctrlRuntimeClient, false)
-	//if err != nil {
-	//	log.Progress("Failed to wait for OpenSearch to be NOT ready after update.  The test results are not valid %v", err)
-	//	return err
-	//}
 
 	return nil
 }
@@ -207,11 +200,6 @@ func getUpdateModifier(cr *vzv1alpha1.Verrazzano, tier string) (*update.CRModifi
 
 	switch tier {
 	case masterTier:
-		//if len(cr.Spec.Components.Elasticsearch.Nodes) == 1 {
-		//	m = update.OpensearchAllNodeRolesModifier{NodeReplicas: desiredReplicas}
-		//} else {
-		//	m = update.OpensearchMasterNodeGroupModifier{NodeReplicas: desiredReplicas}
-		//}
 		m = update.OpensearchMasterNodeGroupModifier{NodeReplicas: desiredReplicas}
 	case dataTier:
 		m = update.OpensearchDataNodeGroupModifier{NodeReplicas: desiredReplicas}
@@ -221,7 +209,42 @@ func getUpdateModifier(cr *vzv1alpha1.Verrazzano, tier string) (*update.CRModifi
 	return &m, int(desiredReplicas), nil
 }
 
-// Get current replicas in the VZ CR elasticesearch component for the current tier
+func initModifier(cr *vzv1alpha1.Verrazzano, tier string) (*update.CRModifier, int, error) {
+	// Get the current opensearch replica field for the tier in the VZ CR
+	currentReplicas := getCurrentReplicas(cr, tier)
+
+	max, err := strconv.Atoi(config.PsrEnv.GetEnv(maxReplicaCount))
+	if err != nil {
+		return nil, 0, fmt.Errorf("maxReplicaCount can not be parsed to an integer: %f", err)
+	}
+	min, err := strconv.Atoi(config.PsrEnv.GetEnv(minReplicaCount))
+	if err != nil {
+		return nil, 0, fmt.Errorf("minReplicaCount can not be parsed to an integer: %f", err)
+	}
+	if min < 1 {
+		return nil, 0, fmt.Errorf("minReplicaCount can not be less than 1")
+	}
+	var desiredReplicas int32
+	if currentReplicas == min {
+		desiredReplicas = int32(max)
+	} else {
+		desiredReplicas = int32(min)
+	}
+
+	var m update.CRModifier
+
+	switch tier {
+	case masterTier:
+		m = update.OpensearchMasterNodeGroupModifier{NodeReplicas: desiredReplicas}
+	case dataTier:
+		m = update.OpensearchDataNodeGroupModifier{NodeReplicas: desiredReplicas}
+	case ingestTier:
+		m = update.OpensearchIngestNodeGroupModifier{NodeReplicas: desiredReplicas}
+	}
+	return &m, int(desiredReplicas), nil
+}
+
+// Get current replicas in the VZ CR elasticsearch component for the current tier
 func getCurrentReplicas(cr *vzv1alpha1.Verrazzano, tier string) int {
 	if cr.Spec.Components.Elasticsearch == nil || cr.Spec.Components.Elasticsearch.Nodes == nil {
 		return 1
@@ -271,26 +294,6 @@ func waitReady(log vzlog.VerrazzanoLogger, desiredReady bool) (cr *vzv1alpha1.Ve
 			break
 		}
 		log.Progressf("Waiting for Verrazzano CR ready state to be %v", desiredReady)
-		time.Sleep(3 * time.Second)
-	}
-	return cr, err
-}
-
-// waitOpenSearchReady waits until OpenSearch is ready or not ready
-func waitOpenSearchReady(log vzlog.VerrazzanoLogger, ctrlRuntimeClient client.Client, desiredReady bool) (cr *vzv1alpha1.Verrazzano, err error) {
-	for {
-		cr, err = psrvz.GetVzCr()
-		if err != nil {
-			return nil, err
-		}
-		ready := update.IsOSReady(ctrlRuntimeClient, cr)
-		if err != nil {
-			return nil, err
-		}
-		if ready == desiredReady {
-			break
-		}
-		log.Progressf("Waiting for OpenSearch  ready state to be %v", desiredReady)
 		time.Sleep(3 * time.Second)
 	}
 	return cr, err
