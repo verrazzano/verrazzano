@@ -3,7 +3,7 @@
 
 imagePullSecrets: [ ]
 
-imageName: ghcr.io/verrazzano/psr-backend:local-b72e5a0
+imageName: ghcr.io/verrazzano/psr-backend:local-c10faf9
 imagePullPolicy: IfNotPresent
 
 replicas: 1
