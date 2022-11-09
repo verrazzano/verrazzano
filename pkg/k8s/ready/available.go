@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -29,7 +30,7 @@ type (
 	}
 )
 
-func (c *AvailabilityObjects) IsAvailable(log vzlog.VerrazzanoLogger, client clipkg.Client) (string, bool) {
+func (c *AvailabilityObjects) IsAvailable(log vzlog.VerrazzanoLogger, client clipkg.Client) (string, vzapi.ComponentAvailability) {
 	if err := DeploymentsAreAvailable(client, c.DeploymentNames); err != nil {
 		return handleNotAvailableError(log, err)
 	}
@@ -42,12 +43,12 @@ func (c *AvailabilityObjects) IsAvailable(log vzlog.VerrazzanoLogger, client cli
 	if err := DaemonsetsAreAvailable(client, c.DaemonsetNames); err != nil {
 		return handleNotAvailableError(log, err)
 	}
-	return "", true
+	return "", vzapi.ComponentAvailable
 }
 
-func handleNotAvailableError(log vzlog.VerrazzanoLogger, err error) (string, bool) {
+func handleNotAvailableError(log vzlog.VerrazzanoLogger, err error) (string, vzapi.ComponentAvailability) {
 	log.Progressf(err.Error())
-	return err.Error(), false
+	return err.Error(), vzapi.ComponentUnavailable
 }
 
 // DeploymentsAreAvailable a list of deployments is available when the expected replicas is equal to the ready replicas

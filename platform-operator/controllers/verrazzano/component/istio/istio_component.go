@@ -396,7 +396,7 @@ func (i istioComponent) Upgrade(context spi.ComponentContext) error {
 	return err
 }
 
-func (i istioComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available bool) {
+func (i istioComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
 	return (&ready.AvailabilityObjects{DeploymentNames: istioDeployments}).IsAvailable(ctx.Log(), ctx.Client())
 }
 

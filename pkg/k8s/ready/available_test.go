@@ -6,6 +6,7 @@ package ready
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -77,13 +78,13 @@ func TestIsComponentAvailable(t *testing.T) {
 		name      string
 		ao        *AvailabilityObjects
 		client    clipkg.Client
-		available bool
+		available vzapi.ComponentAvailability
 	}{
 		{
 			"available when no objects",
 			&AvailabilityObjects{},
 			emptyClient,
-			true,
+			vzapi.ComponentAvailable,
 		},
 		{
 			"unavailable when deploy not present",
@@ -91,7 +92,7 @@ func TestIsComponentAvailable(t *testing.T) {
 				DeploymentNames: []types.NamespacedName{nsn},
 			},
 			emptyClient,
-			false,
+			vzapi.ComponentUnavailable,
 		},
 		{
 			"unavailable when sts not present",
@@ -99,7 +100,7 @@ func TestIsComponentAvailable(t *testing.T) {
 				StatefulsetNames: []types.NamespacedName{nsn},
 			},
 			emptyClient,
-			false,
+			vzapi.ComponentUnavailable,
 		},
 		{
 			"unavailable when ds not present",
@@ -107,7 +108,7 @@ func TestIsComponentAvailable(t *testing.T) {
 				DaemonsetNames: []types.NamespacedName{nsn},
 			},
 			emptyClient,
-			false,
+			vzapi.ComponentUnavailable,
 		},
 		{
 			"unavailable when deploy replicas not ready",
@@ -115,7 +116,7 @@ func TestIsComponentAvailable(t *testing.T) {
 				DeploymentNames: []types.NamespacedName{nsn},
 			},
 			unreadyClient,
-			false,
+			vzapi.ComponentUnavailable,
 		},
 		{
 			"unavailable when sts replicas not ready",
@@ -123,7 +124,7 @@ func TestIsComponentAvailable(t *testing.T) {
 				StatefulsetNames: []types.NamespacedName{nsn},
 			},
 			unreadyClient,
-			false,
+			vzapi.ComponentUnavailable,
 		},
 		{
 			"unavailable when ds replicas not ready",
@@ -131,7 +132,7 @@ func TestIsComponentAvailable(t *testing.T) {
 				DaemonsetNames: []types.NamespacedName{nsn},
 			},
 			unreadyClient,
-			false,
+			vzapi.ComponentUnavailable,
 		},
 		{
 			"available when all objects present",
@@ -141,7 +142,7 @@ func TestIsComponentAvailable(t *testing.T) {
 				DaemonsetNames:   []types.NamespacedName{nsn},
 			},
 			readyAndAvailableClient,
-			true,
+			vzapi.ComponentAvailable,
 		},
 		{
 			"(selectors) unavailable when deployment not ready",
@@ -149,7 +150,7 @@ func TestIsComponentAvailable(t *testing.T) {
 				DeploymentSelectors: selectors,
 			},
 			unreadyClient,
-			false,
+			vzapi.ComponentUnavailable,
 		},
 		{
 			"(selectors) unavailable when deployment not found",
@@ -157,7 +158,7 @@ func TestIsComponentAvailable(t *testing.T) {
 				DeploymentSelectors: selectors,
 			},
 			emptyClient,
-			false,
+			vzapi.ComponentUnavailable,
 		},
 		{
 			"(selectors) available when all objects present",
@@ -165,7 +166,7 @@ func TestIsComponentAvailable(t *testing.T) {
 				DeploymentSelectors: selectors,
 			},
 			readyAndAvailableClient,
-			true,
+			vzapi.ComponentAvailable,
 		},
 	}
 

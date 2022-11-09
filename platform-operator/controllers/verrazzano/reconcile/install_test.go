@@ -405,7 +405,7 @@ func makeVerrazzanoComponentStatusMap() vzapi.ComponentStatusMap {
 	statusMap := make(vzapi.ComponentStatusMap)
 	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
-			available := true
+			var available vzapi.ComponentAvailability = vzapi.ComponentAvailable
 			statusMap[comp.Name()] = &vzapi.ComponentStatusDetails{
 				Name: comp.Name(),
 				Conditions: []vzapi.Condition{
@@ -426,7 +426,7 @@ func makeVerrazzanoComponentStatusMapDisabled() vzapi.ComponentStatusMap {
 	statusMap := make(vzapi.ComponentStatusMap)
 	for _, comp := range registry.GetComponents() {
 		if comp.IsOperatorInstallSupported() {
-			available := false
+			var available vzapi.ComponentAvailability = vzapi.ComponentUnavailable
 			statusMap[comp.Name()] = &vzapi.ComponentStatusDetails{
 				Name:      comp.Name(),
 				State:     vzapi.CompStateDisabled,

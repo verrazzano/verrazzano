@@ -760,7 +760,7 @@ func convertComponentStatusMapTo(components ComponentStatusMap) v1beta1.Componen
 				Name:                     detail.Name,
 				Conditions:               convertConditionsTo(detail.Conditions),
 				State:                    v1beta1.CompStateType(detail.State),
-				Available:                detail.Available,
+				Available:                convertAvailabilityTo(detail.Available),
 				Version:                  detail.Version,
 				LastReconciledGeneration: detail.LastReconciledGeneration,
 				ReconcilingGeneration:    detail.ReconcilingGeneration,
@@ -768,6 +768,14 @@ func convertComponentStatusMapTo(components ComponentStatusMap) v1beta1.Componen
 		}
 	}
 	return componentStatusMap
+}
+
+func convertAvailabilityTo(availability *ComponentAvailability) *v1beta1.ComponentAvailability {
+	if availability == nil {
+		return nil
+	}
+	newAvailability := v1beta1.ComponentAvailability(*availability)
+	return &newAvailability
 }
 
 func convertVerrazzanoInstanceTo(instance *InstanceInfo) *v1beta1.InstanceInfo {

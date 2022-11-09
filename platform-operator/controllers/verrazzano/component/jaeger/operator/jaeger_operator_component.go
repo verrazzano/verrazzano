@@ -110,10 +110,10 @@ func (c jaegerOperatorComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
-func (c jaegerOperatorComponent) IsAvailable(ctx spi.ComponentContext) (string, bool) {
+func (c jaegerOperatorComponent) IsAvailable(ctx spi.ComponentContext) (string, vzapi.ComponentAvailability) {
 	deploys, err := getAllComponentDeployments(ctx)
 	if err != nil {
-		return err.Error(), false
+		return err.Error(), vzapi.ComponentUnavailable
 	}
 	return (&ready.AvailabilityObjects{DeploymentNames: deploys}).IsAvailable(ctx.Log(), ctx.Client())
 }

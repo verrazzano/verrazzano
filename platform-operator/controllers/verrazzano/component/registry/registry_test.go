@@ -763,8 +763,12 @@ func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
 	return f.ready
 }
 
-func (f fakeComponent) IsAvailable(_ spi.ComponentContext) (string, bool) {
-	return "", f.ready
+func (f fakeComponent) IsAvailable(_ spi.ComponentContext) (string, v1alpha1.ComponentAvailability) {
+	var available v1alpha1.ComponentAvailability = v1alpha1.ComponentAvailable
+	if !f.ready {
+		available = v1alpha1.ComponentUnavailable
+	}
+	return "", available
 }
 
 func (f fakeComponent) IsEnabled(_ runtime.Object) bool {

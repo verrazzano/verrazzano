@@ -85,10 +85,10 @@ func (c prometheusComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
-func (c prometheusComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available bool) {
+func (c prometheusComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
 	listOptions, err := prometheusOperatorListOptions()
 	if err != nil {
-		return err.Error(), false
+		return err.Error(), vzapi.ComponentUnavailable
 	}
 	return (&ready.AvailabilityObjects{DeploymentSelectors: []clipkg.ListOption{listOptions}}).IsAvailable(ctx.Log(), ctx.Client())
 }

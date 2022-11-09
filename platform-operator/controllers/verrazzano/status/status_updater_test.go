@@ -63,8 +63,8 @@ func TestStatusUpdater(t *testing.T) {
 	time.Sleep(timeout) // updater takes some time to initialize
 	version := "1.5.0"
 	availability := &AvailabilityStatus{
-		Components: map[string]bool{
-			fluentd.ComponentName: true,
+		Components: map[string]vzapi.ComponentAvailability{
+			fluentd.ComponentName: vzapi.ComponentAvailable,
 		},
 		Available:  "12/12",
 		Verrazzano: vz,
@@ -104,7 +104,7 @@ func TestStatusUpdater(t *testing.T) {
 		return checkUpdate(t, c, u)
 	})
 
-	available := true
+	var available vzapi.ComponentAvailability = vzapi.ComponentAvailable
 	u2 := &UpdateEvent{
 		Verrazzano: vz,
 		Components: map[string]*vzapi.ComponentStatusDetails{

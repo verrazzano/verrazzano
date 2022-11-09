@@ -29,7 +29,7 @@ type HealthChecker struct {
 }
 
 type AvailabilityStatus struct {
-	Components map[string]bool
+	Components map[string]vzapi.ComponentAvailability
 	Available  string
 	Verrazzano *vzapi.Verrazzano
 }

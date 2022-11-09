@@ -158,8 +158,8 @@ type ComponentStatusMap map[string]*ComponentStatusDetails
 
 // ComponentStatusDetails defines the observed state of a component.
 type ComponentStatusDetails struct {
-	// Whether or not a component is available for use.
-	Available *bool `json:"available,omitempty"`
+	// Whether a component is available for use.
+	Available *ComponentAvailability `json:"available,omitempty"`
 	// Information about the current state of a component.
 	Conditions []Condition `json:"conditions,omitempty"`
 	// The generation of the last Verrazzano resource the Component was successfully reconciled against.
@@ -223,6 +223,16 @@ type Condition struct {
 	// Type of condition.
 	Type ConditionType `json:"type"`
 }
+
+// ComponentAvailability identifies the availability of a Verrazzano Component.
+type ComponentAvailability string
+
+const (
+	//ComponentAvailable signifies that a Verrazzano Component is ready for use.
+	ComponentAvailable = "Available"
+	//ComponentUnavailable signifies that a Verrazzano Component is not ready for use.
+	ComponentUnavailable = "Unavailable"
+)
 
 // VzStateType identifies the state of a Verrazzano installation.
 type VzStateType string

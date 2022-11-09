@@ -53,7 +53,7 @@ type ComponentInfo interface {
 	// IsReady Indicates whether a component is Ready for dependency components
 	IsReady(context ComponentContext) bool
 	// IsAvailable Indicates whether a component is Available for end users
-	IsAvailable(context ComponentContext) (string, bool)
+	IsAvailable(context ComponentContext) (string, v1alpha1.ComponentAvailability)
 	// IsEnabled Indicates whether or a component is enabled for installation
 	IsEnabled(effectiveCR runtime.Object) bool
 	// GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component

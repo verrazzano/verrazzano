@@ -144,7 +144,7 @@ func (d opensearchDashboardsComponent) Upgrade(ctx spi.ComponentContext) error {
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
-func (d opensearchDashboardsComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available bool) {
+func (d opensearchDashboardsComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
 	return (&ready.AvailabilityObjects{DeploymentNames: getOSDDeployments()}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
