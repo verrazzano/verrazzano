@@ -1606,7 +1606,7 @@ func DoesIngressHostExist(ctx spi.ComponentContext, namespace string, ingressNam
 	ingress := &networkv1.Ingress{}
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: ingressName}, ingress)
 	if err != nil {
-		return false, err
+		return false, nil
 	}
 	if ingress != nil && ingress.Spec.Rules[0].Size() > 1 {
 		for _, rule := range ingress.Spec.Rules {
