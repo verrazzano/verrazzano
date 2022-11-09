@@ -7,17 +7,17 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang/mock/gomock"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
-	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	"k8s.io/apimachinery/pkg/types"
+	"strings"
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
 	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
@@ -32,10 +32,14 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	dynfake "k8s.io/client-go/dynamic/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+const foo = "foo"
 
 var (
 	vzAcmeDev = vzapi.Verrazzano{
@@ -452,6 +456,231 @@ func TestGetRancherUsername(t *testing.T) {
 				t.Errorf("getRancherUsername() got = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// TestDeleteLocalCluster tests the DeleteLocalCluster function call for various scenarios
+func TestDeleteLocalCluster(t *testing.T) {
+	asserts := assert.New(t)
+	localCluster0 := unstructured.Unstructured{}
+	localCluster0.SetGroupVersionKind(GVKCluster)
+	localCluster0.SetName(ClusterLocal)
+
+	localCluster1 := unstructured.Unstructured{}
+	localCluster1.SetGroupVersionKind(GVKCluster)
+	localCluster1.SetName(foo)
+
+	testLogger := vzlog.DefaultLogger()
+	tests := []struct {
+		lCluster unstructured.Unstructured
+		name     string
+		found    bool
+	}{
+		// GIVEN an environment with rancher cluster
+		// WHEN a call to DeleteLocalCluster is made
+		// THEN rancher cluster with the name local is deleted
+		{
+			lCluster: localCluster0,
+			name:     ClusterLocal,
+			found:    false,
+		},
+		// GIVEN an environment with rancher cluster
+		// WHEN a call to DeleteLocalCluster is made
+		// THEN rancher cluster with name other than local is not deleted
+		{
+			lCluster: localCluster1,
+			name:     foo,
+			found:    true,
+		},
+	}
+	for _, tt := range tests {
+		cli := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&tt.lCluster).Build()
+		DeleteLocalCluster(testLogger, cli)
+		lc := tt.lCluster
+		lcName := types.NamespacedName{Name: tt.name}
+		if tt.found {
+			asserts.NoError(cli.Get(context.Background(), lcName, &lc))
+		} else {
+			asserts.True(errors.IsNotFound(cli.Get(context.Background(), lcName, &lc)))
+		}
+	}
+}
+
+// TestDisableFirstLogin tests the disableFirstLogin func call
+func TestDisableFirstLogin(t *testing.T) {
+	asserts := assert.New(t)
+	fl := unstructured.Unstructured{}
+	fl.SetGroupVersionKind(common.GVKSetting)
+	fl.SetName(common.SettingFirstLogin)
+
+	fooLogin := unstructured.Unstructured{}
+	fooLogin.SetGroupVersionKind(common.GVKSetting)
+	fooLogin.SetName(foo)
+
+	tests := []struct {
+		firstLogin  unstructured.Unstructured
+		name        string
+		wantErr     bool
+		errContains string
+	}{
+		{
+			// GIVEN an environment with rancher first login setting
+			// WHEN a call to disableFirstLogin func is made
+			// THEN the first-login value is set to false
+			firstLogin:  fl,
+			name:        common.SettingFirstLogin,
+			wantErr:     false,
+			errContains: "",
+		},
+		// GIVEN an environment without rancher first login setting
+		// WHEN a call to disableFirstLogin func is made
+		// THEN an error is returned complaining about the first login setting
+		{
+			firstLogin:  fooLogin,
+			name:        foo,
+			wantErr:     true,
+			errContains: "Failed getting first-login setting",
+		},
+	}
+	for _, tt := range tests {
+		cli := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&tt.firstLogin).Build()
+		fakeCtx := spi.NewFakeContext(cli, &vzapi.Verrazzano{}, nil, false)
+		err := disableFirstLogin(fakeCtx)
+		if tt.wantErr {
+			asserts.ErrorContains(err, tt.errContains)
+		} else {
+			asserts.NoError(cli.Get(context.Background(), types.NamespacedName{Name: tt.name}, &fl))
+			asserts.Equal(fl.UnstructuredContent()["value"], "false")
+		}
+	}
+}
+
+// TestCreateOrUpdateRancherVerrazzanoUserGlobalRoleBinding tests the following scenario
+// GIVEN a call to create or update Verrazzano user admin
+// WHEN the func call executes successfully
+// THEN the Rancher Verrazzano user admin is created successfully with correct data
+func TestCreateOrUpdateRancherVerrazzanoUserGlobalRoleBinding(t *testing.T) {
+	asserts := assert.New(t)
+	cli := fake.NewClientBuilder().WithScheme(getScheme()).Build()
+	fakeCtx := spi.NewFakeContext(cli, &vzapi.Verrazzano{}, nil, false)
+
+	asserts.NoError(createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(fakeCtx, foo))
+
+	obj := unstructured.Unstructured{}
+	obj.SetGroupVersionKind(GVKGlobalRoleBinding)
+	nsn := types.NamespacedName{Name: GlobalRoleBindingVerrazzanoPrefix + foo}
+	asserts.NoError(cli.Get(context.Background(), nsn, &obj))
+
+	data := obj.UnstructuredContent()
+	asserts.Equal(AdminRoleName, data[GlobalRoleBindingAttributeRoleName])
+	asserts.Equal(foo, data[GlobalRoleBindingAttributeUserName])
+}
+
+// TestCreateOrUpdateRancherVerrazzanoUser tests the following scenario
+// GIVEN a call to create or update Verrazzano user
+// WHEN the func call executes successfully
+// THEN the Rancher Verrazzano user is created successfully with correct data
+func TestCreateOrUpdateRancherVerrazzanoUser(t *testing.T) {
+	asserts := assert.New(t)
+
+	fakeVzUser := &keycloak.KeycloakUser{
+		ID:       foo,
+		Username: foo,
+	}
+	cli := fake.NewClientBuilder().WithScheme(getScheme()).Build()
+	fakeCtx := spi.NewFakeContext(cli, &vzapi.Verrazzano{}, nil, false)
+
+	asserts.NoError(createOrUpdateRancherVerrazzanoUser(fakeCtx, fakeVzUser, foo))
+	checkVzUser := unstructured.Unstructured{}
+	checkVzUser.SetGroupVersionKind(GVKUser)
+	asserts.NoError(cli.Get(context.Background(), types.NamespacedName{Name: foo}, &checkVzUser))
+
+	data := checkVzUser.UnstructuredContent()
+	caser := cases.Title(language.English)
+
+	asserts.Equal(fakeVzUser.Username, data[UserAttributeUserName])
+	asserts.Equal(caser.String(fakeVzUser.Username), data[UserAttributeDisplayName])
+	asserts.Equal(caser.String(UserVerrazzanoDescription), data[UserAttributeDescription])
+	asserts.Equal([]interface{}{UserPrincipalKeycloakPrefix + fakeVzUser.ID, UserPrincipalLocalPrefix + foo}, data[UserAttributePrincipalIDs])
+}
+
+// TestCreateOrUpdateClusterRoleTemplateBinding tests the following scenario
+// GIVEN func call to create or update ClusterRoleTemplateBinding to add Keycloak groups to the Rancher cluster
+// WHEN the call is successful
+// THEN the resource is created or updated with correct data
+func TestCreateOrUpdateClusterRoleTemplateBinding(t *testing.T) {
+	asserts := assert.New(t)
+	cli := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(
+		&v1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: ClusterLocal,
+			},
+		},
+	).Build()
+	fakeCtx := spi.NewFakeContext(cli, &vzapi.Verrazzano{}, nil, false)
+
+	asserts.NoError(createOrUpdateClusterRoleTemplateBinding(fakeCtx, foo, foo))
+	obj := unstructured.Unstructured{}
+	obj.SetGroupVersionKind(GVKClusterRoleTemplateBinding)
+	nsn := types.NamespacedName{Name: "crtb-foo-foo", Namespace: ClusterLocal}
+	asserts.NoError(cli.Get(context.Background(), nsn, &obj))
+
+	data := obj.UnstructuredContent()
+	asserts.Equal(ClusterLocal, data[ClusterRoleTemplateBindingAttributeClusterName])
+	asserts.Equal(GroupPrincipalKeycloakPrefix+foo, data[ClusterRoleTemplateBindingAttributeGroupPrincipalName])
+	asserts.Equal(foo, data[ClusterRoleTemplateBindingAttributeRoleTemplateName])
+}
+
+// TestCreateOrUpdateRoleTemplate tests the following scenario
+// GIVEN func call to create or update ClusterRoleTemplateBinding to add Keycloak groups to the Rancher cluster
+// WHEN the call is successful
+// THEN the resource is created or updated with correct data
+func TestCreateOrUpdateRoleTemplate(t *testing.T) {
+	asserts := assert.New(t)
+	clr := rbacv1.ClusterRole{}
+	clrName := foo + "-" + foo
+	clr.SetName(clrName)
+	tests := []struct {
+		skipClusterRole bool
+		wantErr         bool
+		errContains     string
+	}{
+		{
+			skipClusterRole: true,
+			wantErr:         true,
+			errContains:     "failed creating RoleTemplate, unable to fetch ClusterRole",
+		},
+		{
+			skipClusterRole: false,
+			wantErr:         false,
+			errContains:     "",
+		},
+	}
+
+	for _, tt := range tests {
+		cliBuilder := fake.NewClientBuilder().WithScheme(getScheme()).WithScheme(getScheme())
+		var cli client.WithWatch
+		if tt.skipClusterRole {
+			cli = cliBuilder.Build()
+		} else {
+			cli = cliBuilder.WithObjects(&clr).Build()
+		}
+		fakeCtx := spi.NewFakeContext(cli, &vzapi.Verrazzano{}, nil, false)
+		err := createOrUpdateRoleTemplate(fakeCtx, clrName)
+		if tt.wantErr {
+			asserts.ErrorContains(err, tt.errContains)
+		} else {
+			obj := unstructured.Unstructured{}
+			obj.SetGroupVersionKind(GVKRoleTemplate)
+			asserts.NoError(cli.Get(context.Background(), types.NamespacedName{Name: clrName}, &obj))
+			data := obj.UnstructuredContent()
+			asserts.False(data[RoleTemplateAttributeBuiltin].(bool))
+			asserts.Equal("cluster", data[RoleTemplateAttributeContext])
+			caser := cases.Title(language.English)
+			asserts.Equal(caser.String(strings.Replace(clrName, "-", " ", 1)), data[RoleTemplateAttributeDisplayName])
+			asserts.True(data[RoleTemplateAttributeExternal].(bool))
+			asserts.True(data[RoleTemplateAttributeHidden].(bool))
+		}
 	}
 }
 
