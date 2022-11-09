@@ -12,8 +12,8 @@ import (
 
 // WorkerDesc contains basic information about a worker
 type WorkerDesc struct {
-	// EnvName returns the worker name specified by the Env var
-	EnvName string
+	// WorkerType returns the worker type specified by the Env var
+	WorkerType string
 
 	// Description returns a description of the worker
 	Description string

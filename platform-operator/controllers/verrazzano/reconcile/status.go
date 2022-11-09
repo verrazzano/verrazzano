@@ -141,6 +141,7 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 	}
 	var instanceInfo *installv1alpha1.InstanceInfo
 	if conditionType == installv1alpha1.CondInstallComplete {
+		instanceInfo = vzinstance.GetInstanceInfo(compContext)
 		if componentStatus.ReconcilingGeneration > 0 {
 			componentStatus.LastReconciledGeneration = componentStatus.ReconcilingGeneration
 			componentStatus.ReconcilingGeneration = 0
@@ -159,7 +160,6 @@ func (r *Reconciler) updateComponentStatus(compContext spi.ComponentContext, mes
 
 	// Set the version of component when install and upgrade complete
 	if conditionType == installv1alpha1.CondInstallComplete || conditionType == installv1alpha1.CondUpgradeComplete {
-		instanceInfo = vzinstance.GetInstanceInfo(compContext)
 		if bomFile, err := r.getBOM(); err == nil {
 			if component, er := bomFile.GetComponent(componentName); er == nil {
 				componentStatus.Version = component.Version
