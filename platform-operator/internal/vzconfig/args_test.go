@@ -7,13 +7,12 @@ import (
 	"fmt"
 	"testing"
 
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 
-	"k8s.io/apimachinery/pkg/util/yaml"
-
 	"github.com/stretchr/testify/assert"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 const (
@@ -24,6 +23,9 @@ const (
 	externalIPJsonPathSuffix = "externalIPs.0"
 	typeJSONPathSuffix       = "type"
 	externalIPJsonPath       = specServiceJSONPath + "." + externalIPJsonPathSuffix
+	validIP                  = "0.0.0.0"
+	invalidIP                = "0.0.0"
+	formatError              = "Must be a proper IP address format"
 )
 
 // TestCheckExternalIPsArgs tests CheckExternalIPsArgs
@@ -33,14 +35,14 @@ const (
 func TestCheckExternalIPsArgs(t *testing.T) {
 	asserts := assert.New(t)
 
-	vz := getVZWithIstioOverride("0.0.0.0")
+	vz := getVZWithIstioOverride(validIP)
 	err := CheckExternalIPsArgs(vz.Spec.Components.Istio.IstioInstallArgs, vz.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, compName)
 	asserts.NoError(err)
 
-	vz = getVZWithIstioOverride("0.0.0")
+	vz = getVZWithIstioOverride(invalidIP)
 	err = CheckExternalIPsArgs(vz.Spec.Components.Istio.IstioInstallArgs, vz.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, compName)
 	asserts.Error(err)
-	asserts.Contains(err.Error(), "Must be a proper IP address format")
+	asserts.Contains(err.Error(), formatError)
 
 	vz = getVZWithIstioOverride("")
 	err = CheckExternalIPsArgs(vz.Spec.Components.Istio.IstioInstallArgs, vz.Spec.Components.Istio.ValueOverrides, ExternalIPArg, externalIPJsonPath, compName)
@@ -55,14 +57,14 @@ func TestCheckExternalIPsArgs(t *testing.T) {
 func TestCheckExternalIPsOverridesArgs(t *testing.T) {
 	asserts := assert.New(t)
 
-	vz := getv1beta1VZWithIstioOverride("0.0.0.0")
+	vz := getv1beta1VZWithIstioOverride(validIP)
 	err := CheckExternalIPsOverridesArgs(vz.Spec.Components.Istio.ValueOverrides, externalIPJsonPath, compName)
 	asserts.NoError(err)
 
-	vz = getv1beta1VZWithIstioOverride("0.0.0")
+	vz = getv1beta1VZWithIstioOverride(invalidIP)
 	err = CheckExternalIPsOverridesArgs(vz.Spec.Components.Istio.ValueOverrides, externalIPJsonPath, compName)
 	asserts.Error(err)
-	asserts.Contains(err.Error(), "Must be a proper IP address format")
+	asserts.Contains(err.Error(), formatError)
 }
 
 // TestCheckExternalIPsOverridesArgsWithPaths tests CheckExternalIPsOverridesArgsWithPaths
@@ -72,14 +74,14 @@ func TestCheckExternalIPsOverridesArgs(t *testing.T) {
 func TestCheckExternalIPsOverridesArgsWithPaths(t *testing.T) {
 	asserts := assert.New(t)
 
-	vz := getv1beta1VZWithIstioOverride("0.0.0.0")
+	vz := getv1beta1VZWithIstioOverride(validIP)
 	err := CheckExternalIPsOverridesArgsWithPaths(vz.Spec.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, string(nodePort), externalIPJsonPathSuffix, compName)
 	asserts.NoError(err)
 
-	vz = getv1beta1VZWithIstioOverride("0.0.0")
+	vz = getv1beta1VZWithIstioOverride(invalidIP)
 	err = CheckExternalIPsOverridesArgsWithPaths(vz.Spec.Components.Istio.ValueOverrides, specServiceJSONPath, typeJSONPathSuffix, string(nodePort), externalIPJsonPathSuffix, compName)
 	asserts.Error(err)
-	asserts.Contains(err.Error(), "Must be a proper IP address format")
+	asserts.Contains(err.Error(), formatError)
 }
 
 // getIstioOverride returns an Istio override in json format
