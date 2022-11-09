@@ -46,7 +46,7 @@ var lastTimeStatefulSetReady time.Time
 
 // mysqlComponent represents an MySQL component
 type mysqlComponent struct {
-	LastTimeStartedWatchForRepair *time.Time
+	LastTimeReadinessGateRepairStarted *time.Time
 
 	helm.HelmComponent
 }
@@ -93,7 +93,7 @@ func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 		ready := c.isMySQLReady(context)
 		if ready {
 			// Once ready, zero out the timestamp
-			*c.LastTimeStartedWatchForRepair = time.Time{}
+			*c.LastTimeReadinessGateRepairStarted = time.Time{}
 		}
 		return ready
 	}

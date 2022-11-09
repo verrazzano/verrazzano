@@ -1970,9 +1970,16 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	mysqlComp := NewComponent().(mysqlComponent)
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
 
-	// First time calling, expect no error and mysql-operator pod should still exist
+	// First time calling, expect timer to get initialized
+	assert.True(t, mysqlComp.LastTimeReadinessGateRepairStarted.IsZero())
 	err := mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
 	assert.NoError(t, err)
+	assert.False(t, mysqlComp.LastTimeReadinessGateRepairStarted.IsZero())
+
+	// Second time calling, expect no error and mysql-operator pod to still exist
+	err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
+	assert.NoError(t, err)
+
 	pod := corev1.Pod{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
 	assert.NoError(t, err)

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	k8sready "github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -30,12 +29,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -207,16 +203,16 @@ func (c mysqlComponent) isMySQLReady(ctx spi.ComponentContext) bool {
 	return ready && checkDbMigrationJobCompletion(ctx) && isInnoDBClusterOnline(ctx)
 }
 
-// repairMySQLPodsWaitingReadinessGates - temporary work around to repair issue were a MySQL pod
+// repairMySQLPodsWaitingReadinessGates - temporary workaround to repair issue were a MySQL pod
 // can be stuck waiting for its readiness gates to be met.
 func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentContext) error {
-	if c.LastTimeStartedWatchForRepair.IsZero() {
-		*c.LastTimeStartedWatchForRepair = time.Now()
+	if c.LastTimeReadinessGateRepairStarted.IsZero() {
+		*c.LastTimeReadinessGateRepairStarted = time.Now()
 		return nil
 	}
 
 	// Initiate repair only if time to wait period has been exceeded
-	expiredTime := c.LastTimeStartedWatchForRepair.Add(5 * time.Minute)
+	expiredTime := c.LastTimeReadinessGateRepairStarted.Add(5 * time.Minute)
 	if time.Now().After(expiredTime) {
 		// Check if the current not ready state is due to readiness gates not met
 		ctx.Log().Debug("Checking if MySQL not ready due to pods waiting for readiness gates")
@@ -262,27 +258,6 @@ func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentCo
 		}
 	}
 	return nil
-}
-
-// getMySQLOperatorPod - return the mysql-operator pod
-func getMySQLOperatorPod(client *kubernetes.Clientset) (*corev1.PodList, error) {
-	operReq, err := labels.NewRequirement("name", selection.Equals, []string{mysqloperator.ComponentName})
-	if err != nil {
-		return nil, err
-	}
-	selector := labels.NewSelector().Add(*operReq)
-
-	operList, err := client.CoreV1().Pods(constants.MySQLOperatorNamespace).List(context.TODO(), metav1.ListOptions{
-		LabelSelector: selector.String(),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if len(operList.Items) != 1 {
-		return nil, fmt.Errorf("expected one pod to match selector %s, found %d", selector.String(), len(operList.Items))
-	}
-	return operList, nil
 }
 
 // isInnoDBClusterOnline returns true if the InnoDBCluster resource cluster status is online
