@@ -134,6 +134,7 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		WebLogicOperator:       convertWeblogicOperatorFromV1Beta1(in.WebLogicOperator),
 		Velero:                 convertVeleroFromV1Beta1(in.Velero),
 		Verrazzano:             convertVerrazzanoFromV1Beta1(in.Verrazzano),
+		ClusterOperator:        convertClusterOperatorFromV1Beta1(in.ClusterOperator),
 	}
 }
 
@@ -522,6 +523,16 @@ func convertVerrazzanoFromV1Beta1(in *v1beta1.VerrazzanoComponent) *VerrazzanoCo
 		return nil
 	}
 	return &VerrazzanoComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
+	}
+}
+
+func convertClusterOperatorFromV1Beta1(in *v1beta1.ClusterOperatorComponent) *ClusterOperatorComponent {
+	if in == nil {
+		return nil
+	}
+	return &ClusterOperatorComponent{
 		Enabled:          in.Enabled,
 		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
