@@ -10,9 +10,9 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -22,7 +22,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
@@ -1947,22 +1946,6 @@ func TestDumpDatabaseWithExecErrors(t *testing.T) {
 // WHEN they are not all ready after a given time period
 // THEN recycle the mysql-operator
 func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
-	type fields struct {
-		LastTimeStartedWatchForRepair *time.Time
-		HelmComponent                 helm.HelmComponent
-	}
-	type args struct {
-		ctx spi.ComponentContext
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr assert.ErrorAssertionFunc
-	}{
-		// TODO: Add test cases.
-	}
-
 	mySQLOperatorPod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mysqloperator.ComponentName,
@@ -1984,17 +1967,13 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	}
 
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod, mySQLOperatorPod).Build()
-	comp := NewComponent()
-
+	mysqlComp := NewComponent().(mysqlComponent)
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := mysqlComponent{
-				LastTimeStartedWatchForRepair: tt.fields.LastTimeStartedWatchForRepair,
-				HelmComponent:                 tt.fields.HelmComponent,
-			}
-			tt.wantErr(t, c.repairMySQLPodsWaitingReadinessGates(tt.args.ctx), fmt.Sprintf("repairMySQLPodsWaitingReadinessGates(%v)", tt.args.ctx))
-		})
-	}
+	// First time calling, expect no error and mysql-operator pod should still exist
+	err := mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
+	assert.NoError(t, err)
+	pod := corev1.Pod{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
+	assert.NoError(t, err)
 }
