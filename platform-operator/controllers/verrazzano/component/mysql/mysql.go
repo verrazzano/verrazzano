@@ -10,13 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
-	"k8s.io/client-go/kubernetes"
-
-	"github.com/verrazzano/verrazzano/pkg/constants"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	k8sready "github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -35,9 +30,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -251,20 +249,19 @@ func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentCo
 				// Restart the mysql-operator to see if it will finish setting the readiness gates
 				ctx.Log().Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck waiting for readiness gates")
 
-				operList, err := getMySQLOperatorPod(client)
-				if err != nil {
-					return err
+				operSelector := metav1.LabelSelectorRequirement{"name", metav1.LabelSelectorOpIn, []string{mysqloperator.ComponentName}}
+				operPodList := k8sready.GetPodsList(ctx.Log(), ctx.Client(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{operSelector}})
+				if operPodList == nil || len(podList.Items) != 1 {
+					return fmt.Errorf("no pods found matching selector %s", selector.String())
 				}
 
-				if err = client.CoreV1().Pods(constants.MySQLOperatorNamespace).Delete(context.TODO(), operList.Items[0].Name, metav1.DeleteOptions{}); err != nil {
+				if err := ctx.Client().Delete(context.TODO(), &operPodList.Items[0], &clipkg.DeleteOptions{}); err != nil {
 					return err
 				}
-				operatorRestarted = true
-				return nil
 			}
 		}
-
 	}
+	return nil
 }
 
 // getMySQLOperatorPod - return the mysql-operator pod

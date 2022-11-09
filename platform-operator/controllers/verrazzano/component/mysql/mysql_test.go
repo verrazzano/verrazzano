@@ -6,25 +6,24 @@ package mysql
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"net/url"
 	"os"
 	"strings"
 	"testing"
-
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	k8sutilfake "github.com/verrazzano/verrazzano/pkg/k8sutil/fake"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
@@ -36,7 +35,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -1936,4 +1937,49 @@ func TestDumpDatabaseWithExecErrors(t *testing.T) {
 	assert.Error(t, err)
 	assert.False(t, strings.Contains(err.Error(), weakPass))
 	assert.True(t, strings.Contains(err.Error(), "-p******"))
+}
+
+// TestRepairMySQLPodsWaitingReadinessGates tests the temporary workaround for MySQL
+// pods getting stuck during install waiting for all readiness gates to be true.
+// GIVEN a MySQL Pod with readiness gates defined
+// WHEN they are not all ready after a given time period
+// THEN recycle the mysql-operator
+func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
+	type fields struct {
+		LastTimeStartedWatchForRepair *time.Time
+		HelmComponent                 helm.HelmComponent
+	}
+	type args struct {
+		ctx spi.ComponentContext
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr assert.ErrorAssertionFunc
+	}{
+		// TODO: Add test cases.
+	}
+
+	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&v1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"app":     "mysql",
+					"release": "mysql",
+				},
+			},
+		},
+	).Build()
+	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := mysqlComponent{
+				LastTimeStartedWatchForRepair: tt.fields.LastTimeStartedWatchForRepair,
+				HelmComponent:                 tt.fields.HelmComponent,
+			}
+			tt.wantErr(t, c.repairMySQLPodsWaitingReadinessGates(tt.args.ctx), fmt.Sprintf("repairMySQLPodsWaitingReadinessGates(%v)", tt.args.ctx))
+		})
+	}
 }
