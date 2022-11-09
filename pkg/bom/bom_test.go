@@ -271,12 +271,12 @@ func TestBomImageOverrides(t *testing.T) {
 // THEN the correct Verrazzano bom is returned when json is valid, else an error is returned
 func TestParseBom(t *testing.T) {
 	assert := assert.New(t)
-	bom, err := ParseBom("invalid")
+	_, err := ParseBom("invalid")
 	assert.Error(err, "should have returned error parsing invalid bom")
 
 	jsonBom, err := ioutil.ReadFile(realBomFilePath)
 	assert.NoError(err, "error while reading bom file")
-	bom, err = ParseBom(string(jsonBom))
+	bom, err := ParseBom(string(jsonBom))
 	assert.NoError(err, "error parsing valid bom")
 	assert.Equal("ghcr.io", bom.bomDoc.Registry, "Wrong registry name")
 	assert.Len(bom.bomDoc.Components, 14, "incorrect number of Bom components")

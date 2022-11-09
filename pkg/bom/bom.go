@@ -339,11 +339,11 @@ func FindKV(kvs []KeyValue, key string) string {
 }
 
 // ParseBom - create a new bom from a JSON string
-func ParseBom(bomJson string) (Bom, error) {
+func ParseBom(bomJSON string) (Bom, error) {
 	bom := Bom{
 		subComponentMap: make(map[string]*BomSubComponent),
 	}
-	err := bom.init(bomJson)
+	err := bom.init(bomJSON)
 	if err != nil {
 		return Bom{}, err
 	}
