@@ -48,7 +48,7 @@ func isNginxReady(context spi.ComponentContext) bool {
 	// Only log the message for if the request comes from this component's context
 	// Otherwise, the message is logged for each component that checks the status of the ingress controller
 	if err != nil && context.GetComponent() == ComponentName {
-		context.Log().Errorf("Ingress external IP pending for component %s: %v", ComponentName, err)
+		context.Log().Progressf("Ingress external IP pending for component %s: %s", ComponentName, err.Error())
 	}
 	return err == nil && status.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
 }
