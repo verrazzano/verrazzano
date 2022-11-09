@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -1961,16 +1963,29 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 		// TODO: Add test cases.
 	}
 
-	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
-		&v1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Labels: map[string]string{
-					"app":     "mysql",
-					"release": "mysql",
-				},
+	mySQLOperatorPod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mysqloperator.ComponentName,
+			Namespace: mysqloperator.ComponentNamespace,
+			Labels: map[string]string{
+				"name": mysqloperator.ComponentName,
 			},
 		},
-	).Build()
+	}
+
+	mySQLPod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mysql-0",
+			Namespace: ComponentNamespace,
+			Labels: map[string]string{
+				mySQLComponentLabel: mySQLDComponentName,
+			},
+		},
+	}
+
+	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod, mySQLOperatorPod).Build()
+	comp := NewComponent()
+
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
 
 	for _, tt := range tests {
