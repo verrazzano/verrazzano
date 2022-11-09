@@ -253,7 +253,7 @@ func TestChartsNotUpdatedWorkaround(t *testing.T) {
 			},
 		},
 	).Build()
-	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+	ctx := spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
 	err := chartsNotUpdatedWorkaround(ctx)
 	assert.Error(t, err)
 
@@ -279,7 +279,7 @@ func TestChartsNotUpdatedWorkaround(t *testing.T) {
 			},
 		},
 	).Build()
-	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false)
+	ctx = spi.NewFakeContext(client, &vzapi.Verrazzano{}, false)
 	err = chartsNotUpdatedWorkaround(ctx)
 	assert.NoError(t, err)
 
