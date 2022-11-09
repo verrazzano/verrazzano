@@ -9,10 +9,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // For unit testing
@@ -21,9 +23,8 @@ const (
 	testBomFilePath            = "../testdata/test_bom.json"
 	invalidTestBomFilePath     = "../testdata/invalid_test_bom.json"
 	invalidPathTestBomFilePath = "../testdata/invalid_test_bom_path.json"
-
-	v0170 = "v0.17.0"
-	v110  = "v1.1.0"
+	v0170                      = "v0.17.0"
+	v110                       = "v1.1.0"
 )
 
 // TestGetCurrentBomVersion Tests basic getBomVersion() happy path
@@ -101,6 +102,7 @@ func TestValidateVersionInvalidVersionCheckingDisabled(t *testing.T) {
 // WHEN the version provided is not valid version
 // THEN an error is returned
 func TestValidateVersionInvalidVersion(t *testing.T) {
+	assert.NoError(t, ValidateVersion(""))
 	assert.Error(t, ValidateVersion("blah"))
 }
 
@@ -118,6 +120,294 @@ func TestValidateVersionBadBomfile(t *testing.T) {
 	assert.Contains(t, err.Error(), "unexpected end of JSON input")
 }
 
+// TestValidateVersionNotEqual Tests ValidateVersion()
+// GIVEN a request for the current VZ Bom version
+// WHEN the version provided is not equal to the Bom version
+// THEN an error is returned
+func TestValidateVersionNotEqual(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
+	requestedVersion := "1.1.1"
+	err := ValidateVersion(requestedVersion)
+	assert.Error(t, err)
+
+	requestedVersion = "1.1.0"
+	err = ValidateVersion(requestedVersion)
+	assert.NoError(t, err)
+
+}
+
+// TestCheckUpgradeRequired Tests CheckUpgradeRequired
+// GIVEN a request for the current VZ Bom version
+// WHEN the current version provided is not valid or less than Bom Version
+// THEN an error is returned
+func TestCheckUpgradeRequired(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	bomVersion, err := GetCurrentBomVersion()
+	assert.NoError(t, err)
+
+	currVersion := "An Invalid Version"
+	err = CheckUpgradeRequired(currVersion, bomVersion)
+	assert.Error(t, err)
+
+	currVersion = "1.1.5"
+	err = CheckUpgradeRequired(currVersion, bomVersion)
+	assert.NoError(t, err)
+
+	currVersion = "1.0.5"
+	err = CheckUpgradeRequired(currVersion, bomVersion)
+	assert.Error(t, err)
+
+	currVersion = ""
+	err = CheckUpgradeRequired(currVersion, bomVersion)
+	assert.NoError(t, err)
+
+}
+
+// TestValidateNewVersionforInvalidVersions tests ValidateNewVersion
+// GIVEN a request for the current VZ Bom version
+// WHEN the respective versions are not provided in the correct semVer format
+// THEN an error is returned
+func TestValidateNewVersionforInvalidVersions(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	bomVersion, err := GetCurrentBomVersion()
+	assert.NoError(t, err)
+
+	currStatusVerString := "dummystr1"
+	currSpecVerString := "dummmystr2"
+	newVerString := "dummystr3"
+
+	err = ValidateNewVersion(currStatusVerString, currSpecVerString, newVerString, bomVersion)
+	assert.Error(t, err)
+
+	currStatusVerString = "dummystr1"
+	currSpecVerString = "dummmystr2"
+	newVerString = "1.1.0"
+
+	err = ValidateNewVersion(currStatusVerString, currSpecVerString, newVerString, bomVersion)
+	assert.Error(t, err)
+
+	currStatusVerString = "1.0.0"
+	currSpecVerString = "dummmystr2"
+	newVerString = "1.1.0"
+
+	err = ValidateNewVersion(currStatusVerString, currSpecVerString, newVerString, bomVersion)
+	assert.Error(t, err)
+
+}
+
+// TestValidateNewVersion tests ValidateNewVersion
+// GIVEN a request for the current VZ Bom version
+// WHEN the respective version string are not in accordance with the rules
+// THEN an error is returned
+func TestValidateNewVersion(t *testing.T) {
+	//can add the case to test each of them separately, when they are invalid
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	bomVersion, err := GetCurrentBomVersion()
+	assert.NoError(t, err)
+
+	currStatusVerString := "1.1.1"
+	currSpecVerString := "1.1.0"
+	newVerString := "1.1.2"
+
+	err = ValidateNewVersion(currStatusVerString, currSpecVerString, newVerString, bomVersion)
+	assert.Error(t, err)
+
+	currStatusVerString = "1.1.2"
+	currSpecVerString = "1.1.0"
+	newVerString = "1.1.0"
+
+	err = ValidateNewVersion(currStatusVerString, currSpecVerString, newVerString, bomVersion)
+	assert.Error(t, err)
+
+	currStatusVerString = "0.9.5"
+	currSpecVerString = "1.2.0"
+	newVerString = "1.1.0"
+
+	err = ValidateNewVersion(currStatusVerString, currSpecVerString, newVerString, bomVersion)
+	assert.Error(t, err)
+
+	currStatusVerString = "1.0.0"
+	currSpecVerString = "1.0.0"
+	newVerString = "1.1.0"
+
+	err = ValidateNewVersion(currStatusVerString, currSpecVerString, newVerString, bomVersion)
+	assert.NoError(t, err)
+
+}
+
+// TestGetSupportedKubernetesVersion tests getSupportedKubernetesVersions()
+// GIVEN a request for the current BOM kubernetes Supported Versions
+// WHEN the respective version array is not equal to the expected array
+// THEN an error is returned
+func TestGetSupportedKubernetesVersion(t *testing.T) {
+	config.SetDefaultBomFilePath(invalidTestBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	_, err := getSupportedKubernetesVersions()
+	assert.Error(t, err)
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+	var versionArray = []string{"v1.20.0", "v1.21.0", "v1.22.0", "v1.23.0", "v1.24.0"}
+	kubeSupportedVersions, err := getSupportedKubernetesVersions()
+	assert.NoError(t, err)
+	assert.Equal(t, kubeSupportedVersions, versionArray)
+}
+
+// TestValidateFluentdConfigData tests ValidateFluentdConfigData
+// GIVEN a request for the byte at FluentdOCISecretConfigEntry
+// WHEN the entry is not there or a required value is either absent or nil
+// THEN an error is returned
+func TestValidateFluentdConfigData(t *testing.T) {
+	testSecret := corev1.Secret{}
+	testSecret.Name = "testSecret"
+
+	err := ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data = map[string][]byte{}
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n fingerprint=fingerprint \n key_file=/root/.oci/key \n tenancy=tenancy-ocid \n region=mumbai")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user= \n fingerprint=fingerprint \n key_file=/root/.oci/key \n tenancy=tenancy-ocid \n region=mumbai")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user= blah \n key_file=/root/.oci/key \n tenancy=tenancy-ocid \n region=mumbai")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user= blah \n fingerprint= \n key_file=/root/.oci/key \n tenancy=tenancy-ocid \n region=mumbai")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user=blah \n fingerprint=fingerprint \n key_file=/root/.oci/key \n region=mumbai")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user= blah \n fingerprint=fingerprint \n key_file=/root/.oci/key \n tenancy= \n region=mumbai ")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user= blah \n fingerprint=fingerprint \n key_file=/root/.oci/key \n tenancy=tenancy-ocid \n")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user= blah \n fingerprint=fingerprint \n key_file=/root/.oci/key \n tenancy=tenancy-oci \n region= ")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user= blah \n fingerprint=fingerprint \n key_file=/root/.oci/key \n tenancy=tenancy-oci \n region=mumbai")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.NoError(t, err)
+
+	testSecret.Data[FluentdOCISecretConfigEntry] = []byte("[DEFAULT]\n user= blah \n fingerprint=fingerprint \n key_file= \n tenancy=tenancy-oci \n region=mumbai")
+	err = ValidateFluentdConfigData(&testSecret)
+	assert.Error(t, err)
+}
+
+// TestValidateSecretkey tests ValidateSecretKey
+// GIVEN a request for the secret entry at keyvalue
+// WHEN the entry is not there
+// THEN an error is returned
+func TestValidateSecretkey(t *testing.T) {
+	testSecret := corev1.Secret{}
+	testSecret.Name = "testSecret"
+	testSecret.Data = map[string][]byte{}
+
+	expectedBytes := []byte(nil)
+	secretBytes, err := ValidateSecretKey(&testSecret, "testKey", &AuthData{})
+	assert.Error(t, err)
+	assert.Equal(t, expectedBytes, secretBytes)
+
+	testSecret.Data["testKey"] = []byte("secret")
+	expectedBytes = []byte("secret")
+	secretBytes, err = ValidateSecretKey(&testSecret, "testKey", &AuthData{})
+	assert.NoError(t, err)
+	assert.Equal(t, expectedBytes, secretBytes)
+}
+
+// TestCombineErrors tests CombineErrors
+// GIVEN an array consisting of errors
+// WHEN the error array is empty
+// THEN nil is returned
+func TestCombineErrors(t *testing.T) {
+	errorData := []error(nil)
+
+	err := CombineErrors(errorData)
+	assert.NoError(t, err)
+
+}
+
+// TestValidatePrivateKey tests ValidatePrivateKey
+// GIVEN a key
+// WHEN it's nil or not in correct pem format
+// THEN an error is returned
+func TestValidatePrivateKey(t *testing.T) {
+	secretName := "mysecret"
+	var pemData = []byte{}
+
+	err := ValidatePrivateKey(secretName, pemData)
+	assert.Error(t, err)
+
+}
+
+// TestValidateUpgradeRequestForEnabled tests ValidateUpgradeRequest
+// GIVEN a requestedVersion
+// WHEN the Version check is not enabled
+// THEN no error is returned
+func TestValidateUpgradeRequestForEnabled(t *testing.T) {
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
+	err := ValidateUpgradeRequest("1.1.1", "1.1.0", "1.1.0")
+	assert.NoError(t, err)
+}
+
+// TestValidateUpgradeRequestForEnabled tests ValidateUpgradeRequest
+// GIVEN a newSpecVersion, currSpecVersion, currStatusVersion
+// WHEN the string do not follow the rules in CheckUpgrade and ValidateNewVersion or the BomVersion is not in correct format
+// THEN an error is returned
+func TestValidateUpgradeRequest(t *testing.T) {
+
+	config.SetDefaultBomFilePath(invalidTestBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+
+	err := ValidateUpgradeRequest("1.1.0", "1.1.0", "1.1.0")
+	assert.Error(t, err)
+
+	config.SetDefaultBomFilePath(testBomFilePath)
+
+	err = ValidateUpgradeRequest("1.1.1", "1.1.1", "1.1.1")
+	assert.Error(t, err)
+
+	err = ValidateUpgradeRequest("", "1.0.5", "1.0.5")
+	assert.Error(t, err)
+
+	err = ValidateUpgradeRequest("1.1.0", "1.1.0", "1.1.0")
+	assert.NoError(t, err)
+}
+
 // Test_validateSecretContents Tests validateSecretContents
 // GIVEN a call to validateSecretContents
 // WHEN the YAML bytes are not valid
@@ -126,6 +416,9 @@ func Test_validateSecretContents(t *testing.T) {
 	err := ValidateSecretContents("mysecret", []byte("foo"), &AuthData{})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "error unmarshaling JSON")
+
+	err = ValidateSecretContents("mysecret", []byte("a: 1\nb: 2"), &AuthData{})
+	assert.NoError(t, err)
 }
 
 // Test_validateSecretContentsEmpty Tests validateSecretContents
