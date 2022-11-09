@@ -983,6 +983,7 @@ func TestReconcileFailed(t *testing.T) {
 	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
 }
 
+// TestAddMetrics tests to add metrics and make sure no error comes
 func TestAddMetrics(t *testing.T) {
 	assert := asserts.New(t)
 	var mocker = gomock.NewController(t)
