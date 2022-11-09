@@ -4,38 +4,39 @@
 package argocd
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"text/template"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
-const oidcConfigTemplate = `
-     name: Keycloak
-     issuer: "{{.KeycloakUrl}}"
-     clientID: argocd
-     clientSecret: $oidc.keycloak.clientSecret
-     requestedScopes: ["openid", "profile", "email", "groups"]
-     rootCA: 
-       "{{.CaCert}}"
-`
+//const oidcConfigTemplate = `
+//name: Keycloak
+//issuer: {{.KeycloakUrl}}
+//clientID: argocd
+//clientSecret: $oidc.keycloak.clientSecret
+//requestedScopes: ["openid", "profile", "email", "groups"]
+//rootCA: |
+//  {{.CaCert}}
+//`
 
-type oideConfigTemplateData struct {
-	KeycloakUrl string
-	CaCert      string
+type OIDCConfig struct {
+	Name            string   `json:"keycloak"`
+	Issuer          string   `json:"issuer"`
+	ClientID        string   `json:"clientID"`
+	ClientSecret    string   `json:"clientSecret"`
+	RequestedScopes []string `json:"requestedScopes"`
+	RootCA          string   `json:"rootCA"`
 }
 
 // patchArgoCDSecret
@@ -72,52 +73,55 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 	}
 
 	keycloakHost := "keycloak." + dnsSubDomain
-	argocdHost := "argocd." + dnsSubDomain
+	//argocdHost := "argocd." + dnsSubDomain
+	keycloakUrl := fmt.Sprintf("https://%s/%s", keycloakHost, "auth/realms/verrazzano-system")
 
 	ctx.Log().Debugf("Getting ArgoCD TLS root CA")
 	caCert, err := GetRootCA(ctx)
-	ctx.Log().Infof("%s  - this is cacert", caCert)
 	if err != nil {
 		ctx.Log().Errorf("Failed to get ArgoCD TLS root CA: %v", err)
 		return err
 	}
 
-	t, err := template.New("oidcconfig_template").Parse(oidcConfigTemplate)
+	/*t, err := template.New("oidcconfig_template").Parse(oidcConfigTemplate)
 	if err != nil {
 		return err
+	}*/
+
+	conf := &OIDCConfig{
+		Name:         "Keycloak",
+		Issuer:       keycloakUrl,
+		ClientID:     "argocd",
+		ClientSecret: "$oidc.keycloak.clientSecret",
+		RequestedScopes: []string{
+			"openid",
+			"profile",
+			"email",
+			"groups",
+		},
+		RootCA: string(caCert),
 	}
 
-	secret := &corev1.Secret{}
-	nsName := types.NamespacedName{
-		Namespace: constants.ArgoCDNamespace,
-		Name:      common.ArgoCDIngressCAName}
-
-	if err := ctx.Client().Get(context.TODO(), nsName, secret); err != nil {
-		return err
-	}
-
-	var b bytes.Buffer
-	var data = oideConfigTemplateData{}
-	data.KeycloakUrl = fmt.Sprintf("https://%s/%s", keycloakHost, "auth/realms/verrazzano-system")
-	data.CaCert = string(caCert)
-	err = t.Execute(&b, &data)
+	ctx.Log().Infof("cacert - %s", string(caCert))
+	keycloakUrl = fmt.Sprintf("https://%s/%s", keycloakHost, "auth/realms/verrazzano-system")
+	//b := &bytes.Buffer{}
+	data, err := yaml.Marshal(conf)
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
-
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "argocd-cm",
 			Namespace: constants.ArgoCDNamespace,
 		},
+		Data: map[string]string{
+			"oidc.config": string(data),
+		},
 	}
+
 	// Add the oidc configuration to enable our keycloak authentication.
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), cm, func() error {
-		if cm.Data == nil {
-			cm.Data = make(map[string]string)
-		}
-		cm.Data["url"] = fmt.Sprintf("https://%s", argocdHost)
-		cm.Data["oidc.config"] = b.String()
 		return nil
 	}); err != nil {
 		return err
