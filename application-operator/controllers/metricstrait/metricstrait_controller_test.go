@@ -1183,6 +1183,90 @@ func TestDeleteServiceMonitor(t *testing.T) {
 	}
 }
 
+// TestUpdateRelatedStatefulSet tests the updateRelatedStatefulSet func call
+// GIVEN metricstrait, workload and child resources
+// WHEN updateRelatedPod func call is made by the reconciler
+// THEN the related workload StatefulSets are mutated
+func TestUpdateRelatedStatefulSet(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = k8score.AddToScheme(scheme)
+	_ = k8sapps.AddToScheme(scheme)
+	port := 443
+	path := foo
+	trait := vzapi.MetricsTrait{
+		Spec: vzapi.MetricsTraitSpec{
+			Port: &port,
+			Path: &path,
+		},
+	}
+	child := unstructured.Unstructured{}
+	child.SetAPIVersion(foo)
+	child.SetKind(bar)
+	child.SetName(foo)
+	child.SetKind(bar)
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		&k8sapps.StatefulSet{
+			TypeMeta:   k8smeta.TypeMeta{APIVersion: child.GetAPIVersion(), Kind: child.GetKind()},
+			ObjectMeta: k8smeta.ObjectMeta{Namespace: child.GetNamespace(), Name: child.GetName(), CreationTimestamp: k8smeta.Now()},
+		},
+		&k8score.Namespace{ObjectMeta: k8smeta.ObjectMeta{Name: child.GetNamespace()}},
+	).Build()
+	reconciler0 := newMetricsTraitReconciler(cli)
+	_, res0, err0 := reconciler0.updateRelatedStatefulSet(context.Background(), &trait, nil, nil, &child, vzlog.DefaultLogger())
+	asserts.Equal(t, res0, controllerutil.OperationResultUpdated)
+	asserts.NoError(t, err0)
+
+	badGetClient := &erroringGetClient{cli}
+	reconciler1 := newMetricsTraitReconciler(badGetClient)
+	_, res1, err1 := reconciler1.updateRelatedStatefulSet(context.Background(), &trait, nil, nil, &child, vzlog.DefaultLogger())
+	asserts.Equal(t, res1, controllerutil.OperationResultNone)
+	asserts.ErrorContains(t, err1, getError)
+}
+
+// TestUpdateRelatedPod tests the updateRelatedPod func call
+// GIVEN metricstrait, workload and child resources
+// WHEN updateRelatedPod func call is made by the reconciler
+// THEN the related workload pods are mutated
+func TestUpdateRelatedPod(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = k8score.AddToScheme(scheme)
+
+	port := 443
+	path := foo
+	trait := vzapi.MetricsTrait{
+		Spec: vzapi.MetricsTraitSpec{
+			Port: &port,
+			Path: &path,
+		},
+	}
+
+	child := unstructured.Unstructured{}
+	child.SetAPIVersion(foo)
+	child.SetKind(bar)
+	child.SetName(foo)
+	child.SetKind(bar)
+
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		&k8score.Pod{
+			TypeMeta:   k8smeta.TypeMeta{APIVersion: child.GetAPIVersion(), Kind: child.GetKind()},
+			ObjectMeta: k8smeta.ObjectMeta{Namespace: child.GetNamespace(), Name: child.GetName(), CreationTimestamp: k8smeta.Now()},
+		},
+		&k8score.Namespace{ObjectMeta: k8smeta.ObjectMeta{Name: child.GetNamespace()}},
+	).Build()
+
+	reconciler0 := newMetricsTraitReconciler(cli)
+	_, res0, err0 := reconciler0.updateRelatedPod(context.Background(), &trait, nil, nil, &child, vzlog.DefaultLogger())
+	asserts.Equal(t, res0, controllerutil.OperationResultUpdated)
+	asserts.NoError(t, err0)
+
+	badGetClient := &erroringGetClient{cli}
+	reconciler1 := newMetricsTraitReconciler(badGetClient)
+
+	_, res1, err1 := reconciler1.updateRelatedPod(context.Background(), &trait, nil, nil, &child, vzlog.DefaultLogger())
+	asserts.Equal(t, res1, controllerutil.OperationResultNone)
+	asserts.ErrorContains(t, err1, getError)
+}
+
 // deploymentWorkloadClient returns a fake client with a containerized workload target in the trait
 func containerizedWorkloadClient(deleting, deploymentDeleted, traitDisabled bool) client.WithWatch {
 	scheme := k8scheme.Scheme
