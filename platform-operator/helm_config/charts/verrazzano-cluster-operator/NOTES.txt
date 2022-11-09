@@ -1,0 +1,1 @@
+Verrazzano Cluster Operator Helm chart has been installed!
