@@ -10,12 +10,11 @@ import (
 	"strings"
 	"time"
 
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -138,7 +137,7 @@ func isConsoleIngressHost(ingressHost string) bool {
 // isConsoleURLExpected - Returns true in VZ < 1.1.1. For VZ >= 1.1.1, returns false only if explicitly disabled
 // in the CR or when managed cluster profile is used
 func isConsoleURLExpected(kubeconfigPath string) (bool, error) {
-	isAtleastVz111, err := pkg.IsVerrazzanoMinVersion("1.1.1", kubeconfigPath)
+	isAtleastVz111, err := pkg.IsVerrazzanoMinVersionEventually("1.1.1", kubeconfigPath)
 	if err != nil {
 		return false, err
 	}

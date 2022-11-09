@@ -10,14 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -76,7 +75,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 				}, waitTimeout, pollingInterval).Should(Equal(true), "rancher local cluster not in active state")
 				metrics.Emit(t.Metrics.With("get_cluster_state_elapsed_time", time.Since(start).Milliseconds()))
 
-				minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+				minVer14, err := pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfigPath)
 				Expect(err).ToNot(HaveOccurred())
 
 				start = time.Now()
@@ -224,7 +223,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 
 				}
 
-				minVer15, err := pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
+				minVer15, err := pkg.IsVerrazzanoMinVersionEventually("1.5.0", kubeconfigPath)
 				Expect(err).ToNot(HaveOccurred())
 				if minVer15 {
 					verifySettingValue(rancher.SettingUIPrimaryColor, rancher.SettingUIPrimaryColorValue, k8sClient)

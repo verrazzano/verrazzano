@@ -133,7 +133,7 @@ func WhenPromStackInstalledIt(description string, f func()) {
 			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		})
 	}
-	supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
+	supported, err := pkg.IsVerrazzanoMinVersionEventually("1.3.0", kubeconfigPath)
 	if err != nil {
 		t.It(description, func() {
 			Fail(fmt.Sprintf("Failed to check Verrazzano version 1.3.0: %s", err.Error()))
@@ -152,7 +152,7 @@ var _ = t.BeforeSuite(func() {
 	if err != nil {
 		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
-	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+	isMinVersion140, err = pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}

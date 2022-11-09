@@ -6,9 +6,10 @@ package opensearch
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"os"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -34,7 +35,7 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 				Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 			})
 		}
-		supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
+		supported, err := pkg.IsVerrazzanoMinVersionEventually("1.3.0", kubeconfigPath)
 		if err != nil {
 			t.It(description, func() {
 				Fail(err.Error())

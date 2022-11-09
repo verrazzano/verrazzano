@@ -44,7 +44,7 @@ var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.e
 				Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 			})
 		}
-		supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
+		supported, err := pkg.IsVerrazzanoMinVersionEventually("1.3.0", kubeconfigPath)
 		if err != nil {
 			t.It(description, func() {
 				Fail(err.Error())
@@ -85,7 +85,7 @@ var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.e
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 				return false
 			}
-			supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
+			supported, err := pkg.IsVerrazzanoMinVersionEventually("1.3.0", kubeconfigPath)
 			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano version: %v", err))
 				return false

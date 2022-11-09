@@ -5,11 +5,11 @@ package grafana
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
@@ -57,7 +57,7 @@ var _ = t.Describe("Post Upgrade Grafana Dashboard", Label("f:observability.logg
 	// GIVEN a running grafana instance
 	// WHEN a call is made to Grafana Dashboard with UID corresponding to OpenSearch Summary Dashboard
 	// THEN the dashboard metadata of the corresponding dashboard is returned
-	if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); ok {
+	if ok, _ := pkg.IsVerrazzanoMinVersionEventually("1.3.0", kubeconfigPath); ok {
 		t.It("Get details of the OpenSearch Grafana Dashboard", func() {
 			pkg.TestOpenSearchGrafanaDashBoard(pollingInterval, waitTimeout)
 		})

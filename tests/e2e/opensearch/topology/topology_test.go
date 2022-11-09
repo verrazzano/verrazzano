@@ -51,7 +51,7 @@ var _ = clusterDump.BeforeSuite(func() {
 	Expect(err).To(BeNil())
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).To(BeNil())
-	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+	isMinVersion140, err = pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfigPath)
 	Expect(err).To(BeNil())
 
 	Eventually(func() bool {

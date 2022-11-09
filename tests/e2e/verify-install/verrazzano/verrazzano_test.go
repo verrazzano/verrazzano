@@ -8,12 +8,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	appsv1 "k8s.io/api/apps/v1"
@@ -45,19 +44,19 @@ var _ = t.BeforeSuite(func() {
 	if err != nil {
 		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
-	isMinVersion110, err = pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
+	isMinVersion110, err = pkg.IsVerrazzanoMinVersionEventually("1.1.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
-	isMinVersion120, err = pkg.IsVerrazzanoMinVersion("1.2.0", kubeconfigPath)
+	isMinVersion120, err = pkg.IsVerrazzanoMinVersionEventually("1.2.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
-	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+	isMinVersion140, err = pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
-	isMinVersion150, err = pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
+	isMinVersion150, err = pkg.IsVerrazzanoMinVersionEventually("1.5.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
