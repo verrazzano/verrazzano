@@ -13,6 +13,6 @@ resources:
   domain: verrazzano.io
   group: clusters.verrazzano.io
   kind: VerrazzanoManagedCluster
-  path: github.com/verrazzano/verrazzano/api/v1alpha1
+  path: github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1
   version: v1alpha1
-version: "3"
+version: "1"

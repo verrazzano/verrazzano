@@ -60,15 +60,9 @@ build: go-fmt go-vet
 	go build -o bin/manager main.go
 
 # Disable the cluster operator in the local Kubernetes cluster
-# Deletes all of the webhook configurations for the cluster operator
 # Scales the in-cluster cluster operator deployment to replicas 0
 .PHONY: disable-operator
 disable-operator:
-	#kubectl delete validatingwebhookconfigurations verrazzano-application-ingresstrait-validator || true
-	#kubectl delete mutatingwebhookconfigurations verrazzano-application-istio-defaulter || true
-	#kubectl delete mutatingwebhookconfigurations verrazzano-application-appconfig-defaulter || true
-	#kubectl delete validatingwebhookconfigurations verrazzano-application-verrazzanoproject || true
-	#kubectl delete mutatingwebhookconfigurations verrazzano-application-scrape-generator || true
 	kubectl scale deployment verrazzano-cluster-operator --replicas=0 -n verrazzano-system
 
 # Run against the configured Kubernetes cluster in ~/.kube/config

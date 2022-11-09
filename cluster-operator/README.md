@@ -54,6 +54,7 @@ You need a Kubernetes cluster to run against.
 * To build the Docker image:
     ```
     make docker-build
+    ```
 
 * To push the Docker image:
     ```
