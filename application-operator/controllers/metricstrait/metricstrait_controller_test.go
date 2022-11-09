@@ -861,6 +861,10 @@ func TestCreateScrapeConfigFromTrait(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&k8score.Namespace{}).Build()
 	testWorkLoad := unstructured.Unstructured{}
 	testWorkLoad.SetGroupVersionKind(oamcore.ContainerizedWorkloadGroupVersionKind)
+
+	testWLSWorkload := unstructured.Unstructured{}
+	testWLSWorkload.SetAPIVersion("weblogic.oracle")
+	testWLSWorkload.SetKind("Domain")
 	tests := []struct {
 		name        string
 		trait       vzapi.MetricsTrait
@@ -868,6 +872,7 @@ func TestCreateScrapeConfigFromTrait(t *testing.T) {
 		wantErr     bool
 		errContains string
 		isConfigNil bool
+		secret      *k8score.Secret
 	}{
 		// GIVEN a metricstrait and workload with default values
 		// WHEN createScrapeConfigFromTrait method is called
@@ -886,6 +891,7 @@ func TestCreateScrapeConfigFromTrait(t *testing.T) {
 			false,
 			"",
 			false,
+			nil,
 		},
 		// GIVEN a metricstrait missing app name label
 		// WHEN createScrapeConfigFromTrait is called
@@ -903,6 +909,7 @@ func TestCreateScrapeConfigFromTrait(t *testing.T) {
 			true,
 			"metrics trait missing application name label",
 			true,
+			nil,
 		},
 		// GIVEN a metricstrait with missing component label
 		// WHEN createScrapeConfigFromTrait is called
@@ -920,6 +927,7 @@ func TestCreateScrapeConfigFromTrait(t *testing.T) {
 			true,
 			"metrics trait missing component name label",
 			true,
+			nil,
 		},
 		// GIVEN a nil workload and correct metricstrait
 		// WHEN createScrapeConfigFromTrait is called
@@ -938,12 +946,53 @@ func TestCreateScrapeConfigFromTrait(t *testing.T) {
 			false,
 			"",
 			true,
+			nil,
+		},
+		// GIVEN a wls workload and correct metricstrait
+		// WHEN createScrapeConfigFromTrait is called
+		// THEN no error is returned along with a non nil config
+		{
+			"WLS Workload",
+			vzapi.MetricsTrait{
+				ObjectMeta: k8smeta.ObjectMeta{
+					Labels: map[string]string{
+						appObjectMetaLabel:  foo,
+						compObjectMetaLabel: bar,
+					},
+				},
+			},
+			&testWLSWorkload,
+			false,
+			"",
+			false,
+			nil,
+		},
+		{
+			"Basic auth",
+			vzapi.MetricsTrait{
+				ObjectMeta: k8smeta.ObjectMeta{
+					Labels: map[string]string{
+						appObjectMetaLabel:  foo,
+						compObjectMetaLabel: bar,
+					},
+				},
+			},
+			&testWLSWorkload,
+			false,
+			"",
+			false,
+			&k8score.Secret{
+				Data: map[string][]byte{
+					"username": []byte(foo),
+					"password": []byte(bar),
+				},
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			name, job, err := createScrapeConfigFromTrait(context.Background(), &tt.trait, 0, nil, tt.workload, c)
+			name, job, err := createScrapeConfigFromTrait(context.Background(), &tt.trait, 0, tt.secret, tt.workload, c)
 			if len(name) > 0 {
 				asserts.Equal(t, jobName, name)
 			}
@@ -956,6 +1005,9 @@ func TestCreateScrapeConfigFromTrait(t *testing.T) {
 				} else {
 					asserts.NotNil(t, job)
 					asserts.True(t, job.Exists("scheme"))
+					if tt.secret != nil {
+						asserts.True(t, job.Exists(basicAuthLabel))
+					}
 				}
 			}
 		})
@@ -1055,6 +1107,84 @@ func TestRemovedTraitReferencesFromOwner(t *testing.T) {
 			} else {
 				asserts.NoError(t, err)
 			}
+		})
+	}
+}
+
+// TestDeleteServiceMonitor tests the deleteServiceMonitor func call
+func TestDeleteServiceMonitor(t *testing.T) {
+	scheme := k8scheme.Scheme
+	_ = vzapi.AddToScheme(scheme)
+	_ = promoperapi.AddToScheme(scheme)
+	_ = oamcore.SchemeBuilder.AddToScheme(scheme)
+	tests := []struct {
+		name   string
+		trait  vzapi.MetricsTrait
+		result controllerutil.OperationResult
+	}{
+		// GIVEN a metricstrait
+		// WHEN the trait is enabled and not scheduled for deletion
+		// THEN the ServiceMonitor resource is not deleted
+		{
+			"Trait is enabled",
+			vzapi.MetricsTrait{
+				Spec: vzapi.MetricsTraitSpec{
+					Enabled: getBoolPtr(true),
+				},
+			},
+			controllerutil.OperationResultNone,
+		},
+		// GIVEN a metricstrait
+		// WHEN the trait is scheduled for deletion
+		// THEN the associated ServiceMonitor is deleted
+		{
+			"Successful Delete",
+			vzapi.MetricsTrait{
+				ObjectMeta: k8smeta.ObjectMeta{
+					DeletionTimestamp: &k8smeta.Time{Time: time.Now()},
+				},
+			},
+			controllerutil.OperationResultUpdated,
+		},
+		// GIVEN a metricstrait
+		// WHEN the trait is disabled for deletion
+		// THEN the associated ServiceMonitor is deleted
+		{
+			"Trait is disabled",
+			vzapi.MetricsTrait{
+				Spec: vzapi.MetricsTraitSpec{
+					Enabled: getBoolPtr(false),
+				},
+			},
+			controllerutil.OperationResultUpdated,
+		},
+		{
+			"Enabled but scheduled for deletion",
+			vzapi.MetricsTrait{
+				ObjectMeta: k8smeta.ObjectMeta{
+					DeletionTimestamp: &k8smeta.Time{Time: time.Now()},
+				},
+				Spec: vzapi.MetricsTraitSpec{
+					Enabled: getBoolPtr(true),
+				},
+			},
+			controllerutil.OperationResultUpdated,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+				&promoperapi.ServiceMonitor{
+					ObjectMeta: k8smeta.ObjectMeta{
+						Name:      foo,
+						Namespace: bar,
+					},
+				},
+				&k8score.Namespace{ObjectMeta: k8smeta.ObjectMeta{Name: bar}},
+			).Build()
+			reconciler := newMetricsTraitReconciler(cli)
+			res, _ := reconciler.deleteServiceMonitor(context.TODO(), bar, foo, &tt.trait, vzlog.DefaultLogger())
+			asserts.Equal(t, tt.result, res)
 		})
 	}
 }
@@ -1487,4 +1617,8 @@ func cohWorkloadClient(deleting bool, portNum int, ports ...int) client.WithWatc
 			},
 		},
 	).Build()
+}
+
+func getBoolPtr(b bool) *bool {
+	return &b
 }
