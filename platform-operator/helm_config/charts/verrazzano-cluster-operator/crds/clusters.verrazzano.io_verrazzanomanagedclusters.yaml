@@ -1,0 +1,143 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+# Copyright (c) 2022, , Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.8.0
+  creationTimestamp: null
+  name: verrazzanomanagedclusters.clusters.verrazzano.io
+spec:
+  group: clusters.verrazzano.io
+  names:
+    kind: VerrazzanoManagedCluster
+    listKind: VerrazzanoManagedClusterList
+    plural: verrazzanomanagedclusters
+    shortNames:
+    - vmc
+    - vmcs
+    singular: verrazzanomanagedcluster
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: VerrazzanoManagedCluster specifies the Verrazzano Managed Cluster
+          API.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: The desired state of a Verrazzano Managed Cluster resource.
+            properties:
+              caSecret:
+                description: The name of a Secret that contains the CA certificate
+                  of the managed cluster. This is used to configure the admin cluster
+                  to scrape metrics from the Prometheus endpoint on the managed cluster.
+                  See the pre-registration <a href="../../../../docs/setup/install/multicluster/#preregistration-setup">instructions</a>
+                  for how to create this Secret.
+                type: string
+              description:
+                description: The description of the managed cluster.
+                type: string
+              managedClusterManifestSecret:
+                description: The name of the Secret containing the generated YAML
+                  manifest file to be applied by the user to the managed cluster.
+                  This field is managed by a Verrazzano Kubernetes operator.
+                type: string
+              serviceAccount:
+                description: The name of the ServiceAccount that was generated for
+                  the managed cluster. This field is managed by a Verrazzano Kubernetes
+                  operator.
+                type: string
+            type: object
+          status:
+            description: The observed state of a Verrazzano Managed Cluster resource.
+            properties:
+              apiUrl:
+                description: The Verrazzano API server URL for this managed cluster.
+                type: string
+              conditions:
+                description: The current state of this managed cluster.
+                items:
+                  description: Condition describes a condition that occurred on the
+                    Verrazzano Managed Cluster.
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A message with details about the last transition.
+                      type: string
+                    status:
+                      description: 'Status of the condition: one of `True`, `False`,
+                        or `Unknown`.'
+                      type: string
+                    type:
+                      description: 'The condition of the multicluster resource which
+                        can be checked with a `kubectl wait` command. Condition values
+                        are case-sensitive and formatted as follows: `Ready`: the
+                        VerrazzanoManagedCluster is ready to be used and all resources
+                        needed have been generated.'
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              lastAgentConnectTime:
+                description: The last time the agent from this managed cluster connected
+                  to the admin cluster.
+                format: date-time
+                type: string
+              prometheusHost:
+                description: The Prometheus host for this managed cluster.
+                type: string
+              rancherRegistration:
+                description: The state of Rancher registration for this managed cluster.
+                properties:
+                  clusterID:
+                    description: The Rancher cluster ID for this cluster.
+                    type: string
+                  message:
+                    description: A supporting message related to the Rancher registration
+                      status.
+                    type: string
+                  status:
+                    description: The status of the Rancher registration.
+                    type: string
+                required:
+                - status
+                type: object
+              state:
+                description: The state of this managed cluster.
+                type: string
+            required:
+            - state
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
