@@ -117,7 +117,7 @@ var _ = t.Describe("Application pods post-upgrade", Label("f:platform-lcm.upgrad
 		springbootNamespace   = "springboot"
 		todoListNamespace     = "todo-list"
 	)
-	t.DescribeTable("should contain Envoy sidecar 1.13.5",
+	t.DescribeTable("should contain Envoy sidecar with image "+envoyImage,
 		func(namespace string, timeout time.Duration) {
 			exists, err := pkg.DoesNamespaceExist(namespace)
 			if err != nil {
