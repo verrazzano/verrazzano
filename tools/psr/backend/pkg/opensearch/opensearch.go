@@ -16,15 +16,11 @@ import (
 )
 
 const (
-	esDataDeployment   = "vmi-system-es-data"
-	esIngestDeployment = "vmi-system-os-ingest"
-
-	esMasterStatefulset = "vmi-system-es-master"
-	nodeNamePrefix      = "vmi-system-%s"
-	componentName       = "opensearch"
+	nodeNamePrefix = "vmi-system-%s"
+	componentName  = "opensearch"
 )
 
-// OsOSReady checks if the OpenSearch resources are ready
+// IsOSReady checks if the OpenSearch resources are ready
 func IsOSReady(ctrlRuntimeClient client.Client, cr *vzv1alpha1.Verrazzano) bool {
 	prefix := fmt.Sprintf("Component %s", componentName)
 	for _, node := range cr.Spec.Components.Elasticsearch.Nodes {

@@ -5,7 +5,7 @@ package scale
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
+	update "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/opensearch"
 	psrvz "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/verrazzano"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -15,7 +15,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	er "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/tests/e2e/update/opensearch"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
@@ -140,11 +139,15 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 		return err
 	}
 
-	// Get the current opensearch replica field for the tier in the VZ CR
-	currentReplicas := getCurrentReplicas(cr, tier)
+	// Wait until OpenSearch is ready
+	_, err = waitOpenSearchReady(log, w.ctrlRuntimeClient, true)
+	if err != nil {
+		log.Progress("Failed to wait for OpenSearch to be ready after update.  The test results are not valid %v", err)
+		return err
+	}
 
 	// Create a modifier that is used to update the Verrazzno CR opensearch replica field
-	m, err := getUpdateModifier(currentReplicas, tier)
+	m, err := getUpdateModifier(cr, tier)
 	if err != nil {
 		return err
 	}
@@ -162,6 +165,13 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 		return err
 	}
 
+	// Wait until OpenSearch is NOT ready
+	_, err = waitOpenSearchReady(log, w.ctrlRuntimeClient, false)
+	if err != nil {
+		log.Progress("Failed to wait for OpenSearch to be NOT ready after update.  The test results are not valid %v", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -176,7 +186,10 @@ func (w scaleWorker) GetMetricList() []prometheus.Metric {
 	}
 }
 
-func getUpdateModifier(currentReplicas int, tier string) (*update.CRModifier, error) {
+func getUpdateModifier(cr *vzv1alpha1.Verrazzano, tier string) (*update.CRModifier, error) {
+	// Get the current opensearch replica field for the tier in the VZ CR
+	currentReplicas := getCurrentReplicas(cr, tier)
+
 	max, err := strconv.Atoi(config.PsrEnv.GetEnv(maxReplicaCount))
 	if err != nil {
 		return nil, fmt.Errorf("maxReplicaCount can not be parsed to an integer: %f", err)
@@ -199,11 +212,16 @@ func getUpdateModifier(currentReplicas int, tier string) (*update.CRModifier, er
 
 	switch tier {
 	case masterTier:
-		m = opensearch.OpensearchMasterNodeGroupModifier{NodeReplicas: desiredReplicas}
+		if len(cr.Spec.Components.Elasticsearch.Nodes) == 1 {
+			m = update.OpensearchAllNodeRolesModifier{NodeReplicas: desiredReplicas}
+		} else {
+			m = update.OpensearchAllNodeRolesModifier{NodeReplicas: desiredReplicas}
+		}
+
 	case dataTier:
-		m = opensearch.OpensearchDataNodeGroupModifier{NodeReplicas: desiredReplicas}
+		m = update.OpensearchDataNodeGroupModifier{NodeReplicas: desiredReplicas}
 	case ingestTier:
-		m = opensearch.OpensearchIngestNodeGroupModifier{NodeReplicas: desiredReplicas}
+		m = update.OpensearchIngestNodeGroupModifier{NodeReplicas: desiredReplicas}
 	}
 	return &m, nil
 }
@@ -241,7 +259,6 @@ func updateCr(log vzlog.VerrazzanoLogger, ctrlRuntimeClient client.Client, m *up
 
 // Wait until Verrazzano is ready or not ready
 func waitReady(log vzlog.VerrazzanoLogger, desiredReady bool) (cr *vzv1alpha1.Verrazzano, err error) {
-	// Wait until VZ is NOT ready, this means it started working on the change
 	for {
 		cr, err = psrvz.GetVzCr()
 		if err != nil {
@@ -255,6 +272,26 @@ func waitReady(log vzlog.VerrazzanoLogger, desiredReady bool) (cr *vzv1alpha1.Ve
 			break
 		}
 		log.Progress("Waiting for Verrazzano CR ready state to be %v", desiredReady)
+		time.Sleep(3 * time.Second)
+	}
+	return cr, err
+}
+
+// waitOpenSearchReady waits until OpenSearch is ready or not ready
+func waitOpenSearchReady(log vzlog.VerrazzanoLogger, ctrlRuntimeClient client.Client, desiredReady bool) (cr *vzv1alpha1.Verrazzano, err error) {
+	for {
+		cr, err = psrvz.GetVzCr()
+		if err != nil {
+			return nil, err
+		}
+		ready := update.IsOSReady(ctrlRuntimeClient, cr)
+		if err != nil {
+			return nil, err
+		}
+		if ready == desiredReady {
+			break
+		}
+		log.Progress("Waiting for OpenSearch  ready state to be %v", desiredReady)
 		time.Sleep(3 * time.Second)
 	}
 	return cr, err
