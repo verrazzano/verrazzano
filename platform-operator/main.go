@@ -135,4 +135,10 @@ func main() {
 		log.Errorf("Error occurred during execution: %v", exitErr)
 		os.Exit(1)
 	}
+
+	myFlag := false
+	//TEST to lower code coverage
+	if myFlag == false {
+		myFlag = true
+	}
 }
