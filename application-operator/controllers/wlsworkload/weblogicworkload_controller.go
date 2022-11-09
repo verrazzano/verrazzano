@@ -306,6 +306,8 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload *vzapi.Verrazzano
 	// Attempt to get the existing Domain. This is used in the case where we don't want to update the Fluentd image.
 	// In this case we obtain the previous Fluentd image and set that on the new Domain.
 	var existingDomain unstructured.Unstructured
+	existingDomain.SetAPIVersion(u.GetAPIVersion())
+	existingDomain.SetKind(u.GetKind())
 	domainExists := true
 	domainKey := types.NamespacedName{Name: u.GetName(), Namespace: workload.Namespace}
 	if err := r.Get(ctx, domainKey, &existingDomain); err != nil {
