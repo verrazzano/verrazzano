@@ -50,10 +50,22 @@ go-build:
 #
 .PHONY: go-build-cli
 go-build-cli:
+	GOOS=darwin GOARCH=amd64 $(GO) build \
+		-ldflags "${CLI_GO_LDFLAGS}" \
+		-o out/darwin_amd64/psrctl \
+		${GOPATH}/src/${CLI_DIR}/main.go
+	GOOS=darwin GOARCH=arm64 $(GO) build \
+		-ldflags "${CLI_GO_LDFLAGS}" \
+		-o out/darwin_arm64/psrctl \
+		${GOPATH}/src/${CLI_DIR}/main.go
 	GOOS=linux GOARCH=amd64 $(GO) build \
-    		-ldflags "${CLI_GO_LDFLAGS}" \
-    		-o out/linux_amd64/psrctl \
-    		${GOPATH}/src/${CLI_DIR}/main.go
+		-ldflags "${CLI_GO_LDFLAGS}" \
+		-o out/linux_amd64/psrctl \
+		${GOPATH}/src/${CLI_DIR}/main.go
+	GOOS=linux GOARCH=arm64 $(GO) build \
+		-ldflags "${CLI_GO_LDFLAGS}" \
+		-o out/linux_arm64/psrctl \
+		${GOPATH}/src/${CLI_DIR}/main.go
 
 #
 # Docker-related tasks
