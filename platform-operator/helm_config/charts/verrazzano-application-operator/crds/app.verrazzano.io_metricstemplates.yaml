@@ -124,7 +124,7 @@ spec:
                     type: object
                     x-kubernetes-map-type: atomic
                   objectSelector:
-                    description: Scopes the template to a specifically labelled object
+                    description: Scopes the template to a specifically-labelled object
                       instance.
                     properties:
                       matchExpressions:

@@ -7,32 +7,31 @@ package example
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
-	"sync/atomic"
 )
 
-import (
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-)
-
-type exampleWorker struct {
+type state struct {
 	loggedLinesTotal int64
+}
+type exampleWorker struct {
+	*state
 }
 
 var _ spi.Worker = exampleWorker{}
 
 func NewExampleWorker() (spi.Worker, error) {
-	return exampleWorker{}, nil
+	return exampleWorker{&state{}}, nil
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w exampleWorker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		EnvName:     config.WorkerTypeExample,
+		WorkerType:  config.WorkerTypeExample,
 		Description: "Example worker that demonstrates executing a fake use case",
-		MetricsName: "example",
+		MetricsName: config.WorkerTypeExample,
 	}
 }
 
@@ -48,12 +47,12 @@ func (w exampleWorker) GetMetricList() []prometheus.Metric {
 	return nil
 }
 
-func (w exampleWorker) WantIterationInfoLogged() bool {
+func (w exampleWorker) WantLoopInfoLogged() bool {
 	return true
 }
 
 func (w exampleWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	log.Infof("Example Worker doing work")
-	atomic.AddInt64(&w.loggedLinesTotal, 1)
+	w.state.loggedLinesTotal++
 	return nil
 }

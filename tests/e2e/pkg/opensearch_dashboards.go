@@ -32,11 +32,11 @@ func ListIndexPatterns(kubeconfigPath string) []string {
 	}
 	resp, err := getOpenSearchDashboardsWithBasicAuth(url, "", username, password, kubeconfigPath)
 	if err != nil {
-		Log(Error, fmt.Sprintf("Error getting Elasticsearch indices: url=%s, error=%v", url, err))
+		Log(Error, fmt.Sprintf("Error getting Opensearch indices: url=%s, error=%v", url, err))
 		return list
 	}
 	if resp.StatusCode != http.StatusOK {
-		Log(Error, fmt.Sprintf("Error retrieving Elasticsearch indices: url=%s, status=%d", url, resp.StatusCode))
+		Log(Error, fmt.Sprintf("Error retrieving Opensearch indices: url=%s, status=%d", url, resp.StatusCode))
 		return list
 	}
 	Log(Debug, fmt.Sprintf("indices: %s", resp.Body))
@@ -106,7 +106,7 @@ func CreateIndexPattern(pattern string) map[string]interface{} {
 	return result
 }
 
-// PostOpensearchDashboards POST the request entity body to Elasticsearch API path
+// PostOpensearchDashboards POST the request entity body to Opensearch API path
 // The provided path is appended to the OpenSearchDashboards base URL
 func PostOpensearchDashboards(path string, body string, additionalHeaders ...string) (*HTTPResponse, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -132,13 +132,15 @@ func PostOpensearchDashboards(path string, body string, additionalHeaders ...str
 // getOpenSearchDashboardsURL gets the OpenSearch Dashboards Ingress host in the given cluster
 func getOpenSearchDashboardsURL(kubeconfigPath string) string {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
+	isMinversion150, _ := IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
+
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
 		return ""
 	}
 	ingressList, _ := clientset.NetworkingV1().Ingresses("verrazzano-system").List(context.TODO(), metav1.ListOptions{})
 	for _, ingress := range ingressList.Items {
-		if ingress.Name == "vmi-system-kibana" {
+		if (isMinversion150 && ingress.Name == "vmi-system-opensearchdashboards") || (!isMinversion150 && ingress.Name == "vmi-system-kibana") {
 			Log(Info, fmt.Sprintf("Found Kibana/OpenSearch Dashboards Ingress %v, host %s", ingress.Name, ingress.Spec.Rules[0].Host))
 			return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 		}

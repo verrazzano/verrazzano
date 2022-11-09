@@ -51,6 +51,10 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "v1beta1", "v1alpha1"])
 
+        string (name: 'CONSOLE_REPO_BRANCH',
+                defaultValue: '',
+                description: 'The branch to check out after cloning the console repository.',
+                trim: true)
         string (name: 'GIT_COMMIT_TO_USE',
                 defaultValue: 'NONE',
                 description: 'This is the full git commit hash from the source build to be used for all jobs',
@@ -244,7 +248,7 @@ pipeline {
                         echo "Downloading VZ CLI from object storage"
                         oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
                         tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
-                        ${GO_REPO_PATH}/vz version
+                        ${VZ_COMMAND} version
                     """
                 }
             }
@@ -378,7 +382,7 @@ def runInstallOnly(stagePrefix, iteration) {
             sh """
                 # sleep for a period to ensure async deletion of Verrazzano components from uninstall above has completed
                 #sleep 90
-                ${GO_REPO_PATH}/vz install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE}
+                ${VZ_COMMAND} install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE}
             """
             if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                dumpK8sCluster('verrazzano-${dirPrefix}-${iteration}-cluster-snapshot')
@@ -470,18 +474,15 @@ def uninstallVerrazzano(vpoLogsDir) {
         echo "Platform operator uninstall logs dir: ${vpoLogsDir}"
 
         // Delete VZ in the background
-        // - does not use the CLI as the CLI will also delete the VPO namespace, and until recently the CLI
-        //   was not able to resume an uninstall on error
-        sh """
-            kubectl delete --wait=true --timeout=20m verrazzano my-verrazzano
-
-            # Wait a bit before continuing
-            sleep 90s
-            kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${vpoLogsDir}/verrazzano-platform-operator-post-uninstall.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
-
-            echo "Deleting the Platform Operator resources"
-            kubectl delete -f ${TARGET_OPERATOR_FILE} --wait=true --timeout=10m
-        """
+        while (true) {
+            echo "Deleting the Verrazzano resource..."
+            result = sh(returnStatus: true, script: "${VZ_COMMAND} uninstall --timeout=20m")
+            if (result == 0) {
+                break
+            }
+            echo "vz uninstall result: ${result}"
+            sh "sleep 5"
+        }
     }
 }
 

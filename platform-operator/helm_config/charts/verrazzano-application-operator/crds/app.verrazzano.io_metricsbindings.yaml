@@ -43,10 +43,10 @@ spec:
                   resource.
                 properties:
                   name:
-                    description: Name of resource.
+                    description: Name of the resource.
                     type: string
                   namespace:
-                    description: Namespace of resource.
+                    description: Namespace of the resource.
                     type: string
                 required:
                 - name
@@ -57,10 +57,10 @@ spec:
                   resource.
                 properties:
                   name:
-                    description: Name of resource.
+                    description: Name of the resource.
                     type: string
                   namespace:
-                    description: Namespace of resource.
+                    description: Namespace of the resource.
                     type: string
                 required:
                 - name
@@ -68,7 +68,7 @@ spec:
                 type: object
               prometheusConfigSecret:
                 description: Identifies a namespace, name, and key for a secret containing
-                  the Prometheus config.
+                  the Prometheus configuration.
                 properties:
                   key:
                     description: Key in the secret whose value this object represents.
@@ -88,10 +88,10 @@ spec:
                 description: Identifies the name and type for a workload.
                 properties:
                   name:
-                    description: Name of resource.
+                    description: Name of the resource.
                     type: string
                   typeMeta:
-                    description: TypeMeta of resource.
+                    description: TypeMeta of the resource.
                     properties:
                       apiVersion:
                         description: 'APIVersion defines the versioned schema of this

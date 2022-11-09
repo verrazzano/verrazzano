@@ -16,6 +16,7 @@ import (
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -33,7 +34,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -427,7 +427,7 @@ func getESInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
 			if errors.IsNotFound(err) {
 				ctx.Log().Progressf("Component Jaeger Operator waiting for the secret %s/%s to exist",
 					constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal)
-				return secret, ctrlerrors.RetryableError{Source: ComponentName}
+				return secret, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 			}
 			ctx.Log().Errorf("Component Jaeger Operator failed to get the secret %s/%s: %v",
 				constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal, err)
@@ -542,14 +542,9 @@ func doDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
 // The jaeger-operator-mutating-webhook-configuration injects the old cert and fails the webhook service handshake during the upgrade.
 // On deleting, the webhook will be created by the helm and thus injects a new cert which enables a successful handshake with the service.
 func removeMutatingWebhookConfig(ctx spi.ComponentContext) error {
-	kubeConfig, err := controllerruntime.GetConfig()
+	kubeClient, err := k8sutil.GetGoClient(ctx.Log())
 	if err != nil {
-		ctx.Log().Errorf("Failed to get kubeconfig with error: %v", err)
-		return err
-	}
-	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
-	if err != nil {
-		ctx.Log().Errorf("Failed to get kubeClient with error: %v", err)
+		ctx.Log().Errorf("Failed to get kubernetes clientset with error: %v", err)
 		return err
 	}
 	_, err = kubeClient.AdmissionregistrationV1().MutatingWebhookConfigurations().Get(context.TODO(), ComponentMutatingWebhookConfigName, metav1.GetOptions{})
@@ -567,14 +562,9 @@ func removeMutatingWebhookConfig(ctx spi.ComponentContext) error {
 // The jaeger-operator-validating-webhook-configuration injects the old cert and fails the webhook service handshake during the upgrade.
 // On deleting, the webhook will be created by the helm and thus injects a new cert which enables a successful handshake with the service.
 func removeValidatingWebhookConfig(ctx spi.ComponentContext) error {
-	kubeConfig, err := controllerruntime.GetConfig()
+	kubeClient, err := k8sutil.GetGoClient(ctx.Log())
 	if err != nil {
-		ctx.Log().Errorf("Failed to get kubeconfig with error: %v", err)
-		return err
-	}
-	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
-	if err != nil {
-		ctx.Log().Errorf("Failed to get kubeClient with error: %v", err)
+		ctx.Log().Errorf("Failed to get kubernetes clientset with error: %v", err)
 		return err
 	}
 	_, err = kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), ComponentValidatingWebhookConfigName, metav1.GetOptions{})

@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -322,7 +323,35 @@ func (r *VerrazzanoManagedClusterReconciler) SetupWithManager(mgr ctrl.Manager) 
 
 // reconcileManagedClusterDelete performs all necessary cleanup during cluster deletion
 func (r *VerrazzanoManagedClusterReconciler) reconcileManagedClusterDelete(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	return r.deleteClusterPrometheusConfiguration(ctx, vmc)
+	if err := r.deleteClusterPrometheusConfiguration(ctx, vmc); err != nil {
+		return err
+	}
+	return r.deleteClusterFromRancher(ctx, vmc)
+}
+
+// deleteClusterFromRancher calls the Rancher API to delete the cluster associated with the VMC if the VMC has a cluster id set in the status.
+func (r *VerrazzanoManagedClusterReconciler) deleteClusterFromRancher(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	clusterID := vmc.Status.RancherRegistration.ClusterID
+	if clusterID == "" {
+		r.log.Debugf("VMC %s/%s has no Rancher cluster id, skipping delete", vmc.Namespace, vmc.Name)
+		return nil
+	}
+
+	rc, err := newRancherConfig(r.Client, r.log)
+	if err != nil {
+		msg := "Failed to create Rancher API client"
+		r.updateRancherStatus(ctx, vmc, clustersv1alpha1.DeleteFailed, clusterID, msg)
+		r.log.Errorf("Unable to connect to Rancher API on admin cluster while attempting delete operation: %v", err)
+		return err
+	}
+	if _, err = DeleteClusterFromRancher(rc, clusterID, r.log); err != nil {
+		msg := "Failed deleting cluster"
+		r.updateRancherStatus(ctx, vmc, clustersv1alpha1.DeleteFailed, clusterID, msg)
+		r.log.Errorf("Unable to delete Rancher cluster %s/%s: %v", vmc.Namespace, vmc.Name, err)
+		return err
+	}
+
+	return nil
 }
 
 func (r *VerrazzanoManagedClusterReconciler) setStatusConditionManagedCARetrieved(vmc *clustersv1alpha1.VerrazzanoManagedCluster, value corev1.ConditionStatus, msg string) {
@@ -407,8 +436,22 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 			vmc.Status.State = clustersv1alpha1.StateActive
 		}
 	}
+
+	// Fetch the existing VMC to avoid conflicts in the status update
+	existingVMC := &clustersv1alpha1.VerrazzanoManagedCluster{}
+	err := r.Get(context.TODO(), types.NamespacedName{Namespace: vmc.Namespace, Name: vmc.Name}, existingVMC)
+	if err != nil {
+		return err
+	}
+
+	// Replace the existing status conditions and state with the conditions generated from this reconcile
+	for _, genCondition := range vmc.Status.Conditions {
+		r.setStatusCondition(existingVMC, genCondition, genCondition.Type == clustersv1alpha1.ConditionManifestPushed)
+	}
+	existingVMC.Status.State = vmc.Status.State
+
 	r.log.Debugf("Updating Status of VMC %s: %v", vmc.Name, vmc.Status.Conditions)
-	return r.Status().Update(ctx, vmc)
+	return r.Status().Update(ctx, existingVMC)
 }
 
 // getVerrazzanoResource gets the installed Verrazzano resource in the cluster (of which only one is expected)

@@ -23,8 +23,8 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: MultiClusterApplicationConfiguration enables customization of
-          ApplicationConfigurations for deployment to multiple clusters.
+        description: MultiClusterApplicationConfiguration specifies the multicluster
+          application API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -39,18 +39,18 @@ spec:
           metadata:
             type: object
           spec:
-            description: MultiClusterApplicationConfigurationSpec defines the desired
-              state of MultiClusterApplicationConfiguration
+            description: The desired state of a multicluster application resource.
             properties:
               placement:
-                description: Clusters in which the application is to be placed
+                description: Clusters in which the application is to be created.
                 properties:
                   clusters:
+                    description: List of clusters.
                     items:
-                      description: Cluster where multi cluster resources are placed
+                      description: Cluster contains the name of a single cluster.
                       properties:
                         name:
-                          description: the name of the cluster
+                          description: The name of a cluster.
                           type: string
                       required:
                       - name
@@ -60,39 +60,38 @@ spec:
                 - clusters
                 type: object
               secrets:
-                description: List of secrets used by the application
+                description: List of secrets used by the application. These secrets
+                  must be created in the application’s namespace before deploying
+                  a MultiClusterApplicationConfiguration resource.
                 items:
                   type: string
                 type: array
               template:
-                description: The embedded OAM ApplicationConfiguration
+                description: Template containing the metadata and spec for an OAM
+                  applicationConfiguration resource.
                 properties:
                   metadata:
+                    description: Metadata describing the application.
                     properties:
                       annotations:
                         additionalProperties:
                           type: string
-                        description: Annotations is an unstructured key value map
-                          stored with a resource that may be set by external tools
-                          to store and retrieve arbitrary metadata.
+                        description: Annotations for the resource.
                         type: object
                       labels:
                         additionalProperties:
                           type: string
-                        description: Map of string keys and values that can be used
-                          to organize and categorize (scope and select) objects.
+                        description: Labels for the resource.
                         type: object
                       name:
-                        description: Name must be unique within a namespace.
+                        description: Name of the resource.
                         type: string
                       namespace:
-                        description: Namespace defines the space within each name
-                          must be unique.
+                        description: Namespace of the resource.
                         type: string
                     type: object
                   spec:
-                    description: An ApplicationConfigurationSpec defines the desired
-                      state of a ApplicationConfiguration.
+                    description: The embedded OAM application specification.
                     properties:
                       components:
                         description: Components of which this ApplicationConfiguration
@@ -363,25 +362,26 @@ spec:
             - template
             type: object
           status:
-            description: MultiClusterResourceStatus represents the status of a multi-cluster
-              resource, including cluster-level status information
+            description: The observed state of a multicluster application resource.
             properties:
               clusters:
+                description: Status information for each cluster.
                 items:
-                  description: ClusterLevelStatus describes the status of the multi
-                    cluster resource in a specific cluster
+                  description: ClusterLevelStatus describes the status of the multicluster
+                    resource in a specific cluster.
                   properties:
                     lastUpdateTime:
-                      description: LastUpdateTime of the resource state in this cluster
+                      description: Last update time of the resource state in this
+                        cluster.
                       type: string
                     message:
-                      description: Message with details about the status in this cluster
+                      description: Message details about the status in this cluster.
                       type: string
                     name:
-                      description: Name of the cluster
+                      description: Name of the cluster.
                       type: string
                     state:
-                      description: State of the resource in this cluster
+                      description: State of the resource in this cluster.
                       type: string
                   required:
                   - lastUpdateTime
@@ -390,10 +390,9 @@ spec:
                   type: object
                 type: array
               conditions:
-                description: The latest available observations of an object's current
-                  state.
+                description: The current state of a multicluster resource.
                 items:
-                  description: Condition describes current state of a multi cluster
+                  description: Condition describes current state of a multicluster
                     resource.
                   properties:
                     lastTransitionTime:
@@ -401,11 +400,11 @@ spec:
                         to another.
                       type: string
                     message:
-                      description: Human readable message indicating details about
-                        last transition.
+                      description: A message with details about the last transition.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: 'Status of the condition: one of `True`, `False`,
+                        or `Unknown`.'
                       type: string
                     type:
                       description: Type of condition.
@@ -416,7 +415,11 @@ spec:
                   type: object
                 type: array
               state:
-                description: State of the multi cluster resource
+                description: 'The state of the multicluster resource. State values
+                  are case-sensitive and formatted as follows: <ul><li>`Failed`: deployment
+                  to cluster failed</li><li>`Pending`: deployment to cluster is in
+                  progress</li><li>`Succeeded`: deployment to cluster successfully
+                  completed</li></ul>'
                 type: string
             type: object
         type: object
