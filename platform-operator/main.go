@@ -5,16 +5,11 @@ package main
 
 import (
 	"flag"
+	"os"
+
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
-	"os"
-	"sync"
 
-	"time"
-
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"os"
 
 	cmapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"

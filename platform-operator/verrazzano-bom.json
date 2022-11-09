@@ -52,24 +52,24 @@
           "images": [
             {
               "image": "cert-manager-controller-jenkins",
-              "tag": "v1.9.1-20221027140453-226dae73",
+              "tag": "v1.9.1-20221107155125-4e2746a4",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver-jenkins",
-              "tag": "v1.9.1-20221027140453-226dae73",
+              "tag": "v1.9.1-20221107155125-4e2746a4",
               "helmFullImageKey": "extraArgs[0]"
             },
             {
               "image": "cert-manager-cainjector-jenkins",
-              "tag": "v1.9.1-20221027140453-226dae73",
+              "tag": "v1.9.1-20221107155125-4e2746a4",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook-jenkins",
-              "tag": "v1.9.1-20221027140453-226dae73",
+              "tag": "v1.9.1-20221107155125-4e2746a4",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
