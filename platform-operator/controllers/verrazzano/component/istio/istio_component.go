@@ -417,7 +417,7 @@ func (i istioComponent) IsReady(context spi.ComponentContext) bool {
 	if err != nil {
 		// Only log for the Istio component context
 		if context.GetComponent() == ComponentName {
-			context.Log().Errorf("Ingress external IP pending for component %s: %v", ComponentName, err)
+			context.Log().Progressf("Ingress external IP pending for component %s: %s", ComponentName, err.Error())
 		}
 		return false
 	}
