@@ -177,8 +177,8 @@ func TestGetRancherMgmtApiGVKForKind(t *testing.T) {
 // THEN  the function call fails and returns empty slice
 func TestGetAdditionalCA(t *testing.T) {
 	cli := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects().Build()
-	cakey := GetAdditionalCA(cli)
-	assert.Equal(t, []byte{}, cakey)
+	caKey := GetAdditionalCA(cli)
+	assert.Equal(t, []byte{}, caKey)
 
 }
 

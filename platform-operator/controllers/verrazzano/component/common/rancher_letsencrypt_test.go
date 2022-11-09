@@ -90,15 +90,14 @@ func TestBuildLetsEncryptChain(t *testing.T) {
 	assert.Equal(t, "certcertcert", string(builder.cert))
 }
 
-// TestBuildLetsEncryptChain verifies building the LetsEncrypt staging certificate chain
-// GIVEN a certBuilder
+// TestProcessAdditionalCertificates verifies building the LetsEncrypt staging certificate chain
+// GIVEN a logger, client and vz instance with valid Certmanager spec
 //
-//	WHEN buildLetsEncryptStagingChain is called
-//	THEN buildLetsEncryptStagingChain should build the cert chain for LetsEncrypt
+//	WHEN ProcessAdditionalCertificates is called
+//	THEN ProcessAdditionalCertificates should process the additional certs successfully with no error
 func TestProcessAdditionalCertificates(t *testing.T) {
 	mock := gomock.NewController(t)
 	client := mocks.NewMockClient(mock)
-	//ns := corev1.Namespace{ObjectMeta: v12.ObjectMeta{Name: "cattle-system"}}
 	a := true
 	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v12.ObjectMeta{Namespace: "foo"}}, nil, false)
 	vz := v1alpha1.Verrazzano{
@@ -111,7 +110,6 @@ func TestProcessAdditionalCertificates(t *testing.T) {
 			},
 		},
 	}
-
 	client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil).AnyTimes()
 	client.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
@@ -120,17 +118,16 @@ func TestProcessAdditionalCertificates(t *testing.T) {
 
 }
 
-// TestBuildLetsEncryptChain verifies building the LetsEncrypt staging certificate chain
-// GIVEN a certBuilder
+// TestProcessAdditionalCertificatesFailure verifies building the LetsEncrypt staging certificate chain
+// GIVEN a logger, client and vz instance with no Certmanager spec defined
 //
-//	WHEN buildLetsEncryptStagingChain is called
-//	THEN buildLetsEncryptStagingChain should build the cert chain for LetsEncrypt
+//	WHEN ProcessAdditionalCertificates is called
+//	THEN ProcessAdditionalCertificates function call fails and returns error
 func TestProcessAdditionalCertificatesFailure(t *testing.T) {
 	mock := gomock.NewController(t)
 	client := mocks.NewMockClient(mock)
 	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v12.ObjectMeta{Namespace: "foo"}}, nil, false)
 	vz := v1alpha1.Verrazzano{}
-
 	client.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil).AnyTimes()
 	client.EXPECT().Delete(gomock.Any(), gomock.Any(), gomock.Not(gomock.Nil())).Return(nil).AnyTimes()
 	client.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()

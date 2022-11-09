@@ -232,10 +232,10 @@ func TestGetInstallOverridesYAML(t *testing.T) {
 	}
 }
 
-// TestGetInstallOverridesYAML tests GetInstallOverridesYAML
+// TestGetInstallOverridesYAMLUsingClient tests GetInstallOverridesYAMLUsingClient
 // GIVEN an override list
 //
-//	WHEN I call GetInstallOverridesYAML
+//	WHEN I call GetInstallOverridesYAMLUsingClient
 //	THEN I get a list of key value pairs of files from the override sources
 func TestGetInstallOverridesYAMLUsingClient(t *testing.T) {
 	trueval := true
