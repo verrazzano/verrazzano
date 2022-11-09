@@ -8,6 +8,7 @@ Copyright (C) 2020, 2022, Oracle and/or its affiliates.
 Copyright (C) 2021, 2022, Oracle and/or its affiliates.
 Copyright (C) 2021, Oracle and/or its affiliates.
 Copyright (C) 2022, Oracle and/or its affiliates.
+Copyright (C) 2022, Oracle and/or its affiliates.
 Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
 Copyright (c) 2015-2021 Bitnami
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
@@ -16,7 +17,6 @@ Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 Copyright (c) 2020, Oracle and/or its affiliates.
 Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 Copyright (c) 2021, Oracle and/or its affiliates.
-Copyright (c) 2022, 2022, Oracle and/or its affiliates.
 Copyright (c) 2022, Oracle and/or its affiliates.
 Copyright 2020, Oracle Corporation and/or its affiliates.
 
@@ -121,8 +121,7 @@ Copyright (C) 2013-2020 Masterminds
 github.com/PuerkitoBio/purell
 
 == License Type
-===BSD-3-Clause-fb8b3949
-
+=== BSD-3-Clause-fb8b3949
 Copyright (c) 2012, Martin Angers
 All rights reserved.
 
@@ -135,6 +134,7 @@ Redistribution and use in source and binary forms, with or without modification,
 * Neither the name of the author nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 
 
 == Copyright
@@ -211,6 +211,17 @@ Copyright (c) 2014 Benedikt Lang <github at benediktlang.de>
 --------------------------------- (separator) ----------------------------------
 
 == Dependency
+github.com/blang/semver/v4
+
+== License Type
+SPDX:MIT
+
+== Copyright
+Copyright (c) 2014 Benedikt Lang <github at benediktlang.de>
+
+--------------------------------- (separator) ----------------------------------
+
+== Dependency
 github.com/cert-manager/cert-manager
 
 == License Type
@@ -267,8 +278,7 @@ Copyright 2020 The Crossplane Authors.
 github.com/davecgh/go-spew
 
 == License Type
-===ISC-c06795ed
-
+=== ISC-c06795ed
 ISC License
 
 Copyright (c) 2012-2016 Dave Collins <dave@davec.name>
@@ -284,6 +294,7 @@ ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
 WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
 
 
 == Copyright
@@ -318,7 +329,7 @@ Copyright 2010 The Go Authors. All rights reserved.
 --------------------------------- (separator) ----------------------------------
 
 == Dependency
-github.com/emicklei/go-restful
+github.com/emicklei/go-restful/v3
 
 == License Type
 SPDX:MIT
@@ -337,8 +348,7 @@ Copyright 2021 Ernest Micklei. All rights reserved.
 github.com/evanphx/json-patch
 
 == License Type
-===BSD-3-Clause-96ae735c
-
+=== BSD-3-Clause-96ae735c
 Copyright (c) 2014, Evan Phoenix
 All rights reserved.
 
@@ -364,6 +374,7 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 
 
 == Copyright
@@ -375,8 +386,7 @@ Copyright (c) 2014, Evan Phoenix
 github.com/evanphx/json-patch/v5
 
 == License Type
-===BSD-3-Clause-96ae735c
-
+=== BSD-3-Clause-96ae735c
 Copyright (c) 2014, Evan Phoenix
 All rights reserved.
 
@@ -402,6 +412,7 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 
 
 == Copyright
@@ -613,8 +624,8 @@ Copyright 2014 Google Inc.
 github.com/google/cel-go
 
 == License Type
-===Apache-2.0-9e40c772
-
+=== Apache-2.0-9e40c772
+=== BSD-3-Clause--modified-by-Google
 
                                  Apache License
                            Version 2.0, January 2004
@@ -850,6 +861,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+
 == Copyright
 Copyright (c) 2018 The Go Authors. All rights reserved.
 Copyright 2018 Google LLC
@@ -872,7 +884,6 @@ Copyright 2017-2020, Google LLC.
 Copyright 2018 Google LLC. All Rights Reserved.
 Copyright 2019 Google LLC. All Rights Reserved.
 Copyright 2020 Google LLC. All Rights Reserved.
-Copyright 2020 Google LLC. All Rights Reserved.\n" +
 Copyright 2021 Google LLC. All Rights Reserved.
 Copyright 2022 Google LLC. All Rights Reserved.
 
@@ -1073,8 +1084,7 @@ Copyright 2012 The Go Authors. All rights reserved.
 github.com/magiconair/properties
 
 == License Type
-===BSD-2-Clause-714beb73
-
+=== BSD-2-Clause-714beb73
 Copyright (c) 2013-2020, Frank Schroeder
 
 All rights reserved.
@@ -1099,6 +1109,7 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 
 
 == Copyright
@@ -1128,7 +1139,7 @@ github.com/mattn/go-isatty
 SPDX:MIT
 
 == Copyright
-(no copyright notices found)
+Copyright (c) Yasuhiro MATSUMOTO <mattn.jp@gmail.com>
 
 --------------------------------- (separator) ----------------------------------
 
@@ -1233,7 +1244,7 @@ github.com/monochromegane/go-gitignore
 SPDX:MIT
 
 == Copyright
-(no copyright notices found)
+Copyright (c) [2015] [go-gitignore]
 
 --------------------------------- (separator) ----------------------------------
 
@@ -1241,8 +1252,7 @@ SPDX:MIT
 github.com/munnerz/goautoneg
 
 == License Type
-===BSD-3-Clause-0c241922
-
+=== BSD-3-Clause-0c241922
 Copyright (c) 2011, Open Knowledge Foundation Ltd.
 All rights reserved.
 
@@ -1274,6 +1284,7 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 
 
 == Copyright
@@ -1326,8 +1337,9 @@ Copyright © 2019, 2020 OCI Contributors
 github.com/oracle/oci-go-sdk/v53
 
 == License Type
-===Apache-2.0-85955f86
-
+=== Apache-2.0-85955f86
+=== UPL-1.0
+=== Apache-2.0
 Copyright (c) 2016, 2018, 2020, Oracle and/or its affiliates.  All rights reserved.
 This software is dual-licensed to you under the Universal Permissive License (UPL) 1.0 as shown at https://oss.oracle.com/licenses/upl
 or Apache License 2.0 as shown at http://www.apache.org/licenses/LICENSE-2.0. You may choose either license.
@@ -1412,6 +1424,7 @@ END OF TERMS AND CONDITIONS
    limitations under the License.
 
 
+
 == Copyright
 Copyright (c) 2012-2020 Mat Ryer, Tyler Bunnell and contributors.
 Copyright (c) 2013 The Go Authors. All rights reserved.
@@ -1431,8 +1444,8 @@ Copyright (c) 2016, 2018, 2020, Oracle and/or its affiliates.
 github.com/pelletier/go-toml
 
 == License Type
-===Apache-2.0-e49b63d8
-
+=== MIT-e49b63d8
+=== Apache-2.0
 The bulk of github.com/pelletier/go-toml is distributed under the MIT license
 (see below), with the exception of localtime.go and localtime.test.go.
 Those two files have been copied over from Google's civil library at revision
@@ -1682,6 +1695,7 @@ License:
    limitations under the License.
 
 
+
 == Copyright
 Copyright (c) 2013 - 2021 Thomas Pelletier, Eric Anderton
 Copyright 2016 Google LLC
@@ -1725,8 +1739,7 @@ Copyright (c) 2015, Dave Cheney <dave@cheney.net>
 github.com/pmezard/go-difflib
 
 == License Type
-===BSD-3-Clause-e9a2ebb8
-
+=== BSD-3-Clause-e9a2ebb8
 Copyright (c) 2013, Patrick Mezard
 All rights reserved.
 
@@ -1756,6 +1769,7 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+
 == Copyright
 Copyright (c) 2013, Patrick Mezard
 
@@ -1772,6 +1786,7 @@ Copyright 2017 The prometheus-operator Authors
 Copyright 2018 The prometheus-operator Authors
 Copyright 2020 The prometheus-operator Authors
 Copyright 2021 The prometheus-operator Authors
+Copyright 2022 The prometheus-operator Authors
 
 --------------------------------- (separator) ----------------------------------
 
@@ -1966,8 +1981,11 @@ SPDX:Apache-2.0
 == Copyright
 Copyright (C) 1989, 1991 Free Software Foundation, Inc.,
 Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
+Copyright (C) <year>  <name of author>
+Copyright (C) year name of author
 Copyright 2015 Red Hat Inc. All rights reserved.
 Copyright 2016 French Ben. All rights reserved.
+Copyright © " + year + " " + author
 Copyright © 2013 Steve Francia <spf@spf13.com>.
 Copyright © 2015 Steve Francia <spf@spf13.com>.
 Copyright © 2020 Steve Francia <spf@spf13.com>
@@ -2157,6 +2175,7 @@ go.uber.org/zap
 SPDX:MIT
 
 == Copyright
+Copyright (c) "*" Uber Technologies, Inc.")
 Copyright (c) 2016 Uber Technologies, Inc.
 Copyright (c) 2016, 2017 Uber Technologies, Inc.
 Copyright (c) 2016-2017 Uber Technologies, Inc.
@@ -2517,6 +2536,7 @@ SPDX:BSD-3-Clause--modified-by-Google
 == Copyright
 Copyright (c) 2009 The Go Authors. All rights reserved.
 Copyright (c) 2017 The Go Authors. All rights reserved.
+Copyright (c) Microsoft Corporation
 Copyright 2009 The Go Authors. All rights reserved.
 Copyright 2010 The Go Authors. All rights reserved.
 Copyright 2011 The Go Authors. All rights reserved.
@@ -2745,8 +2765,8 @@ limitations under the License.
 gopkg.in/yaml.v3
 
 == License Type
-===Apache-2.0-3c91c172
-
+=== MIT-3c91c172
+=== Apache-2.0
 
 This project is covered by two different licenses: MIT and Apache.
 
@@ -2799,6 +2819,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 
+
 == Copyright
 Copyright (c) 2006-2010 Kirill Simonov
 Copyright (c) 2006-2011 Kirill Simonov
@@ -2830,6 +2851,12 @@ helm.sh/helm/v3
 SPDX:Apache-2.0
 
 == Copyright
+Copyright (c) for portions of fs.go are held by The Go Authors, 2016 and are provided under
+Copyright (c) for portions of fs_test.go are held by The Go Authors, 2016 and are provided under
+Copyright (c) for portions of rename.go are held by The Go Authors, 2016 and are provided under
+Copyright (c) for portions of rename_windows.go are held by The Go Authors, 2016 and are provided under
+Copyright (c) for portions of walk.go are held by The Go Authors, 2009 and are
+Copyright (c) for portions of walk_test.go are held by The Go Authors, 2009 and are
 Copyright 2016 The Kubernetes Authors All Rights Reserved
 Copyright 2016 The Kubernetes Authors.
 
@@ -2878,6 +2905,7 @@ Copyright (c) 2016 Yasuhiro Matsumoto
 Copyright (c) 2016 json-iterator
 Copyright (c) 2017 The Go Authors. All rights reserved.
 Copyright (c) 2017-2018 objx contributors
+Copyright (c) Yasuhiro MATSUMOTO <mattn.jp@gmail.com>
 Copyright 2010 The Go Authors.  All rights reserved.
 Copyright 2012 Keith Rarick
 Copyright 2014 The Kubernetes Authors.
@@ -2939,6 +2967,7 @@ Copyright (c) 2016 Yasuhiro Matsumoto
 Copyright (c) 2016 json-iterator
 Copyright (c) 2017 The Go Authors. All rights reserved.
 Copyright (c) 2017-2018 objx contributors
+Copyright (c) Yasuhiro MATSUMOTO <mattn.jp@gmail.com>
 Copyright 2009-2017 Andrea Leofreddi <a.leofreddi@vleo.net>. All rights reserved.
 Copyright 2010 The Go Authors.  All rights reserved.
 Copyright 2010-2017 Mike Bostock
@@ -2982,6 +3011,7 @@ Copyright 2018 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3112,6 +3142,7 @@ Copyright 2018 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3156,6 +3187,7 @@ k8s.io/kube-openapi
 SPDX:Apache-2.0
 
 == Copyright
+Copyright (C) MongoDB, Inc. 2017-present.
 Copyright 2015 go-swagger maintainers
 Copyright 2016 The Kubernetes Authors.
 Copyright 2017 The Kubernetes Authors.
@@ -3188,6 +3220,7 @@ Copyright 2018 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3245,8 +3278,8 @@ Copyright 2021 The Kubernetes Authors.
 sigs.k8s.io/json
 
 == License Type
-===Apache-2.0-545d3f23
-
+=== BSD-3-Clause--modified-by-Google-545d3f23
+=== Apache-2.0
 Files other than internal/golang/* licensed under:
 
 
@@ -3487,6 +3520,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+
 == Copyright
 Copyright (c) 2009 The Go Authors. All rights reserved.
 Copyright 2010 The Go Authors. All rights reserved.
@@ -3495,6 +3529,7 @@ Copyright 2013 The Go Authors. All rights reserved.
 Copyright 2016 The Go Authors. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
+Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2021 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
@@ -3553,8 +3588,8 @@ Copyright 2020 The Kubernetes Authors.
 sigs.k8s.io/yaml
 
 == License Type
-===BSD-3-Clause--modified-by-Google-0ceb9ff3
-
+=== MIT-0ceb9ff3
+=== BSD-3-Clause--modified-by-Google
 The MIT License (MIT)
 
 Copyright (c) 2014 Sam Ghods
@@ -3605,6 +3640,7 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 
 
 == Copyright
@@ -4216,5 +4252,5 @@ The above copyright notice and either this complete permission notice or at a mi
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 === ATTRIBUTION-HELPER-GENERATED:
-=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-79-gdcf58150 GitCommit:dcf58150ba36aa68ea479b22cf3b0c9eaeb13ba8 GitTreeState:clean BuildDate:2022-10-17T17:11:23Z GoVersion:go1.19.2 Compiler:gc Platform:darwin/amd64}
-=== License file based on go.mod with md5 sum:  16720553835d5bcb224895e6a19d5238
+=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-92-g92f80ee4 GitCommit:92f80ee4d79a936be2aa36fc3b46588ca9455e46 GitTreeState:clean BuildDate:2022-11-04T20:47:41Z GoVersion:go1.19.2 Compiler:gc Platform:darwin/amd64}
+=== License file based on go.mod with md5 sum:  6c811c83030c5c81fdcd546942250d18
