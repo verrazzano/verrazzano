@@ -10,6 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/client-go/kubernetes"
+
+	"github.com/verrazzano/verrazzano/pkg/constants"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	k8sready "github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -24,6 +30,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -190,7 +197,9 @@ func (c mysqlComponent) isMySQLReady(ctx spi.ComponentContext) bool {
 
 	// Temporary work around for issue where MySQL pod readiness gates not all met
 	if !ready {
-		c.repairMySQLPodsWaitingReadinessGates()
+		if err = c.repairMySQLPodsWaitingReadinessGates(ctx); err != nil {
+			return false
+		}
 	}
 
 	if ready && routerReplicas > 0 {
@@ -211,8 +220,8 @@ func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentCo
 	// Initiate repair only if time to wait period has been exceeded
 	expiredTime := c.LastTimeStartedWatchForRepair.Add(5 * time.Minute)
 	if time.Now().After(expiredTime) {
-		// Check if the current not ready is due to readiness gates not met
-		ctx.Log().Info("Cleaning up any MySQL pods stuck restarting after a node drain")
+		// Check if the current not ready state is due to readiness gates not met
+		ctx.Log().Debug("Checking if MySQL not ready due to pods waiting for readiness gates")
 
 		selector := metav1.LabelSelectorRequirement{mySQLComponentLabel, metav1.LabelSelectorOpIn, []string{mySQLDComponentName}}
 		podList := k8sready.GetPodsList(ctx.Log(), ctx.Client(), types.NamespacedName{Namespace: ComponentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
@@ -220,7 +229,63 @@ func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentCo
 			return fmt.Errorf("no pods found matching selector %s", selector.String())
 		}
 
+		for i := range podList.Items {
+			pod := podList.Items[i]
+			// Check if the readiness conditions have been met
+			conditions := pod.Status.Conditions
+			if len(conditions) == 0 {
+				return fmt.Errorf("no status conditions found for pod %s/%s", pod.Namespace, pod.Name)
+			}
+			readyCount := 0
+			for _, condition := range conditions {
+				for _, gate := range pod.Spec.ReadinessGates {
+					if condition.Type == gate.ConditionType && condition.Status == corev1.ConditionTrue {
+						readyCount++
+						continue
+					}
+				}
+			}
+
+			// All readiness gates must be true
+			if len(pod.Spec.ReadinessGates) != readyCount {
+				// Restart the mysql-operator to see if it will finish setting the readiness gates
+				ctx.Log().Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck waiting for readiness gates")
+
+				operList, err := getMySQLOperatorPod(client)
+				if err != nil {
+					return err
+				}
+
+				if err = client.CoreV1().Pods(constants.MySQLOperatorNamespace).Delete(context.TODO(), operList.Items[0].Name, metav1.DeleteOptions{}); err != nil {
+					return err
+				}
+				operatorRestarted = true
+				return nil
+			}
+		}
+
 	}
+}
+
+// getMySQLOperatorPod - return the mysql-operator pod
+func getMySQLOperatorPod(client *kubernetes.Clientset) (*corev1.PodList, error) {
+	operReq, err := labels.NewRequirement("name", selection.Equals, []string{mysqloperator.ComponentName})
+	if err != nil {
+		return nil, err
+	}
+	selector := labels.NewSelector().Add(*operReq)
+
+	operList, err := client.CoreV1().Pods(constants.MySQLOperatorNamespace).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: selector.String(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(operList.Items) != 1 {
+		return nil, fmt.Errorf("expected one pod to match selector %s, found %d", selector.String(), len(operList.Items))
+	}
+	return operList, nil
 }
 
 // isInnoDBClusterOnline returns true if the InnoDBCluster resource cluster status is online
