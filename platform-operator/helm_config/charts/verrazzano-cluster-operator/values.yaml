@@ -8,5 +8,3 @@ imagePullPolicy: IfNotPresent
 
 global:
   imagePullSecrets: []
-
-resources: {}
