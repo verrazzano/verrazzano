@@ -139,6 +139,9 @@ func (c jaegerOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := c.createOrUpdateJaegerResources(ctx); err != nil {
 		return err
 	}
+	if err := createOrUpdateMCJaeger(ctx.Client()); err != nil {
+		return err
+	}
 	// these need to be set for helm component post install processing
 	c.IngressNames = c.GetIngressNames(ctx)
 	c.Certificates = c.GetCertificateNames(ctx)
@@ -221,7 +224,7 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	return checkCreateJaegerSecrets(ctx)
+	return createJaegerSecrets(ctx)
 }
 
 // Upgrade jaegeroperator component for upgrade processing.
@@ -235,7 +238,7 @@ func (c jaegerOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
 		return err
 	}
 	if installed {
-		if err := checkCreateJaegerSecrets(ctx); err != nil {
+		if err := createJaegerSecrets(ctx); err != nil {
 			return err
 		}
 		err = c.Install(ctx)

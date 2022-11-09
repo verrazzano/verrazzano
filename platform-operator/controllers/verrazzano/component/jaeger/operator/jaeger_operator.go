@@ -149,7 +149,7 @@ func preInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	return checkCreateJaegerSecrets(ctx)
+	return createJaegerSecrets(ctx)
 }
 
 // AppendOverrides appends Helm value overrides for the Jaeger Operator component's Helm chart
@@ -245,7 +245,6 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	if err != nil {
 		return nil, err
 	}
-
 	// Check to create a default Jaeger instance if the Verrazzano is a local cluster
 	if registrationSecret == nil {
 		createInstance, err := isCreateDefaultJaegerInstance(compContext)
@@ -267,11 +266,6 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 			if err != nil {
 				return nil, err
 			}
-		}
-	} else {
-		// Render values for a managed cluster Jaeger instance if the registration secret is present
-		if err := renderManagedClusterInstance(compContext.Client(), registrationSecret, &b); err != nil {
-			return nil, err
 		}
 	}
 
@@ -783,9 +777,9 @@ func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) err
 	return err
 }
 
-// checkCreateJaegerSecrets create or update Jaeger secrets depending on if running a managed cluster, or local cluster
+// createJaegerSecrets create or update Jaeger resources depending on if running a managed cluster, or local cluster
 // with the default Jaeger instance.
-func checkCreateJaegerSecrets(ctx spi.ComponentContext) error {
+func createJaegerSecrets(ctx spi.ComponentContext) error {
 	registrationSecret, err := common.GetManagedClusterRegistrationSecret(ctx.Client())
 	if err != nil {
 		return err
@@ -801,6 +795,8 @@ func checkCreateJaegerSecrets(ctx spi.ComponentContext) error {
 		}
 		return nil
 	}
+
+	// Create the managed cluster Jaeger secret
 	return createOrUpdateMCSecret(ctx.Client(), registrationSecret)
 }
 

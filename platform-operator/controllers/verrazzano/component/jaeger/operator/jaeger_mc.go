@@ -10,10 +10,14 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/yaml"
 	"text/template"
 	"time"
 )
@@ -22,51 +26,59 @@ const (
 	jaegerOSTLSCAKey   = "ca.crt"
 	jaegerOSTLSKey     = "os.tls.key"
 	jaegerOSTLSCertKey = "os.tls.cert"
+	jaegerAPIVersion   = "jaegertracing.io/v1"
+	jaegerKind         = "Jaeger"
+	jaegerName         = "jaeger-verrazzano-managed-cluster"
+	specField          = "spec"
 )
 
-const jaegerMCTemplate = `jaeger:
-  create: true
-  spec:
-    annotations:
-      sidecar.istio.io/inject: "true"
-      proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
+const jaegerMCTemplate = `
+apiVersion: ` + jaegerAPIVersion + `
+kind: ` + jaegerKind + `
+metadata:
+  name: ` + jaegerName + `
+  namespace: ` + ComponentNamespace + `
+spec:
+  annotations:
+    sidecar.istio.io/inject: "true"
+    proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
 {{if .IsForceRecreate}}
-      verrazzano.io/recreatedAt: "{{now.UnixMilli}}"
+    verrazzano.io/recreatedAt: "{{now.UnixMilli}}"
 {{end}}
-    ingress:
+  ingress:
+    enabled: false
+  strategy: production
+  query:
+    replicas: 0
+  collector:
+    options:
+      collector:
+        tags: verrazzano_cluster={{.ClusterName}}
+  storage:
+    dependencies:
       enabled: false
-    strategy: production
-    query:
-      replicas: 0
-    collector:
-      options:
-        collector:
-          tags: verrazzano_cluster={{.ClusterName}}
-    storage:
-      dependencies:
-        enabled: false
-      esIndexCleaner:
-        enabled: false
-      type: elasticsearch
-      options:
-        es:
-          index-prefix: verrazzano
-          server-urls: {{.OpenSearchURL}}
-          tls:
-            ca: /verrazzano/certificates/` + jaegerOSTLSCAKey + `
-  {{if .MutualTLS}}
-            key: /verrazzano/certificates/` + jaegerOSTLSKey + `
-            cert: /verrazzano/certificates/` + jaegerOSTLSCertKey + `
-  {{end}}
-      secretName: {{.SecretName}}
-    volumeMounts:
-      - name: certificates
-        mountPath: /verrazzano/certificates/
-        readOnly: true
-    volumes:
-      - name: certificates
-        secret:
-          secretName: {{.SecretName}}
+    esIndexCleaner:
+      enabled: false
+    type: elasticsearch
+    options:
+      es:
+        index-prefix: verrazzano
+        server-urls: {{.OpenSearchURL}}
+        tls:
+          ca: /verrazzano/certificates/` + jaegerOSTLSCAKey + `
+{{if .MutualTLS}}
+          key: /verrazzano/certificates/` + jaegerOSTLSKey + `
+          cert: /verrazzano/certificates/` + jaegerOSTLSCertKey + `
+{{end}}
+    secretName: {{.SecretName}}
+  volumeMounts:
+    - name: certificates
+      mountPath: /verrazzano/certificates/
+      readOnly: true
+  volumes:
+    - name: certificates
+      secret:
+        secretName: {{.SecretName}}
 `
 
 // jaegerMCData needed for template rendering
@@ -78,8 +90,48 @@ type jaegerMCData struct {
 	IsForceRecreate bool
 }
 
+func createOrUpdateMCJaeger(client clipkg.Client) error {
+	registrationSecret, err := common.GetManagedClusterRegistrationSecret(client)
+	if err != nil {
+		return err
+	}
+	if registrationSecret == nil {
+		return nil
+	}
+	buf := &bytes.Buffer{}
+	if err := renderManagedClusterInstance(registrationSecret, buf); err != nil {
+		return err
+	}
+	// Unmarshal the YAML into an object
+	u := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	err = yaml.Unmarshal(buf.Bytes(), u)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal jaeger YAML: %v", err)
+
+	}
+	// Make a copy of the spec field
+	jaegerSpec, _, err := unstructured.NestedFieldCopy(u.Object, "spec")
+	if err != nil {
+		return err
+	}
+
+	// Create or update the Jaeger CR.  Always replace the entire spec.
+	var jaeger unstructured.Unstructured
+	jaeger.SetAPIVersion(jaegerAPIVersion)
+	jaeger.SetKind(jaegerKind)
+	jaeger.SetName(jaegerName)
+	jaeger.SetNamespace(ComponentNamespace)
+	_, err = controllerutil.CreateOrUpdate(context.TODO(), client, &jaeger, func() error {
+		if err := unstructured.SetNestedField(jaeger.Object, jaegerSpec, specField); err != nil {
+			return err
+		}
+		return nil
+	})
+	return err
+}
+
 // renderManagedClusterInstance renders the values for a managed cluster Jaeger instance into the provided buffer
-func renderManagedClusterInstance(client clipkg.Client, registrationSecret *corev1.Secret, buffer *bytes.Buffer) error {
+func renderManagedClusterInstance(registrationSecret *corev1.Secret, buffer *bytes.Buffer) error {
 	data, err := buildJaegerMCData(registrationSecret)
 	if err != nil {
 		return err
