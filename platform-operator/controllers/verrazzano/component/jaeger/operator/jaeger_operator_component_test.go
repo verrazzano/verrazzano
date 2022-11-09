@@ -609,7 +609,7 @@ func TestIsAvailable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, tt.cr, nil, tt.dryRun, profilesRelativePath)
 			_, isAvailable := NewComponent().IsAvailable(ctx)
-			assert.Equal(t, tt.expectTrue, isAvailable)
+			assert.Equal(t, tt.expectTrue, isAvailable == vzapi.ComponentAvailable)
 		})
 	}
 }

@@ -3864,7 +3864,7 @@ spec:
                 additionalProperties:
                   properties:
                     available:
-                      type: boolean
+                      type: string
                     conditions:
                       items:
                         properties:
@@ -6568,7 +6568,7 @@ spec:
                 additionalProperties:
                   properties:
                     available:
-                      type: boolean
+                      type: string
                     conditions:
                       items:
                         properties:

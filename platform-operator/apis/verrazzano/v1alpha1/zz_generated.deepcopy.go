@@ -349,7 +349,7 @@ func (in *ComponentStatusDetails) DeepCopyInto(out *ComponentStatusDetails) {
 	*out = *in
 	if in.Available != nil {
 		in, out := &in.Available, &out.Available
-		*out = new(bool)
+		*out = new(ComponentAvailability)
 		**out = **in
 	}
 	if in.Conditions != nil {
