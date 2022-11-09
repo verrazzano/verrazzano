@@ -5433,6 +5433,7 @@ spec:
                                     requirements are ANDed.
                                   type: object
                               type: object
+                              x-kubernetes-map-type: atomic
                             matchLabelKeys:
                               description: MatchLabelKeys is a set of pod label keys
                                 to select the pods over which spreading will be calculated.
@@ -5447,7 +5448,6 @@ spec:
                                 type: string
                               type: array
                               x-kubernetes-list-type: atomic
-                              x-kubernetes-map-type: atomic
                             maxSkew:
                               description: 'MaxSkew describes the degree to which
                                 pods may be unevenly distributed. When `whenUnsatisfiable=DoNotSchedule`,
