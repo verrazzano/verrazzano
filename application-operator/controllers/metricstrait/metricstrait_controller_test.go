@@ -7,6 +7,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/conversion"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"testing"
 	"time"
 
@@ -33,6 +37,29 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const (
+	foo         = "foo"
+	bar         = "bar"
+	getError    = "get error"
+	updateError = "update error"
+)
+
+type erroringGetClient struct {
+	client.Client
+}
+
+type erroringUpdateClient struct {
+	client.Client
+}
+
+func (eg *erroringGetClient) Get(_ context.Context, _ client.ObjectKey, _ client.Object) error {
+	return errors.NewTooManyRequests(getError, 0)
+}
+
+func (eu *erroringUpdateClient) Update(_ context.Context, _ client.Object, _ ...client.UpdateOption) error {
+	return errors.NewTooManyRequests(updateError, 0)
+}
 
 // TestReconcilerSetupWithManager test the creation of the metrics trait reconciler.
 // GIVEN a controller implementation
@@ -824,6 +851,422 @@ func TestLegacyPrometheusScraper(t *testing.T) {
 	assert.NoError(err)
 }
 
+// TestCreateScrapeConfigFromTrait tests the createScrapeConfigFromTrait func calls
+func TestCreateScrapeConfigFromTrait(t *testing.T) {
+	scheme := k8scheme.Scheme
+	_ = promoperapi.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
+	_ = oamcore.SchemeBuilder.AddToScheme(scheme)
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&k8score.Namespace{}).Build()
+	testWorkLoad := unstructured.Unstructured{}
+	testWorkLoad.SetGroupVersionKind(oamcore.ContainerizedWorkloadGroupVersionKind)
+
+	testWLSWorkload := unstructured.Unstructured{}
+	testWLSWorkload.SetAPIVersion("weblogic.oracle")
+	testWLSWorkload.SetKind("Domain")
+	tests := []struct {
+		name        string
+		trait       vzapi.MetricsTrait
+		workload    *unstructured.Unstructured
+		wantErr     bool
+		errContains string
+		isConfigNil bool
+		secret      *k8score.Secret
+	}{
+		// GIVEN a metricstrait and workload with default values
+		// WHEN createScrapeConfigFromTrait method is called
+		// THEN a non nil scrape config is created and no error is returned
+		{
+			"Create scrape config from a trait correctly",
+			vzapi.MetricsTrait{
+				ObjectMeta: k8smeta.ObjectMeta{
+					Labels: map[string]string{
+						appObjectMetaLabel:  foo,
+						compObjectMetaLabel: bar,
+					},
+				},
+			},
+			&testWorkLoad,
+			false,
+			"",
+			false,
+			nil,
+		},
+		// GIVEN a metricstrait missing app name label
+		// WHEN createScrapeConfigFromTrait is called
+		// THEN an error is returned
+		{
+			"Trait missing app name label",
+			vzapi.MetricsTrait{
+				ObjectMeta: k8smeta.ObjectMeta{
+					Labels: map[string]string{
+						compObjectMetaLabel: bar,
+					},
+				},
+			},
+			nil,
+			true,
+			"metrics trait missing application name label",
+			true,
+			nil,
+		},
+		// GIVEN a metricstrait with missing component label
+		// WHEN createScrapeConfigFromTrait is called
+		// THEN an error is returned
+		{
+			"Trait missing component label",
+			vzapi.MetricsTrait{
+				ObjectMeta: k8smeta.ObjectMeta{
+					Labels: map[string]string{
+						appObjectMetaLabel: foo,
+					},
+				},
+			},
+			&testWorkLoad,
+			true,
+			"metrics trait missing component name label",
+			true,
+			nil,
+		},
+		// GIVEN a nil workload and correct metricstrait
+		// WHEN createScrapeConfigFromTrait is called
+		// THEN no error is returned along with a nil config
+		{
+			"Nil workload",
+			vzapi.MetricsTrait{
+				ObjectMeta: k8smeta.ObjectMeta{
+					Labels: map[string]string{
+						appObjectMetaLabel:  foo,
+						compObjectMetaLabel: bar,
+					},
+				},
+			},
+			nil,
+			false,
+			"",
+			true,
+			nil,
+		},
+		// GIVEN a wls workload and correct metricstrait
+		// WHEN createScrapeConfigFromTrait is called
+		// THEN no error is returned along with a non nil config
+		{
+			"WLS Workload",
+			vzapi.MetricsTrait{
+				ObjectMeta: k8smeta.ObjectMeta{
+					Labels: map[string]string{
+						appObjectMetaLabel:  foo,
+						compObjectMetaLabel: bar,
+					},
+				},
+			},
+			&testWLSWorkload,
+			false,
+			"",
+			false,
+			nil,
+		},
+		{
+			"Basic auth",
+			vzapi.MetricsTrait{
+				ObjectMeta: k8smeta.ObjectMeta{
+					Labels: map[string]string{
+						appObjectMetaLabel:  foo,
+						compObjectMetaLabel: bar,
+					},
+				},
+			},
+			&testWLSWorkload,
+			false,
+			"",
+			false,
+			&k8score.Secret{
+				Data: map[string][]byte{
+					"username": []byte(foo),
+					"password": []byte(bar),
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, job, err := createScrapeConfigFromTrait(context.Background(), &tt.trait, 0, tt.secret, tt.workload, c)
+			if tt.wantErr {
+				asserts.ErrorContains(t, err, tt.errContains)
+			} else {
+				asserts.NoError(t, err)
+				if tt.isConfigNil {
+					asserts.Nil(t, job)
+				} else {
+					asserts.NotNil(t, job)
+					asserts.True(t, job.Exists("scheme"))
+					asserts.Equal(t, tt.secret != nil, job.Exists(basicAuthLabel))
+				}
+			}
+		})
+	}
+}
+
+// TestRemovedTraitReferencesFromOwner tests the removedTraitReferencesFromOwner reconcile method
+func TestRemovedTraitReferencesFromOwner(t *testing.T) {
+	testTrait := vzapi.MetricsTrait{
+		ObjectMeta: k8smeta.ObjectMeta{
+			Labels: map[string]string{
+				appObjectMetaLabel:  foo,
+				compObjectMetaLabel: bar,
+			},
+		},
+	}
+	testTrait.APIVersion = foo
+	testTrait.Kind = bar
+	ttro := runtime.Object(&testTrait)
+	var scope conversion.Scope
+	testTraitRawExtension := &runtime.RawExtension{}
+	asserts.NoError(t, runtime.Convert_runtime_Object_To_runtime_RawExtension(&ttro, testTraitRawExtension, scope))
+
+	scheme := k8scheme.Scheme
+	_ = vzapi.AddToScheme(scheme)
+	_ = oamcore.SchemeBuilder.AddToScheme(scheme)
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		&k8score.Namespace{},
+		&oamcore.ApplicationConfiguration{
+			ObjectMeta: k8smeta.ObjectMeta{
+				Name: foo,
+			},
+			Spec: oamcore.ApplicationConfigurationSpec{
+				Components: []oamcore.ApplicationConfigurationComponent{
+					{
+						ComponentName: bar,
+						Traits: []oamcore.ComponentTrait{
+							{
+								Trait: *testTraitRawExtension,
+							},
+						},
+					},
+				},
+			},
+		},
+	).Build()
+
+	badGetClient := &erroringGetClient{cli}
+	badUpdateClient := &erroringUpdateClient{cli}
+
+	tests := []struct {
+		name            string
+		client          client.Client
+		wantErr         bool
+		errContains     string
+		operationResult controllerutil.OperationResult
+	}{
+		// GIVEN a scenario where client is unable to make Get call to the api server
+		// WHEN a call is made to removedTraitReferencesFromOwner func by the reconciler
+		// then the method returns an error
+		{
+			"Unsuccessful get",
+			badGetClient,
+			true,
+			getError,
+			controllerutil.OperationResultNone,
+		},
+		// GIVEN a scenario where client is unable to make Update call to the api server
+		// WHEN a call is made to removedTraitReferencesFromOwner func by the reconciler
+		// then the method returns an error
+		{
+			"Unsuccessful Update",
+			badUpdateClient,
+			true,
+			updateError,
+			controllerutil.OperationResultNone,
+		},
+		// GIVEN an appconfig with the given metricstrait as a component
+		// WHEN a call is made to removedTraitReferencesFromOwner func by the reconciler
+		// THEN the appconfig is updated to remove the trait from the appconfig
+		{
+			"Successful update",
+			cli,
+			false,
+			"",
+			controllerutil.OperationResultUpdated,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reconciler := newMetricsTraitReconciler(tt.client)
+			_, op, err := reconciler.removedTraitReferencesFromOwner(context.Background(), &k8smeta.OwnerReference{Name: foo}, &testTrait, vzlog.DefaultLogger())
+			asserts.Equal(t, op, tt.operationResult)
+			if tt.wantErr {
+				asserts.ErrorContains(t, err, tt.errContains)
+			} else {
+				asserts.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestDeleteServiceMonitor tests the deleteServiceMonitor func call
+func TestDeleteServiceMonitor(t *testing.T) {
+	scheme := k8scheme.Scheme
+	_ = vzapi.AddToScheme(scheme)
+	_ = promoperapi.AddToScheme(scheme)
+	_ = oamcore.SchemeBuilder.AddToScheme(scheme)
+	tests := []struct {
+		name   string
+		trait  vzapi.MetricsTrait
+		result controllerutil.OperationResult
+	}{
+		// GIVEN a metricstrait
+		// WHEN the trait is enabled and not scheduled for deletion
+		// THEN the ServiceMonitor resource is not deleted
+		{
+			"Trait is enabled",
+			vzapi.MetricsTrait{
+				Spec: vzapi.MetricsTraitSpec{
+					Enabled: getBoolPtr(true),
+				},
+			},
+			controllerutil.OperationResultNone,
+		},
+		// GIVEN a metricstrait
+		// WHEN the trait is scheduled for deletion
+		// THEN the associated ServiceMonitor is deleted
+		{
+			"Successful Delete",
+			vzapi.MetricsTrait{
+				ObjectMeta: k8smeta.ObjectMeta{
+					DeletionTimestamp: &k8smeta.Time{Time: time.Now()},
+				},
+			},
+			controllerutil.OperationResultUpdated,
+		},
+		// GIVEN a metricstrait
+		// WHEN the trait is disabled for deletion
+		// THEN the associated ServiceMonitor is deleted
+		{
+			"Trait is disabled",
+			vzapi.MetricsTrait{
+				Spec: vzapi.MetricsTraitSpec{
+					Enabled: getBoolPtr(false),
+				},
+			},
+			controllerutil.OperationResultUpdated,
+		},
+		{
+			"Enabled but scheduled for deletion",
+			vzapi.MetricsTrait{
+				ObjectMeta: k8smeta.ObjectMeta{
+					DeletionTimestamp: &k8smeta.Time{Time: time.Now()},
+				},
+				Spec: vzapi.MetricsTraitSpec{
+					Enabled: getBoolPtr(true),
+				},
+			},
+			controllerutil.OperationResultUpdated,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+				&promoperapi.ServiceMonitor{
+					ObjectMeta: k8smeta.ObjectMeta{
+						Name:      foo,
+						Namespace: bar,
+					},
+				},
+				&k8score.Namespace{ObjectMeta: k8smeta.ObjectMeta{Name: bar}},
+			).Build()
+			reconciler := newMetricsTraitReconciler(cli)
+			res, _ := reconciler.deleteServiceMonitor(context.TODO(), bar, foo, &tt.trait, vzlog.DefaultLogger())
+			asserts.Equal(t, tt.result, res)
+		})
+	}
+}
+
+// TestUpdateRelatedStatefulSet tests the updateRelatedStatefulSet func call
+// GIVEN metricstrait, workload and child resources
+// WHEN updateRelatedPod func call is made by the reconciler
+// THEN the related workload StatefulSets are mutated
+func TestUpdateRelatedStatefulSet(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = k8score.AddToScheme(scheme)
+	_ = k8sapps.AddToScheme(scheme)
+	port := 443
+	path := foo
+	trait := vzapi.MetricsTrait{
+		Spec: vzapi.MetricsTraitSpec{
+			Port: &port,
+			Path: &path,
+		},
+	}
+	child := unstructured.Unstructured{}
+	child.SetAPIVersion(foo)
+	child.SetKind(bar)
+	child.SetName(foo)
+	child.SetKind(bar)
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		&k8sapps.StatefulSet{
+			TypeMeta:   k8smeta.TypeMeta{APIVersion: child.GetAPIVersion(), Kind: child.GetKind()},
+			ObjectMeta: k8smeta.ObjectMeta{Namespace: child.GetNamespace(), Name: child.GetName(), CreationTimestamp: k8smeta.Now()},
+		},
+		&k8score.Namespace{ObjectMeta: k8smeta.ObjectMeta{Name: child.GetNamespace()}},
+	).Build()
+	reconciler0 := newMetricsTraitReconciler(cli)
+	_, res0, err0 := reconciler0.updateRelatedStatefulSet(context.Background(), &trait, nil, nil, &child, vzlog.DefaultLogger())
+	asserts.Equal(t, res0, controllerutil.OperationResultUpdated)
+	asserts.NoError(t, err0)
+
+	badGetClient := &erroringGetClient{cli}
+	reconciler1 := newMetricsTraitReconciler(badGetClient)
+	_, res1, err1 := reconciler1.updateRelatedStatefulSet(context.Background(), &trait, nil, nil, &child, vzlog.DefaultLogger())
+	asserts.Equal(t, res1, controllerutil.OperationResultNone)
+	asserts.ErrorContains(t, err1, getError)
+}
+
+// TestUpdateRelatedPod tests the updateRelatedPod func call
+// GIVEN metricstrait, workload and child resources
+// WHEN updateRelatedPod func call is made by the reconciler
+// THEN the related workload pods are mutated
+func TestUpdateRelatedPod(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = k8score.AddToScheme(scheme)
+
+	port := 443
+	path := foo
+	trait := vzapi.MetricsTrait{
+		Spec: vzapi.MetricsTraitSpec{
+			Port: &port,
+			Path: &path,
+		},
+	}
+
+	child := unstructured.Unstructured{}
+	child.SetAPIVersion(foo)
+	child.SetKind(bar)
+	child.SetName(foo)
+	child.SetKind(bar)
+
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		&k8score.Pod{
+			TypeMeta:   k8smeta.TypeMeta{APIVersion: child.GetAPIVersion(), Kind: child.GetKind()},
+			ObjectMeta: k8smeta.ObjectMeta{Namespace: child.GetNamespace(), Name: child.GetName(), CreationTimestamp: k8smeta.Now()},
+		},
+		&k8score.Namespace{ObjectMeta: k8smeta.ObjectMeta{Name: child.GetNamespace()}},
+	).Build()
+
+	reconciler0 := newMetricsTraitReconciler(cli)
+	_, res0, err0 := reconciler0.updateRelatedPod(context.Background(), &trait, nil, nil, &child, vzlog.DefaultLogger())
+	asserts.Equal(t, res0, controllerutil.OperationResultUpdated)
+	asserts.NoError(t, err0)
+
+	badGetClient := &erroringGetClient{cli}
+	reconciler1 := newMetricsTraitReconciler(badGetClient)
+
+	_, res1, err1 := reconciler1.updateRelatedPod(context.Background(), &trait, nil, nil, &child, vzlog.DefaultLogger())
+	asserts.Equal(t, res1, controllerutil.OperationResultNone)
+	asserts.ErrorContains(t, err1, getError)
+}
+
 // deploymentWorkloadClient returns a fake client with a containerized workload target in the trait
 func containerizedWorkloadClient(deleting, deploymentDeleted, traitDisabled bool) client.WithWatch {
 	scheme := k8scheme.Scheme
@@ -1252,4 +1695,8 @@ func cohWorkloadClient(deleting bool, portNum int, ports ...int) client.WithWatc
 			},
 		},
 	).Build()
+}
+
+func getBoolPtr(b bool) *bool {
+	return &b
 }
