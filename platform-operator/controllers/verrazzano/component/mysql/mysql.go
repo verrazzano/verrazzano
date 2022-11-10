@@ -24,7 +24,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -217,7 +216,7 @@ func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentCo
 		// Check if the current not ready state is due to readiness gates not met
 		ctx.Log().Debug("Checking if MySQL not ready due to pods waiting for readiness gates")
 
-		selector := metav1.LabelSelectorRequirement{mySQLComponentLabel, metav1.LabelSelectorOpIn, []string{mySQLDComponentName}}
+		selector := metav1.LabelSelectorRequirement{Key: mySQLComponentLabel, Operator: metav1.LabelSelectorOpIn, Values: []string{mySQLDComponentName}}
 		podList := k8sready.GetPodsList(ctx.Log(), ctx.Client(), types.NamespacedName{Namespace: ComponentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
 		if podList == nil || len(podList.Items) == 0 {
 			return fmt.Errorf("no pods found matching selector %s", selector.String())
@@ -233,7 +232,7 @@ func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentCo
 			readyCount := 0
 			for _, condition := range conditions {
 				for _, gate := range pod.Spec.ReadinessGates {
-					if condition.Type == gate.ConditionType && condition.Status == corev1.ConditionTrue {
+					if condition.Type == gate.ConditionType && condition.Status == v1.ConditionTrue {
 						readyCount++
 						continue
 					}
@@ -245,7 +244,7 @@ func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentCo
 				// Restart the mysql-operator to see if it will finish setting the readiness gates
 				ctx.Log().Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck waiting for readiness gates")
 
-				operSelector := metav1.LabelSelectorRequirement{"name", metav1.LabelSelectorOpIn, []string{mysqloperator.ComponentName}}
+				operSelector := metav1.LabelSelectorRequirement{Key: "name", Operator: metav1.LabelSelectorOpIn, Values: []string{mysqloperator.ComponentName}}
 				operPodList := k8sready.GetPodsList(ctx.Log(), ctx.Client(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{operSelector}})
 				if operPodList == nil || len(podList.Items) != 1 {
 					return fmt.Errorf("no pods found matching selector %s", selector.String())
