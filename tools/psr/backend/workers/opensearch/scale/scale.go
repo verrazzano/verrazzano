@@ -189,10 +189,10 @@ func getUpdateModifier(tier string, currentReplicas int) (*update.CRModifier, in
 		return nil, 0, fmt.Errorf("minReplicaCount can not be less than 1")
 	}
 	var desiredReplicas int32
-	if currentReplicas == min {
-		desiredReplicas = int32(max)
-	} else {
+	if currentReplicas != min {
 		desiredReplicas = int32(min)
+	} else {
+		desiredReplicas = int32(max)
 	}
 
 	var m update.CRModifier
