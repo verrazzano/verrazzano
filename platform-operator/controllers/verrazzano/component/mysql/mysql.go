@@ -244,19 +244,31 @@ func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentCo
 				// Restart the mysql-operator to see if it will finish setting the readiness gates
 				ctx.Log().Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck waiting for readiness gates")
 
-				operSelector := metav1.LabelSelectorRequirement{Key: "name", Operator: metav1.LabelSelectorOpIn, Values: []string{mysqloperator.ComponentName}}
-				operPodList := k8sready.GetPodsList(ctx.Log(), ctx.Client(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{operSelector}})
-				if operPodList == nil || len(podList.Items) != 1 {
-					return fmt.Errorf("Failed restarting mysql-operator to repair stuck MySQL pods, no pods found matching selector %s", selector.String())
+				operPod, err := getMySQLOperatorPod(ctx.Log(), ctx.Client())
+				if err != nil {
+					return fmt.Errorf("Failed restarting mysql-operator to repair stuck MySQL pods: %v", err)
 				}
 
-				if err := ctx.Client().Delete(context.TODO(), &operPodList.Items[0], &clipkg.DeleteOptions{}); err != nil {
+				if err = ctx.Client().Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
 					return err
 				}
+
+				// Clear the timer
+				*c.LastTimeReadinessGateRepairStarted = time.Time{}
 			}
 		}
 	}
 	return nil
+}
+
+// getMySQLOperatorPod - return the mysql-operator pod
+func getMySQLOperatorPod(log vzlog.VerrazzanoLogger, client clipkg.Client) (*v1.Pod, error) {
+	operSelector := metav1.LabelSelectorRequirement{Key: "name", Operator: metav1.LabelSelectorOpIn, Values: []string{mysqloperator.ComponentName}}
+	operPodList := k8sready.GetPodsList(log, client, types.NamespacedName{Namespace: mysqloperator.ComponentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{operSelector}})
+	if operPodList == nil || len(operPodList.Items) != 1 {
+		return nil, fmt.Errorf("no pods found matching selector %s", operSelector.String())
+	}
+	return &operPodList.Items[0], nil
 }
 
 // isInnoDBClusterOnline returns true if the InnoDBCluster resource cluster status is online

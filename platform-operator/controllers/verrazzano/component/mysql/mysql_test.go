@@ -1999,11 +1999,13 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Fourth time calling, set one of the readiness gates to false.  This should force deletion of the mysql-operator pod.
+	// The timer should also get reset.
 	mySQLPod.Status.Conditions = []v1.PodCondition{{Type: "gate1", Status: v1.ConditionTrue}, {Type: "gate2", Status: v1.ConditionFalse}}
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod, mySQLOperatorPod).Build()
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
 	err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
 	assert.NoError(t, err)
+	assert.True(t, mysqlComp.LastTimeReadinessGateRepairStarted.IsZero())
 
 	pod = v1.Pod{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
