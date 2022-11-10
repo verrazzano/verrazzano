@@ -113,16 +113,16 @@ var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("
 			return err
 		}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Expected to get OpenSearch App Index")
 
-		t.It("Verify Elasticsearch index exists", func() {
+		t.It("Verify Opensearch index exists", func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index for Coherence application.")
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Opensearch index for Coherence application.")
 		})
 
-		t.It("Verify recent Elasticsearch log record exists", func() {
+		t.It("Verify recent Opensearch log record exists", func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}
