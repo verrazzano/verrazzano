@@ -9,12 +9,13 @@ import (
 	"os"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
@@ -86,7 +87,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 					Fail(err.Error())
 				}
 			}
-			curAdminVersion14, err := pkg.IsVerrazzanoMinVersionEventually("1.4.0", adminKubeconfig)
+			curAdminVersion14, err := pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeconfig)
 			if err != nil {
 				Fail(err.Error())
 			}
@@ -127,7 +128,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			if minimalVerification {
 				Skip("Skipping since not part of minimal verification")
 			}
-			supported, err := pkg.IsVerrazzanoMinVersionEventually("1.1.0", adminKubeconfig)
+			supported, err := pkg.IsVerrazzanoMinVersion("1.1.0", adminKubeconfig)
 			if err != nil {
 				Fail(err.Error())
 			}
@@ -144,7 +145,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			if minimalVerification {
 				Skip("Skipping since not part of minimal verification")
 			}
-			supported, err := pkg.IsVerrazzanoMinVersionEventually("1.1.0", adminKubeconfig)
+			supported, err := pkg.IsVerrazzanoMinVersion("1.1.0", adminKubeconfig)
 			if err != nil {
 				Fail(err.Error())
 			}
@@ -252,7 +253,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			if minimalVerification {
 				Skip("Skipping since not part of minimal verification")
 			}
-			supported, err := pkg.IsVerrazzanoMinVersionEventually("1.3.0", adminKubeconfig)
+			supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", adminKubeconfig)
 			if err != nil {
 				Fail(err.Error())
 			}
