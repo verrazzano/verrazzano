@@ -219,7 +219,7 @@ func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentCo
 		selector := metav1.LabelSelectorRequirement{Key: mySQLComponentLabel, Operator: metav1.LabelSelectorOpIn, Values: []string{mySQLDComponentName}}
 		podList := k8sready.GetPodsList(ctx.Log(), ctx.Client(), types.NamespacedName{Namespace: ComponentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
 		if podList == nil || len(podList.Items) == 0 {
-			return fmt.Errorf("no pods found matching selector %s", selector.String())
+			return fmt.Errorf("Failed checking MySQL readiness gates, no pods found matching selector %s", selector.String())
 		}
 
 		for i := range podList.Items {
@@ -227,7 +227,7 @@ func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentCo
 			// Check if the readiness conditions have been met
 			conditions := pod.Status.Conditions
 			if len(conditions) == 0 {
-				return fmt.Errorf("no status conditions found for pod %s/%s", pod.Namespace, pod.Name)
+				return fmt.Errorf("Failed checking MySQL readiness gates, no status conditions found for pod %s/%s", pod.Namespace, pod.Name)
 			}
 			readyCount := 0
 			for _, condition := range conditions {
@@ -247,7 +247,7 @@ func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentCo
 				operSelector := metav1.LabelSelectorRequirement{Key: "name", Operator: metav1.LabelSelectorOpIn, Values: []string{mysqloperator.ComponentName}}
 				operPodList := k8sready.GetPodsList(ctx.Log(), ctx.Client(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{operSelector}})
 				if operPodList == nil || len(podList.Items) != 1 {
-					return fmt.Errorf("no pods found matching selector %s", selector.String())
+					return fmt.Errorf("Failed restarting mysql-operator to repair stuck MySQL pods, no pods found matching selector %s", selector.String())
 				}
 
 				if err := ctx.Client().Delete(context.TODO(), &operPodList.Items[0], &clipkg.DeleteOptions{}); err != nil {
