@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
@@ -609,7 +609,7 @@ func TestIsAvailable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, tt.cr, nil, tt.dryRun, profilesRelativePath)
 			_, isAvailable := NewComponent().IsAvailable(ctx)
-			assert.Equal(t, tt.expectTrue, isAvailable)
+			assert.Equal(t, tt.expectTrue, isAvailable == vzapi.ComponentAvailable)
 		})
 	}
 }
