@@ -44,7 +44,7 @@
     },
     {
       "name": "cert-manager",
-      "version": "v1.7.1",
+      "version": "v1.9.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -52,24 +52,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "v1.7.1-1-20220808163033-a55857d4",
+              "tag": "v1.9.1-20221109181323-6139a802",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "v1.7.1-1-20220808163033-a55857d4",
+              "tag": "v1.9.1-20221109181323-6139a802",
               "helmFullImageKey": "extraArgs[0]"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "v1.7.1-1-20220808163033-a55857d4",
+              "tag": "v1.9.1-20221109181323-6139a802",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "v1.7.1-1-20220808163033-a55857d4",
+              "tag": "v1.9.1-20221109181323-6139a802",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }

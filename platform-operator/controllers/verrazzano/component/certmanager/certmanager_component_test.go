@@ -15,13 +15,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-
-	cmutil "github.com/jetstack/cert-manager/pkg/api/util"
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-	certv1fake "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/fake"
-	certv1client "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
+	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	certv1fake "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/fake"
+	certv1client "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -39,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 )
 
 const (
