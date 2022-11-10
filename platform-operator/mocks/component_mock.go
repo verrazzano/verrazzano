@@ -320,11 +320,11 @@ func (mr *MockComponentInfoMockRecorder) GetOverrides(arg0 interface{}) *gomock.
 }
 
 // IsAvailable mocks base method.
-func (m *MockComponentInfo) IsAvailable(arg0 spi.ComponentContext) (string, bool) {
+func (m *MockComponentInfo) IsAvailable(arg0 spi.ComponentContext) (string, v1alpha1.ComponentAvailability) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsAvailable", arg0)
 	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(bool)
+	ret1, _ := ret[1].(v1alpha1.ComponentAvailability)
 	return ret0, ret1
 }
 
@@ -699,11 +699,11 @@ func (mr *MockComponentMockRecorder) Install(arg0 interface{}) *gomock.Call {
 }
 
 // IsAvailable mocks base method.
-func (m *MockComponent) IsAvailable(arg0 spi.ComponentContext) (string, bool) {
+func (m *MockComponent) IsAvailable(arg0 spi.ComponentContext) (string, v1alpha1.ComponentAvailability) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsAvailable", arg0)
 	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(bool)
+	ret1, _ := ret[1].(v1alpha1.ComponentAvailability)
 	return ret0, ret1
 }
 

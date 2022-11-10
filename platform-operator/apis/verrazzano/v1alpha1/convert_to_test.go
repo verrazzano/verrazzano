@@ -400,6 +400,11 @@ func TestConvertToV1Beta1(t *testing.T) {
 			testCaseOCNEHA,
 			false,
 		},
+		{
+			"converts from v1alpha1 in the Cluster Operator case",
+			testCaseClusterOperator,
+			false,
+		},
 	}
 
 	for _, tt := range tests {

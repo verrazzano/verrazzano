@@ -15,6 +15,7 @@ spec:
   selector: {}
   endpoints:
   - path: /metrics
+    enableHttp2: false
     scheme: http
     relabelings:
     - action: replace

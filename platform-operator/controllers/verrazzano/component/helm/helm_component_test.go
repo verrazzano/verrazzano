@@ -16,8 +16,8 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/golang/mock/gomock"
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -1001,7 +1001,7 @@ func TestIsAvailable(t *testing.T) {
 		component     HelmComponent
 		args          spi.ComponentContext
 		wantReason    string
-		wantAvailable bool
+		wantAvailable v1alpha1.ComponentAvailability
 	}{
 		// GIVEN Default Helm component
 		// WHEN  IsAvailable is called
@@ -1011,7 +1011,7 @@ func TestIsAvailable(t *testing.T) {
 			HelmComponent{},
 			spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false),
 			"",
-			true,
+			v1alpha1.ComponentAvailable,
 		},
 		// GIVEN Helm component with AvailabilityObjects
 		// WHEN  IsAvailable is called
@@ -1023,7 +1023,7 @@ func TestIsAvailable(t *testing.T) {
 			},
 			spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false),
 			"",
-			true,
+			v1alpha1.ComponentAvailable,
 		},
 		// GIVEN Helm component with AvailabilityObjects
 		// WHEN  IsAvailable is called
@@ -1035,7 +1035,7 @@ func TestIsAvailable(t *testing.T) {
 			},
 			spi.NewFakeContext(fake.NewClientBuilder().Build(), &v1alpha1.Verrazzano{}, nil, false),
 			fmt.Sprintf("waiting for deployment %s/%s to exist", testNs, deploymentName),
-			false,
+			v1alpha1.ComponentUnavailable,
 		},
 	}
 	for _, tt := range tests {

@@ -140,7 +140,7 @@ func (o opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
-func (o opensearchComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available bool) {
+func (o opensearchComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
 	return nodesToObjectKeys(ctx.EffectiveCR()).IsAvailable(ctx.Log(), ctx.Client())
 }
 
