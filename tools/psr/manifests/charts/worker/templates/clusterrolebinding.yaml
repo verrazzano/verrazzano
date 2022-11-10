@@ -2,10 +2,9 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
-  name: {{ template "worker.fullName" .}}
-  namespace: {{ .Release.Namespace }}
+  name: {{ .Release.Namespace }}-{{ template "worker.fullName" .}}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
