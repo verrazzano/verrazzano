@@ -217,7 +217,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 						job: pilot,
 					}
 
-					minVer14, err := pkg.IsVerrazzanoMinVersionEventually("1.4.0", adminKubeConfig)
+					minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeConfig)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf(failedVerifyVersionMsg, err))
 						return false
@@ -239,7 +239,7 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 					job: oldPrometheus,
 				}
 
-				minVer14, err := pkg.IsVerrazzanoMinVersionEventually("1.4.0", adminKubeConfig)
+				minVer14, err := pkg.IsVerrazzanoMinVersion("1.4.0", adminKubeConfig)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf(failedVerifyVersionMsg, err))
 					return false
