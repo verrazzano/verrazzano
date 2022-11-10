@@ -1,7 +1,7 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package appoper
+package clusteroperator
 
 import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -12,6 +12,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 )
@@ -61,4 +63,9 @@ func (c clusterOperatorComponent) IsReady(context spi.ComponentContext) bool {
 		return c.isClusterOperatorReady(context)
 	}
 	return false
+}
+
+// IsEnabled cluster operator enabled check for installation
+func (c clusterOperatorComponent) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzconfig.IsClusterOperatorEnabled(effectiveCR)
 }
