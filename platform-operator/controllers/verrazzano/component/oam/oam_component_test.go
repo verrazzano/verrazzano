@@ -203,7 +203,7 @@ func TestMonitorOverrides(t *testing.T) {
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
 						OAM: &vzapi.OAMComponent{
-							Enabled: &disabled,
+							Enabled:          &disabled,
 							InstallOverrides: vzapi.InstallOverrides{MonitorChanges: &disabled},
 						},
 					},
