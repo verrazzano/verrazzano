@@ -258,7 +258,7 @@ func waitReady(log vzlog.VerrazzanoLogger, desiredReady bool) (cr *vzv1alpha1.Ve
 			break
 		}
 		log.Progressf("Waiting for Verrazzano CR ready state to be %v", desiredReady)
-		time.Sleep(3 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 	return cr, err
 }
