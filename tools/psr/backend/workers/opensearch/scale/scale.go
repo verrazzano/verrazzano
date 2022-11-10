@@ -130,7 +130,6 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 	if err != nil {
 		return err
 	}
-
 	log.Infof("Updating Verrazzano CR OpenSearch %s tier, scaling to %v replicas", tier, desiredReplicas)
 
 	// Update the CR to change the replica count
@@ -169,8 +168,8 @@ func (w scaleWorker) getUpdateModifier(tier string, currentReplicas int) (update
 	if err != nil {
 		return nil, 0, fmt.Errorf("minReplicaCount can not be parsed to an integer: %f", err)
 	}
-	if min < 1 {
-		return nil, 0, fmt.Errorf("minReplicaCount can not be less than 1")
+	if min < 3 {
+		return nil, 0, fmt.Errorf("minReplicaCount can not be less than 3")
 	}
 	var desiredReplicas int32
 	if currentReplicas != min {
