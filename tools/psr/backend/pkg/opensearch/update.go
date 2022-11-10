@@ -73,6 +73,11 @@ func (u OpensearchMasterNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 				Resources: newResources(u.NodeMemory),
 				Storage:   newNodeStorage(u.NodeStorage),
 			},
+			vzapi.OpenSearchNode{
+				Name:     "es-master",
+				Replicas: 0,
+				Roles:    []vmov1.NodeRole{vmov1.MasterRole},
+			},
 		)
 }
 

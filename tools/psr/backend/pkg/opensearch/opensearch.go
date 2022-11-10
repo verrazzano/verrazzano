@@ -4,12 +4,16 @@
 package opensearch
 
 import (
+	"context"
 	"fmt"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -18,6 +22,10 @@ import (
 const (
 	nodeNamePrefix = "vmi-system-%s"
 	componentName  = "opensearch"
+
+	MasterTier = "master"
+	DataTier   = "data"
+	IngestTier = "ingest"
 )
 
 // IsOSReady checks if the OpenSearch resources are ready
@@ -82,4 +90,39 @@ func dataDeploymentObjectKeys(node vzv1alpha1.OpenSearchNode, nodeControllerName
 		})
 	}
 	return dataDeployments
+}
+
+// GetPodsForTier returns pods for a given tier
+func GetPodsForTier(ctrlRuntimeClient client.Client, tier string) ([]corev1.Pod, error) {
+	//app=system-es-master,
+	var label string
+	switch tier {
+	case MasterTier:
+		label = "opensearch.verrazzano.io/role-master,"
+	case DataTier:
+		label = "opensearch.verrazzano.io/role-data,"
+	case IngestTier:
+		label = "opensearch.verrazzano.io/role-ingest,"
+	}
+	req, _ := labels.NewRequirement(label, selection.Equals, []string{"true"})
+	pods, err := getPodsByLabels(ctrlRuntimeClient, constants.VerrazzanoSystemNamespace, *req)
+	if err != nil {
+		return nil, err
+	}
+	return pods, nil
+}
+
+// getConfigMapsByLabels gets the configmaps by label
+func getPodsByLabels(ctrlRuntimeClient client.Client, namespace string, requirements ...labels.Requirement) ([]corev1.Pod, error) {
+	// Find the scenario configmaps in the cluster
+	selector := labels.NewSelector()
+	for _, req := range requirements {
+		selector = selector.Add(req)
+	}
+	podList := corev1.PodList{}
+	err := ctrlRuntimeClient.List(context.TODO(), &podList, &client.ListOptions{Namespace: namespace, LabelSelector: selector})
+	if err != nil {
+		return nil, err
+	}
+	return podList.Items, nil
 }

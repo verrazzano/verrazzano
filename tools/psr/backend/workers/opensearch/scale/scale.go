@@ -5,7 +5,8 @@ package scale
 
 import (
 	"fmt"
-	update "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/opensearch"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
+	psropensearch "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/opensearch"
 	psrvz "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/verrazzano"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -28,10 +29,6 @@ const (
 	scaleDelayPerTier = "SCALE_DELAY_PER_TIER"
 	minReplicaCount   = "MIN_REPLICA_COUNT"
 	maxReplicaCount   = "MAX_REPLICA_COUNT"
-
-	masterTier = "master"
-	dataTier   = "data"
-	ingestTier = "ingest"
 )
 
 type scaleWorker struct {
@@ -128,19 +125,24 @@ func (w scaleWorker) WantLoopInfoLogged() bool {
 func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	// validate OS tier
 	tier := config.PsrEnv.GetEnv(openSearchTier)
-	if tier != masterTier && tier != dataTier && tier != ingestTier {
+	if tier != psropensearch.MasterTier && tier != psropensearch.DataTier && tier != psropensearch.IngestTier {
 		return fmt.Errorf("error, not a valid OpenSearch tier to scale")
 	}
 
 	// Wait until VZ is ready
-	cr, err := waitReady(log, true)
+	_, err := waitReady(log, true)
 	if err != nil {
 		log.Progress("Failed to wait for Verrazzano to be ready after update.  The test results are not valid %v", err)
 		return err
 	}
-
+	// Get the current OpenSearch replica field for the tier in the VZ CR
+	pods, err := psropensearch.GetPodsForTier(w.ctrlRuntimeClient, tier)
+	if err != nil {
+		log.Progress("Failed to get the pods for tier %s: %v", tier, err)
+		return err
+	}
 	// Create a modifier that is used to update the Verrazzno CR opensearch replica field
-	m, desiredReplicas, err := getUpdateModifier(cr, tier)
+	m, desiredReplicas, err := getUpdateModifier(tier, len(pods))
 	if err != nil {
 		return err
 	}
@@ -174,10 +176,7 @@ func (w scaleWorker) GetMetricList() []prometheus.Metric {
 	}
 }
 
-func getUpdateModifier(cr *vzv1alpha1.Verrazzano, tier string) (*update.CRModifier, int, error) {
-	// Get the current opensearch replica field for the tier in the VZ CR
-	currentReplicas := getCurrentReplicas(cr, tier)
-
+func getUpdateModifier(tier string, currentReplicas int) (*update.CRModifier, int, error) {
 	max, err := strconv.Atoi(config.PsrEnv.GetEnv(maxReplicaCount))
 	if err != nil {
 		return nil, 0, fmt.Errorf("maxReplicaCount can not be parsed to an integer: %f", err)
@@ -199,47 +198,12 @@ func getUpdateModifier(cr *vzv1alpha1.Verrazzano, tier string) (*update.CRModifi
 	var m update.CRModifier
 
 	switch tier {
-	case masterTier:
-		m = update.OpensearchMasterNodeGroupModifier{NodeReplicas: desiredReplicas}
-	case dataTier:
-		m = update.OpensearchDataNodeGroupModifier{NodeReplicas: desiredReplicas}
-	case ingestTier:
-		m = update.OpensearchIngestNodeGroupModifier{NodeReplicas: desiredReplicas}
-	}
-	return &m, int(desiredReplicas), nil
-}
-
-func initModifier(cr *vzv1alpha1.Verrazzano, tier string) (*update.CRModifier, int, error) {
-	// Get the current opensearch replica field for the tier in the VZ CR
-	currentReplicas := getCurrentReplicas(cr, tier)
-
-	max, err := strconv.Atoi(config.PsrEnv.GetEnv(maxReplicaCount))
-	if err != nil {
-		return nil, 0, fmt.Errorf("maxReplicaCount can not be parsed to an integer: %f", err)
-	}
-	min, err := strconv.Atoi(config.PsrEnv.GetEnv(minReplicaCount))
-	if err != nil {
-		return nil, 0, fmt.Errorf("minReplicaCount can not be parsed to an integer: %f", err)
-	}
-	if min < 1 {
-		return nil, 0, fmt.Errorf("minReplicaCount can not be less than 1")
-	}
-	var desiredReplicas int32
-	if currentReplicas == min {
-		desiredReplicas = int32(max)
-	} else {
-		desiredReplicas = int32(min)
-	}
-
-	var m update.CRModifier
-
-	switch tier {
-	case masterTier:
-		m = update.OpensearchMasterNodeGroupModifier{NodeReplicas: desiredReplicas}
-	case dataTier:
-		m = update.OpensearchDataNodeGroupModifier{NodeReplicas: desiredReplicas}
-	case ingestTier:
-		m = update.OpensearchIngestNodeGroupModifier{NodeReplicas: desiredReplicas}
+	case psropensearch.MasterTier:
+		m = psropensearch.OpensearchMasterNodeGroupModifier{NodeReplicas: desiredReplicas}
+	case psropensearch.DataTier:
+		m = psropensearch.OpensearchDataNodeGroupModifier{NodeReplicas: desiredReplicas}
+	case psropensearch.IngestTier:
+		m = psropensearch.OpensearchIngestNodeGroupModifier{NodeReplicas: desiredReplicas}
 	}
 	return &m, int(desiredReplicas), nil
 }
