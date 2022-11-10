@@ -138,7 +138,7 @@ func main() {
 
 	myFlag := false
 	//TEST to lower code coverage
-	if myFlag == false {
-		myFlag = true
+	if !myFlag {
+		println("Entered Coverage Test...")
 	}
 }
