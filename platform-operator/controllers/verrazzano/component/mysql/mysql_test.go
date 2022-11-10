@@ -12,9 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -23,11 +20,13 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -1966,25 +1965,12 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 			},
 		},
 		Spec: v1.PodSpec{
-			ReadinessGates: []v1.PodReadinessGate{
-				{
-					ConditionType: "gate1",
-				},
-				{
-					ConditionType: "gate2",
-				},
-			},
+			ReadinessGates: []v1.PodReadinessGate{{ConditionType: "gate1"}, {ConditionType: "gate2"}},
 		},
 		Status: v1.PodStatus{
 			Conditions: []v1.PodCondition{
-				{
-					Type:   "gate1",
-					Status: v1.ConditionTrue,
-				},
-				{
-					Type:   "gate2",
-					Status: v1.ConditionTrue,
-				},
+				{Type: "gate1", Status: v1.ConditionTrue},
+				{Type: "gate2", Status: v1.ConditionTrue},
 			},
 		},
 	}
@@ -2024,5 +2010,4 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
-
 }
