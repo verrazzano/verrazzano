@@ -119,6 +119,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		AuthProxy:              authProxyComponent,
 		OAM:                    convertOAMToV1Beta1(src.OAM),
 		Console:                convertConsoleToV1Beta1(src.Console),
+		ClusterOperator:        convertClusterOperatorToV1Beta1(src.ClusterOperator),
 		DNS:                    convertDNSToV1Beta1(src.DNS),
 		OpenSearch:             opensearchComponent,
 		Fluentd:                convertFluentdToV1Beta1(src.Fluentd),
@@ -141,7 +142,6 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		WebLogicOperator:       convertWeblogicOperatorToV1Beta1(src.WebLogicOperator),
 		Velero:                 convertVeleroToV1Beta1(src.Velero),
 		Verrazzano:             verrazzanoComponent,
-		ClusterOperator:        convertClusterOperatorToV1Beta1(src.ClusterOperator),
 	}, nil
 }
 
