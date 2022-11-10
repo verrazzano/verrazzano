@@ -23,6 +23,7 @@ const (
 	testLong  = "A sample long help"
 )
 
+// TestNewCommand tests the functionality to create a new command based on the usage, short and log help.
 func TestNewCommand(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -30,6 +31,7 @@ func TestNewCommand(t *testing.T) {
 	assert.NotNil(t, NewCommand(rc, testUse, testShort, testLong))
 }
 
+// TestGetWaitTimeout tests the functionality that returns the wait timeout if set or returns the default timeout value.
 func TestGetWaitTimeout(t *testing.T) {
 	// GIVEN a command with no values provided for wait and timeout flags,
 	// WHEN we get the wait timeout value,
@@ -73,6 +75,7 @@ func TestGetWaitTimeout(t *testing.T) {
 	assert.Equal(t, time.Duration(1), timeout)
 }
 
+// TestGetLogFormat tests the functionality that returns the log format that was set by the user.
 func TestGetLogFormat(t *testing.T) {
 	// GIVEN a command with no value provided for the log format flag,
 	// WHEN we get the log format,
@@ -93,6 +96,7 @@ func TestGetLogFormat(t *testing.T) {
 	assert.Equal(t, LogFormat("custom"), logFormat)
 }
 
+// TestGetVersion tests the functionality that returns the right Verrazzano version.
 func TestGetVersion(t *testing.T) {
 	// Create a fake VZ helper
 	buf := new(bytes.Buffer)
@@ -118,6 +122,7 @@ func TestGetVersion(t *testing.T) {
 	assert.NotNil(t, version)
 }
 
+// TestGetOperatorFile tests the functionality to return the right operator file.
 func TestGetOperatorFile(t *testing.T) {
 	// GIVEN a command with no value provided for the operator file flag,
 	// WHEN we get the operator file,
@@ -140,6 +145,7 @@ func TestGetOperatorFile(t *testing.T) {
 
 }
 
+// getCommandWithoutFlags creates a dummy test command with no flags
 func getCommandWithoutFlags() *cobra.Command {
 	return &cobra.Command{
 		Use:   testUse,

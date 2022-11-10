@@ -39,6 +39,7 @@ var (
 	}
 )
 
+// TestGetVpoLogStream tests the functionality that returns the right log stream of the VPO pod.
 func TestGetVpoLogStream(t *testing.T) {
 	// GIVEN a k8s cluster with no VPO installed,
 	// WHEN get log stream is called,
@@ -50,6 +51,7 @@ func TestGetVpoLogStream(t *testing.T) {
 
 }
 
+// TestGetVerrazzanoPlatformOperatorPodName tests the functionality that returns the right VPO pod name.
 func TestGetVerrazzanoPlatformOperatorPodName(t *testing.T) {
 	// GIVEN a k8s cluster with no VPO installed,
 	// WHEN GetVerrazzanoPlatformOperatorPodName is invoked,
@@ -77,6 +79,7 @@ func TestGetVerrazzanoPlatformOperatorPodName(t *testing.T) {
 	assert.Equal(t, "verrazzano-platform-operator-95d8c5d96-m6mbr", podName)
 }
 
+// TestGetVerrazzanoPlatformOperatorPodName tests the functionality that waits still the Verrazzano resource reaches the given state.
 func TestWaitForPlatformOperator(t *testing.T) {
 	// GIVEN a k8s cluster with VPO installed,
 	// WHEN WaitForPlatformOperator is invoked,
@@ -98,6 +101,7 @@ func TestWaitForPlatformOperator(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// TestWaitForOperationToComplete tests the functionality to wait till the given operation completes
 func TestWaitForOperationToComplete(t *testing.T) {
 	scheme := k8scheme.Scheme
 	_ = v1beta1.AddToScheme(scheme)
@@ -115,6 +119,7 @@ func TestWaitForOperationToComplete(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// TestApplyPlatformOperatorYaml tests the functionality to apply VPO operator yaml
 func TestApplyPlatformOperatorYaml(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 	buf := new(bytes.Buffer)
@@ -136,6 +141,7 @@ func TestApplyPlatformOperatorYaml(t *testing.T) {
 	assert.Error(t, err)
 }
 
+// TestUsePlatformOperatorUninstallJob tests the functionality of VPO Uninstall job for different versions.
 func TestUsePlatformOperatorUninstallJob(t *testing.T) {
 	upgradeFlag, err := UsePlatformOperatorUninstallJob(fake.NewClientBuilder().Build())
 	assert.Error(t, err)
@@ -148,27 +154,40 @@ func TestUsePlatformOperatorUninstallJob(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, upgradeFlag)
 
+	// GIVEN a k8s cluster with VPO installed,
+	// WHEN UsePlatformOperatorUninstallJob is invoked for an invalid vpo version which does not match the semversion pattern,
+	// THEN an error is returned.
 	fakeClient = fake.NewClientBuilder().WithObjects(getVpoDeployment("1.f", 1, 1)).Build()
 	upgradeFlag, err = UsePlatformOperatorUninstallJob(fakeClient)
 	assert.Error(t, err)
 	assert.False(t, upgradeFlag)
 
+	// GIVEN a k8s cluster with VPO installed,
+	// WHEN UsePlatformOperatorUninstallJob is invoked for an invalid vpo version which does not match the semversion pattern,
+	// THEN an error is returned.
 	fakeClient = fake.NewClientBuilder().WithObjects(getVpoDeployment("1.4.0", 1, 1)).Build()
 	upgradeFlag, err = UsePlatformOperatorUninstallJob(fakeClient)
 	assert.NoError(t, err)
 	assert.False(t, upgradeFlag)
 
+	// GIVEN a k8s cluster with VPO installed,
+	// WHEN UsePlatformOperatorUninstallJob is invoked for a valid sem version lesser than 1.4.0,
+	// THEN no error is returned and the upgrade flag is set to true.
 	fakeClient = fake.NewClientBuilder().WithObjects(getVpoDeployment("1.3.0", 1, 1)).Build()
 	upgradeFlag, err = UsePlatformOperatorUninstallJob(fakeClient)
 	assert.NoError(t, err)
 	assert.True(t, upgradeFlag)
 
+	// GIVEN a k8s cluster with VPO installed,
+	// WHEN UsePlatformOperatorUninstallJob is invoked for a valid sem version greater than 1.4.0,
+	// THEN no error is returned and upgrade flag is set to false.
 	fakeClient = fake.NewClientBuilder().WithObjects(getVpoDeployment("1.5.0", 1, 1)).Build()
 	upgradeFlag, err = UsePlatformOperatorUninstallJob(fakeClient)
 	assert.NoError(t, err)
 	assert.False(t, upgradeFlag)
 }
 
+// TestVpoIsReady tests the functionality to check if VPO deployment is ready based on the VPO pods that are available
 func TestVpoIsReady(t *testing.T) {
 	// GIVEN a k8s cluster with all VPO deployment with 1 updated replicas, and 1 available replicas
 	// WHEN vpoIsReady is invoked,
@@ -204,6 +223,7 @@ func TestVpoIsReady(t *testing.T) {
 
 }
 
+// TestGetScanner tests the functionality of returning the right scanner object
 func TestGetScanner(t *testing.T) {
 	// GIVEN a k8s cluster with all VPO specific objects,
 	// WHEN getScanner is invoked,
@@ -215,6 +235,7 @@ func TestGetScanner(t *testing.T) {
 	assert.NotNil(t, scanner)
 }
 
+// TestDeleteLeftoverPlatformOperator tests the functionality of deleting the left over VPO pod.
 func TestDeleteLeftoverPlatformOperator(t *testing.T) {
 	// GIVEN a k8s cluster,
 	// WHEN deleteLeftoverPlatformOperator is invoked,
@@ -223,6 +244,8 @@ func TestDeleteLeftoverPlatformOperator(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestSetDeleteFunc tests the functionality where user can provide a custom delete function, and it gets invoked when
+// calling the delete operation.
 func TestSetDeleteFunc(t *testing.T) {
 	// GIVEN a k8s cluster,
 	// WHEN delete function is overridden to a custom function using SetDeleteFunc
@@ -235,6 +258,7 @@ func TestSetDeleteFunc(t *testing.T) {
 	assert.Equal(t, "dummy error", err.Error())
 }
 
+// TestSetDefaultDeleteFunc tests the functionality where a custom delete function can be provided by the user and invoked.
 func TestSetDefaultDeleteFunc(t *testing.T) {
 	// GIVEN a k8s cluster,
 	// WHEN SetDefaultDeleteFunc is set and DeleteFunc invoked,
@@ -244,12 +268,14 @@ func TestSetDefaultDeleteFunc(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestFakeDeleteFunc tests the fake delete function.
 func TestFakeDeleteFunc(t *testing.T) {
 	// When FakeDeleteFunc it should return nil
 	err := FakeDeleteFunc(fake.NewClientBuilder().Build())
 	assert.NoError(t, err)
 }
 
+// TestGetOperationString tests the functionality that returns the right operation string - install or upgrade
 func TestGetOperationString(t *testing.T) {
 	// GIVEN a k8s cluster with VPO installed,
 	// WHEN getOperationString is invoked for install complete state,
