@@ -13,26 +13,28 @@ import (
 
 // Manager contains the information needed to manage a Scenario
 type Manager struct {
-	Log       vzlog.VerrazzanoLogger
-	Client    corev1.CoreV1Interface
-	Manifest  embedded.PsrManifests
-	Namespace string
-	DryRun    bool
-	Verbose   bool
+	Log                 vzlog.VerrazzanoLogger
+	Client              corev1.CoreV1Interface
+	Manifest            embedded.PsrManifests
+	ExternalScenarioDir string
+	Namespace           string
+	DryRun              bool
+	Verbose             bool
 }
 
 // NewManager returns a scenario Manager
-func NewManager(namespace string) (Manager, error) {
+func NewManager(namespace string, externalScenarioDir string) (Manager, error) {
 	client, err := k8sutil.GetCoreV1Client(vzlog.DefaultLogger())
 	if err != nil {
 		return Manager{}, fmt.Errorf("Failed to get CoreV1 client: %v", err)
 	}
 	m := Manager{
-		Namespace: namespace,
-		Log:       vzlog.DefaultLogger(),
-		Manifest:  *embedded.Manifests,
-		Client:    client,
-		Verbose:   true,
+		Namespace:           namespace,
+		Log:                 vzlog.DefaultLogger(),
+		Manifest:            *embedded.Manifests,
+		ExternalScenarioDir: externalScenarioDir,
+		Client:              client,
+		Verbose:             true,
 	}
 	return m, nil
 }

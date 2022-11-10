@@ -12,14 +12,12 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
-
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
 const (
@@ -121,7 +119,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			if err != nil {
 				Skip(skipVerifications)
 			}
-			if ok, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeConfig); !ok {
+			if ok, _ := pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeConfig); !ok {
 				Skip(skipVerifications)
 			}
 			Eventually(func() bool {

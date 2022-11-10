@@ -7,12 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	common "github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-	"go.uber.org/zap"
-	k8serror "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 	"text/template"
 	"time"
@@ -20,8 +14,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	common "github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
+	"go.uber.org/zap"
+	k8serror "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -248,7 +248,7 @@ func WhenVeleroInstalledIt(description string, f func()) {
 			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		})
 	}
-	supported, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+	supported, err := pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfigPath)
 	if err != nil {
 		t.It(description, func() {
 			Fail(fmt.Sprintf("Failed to check Verrazzano version 1.4.0: %s", err.Error()))

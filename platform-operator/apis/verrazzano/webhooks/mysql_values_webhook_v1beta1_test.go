@@ -17,6 +17,11 @@ import (
 )
 
 const (
+	replicasOverrides = `
+{
+  "routerInstances": 3,
+  "serverInstances": 3
+}`
 	modifiedServerPodSpec = `
 {
   "podSpec": {
@@ -80,7 +85,7 @@ const (
 func newMysqlValuesValidatorV1beta1() MysqlValuesValidatorV1beta1 {
 	scheme := newScheme()
 	decoder, _ := admission.NewDecoder(scheme)
-	v := MysqlValuesValidatorV1beta1{decoder: decoder}
+	v := MysqlValuesValidatorV1beta1{decoder: decoder, BomVersion: MinVersion}
 	return v
 }
 
@@ -93,14 +98,20 @@ func newScheme() *runtime.Scheme {
 }
 
 // newAdmissionRequest creates a new admissionRequest with the provided operation and objects.
-func newAdmissionRequest(op admissionv1.Operation, obj interface{}) admission.Request {
+func newAdmissionRequest(op admissionv1.Operation, obj interface{}, oldObj interface{}) admission.Request {
+	objRaw := encodeRawBytes(obj)
+	oldObjRaw := encodeRawBytes(oldObj)
+	req := admission.Request{
+		AdmissionRequest: admissionv1.AdmissionRequest{
+			Operation: op, Object: objRaw, OldObject: oldObjRaw}}
+	return req
+}
+
+func encodeRawBytes(obj interface{}) runtime.RawExtension {
 	raw := runtime.RawExtension{}
 	bytes, _ := json.Marshal(obj)
 	raw.Raw = bytes
-	req := admission.Request{
-		AdmissionRequest: admissionv1.AdmissionRequest{
-			Operation: op, Object: raw}}
-	return req
+	return raw
 }
 
 // TestValidationWarningForServerPodSpecV1beta1 tests presenting a user warning
@@ -108,33 +119,70 @@ func newAdmissionRequest(op admissionv1.Operation, obj interface{}) admission.Re
 // WHEN the override values specify a server podSpec
 // THEN the admission request should be allowed but with a warning.
 func TestValidationWarningForServerPodSpecV1beta1(t *testing.T) {
-	asrt := assert.New(t)
-	m := newMysqlValuesValidatorV1beta1()
-
-	newVz := v1beta1.Verrazzano{
-		Spec: v1beta1.VerrazzanoSpec{
-			Version: MinVersion,
-			Components: v1beta1.ComponentSpec{
-				Keycloak: &v1beta1.KeycloakComponent{
-					MySQL: v1beta1.MySQLComponent{
-						InstallOverrides: v1beta1.InstallOverrides{
-							ValueOverrides: []v1beta1.Overrides{{
-								Values: &apiextensionsv1.JSON{
-									Raw: []byte(modifiedServerPodSpec),
-								},
-							}},
-						},
-					},
-				},
-			},
+	tests := []struct {
+		name       string
+		shouldWarn bool
+		newVz      *v1beta1.Verrazzano
+		oldVz      *v1beta1.Verrazzano
+	}{
+		{
+			name:       "No Version Set",
+			shouldWarn: true,
+			newVz:      &v1beta1.Verrazzano{},
+			oldVz:      &v1beta1.Verrazzano{},
+		},
+		{
+			name:       "New version set, Old Version Not Set",
+			shouldWarn: true,
+			newVz:      &v1beta1.Verrazzano{Spec: v1beta1.VerrazzanoSpec{Version: MinVersion}},
+			oldVz:      &v1beta1.Verrazzano{},
+		},
+		{
+			name:       "New version NOT set, Old Status Version Set",
+			shouldWarn: true,
+			newVz:      &v1beta1.Verrazzano{Spec: v1beta1.VerrazzanoSpec{}},
+			oldVz:      &v1beta1.Verrazzano{Status: v1beta1.VerrazzanoStatus{Version: MinVersion}},
+		},
+		{
+			name:       "New version NOT set, Old Status Version Set",
+			shouldWarn: true,
+			newVz:      &v1beta1.Verrazzano{Spec: v1beta1.VerrazzanoSpec{}},
+			oldVz:      &v1beta1.Verrazzano{Status: v1beta1.VerrazzanoStatus{Version: MinVersion}},
+		},
+		{
+			name:       "New version set below min version",
+			shouldWarn: false,
+			newVz:      &v1beta1.Verrazzano{Spec: v1beta1.VerrazzanoSpec{Version: "v1.4.1"}},
+			oldVz:      &v1beta1.Verrazzano{},
 		},
 	}
-
-	req := newAdmissionRequest(admissionv1.Update, newVz)
-	res := m.Handle(context.TODO(), req)
-	asrt.True(res.Allowed, "Expected request to be allowed with warnings")
-	asrt.Len(res.Warnings, 1, "Expected there to be one warning")
-	asrt.Contains(res.Warnings[0], "Modifications to MySQL server pod specs do not trigger an automatic restart of the stateful set.", "expected specific warning about stateful set restart")
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Logf("Test: %s", test.name)
+			asrt := assert.New(t)
+			m := newMysqlValuesValidatorV1alpha1()
+			test.newVz.Spec.Components.Keycloak = &v1beta1.KeycloakComponent{
+				MySQL: v1beta1.MySQLComponent{
+					InstallOverrides: v1beta1.InstallOverrides{
+						ValueOverrides: []v1beta1.Overrides{{
+							Values: &apiextensionsv1.JSON{
+								Raw: []byte(modifiedServerPodSpec),
+							},
+						}},
+					},
+				},
+			}
+			req := newAdmissionRequest(admissionv1.Update, test.newVz, test.oldVz)
+			res := m.Handle(context.TODO(), req)
+			asrt.True(res.Allowed, allowedFailureMessage)
+			if test.shouldWarn {
+				asrt.Len(res.Warnings, 1, expectedWarningFailureMessage)
+				asrt.Contains(res.Warnings[0], "Modifications to MySQL server pod specs do not trigger an automatic restart of the stateful set.", "expected specific warning about stateful set restart")
+			} else {
+				asrt.Len(res.Warnings, 0, noWarningsFailureMessage)
+			}
+		})
+	}
 }
 
 // TestNoValidationWarningForRouterPodSpecV1beta1 tests presenting a user warning
@@ -151,11 +199,18 @@ func TestNoValidationWarningForRouterPodSpecV1beta1(t *testing.T) {
 				Keycloak: &v1beta1.KeycloakComponent{
 					MySQL: v1beta1.MySQLComponent{
 						InstallOverrides: v1beta1.InstallOverrides{
-							ValueOverrides: []v1beta1.Overrides{{
-								Values: &apiextensionsv1.JSON{
-									Raw: []byte(modifiedRouterPodSpec),
+							ValueOverrides: []v1beta1.Overrides{
+								{
+									Values: &apiextensionsv1.JSON{
+										Raw: []byte(replicasOverrides),
+									},
 								},
-							}},
+								{
+									Values: &apiextensionsv1.JSON{
+										Raw: []byte(modifiedRouterPodSpec),
+									},
+								},
+							},
 						},
 					},
 				},
@@ -163,10 +218,10 @@ func TestNoValidationWarningForRouterPodSpecV1beta1(t *testing.T) {
 		},
 	}
 
-	req := newAdmissionRequest(admissionv1.Update, newVz)
+	req := newAdmissionRequest(admissionv1.Update, newVz, &v1beta1.Verrazzano{})
 	res := m.Handle(context.TODO(), req)
-	asrt.True(res.Allowed, "Expected request to be allowed with warnings")
-	asrt.Len(res.Warnings, 0, "Expected there to be one warning")
+	asrt.True(res.Allowed, allowedFailureMessage)
+	asrt.Len(res.Warnings, 0, noWarningsFailureMessage)
 }
 
 // TestNoValidationWarningWithoutServerPodSpec tests not presenting a user warning
@@ -183,11 +238,18 @@ func TestNoValidationWarningWithoutServerPodSpecV1beta1(t *testing.T) {
 				Keycloak: &v1beta1.KeycloakComponent{
 					MySQL: v1beta1.MySQLComponent{
 						InstallOverrides: v1beta1.InstallOverrides{
-							ValueOverrides: []v1beta1.Overrides{{
-								Values: &apiextensionsv1.JSON{
-									Raw: []byte(noPodSpec),
+							ValueOverrides: []v1beta1.Overrides{
+								{
+									Values: &apiextensionsv1.JSON{
+										Raw: []byte(replicasOverrides),
+									},
 								},
-							}},
+								{
+									Values: &apiextensionsv1.JSON{
+										Raw: []byte(noPodSpec),
+									},
+								},
+							},
 						},
 					},
 				},
@@ -195,8 +257,8 @@ func TestNoValidationWarningWithoutServerPodSpecV1beta1(t *testing.T) {
 		},
 	}
 
-	req := newAdmissionRequest(admissionv1.Update, newVz)
+	req := newAdmissionRequest(admissionv1.Update, newVz, &v1beta1.Verrazzano{})
 	res := m.Handle(context.TODO(), req)
-	asrt.True(res.Allowed, "Expected request to be allowed with warnings")
-	asrt.Len(res.Warnings, 0, "Expected there to be one warning")
+	asrt.True(res.Allowed, allowedFailureMessage)
+	asrt.Len(res.Warnings, 0, noWarningsFailureMessage)
 }

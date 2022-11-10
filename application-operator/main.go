@@ -7,8 +7,8 @@ import (
 	"flag"
 	"os"
 
+	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
-	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"

@@ -161,7 +161,7 @@ func (e *Elastic) CheckTLSSecret() bool {
 // CheckHealth checks the health status of Opensearch cluster
 // Returns true if the health status is green otherwise false
 func (e *Elastic) CheckHealth(kubeconfigPath string) bool {
-	supported, err := pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
+	supported, err := pkg.IsVerrazzanoMinVersionEventually("1.1.0", kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano version: %v", err))
 		return false
@@ -196,7 +196,7 @@ func (e *Elastic) CheckHealth(kubeconfigPath string) bool {
 // CheckIndicesHealth checks the health status of indices in a cluster
 // Returns true if the health status of all the indices is green otherwise false
 func (e *Elastic) CheckIndicesHealth(kubeconfigPath string) bool {
-	supported, err := pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
+	supported, err := pkg.IsVerrazzanoMinVersionEventually("1.1.0", kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano version: %v", err))
 		return false

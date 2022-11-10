@@ -7,24 +7,24 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/verrazzano/verrazzano/pkg/constants"
-	common "github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-	"go.uber.org/zap"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 	"strconv"
 	"strings"
 	"text/template"
 	"time"
 
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	common "github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
+	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -282,7 +282,7 @@ func WhenRancherBackupInstalledIt(description string, f func()) {
 			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		})
 	}
-	supported, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+	supported, err := pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfigPath)
 	if err != nil {
 		t.It(description, func() {
 			Fail(fmt.Sprintf("Failed to check Verrazzano version 1.4.0: %s", err.Error()))

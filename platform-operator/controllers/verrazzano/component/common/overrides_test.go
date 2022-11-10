@@ -8,6 +8,8 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
@@ -18,6 +20,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"testing"
 )
+
+const goodYAML = "foo:\n  foo: bar\n"
 
 // TestGetInstallOverridesYAML tests GetInstallOverridesYAML
 // GIVEN an override list
@@ -31,7 +35,6 @@ func TestGetInstallOverridesYAML(t *testing.T) {
 	testName := "testName"
 	dataVal := "dataVal"
 	goodJSON := "{\"foo\": {\"foo\": \"bar\"}}"
-	goodYAML := "foo:\n  foo: bar\n"
 	badJSON := "{\"foo\": {\"foo\": \"bar\"}"
 
 	tests := []struct {
@@ -231,13 +234,28 @@ func TestGetInstallOverridesYAML(t *testing.T) {
 	}
 }
 
+// TestGetInstallOverridesYAMLUsingClient tests GetInstallOverridesYAMLUsingClient
+// GIVEN an override list
+//
+//	WHEN I call GetInstallOverridesYAMLUsingClient
+//	THEN I function gets called successfully without any error
+func TestGetInstallOverridesYAMLUsingClient(t *testing.T) {
+	overrides := []v1beta1.Overrides{}
+	mock := gomock.NewController(t)
+	client := mocks.NewMockClient(mock)
+	ctx := spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: v12.ObjectMeta{Namespace: "foo"}}, nil, false)
+	data, err := GetInstallOverridesYAMLUsingClient(ctx.Client(), overrides, "namespace1")
+	assert.Nil(t, err)
+	assert.Nil(t, data)
+
+}
+
 // TestExtractValueFromOverrideString tests ExtractValueFromOverrideString
 // GIVEN an override string
 //
 //	WHEN I call ExtractValueFromOverrideString
 //	THEN I get a value of the specified json path from the override string
 func TestExtractValueFromOverrideString(t *testing.T) {
-	goodYAML := "foo:\n  foo: bar\n"
 	badYAML := "foo:\n  {foo: bar\n"
 
 	tests := []struct {

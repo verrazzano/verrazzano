@@ -474,6 +474,11 @@ pipeline {
                         runGinkgo('multicluster/verify-rancher', '${TEST_DUMP_ROOT}/verify-rancher')
                     }
                 }
+                stage('verify-cluster-sync') {
+                    steps {
+                        runGinkgoAdmin('multicluster/verify-cluster-sync')
+                    }
+                }
                 stage ('multicluster/verify-install') {
                     steps {
                         runGinkgoRandomize('multicluster/verify-install')
@@ -940,21 +945,44 @@ def verifyRegisterManagedClusters() {
     }
 }
 
+// Utility method to create a map that will be used later to perform parallel operations against multiple clusters
+Map createClusterExecutionsMap() {
+    script {
+        // Create a dictionary of steps to be executed in parallel
+        // - the first one will always be the Admin cluster
+        // - clusters 2-max are managed clusters
+        def clusterExecutionsMap = [:]
+        return clusterExecutionsMap
+    }
+}
+
 // Verify the deregister of the managed clusters
 def verifyDeregisterManagedClusters() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         script {
+            def verrazzanoDeregisterManagedClusterStages = createClusterExecutionsMap()
             int clusterCount = params.TOTAL_CLUSTERS.toInteger()
             for(int count=2; count<=clusterCount; count++) {
-                sh """
-                    export MANAGED_CLUSTER_NAME="managed${count-1}"
-                    export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                    export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
-                    kubectl -n verrazzano-system delete secret verrazzano-cluster-registration
-                    cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-                    ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-deregister/...
-                """
+                verrazzanoDeregisterManagedClusterStages["${count} - Verify Deregister Managed Cluster"] = verifyDeregisterManagedCluster(count)
             }
+            parallel verrazzanoDeregisterManagedClusterStages
+        }
+    }
+}
+
+def verifyDeregisterManagedCluster(count) {
+    // For parallel execution, wrap this in a Groovy enclosure {}
+    return {
+        script {
+            sh """
+                export MANAGED_CLUSTER_NAME="managed${count-1}"
+                export MANAGED_KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
+                export ADMIN_KUBECONFIG="${KUBECONFIG_DIR}/1/kube_config"
+                ./tests/e2e/config/scripts/deregister_managed_cluster.sh
+                cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+                ginkgo build multicluster/verify-deregister/
+                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" multicluster/verify-deregister/*.test
+            """
         }
     }
 }

@@ -161,7 +161,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("
 				Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 			}
 			// Coherence metric fix available only from 1.3.0
-			if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeConfig); ok {
+			if ok, _ := pkg.IsVerrazzanoMinVersionEventually("1.3.0", kubeConfig); ok {
 				Eventually(func() bool {
 					return pkg.MetricsExist("vendor:coherence_service_messages_local", "role", "HelloCoherenceRole")
 				}, longWaitTimeout, longPollingInterval).Should(BeTrue())

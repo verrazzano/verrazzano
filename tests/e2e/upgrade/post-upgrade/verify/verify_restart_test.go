@@ -9,7 +9,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -41,7 +40,7 @@ const (
 	longWait   = 5 * time.Minute
 
 	pollingInterval = 10 * time.Second
-	envoyImage      = "proxyv2:1.14.3"
+	envoyImage      = "proxyv2:1.15.1"
 	minimumVersion  = "1.1.0"
 )
 
@@ -107,7 +106,7 @@ var _ = t.Describe("Application pods post-upgrade", Label("f:platform-lcm.upgrad
 		springbootNamespace   = "springboot"
 		todoListNamespace     = "todo-list"
 	)
-	t.DescribeTable("should contain Envoy sidecar 1.14.3",
+	t.DescribeTable("should contain Envoy sidecar 1.15.1",
 		func(namespace string, timeout time.Duration) {
 			exists, err := pkg.DoesNamespaceExist(namespace)
 			if err != nil {
@@ -166,7 +165,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						t.Logs.Infof("Skipping disabled component %s", componentName)
 						return true
 					}
-					isVersionAbove1_4_0, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+					isVersionAbove1_4_0, err := pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfigPath)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
 						return false
@@ -264,7 +263,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						t.Logs.Infof("Skipping disabled component %s", componentName)
 						return true
 					}
-					isVersionAbove1_4_0, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+					isVersionAbove1_4_0, err := pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfigPath)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
 						return false

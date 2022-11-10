@@ -7,23 +7,20 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
-
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	"net/http"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -275,7 +272,7 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 			Expect(err).To(BeNil(), fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		}
 		// Coherence metric fix available only from 1.3.0
-		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath); ok {
+		if ok, _ := pkg.IsVerrazzanoMinVersionEventually("1.3.0", kubeconfigPath); ok {
 			t.It("Retrieve Prometheus scraped metrics", func() {
 				if getVariant() == "helidon" {
 					pkg.Concurrently(

@@ -205,7 +205,7 @@ func TestEnsureVMCsWithError(t *testing.T) {
 	// create the k8s fake populated with resources
 	k8sFake := createK8sFake()
 
-	rancherClusters := []rancherCluster{{name: "test", id: "test"}}
+	rancherClusters := []RancherCluster{{Name: "test", ID: "test"}}
 	r := &RancherClusterSyncer{Client: &erroringFakeClient{Client: k8sFake}}
 	log := vzlog.DefaultLogger()
 

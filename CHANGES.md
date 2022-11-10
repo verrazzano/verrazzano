@@ -15,6 +15,8 @@ Component version updates:
 - Prometheus v2.38.0
 - Prometheus Operator v0.59.1
 - External DNS v0.12.2
+- kube-state-metrics v2.6.0
+- cert-manager v1.9.1
 
 Components added:
 - MySQL Operator 8.0.30-2.0.6

@@ -9,13 +9,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 )
 
 const (
@@ -164,7 +163,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", Label("f:multicluster.m
 	t.Context("for Prometheus Metrics", Label("f:observability.monitoring.prom"), func() {
 
 		// Coherence metric fix available only from 1.3.0
-		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", adminKubeconfig); ok {
+		if ok, _ := pkg.IsVerrazzanoMinVersionEventually("1.3.0", adminKubeconfig); ok {
 			t.It("Verify base_jvm_uptime_seconds metrics exist for managed cluster", func() {
 				clusterNameMetricsLabel, _ := pkg.GetClusterNameMetricLabel(adminKubeconfig)
 				Eventually(func() bool {

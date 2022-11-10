@@ -298,7 +298,7 @@ var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:mu
 
 	t.Context("for Prometheus Metrics", Label("f:observability.monitoring.prom"), func() {
 		// Coherence metric fix available only from 1.3.0
-		if ok, _ := pkg.IsVerrazzanoMinVersion("1.3.0", adminKubeconfig); ok {
+		if ok, _ := pkg.IsVerrazzanoMinVersionEventually("1.3.0", adminKubeconfig); ok {
 			t.It("Retrieve application Prometheus scraped metrics", func() {
 				if skipVerify {
 					Skip(skipVerifications)

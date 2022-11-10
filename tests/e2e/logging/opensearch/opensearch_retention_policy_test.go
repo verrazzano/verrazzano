@@ -5,11 +5,12 @@ package opensearch
 
 import (
 	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"time"
 )
 
 var _ = t.Describe("Opensearch Retention Policies Suite", Label("f:observability.logging.es"), func() {
@@ -21,7 +22,7 @@ var _ = t.Describe("Opensearch Retention Policies Suite", Label("f:observability
 				Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 			})
 		}
-		supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
+		supported, err := pkg.IsVerrazzanoMinVersionEventually("1.3.0", kubeconfigPath)
 		if err != nil {
 			t.It(description, func() {
 				Fail(err.Error())

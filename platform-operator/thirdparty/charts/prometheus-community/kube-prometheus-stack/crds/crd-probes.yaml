@@ -19,6 +19,7 @@ spec:
     - prb
     singular: probe
   scope: Namespaced
+  preserveUnknownFields: false
   versions:
   - name: v1
     schema:
