@@ -1267,6 +1267,127 @@ func TestUpdateRelatedPod(t *testing.T) {
 	asserts.ErrorContains(t, err1, getError)
 }
 
+// TestUpdatePrometheusScraperConfigMap tests the updatePrometheusScraperConfigMap func call
+func TestUpdatePrometheusScraperConfigMap(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = k8sapps.AddToScheme(scheme)
+	_ = vzapi.AddToScheme(scheme)
+	_ = k8score.AddToScheme(scheme)
+
+	port := 443
+	path := foo
+	testWorkLoad := unstructured.Unstructured{}
+	testWorkLoad.SetGroupVersionKind(oamcore.ContainerizedWorkloadGroupVersionKind)
+
+	testTrait := vzapi.MetricsTrait{
+		ObjectMeta: k8smeta.ObjectMeta{
+			Labels: map[string]string{
+				appObjectMetaLabel:  foo,
+				compObjectMetaLabel: bar,
+			},
+		},
+		Spec: vzapi.MetricsTraitSpec{Port: &port, Path: &path},
+	}
+
+	testDeployment0 := k8sapps.Deployment{
+		ObjectMeta: k8smeta.ObjectMeta{Name: foo},
+		Spec: k8sapps.DeploymentSpec{
+			Template: k8score.PodTemplateSpec{
+				Spec: k8score.PodSpec{
+					Volumes: []k8score.Volume{
+						{
+							Name: "config-volume",
+							VolumeSource: k8score.VolumeSource{
+								ConfigMap: &k8score.ConfigMapVolumeSource{LocalObjectReference: k8score.LocalObjectReference{Name: foo}},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Deployment with an empty volume spec
+	testDeployment1 := testDeployment0
+	testDeployment1.Spec.Template.Spec.Volumes = []k8score.Volume{}
+
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		&k8score.ConfigMap{
+			ObjectMeta: k8smeta.ObjectMeta{Name: foo},
+		},
+		// &k8score.Namespace{ObjectMeta: k8smeta.ObjectMeta{Name: bar}},
+		&k8score.Namespace{},
+	).Build()
+	badGetClient := &erroringGetClient{cli}
+	badUpdateClient := &erroringUpdateClient{cli}
+
+	tests := []struct {
+		name        string
+		client      client.Client
+		deployment  k8sapps.Deployment
+		wantErr     bool
+		errContains string
+	}{
+		// GIVEN a call to update the scraper ConfigMap
+		// WHEN the resources are correctly configured
+		// THEN the ConfigMap is updated with the scraper config
+		{
+			"Successful update",
+			cli,
+			testDeployment0,
+			false,
+			"",
+		},
+		// GIVEN a call to update the scraper config
+		// WHEN the client is unable to make a Get call
+		// THEN an error is returned
+		{
+			"Unsuccessful Get",
+			badGetClient,
+			testDeployment0,
+			true,
+			getError,
+		},
+		// GIVEN a call to update the scraper config
+		// WHEN the client is unable to make an Update call
+		// THEN an error is returned
+		{
+			"Unsuccessful Update",
+			badUpdateClient,
+			testDeployment0,
+			true,
+			updateError,
+		},
+		// GIVEN a call to update the scraper config
+		// WHEN the deployment does not contain the ConfigMap name
+		// THEN an error is returned
+		{
+			"Missing cm name",
+			cli,
+			testDeployment1,
+			true,
+			"failed to find Prometheus configmap name from deployment",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reconciler := newMetricsTraitReconciler(tt.client)
+			_, res, err := reconciler.updatePrometheusScraperConfigMap(context.Background(), &testTrait, &testWorkLoad, nil, &tt.deployment, vzlog.DefaultLogger())
+			if tt.wantErr {
+				asserts.ErrorContains(t, err, tt.errContains)
+			} else {
+				asserts.Equal(t, controllerutil.OperationResultUpdated, res)
+				asserts.NoError(t, err)
+				cm := k8score.ConfigMap{}
+				asserts.NoError(t, tt.client.Get(context.Background(), types.NamespacedName{Name: foo}, &cm))
+				_, ok := cm.Data[prometheusConfigKey]
+				asserts.True(t, ok)
+			}
+		})
+	}
+}
+
 // deploymentWorkloadClient returns a fake client with a containerized workload target in the trait
 func containerizedWorkloadClient(deleting, deploymentDeleted, traitDisabled bool) client.WithWatch {
 	scheme := k8scheme.Scheme
