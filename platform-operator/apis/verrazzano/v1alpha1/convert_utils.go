@@ -33,7 +33,6 @@ const (
 	testProdProfile           = "prod"
 	testDevProfile            = "dev"
 	testManagedClusterProfile = "managed-cluster"
-	testCaseClusterOperator   = "clusteroperator"
 )
 
 type converisonTestCase struct {
