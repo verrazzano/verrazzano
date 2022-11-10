@@ -160,6 +160,10 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 			return log.ErrorfThrottledNewErr("Failed patching ArgoCD Rbac configmap: %s", err.Error())
 		}
 		log.Debugf("Patched ArgoCD RBac configmap")
+
+		if err := restartArgoCDServerDeploy(ctx); err != nil {
+			return log.ErrorfThrottledNewErr("Failed restarting the ArgoCD Server Deployment: %s", err.Error())
+		}
 	}
 
 	return nil

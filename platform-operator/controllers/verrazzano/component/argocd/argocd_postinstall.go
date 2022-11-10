@@ -6,6 +6,8 @@ package argocd
 import (
 	"context"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -18,6 +20,7 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
+	"time"
 )
 
 //const oidcConfigTemplate = `
@@ -31,7 +34,7 @@ import (
 //`
 
 type OIDCConfig struct {
-	Name            string   `json:"keycloak"`
+	Name            string   `json:"name"`
 	Issuer          string   `json:"issuer"`
 	ClientID        string   `json:"clientID"`
 	ClientSecret    string   `json:"clientSecret"`
@@ -73,7 +76,7 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 	}
 
 	keycloakHost := "keycloak." + dnsSubDomain
-	//argocdHost := "argocd." + dnsSubDomain
+	argocdHost := "argocd." + dnsSubDomain
 	keycloakUrl := fmt.Sprintf("https://%s/%s", keycloakHost, "auth/realms/verrazzano-system")
 
 	ctx.Log().Debugf("Getting ArgoCD TLS root CA")
@@ -115,13 +118,17 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 			Name:      "argocd-cm",
 			Namespace: constants.ArgoCDNamespace,
 		},
-		Data: map[string]string{
-			"oidc.config": string(data),
-		},
 	}
 
 	// Add the oidc configuration to enable our keycloak authentication.
 	if _, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), cm, func() error {
+		if cm.Data == nil {
+			cm.Data = make(map[string]string)
+		}
+		cm.Data["url"] = fmt.Sprintf("https://%s", argocdHost)
+		cm.Data["admin.enabled"] = "false"
+		cm.Data["oidc.config"] = string(data)
+
 		return nil
 	}); err != nil {
 		return err
@@ -158,6 +165,26 @@ func patchArgoCDRbacConfigMap(ctx spi.ComponentContext) error {
 	return err
 }
 
+// restartArgoCDServerDeploy restarts the argocd server deployment
+func restartArgoCDServerDeploy(ctx spi.ComponentContext) error {
+	// Get the go client so we can bypass the cache and get directly from etcd
+	goClient, err := k8sutil.GetGoClient(ctx.Log())
+	if err != nil {
+		return err
+	}
+
+	deployment, err := goClient.AppsV1().Deployments("argocd").Get(context.TODO(), "argocd-server", metav1.GetOptions{})
+
+	time := time.Now()
+	// Annotate the deployment to do a restart of the pods
+	deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = buildRestartAnnotationString(time)
+	if _, err := goClient.AppsV1().Deployments(deployment.Namespace).Update(context.TODO(), deployment, metav1.UpdateOptions{}); err != nil {
+		return ctx.Log().ErrorfNewErr("Failed, error updating Deployment %s annotation to force a pod restart", deployment.Name)
+	}
+
+	return nil
+}
+
 // GetRootCA gets the root CA certificate from the argocd TLS secret. If the secret does not exist, we
 // return a nil slice.
 func GetRootCA(ctx spi.ComponentContext) ([]byte, error) {
@@ -173,19 +200,6 @@ func GetRootCA(ctx spi.ComponentContext) ([]byte, error) {
 	return secret.Data[common.ArgoCDCACert], nil
 }
 
-func getArgoCDHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
-	dnsSuffix, err := vzconfig.GetDNSSuffix(c, vz)
-	if err != nil {
-		return "", err
-	}
-	env := vz.Spec.EnvironmentName
-	if len(env) == 0 {
-		env = constants.DefaultEnvironmentName
-	}
-	argocdHostname := fmt.Sprintf("%s.%s.%s", common.ArgoCDName, env, dnsSuffix)
-	return argocdHostname, nil
-}
-
 // getDNSDomain returns the DNS Domain
 func getDNSDomain(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 	dnsSuffix, err := vzconfig.GetDNSSuffix(c, vz)
@@ -194,4 +208,9 @@ func getDNSDomain(c client.Client, vz *vzapi.Verrazzano) (string, error) {
 	}
 	dnsDomain := fmt.Sprintf("%s.%s", vz.Spec.EnvironmentName, dnsSuffix)
 	return dnsDomain, nil
+}
+
+// Use the CR generation so that we only restart the workloads once
+func buildRestartAnnotationString(time time.Time) string {
+	return time.String()
 }

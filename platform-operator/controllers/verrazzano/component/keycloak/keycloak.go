@@ -418,7 +418,7 @@ const argocdClientTmpl = `
       "nodeReRegistrationTimeout": -1,
       "protocolMappers": [
         {
-          "name": "Groups Mapper",
+          "name": "groups",
           "protocol": "openid-connect",
           "protocolMapper": "oidc-group-membership-mapper",
           "consentRequired": false,
@@ -484,9 +484,12 @@ const rancherClientUrisTemplate = `
 `
 
 const argocdClientUrisTemplate = `
+    "rootUrl": "https://argocd.{{.DNSSubDomain}}",
 	"redirectUris": [
         "https://argocd.{{.DNSSubDomain}}/auth/callback"
     ],
+    "baseUrl": "/applications",
+    "adminUrl": "https://argocd.{{.DNSSubDomain}}",
 	"webOrigins": [
 		"https://argocd.{{.DNSSubDomain}}"
 	]
@@ -496,6 +499,12 @@ const argocdClientUrisTemplate = `
 type KeycloakClients []struct {
 	ID       string `json:"id"`
 	ClientID string `json:"clientId"`
+}
+
+// KeycloakClientScopes represents an array of client-scopes currently configured in Keycloak
+type KeycloakClientScopes []struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 // SubGroup represents the subgroups that Keycloak groups may contain
@@ -860,6 +869,12 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	if vzconfig.IsArgoCDEnabled(ctx.ActualCR()) {
+		//Creating groups client scope
+		err = createOrUpdateClientScope(ctx, cfg, cli, "groups")
+		if err != nil {
+			return err
+		}
+
 		// Creating argocd client
 		err = createOrUpdateClient(ctx, cfg, cli, "argocd", argocdClientTmpl, argocdClientUrisTemplate, true)
 		if err != nil {
@@ -1154,6 +1169,31 @@ func createUser(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes
 
 	return nil
 }
+
+func createOrUpdateClientScope(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, groupname string) error {
+	keycloakClientScopes, err := getKeycloakClientScopes(ctx)
+	if err != nil {
+		return err
+	}
+
+	kcPod := keycloakPod()
+	if clientScopeName := getClientScopeName(keycloakClientScopes, groupname); clientScopeName != "" {
+		return nil
+	}
+
+	// Create client scope
+	clientCreateCmd := "/opt/jboss/keycloak/bin/kcadm.sh create -x client-scopes -r " + vzSysRealm + " -s name=groups -s protocol=openid-connect"
+	ctx.Log().Debugf("createOrUpdateClient: Create %s client Cmd = %s", groupname, clientCreateCmd)
+	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, kcPod, ComponentName, bashCMD(clientCreateCmd))
+	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed creating %s client scope stdout = %s, stderr = %s", groupname, stdout, stderr)
+		return err
+	}
+
+	return nil
+
+}
+
 func createOrUpdateClient(ctx spi.ComponentContext, cfg *restclient.Config, cli kubernetes.Interface, clientName string, clientTemplate string, uriTemplate string, generateSecret bool) error {
 	keycloakClients, err := getKeycloakClients(ctx)
 	if err != nil {
@@ -1399,11 +1439,47 @@ func getKeycloakClients(ctx spi.ComponentContext) (KeycloakClients, error) {
 	return keycloakClients, nil
 }
 
+// getKeycloakClientsScopes returns a structure of ClientScopes in Realm verrazzano-system
+func getKeycloakClientScopes(ctx spi.ComponentContext) (KeycloakClientScopes, error) {
+	var keycloakClientScopes KeycloakClientScopes
+	cfg, cli, err := k8sutil.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	// Get the Client ID JSON array
+	out, _, err := k8sutil.ExecPod(cli, cfg, keycloakPod(), ComponentName, bashCMD("/opt/jboss/keycloak/bin/kcadm.sh get client-scopes -r "+vzSysRealm+" --fields id,name"))
+	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed retrieving client-scopes: %s", err)
+		return nil, err
+	}
+	if len(out) == 0 {
+		err := errors.New("Component Keycloak failed; clients JSON from Keycloak is zero length")
+		ctx.Log().Error(err)
+		return nil, err
+	}
+	err = json.Unmarshal([]byte(out), &keycloakClientScopes)
+	if err != nil {
+		ctx.Log().Errorf("Component Keycloak failed ummarshalling client json: %v", err)
+		return nil, err
+	}
+	return keycloakClientScopes, nil
+}
+
 func getClientID(keycloakClients KeycloakClients, clientName string) string {
 
 	for _, keycloakClient := range keycloakClients {
 		if keycloakClient.ClientID == clientName {
 			return keycloakClient.ID
+		}
+	}
+	return ""
+}
+
+func getClientScopeName(keycloakClientScopes KeycloakClientScopes, groupname string) string {
+
+	for _, keycloakClient := range keycloakClientScopes {
+		if keycloakClient.Name == groupname {
+			return keycloakClient.Name
 		}
 	}
 	return ""
