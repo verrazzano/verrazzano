@@ -112,6 +112,179 @@ func TestIsOperatorInstallSupported(t *testing.T) {
 	assert.Equal(t, true, NewComponent().IsOperatorInstallSupported())
 }
 
+func TestMonitorOverrides(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	assert.Equal(t, true, NewComponent().MonitorOverrides(ctx))
+}
+
+func TestIsInstalled(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	grafanaInstalled, err := NewComponent().IsInstalled(ctx)
+	assert.Equal(t, grafanaInstalled, false)
+	assert.NoError(t, err)
+}
+
+func TestIsAvailable(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	reason, available := NewComponent().IsAvailable(ctx)
+	assert.Equal(t, "waiting for deployment verrazzano-system/vmi-system-grafana to exist", reason)
+	assert.Equal(t, false, available)
+
+}
+
+func TestIsReady(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	ready := NewComponent().IsReady(ctx)
+	assert.Equal(t, false, ready)
+
+}
+
+func TestPostInstall(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	err := NewComponent().PostInstall(ctx)
+	assert.Error(t, err)
+
+}
+
+func TestIsOperatorUninstallSupported(t *testing.T) {
+	assert.Equal(t, false, NewComponent().IsOperatorUninstallSupported())
+}
+
+func TestPreUninstall(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	err := NewComponent().PreUninstall(ctx)
+	assert.NoError(t, err)
+
+}
+
+func TestUninstall(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	err := NewComponent().Uninstall(ctx)
+	assert.NoError(t, err)
+
+}
+
+func TestPostUninstall(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	err := NewComponent().PostUninstall(ctx)
+	assert.NoError(t, err)
+
+}
+
+func TestPostUpgrade(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	err := NewComponent().PostUpgrade(ctx)
+	assert.Error(t, err)
+
+}
+
+func TestReconcile(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	err := NewComponent().Reconcile(ctx)
+	assert.NoError(t, err)
+
+}
+
 // TestGetIngressNames tests getting Grafana ingress names
 func TestGetIngressNames(t *testing.T) {
 	grafanaIngressNames := types.NamespacedName{
