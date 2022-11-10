@@ -280,15 +280,16 @@ pipeline {
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                             cobertura(coberturaReportFile: 'coverage.xml',
                                     enableNewApi: true,
-                                    autoUpdateHealth: false,
-                                    autoUpdateStability: false,
+                                    autoUpdateHealth: true,
+                                    autoUpdateStability: true,
                                     failUnstable: true,
                                     failUnhealthy: true,
                                     failNoReports: true,
                                     onlyStable: false,
-                                    fileCoverageTargets: '100, 0, 0',
-                                    lineCoverageTargets: '78, 78, 78',
+                                    /* fileCoverageTargets: '100, 0, 0',
+                                    lineCoverageTargets: '68, 68, 68',
                                     packageCoverageTargets: '100, 0, 0',
+                                    */
                             )
                         }
                     }
