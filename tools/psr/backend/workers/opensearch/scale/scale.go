@@ -114,7 +114,7 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 	}
 
 	// Wait until VZ is ready
-	_, err := w.waitReady(true)
+	cr, err := w.waitReady(true)
 	if err != nil {
 		log.Progress("Failed to wait for Verrazzano to be ready after update.  The test results are not valid %v", err)
 		return err
@@ -134,7 +134,7 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 	log.Infof("Updating Verrazzano CR OpenSearch %s tier, scaling to %v replicas", tier, desiredReplicas)
 
 	// Update the CR to change the replica count
-	err = w.updateCr(m)
+	err = w.updateCr(cr, m)
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func (w scaleWorker) GetMetricList() []prometheus.Metric {
 	}
 }
 
-func (w scaleWorker) getUpdateModifier(tier string, currentReplicas int) (*update.CRModifier, int, error) {
+func (w scaleWorker) getUpdateModifier(tier string, currentReplicas int) (update.CRModifier, int, error) {
 	max, err := strconv.Atoi(config.PsrEnv.GetEnv(maxReplicaCount))
 	if err != nil {
 		return nil, 0, fmt.Errorf("maxReplicaCount can not be parsed to an integer: %f", err)
@@ -189,25 +189,33 @@ func (w scaleWorker) getUpdateModifier(tier string, currentReplicas int) (*updat
 	case psropensearch.IngestTier:
 		m = psropensearch.OpensearchIngestNodeGroupModifier{NodeReplicas: desiredReplicas}
 	}
-	return &m, int(desiredReplicas), nil
+	return m, int(desiredReplicas), nil
 }
 
 // updateCr updates the Verrazzano CR and retries if there is a conflict error
-func (w scaleWorker) updateCr(m *update.CRModifier) error {
+func (w scaleWorker) updateCr(cr *vzv1alpha1.Verrazzano, m update.CRModifier) error {
 	for {
-		err := psrvz.UpdateCR(w.psrClient.CrtlRuntime, *m)
-		if err != nil {
-			if er.IsUpdateConflict(err) {
-				time.Sleep(3 * time.Second)
-				logMsg := fmt.Sprintf("VZ conflict error, retrying")
-				w.log.Infof(logMsg)
-				continue
-			} else {
-				return fmt.Errorf("Failed to scale update Verrazzano cr: %v", err)
-			}
+		// Modify the CR
+		m.ModifyCR(cr)
+
+		err := psrvz.UpdateVerrazzanoResource(w.psrClient.VzInstall, cr)
+		if err == nil {
+			break
 		}
-		break
+		if !er.IsUpdateConflict(err) {
+			return fmt.Errorf("Failed to scale update Verrazzano cr: %v", err)
+		}
+		// Conflict error, get latest vz cr
+		time.Sleep(1 * time.Second)
+		logMsg := fmt.Sprintf("VZ conflict error, retrying")
+		w.log.Infof(logMsg)
+
+		cr, err = psrvz.GetVerrazzanoResource(w.psrClient.VzInstall)
+		if err != nil {
+			return err
+		}
 	}
+	w.log.Info("Updated Verrazzano CR")
 	return nil
 }
 

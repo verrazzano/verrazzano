@@ -3,32 +3,27 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzalpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
-	e2epkg "github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// UpdateCR updates the CR with the given CRModifier
-func UpdateCR(ctrlRuntimeClient client.Client, m update.CRModifier) error {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		return err
-	}
-	// Get the CR
-	cr, err := e2epkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
-	if err != nil {
-		return err
-	}
+//
+//// UpdateCR updates the CR with the given CRModifier
+//func UpdateCR(ctrlRuntimeClient client.Client,cr *vzalpha1.Verrazzano, m update.CRModifier) error {
+//
+//	// Modify the CR
+//	m.ModifyCR(cr)
+//
+//	// Update the CR
+//	err := ctrlRuntimeClient.Update(context.TODO(), cr, &client.UpdateOptions{})
+//	return err
+//}
 
-	// Modify the CR
-	m.ModifyCR(cr)
-
+// UpdateVerrazzanoResource updates the CR with the given CRModifier
+func UpdateVerrazzanoResource(client vpoClient.Interface, cr *vzalpha1.Verrazzano) error {
 	// Update the CR
-	err = ctrlRuntimeClient.Update(context.TODO(), cr, &client.UpdateOptions{})
+	_, err := client.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace).Update(context.TODO(), cr, metav1.UpdateOptions{})
 	return err
 }
 
