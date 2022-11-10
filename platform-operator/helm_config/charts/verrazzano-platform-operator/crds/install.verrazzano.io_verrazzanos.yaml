@@ -579,6 +579,7 @@ spec:
                               required:
                               - key
                               type: object
+                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -590,6 +591,7 @@ spec:
                               required:
                               - key
                               type: object
+                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -4287,6 +4289,7 @@ spec:
                               required:
                               - key
                               type: object
+                              x-kubernetes-map-type: atomic
                             secretRef:
                               properties:
                                 key:
@@ -4298,6 +4301,7 @@ spec:
                               required:
                               - key
                               type: object
+                              x-kubernetes-map-type: atomic
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
