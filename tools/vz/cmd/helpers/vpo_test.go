@@ -28,8 +28,6 @@ import (
 
 const (
 	podTemplateHashLabel         = "pod-template-hash"
-	k8sAppNameLabel              = "app.kubernetes.io/name"
-	k8sInstanceNameLabel         = "app.kubernetes.io/instance"
 	deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
 	defaultTimeout               = time.Duration(1) * time.Second
 )
@@ -80,9 +78,9 @@ func TestGetVerrazzanoPlatformOperatorPodName(t *testing.T) {
 }
 
 func TestWaitForPlatformOperator(t *testing.T) {
-	// GIVEN a k8s cluster with no VPO installed,
-	// WHEN GetVerrazzanoPlatformOperatorPodName is invoked,
-	// THEN no error is returned and a default no op log stream is returned.
+	// GIVEN a k8s cluster with VPO installed,
+	// WHEN WaitForPlatformOperator is invoked,
+	// THEN no error is returned and the expected pod name is returned.
 	fakeClient := fake.NewClientBuilder().WithObjects(
 		getAllVpoObjects()...).Build()
 	buf := new(bytes.Buffer)
@@ -92,6 +90,9 @@ func TestWaitForPlatformOperator(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "verrazzano-platform-operator-95d8c5d96-m6mbr", podName)
 
+	// GIVEN a k8s cluster with no VPO installed,
+	// WHEN WaitForPlatformOperator is invoked,
+	// THEN an error is returned as there is no VPO pod object.
 	fakeClient = fake.NewClientBuilder().Build()
 	_, err = WaitForPlatformOperator(fakeClient, rc, v1beta1.CondInstallComplete, time.Duration(1)*time.Second)
 	assert.Error(t, err)
@@ -99,13 +100,16 @@ func TestWaitForPlatformOperator(t *testing.T) {
 
 func TestWaitForOperationToComplete(t *testing.T) {
 	scheme := k8scheme.Scheme
-	v1beta1.AddToScheme(scheme)
-	v1alpha1.AddToScheme(scheme)
+	_ = v1beta1.AddToScheme(scheme)
+	_ = v1alpha1.AddToScheme(scheme)
 	k8sClient := fakek8s.NewSimpleClientset()
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 
+	// GIVEN a k8s cluster with VPO installed,
+	// WHEN WaitForOperationToComplete is invoked,
+	// THEN an error is returned as the VZ resource is not in InstallComplete state.
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(append(getAllVpoObjects(), getVZObject())...).Build()
 	err := WaitForOperationToComplete(fakeClient, k8sClient, rc, vpoNamespacedName, defaultTimeout, defaultTimeout, LogFormatSimple, v1beta1.CondInstallComplete)
 	assert.Error(t, err)
@@ -115,10 +119,17 @@ func TestApplyPlatformOperatorYaml(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
+
+	// GIVEN a k8s cluster with VPO installed,
+	// WHEN ApplyPlatformOperatorYaml is invoked,
+	// THEN an error is returned as the VZ resource is not in InstallComplete state.
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	err := ApplyPlatformOperatorYaml(getCommandWithoutFlags(), fakeClient, rc, "1.5.0")
 	assert.Error(t, err)
 
+	// GIVEN a k8s cluster with VPO installed,
+	// WHEN ApplyPlatformOperatorYaml is invoked,
+	// THEN an error is returned as the VZ resource is not in InstallComplete state.
 	cmdWithOperatorYaml := getCommandWithoutFlags()
 	cmdWithOperatorYaml.PersistentFlags().String(constants.OperatorFileFlag, "operator.yaml", "")
 	err = ApplyPlatformOperatorYaml(cmdWithOperatorYaml, fakeClient, rc, "1.5.0")
@@ -159,21 +170,33 @@ func TestUsePlatformOperatorUninstallJob(t *testing.T) {
 }
 
 func TestVpoIsReady(t *testing.T) {
+	// GIVEN a k8s cluster with all VPO deployment with 1 updated replicas, and 1 available replicas
+	// WHEN vpoIsReady is invoked,
+	// THEN it returns false .
 	fakeClient := fake.NewClientBuilder().WithObjects(getVpoDeployment("1.4.0", 1, 1)).Build()
 	isReady, err := vpoIsReady(fakeClient)
 	assert.NoError(t, err)
 	assert.False(t, isReady)
 
+	// GIVEN a k8s cluster with all VPO deployment with 0 updated replicas, and 0 available replicas
+	// WHEN vpoIsReady is invoked,
+	// THEN it returns false .
 	fakeClient = fake.NewClientBuilder().WithObjects(getVpoDeployment("1.4.0", 0, 0)).Build()
 	isReady, err = vpoIsReady(fakeClient)
 	assert.NoError(t, err)
 	assert.False(t, isReady)
 
+	// GIVEN a k8s cluster with all VPO deployment with 0 updated replicas, and 1 available replicas
+	// WHEN vpoIsReady is invoked,
+	// THEN it returns false .
 	fakeClient = fake.NewClientBuilder().WithObjects(getVpoDeployment("1.4.0", 0, 1)).Build()
 	isReady, err = vpoIsReady(fakeClient)
 	assert.NoError(t, err)
 	assert.False(t, isReady)
 
+	// GIVEN a k8s cluster with all VPO deployment with no available replicas
+	// WHEN vpoIsReady is invoked,
+	// THEN it returns false .
 	fakeClient = fake.NewClientBuilder().WithObjects(getVpoDeployment("1.4.0", 1, 0)).Build()
 	isReady, err = vpoIsReady(fakeClient)
 	assert.NoError(t, err)
@@ -182,6 +205,9 @@ func TestVpoIsReady(t *testing.T) {
 }
 
 func TestGetScanner(t *testing.T) {
+	// GIVEN a k8s cluster with all VPO specific objects,
+	// WHEN getScanner is invoked,
+	// THEN no error is returned and the scanner returned is the default no-op scanner .
 	fakeClient := fake.NewClientBuilder().WithObjects(getAllVpoObjects()...).Build()
 	k8sClient := fakek8s.NewSimpleClientset()
 	scanner, err := getScanner(fakeClient, k8sClient)
@@ -190,11 +216,17 @@ func TestGetScanner(t *testing.T) {
 }
 
 func TestDeleteLeftoverPlatformOperator(t *testing.T) {
+	// GIVEN a k8s cluster,
+	// WHEN deleteLeftoverPlatformOperator is invoked,
+	// THEN no error is returned.
 	err := deleteLeftoverPlatformOperator(fake.NewClientBuilder().Build())
 	assert.NoError(t, err)
 }
 
 func TestSetDeleteFunc(t *testing.T) {
+	// GIVEN a k8s cluster,
+	// WHEN delete function is overridden to a custom function using SetDeleteFunc
+	// THEN the expected error is returned with the string 'dummy error'.
 	SetDeleteFunc(func(client client.Client) error {
 		return fmt.Errorf("dummy error")
 	})
@@ -204,22 +236,35 @@ func TestSetDeleteFunc(t *testing.T) {
 }
 
 func TestSetDefaultDeleteFunc(t *testing.T) {
+	// GIVEN a k8s cluster,
+	// WHEN SetDefaultDeleteFunc is set and DeleteFunc invoked,
+	// THEN no error is returned.
 	SetDefaultDeleteFunc()
 	err := DeleteFunc(fake.NewClientBuilder().Build())
 	assert.NoError(t, err)
 }
 
 func TestFakeDeleteFunc(t *testing.T) {
+	// When FakeDeleteFunc it should return nil
 	err := FakeDeleteFunc(fake.NewClientBuilder().Build())
 	assert.NoError(t, err)
 }
 
 func TestGetOperationString(t *testing.T) {
+	// GIVEN a k8s cluster with VPO installed,
+	// WHEN getOperationString is invoked for install complete state,
+	// THEN it returns a string install.
 	operation := getOperationString(v1beta1.CondInstallComplete)
 	assert.Equal(t, "install", operation)
+
+	// GIVEN a k8s cluster with VPO installed,
+	// WHEN getOperationString is invoked for upgrade complete state,
+	// THEN it returns a string upgrade.
 	operation = getOperationString(v1beta1.CondUpgradeComplete)
 	assert.Equal(t, "upgrade", operation)
 }
+
+// getVpoDeployment returns just the deployment object simulating a Verrazzano Platform Operator deployment.
 func getVpoDeployment(vpoVersion string, updatedReplicas, availableReplicas int32) client.Object {
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -243,6 +288,7 @@ func getVpoDeployment(vpoVersion string, updatedReplicas, availableReplicas int3
 	}
 }
 
+// getAllVpoObjects returns the deployment, pod and replica set objects simulating a Verrazzano Platform Operator deployment.
 func getAllVpoObjects() []client.Object {
 	return []client.Object{
 		&appsv1.Deployment{
@@ -283,6 +329,7 @@ func getAllVpoObjects() []client.Object {
 	}
 }
 
+// getVZObject returns the Verrazzano CR object configured by the user.
 func getVZObject() client.Object {
 	return &v1beta1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
