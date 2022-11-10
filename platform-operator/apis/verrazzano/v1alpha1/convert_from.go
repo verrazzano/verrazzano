@@ -120,6 +120,7 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		AuthProxy:              convertAuthProxyFromV1Beta1(in.AuthProxy),
 		OAM:                    convertOAMFromV1Beta1(in.OAM),
 		Console:                convertConsoleFromV1Beta1(in.Console),
+		ClusterOperator:        convertClusterOperatorFromV1Beta1(in.ClusterOperator),
 		DNS:                    convertDNSFromV1Beta1(in.DNS),
 		Elasticsearch:          convertOpenSearchFromV1Beta1(in.OpenSearch),
 		Fluentd:                convertFluentdFromV1Beta1(in.Fluentd),
@@ -530,6 +531,16 @@ func convertVerrazzanoFromV1Beta1(in *v1beta1.VerrazzanoComponent) *VerrazzanoCo
 		return nil
 	}
 	return &VerrazzanoComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
+	}
+}
+
+func convertClusterOperatorFromV1Beta1(in *v1beta1.ClusterOperatorComponent) *ClusterOperatorComponent {
+	if in == nil {
+		return nil
+	}
+	return &ClusterOperatorComponent{
 		Enabled:          in.Enabled,
 		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
