@@ -7,19 +7,20 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io/ioutil"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"net/http"
 	neturl "net/url"
 	"os"
 	"reflect"
 	"regexp"
-	"sigs.k8s.io/yaml"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"sigs.k8s.io/yaml"
 
 	v12 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 
@@ -29,6 +30,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/onsi/ginkgo/v2"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -728,4 +730,32 @@ func CreateOverridesOrDie(yamlString string) []v1beta1.Overrides {
 			},
 		},
 	}
+}
+
+// GetBOM - get the BOM from the platform operator in the cluster
+func GetBOM() (*bom.Bom, error) {
+	vpo := "verrazzano-platform-operator"
+	vpoNamespace := "verrazzano-install"
+	pods, err := GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: map[string]string{"app": vpo}}, vpoNamespace)
+	if err != nil {
+		return nil, fmt.Errorf("error getting %s pods", vpo)
+	}
+
+	if len(pods) == 0 {
+		return nil, fmt.Errorf("invalid number of %s pods", vpo)
+	}
+
+	//  Get the BOM from platform-operator
+	var command = []string{"cat", "/verrazzano/platform-operator/verrazzano-bom.json"}
+	stdout, stderr, err := Execute(pods[0].GetName(), pods[0].Spec.Containers[0].Name, vpoNamespace, command)
+	if err != nil {
+		return nil, fmt.Errorf("error executing command on %s pod, error: %s, stderr: %s, stdout: %s", vpo, err.Error(), stderr, stdout)
+	}
+
+	if len(stdout) == 0 {
+		return nil, fmt.Errorf("error retrieving BOM from platform operator, zero length")
+	}
+
+	bom, err := bom.NewBOMFromJSON([]byte(stdout))
+	return &bom, err
 }
