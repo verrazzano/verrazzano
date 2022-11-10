@@ -266,7 +266,7 @@ func (r *Reconciler) createOrUpdateChildResources(ctx context.Context, trait *vz
 				authzPolicyName := fmt.Sprintf("%s-rule-%d-authz", trait.Name, index)
 				r.createOrUpdateVirtualService(ctx, trait, rule, allHostsForTrait, vsName, services, gateway, &status, log)
 				r.createOrUpdateDestinationRule(ctx, trait, rule, drName, &status, log, services)
-				r.createOrUpdateAuthorizationPolicies(ctx, rule, authzPolicyName, &status, log)
+				r.createOrUpdateAuthorizationPolicies(ctx, rule, authzPolicyName, allHostsForTrait, &status, log)
 			}
 		}
 	}
@@ -776,7 +776,7 @@ func (r *Reconciler) mutateDestinationRule(destinationRule *istioclient.Destinat
 }
 
 //createOrUpdateAuthorizationPolicies creates or updates the authorization policies associated with the paths defined in the ingress rule.
-func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, rule vzapi.IngressRule, namePrefix string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
+func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, rule vzapi.IngressRule, namePrefix string, hosts []string, status *reconcileresults.ReconcileResults, log vzlog.VerrazzanoLogger) {
 	for _, path := range rule.Paths {
 		if path.Policy != nil {
 			pathSuffix := strings.Replace(path.Path, "/", "", -1)
@@ -792,7 +792,7 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, ru
 				},
 			}
 			res, err := controllerutil.CreateOrUpdate(ctx, r.Client, authzPolicy, func() error {
-				return r.mutateAuthorizationPolicy(authzPolicy, path.Policy, path.Path)
+				return r.mutateAuthorizationPolicy(authzPolicy, path.Policy, path.Path, hosts)
 			})
 
 			ref := vzapi.QualifiedResourceRelation{APIVersion: authzPolicyAPIVersion, Kind: authzPolicyKind, Name: namePrefix, Role: "authorizationpolicy"}
@@ -808,11 +808,11 @@ func (r *Reconciler) createOrUpdateAuthorizationPolicies(ctx context.Context, ru
 }
 
 // mutateDestinationRule changes the destination rule based upon a traits configuration
-func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, path string) error {
+func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.AuthorizationPolicy, vzPolicy *vzapi.AuthorizationPolicy, path string, hosts []string) error {
 	policyRules := make([]*v1beta1.Rule, len(vzPolicy.Rules))
 	var err error
 	for i, authzRule := range vzPolicy.Rules {
-		policyRules[i], err = createAuthorizationPolicyRule(authzRule, path)
+		policyRules[i], err = createAuthorizationPolicyRule(authzRule, path, hosts)
 		if err != nil {
 			return err
 		}
@@ -828,7 +828,7 @@ func (r *Reconciler) mutateAuthorizationPolicy(authzPolicy *clisecurity.Authoriz
 }
 
 // createAuthorizationPolicyRule uses the provided information to create an istio authorization policy rule
-func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string) (*v1beta1.Rule, error) {
+func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string, hosts []string) (*v1beta1.Rule, error) {
 	if rule.From == nil {
 		return nil, fmt.Errorf("Authorization Policy requires 'From' clause")
 	}
@@ -837,6 +837,7 @@ func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string) (
 	}
 	paths := &v1beta1.Operation{
 		Paths: []string{path},
+		Hosts: hosts,
 	}
 	authzRule := v1beta1.Rule{
 		From: []*v1beta1.Rule_From{
