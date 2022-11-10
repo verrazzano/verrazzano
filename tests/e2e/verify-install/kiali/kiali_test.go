@@ -5,17 +5,17 @@ package kiali
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
-	corev1 "k8s.io/api/core/v1"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -45,7 +45,7 @@ func WhenKialiInstalledIt(description string, f interface{}) {
 	if err != nil {
 		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
-	supported, err := pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
+	supported, err := pkg.IsVerrazzanoMinVersionEventually("1.1.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}

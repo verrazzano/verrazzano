@@ -6,12 +6,13 @@ package opensearch
 import (
 	"bufio"
 	"fmt"
+	"os"
+	"strings"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"os"
-	"strings"
 )
 
 const (
@@ -28,7 +29,7 @@ var _ = t.Describe("Index Patterns", Label("f:observability.logging.kibana"), fu
 				Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 			})
 		}
-		supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
+		supported, err := pkg.IsVerrazzanoMinVersionEventually("1.3.0", kubeconfigPath)
 		if err != nil {
 			t.It(description, func() {
 				Fail(err.Error())
@@ -48,7 +49,7 @@ var _ = t.Describe("Index Patterns", Label("f:observability.logging.kibana"), fu
 		Eventually(func() bool {
 			kubeConfigPath, _ := k8sutil.GetKubeConfigLocation()
 			if pkg.IsOpenSearchDashboardsEnabled(kubeConfigPath) {
-				isVersionAbove1_3_0, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeConfigPath)
+				isVersionAbove1_3_0, err := pkg.IsVerrazzanoMinVersionEventually("1.3.0", kubeConfigPath)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
 					return false

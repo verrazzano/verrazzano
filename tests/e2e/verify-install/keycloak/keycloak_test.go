@@ -124,7 +124,7 @@ var _ = t.BeforeSuite(func() {
 		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
 	isKeycloakEnabled = pkg.IsKeycloakEnabled(kubeconfigPath)
-	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+	isMinVersion140, err = pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
@@ -159,7 +159,7 @@ var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
 
 		size := "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
-		if ok, _ := pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath); ok {
+		if ok, _ := pkg.IsVerrazzanoMinVersionEventually("1.5.0", kubeconfigPath); ok {
 			size = "2Gi"
 		}
 		override, _ := pkg.GetEffectiveKeyCloakPersistenceOverride(kubeconfigPath)
@@ -168,13 +168,13 @@ var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 		}
 
 		claimName := "mysql"
-		if ok, _ := pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath); ok {
+		if ok, _ := pkg.IsVerrazzanoMinVersionEventually("1.5.0", kubeconfigPath); ok {
 			claimName = "datadir-mysql-0"
 		}
 
 		if pkg.IsDevProfile() {
 			expectedKeyCloakPVCs := 0
-			is15, _ := pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
+			is15, _ := pkg.IsVerrazzanoMinVersionEventually("1.5.0", kubeconfigPath)
 			if is15 {
 				expectedKeyCloakPVCs = 1
 			}

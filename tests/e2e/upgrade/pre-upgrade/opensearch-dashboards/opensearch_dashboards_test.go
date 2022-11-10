@@ -6,13 +6,13 @@ package dashboards
 import (
 	"bufio"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"os"
 	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
@@ -34,7 +34,7 @@ var _ = t.Describe("Pre Upgrade OpenSearch Dashboards Setup", Label("f:observabi
 		Eventually(func() bool {
 			kubeConfigPath, _ := k8sutil.GetKubeConfigLocation()
 			if pkg.IsOpenSearchDashboardsEnabled(kubeConfigPath) {
-				isVersionAbove1_3_0, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeConfigPath)
+				isVersionAbove1_3_0, err := pkg.IsVerrazzanoMinVersionEventually("1.3.0", kubeConfigPath)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
 					return false

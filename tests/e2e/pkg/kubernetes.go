@@ -334,21 +334,6 @@ func GetCertificateList(namespace string) (*certmanagerv1.CertificateList, error
 	return certificateList, nil
 }
 
-// GetClusterIssuerList returns a list of cluster issuers
-func GetClusterIssuerList() (*certmanagerv1.ClusterIssuerList, error) {
-	// Get the Cert-manager clientset
-	clientSet, err := k8sutil.GetCertManagerClienset()
-	if err != nil {
-		return nil, err
-	}
-	clusterIssuerList, err := clientSet.ClusterIssuers().List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		Log(Error, fmt.Sprintf("Failed to get Cluster Issuers: %v ", err))
-		return nil, err
-	}
-	return clusterIssuerList, nil
-}
-
 // GetIssuerList returns a list of cluster issuers
 func GetIssuerList(namespace string) (*certmanagerv1.IssuerList, error) {
 	// Get the Cert-manager clientset
@@ -613,7 +598,7 @@ func GetVerrazzanoV1beta1() (*v1beta1.Verrazzano, error) {
 
 // GetVerrazzanoVersion returns the Verrazzano Version
 func GetVerrazzanoVersion(kubeconfigPath string) (string, error) {
-	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	vz, err := GetVerrazzanoInstallResourceInClusterV1beta1(kubeconfigPath)
 	if err != nil {
 		return "", err
 	}
@@ -634,6 +619,17 @@ func IsVerrazzanoMinVersion(minVersion string, kubeconfigPath string) (bool, err
 		return false, nil
 	}
 	return IsMinVersion(vzVersion, minVersion)
+}
+
+// IsVerrazzanoMinVersionEventually returns true if the installed Verrazzano version >= minVersion
+func IsVerrazzanoMinVersionEventually(minVersion string, kubeconfigPath string) (bool, error) {
+	var isMinVersion bool
+	var err error
+	gomega.Eventually(func() error {
+		isMinVersion, err = IsVerrazzanoMinVersion(minVersion, kubeconfigPath)
+		return err
+	}, shortWaitTieout, pollingInterval).Should(gomega.BeNil())
+	return isMinVersion, err
 }
 
 // IsMinVersion returns true if the given version >= minVersion
@@ -1050,16 +1046,6 @@ func CreateNamespaceWithClientSet(name string, labels map[string]string, clients
 		return nil, err
 	}
 	return ns, nil
-}
-
-func RemoveNamespaceFinalizers(namespace *corev1.Namespace) error {
-	clientset, err := k8sutil.GetKubernetesClientset()
-	if err != nil {
-		return err
-	}
-	namespace.ObjectMeta.Finalizers = nil
-	_, err = clientset.CoreV1().Namespaces().Update(context.TODO(), namespace, metav1.UpdateOptions{})
-	return err
 }
 
 // DeleteNamespace deletes a namespace in the cluster specified in the environment
@@ -1609,24 +1595,6 @@ func GetContainerImage(namespace string, deploymentName string, containerName st
 		}
 	}
 	return "", fmt.Errorf("container %v not found in the namespace: %v", containerName, namespace)
-}
-
-// WaitForVZCondition waits till the VZ CR reaches the given condition
-func WaitForVZCondition(conditionType v1alpha1.ConditionType, pollingInterval, timeout time.Duration) {
-	gomega.Eventually(func() bool {
-		cr, err := GetVerrazzano()
-		if err != nil {
-			Log(Error, err.Error())
-			return false
-		}
-		for _, condition := range cr.Status.Conditions {
-			Log(Info, fmt.Sprintf("Evaluating condition: [%s - %s]", condition.Type, condition.Status))
-			if condition.Type == conditionType && condition.Status == corev1.ConditionTrue {
-				return true
-			}
-		}
-		return false
-	}).WithPolling(pollingInterval).WithTimeout(timeout).Should(gomega.BeTrue())
 }
 
 // DeleteConfigMap to delete the ConfigMap with the given name and namespace
