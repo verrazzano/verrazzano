@@ -4,22 +4,11 @@
 package opensearch
 
 import (
-	"time"
-
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-)
-
-const (
-	waitTimeout     = 20 * time.Minute
-	pollingInterval = 10 * time.Second
-
-	NodeGroupLabel = "node-group"
 )
 
 type CRModifier interface {
@@ -160,11 +149,3 @@ func newResources(requestMemory string) *corev1.ResourceRequirements {
 	resourceRequirements.Requests[corev1.ResourceMemory] = memoryReq
 	return resourceRequirements
 }
-
-// Initialize the Test Framework
-var t = framework.NewTestFramework("update opensearch")
-
-var _ = t.AfterSuite(func() {
-	m := OpensearchAllNodeRolesModifier{}
-	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-})

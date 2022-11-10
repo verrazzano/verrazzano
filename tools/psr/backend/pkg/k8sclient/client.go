@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// PsrClient contains the client sets for accessing various resource
 type PsrClient struct {
 	CrtlRuntime client.Client
 	VzInstall   vpoClient.Interface
