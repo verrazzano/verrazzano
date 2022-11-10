@@ -21,7 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 )
 
-const osIngestService = "vmi-system-os-ingest.verrazzano-system:9200"
+const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
 
 const letters = "abcdefghijklmnopqrstuvwxyz"
 

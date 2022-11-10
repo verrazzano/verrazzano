@@ -28,13 +28,6 @@ const (
 	vzSysRealm        = "verrazzano-system"
 	realmMgmt         = "realm-management"
 	viewUsersRole     = "view-users"
-	osdURI            = "opensearchdashboards.vmi.system."
-	osURI             = "opensearch.vmi.system."
-	grafanaURI        = "grafana.vmi.system."
-	prometheusURI     = "prometheus.vmi.system."
-	kialiURI          = "kiali.vmi.system."
-	verrazzanoURI     = "verrazzano."
-	rancherURI        = "rancher."
 )
 
 // KeycloakClients represents an array of clients currently configured in Keycloak
@@ -117,7 +110,6 @@ var volumeClaims map[string]*corev1.PersistentVolumeClaim
 var t = framework.NewTestFramework("keycloak")
 
 var isMinVersion140 bool
-var isMinVersion150 bool
 var isKeycloakEnabled bool
 
 var _ = t.BeforeSuite(func() {
@@ -133,7 +125,6 @@ var _ = t.BeforeSuite(func() {
 	}
 	isKeycloakEnabled = pkg.IsKeycloakEnabled(kubeconfigPath)
 	isMinVersion140, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
-	isMinVersion150, err = pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
@@ -432,91 +423,79 @@ func getKeycloakClientByClientID(keycloakClients KeycloakClients, clientID strin
 
 func verifyVerrazzanoPKCEClientURIs(keycloakClient *Client, env string) bool {
 	// Verify Correct number of RedirectURIs
-	// 13 redirect Uris for new installation
-	// 17 redirect Uris for upgrade from older versions. The urls are deprecated ingress hosts.
-	if isMinVersion150 {
-		if !(len(keycloakClient.RedirectUris) == 17 || len(keycloakClient.RedirectUris) == 13) {
-			t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
-			return false
-		}
-	} else if !isMinVersion150 && len(keycloakClient.RedirectUris) != 13 {
+	if len(keycloakClient.RedirectUris) != 13 {
 		t.Logs.Error(fmt.Printf("Incorrect Number of Redirect URIs returned for client %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Verify Correct number of WebOrigins
-	if isMinVersion150 {
-		if !(len(keycloakClient.WebOrigins) == 9 || len(keycloakClient.WebOrigins) == 7) {
-			t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
-			return false
-		}
-	} else if !isMinVersion150 && len(keycloakClient.WebOrigins) != 7 {
+	if len(keycloakClient.WebOrigins) != 7 {
 		t.Logs.Error(fmt.Printf("Incorrect Number of WebOrigins returned for client %+v\n", keycloakClient.WebOrigins))
 		return false
 	}
 
 	// Kiali
-	if !verifyURIs(keycloakClient.RedirectUris, kialiURI+env, 2) {
+	if !verifyURIs(keycloakClient.RedirectUris, "kiali.vmi.system."+env, 2) {
 		t.Logs.Error(fmt.Printf("Expected 2 Kiali redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, kialiURI+env, 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, "kiali.vmi.system."+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Kiali weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Prometheus
-	if !verifyURIs(keycloakClient.RedirectUris, prometheusURI+env, 2) {
+	if !verifyURIs(keycloakClient.RedirectUris, "prometheus.vmi.system."+env, 2) {
 		t.Logs.Error(fmt.Printf("Expected 2 Prometheus redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, prometheusURI+env, 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, "prometheus.vmi.system."+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Prometheus weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Grafana
-	if !verifyURIs(keycloakClient.RedirectUris, grafanaURI+env, 2) {
+	if !verifyURIs(keycloakClient.RedirectUris, "grafana.vmi.system."+env, 2) {
 		t.Logs.Error(fmt.Printf("Expected 2 Grafana redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, grafanaURI+env, 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, "grafana.vmi.system."+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Grafana weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
-	// Opensearch
-	if !verifyURIs(keycloakClient.RedirectUris, osURI+env, 2) {
-		t.Logs.Error(fmt.Printf("Expected 2 Opensearch redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
+	// Elasticsearch
+	if !verifyURIs(keycloakClient.RedirectUris, "elasticsearch.vmi.system."+env, 2) {
+		t.Logs.Error(fmt.Printf("Expected 2 Elasticsearch redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, osURI+env, 1) {
-		t.Logs.Error(fmt.Printf("Expected 1 Opensearch weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
+	if !verifyURIs(keycloakClient.WebOrigins, "elasticsearch.vmi.system."+env, 1) {
+		t.Logs.Error(fmt.Printf("Expected 1 Elasticsearch weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
-	// Opensearchdashboards
-	if !(isMinVersion150 && verifyURIs(keycloakClient.RedirectUris, osdURI+env, 2)) {
-		t.Logs.Error(fmt.Printf("Expected 2 Opensearchdashboards redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
+	// Kibana
+	if !verifyURIs(keycloakClient.RedirectUris, "kibana.vmi.system."+env, 2) {
+		t.Logs.Error(fmt.Printf("Expected 2 Kibana redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, osdURI+env, 1) {
-		t.Logs.Error(fmt.Printf("Expected 1 Opensearchdashboards weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
+	if !verifyURIs(keycloakClient.WebOrigins, "kibana.vmi.system."+env, 1) {
+		t.Logs.Error(fmt.Printf("Expected 1 Kibana weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
 	// Verrazzano
-	if !verifyURIs(keycloakClient.RedirectUris, verrazzanoURI+env, 2) {
+	if !verifyURIs(keycloakClient.RedirectUris, "verrazzano."+env, 2) {
 		t.Logs.Error(fmt.Printf("Expected 2 Verrazzano redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 
-	if !verifyURIs(keycloakClient.WebOrigins, verrazzanoURI+env, 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, "verrazzano."+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Verrazzano weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
@@ -538,12 +517,12 @@ func verifyRancherClientURIs(keycloakClient *Client, env string) bool {
 	}
 
 	// Verify rancher redirectUI
-	if !verifyURIs(keycloakClient.RedirectUris, rancherURI+env, 1) {
+	if !verifyURIs(keycloakClient.RedirectUris, "rancher."+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Rancher redirect URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}
 	// Verify rancher web origin
-	if !verifyURIs(keycloakClient.WebOrigins, rancherURI+env, 1) {
+	if !verifyURIs(keycloakClient.WebOrigins, "rancher."+env, 1) {
 		t.Logs.Error(fmt.Printf("Expected 1 Rancher weborigin URIs. Found %+v\n", keycloakClient.RedirectUris))
 		return false
 	}

@@ -50,7 +50,7 @@ var _ = t.Describe("Pre Upgrade OpenSearch", Label("f:observability.logging.es")
 					pkg.Log(pkg.Error, fmt.Sprintf("failed to read test data file: %v", err))
 					return false
 				}
-				resp, err := pkg.PostElasticsearch(fmt.Sprintf("%s/_doc", indexName), string(data))
+				resp, err := pkg.PostOpensearch(fmt.Sprintf("%s/_doc", indexName), string(data))
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Failed to write to OpenSearch: %v", err))
 					return false

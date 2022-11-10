@@ -190,6 +190,7 @@ func (i istioComponent) Install(compContext spi.ComponentContext) error {
 		succeeded, err := i.monitor.checkResult()
 		if err != nil {
 			// Not finished yet, requeue
+			compContext.Log().Progress("Component Istio waiting to finish installing in the background")
 			return err
 		}
 		// reset on success or failure
