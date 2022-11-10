@@ -5,6 +5,7 @@ package verify
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -35,12 +36,10 @@ import (
 )
 
 const (
-	shortWait  = 1 * time.Minute
-	mediumWait = 2 * time.Minute
-	longWait   = 5 * time.Minute
-
+	shortWait       = 1 * time.Minute
+	mediumWait      = 2 * time.Minute
+	longWait        = 5 * time.Minute
 	pollingInterval = 10 * time.Second
-	envoyImage      = "proxyv2:1.15.1"
 	minimumVersion  = "1.1.0"
 )
 
@@ -48,6 +47,7 @@ var t = framework.NewTestFramework("verify")
 
 var vzcr *vzapi.Verrazzano
 var kubeconfigPath string
+var envoyImage string
 
 var _ = t.BeforeSuite(func() {
 	var err error
@@ -65,6 +65,16 @@ var _ = t.BeforeSuite(func() {
 		}
 		return err
 	}, shortWait, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR")
+
+	// Get the envoy proxy image name and tag
+	Eventually(func() error {
+		var err error
+		envoyImage, err = getEnvoyProxyImageRef()
+		if err != nil {
+			return err
+		}
+		return err
+	}, shortWait, pollingInterval).Should(BeNil(), "Expected to get envoy proxy image name and tag")
 })
 var _ = t.AfterSuite(func() {})
 var _ = t.AfterEach(func() {})
@@ -329,4 +339,32 @@ func isDisabled(componentName string) bool {
 		return comp.State == vzapi.CompStateDisabled
 	}
 	return true
+}
+
+// getEnvoyProxyImageRef gets the envoy proxy image and its tag from bom in verrazzano-platform-operator pod running in cluster
+func getEnvoyProxyImageRef() (string, error) {
+	bom, err := pkg.GetBOM()
+	if err != nil {
+		return "", fmt.Errorf("error getting bom, %s", err.Error())
+	}
+
+	istiodSubComponent := "istiod"
+	images, err := bom.GetSubcomponentImages(istiodSubComponent)
+	if err != nil {
+		return "", fmt.Errorf("error getting images for %s, %s", istiodSubComponent, err.Error())
+	}
+
+	envoyProxyImageName := "proxyv2"
+	envoyProxyImageRef := ""
+	for _, image := range images {
+		if strings.HasPrefix(image.ImageName, envoyProxyImageName) {
+			envoyProxyImageRef = fmt.Sprintf("%s:%s", image.ImageName, image.ImageTag)
+		}
+	}
+
+	if envoyProxyImageRef == "" {
+		return "", fmt.Errorf("envoy proxy image %s not defined in subcomponent %s in bom", envoyProxyImageName, istiodSubComponent)
+	}
+
+	return envoyProxyImageRef, nil
 }
