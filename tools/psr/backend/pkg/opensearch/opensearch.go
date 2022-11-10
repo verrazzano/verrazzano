@@ -94,17 +94,18 @@ func dataDeploymentObjectKeys(node vzv1alpha1.OpenSearchNode, nodeControllerName
 
 // GetPodsForTier returns pods for a given tier
 func GetPodsForTier(ctrlRuntimeClient client.Client, tier string) ([]corev1.Pod, error) {
-	//app=system-es-master,
 	var label string
 	switch tier {
 	case MasterTier:
-		label = "opensearch.verrazzano.io/role-master,"
+		label = "opensearch.verrazzano.io/role-master"
 	case DataTier:
-		label = "opensearch.verrazzano.io/role-data,"
+		label = "opensearch.verrazzano.io/role-data"
 	case IngestTier:
-		label = "opensearch.verrazzano.io/role-ingest,"
+		label = "opensearch.verrazzano.io/role-ingest"
 	}
 	req, _ := labels.NewRequirement(label, selection.Equals, []string{"true"})
+	//	req, _ := labels.NewRequirement(label, selection.Exists, []string{})
+
 	pods, err := getPodsByLabels(ctrlRuntimeClient, constants.VerrazzanoSystemNamespace, *req)
 	if err != nil {
 		return nil, err
