@@ -98,7 +98,7 @@
     },
     {
       "name": "istio",
-      "version": "1.14.3",
+      "version": "1.15.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -106,12 +106,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.14.3-20221017201723-bc31775b",
+              "tag": "1.15.1-20221107185653-3eb90377",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.14.3-20221017201723-bc31775b",
+              "tag": "1.15.1-20221107185653-3eb90377",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -179,7 +179,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.14.3-20221017201723-bc31775b",
+              "tag": "1.15.1-20221107185653-3eb90377",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -189,7 +189,7 @@
             },
             {
               "image": "console",
-              "tag": "v1.5.0-20221108182938-116b8bb",
+              "tag": "v1.5.0-20221018213748-83df81c",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -219,13 +219,13 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.0-20221108181832-d27922c",
+              "tag": "v1.5.0-20221102141717-708b4bf",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
             {
               "image": "proxyv2",
-              "tag": "1.14.3-20221017201723-bc31775b",
+              "tag": "1.15.1-20221107185653-3eb90377",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -537,7 +537,7 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.4.2-20221006181839-f38a1d97",
+              "tag": "v2.6.0-20221104151527-fda95595",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

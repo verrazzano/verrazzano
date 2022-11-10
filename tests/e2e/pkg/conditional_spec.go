@@ -34,6 +34,6 @@ func MinVersionSpec(description string, minVersion string, specFunc interface{})
 			Log(Error, fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 			return false, err
 		}
-		return IsVerrazzanoMinVersion(minVersion, kubeconfigPath)
+		return IsVerrazzanoMinVersionEventually(minVersion, kubeconfigPath)
 	}, specFunc)
 }

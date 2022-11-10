@@ -8,9 +8,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/onsi/gomega"
-	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"html/template"
 	"net/http"
 	url2 "net/url"
@@ -19,6 +16,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/onsi/gomega"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo/v2"
@@ -291,7 +292,7 @@ func isUsingDataStreams(kubeconfigPath string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return IsVerrazzanoMinVersion("1.3.0", kubeConfig)
+	return IsVerrazzanoMinVersionEventually("1.3.0", kubeConfig)
 }
 
 func UseExternalElasticsearch() bool {
@@ -327,8 +328,8 @@ func GetSystemOpenSearchIngressURL(kubeconfigPath string) string {
 	}
 	ingressList, _ := clientset.NetworkingV1().Ingresses(VerrazzanoNamespace).List(context.TODO(), metav1.ListOptions{})
 	for _, ingress := range ingressList.Items {
-		if ingress.Name == "vmi-system-os-ingest" || ingress.Name == "vmi-system-es-ingest" {
-			Log(Info, fmt.Sprintf("Found Opensearch Ingress %v, host %s", ingress.Name, ingress.Spec.Rules[0].Host))
+		if ingress.Name == "vmi-system-es-ingest" {
+			Log(Info, fmt.Sprintf("Found Elasticsearch Ingress %v, host %s", ingress.Name, ingress.Spec.Rules[0].Host))
 			return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 		}
 	}

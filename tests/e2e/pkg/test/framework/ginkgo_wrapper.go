@@ -5,14 +5,14 @@ package framework
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-	"go.uber.org/zap"
 	"os"
 	"reflect"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
+	"go.uber.org/zap"
 )
 
 type TestFramework struct {
@@ -104,7 +104,7 @@ func (t *TestFramework) It(text string, args ...interface{}) bool {
 }
 
 func (t *TestFramework) ItMinimumVersion(text string, version string, kubeconfigPath string, args ...interface{}) bool {
-	supported, err := pkg.IsVerrazzanoMinVersion(version, kubeconfigPath)
+	supported, err := pkg.IsVerrazzanoMinVersionEventually(version, kubeconfigPath)
 	if err != nil {
 		t.Logs.Errorf("Error getting Verrazzano version: %v", err)
 		return false
