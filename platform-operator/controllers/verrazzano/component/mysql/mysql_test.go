@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	corev1 "k8s.io/api/core/v1"
@@ -1964,6 +1965,28 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 				mySQLComponentLabel: mySQLDComponentName,
 			},
 		},
+		Spec: v1.PodSpec{
+			ReadinessGates: []v1.PodReadinessGate{
+				{
+					ConditionType: "gate1",
+				},
+				{
+					ConditionType: "gate2",
+				},
+			},
+		},
+		Status: v1.PodStatus{
+			Conditions: []v1.PodCondition{
+				{
+					Type:   "gate1",
+					Status: v1.ConditionTrue,
+				},
+				{
+					Type:   "gate2",
+					Status: v1.ConditionTrue,
+				},
+			},
+		},
 	}
 
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod, mySQLOperatorPod).Build()
@@ -1980,7 +2003,26 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
 	assert.NoError(t, err)
 
+	// Third time calling, set the timer to exceed the expiration time which will force a check of the readiness gates.
+	// The readiness gates will be set to true going into the call, so the mysql-operator should not get recycled.
+	*mysqlComp.LastTimeReadinessGateRepairStarted = mysqlComp.LastTimeReadinessGateRepairStarted.Truncate(2 * time.Hour)
+	err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
+	assert.NoError(t, err)
+
 	pod := corev1.Pod{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
 	assert.NoError(t, err)
+
+	// Fourth time calling, set one of the readiness gates to false.  This should force deletion of the mysql-operator pod.
+	mySQLPod.Status.Conditions = []v1.PodCondition{{Type: "gate1", Status: v1.ConditionTrue}, {Type: "gate2", Status: v1.ConditionFalse}}
+	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod, mySQLOperatorPod).Build()
+	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
+	err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
+	assert.NoError(t, err)
+
+	pod = corev1.Pod{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+
 }
