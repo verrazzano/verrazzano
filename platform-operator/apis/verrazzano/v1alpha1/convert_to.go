@@ -119,6 +119,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		AuthProxy:              authProxyComponent,
 		OAM:                    convertOAMToV1Beta1(src.OAM),
 		Console:                convertConsoleToV1Beta1(src.Console),
+		ClusterOperator:        convertClusterOperatorToV1Beta1(src.ClusterOperator),
 		DNS:                    convertDNSToV1Beta1(src.DNS),
 		OpenSearch:             opensearchComponent,
 		Fluentd:                convertFluentdToV1Beta1(src.Fluentd),
@@ -734,6 +735,16 @@ func convertVerrazzanoToV1Beta1(src *VerrazzanoComponent) (*v1beta1.VerrazzanoCo
 		Enabled:          src.Enabled,
 		InstallOverrides: installOverrides,
 	}, nil
+}
+
+func convertClusterOperatorToV1Beta1(src *ClusterOperatorComponent) *v1beta1.ClusterOperatorComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.ClusterOperatorComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
+	}
 }
 
 func convertConditionsTo(conditions []Condition) []v1beta1.Condition {
