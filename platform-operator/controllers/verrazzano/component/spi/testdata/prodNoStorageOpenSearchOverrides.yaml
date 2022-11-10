@@ -1,30 +1,28 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-apiVersion: install.verrazzano.io/v1beta1
-kind: Verrazzano
 metadata:
-  name: verrazzano
+  creationTimestamp: null
+  name: prod-no-storage-os-overrides
 spec:
   components:
     applicationOperator:
       enabled: true
     authProxy:
       enabled: true
-      overrides:
-        - values:
-            affinity: |
-              podAntiAffinity:
-                preferredDuringSchedulingIgnoredDuringExecution:
-                - podAffinityTerm:
-                    labelSelector:
-                      matchExpressions:
+      kubernetes:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - podAffinityTerm:
+                  labelSelector:
+                    matchExpressions:
                       - key: app
                         operator: In
                         values:
-                        - verrazzano-authproxy
-                    topologyKey: kubernetes.io/hostname
-                  weight: 100
-            replicas: 1
+                          - verrazzano-authproxy
+                  topologyKey: kubernetes.io/hostname
+                weight: 100
+        replicas: 1
     certManager:
       certificate:
         acme:
@@ -86,13 +84,44 @@ spec:
     dns:
       wildcard:
         domain: nip.io
-    fluentd:
+    elasticsearch:
       enabled: true
-      opensearchSecret: verrazzano-es-internal
-      opensearchURL: http://verrazzano-authproxy-elasticsearch:8775
+      nodes:
+        - name: es-master
+          resources:
+            requests:
+              memory: 1503238553600m
+          roles:
+            - master
+          storage:
+            size: 50Gi
+        - name: es-data
+          resources:
+            requests:
+              memory: 5153960755200m
+          roles:
+            - data
+          storage:
+            size: 50Gi
+        - name: es-ingest
+          resources:
+            requests:
+              memory: 2560Mi
+          roles:
+            - ingest
+        - name: custom
+          replicas: 3
+          roles:
+            - data
+            - ingest
+            - master
+    fluentd:
+      elasticsearchSecret: verrazzano-es-internal
+      elasticsearchURL: http://verrazzano-authproxy-elasticsearch:8775
+      enabled: true
     grafana:
       enabled: true
-    ingressNGINX:
+    ingress:
       enabled: true
       overrides:
         - values:
@@ -124,49 +153,43 @@ spec:
               replicaCount: 1
       type: LoadBalancer
     istio:
+      egress:
+        kubernetes:
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-egressgateway
+                    topologyKey: kubernetes.io/hostname
+                  weight: 100
+          replicas: 1
       enabled: true
+      ingress:
+        kubernetes:
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values:
+                            - istio-ingressgateway
+                    topologyKey: kubernetes.io/hostname
+                  weight: 100
+          replicas: 1
       overrides:
         - values:
             apiVersion: install.istio.io/v1alpha1
             kind: IstioOperator
             spec:
               components:
-                egressGateways:
-                  - enabled: true
-                    k8s:
-                      affinity:
-                        podAntiAffinity:
-                          preferredDuringSchedulingIgnoredDuringExecution:
-                            - podAffinityTerm:
-                                labelSelector:
-                                  matchExpressions:
-                                    - key: app
-                                      operator: In
-                                      values:
-                                        - istio-egressgateway
-                                topologyKey: kubernetes.io/hostname
-                              weight: 100
-                      replicaCount: 1
-                    name: istio-egressgateway
-                ingressGateways:
-                  - enabled: true
-                    k8s:
-                      affinity:
-                        podAntiAffinity:
-                          preferredDuringSchedulingIgnoredDuringExecution:
-                            - podAffinityTerm:
-                                labelSelector:
-                                  matchExpressions:
-                                    - key: app
-                                      operator: In
-                                      values:
-                                        - istio-ingressgateway
-                                topologyKey: kubernetes.io/hostname
-                              weight: 100
-                      replicaCount: 1
-                      service:
-                        type: LoadBalancer
-                    name: istio-ingressgateway
                 pilot:
                   k8s:
                     affinity:
@@ -180,7 +203,7 @@ spec:
                             weight: 100
     keycloak:
       enabled: true
-      mysql: { }
+      mysql: {}
       overrides:
         - values:
             affinity: |
@@ -209,18 +232,22 @@ spec:
                         topologyKey: kubernetes.io/hostname
                       weight: 100
               replicas: 1
-    oam:
-      enabled: true
-    opensearch:
-      enabled: true
-    opensearchDashboards:
+    kibana:
       enabled: true
       replicas: 1
+    oam:
+      enabled: true
     prometheus:
       enabled: true
     prometheusOperator:
       enabled: true
       overrides:
+        - values:
+            prometheus:
+              prometheusSpec:
+                resources:
+                  requests:
+                    memory: 128Mi
         - values:
             prometheus:
               prometheusSpec:
@@ -240,5 +267,9 @@ spec:
       enabled: true
     weblogicOperator:
       enabled: true
+  defaultVolumeSource:
+    emptyDir: {}
   environmentName: default
-
+  profile: prod
+  security: {}
+status: {}

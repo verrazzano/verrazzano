@@ -135,6 +135,12 @@ func TestContextProfilesMerge(t *testing.T) {
 			actualCR:     managedClusterEnableAllOverride,
 			expectedYAML: managedClusterEnableAllMerged,
 		},
+		{
+			name:         "TestProdNoStorageOpenSearchOverrides",
+			description:  "Test prod profile with no storage and OpenSearch overrides",
+			actualCR:     prodNoStorageOSOverrides,
+			expectedYAML: prodNoStorageOpenSearchOverrides,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

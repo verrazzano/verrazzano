@@ -4,6 +4,7 @@ Fixes:
 - Rancher upgrade intermittently fails with errors stating that the available chart version is less than the minimum chart version for Rancher system charts.
 - Fixed a bug related to Rancher/Keycloak auth integration for managed cluster profile
 
+
 ### v1.4.1
 Fixes:
 
@@ -15,6 +16,7 @@ Component version updates:
 
 - Velero v1.9.1
 - Velero Plugin For AWS v1.5.0
+- Coherence Operator v3.2.9
 
 ### v1.4.0
 Features:

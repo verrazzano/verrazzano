@@ -1,4 +1,4 @@
-{{- if eq .Values.webhookCertType "self-signed" }}
+{{- if ne .Values.webhookCertType "manual" }}
 ---
 apiVersion: v1
 kind: Secret
@@ -16,7 +16,7 @@ metadata:
     control-plane: coherence
     app.kubernetes.io/name: coherence-operator
     app.kubernetes.io/instance: coherence-operator-manager
-    app.kubernetes.io/version: "3.2.6"
+    app.kubernetes.io/version: "3.2.9"
     app.kubernetes.io/component: webhook
     app.kubernetes.io/part-of: coherence-operator
     app.kubernetes.io/managed-by: helm
@@ -28,7 +28,7 @@ spec:
   selector:
     app.kubernetes.io/name: coherence-operator
     app.kubernetes.io/instance: coherence-operator-manager
-    app.kubernetes.io/version: "3.2.6"
+    app.kubernetes.io/version: "3.2.9"
     app.kubernetes.io/component: manager
 ---
 apiVersion: v1
@@ -40,7 +40,7 @@ metadata:
     control-plane: coherence
     app.kubernetes.io/name: coherence-operator
     app.kubernetes.io/instance: coherence-operator-rest
-    app.kubernetes.io/version: "3.2.6"
+    app.kubernetes.io/version: "3.2.9"
     app.kubernetes.io/component: rest
     app.kubernetes.io/part-of: coherence-operator
     app.kubernetes.io/managed-by: helm
@@ -52,7 +52,7 @@ spec:
   selector:
     app.kubernetes.io/name: coherence-operator
     app.kubernetes.io/instance: coherence-operator-manager
-    app.kubernetes.io/version: "3.2.6"
+    app.kubernetes.io/version: "3.2.9"
     app.kubernetes.io/component: manager
 ---
 apiVersion: apps/v1
@@ -64,13 +64,13 @@ metadata:
     control-plane: coherence
     app.kubernetes.io/name: coherence-operator
     app.kubernetes.io/instance: coherence-operator-manager
-    app.kubernetes.io/version: "3.2.6"
+    app.kubernetes.io/version: "3.2.9"
     app.kubernetes.io/component: manager
     app.kubernetes.io/part-of: coherence-operator
     app.kubernetes.io/managed-by: helm
     app.kubernetes.io/created-by: controller-manager
 spec:
-  replicas: 1
+  replicas: {{ default 3 .Values.replicas }}
   selector:
     matchLabels:
       control-plane: coherence
@@ -80,7 +80,7 @@ spec:
         control-plane: coherence
         app.kubernetes.io/name: coherence-operator
         app.kubernetes.io/instance: coherence-operator-manager
-        app.kubernetes.io/version: "3.2.6"
+        app.kubernetes.io/version: "3.2.9"
         app.kubernetes.io/component: manager
         app.kubernetes.io/part-of: coherence-operator
         app.kubernetes.io/managed-by: helm
@@ -90,13 +90,14 @@ spec:
       containers:
       - name: manager
         args:
+        - operator
         - --enable-leader-election
 {{- if (eq .Values.clusterRoles false) }}
         - --enable-webhook=false
         - --install-crd=false
 {{- end }}
         command:
-        - /manager
+        - "/files/runner"
         env:
         - name: OPERATOR_NAMESPACE
           valueFrom:
@@ -120,7 +121,7 @@ spec:
           value: {{ .Values.rackLabel | quote }}
         - name: SITE_LABEL
           value: {{ .Values.siteLabel | quote }}
-        - name: UTILS_IMAGE
+        - name: OPERATOR_IMAGE
           value: {{ .Values.defaultCoherenceUtilsImage | quote }}
         - name: WATCH_NAMESPACE
 {{- if .Values.clusterRoles }}
@@ -137,21 +138,37 @@ spec:
           containerPort: 9443
           protocol: TCP
         - containerPort: 8080
-          name: metrics-server
+          name: metrics
           protocol: TCP
         - containerPort: 8088
-          name: health-server
+          name: health
           protocol: TCP
         volumeMounts:
         - mountPath: /tmp/k8s-webhook-server/serving-certs
           name: cert
           readOnly: true
         readinessProbe:
-          tcpSocket:
-            port: metrics-server
+          httpGet:
+            port: health
+            path: /readyz
           initialDelaySeconds: {{ default 10 .Values.readinessProbe.initialDelaySeconds }}
           periodSeconds: {{ default 10 .Values.readinessProbe.periodSeconds }}
           failureThreshold: {{ default 3 .Values.readinessProbe.failureThreshold }}
+        livenessProbe:
+          httpGet:
+            port: health
+            path: /healthz
+          initialDelaySeconds: {{ default 10 .Values.livenessProbe.initialDelaySeconds }}
+          periodSeconds: {{ default 10 .Values.livenessProbe.periodSeconds }}
+          failureThreshold: {{ default 3 .Values.livenessProbe.failureThreshold }}
+{{- if .Values.resources }}
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+{{- end }}
+{{- if .Values.securityContext }}
+        securityContext:
+{{ toYaml .Values.securityContext | indent 10 }}
+{{- end }}
 {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.imagePullSecrets | indent 8 }}
@@ -168,6 +185,37 @@ spec:
 {{- if .Values.affinity }}
       affinity:
 {{ toYaml .Values.affinity | indent 8 }}
+{{- else }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                topologyKey: "topology.kubernetes.io/zone"
+                labelSelector:
+                  matchLabels:
+                    control-plane: coherence
+                    app.kubernetes.io/name: coherence-operator
+                    app.kubernetes.io/instance: coherence-operator-manager
+                    app.kubernetes.io/version: "3.2.9"
+              weight: 50
+            - podAffinityTerm:
+                topologyKey: "oci.oraclecloud.com/fault-domain"
+                labelSelector:
+                  matchLabels:
+                    control-plane: coherence
+                    app.kubernetes.io/name: coherence-operator
+                    app.kubernetes.io/instance: coherence-operator-manager
+                    app.kubernetes.io/version: "3.2.9"
+              weight: 10
+            - podAffinityTerm:
+                topologyKey: "kubernetes.io/hostname"
+                labelSelector:
+                  matchLabels:
+                    control-plane: coherence
+                    app.kubernetes.io/name: coherence-operator
+                    app.kubernetes.io/instance: coherence-operator-manager
+                    app.kubernetes.io/version: "3.2.9"
+              weight: 1
 {{- end }}
       volumes:
       - name: cert

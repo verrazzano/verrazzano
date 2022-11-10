@@ -193,6 +193,19 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - cert-manager.io
+  resources:
+  - certificates
+  - issuers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
 ---
 # ---------------------------------------------------------------------
 # This is the Cluster Role binding required by the Coherence Operator

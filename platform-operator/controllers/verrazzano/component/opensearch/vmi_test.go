@@ -20,6 +20,12 @@ import (
 
 var enabled = true
 
+const (
+	test50Gi  = "50Gi"
+	test100Gi = "100Gi"
+	test48Mi  = "48Mi"
+)
+
 var vmiEnabledCR = vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Profile: vzapi.Prod,
@@ -66,7 +72,7 @@ var vmiEnabledCR = vzapi.Verrazzano{
 					},
 					{
 						Name:  "nodes.data.requests.storage",
-						Value: "100Gi",
+						Value: test100Gi,
 					},
 				},
 			},
@@ -81,7 +87,7 @@ var vmiEnabledCR = vzapi.Verrazzano{
 func TestNewVMIResources(t *testing.T) {
 	r := &common.ResourceRequestValues{
 		Memory:  "",
-		Storage: "50Gi",
+		Storage: test50Gi,
 	}
 
 	opensearch, err := newOpenSearch(&vmiEnabledCR, nil, r, nil, true, false)
@@ -89,8 +95,8 @@ func TestNewVMIResources(t *testing.T) {
 	assert.EqualValues(t, 1, opensearch.MasterNode.Replicas)
 	assert.EqualValues(t, 2, opensearch.IngestNode.Replicas)
 	assert.EqualValues(t, 3, opensearch.DataNode.Replicas)
-	assert.Equal(t, "100Gi", opensearch.DataNode.Storage.Size)
-	assert.Equal(t, "50Gi", opensearch.MasterNode.Storage.Size)
+	assert.Equal(t, test100Gi, opensearch.DataNode.Storage.Size)
+	assert.Equal(t, test50Gi, opensearch.MasterNode.Storage.Size)
 }
 
 // TestOpenSearchInvalidArgs tests trying to create an OpenSearch resource with invalid args
@@ -181,7 +187,7 @@ func TestCreateOrUpdateVMI(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "vmi.system.default.blah", vmi.Spec.URI)
 	assert.Equal(t, "verrazzano-ingress.default.blah", vmi.Spec.IngressTargetDNSName)
-	assert.Equal(t, "100Gi", vmi.Spec.Elasticsearch.DataNode.Storage.Size)
+	assert.Equal(t, test100Gi, vmi.Spec.Elasticsearch.DataNode.Storage.Size)
 	assert.EqualValues(t, 2, vmi.Spec.Elasticsearch.IngestNode.Replicas)
 	assert.EqualValues(t, 1, vmi.Spec.Elasticsearch.MasterNode.Replicas)
 	assert.EqualValues(t, 3, vmi.Spec.Elasticsearch.DataNode.Replicas)
@@ -202,7 +208,7 @@ func TestCreateOrUpdateVMINoNGINX(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, vmi.Spec.URI)
 	assert.Empty(t, vmi.Spec.IngressTargetDNSName)
-	assert.Equal(t, "100Gi", vmi.Spec.Elasticsearch.DataNode.Storage.Size)
+	assert.Equal(t, test100Gi, vmi.Spec.Elasticsearch.DataNode.Storage.Size)
 	assert.EqualValues(t, 2, vmi.Spec.Elasticsearch.IngestNode.Replicas)
 	assert.EqualValues(t, 1, vmi.Spec.Elasticsearch.MasterNode.Replicas)
 	assert.EqualValues(t, 3, vmi.Spec.Elasticsearch.DataNode.Replicas)
@@ -250,7 +256,7 @@ func TestHasDataNodeStorageOverride(t *testing.T) {
 }
 
 func TestNodeAdapter(t *testing.T) {
-	vmiStorage := "50Gi"
+	vmiStorage := test50Gi
 	vmi := &vmov1.VerrazzanoMonitoringInstance{
 		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
 			Elasticsearch: vmov1.Elasticsearch{
@@ -266,14 +272,14 @@ func TestNodeAdapter(t *testing.T) {
 							vmov1.MasterRole,
 						},
 						Resources: vmov1.Resources{
-							RequestMemory: "48Mi",
+							RequestMemory: test48Mi,
 						},
 					},
 					{
 						Name:     "b",
 						Replicas: 2,
 						Storage: &vmov1.Storage{
-							Size: "100Gi",
+							Size: test100Gi,
 							PvcNames: []string{
 								"1", "2",
 							},
@@ -283,7 +289,7 @@ func TestNodeAdapter(t *testing.T) {
 							vmov1.IngestRole,
 						},
 						Resources: vmov1.Resources{
-							RequestMemory: "48Mi",
+							RequestMemory: test48Mi,
 						},
 					},
 				},
@@ -299,11 +305,11 @@ func TestNodeAdapter(t *testing.T) {
 		},
 		Resources: &corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
-				"memory": resource.MustParse("48Mi"),
+				corev1.ResourceMemory: resource.MustParse(test48Mi),
 			},
 		},
 		Storage: &vzapi.OpenSearchNodeStorage{
-			Size: "100Gi",
+			Size: test100Gi,
 		},
 	}
 	nodes := []vzapi.OpenSearchNode{
@@ -315,14 +321,14 @@ func TestNodeAdapter(t *testing.T) {
 			},
 			Resources: &corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
-					"memory": resource.MustParse("48Mi"),
+					corev1.ResourceMemory: resource.MustParse(test48Mi),
 				},
 			},
 		},
 		bNode,
 	}
 
-	adaptedNodes := nodeAdapter(vmi, nodes, map[string]vzapi.OpenSearchNode{bNode.Name: bNode}, &common.ResourceRequestValues{Storage: vmiStorage})
+	adaptedNodes := nodeAdapter(&vzapi.Verrazzano{}, vmi, nodes, map[string]vzapi.OpenSearchNode{bNode.Name: bNode}, &common.ResourceRequestValues{Storage: vmiStorage})
 	compareNodes := func(n1, n2 *vmov1.ElasticsearchNode) {
 		assert.Equal(t, n1.Name, n2.Name)
 		assert.Equal(t, n1.Replicas, n2.Replicas)
@@ -335,4 +341,23 @@ func TestNodeAdapter(t *testing.T) {
 	}
 	compareNodes(&vmi.Spec.Elasticsearch.Nodes[0], &adaptedNodes[0])
 	compareNodes(&vmi.Spec.Elasticsearch.Nodes[1], &adaptedNodes[1])
+}
+
+// TestFindStorageForNodeDefaultVolumeSource verifies that the default volume source is used for a node when set to emptydir
+func TestFindStorageForNodeDefaultVolumeSource(t *testing.T) {
+	defaultVolumeSourceCR := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			DefaultVolumeSource: &corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+	}
+	node := vzapi.OpenSearchNode{
+		Name: "emptydir",
+		Storage: &vzapi.OpenSearchNodeStorage{
+			Size: test50Gi,
+		},
+	}
+	storage := findStorageForNode(defaultVolumeSourceCR, node, map[string]vzapi.OpenSearchNode{}, nil)
+	assert.Equal(t, "", storage)
 }

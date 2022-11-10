@@ -419,11 +419,16 @@ func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSea
 		}
 	}
 
-	return map[string]v1beta1.OpenSearchNode{
-		masterNodeName: *masterNode,
-		dataNodeName:   *dataNode,
-		ingestNodeName: *ingestNode,
-	}, nil
+	nodes := map[string]v1beta1.OpenSearchNode{}
+	addNode := func(node *v1beta1.OpenSearchNode) {
+		if node.Replicas > 0 {
+			nodes[node.Name] = *node
+		}
+	}
+	addNode(masterNode)
+	addNode(dataNode)
+	addNode(ingestNode)
+	return nodes, nil
 }
 
 func convertFluentdToV1Beta1(src *FluentdComponent) *v1beta1.FluentdComponent {

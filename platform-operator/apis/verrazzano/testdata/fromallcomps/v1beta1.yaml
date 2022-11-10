@@ -261,19 +261,6 @@ spec:
             frobber: frob
     opensearch:
       enabled: true
-      nodes:
-        - name: es-master
-          replicas: 0
-          roles:
-            - master
-        - name: es-data
-          replicas: 0
-          roles:
-            - data
-        - name: es-ingest
-          replicas: 0
-          roles:
-            - ingest
     opensearchDashboards:
       enabled: true
       replicas: 1

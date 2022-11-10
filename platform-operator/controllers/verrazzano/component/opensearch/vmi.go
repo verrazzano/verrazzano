@@ -81,7 +81,7 @@ func newOpenSearch(effectiveCR, actualCR *vzapi.Verrazzano, storage *common.Reso
 			},
 		},
 		// adapt the VPO node list to VMI node list
-		Nodes: nodeAdapter(vmi, effectiveCR.Spec.Components.Elasticsearch.Nodes, actualCRNodes(actualCR), storage),
+		Nodes: nodeAdapter(effectiveCR, vmi, effectiveCR.Spec.Components.Elasticsearch.Nodes, actualCRNodes(actualCR), storage),
 	}
 
 	// Proxy any ISM policies to the VMI
@@ -180,7 +180,7 @@ func populateOpenSearchFromInstallArgs(opensearch *vmov1.Elasticsearch, opensear
 	return nil
 }
 
-func nodeAdapter(vmi *vmov1.VerrazzanoMonitoringInstance, nodes []vzapi.OpenSearchNode, actualCRNodes map[string]vzapi.OpenSearchNode, storage *common.ResourceRequestValues) []vmov1.ElasticsearchNode {
+func nodeAdapter(effectiveCR *vzapi.Verrazzano, vmi *vmov1.VerrazzanoMonitoringInstance, nodes []vzapi.OpenSearchNode, actualCRNodes map[string]vzapi.OpenSearchNode, storage *common.ResourceRequestValues) []vmov1.ElasticsearchNode {
 	getQuantity := func(q *resource.Quantity) string {
 		if q == nil || q.String() == "0" {
 			return ""
@@ -188,7 +188,7 @@ func nodeAdapter(vmi *vmov1.VerrazzanoMonitoringInstance, nodes []vzapi.OpenSear
 		return q.String()
 	}
 	var vmoNodes []vmov1.ElasticsearchNode
-	for _, node := range nodes {
+	for _, node := range nodes { // node is the merged profile node
 		resources := vmov1.Resources{}
 		if node.Resources != nil {
 			resources.RequestCPU = getQuantity(node.Resources.Requests.Cpu())
@@ -203,7 +203,7 @@ func nodeAdapter(vmi *vmov1.VerrazzanoMonitoringInstance, nodes []vzapi.OpenSear
 			Roles:     node.Roles,
 			Resources: resources,
 			Storage: &vmov1.Storage{
-				Size: findStorageForNode(node, actualCRNodes, storage),
+				Size: findStorageForNode(effectiveCR, node, actualCRNodes, storage),
 			},
 		}
 		// if the node was present in an existing VMI and has PVC names, they should be carried over
@@ -213,7 +213,7 @@ func nodeAdapter(vmi *vmov1.VerrazzanoMonitoringInstance, nodes []vzapi.OpenSear
 	return vmoNodes
 }
 
-func findStorageForNode(node vzapi.OpenSearchNode, actualCRNodes map[string]vzapi.OpenSearchNode, storage *common.ResourceRequestValues) string {
+func findStorageForNode(effectiveCR *vzapi.Verrazzano, node vzapi.OpenSearchNode, actualCRNodes map[string]vzapi.OpenSearchNode, storage *common.ResourceRequestValues) string {
 	var storageSize string
 	// Profile storage has the lowest precedence
 	if node.Storage != nil {
@@ -223,7 +223,11 @@ func findStorageForNode(node vzapi.OpenSearchNode, actualCRNodes map[string]vzap
 	if storage != nil && storage.Storage != "" {
 		storageSize = storage.Storage
 	}
-	// user defined storage has highest precedence
+	// if using EmptyDir, zero out profile storage
+	if effectiveCR.Spec.DefaultVolumeSource != nil && effectiveCR.Spec.DefaultVolumeSource.EmptyDir != nil {
+		storageSize = ""
+	}
+	// user defined storage has the highest precedence
 	if actualCRNode, ok := actualCRNodes[node.Name]; ok {
 		if actualCRNode.Storage != nil {
 			storageSize = actualCRNode.Storage.Size

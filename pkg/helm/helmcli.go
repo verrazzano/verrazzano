@@ -89,6 +89,8 @@ func GetValues(log vzlog.VerrazzanoLogger, releaseName string, namespace string)
 	if namespace != "" {
 		args = append(args, "--namespace")
 		args = append(args, namespace)
+		args = append(args, "-o")
+		args = append(args, "yaml")
 	}
 
 	cmd := exec.Command("helm", args...)

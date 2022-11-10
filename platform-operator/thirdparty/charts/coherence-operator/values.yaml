@@ -1,17 +1,17 @@
-# Copyright 2020, 2021 Oracle Corporation and/or its affiliates.
+# Copyright 2020, 2022, Oracle Corporation and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at
 # http://oss.oracle.com/licenses/upl.
 
 # image is the Coherence Operator image
-image: "ghcr.io/oracle/coherence-operator:3.2.6"
+image: "ghcr.io/oracle/coherence-operator:3.2.9"
 
 # defaultCoherenceImage is the default application image that will be used if a Coherence
 # resource does not specify an image name.
-defaultCoherenceImage: "ghcr.io/oracle/coherence-ce:21.12.1"
+defaultCoherenceImage: "ghcr.io/oracle/coherence-ce:22.06.1"
 
-# defaultCoherenceUtilsImage is the Coherence Operator utils image that will be used when running
+# defaultCoherenceUtilsImage is the Coherence Operator image that will be used when running
 # Coherence Pods. This image version should typically match the Operator version.
-defaultCoherenceUtilsImage: "ghcr.io/oracle/coherence-operator:3.2.6-utils"
+defaultCoherenceUtilsImage: "ghcr.io/oracle/coherence-operator:3.2.9"
 
 # watchNamespaces is the comma delimited list of namespaces that the operator should
 # manage Coherence resources in. The default is to manage all namespaces.
@@ -20,6 +20,10 @@ watchNamespaces: ""
 # imagePullPolicy controls the K8s container spec's pull policy
 # If not set the pull policy is "IfNotPresent".
 imagePullPolicy:
+
+# replicas is the number of Operator replicas to run.
+# The operator runs HA by default, with one of the replicas assuming leadership.
+replicas: 3
 
 # imagePullSecrets provides support pulling images from private registries, the value references
 #   one or more secrets to be used when pulling images. Secrets must be manually created in the
@@ -37,6 +41,17 @@ imagePullPolicy:
 #   - name: "foo"
 #   - name: "bar"
 imagePullSecrets:
+
+# ---------------------------------------------------------------------------
+# Operator container securityContext
+# This sets the securityContext configuration for the container, for example
+# to run as a non-root user:
+#
+#  securityContext:
+#    runAsNonRoot: true
+#    runAsUser: 1000
+#
+securityContext:
 
 # ---------------------------------------------------------------------------
 # Pod scheduling values
@@ -85,6 +100,18 @@ serviceAccountName: coherence-operator
 
 # The optional settings to adjust the readiness probe timings for the Operator
 readinessProbe:
+  # initialDelaySeconds is the number of seconds after the container has started before readiness probes are initiated.
+  # More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+  initialDelaySeconds: 10
+  # periodSeconds is how often (in seconds) to perform the probe.
+  # Default to 10 seconds. Minimum value is 1.
+  periodSeconds: 10
+  # failureThreshold is the minimum consecutive failures for the probe to be considered failed after having succeeded.
+  # Defaults to 3. Minimum value is 1.
+  failureThreshold: 3
+
+# The optional settings to adjust the liveness probe timings for the Operator
+livenessProbe:
   # initialDelaySeconds is the number of seconds after the container has started before liveness probes are initiated.
   # More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
   initialDelaySeconds: 10
@@ -94,6 +121,28 @@ readinessProbe:
   # failureThreshold is the minimum consecutive failures for the probe to be considered failed after having succeeded.
   # Defaults to 3. Minimum value is 1.
   failureThreshold: 3
+
+# resources will configure the Coherence Operator container's resource limits.
+# The resources can be specified in a values file, the same as they would be
+# for a container in a k8s Pod spec, for example:
+#
+#    resources:
+#      requests:
+#        memory: "64Mi"
+#        cpu: "250m"
+#      limits:
+#        memory: "128Mi"
+#        cpu: "500m"
+#
+# Or, alternatively they can be specified individually using the Helm install --set option, for example
+#
+# helm install --set resources.requests.memory="64Mi" \
+#     -- set resources.requests.cpu="250m"
+#     -- set resources.limits.memory="128Mi"
+#     -- set resources.limits.cpu="250m"
+#
+# ref: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+resources:
 
 # clusterRoles controls whether the Helm chart will create RBAC ClusterRole and bindings for the Operator
 # These are required if the Operator will watch multiple namespaces.

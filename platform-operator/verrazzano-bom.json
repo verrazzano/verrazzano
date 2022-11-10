@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20221025200246-77e20c949",
-              "dashboard": "v2.6.8-20221025195440-1a78a0be",
+              "tag": "v2.6.8-20221102162449-77e20c949",
+              "dashboard": "v2.6.8-20221102161348-680bdcc3",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20221025200246-77e20c949"
+              "tag": "v2.6.8-20221102162449-77e20c949"
             }
           ]
         },
@@ -228,7 +228,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.4.2-20221018124018-c118f71",
+              "tag": "v1.4.2-20221102143217-0e60c21",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -346,7 +346,7 @@
     },
     {
       "name": "coherence-operator",
-      "version": "3.2.6",
+      "version": "3.2.9",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -354,7 +354,7 @@
           "images": [
             {
               "image": "coherence-operator",
-              "tag": "3.2.6",
+              "tag": "3.2.9",
               "helmFullImageKey": "image"
             }
           ]

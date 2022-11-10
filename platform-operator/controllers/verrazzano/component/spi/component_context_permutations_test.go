@@ -3,6 +3,7 @@
 package spi
 
 import (
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -11,19 +12,20 @@ import (
 )
 
 const (
-	basicDevMerged                  = "testdata/basicDevMerged.yaml"
-	basicProdMerged                 = "testdata/basicProdMerged.yaml"
-	basicManagedClusterMerged       = "testdata/basicManagedClusterMerged.yaml"
-	devAllDisabledMerged            = "testdata/devAllDisabledMerged.yaml"
-	devOCIDNSOverrideMerged         = "testdata/devOCIOverrideMerged.yaml"
-	devCertManagerOverrideMerged    = "testdata/devCertManagerOverrideMerged.yaml"
-	devElasticSearchOveridesMerged  = "testdata/devESArgsStorageOverride.yaml"
-	devKeycloakOveridesMerged       = "testdata/devKeycloakInstallArgsStorageOverride.yaml"
-	prodElasticSearchOveridesMerged = "testdata/prodESOverridesMerged.yaml"
-	prodElasticSearchStorageMerged  = "testdata/prodESStorageArgsMerged.yaml"
-	prodIngressIstioOverridesMerged = "testdata/prodIngressIstioOverridesMerged.yaml"
-	prodFluentdOverridesMerged      = "testdata/prodFluentdOverridesMerged.yaml"
-	managedClusterEnableAllMerged   = "testdata/managedClusterEnableAllOverrideMerged.yaml"
+	basicDevMerged                   = "testdata/basicDevMerged.yaml"
+	basicProdMerged                  = "testdata/basicProdMerged.yaml"
+	basicManagedClusterMerged        = "testdata/basicManagedClusterMerged.yaml"
+	devAllDisabledMerged             = "testdata/devAllDisabledMerged.yaml"
+	devOCIDNSOverrideMerged          = "testdata/devOCIOverrideMerged.yaml"
+	devCertManagerOverrideMerged     = "testdata/devCertManagerOverrideMerged.yaml"
+	devElasticSearchOveridesMerged   = "testdata/devESArgsStorageOverride.yaml"
+	devKeycloakOveridesMerged        = "testdata/devKeycloakInstallArgsStorageOverride.yaml"
+	prodElasticSearchOveridesMerged  = "testdata/prodESOverridesMerged.yaml"
+	prodElasticSearchStorageMerged   = "testdata/prodESStorageArgsMerged.yaml"
+	prodIngressIstioOverridesMerged  = "testdata/prodIngressIstioOverridesMerged.yaml"
+	prodFluentdOverridesMerged       = "testdata/prodFluentdOverridesMerged.yaml"
+	managedClusterEnableAllMerged    = "testdata/managedClusterEnableAllOverrideMerged.yaml"
+	prodNoStorageOpenSearchOverrides = "testdata/prodNoStorageOpenSearchOverrides.yaml"
 )
 
 var falseValue = false
@@ -409,6 +411,46 @@ var managedClusterEnableAllOverride = v1alpha1.Verrazzano{
 			Kibana:        &v1alpha1.KibanaComponent{Enabled: &trueValue},
 			Prometheus:    &v1alpha1.PrometheusComponent{Enabled: &trueValue},
 			Rancher:       &v1alpha1.RancherComponent{Enabled: &trueValue},
+		},
+	},
+}
+
+var prodNoStorageOSOverrides = v1alpha1.Verrazzano{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: "prod-no-storage-os-overrides",
+	},
+	Spec: v1alpha1.VerrazzanoSpec{
+		Profile: "prod",
+		DefaultVolumeSource: &corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
+		},
+		Components: v1alpha1.ComponentSpec{
+			Elasticsearch: &v1alpha1.ElasticsearchComponent{
+				Enabled: &trueValue,
+				Nodes: []v1alpha1.OpenSearchNode{
+					{
+						Name:     "es-master",
+						Replicas: 0,
+					},
+					{
+						Name:     "es-data",
+						Replicas: 0,
+					},
+					{
+						Name:     "es-ingest",
+						Replicas: 0,
+					},
+					{
+						Name:     "custom",
+						Replicas: 3,
+						Roles: []vmov1.NodeRole{
+							vmov1.DataRole,
+							vmov1.IngestRole,
+							vmov1.MasterRole,
+						},
+					},
+				},
+			},
 		},
 	},
 }
