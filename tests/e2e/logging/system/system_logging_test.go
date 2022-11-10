@@ -544,7 +544,7 @@ func validateJaegerQueryLogs() bool {
 		jaegerExceptions)
 }
 
-func validateOpensearchRecords(hitValidator pkg.ElasticsearchHitValidator, indexFunc func() (string, error), appLabel string, appName string, timeRange string, exceptions []*regexp.Regexp) bool {
+func validateOpensearchRecords(hitValidator pkg.OpensearchHitValidator, indexFunc func() (string, error), appLabel string, appName string, timeRange string, exceptions []*regexp.Regexp) bool {
 	pkg.Log(pkg.Info, fmt.Sprintf("Validating log records for %s", appName))
 	index, err := indexFunc()
 	if err != nil {
@@ -586,7 +586,7 @@ func validateOpensearchRecords(hitValidator pkg.ElasticsearchHitValidator, index
 }
 
 // allOpensearchRecordValidator does all validation for log records
-func allOpensearchRecordValidator(hit pkg.ElasticsearchHit) bool {
+func allOpensearchRecordValidator(hit pkg.OpensearchHit) bool {
 	valid := true
 	if !commonOpensearchRecordValidator(hit) {
 		valid = false
@@ -599,12 +599,12 @@ func allOpensearchRecordValidator(hit pkg.ElasticsearchHit) bool {
 }
 
 // noLevelOpensearchRecordValidator does validation for log records except level validation
-func noLevelOpensearchRecordValidator(hit pkg.ElasticsearchHit) bool {
+func noLevelOpensearchRecordValidator(hit pkg.OpensearchHit) bool {
 	return commonOpensearchRecordValidator(hit)
 }
 
 // commonOpensearchRecordValidator does all validation for log records except level validation
-func commonOpensearchRecordValidator(hit pkg.ElasticsearchHit) bool {
+func commonOpensearchRecordValidator(hit pkg.OpensearchHit) bool {
 	ts := ""
 	valid := true
 	// Verify the record has a @timestamp field.
@@ -655,7 +655,7 @@ func commonOpensearchRecordValidator(hit pkg.ElasticsearchHit) bool {
 }
 
 // logLevelOpensearchRecordValidator does validation of level for log records
-func logLevelOpensearchRecordValidator(hit pkg.ElasticsearchHit) bool {
+func logLevelOpensearchRecordValidator(hit pkg.OpensearchHit) bool {
 	// Verify the record has a level field.
 	// If so verify that the level isn't debug.
 	if val, ok := hit["level"]; !ok || len(val.(string)) == 0 {

@@ -1009,13 +1009,8 @@ func SearchLog(index string, query OpensearchQuery) map[string]interface{} {
 	return result
 }
 
-<<<<<<< HEAD
-// PostElasticsearch POST the request entity body to Elasticsearch API path
-// The provided path is appended to the Elasticsearch base URL
-=======
 // PostOpensearch POST the request entity body to Opensearch API path
 // The provided path is appended to the Opensearch base URL
->>>>>>> d1a8c7b3e (master rebase to address pr merge conflcits)
 func PostOpensearch(path string, body string) (*HTTPResponse, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
