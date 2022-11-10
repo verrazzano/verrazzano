@@ -26,7 +26,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -1995,7 +1994,7 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
 	assert.NoError(t, err)
 
-	pod := corev1.Pod{}
+	pod := v1.Pod{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
 	assert.NoError(t, err)
 
@@ -2006,7 +2005,7 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
 	assert.NoError(t, err)
 
-	pod = corev1.Pod{}
+	pod = v1.Pod{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
