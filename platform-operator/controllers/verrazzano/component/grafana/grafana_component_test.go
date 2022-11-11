@@ -5,16 +5,17 @@ package grafana
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
+	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -82,6 +83,316 @@ func TestIsEnabled(t *testing.T) {
 			assert.Equal(t, tt.expectTrue, NewComponent().IsEnabled(ctx.EffectiveCR()))
 		})
 	}
+}
+
+// TestName tests the Name function for the Grafana component
+// GIVEN a component
+// WHEN we call Name() on the Grafana component
+// THEN the call returns the name of that component
+func TestName(t *testing.T) {
+	assert.Equal(t, "grafana", NewComponent().Name())
+}
+
+// TestNamespace tests the Namespace function for the Grafana component
+// GIVEN a component
+// WHEN we call Namespace() on the Grafana component
+// THEN the call returns the namespace of that component
+func TestNamespace(t *testing.T) {
+	assert.Equal(t, "verrazzano-system", NewComponent().Namespace())
+}
+
+// TestShouldInstallBeforeUpgrade tests the ShouldInstallBeforeUpgrade function for the Grafana component
+// GIVEN a component
+// WHEN we call ShouldInstallBeforeUpgrade on the Grafana component
+// THEN the call returns false
+func TestShouldInstallBeforeUpgrade(t *testing.T) {
+	assert.Equal(t, false, NewComponent().ShouldInstallBeforeUpgrade())
+}
+
+// TestGetDependencies tests the GetDependencies function for the Grafana component
+// GIVEN a component
+// WHEN we call GetDependencies on the Grafana component
+// THEN the call returns a string array listing all the dependencies of the component
+func TestGetDependencies(t *testing.T) {
+	assert.Equal(t, []string{"verrazzano-network-policies", "verrazzano-monitoring-operator"}, NewComponent().GetDependencies())
+}
+
+// TestGetJSONName tests the GetJSONName function for the Grafana component
+// GIVEN a component
+// WHEN we call GetJSONName on the Grafana component
+// THEN the call returns a string showing JSON name of the component
+func TestGetJSONName(t *testing.T) {
+	assert.Equal(t, "grafana", NewComponent().GetJSONName())
+}
+
+// TestGetMinVerrazzanoVersion tests the GetMinVerrazzanoVersion function for the Grafana component
+// GIVEN a component
+// WHEN we call GetMinVerrazzanoVersion on the Grafana component
+// THEN the call returns a string showing the minimum verrazzano version for the component
+func TestGetMinVerrazzanoVersion(t *testing.T) {
+	assert.Equal(t, "1.0.0", NewComponent().GetMinVerrazzanoVersion())
+}
+
+// TestIsOperatorInstallSupported tests the IsOperatorInstallSupported function for the Grafana component
+// GIVEN a component
+// WHEN we call IsOperatorInstallSupported on the Grafana component
+// THEN the call returns true
+func TestIsOperatorInstallSupported(t *testing.T) {
+	assert.Equal(t, true, NewComponent().IsOperatorInstallSupported())
+}
+
+// TestMonitorOverrides tests the MonitorOverrides function for the Grafana component
+// GIVEN a component
+// WHEN we call MonitorOverrides on the Grafana component
+// THEN the call returns true
+func TestMonitorOverrides(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	assert.Equal(t, true, NewComponent().MonitorOverrides(ctx))
+}
+
+// TestIsInstalled tests the IsInstalled function for the Grafana component
+// GIVEN a component and a context
+// WHEN we call IsInstalled on the Grafana component
+// THEN the call returns true if grafana is installed and vice versa
+func TestIsInstalled(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	grafanaInstalled, err := NewComponent().IsInstalled(ctx)
+	assert.Equal(t, grafanaInstalled, false)
+	assert.NoError(t, err)
+}
+
+// TestIsAvailable tests the IsAvailable function for the Grafana component
+// GIVEN a component and a context
+// WHEN we call IsAvailable on the Grafana component
+// THEN the call returns if the component is available and the reason for unavailability, if any
+func TestIsAvailable(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	reason, _ := NewComponent().IsAvailable(ctx)
+	assert.Equal(t, "waiting for deployment verrazzano-system/vmi-system-grafana to exist", reason)
+
+}
+
+// TestIsReady tests the IsReady function for the Grafana component
+// GIVEN a component and a context
+// WHEN we call IsReady on the Grafana component
+// THEN the call returns true if the component is ready and vice versa
+func TestIsReady(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	ready := NewComponent().IsReady(ctx)
+	assert.Equal(t, false, ready)
+
+}
+
+// TestPostInstall tests the PostInstall function for the Grafana component
+// GIVEN a component and a context
+// WHEN we call PostInstall on the Grafana component
+// THEN the call returns the post install conditions
+func TestPostInstall(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	err := NewComponent().PostInstall(ctx)
+	assert.Error(t, err)
+
+}
+
+// TestIsOperatorUninstallSupported tests the IsOperatorUninstallSupported function for the Grafana component
+// GIVEN a component
+// WHEN we call IsOperatorUninstallSupported on the Grafana component
+// THEN the call returns false
+func TestIsOperatorUninstallSupported(t *testing.T) {
+	assert.Equal(t, false, NewComponent().IsOperatorUninstallSupported())
+}
+
+// TestPreUninstall tests the PreUninstall function for the Grafana component
+// GIVEN a component and a context
+// WHEN we call PreUninstall on the Grafana component
+// THEN the call returns nil
+func TestPreUninstall(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	err := NewComponent().PreUninstall(ctx)
+	assert.NoError(t, err)
+
+}
+
+// TestUninstall tests the Uninstall function for the Grafana component
+// GIVEN a component and a context
+// WHEN we call Uninstall on the Grafana component
+// THEN the call returns nil
+func TestUninstall(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	err := NewComponent().Uninstall(ctx)
+	assert.NoError(t, err)
+
+}
+
+// TestPostUninstall tests the PostUninstall function for the Grafana component
+// GIVEN a component and a context
+// WHEN we call PostUninstall on the Grafana component
+// THEN the call returns nil
+func TestPostUninstall(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	err := NewComponent().PostUninstall(ctx)
+	assert.NoError(t, err)
+
+}
+
+// TestPostUpgrade tests the PostUpgrade function for the Grafana component
+// GIVEN a component and a context
+// WHEN we call PostUpgrade on the Grafana component
+// THEN the call returns post upgrade conditions
+func TestPostUpgrade(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	err := NewComponent().PostUpgrade(ctx)
+	assert.Error(t, err)
+
+}
+
+// TestReconcile tests the Reconcile function for the Grafana component
+// GIVEN a component and a context
+// WHEN we call Reconcile on the Grafana component
+// THEN the call returns nil
+func TestReconcile(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	err := NewComponent().Reconcile(ctx)
+	assert.NoError(t, err)
+
+}
+
+// TestCheckExistingCNEGrafana tests the checkExistingCNEGrafana function for the Grafana component
+// GIVEN a runtime object and enabled value of grafana as false
+// WHEN we call checkExistingCNEGrafana
+// THEN the call returns nil
+func TestCheckExistingCNEGrafana(t *testing.T) {
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Grafana: &vzapi.GrafanaComponent{Enabled: &falseValue},
+			},
+		},
+	}
+	err := checkExistingCNEGrafana(vz)
+	assert.NoError(t, err)
+
+}
+
+// TestGetOverrides tests the GetOverrides function for the Grafana component
+// GIVEN a runtime object
+// WHEN we call GetOverrides on the Grafana component
+// THEN the call returns the overrides
+func TestGetOverrides(t *testing.T) {
+	tests := []struct {
+		name     string
+		actualCR vzapi.Verrazzano
+	}{
+		{
+			name:     "Test1",
+			actualCR: vzapi.Verrazzano{},
+		},
+	}
+	ctx := spi.NewFakeContext(nil, &tests[0].actualCR, nil, false)
+	assert.Equal(t, []vzapi.Overrides{}, NewComponent().GetOverrides(ctx.EffectiveCR()))
+
+	assert.Equal(t, []v1beta1.Overrides{}, NewComponent().GetOverrides(nil))
+
 }
 
 // TestGetIngressNames tests getting Grafana ingress names
