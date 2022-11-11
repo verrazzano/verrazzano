@@ -93,7 +93,6 @@ func (r *Reconciler) upgradeSingleComponent(spiCtx spi.ComponentContext, upgrade
 		case compStatePreUpgrade:
 			compLog.Oncef("Component %s pre-upgrade running", compName)
 			if err := comp.PreUpgrade(compContext); err != nil {
-				compLog.Errorf("Failed pre-upgrading component %s: %v", compName, err)
 				return ctrl.Result{}, err
 			}
 			upgradeContext.state = compStateUpgrade
