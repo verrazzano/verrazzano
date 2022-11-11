@@ -25,6 +25,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+const (
+	captureVerrazzanoErrMsg = "Capturing Verrazzano resource"
+	captureResourceErrMsg   = "Capturing resources from the cluster"
+	sensitiveDataErrMsg     = "WARNING: Please examine the contents of the bug report for any sensitive data"
+	captureLogErrMsg        = "Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace"
+	dummyNamespaceErrMsg    = "Namespace dummy not found in the cluster"
+)
+
 // TestBugReportHelp
 // GIVEN a CLI bug-report command
 // WHEN I call cmd.Help for bug-report
@@ -185,11 +193,11 @@ func TestBugReportSuccess(t *testing.T) {
 
 	assert.NoError(t, err)
 
-	assert.Contains(t, buf.String(), "Capturing resources from the cluster")
-	assert.Contains(t, buf.String(), "Capturing Verrazzano resource")
-	assert.Contains(t, buf.String(), "Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace")
-	assert.Contains(t, buf.String(), "WARNING: Please examine the contents of the bug report for any sensitive data")
-	assert.Contains(t, buf.String(), "Namespace dummy not found in the cluster")
+	assert.Contains(t, buf.String(), captureResourceErrMsg)
+	assert.Contains(t, buf.String(), captureVerrazzanoErrMsg)
+	assert.Contains(t, buf.String(), captureLogErrMsg)
+	assert.Contains(t, buf.String(), sensitiveDataErrMsg)
+	assert.Contains(t, buf.String(), dummyNamespaceErrMsg)
 
 	assert.FileExists(t, bugRepFile)
 
@@ -208,10 +216,10 @@ func TestBugReportSuccess(t *testing.T) {
 	}
 
 	assert.NoError(t, err)
-	assert.Contains(t, buf.String(), "Capturing resources from the cluster")
-	assert.Contains(t, buf.String(), "WARNING: Please examine the contents of the bug report for any sensitive data")
-	assert.NotContains(t, buf.String(), "Capturing Verrazzano resource")
-	assert.NotContains(t, buf.String(), "Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace")
+	assert.Contains(t, buf.String(), captureResourceErrMsg)
+	assert.Contains(t, buf.String(), sensitiveDataErrMsg)
+	assert.NotContains(t, buf.String(), captureVerrazzanoErrMsg)
+	assert.NotContains(t, buf.String(), captureLogErrMsg)
 	assert.FileExists(t, bugRepFile)
 }
 
@@ -221,7 +229,11 @@ func TestBugReportSuccess(t *testing.T) {
 // THEN expect the command to create the report bug-report.tar.gz under the current directory
 func TestBugReportDefaultReportFile(t *testing.T) {
 	// clean up the bugreport file that is generated
-	defer os.Remove(constants.BugReportFileDefaultValue)
+	defer func(t *testing.T) {
+		if err := os.Remove(constants.BugReportFileDefaultValue); err != nil {
+			t.Fatal(err.Error())
+		}
+	}(t)
 
 	c := getClientWithVZWatch()
 
@@ -241,10 +253,10 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	err = cmd.Execute()
 	assert.NoError(t, err)
 
-	assert.Contains(t, buf.String(), "Capturing Verrazzano resource")
-	assert.Contains(t, buf.String(), "Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace")
+	assert.Contains(t, buf.String(), captureVerrazzanoErrMsg)
+	assert.Contains(t, buf.String(), captureLogErrMsg)
 	assert.Contains(t, buf.String(), "Created bug report")
-	assert.Contains(t, buf.String(), "WARNING: Please examine the contents of the bug report for any sensitive data")
+	assert.Contains(t, buf.String(), sensitiveDataErrMsg)
 }
 
 // TestBugReportNoVerrazzano
@@ -392,13 +404,16 @@ func getInvalidClient() client.WithWatch {
 // cleanupTempDir cleans up the given temp directory after the test run
 func cleanupTempDir(t *testing.T, dirName string) {
 	if err := os.RemoveAll(dirName); err != nil {
-		t.Fatalf("RemoveAll failed: %v", err)
+		t.Fatalf("Remove directory failed: %v", err)
 	}
 }
 
 // cleanupTempDir cleans up the given temp file after the test run
 func cleanupFile(t *testing.T, file *os.File) {
 	if err := file.Close(); err != nil {
-		t.Fatalf("RemoveAll failed: %v", err)
+		t.Fatalf("Close file failed: %v", err)
+	}
+	if err := os.Remove(file.Name()); err != nil {
+		t.Fatalf("Close file failed: %v", err)
 	}
 }
