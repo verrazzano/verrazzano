@@ -1988,13 +1988,16 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
 	assert.NoError(t, err)
 
+	pod := v1.Pod{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
+	assert.NoError(t, err)
+
 	// Third time calling, set the timer to exceed the expiration time which will force a check of the readiness gates.
 	// The readiness gates will be set to true going into the call, so the mysql-operator should not get recycled.
 	*mysqlComp.LastTimeReadinessGateRepairStarted = mysqlComp.LastTimeReadinessGateRepairStarted.Truncate(2 * time.Hour)
 	err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
 	assert.NoError(t, err)
 
-	pod := v1.Pod{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
 	assert.NoError(t, err)
 
@@ -2007,7 +2010,6 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, mysqlComp.LastTimeReadinessGateRepairStarted.IsZero())
 
-	pod = v1.Pod{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))

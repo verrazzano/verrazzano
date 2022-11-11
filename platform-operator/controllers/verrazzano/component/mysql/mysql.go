@@ -205,9 +205,35 @@ func (c mysqlComponent) isMySQLReady(ctx spi.ComponentContext) bool {
 // repairMySQLPodsWaitingReadinessGates - temporary workaround to repair issue were a MySQL pod
 // can be stuck waiting for its readiness gates to be met.
 func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentContext) error {
+	podsWaiting, err := c.mySQLPodsWaitingForReadinessGates(ctx)
+	if err != nil {
+		return err
+	}
+	if podsWaiting {
+		// Restart the mysql-operator to see if it will finish setting the readiness gates
+		ctx.Log().Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck waiting for readiness gates")
+
+		operPod, err := getMySQLOperatorPod(ctx.Log(), ctx.Client())
+		if err != nil {
+			return fmt.Errorf("Failed restarting the mysql-operator to repair stuck MySQL pods: %v", err)
+		}
+
+		if err = ctx.Client().Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
+			return err
+		}
+
+		// Clear the timer
+		*c.LastTimeReadinessGateRepairStarted = time.Time{}
+	}
+	return nil
+}
+
+// mySQLPodsWaitingForReadinessGates - detect if there are MySQL pods stuck waiting for
+// their readiness gates to be true.
+func (c mysqlComponent) mySQLPodsWaitingForReadinessGates(ctx spi.ComponentContext) (bool, error) {
 	if c.LastTimeReadinessGateRepairStarted.IsZero() {
 		*c.LastTimeReadinessGateRepairStarted = time.Now()
-		return nil
+		return false, nil
 	}
 
 	// Initiate repair only if time to wait period has been exceeded
@@ -219,7 +245,7 @@ func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentCo
 		selector := metav1.LabelSelectorRequirement{Key: mySQLComponentLabel, Operator: metav1.LabelSelectorOpIn, Values: []string{mySQLDComponentName}}
 		podList := k8sready.GetPodsList(ctx.Log(), ctx.Client(), types.NamespacedName{Namespace: ComponentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
 		if podList == nil || len(podList.Items) == 0 {
-			return fmt.Errorf("Failed checking MySQL readiness gates, no pods found matching selector %s", selector.String())
+			return false, fmt.Errorf("Failed checking MySQL readiness gates, no pods found matching selector %s", selector.String())
 		}
 
 		for i := range podList.Items {
@@ -227,7 +253,7 @@ func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentCo
 			// Check if the readiness conditions have been met
 			conditions := pod.Status.Conditions
 			if len(conditions) == 0 {
-				return fmt.Errorf("Failed checking MySQL readiness gates, no status conditions found for pod %s/%s", pod.Namespace, pod.Name)
+				return false, fmt.Errorf("Failed checking MySQL readiness gates, no status conditions found for pod %s/%s", pod.Namespace, pod.Name)
 			}
 			readyCount := 0
 			for _, condition := range conditions {
@@ -241,24 +267,11 @@ func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentCo
 
 			// All readiness gates must be true
 			if len(pod.Spec.ReadinessGates) != readyCount {
-				// Restart the mysql-operator to see if it will finish setting the readiness gates
-				ctx.Log().Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck waiting for readiness gates")
-
-				operPod, err := getMySQLOperatorPod(ctx.Log(), ctx.Client())
-				if err != nil {
-					return fmt.Errorf("Failed restarting mysql-operator to repair stuck MySQL pods: %v", err)
-				}
-
-				if err = ctx.Client().Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
-					return err
-				}
-
-				// Clear the timer
-				*c.LastTimeReadinessGateRepairStarted = time.Time{}
+				return true, nil
 			}
 		}
 	}
-	return nil
+	return false, nil
 }
 
 // getMySQLOperatorPod - return the mysql-operator pod
