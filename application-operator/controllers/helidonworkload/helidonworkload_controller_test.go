@@ -1021,6 +1021,9 @@ func TestAddMetrics(t *testing.T) {
 	// Fetch the workload
 	var workload vzapi.VerrazzanoHelidonWorkload
 	cli.EXPECT().
+		// GIVEN a default mocker client
+		// WHEN we call Get from the addMetrics method
+		// THEN the call feeds workload to get metrics traits
 		Get(gomock.Any(), request, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload1 *vzapi.VerrazzanoHelidonWorkload) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload1, helidonWorkload, params))
@@ -1030,6 +1033,9 @@ func TestAddMetrics(t *testing.T) {
 		})
 
 	cli.EXPECT().
+		// GIVEN a default mocker client
+		// WHEN we call Get from the ComponentFromWorkloadLabels method
+		// THEN the call feeds workload and component to get metrics traits
 		Get(gomock.Any(), request, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload1 *oamapi.ApplicationConfiguration) error {
 			assert.NoError(updateObjectFromYAMLTemplate(workload1, helidonWorkload, params))
