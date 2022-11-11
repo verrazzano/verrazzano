@@ -18,9 +18,10 @@ import (
 )
 
 const (
-	testUse   = "A sample usage help"
-	testShort = "A sample short help"
-	testLong  = "A sample long help"
+	testUse              = "A sample usage help"
+	testShort            = "A sample short help"
+	testLong             = "A sample long help"
+	flagNotDefinedErrFmt = "flag accessed but not defined: %s"
 )
 
 // TestNewCommand tests the functionality to create a new command based on the usage, short and log help.
@@ -38,7 +39,7 @@ func TestGetWaitTimeout(t *testing.T) {
 	// THEN an error along with default timeout value of (0) is returned.
 	timeout, err := GetWaitTimeout(getCommandWithoutFlags(), constants.TimeoutFlag)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("flag accessed but not defined: %s", constants.WaitFlag))
+	assert.Contains(t, err.Error(), fmt.Sprintf(flagNotDefinedErrFmt, constants.WaitFlag))
 	assert.NotNil(t, timeout)
 	assert.Equal(t, time.Duration(0), timeout)
 
@@ -49,7 +50,7 @@ func TestGetWaitTimeout(t *testing.T) {
 	cmdWithWaitFlagTrue.PersistentFlags().Bool(constants.WaitFlag, true, "")
 	timeout, err = GetWaitTimeout(cmdWithWaitFlagTrue, constants.TimeoutFlag)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("flag accessed but not defined: %s", constants.TimeoutFlag))
+	assert.Contains(t, err.Error(), fmt.Sprintf(flagNotDefinedErrFmt, constants.TimeoutFlag))
 	assert.NotNil(t, timeout)
 	assert.Equal(t, time.Duration(0), timeout)
 
@@ -108,7 +109,7 @@ func TestGetVersion(t *testing.T) {
 	// THEN an error is returned.
 	version, err := GetVersion(getCommandWithoutFlags(), rc)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("flag accessed but not defined: %s", constants.VersionFlag))
+	assert.Contains(t, err.Error(), fmt.Sprintf(flagNotDefinedErrFmt, constants.VersionFlag))
 	assert.NotNil(t, version)
 	assert.Equal(t, "", version)
 
@@ -129,7 +130,7 @@ func TestGetOperatorFile(t *testing.T) {
 	// THEN the default value of operator file is returned.
 	operatorFile, err := GetOperatorFile(getCommandWithoutFlags())
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("flag accessed but not defined: %s", constants.OperatorFileFlag))
+	assert.Contains(t, err.Error(), fmt.Sprintf(flagNotDefinedErrFmt, constants.OperatorFileFlag))
 	assert.NotNil(t, operatorFile)
 	assert.Equal(t, "", operatorFile)
 

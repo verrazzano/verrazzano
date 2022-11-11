@@ -30,6 +30,7 @@ const (
 	podTemplateHashLabel         = "pod-template-hash"
 	deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
 	defaultTimeout               = time.Duration(1) * time.Second
+	vpoPodName                   = "verrazzano-platform-operator-95d8c5d96-m6mbr"
 )
 
 var (
@@ -67,7 +68,7 @@ func TestGetVerrazzanoPlatformOperatorPodName(t *testing.T) {
 	fakeClient = fake.NewClientBuilder().WithObjects(&corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vpoconst.VerrazzanoInstallNamespace,
-			Name:      "verrazzano-platform-operator-95d8c5d96-m6mbr",
+			Name:      vpoPodName,
 			Labels: map[string]string{
 				podTemplateHashLabel: "95d8c5d96",
 				"app":                constants.VerrazzanoPlatformOperator,
@@ -76,7 +77,7 @@ func TestGetVerrazzanoPlatformOperatorPodName(t *testing.T) {
 	}).Build()
 	podName, err = GetVerrazzanoPlatformOperatorPodName(fakeClient)
 	assert.NoError(t, err)
-	assert.Equal(t, "verrazzano-platform-operator-95d8c5d96-m6mbr", podName)
+	assert.Equal(t, vpoPodName, podName)
 }
 
 // TestGetVerrazzanoPlatformOperatorPodName tests the functionality that waits still the Verrazzano resource reaches the given state.
@@ -91,7 +92,7 @@ func TestWaitForPlatformOperator(t *testing.T) {
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	podName, err := WaitForPlatformOperator(fakeClient, rc, v1beta1.CondInstallComplete, time.Duration(1)*time.Second)
 	assert.NoError(t, err)
-	assert.Equal(t, "verrazzano-platform-operator-95d8c5d96-m6mbr", podName)
+	assert.Equal(t, vpoPodName, podName)
 
 	// GIVEN a k8s cluster with no VPO installed,
 	// WHEN WaitForPlatformOperator is invoked,
