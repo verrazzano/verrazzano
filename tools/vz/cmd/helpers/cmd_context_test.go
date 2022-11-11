@@ -12,6 +12,11 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
+const (
+	testKubeConfig = "/tmp/kubeconfig"
+	testK8sContext = "testcontext"
+)
+
 // TestGetHTTPClient tests the functionality to return the right HTTP client.
 func TestGetHTTPClient(t *testing.T) {
 	httpClient := NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}).GetHTTPClient()
@@ -39,8 +44,8 @@ func TestGetErrorStream(t *testing.T) {
 // TestGetKubeConfigGivenCommand tests the functionality to return the kube config set in the command context.
 func TestGetKubeConfigGivenCommand(t *testing.T) {
 	cmdWithKubeConfigAndCtx := getCommandWithoutFlags()
-	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagKubeConfig, "/tmp/kubeconfig", "")
-	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagContext, "testcontext", "")
+	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	_, err := getKubeConfigGivenCommand(cmdWithKubeConfigAndCtx)
 	assert.Error(t, err)
 }
@@ -48,8 +53,8 @@ func TestGetKubeConfigGivenCommand(t *testing.T) {
 // TestGetClient tests the functionality to return the go client based on the kubeconfig parameters set in the command context.
 func TestGetClient(t *testing.T) {
 	cmdWithKubeConfigAndCtx := getCommandWithoutFlags()
-	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagKubeConfig, "/tmp/kubeconfig", "")
-	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagContext, "testcontext", "")
+	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	_, err := NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}).GetClient(cmdWithKubeConfigAndCtx)
 	assert.Error(t, err)
 }
@@ -57,8 +62,8 @@ func TestGetClient(t *testing.T) {
 // TestGetClient tests the functionality to return the kube client based on the kubeconfig parameters set in the command context.
 func TestGetKubeClient(t *testing.T) {
 	cmdWithKubeConfigAndCtx := getCommandWithoutFlags()
-	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagKubeConfig, "/tmp/kubeconfig", "")
-	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagContext, "testcontext", "")
+	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	_, err := NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}).GetKubeClient(cmdWithKubeConfigAndCtx)
 	assert.Error(t, err)
 }
@@ -66,8 +71,8 @@ func TestGetKubeClient(t *testing.T) {
 // TestGetClient tests the functionality to return the dynamic client based on the kubeconfig parameters set in the command context.
 func TestGetDynamicClient(t *testing.T) {
 	cmdWithKubeConfigAndCtx := getCommandWithoutFlags()
-	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagKubeConfig, "/tmp/kubeconfig", "")
-	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagContext, "testcontext", "")
+	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
+	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 	_, err := NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}).GetDynamicClient(cmdWithKubeConfigAndCtx)
 	assert.Error(t, err)
 }
