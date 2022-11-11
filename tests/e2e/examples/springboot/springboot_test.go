@@ -116,12 +116,12 @@ var _ = t.Describe("Spring Boot test", Label("f:app-lcm.oam",
 			return err
 		}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Expected to get OpenSearch App Index")
 
-		t.It("Verify Elasticsearch index exists", func() {
+		t.It("Verify Opensearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index for Spring Boot application.")
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Opensearch index for Spring Boot application.")
 		})
-		t.It("Verify recent Elasticsearch log record exists", func() {
+		t.It("Verify recent Opensearch log record exists", func() {
 			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/component": "springboot-component",

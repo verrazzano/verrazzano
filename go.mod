@@ -7,6 +7,7 @@ go 1.19
 
 require (
 	github.com/Jeffail/gabs/v2 v2.2.0
+	github.com/cert-manager/cert-manager v1.9.1
 	github.com/crossplane/crossplane-runtime v0.10.0
 	github.com/crossplane/oam-kubernetes-runtime v0.3.3
 	github.com/gertd/go-pluralize v0.1.7
@@ -17,7 +18,6 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f
 	github.com/hashicorp/go-retryablehttp v0.6.8
-	github.com/jetstack/cert-manager v1.7.1
 	github.com/onsi/ginkgo/v2 v2.1.4
 	github.com/onsi/gomega v1.19.0
 	github.com/oracle/oci-go-sdk/v53 v53.1.0
@@ -44,7 +44,7 @@ require (
 	k8s.io/code-generator v0.25.0
 	sigs.k8s.io/cluster-api v1.2.0
 	sigs.k8s.io/controller-runtime v0.12.3
-	sigs.k8s.io/controller-tools v0.8.0
+	sigs.k8s.io/controller-tools v0.9.2
 	sigs.k8s.io/yaml v1.3.0
 )
 
@@ -82,7 +82,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/btree v1.0.1 // indirect
 	github.com/google/cel-go v0.12.4 // indirect
-	github.com/google/gnostic v0.5.7-v3refs // indirect
+	github.com/google/gnostic v0.6.9 // indirect
 	github.com/google/go-github/v45 v45.2.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
@@ -117,7 +117,6 @@ require (
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
-	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/sony/gobreaker v0.4.2-0.20210216022020-dd874f9dd33b // indirect
 	github.com/spf13/afero v1.8.2 // indirect
@@ -152,9 +151,10 @@ require (
 	k8s.io/component-base v0.25.0 // indirect
 	k8s.io/gengo v0.0.0-20211129171323-c02415ce4185 // indirect
 	k8s.io/klog/v2 v2.80.0 // indirect
-	k8s.io/kube-aggregator v0.23.1 // indirect
+	k8s.io/kube-aggregator v0.24.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20220803162953-67bda5d908f1 // indirect
 	k8s.io/utils v0.0.0-20220823124924-e9cbc92d1a73 // indirect
+	sigs.k8s.io/gateway-api v0.4.3 // indirect
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 	sigs.k8s.io/kustomize/api v0.11.4 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.13.6 // indirect
@@ -177,5 +177,6 @@ replace (
 	golang.org/x/lint => golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
 	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.11.2
+	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.8.0
 	sigs.k8s.io/kind => github.com/verrazzano/kind v0.14.1-0.20220901151917-d1f46433d223
 )

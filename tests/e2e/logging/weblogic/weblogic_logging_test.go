@@ -194,16 +194,16 @@ var _ = t.Describe("WebLogic logging test", Label("f:app-lcm.oam", "f:app-lcm.we
 		}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Expected to get OpenSearch App Index")
 
 		// GIVEN a WebLogic application with logging enabled
-		// WHEN the Elasticsearch index is retrieved
+		// WHEN the Opensearch index is retrieved
 		// THEN verify that it is found
-		t.It("Verify Elasticsearch index exists", func() {
+		t.It("Verify Opensearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index")
 		})
 
 		// GIVEN a WebLogic application with logging enabled
-		// WHEN the log records are retrieved from the Elasticsearch index
+		// WHEN the log records are retrieved from the Opensearch index
 		// THEN verify that at least one recent log record is found
 		const k8sContainerNameKeyword = "kubernetes.container_name.keyword"
 		const fluentdStdoutSidecarName = "fluentd-stdout-sidecar"

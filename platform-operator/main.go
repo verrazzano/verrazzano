@@ -5,12 +5,14 @@ package main
 
 import (
 	"flag"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"os"
 
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
+
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+
+	cmapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
-	cmapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"

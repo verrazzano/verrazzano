@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
