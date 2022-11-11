@@ -363,7 +363,7 @@ pipeline {
                     kubectl apply -f ${UPGRADE_CR}
 
                     # wait for the upgrade to complete
-                    kubectl wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                    kubectl wait --timeout=45m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
                     # Dump the resource to debug
                     kubectl get -o yaml verrazzano/my-verrazzano || true

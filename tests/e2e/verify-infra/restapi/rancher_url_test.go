@@ -4,13 +4,17 @@
 package restapi_test
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/test/framework/metrics"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
@@ -18,6 +22,11 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+)
+
+const (
+	waitTimeout     = 5 * time.Minute
+	pollingInterval = 5 * time.Second
 )
 
 var _ = t.Describe("rancher", Label("f:infra-lcm",
@@ -37,7 +46,11 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 				}
 
 				var rancherURL string
-
+				k8sClient, err := pkg.GetDynamicClientInCluster(kubeconfigPath)
+				if err != nil {
+					t.Logs.Error(fmt.Sprintf("Error getting K8S client: %v", err))
+					t.Fail(err.Error())
+				}
 				Eventually(func() error {
 					api, err := pkg.GetAPIEndpoint(kubeconfigPath)
 					if err != nil {
@@ -117,7 +130,6 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					return nil
 				}, waitTimeout, pollingInterval).Should(BeNil())
 				metrics.Emit(t.Metrics.With("get_token_elapsed_time", time.Since(start).Milliseconds()))
-
 				Expect(token).NotTo(BeEmpty(), "Invalid token returned by rancher")
 				start = time.Now()
 				Eventually(func() (string, error) {
@@ -151,9 +163,31 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					return httputil.ExtractFieldFromResponseBodyOrReturnError(string(body), "state", "unable to find state in Rancher clusters response")
 				}, waitTimeout, pollingInterval).Should(Equal("active"), "rancher local cluster not in active state")
 				metrics.Emit(t.Metrics.With("get_cluster_state_elapsed_time", time.Since(start).Milliseconds()))
+				verifySettingValue("first-login", "false", k8sClient)
 			}
 		})
 	})
 })
 
 var _ = t.AfterEach(func() {})
+
+// verifySettingValue verifies the value of a rancher setting
+// GIVEN a Verrazzano installation with setting specified by settingName populated
+//
+//	WHEN value field of the setting CR specified by settingName is extracted
+//	AND compared with input expectedValue
+//	THEN both the values are expected to be equal, otherwise the test scenario is deemed to have failed.
+func verifySettingValue(settingName string, expectedValue string, k8sClient dynamic.Interface) {
+	start := time.Now()
+	t.Logs.Infof("Verify %s setting", settingName)
+	Eventually(func() (bool, error) {
+		clusterData, err := k8sClient.Resource(pkg.GvkToGvr(common.GetRancherMgmtAPIGVKForKind("Setting"))).Get(context.Background(), settingName, v1.GetOptions{})
+		if err != nil {
+			t.Logs.Errorf("Error getting %s setting: %v", settingName, err.Error())
+			return false, err
+		}
+		value := clusterData.UnstructuredContent()["value"].(string)
+		return expectedValue == value, nil
+	}, waitTimeout, pollingInterval).Should(Equal(true), fmt.Sprintf("rancher %s setting not updated", settingName))
+	metrics.Emit(t.Metrics.With(fmt.Sprintf("get_%s_setting_elapsed_time", strings.ReplaceAll(settingName, "-", "")), time.Since(start).Milliseconds()))
+}

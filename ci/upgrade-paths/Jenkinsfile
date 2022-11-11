@@ -972,7 +972,7 @@ def upgradeVerrazzanoOnCluster(count, verrazzanoDevVersion) {
                 cat ${v8oUpgradeFile}
                 kubectl --kubeconfig=${kubeClusterConfig} apply -f ${v8oUpgradeFile}
                 # wait for the upgrade to complete
-                kubectl --kubeconfig=${kubeClusterConfig} wait --timeout=25m --for=condition=UpgradeComplete verrazzano/my-verrazzano
+                kubectl --kubeconfig=${kubeClusterConfig} wait --timeout=45m --for=condition=UpgradeComplete verrazzano/my-verrazzano
 
                 # Get the install job(s) and mke sure the it matches pre-install.  If there is more than 1 job or the job changed, then it won't match
                 kubectl --kubeconfig=${kubeClusterConfig} -n verrazzano-install get job -o yaml --selector=job-name=verrazzano-install-my-verrazzano > ${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs/${count}/verrazzano-post-upgrade-job.out

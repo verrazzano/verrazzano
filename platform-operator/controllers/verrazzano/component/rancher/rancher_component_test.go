@@ -41,8 +41,9 @@ func getValue(kvs []bom.KeyValue, key string) (string, bool) {
 
 // TestAppendRegistryOverrides verifies that registry overrides are added as appropriate
 // GIVEN a Verrazzano CR
-//  WHEN AppendOverrides is called
-//  THEN AppendOverrides should add registry overrides
+//
+//	WHEN AppendOverrides is called
+//	THEN AppendOverrides should add registry overrides
 func TestAppendRegistryOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzAcmeDev, false)
 	registry := "foobar"
@@ -66,8 +67,9 @@ func TestAppendRegistryOverrides(t *testing.T) {
 
 // TestAppendCAOverrides verifies that CA overrides are added as appropriate for private CAs
 // GIVEN a Verrzzano CR
-//  WHEN AppendOverrides is called
-//  THEN AppendOverrides should add private CA overrides
+//
+//	WHEN AppendOverrides is called
+//	THEN AppendOverrides should add private CA overrides
 func TestAppendCAOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzDefaultCA, false)
 	kvs, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
@@ -82,8 +84,9 @@ func TestAppendCAOverrides(t *testing.T) {
 
 // TestIsReady verifies Rancher is enabled or disabled as expected
 // GIVEN a Verrzzano CR
-//  WHEN IsEnabled is called
-//  THEN IsEnabled should return true/false depending on the enabled state of the CR
+//
+//	WHEN IsEnabled is called
+//	THEN IsEnabled should return true/false depending on the enabled state of the CR
 func TestIsEnabled(t *testing.T) {
 	enabled := true
 	disabled := false
@@ -140,8 +143,9 @@ func TestPreInstall(t *testing.T) {
 
 // TestIsReady verifies that a ready-state Rancher shows as ready
 // GIVEN a ready Rancher install
-//  WHEN IsReady is called
-//  THEN IsReady should return true
+//
+//	WHEN IsReady is called
+//	THEN IsReady should return true
 func TestIsReady(t *testing.T) {
 	readyClient := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(
 		&appsv1.Deployment{
@@ -284,13 +288,15 @@ func TestIsReady(t *testing.T) {
 
 // TestPostInstall tests a happy path post install run
 // GIVEN a Rancher install state where all components are ready
-//  WHEN PostInstall is called
-//  THEN PostInstall should return nil
+//
+//	WHEN PostInstall is called
+//	THEN PostInstall should return nil
 func TestPostInstall(t *testing.T) {
 	// mock the k8s resources used in post install
 	caSecret := createCASecret()
 	rootCASecret := createRootCASecret()
 	adminSecret := createAdminSecret()
+	firstLoginSetting := createFirstLoginSetting()
 	rancherPodList := createRancherPodListWithAllRunning()
 	ingress := v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -308,10 +314,10 @@ func TestPostInstall(t *testing.T) {
 		},
 	}
 
-	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0]).Build()
+	clientWithoutIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &firstLoginSetting).Build()
 	ctxWithoutIngress := spi.NewFakeContext(clientWithoutIngress, &vzDefaultCA, false)
 
-	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert).Build()
+	clientWithIngress := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(&caSecret, &rootCASecret, &adminSecret, &rancherPodList.Items[0], &ingress, &cert, &firstLoginSetting).Build()
 	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, false)
 
 	// mock the pod executor when resetting the Rancher admin password
