@@ -537,3 +537,31 @@ func assertKeycloakAuthConfig(asserts *assert.Assertions, ctx spi.ComponentConte
 	asserts.Equal(authConfigData[rancher.AuthConfigKeycloakAttributeAuthEndpoint], fmt.Sprintf("https://%s%s", constants.KeycloakIngress, rancher.AuthConfigKeycloakURLPathAuthEndPoint))
 	asserts.Equal(authConfigData[rancher.AuthConfigKeycloakAttributeClientID], rancher.AuthConfigKeycloakClientIDRancher)
 }
+
+// TestCheckGenerationUpdated tests checkGenerationUpdated
+// GIVEN component context
+// WHEN checkGenerationUpdated is called
+// THEN true is returned if component status not available
+func TestCheckGenerationUpdated(t *testing.T) {
+	type args struct {
+		spiCtx spi.ComponentContext
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			"TestCheckGenerationUpdated when component status not available",
+			args{spi.NewFakeContext(fake.NewClientBuilder().Build(),&vzapi.Verrazzano{},nil,true,)},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := checkGenerationUpdated(tt.args.spiCtx); got != tt.want {
+				t.Errorf("checkGenerationUpdated() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
