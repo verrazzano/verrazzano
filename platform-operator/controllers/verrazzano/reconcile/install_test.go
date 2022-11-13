@@ -553,7 +553,7 @@ func TestCheckGenerationUpdated(t *testing.T) {
 	}{
 		{
 			"TestCheckGenerationUpdated when component status not available",
-			args{spi.NewFakeContext(fake.NewClientBuilder().Build(),&vzapi.Verrazzano{},nil,true,)},
+			args{spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, true)},
 			true,
 		},
 	}

@@ -60,7 +60,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
@@ -123,7 +122,7 @@ func TestReconcileUninstalling(t *testing.T) {
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	_ = clustersv1alpha1.AddToScheme(k8scheme.Scheme)
+	_ = clustersapi.AddToScheme(k8scheme.Scheme)
 	_ = vzappclusters.AddToScheme(k8scheme.Scheme)
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -211,7 +210,7 @@ func TestReconcileUninstall(t *testing.T) {
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	_ = clustersv1alpha1.AddToScheme(k8scheme.Scheme)
+	_ = clustersapi.AddToScheme(k8scheme.Scheme)
 	_ = vzappclusters.AddToScheme(k8scheme.Scheme)
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -327,7 +326,7 @@ func TestUninstallVariations(t *testing.T) {
 			config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
 			_ = vzapi.AddToScheme(k8scheme.Scheme)
-			_ = clustersv1alpha1.AddToScheme(k8scheme.Scheme)
+			_ = clustersapi.AddToScheme(k8scheme.Scheme)
 			_ = vzappclusters.AddToScheme(k8scheme.Scheme)
 
 			c, vzcr := buildFakeClientAndObjects(test.createMCNamespace, test.createProject, test.secrets)
@@ -591,7 +590,7 @@ func TestDeleteNamespaces(t *testing.T) {
 	}
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	_ = clustersv1alpha1.AddToScheme(k8scheme.Scheme)
+	_ = clustersapi.AddToScheme(k8scheme.Scheme)
 	_ = vzappclusters.AddToScheme(k8scheme.Scheme)
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(nameSpaces...).Build()
