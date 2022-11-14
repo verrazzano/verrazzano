@@ -37,9 +37,10 @@ import (
 )
 
 const (
-	shortWait       = 1 * time.Minute
-	mediumWait      = 2 * time.Minute
-	longWait        = 5 * time.Minute
+	shortWait  = 1 * time.Minute
+	mediumWait = 2 * time.Minute
+	longWait   = 5 * time.Minute
+
 	pollingInterval = 10 * time.Second
 	minimumVersion  = "1.1.0"
 )
@@ -124,7 +125,7 @@ var _ = t.Describe("Application pods post-upgrade", Label("f:platform-lcm.upgrad
 		springbootNamespace   = "springboot"
 		todoListNamespace     = "todo-list"
 	)
-	t.DescribeTable(fmt.Sprintf("should contain Envoy sidecar %s", envoyImage),
+	t.DescribeTable("should contain Envoy sidecar with proxyv2 image",
 		func(namespace string, timeout time.Duration) {
 			exists, err := pkg.DoesNamespaceExist(namespace)
 			if err != nil {
