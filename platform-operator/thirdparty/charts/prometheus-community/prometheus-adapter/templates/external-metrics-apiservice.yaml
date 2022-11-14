@@ -26,9 +26,7 @@ spec:
   {{- end }}
   group: external.metrics.k8s.io
   version: v1beta1
-  {{- if not (or .Values.tls.enable .Values.certManager.enabled) }}
-  insecureSkipTLSVerify: true
-  {{- end }}
+  insecureSkipTLSVerify: {{ if or .Values.tls.enable .Values.certManager.enabled }}false{{ else }}true{{ end }}
   groupPriorityMinimum: 100
   versionPriority: 100
 {{- end -}}
