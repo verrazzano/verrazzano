@@ -222,26 +222,24 @@ pipeline {
 
         }
 
-        //stage('Scan Image') {
-        //    when {
-        //       allOf {
-        //          not { buildingTag() }
-        //          expression {params.PERFORM_SCAN == true}
-        //       }
-        //    }
-        //    steps {
-        //        script {
-        //            scanContainerImage "${env.DOCKER_REGISTRY}/${env.DOCKER_REPO}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-        //            scanContainerImage "${env.DOCKER_REGISTRY}/${env.DOCKER_REPO}/${DOCKER_APP_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-        //            scanContainerImage "${env.DOCKER_REGISTRY}/${env.DOCKER_REPO}/${DOCKER_CLUSTER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-        //        }
-        //    }
-        //    post {
-        //        always {
-        //            archiveArtifacts artifacts: '**/scanning-report*.json', allowEmptyArchive: true
-        //       }
-        //    }
-        //}
+        stage('Scan Images') {
+            when {
+               allOf {
+                  not { buildingTag() }
+                  expression {params.PERFORM_SCAN == true}
+               }
+            }
+            steps {
+                script {
+                    scanContainerImage "${env.DOCKER_REGISTRY}/${env.DOCKER_REPO}/${DOCKER_PSR_BACKEND_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/scanning-report*.json', allowEmptyArchive: true
+               }
+            }
+        }
 
         /*stage("Push Images to OCIR") {
             environment {
@@ -314,24 +312,6 @@ pipeline {
     }
 }
 
-def isPagerDutyEnabled() {
-    // this controls whether PD alerts are enabled
-    if (NOTIFY_PAGERDUTY_MAINJOB_FAILURES.equals("true")) {
-        echo "Pager-Duty notifications enabled via global override setting"
-        return true
-    }
-    return false
-}
-
-// Called in Stage Clean workspace and checkout steps
-def moveContentToGoRepoPath() {
-    sh """
-        rm -rf ${GO_REPO_PATH}
-        mkdir -p ${GO_REPO_PATH}
-        tar cf - . | (cd ${GO_REPO_PATH}/ ; tar xf -)
-    """
-}
-
 // Called in Stage CLI steps
 def buildCLI(dockerImageTag) {
     sh """
@@ -382,6 +362,24 @@ def runGinkgo(testSuitePath) {
             ../../build/copy-junit-output.sh ${WORKSPACE}
         """
     }
+}
+
+def isPagerDutyEnabled() {
+    // this controls whether PD alerts are enabled
+    if (NOTIFY_PAGERDUTY_MAINJOB_FAILURES.equals("true")) {
+        echo "Pager-Duty notifications enabled via global override setting"
+        return true
+    }
+    return false
+}
+
+// Called in Stage Clean workspace and checkout steps
+def moveContentToGoRepoPath() {
+    sh """
+        rm -rf ${GO_REPO_PATH}
+        mkdir -p ${GO_REPO_PATH}
+        tar cf - . | (cd ${GO_REPO_PATH}/ ; tar xf -)
+    """
 }
 
 // Called in Stage Clean workspace and checkout steps
