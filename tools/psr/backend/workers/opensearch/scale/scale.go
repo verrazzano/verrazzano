@@ -76,12 +76,12 @@ func NewScaleWorker() (spi.Worker, error) {
 			scaleOutSeconds: metrics.MetricItem{
 				Name: "opensearch_scale_out_seconds",
 				Help: "The number of seconds taken to scale out OpenSearch",
-				Type: prometheus.CounterValue,
+				Type: prometheus.GaugeValue,
 			},
 			scaleInSeconds: metrics.MetricItem{
 				Name: "opensearch_scale_in_seconds",
 				Help: "The number of seconds taken to scale in OpenSearch",
-				Type: prometheus.CounterValue,
+				Type: prometheus.GaugeValue,
 			},
 		},
 	}
