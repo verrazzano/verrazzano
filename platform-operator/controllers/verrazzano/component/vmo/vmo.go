@@ -9,6 +9,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -35,7 +36,7 @@ func appendVMOOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 
 	// If NGINX is enabled, then get the values used to build up the defaultIngressTargetDNSName
 	// value in the VMO config map.  Otherwise, the value is not set in the VMO config map.
-	if vzconfig.IsNGINXEnabled(effectiveCR) {
+	if vzcr.IsNGINXEnabled(effectiveCR) {
 		// Get the dnsSuffix override
 		dnsSuffix, err := vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
 		if err != nil {
@@ -50,7 +51,7 @@ func appendVMOOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, 
 	}
 
 	// Override the OIDC auth enabled value if Auth Proxy is disabled
-	if !vzconfig.IsAuthProxyEnabled(effectiveCR) {
+	if !vzcr.IsAuthProxyEnabled(effectiveCR) {
 		kvs = append(kvs, bom.KeyValue{Key: "monitoringOperator.oidcAuthEnabled", Value: "false"})
 	}
 

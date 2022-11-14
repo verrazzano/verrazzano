@@ -17,6 +17,7 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -280,7 +281,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
 
 	// If metricsStorage type is set to prometheus, set the prometheus server URL override
-	if vzconfig.IsPrometheusEnabled(compContext.EffectiveCR()) {
+	if vzcr.IsPrometheusEnabled(compContext.EffectiveCR()) {
 		metricsStorageVal, err := getOverrideVal(compContext, metricsStorageField)
 		if err != nil {
 			return kvs, err
@@ -416,7 +417,7 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 // getESInternalSecret checks whether verrazzano-es-internal secret exists. Return error if the secret does not exist.
 func getESInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
 	secret := corev1.Secret{}
-	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		// Check verrazzano-es-internal Secret. return error which will cause requeue
 		err := ctx.Client().Get(context.TODO(), clipkg.ObjectKey{
 			Namespace: constants.VerrazzanoSystemNamespace,
@@ -472,7 +473,7 @@ func isJaegerCREnabled(ctx spi.ComponentContext) (bool, error) {
 // canUseVZOpenSearchStorage determines if Verrazzano's OpenSearch can be used as a storage for Jaeger instance.
 // As default Jaeger uses Authproxy to connect to OpenSearch storage, check if Keycloak component is also enabled.
 func canUseVZOpenSearchStorage(ctx spi.ComponentContext) bool {
-	if vzconfig.IsOpenSearchEnabled(ctx.EffectiveCR()) && vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) && vzcr.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		return true
 	}
 	return false
@@ -765,7 +766,7 @@ func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) err
 		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
 		ingress.Annotations["cert-manager.io/common-name"] = jaegerHostName
-		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+		if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 			ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
