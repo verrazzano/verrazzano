@@ -5,7 +5,7 @@ def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
 def SKIP_TRIGGERED_TESTS = false
 def SUSPECT_LIST = ""
-def VERRAZZANO_DEV_VERSION = ""
+//def VERRAZZANO_DEV_VERSION = ""
 def tarfilePrefix=""
 def storeLocation=""
 
@@ -29,72 +29,31 @@ pipeline {
     }
 
     parameters {
-        booleanParam (description: 'Whether to kick off acceptance test run at the end of this build', name: 'RUN_ACCEPTANCE_TESTS', defaultValue: true)
-        booleanParam (description: 'Whether to include the slow tests in the acceptance tests', name: 'RUN_SLOW_TESTS', defaultValue: false)
-        booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
-        booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
-        booleanParam (description: 'Whether to trigger full testing after a successful run. Off by default. This is always done for successful master and release* builds, this setting only is used to enable the trigger for other branches', name: 'TRIGGER_FULL_TESTS', defaultValue: false)
-        booleanParam (description: 'Whether to generate a tarball', name: 'GENERATE_TARBALL', defaultValue: false)
-        booleanParam (description: 'Whether to push images to OCIR', name: 'PUSH_TO_OCIR', defaultValue: false)
-        booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
         booleanParam (description: 'Whether to perform a scan of the built images', name: 'PERFORM_SCAN', defaultValue: false)
-        booleanParam (description: 'Whether to wait for triggered tests or not. This defaults to false, this setting is useful for things like release automation that require everything to complete successfully', name: 'WAIT_FOR_TRIGGERED', defaultValue: false)
-        choice (name: 'WILDCARD_DNS_DOMAIN',
-                description: 'Wildcard DNS Domain',
-                // 1st choice is the default value
-                choices: [ "nip.io", "sslip.io"])
-        choice (name: 'CRD_API_VERSION',
-                description: 'This is the API crd version.',
-                // 1st choice is the default value
-                choices: [ "v1beta1", "v1alpha1"])
-        string (name: 'CONSOLE_REPO_BRANCH',
-                defaultValue: '',
-                description: 'The branch to check out after cloning the console repository.',
-                trim: true)
-        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
+        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: false)
     }
 
     environment {
-        TEST_ENV = "JENKINS"
-        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
-        IS_PERIODIC_PIPELINE = "false"
+        TEST_ENV = "PSR"
+        //CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
 
-        DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
-        DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
-        DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
-        DOCKER_APP_CI_IMAGE_NAME = 'verrazzano-application-operator-jenkins'
-        DOCKER_APP_PUBLISH_IMAGE_NAME = 'verrazzano-application-operator'
-        DOCKER_APP_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_APP_PUBLISH_IMAGE_NAME : env.DOCKER_APP_CI_IMAGE_NAME}"
-        DOCKER_CLUSTER_CI_IMAGE_NAME = 'verrazzano-cluster-operator-jenkins'
-        DOCKER_CLUSTER_PUBLISH_IMAGE_NAME = 'verrazzano-cluster-operator'
-        DOCKER_CLUSTER_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_CLUSTER_PUBLISH_IMAGE_NAME : env.DOCKER_CLUSTER_CI_IMAGE_NAME}"
-        CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
-        USE_V8O_DOC_STAGE = "${env.BRANCH_NAME == 'master' ? 'true' : 'false'}"
+        DOCKER_PSR_BACKEND_PUBLISH_IMAGE_NAME = 'psr-backend'
+        DOCKER_PSR_BACKEND_IMAGE_NAME = '${DOCKER_PSR_BACKEND_PUBLISH_IMAGE_NAME}-jenkins'
+        DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PSR_BACKEND_PUBLISH_IMAGE_NAME : env.DOCKER_PSR_BACKEND_IMAGE_NAME}"
+
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
+        PSR_PATH = '${GO_REPO_PATH}/verrazzano/tools/psr'
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_EMAIL = credentials('github-packages-email')
-        DOCKER_REPO = 'ghcr.io'
-        DOCKER_NAMESPACE = 'verrazzano'
+        DOCKER_REGISTRY = 'ghcr.io'
+        DOCKER_REPO = 'verrazzano'
+        OCR_CREDS = credentials('ocr-pull-and-push-account')
+        OCR_REPO = 'container-registry.oracle.com'
+
         NETRC_FILE = credentials('netrc')
         GITHUB_PKGS_CREDS = credentials('github-packages-credentials-rw')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
-
-        CLUSTER_NAME = 'verrazzano'
-        POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
-        TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
-        KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
-        VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
-        OCR_CREDS = credentials('ocr-pull-and-push-account')
-        OCR_REPO = 'container-registry.oracle.com'
-        IMAGE_PULL_SECRET = 'verrazzano-container-registry'
-        INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
-        INSTALL_PROFILE = "dev"
-        VZ_ENVIRONMENT_NAME = "default"
-        TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
-
-        WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
-        DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
 
         // used for console artifact capture on failure
         JENKINS_READ = credentials('jenkins-auditor')
@@ -107,14 +66,29 @@ pipeline {
         OCI_OS_REGION="us-phoenix-1"
 
         // used to emit metrics
-        PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
-        PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
+        //PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
+        //PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
 
         OCIR_SCAN_COMPARTMENT = credentials('ocir-scan-compartment')
         OCIR_SCAN_TARGET = credentials('ocir-scan-target')
         OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
         OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
         DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
+
+        //CLUSTER_NAME = 'verrazzano'
+        //POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
+        //TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
+        //KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
+        //VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
+        //IMAGE_PULL_SECRET = 'verrazzano-container-registry'
+        //INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
+        //INSTALL_PROFILE = "dev"
+        //VZ_ENVIRONMENT_NAME = "default"
+        //TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
+
+        //WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
+        //DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
+
     }
 
     stages {
@@ -138,14 +112,14 @@ pipeline {
                 script {
                     try {
                         sh """
-                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REGISTRY} -u ${DOCKER_CREDS_USR} --password-stdin
                         """
                     } catch(error) {
                         echo "docker login failed, retrying after sleep"
                         retry(4) {
                             sleep(30)
                             sh """
-                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REPO} -u ${DOCKER_CREDS_USR} --password-stdin
+                            echo "${DOCKER_CREDS_PSW}" | docker login ${env.DOCKER_REGISTRY} -u ${DOCKER_CREDS_USR} --password-stdin
                             """
                         }
                     }
@@ -153,7 +127,8 @@ pipeline {
                 moveContentToGoRepoPath()
 
                 script {
-                    def props = readProperties file: '.verrazzano-development-version'
+                    // Create the image tag
+                    def props = readProperties file: '${GO_REPO_PATH}/verrazzano/.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "echo $env.GIT_COMMIT | head -c 8")
@@ -162,6 +137,7 @@ pipeline {
                         env.VERRAZZANO_VERSION = "${env.VERRAZZANO_VERSION}-${env.BUILD_NUMBER}+${SHORT_COMMIT_HASH}"
                     }
                     DOCKER_IMAGE_TAG = "v${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
                     def currentCommitHash = env.GIT_COMMIT
@@ -192,24 +168,11 @@ pipeline {
             }
         }
 
-        stage('Check Repo Clean') {
-            steps {
-                checkRepoClean()
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-            }
-        }
-
         stage('Parallel Build, Test, and Compliance') {
             parallel {
-                stage('Build Verrazzano CLI and Save Binary') {
+                stage('Build PSR CLI and Save Binaries') {
                     steps {
-                        buildVerrazzanoCLI("${DOCKER_IMAGE_TAG}")
+                        buildCLI("${DOCKER_IMAGE_TAG}")
                     }
                     post {
                         failure {
@@ -221,18 +184,18 @@ pipeline {
                             script {
                                 archiveArtifacts artifacts: '**/*.tar.gz*', allowEmptyArchive: true
                                 echo "Saving CLI Binary"
-                                saveCLIExecutable()
+                                saveCLIExecutables()
                             }
 
                         }
                     }
                 }
 
-                stage('Build Images and Save Generated Files') {
+                stage('Build PSR Images and Save Generated Files') {
                     when { not { buildingTag() } }
                     steps {
                         script {
-                            VZ_BUILD_METRIC = metricJobName('build')
+                            VZ_BUILD_METRIC = metricJobName('psrbuild')
                             metricTimerStart("${VZ_BUILD_METRIC}")
                             buildImages("${DOCKER_IMAGE_TAG}")
                         }
@@ -246,10 +209,9 @@ pipeline {
                         }
                         success {
                             echo "Saving generated files"
-                            saveGeneratedFiles()
                             script {
                                 METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
-                                archiveArtifacts artifacts: "generated-verrazzano-bom.json,verrazzano_images.txt", allowEmptyArchive: true
+                                //archiveArtifacts artifacts: "", allowEmptyArchive: true
                             }
                         }
                     }
@@ -259,26 +221,20 @@ pipeline {
                     when { not { buildingTag() } }
                     steps {
                         sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    make precommit
-                """
+                            cd ${PSR_PATH}
+                            make unit-test
+                        """
                     }
                     post {
-                        failure {
-                            script {
-                                SKIP_TRIGGERED_TESTS = true
-                            }
-                        }
                         always {
                             sh """
-                        cd ${GO_REPO_PATH}/verrazzano
-                        cp coverage.html ${WORKSPACE}
-                        cp coverage.xml ${WORKSPACE}
-                        build/copy-junit-output.sh ${WORKSPACE}
-                    """
-                            archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
+                            cd ${PSR_PATH}
+                            //cp coverage.html ${WORKSPACE}
+                            //cp coverage.xml ${WORKSPACE}
+                            ${PSR_PATH}/build/copy-junit-output.sh ${WORKSPACE}
+                             """
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                            cobertura(coberturaReportFile: 'coverage.xml',
+                            /*cobertura(coberturaReportFile: 'coverage.xml',
                                     enableNewApi: true,
                                     autoUpdateHealth: false,
                                     autoUpdateStability: false,
@@ -289,7 +245,8 @@ pipeline {
                                     fileCoverageTargets: '100, 0, 0',
                                     lineCoverageTargets: '68, 68, 68',
                                     packageCoverageTargets: '100, 0, 0',
-                            )
+                            )*/
+                            //archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
                         }
                     }
                 }
@@ -297,215 +254,65 @@ pipeline {
 
         }
 
-        stage('Scan Image') {
-            when {
-               allOf {
-                   not { buildingTag() }
-                   expression {params.PERFORM_SCAN == true}
-               }
-            }
-            steps {
-                script {
-                    scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_APP_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_CLUSTER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                }
-            }
-            post {
-                failure {
-                    script {
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                always {
-                    archiveArtifacts artifacts: '**/scanning-report*.json', allowEmptyArchive: true
-                }
-            }
-        }
+        //stage('Scan Image') {
+        //    when {
+        //       allOf {
+        //          not { buildingTag() }
+        //          expression {params.PERFORM_SCAN == true}
+        //       }
+        //    }
+        //    steps {
+        //        script {
+        //            scanContainerImage "${env.DOCKER_REGISTRY}/${env.DOCKER_REPO}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+        //            scanContainerImage "${env.DOCKER_REGISTRY}/${env.DOCKER_REPO}/${DOCKER_APP_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+        //            scanContainerImage "${env.DOCKER_REGISTRY}/${env.DOCKER_REPO}/${DOCKER_CLUSTER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+        //        }
+        //    }
+        //    post {
+        //        always {
+        //            archiveArtifacts artifacts: '**/scanning-report*.json', allowEmptyArchive: true
+        //       }
+        //    }
+        //}
 
-        stage('Skip acceptance tests if commit message contains skip-at') {
-            steps {
-                script {
-                    // note that SKIP_ACCEPTANCE_TESTS will be false at this point (its default value)
-                    // so we are going to run the AT's unless this logic decides to skip them...
-
-                    // if we are planning to run the AT's (which is the default)
-                    if (params.RUN_ACCEPTANCE_TESTS == true) {
-                        SKIP_ACCEPTANCE_TESTS = false
-                        // check if the user has asked to skip AT using the commit message
-                        result = sh (script: "git log -1 | grep 'skip-at'", returnStatus: true)
-                        if (result == 0) {
-                            // found 'skip-at', so don't run them
-                            SKIP_ACCEPTANCE_TESTS = true
-                            echo "Skip acceptance tests based on opt-out in commit message [skip-at]"
-                            echo "SKIP_ACCEPTANCE_TESTS is ${SKIP_ACCEPTANCE_TESTS}"
-                        }
-                    } else {
-                        SKIP_ACCEPTANCE_TESTS = true
-                    }
-                }
-            }
-        }
-
-        stage('Kind Acceptance Tests on 1.24') {
-            when {
-                allOf {
-                    not { buildingTag() }
-                    anyOf {
-                        branch 'master';
-                        branch 'release-*';
-                        expression {SKIP_ACCEPTANCE_TESTS == false};
-                    }
-                }
-            }
-
+        /*stage("Push Images to OCIR") {
             environment {
-                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
+                OCI_CLI_AUTH="api_key"
+                OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
+                OCI_CLI_USER = credentials('oci-dev-user-ocid')
+                OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
+                OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
+                OCI_CLI_REGION = "us-ashburn-1"
+                OCI_REGION = "${env.OCI_CLI_REGION}"
+                // Directory containing the Verrazzano image tar files
+                VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-full/verrazzano-${VERRAZZANO_DEV_VERSION}/images"
             }
-
-            steps {
-                script {
-                    VZ_TEST_METRIC = metricJobName('kind_test')
-                    metricTimerStart("${VZ_TEST_METRIC}")
-                }
-                retry(count: JOB_PROMOTION_RETRIES) {
-                    script {
-                        build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
-                            parameters: [
-                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
-                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                string(name: 'CRD_API_VERSION', value: params.CRD_API_VERSION),
-                                booleanParam(name: 'RUN_SLOW_TESTS', value: params.RUN_SLOW_TESTS),
-                                booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS),
-                                booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: params.CREATE_CLUSTER_USE_CALICO),
-                                string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
-                                booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
-                            ], wait: true
-                    }
-                }
-            }
-            post {
-                failure {
-                    script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
-                        SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                success {
-                    script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
-                    }
-                }
-            }
-        }
-
-        stage('Triggered Tests') {
             when {
-                allOf {
-                    not { buildingTag() }
-                    expression {SKIP_TRIGGERED_TESTS == false}
-                    anyOf {
-                        branch 'master';
-                        branch 'release-*';
-                        expression {params.TRIGGER_FULL_TESTS == true};
-                    }
-                }
+                expression{params.PUSH_TO_OCIR == true}
             }
             steps {
                 script {
-                    build job: "verrazzano-push-triggered-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
-                        parameters: [
-                            string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                            string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                            string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
-                        ], wait: params.WAIT_FOR_TRIGGERED
-                }
-            }
-        }
-        stage('Zip Build and Test') {
-            // If the tests are clean and this is a release branch or GENERATE_TARBALL == true,
-            // generate the Verrazzano full product zip and run the Private Registry tests.
-            // Optionally push images to OCIR for scanning.
-            when {
-                allOf {
-                    not { buildingTag() }
-                    expression {SKIP_TRIGGERED_TESTS == false}
-                    anyOf {
-                        expression{params.GENERATE_TARBALL == true};
-                        expression{params.PUSH_TO_OCIR == true};
-                    }
-                }
-            }
-            stages{
-                stage("Build Product Zip") {
-                    steps {
-                        script {
+                    try {
+                        sh """
+                            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
+                        """
+                    } catch(error) {
+                        echo "docker login failed, retrying after sleep"
+                        retry(4) {
+                            sleep(30)
                             sh """
-                                ci/scripts/generate_vz_distribution.sh ${WORKSPACE} ${VERRAZZANO_DEV_VERSION} ${SHORT_COMMIT_HASH}
+                            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
                             """
                         }
                     }
-                }
-                stage("Private Registry Test") {
-                    steps {
-                        script {
-                            tarfilePrefix="verrazzano-${VERRAZZANO_DEV_VERSION}-lite"
-                            storeLocation="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${tarfilePrefix}.zip"
-                            echo "Starting private registry test for ${storeLocation}, file prefix ${tarfilePrefix}"
-                            build job: "verrazzano-private-registry/${BRANCH_NAME.replace("/", "%2F")}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                    string(name: 'DISTRIBUTION_VARIANT', value: 'Lite'),
-                                    string(name: 'ZIPFILE_LOCATION', value: storeLocation)
-                                ], wait: true
-                        }
-                    }
-                }
-                stage("Push Images to OCIR") {
-                    environment {
-                        OCI_CLI_AUTH="api_key"
-                        OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
-                        OCI_CLI_USER = credentials('oci-dev-user-ocid')
-                        OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
-                        OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
-                        OCI_CLI_REGION = "us-ashburn-1"
-                        OCI_REGION = "${env.OCI_CLI_REGION}"
-                        // Directory containing the Verrazzano image tar files
-                        VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-full/verrazzano-${VERRAZZANO_DEV_VERSION}/images"
-                    }
-                    when {
-                        expression{params.PUSH_TO_OCIR == true}
-                    }
-                    steps {
-                        script {
-                            try {
-                                sh """
-                                    echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
-                                """
-                            } catch(error) {
-                                echo "docker login failed, retrying after sleep"
-                                retry(4) {
-                                    sleep(30)
-                                    sh """
-                                    echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
-                                    """
-                                }
-                            }
 
-                            sh """
-                                echo "Pushing images to OCIR, note that images pushed using this pipeline are NOT treated as the latest scan results, those come from periodic test runs"
-                                ci/scripts/push_to_ocir.sh
-                            """
-                        }
-                    }
+                    sh """
+                        echo "Pushing images to OCIR, note that images pushed using this pipeline are NOT treated as the latest scan results, those come from periodic test runs"
+                        ci/scripts/push_to_ocir.sh
+                    """
                 }
             }
-        }
+        }*/
     }
 
     post {
@@ -558,21 +365,12 @@ def moveContentToGoRepoPath() {
 }
 
 // Called in Stage CLI steps
-def buildVerrazzanoCLI(dockerImageTag) {
+def buildCLI(dockerImageTag) {
     sh """
-        cd ${GO_REPO_PATH}/verrazzano/tools/vz
-        make go-build DOCKER_IMAGE_TAG=${dockerImageTag}
-        ${GO_REPO_PATH}/verrazzano/ci/scripts/save_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
-        cp out/linux_amd64/vz ${GO_REPO_PATH}/vz
-    """
-}
-
-def checkRepoClean() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano
-        echo 'Check for forgotten manifest/generate actions...'
-        (cd platform-operator; make check-repo-clean)
-        (cd application-operator; make check-repo-clean)
+        cd ${PSR_PATH}
+        make go-build-cli
+        ${GO_REPO_PATH}/verrazzano/ci/scripts/save_psr_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
+        cp out/linux_amd64/psrctl ${GO_REPO_PATH}/psrctl
     """
 }
 
@@ -580,48 +378,19 @@ def checkRepoClean() {
 // Makes target docker push for application/platform operator and analysis
 def buildImages(dockerImageTag) {
     sh """
-        cd ${GO_REPO_PATH}/verrazzano
-        echo 'Now build...'
-        make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_APP_IMAGE_NAME} VERRAZZANO_CLUSTER_OPERATOR_IMAGE_NAME=${DOCKER_CLUSTER_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
-        cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
-        cp $WORKSPACE/generated-verrazzano-bom.json $WORKSPACE/verrazzano-bom.json
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/generate_image_list.sh $WORKSPACE/generated-verrazzano-bom.json $WORKSPACE/verrazzano_images.txt
+        cd ${PSR_PATH}
+        echo 'Building PSR backend image...'
+        make docker-push DOCKER_REGISTRY=${env.DOCKER_REGISTRY} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_IMAGE_TAG=${dockerImageTag}
     """
 }
 
-// Called in Stage Generate operator.yaml steps
-def generateOperatorYaml(dockerImageTag) {
+def saveCLIExecutables() {
     sh """
-        cd ${GO_REPO_PATH}/verrazzano/platform-operator
-        case "${env.BRANCH_NAME}" in
-            master|release-*)
-                ;;
-            *)
-                echo "Adding image pull secrets to operator.yaml for non master/release branch"
-                export IMAGE_PULL_SECRETS=verrazzano-container-registry
-        esac
-        DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_APP_IMAGE_NAME} VERRAZZANO_CLUSTER_OPERATOR_IMAGE_NAME=${DOCKER_CLUSTER_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} OPERATOR_YAML=$WORKSPACE/generated-operator.yaml make generate-operator-yaml
-    """
-}
-
-// Called in Stage Save Generated Files steps
-def saveGeneratedFiles() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/operator.yaml --file $WORKSPACE/generated-operator.yaml
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file $WORKSPACE/generated-operator.yaml
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/generated-verrazzano-bom.json --file $WORKSPACE/generated-verrazzano-bom.json
-    """
-}
-
-def saveCLIExecutable() {
-    sh """
-        cd ${GO_REPO_PATH}/verrazzano
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/vz-linux-amd64.tar.gz --file $WORKSPACE/vz-linux-amd64.tar.gz
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/vz-linux-amd64.tar.gz --file $WORKSPACE/vz-linux-amd64.tar.gz
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/vz-linux-amd64.tar.gz.sha256 --file $WORKSPACE/vz-linux-amd64.tar.gz.sha256
-        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/vz-linux-amd64.tar.gz.sha256 --file $WORKSPACE/vz-linux-amd64.tar.gz.sha256
+        cd ${GO_REPO_PATH}/verrazzano/tools/psr
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/psrctl-linux-amd64.tar.gz --file $WORKSPACE/psrctl-linux-amd64.tar.gz
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/psrctl-linux-amd64.tar.gz --file $WORKSPACE/psrctl-linux-amd64.tar.gz
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/psrctl-linux-amd64.tar.gz.sha256 --file $WORKSPACE/psrctl-linux-amd64.tar.gz.sha256
+        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/psrctl-linux-amd64.tar.gz.sha256 --file $WORKSPACE/psrctl-linux-amd64.tar.gz.sha256
     """
 }
 
@@ -648,7 +417,7 @@ def runGinkgo(testSuitePath) {
 }
 
 // Called in Stage Acceptance Tests post
-def dumpK8sCluster(dumpDirectory) {
+/*def dumpK8sCluster(dumpDirectory) {
     sh """
         mkdir -p ${dumpDirectory}/cluster-snapshot
         ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}/cluster-snapshot -r ${dumpDirectory}/cluster-snapshot/analysis.report
@@ -656,7 +425,7 @@ def dumpK8sCluster(dumpDirectory) {
         mkdir -p ${dumpDirectory}/bug-report
         tar -xvf ${dumpDirectory}/bug-report.tar.gz -C ${dumpDirectory}/bug-report
     """
-}
+}*/
 
 
 // Called in Stage Clean workspace and checkout steps

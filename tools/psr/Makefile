@@ -7,20 +7,21 @@ BACKEND_NAME:=psr-backend
 MAKEFILE_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 PSR_DIR:=${MAKEFILE_DIR}
 CLI_DIR:=github.com$(shell echo ${MAKEFILE_DIR} | sed 's/.*github.com//')/psrctl
+
 VERSION_DIR:=$(CLI_DIR)/cmd/version
 BACKEND_DIR:=$(PSR_DIR)/backend
-DOCKER_REPO:=ghcr.io
-DOCKER_REGISTRY=verrazzano
+
+DOCKER_REGISTRY ?= ghcr.io
+DOCKER_REPO ?= verrazzano
 
 ifndef DOCKER_IMAGE_FULLNAME
 DOCKER_IMAGE_NAME ?= ${BACKEND_NAME}
 DOCKER_IMAGE_FULLNAME=${DOCKER_IMAGE_NAME}
-
-ifdef DOCKER_REGISTRY
-DOCKER_IMAGE_FULLNAME := ${DOCKER_REGISTRY}/${DOCKER_IMAGE_FULLNAME}
-endif
 ifdef DOCKER_REPO
 DOCKER_IMAGE_FULLNAME := ${DOCKER_REPO}/${DOCKER_IMAGE_FULLNAME}
+endif
+ifdef DOCKER_REGISTRY
+DOCKER_IMAGE_FULLNAME := ${DOCKER_REGISTRY}/${DOCKER_IMAGE_FULLNAME}
 endif
 endif
 DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
