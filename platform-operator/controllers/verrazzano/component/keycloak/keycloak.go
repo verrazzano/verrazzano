@@ -1189,7 +1189,8 @@ func createOrUpdateClientScope(ctx spi.ComponentContext, cfg *restclient.Config,
 		ctx.Log().Errorf("Component Keycloak failed creating %s client scope stdout = %s, stderr = %s", groupname, stdout, stderr)
 		return err
 	}
-
+	ctx.Log().Debugf("createOrUpdateClientScope: Created %s client-scope", groupname)
+	ctx.Log().Oncef("Component Keycloak successfully created client-scope %s", groupname)
 	return nil
 
 }
@@ -1671,7 +1672,7 @@ func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error
 	return clientSecret.Value, nil
 }
 
-// GetArgoCDClientSecretFromKeycloak returns the secret from rancher client in Keycloak
+// GetArgoCDClientSecretFromKeycloak returns the secret from argocd client in Keycloak
 func GetArgoCDClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error) {
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
