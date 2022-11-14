@@ -132,14 +132,14 @@ func (s *Syncer) ProcessAgentThread() error {
 	if err != nil {
 		// we couldn't sync the cluster CAs - but we should keep going with the rest of the work
 		s.Log.Errorf("Failed to synchronize cluster CA certificates: %v", err)
-  }
+	}
 
 	// Sync cattle-cluster-agent deployment
 	err = s.syncCattleClusterAgent("")
 	if err != nil {
 		// we couldn't sync the cattle-cluster-agent - but we should keep going with the rest of the work
 		s.Log.Errorf("Failed to synchronize cattle-cluster-agent: %v", err)
-  }
+	}
 	return nil
 }
 
