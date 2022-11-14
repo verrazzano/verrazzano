@@ -30,7 +30,7 @@ const (
 	maxReplicaCount = "MAX_REPLICA_COUNT"
 )
 
-type scaleWorker struct {
+type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetrics
 	*state
@@ -43,7 +43,7 @@ type state struct {
 	directionOut   bool
 }
 
-var _ spi.Worker = scaleWorker{}
+var _ spi.Worker = worker{}
 
 // scaleMetrics holds the metrics produced by the worker. Metrics must be thread safe.
 type workerMetrics struct {
@@ -58,7 +58,7 @@ func NewScaleWorker() (spi.Worker, error) {
 	if err != nil {
 		return nil, err
 	}
-	w := scaleWorker{
+	w := worker{
 		psrClient: c,
 		log:       vzlog.DefaultLogger(),
 		state:     &state{},
@@ -75,12 +75,12 @@ func NewScaleWorker() (spi.Worker, error) {
 			},
 			scaleOutSeconds: metrics.MetricItem{
 				Name: "opensearch_scale_out_seconds",
-				Help: "The number of seconds taken to scale out OpenSearch",
+				Help: "The number of seconds elapsed to scale out OpenSearch",
 				Type: prometheus.GaugeValue,
 			},
 			scaleInSeconds: metrics.MetricItem{
 				Name: "opensearch_scale_in_seconds",
-				Help: "The number of seconds taken to scale in OpenSearch",
+				Help: "The number of seconds elapsed to scale in OpenSearch",
 				Type: prometheus.GaugeValue,
 			},
 		},
@@ -97,15 +97,15 @@ func NewScaleWorker() (spi.Worker, error) {
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
-func (w scaleWorker) GetWorkerDesc() spi.WorkerDesc {
+func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
 		WorkerType:  config.WorkerTypeScale,
-		Description: "Worker to scale the number of specified OpenSearch tiers",
+		Description: "The OpenSearch scale worker scales an OpenSearch tier in and out continuously",
 		MetricsName: "scale",
 	}
 }
 
-func (w scaleWorker) GetEnvDescList() []osenv.EnvVarDesc {
+func (w worker) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{
 		{Key: openSearchTier, DefaultVal: "", Required: true},
 		{Key: minReplicaCount, DefaultVal: "3", Required: false},
@@ -113,11 +113,11 @@ func (w scaleWorker) GetEnvDescList() []osenv.EnvVarDesc {
 	}
 }
 
-func (w scaleWorker) GetMetricDescList() []prometheus.Desc {
+func (w worker) GetMetricDescList() []prometheus.Desc {
 	return w.metricDescList
 }
 
-func (w scaleWorker) GetMetricList() []prometheus.Metric {
+func (w worker) GetMetricList() []prometheus.Metric {
 	return []prometheus.Metric{
 		w.scaleInCountTotal.BuildMetric(),
 		w.scaleOutCountTotal.BuildMetric(),
@@ -126,12 +126,12 @@ func (w scaleWorker) GetMetricList() []prometheus.Metric {
 	}
 }
 
-func (w scaleWorker) WantLoopInfoLogged() bool {
+func (w worker) WantLoopInfoLogged() bool {
 	return false
 }
 
 // DoWork continuously scales a specified OpenSearch out and in by modifying the VZ CR OpenSearch component
-func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+func (w worker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	// validate OS tier
 	tier := config.PsrEnv.GetEnv(openSearchTier)
 	if tier != psropensearch.MasterTier && tier != psropensearch.DataTier && tier != psropensearch.IngestTier {
@@ -191,7 +191,7 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 	return nil
 }
 
-func (w scaleWorker) getUpdateModifier(tier string, currentReplicas int) (update.CRModifier, int, error) {
+func (w worker) getUpdateModifier(tier string, currentReplicas int) (update.CRModifier, int, error) {
 	max, err := strconv.ParseInt(config.PsrEnv.GetEnv(maxReplicaCount), 10, 32)
 	if err != nil {
 		return nil, 0, fmt.Errorf("maxReplicaCount can not be parsed to an integer: %v", err)
@@ -224,7 +224,7 @@ func (w scaleWorker) getUpdateModifier(tier string, currentReplicas int) (update
 }
 
 // updateCr updates the Verrazzano CR and retries if there is a conflict error
-func (w scaleWorker) updateCr(cr *vzv1alpha1.Verrazzano, m update.CRModifier) error {
+func (w worker) updateCr(cr *vzv1alpha1.Verrazzano, m update.CRModifier) error {
 	for {
 		// Modify the CR
 		m.ModifyCR(cr)
@@ -250,7 +250,7 @@ func (w scaleWorker) updateCr(cr *vzv1alpha1.Verrazzano, m update.CRModifier) er
 }
 
 // Wait until Verrazzano is ready or not ready
-func (w scaleWorker) waitReady(desiredReady bool) (cr *vzv1alpha1.Verrazzano, err error) {
+func (w worker) waitReady(desiredReady bool) (cr *vzv1alpha1.Verrazzano, err error) {
 	for {
 		cr, err = psrvz.GetVerrazzano(w.psrClient.VzInstall)
 		if err != nil {
