@@ -74,7 +74,7 @@ func TestRemoveTempFiles(t *testing.T) {
 // GIVEN a call to FileExists
 //
 //	WHEN with a valid file path
-//	THEN the file name is checked for existance
+//	THEN the file name is checked for existence
 func TestFileExists(t *testing.T) {
 	tests := []struct {
 		name          string
