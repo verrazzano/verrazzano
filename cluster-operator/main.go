@@ -110,6 +110,14 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "VerrazzanoManagedCluster")
 		os.Exit(1)
 	}*/
+	// Set up the reconciler for VerrazzanoManagedCluster objects
+	/*	if err = (&clusters.VerrazzanoManagedClusterReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+		}).SetupWithManager(mgr); err != nil {
+			return errors.Wrap(err, "Failed to setup controller VerrazzanoManagedCluster")
+		}*/
+
 	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

@@ -1,7 +1,7 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package clusters
+package vmc
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	corev1 "k8s.io/api/core/v1"
@@ -59,7 +60,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 	// attempt to fetch the registration manifest YAML
 	vzVMCWaitingForClusterID := false
 
-	if vmc.Labels != nil && vmc.Labels[createdByLabel] == createdByVerrazzano && len(vmc.Status.RancherRegistration.ClusterID) == 0 {
+	if vmc.Labels != nil && vmc.Labels[clusters.createdByLabel] == clusters.createdByVerrazzano && len(vmc.Status.RancherRegistration.ClusterID) == 0 {
 		r.log.Progressf("Waiting for Verrazzano-created VMC named %s to have a cluster id in the status before attempting to fetch Rancher registration manifest", vmc.Name)
 		vzVMCWaitingForClusterID = true
 	} else {
