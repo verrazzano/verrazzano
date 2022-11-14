@@ -113,6 +113,12 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 			return nil
 		})
 
+	adminMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: getManifestSecretName("cluster1")}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, name.Name)
+		})
+
 	// Make the request
 	s := &Syncer{
 		AdminClient:        adminMock,
