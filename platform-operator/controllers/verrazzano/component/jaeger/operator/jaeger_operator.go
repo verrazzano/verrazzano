@@ -150,15 +150,7 @@ func preInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	createInstance, err := isCreateDefaultJaegerInstance(ctx)
-	if err != nil {
-		return err
-	}
-	if createInstance {
-		// Create Jaeger secret with the OpenSearch credentials
-		return createJaegerSecret(ctx)
-	}
-	return nil
+	return createJaegerSecrets(ctx)
 }
 
 // AppendOverrides appends Helm value overrides for the Jaeger Operator component's Helm chart
@@ -250,24 +242,31 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		return nil, err
 	}
 
-	createInstance, err := isCreateDefaultJaegerInstance(compContext)
+	registrationSecret, err := common.GetManagedClusterRegistrationSecret(compContext.Client())
 	if err != nil {
 		return nil, err
 	}
-	if createInstance {
-		// use jaegerCRTemplate to populate Jaeger spec data
-		jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerCreateTemplate)
+	// Check to create a default Jaeger instance if the Verrazzano is a local cluster
+	if registrationSecret == nil {
+		createInstance, err := isCreateDefaultJaegerInstance(compContext)
 		if err != nil {
 			return nil, err
 		}
-		var osReplicaCount int32 = 1
-		if opensearch.IsSingleDataNodeCluster(compContext) {
-			osReplicaCount = 0
-		}
-		data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: osReplicaCount}
-		err = jaegerCRTemplate.Execute(&b, data)
-		if err != nil {
-			return nil, err
+		if createInstance {
+			// use jaegerCRTemplate to populate Jaeger spec data
+			jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerCreateTemplate)
+			if err != nil {
+				return nil, err
+			}
+			var osReplicaCount int32 = 1
+			if opensearch.IsSingleDataNodeCluster(compContext) {
+				osReplicaCount = 0
+			}
+			data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: osReplicaCount}
+			err = jaegerCRTemplate.Execute(&b, data)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -777,6 +776,27 @@ func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) err
 		return ctx.Log().ErrorfNewErr("Failed create/update Jaeger ingress: %v", err)
 	}
 	return err
+}
+
+// createJaegerSecrets create or update Jaeger resources depending on if running a managed cluster, or local cluster
+// with the default Jaeger instance.
+func createJaegerSecrets(ctx spi.ComponentContext) error {
+	registrationSecret, err := common.GetManagedClusterRegistrationSecret(ctx.Client())
+	if err != nil {
+		return err
+	}
+	if registrationSecret != nil {
+		return nil
+	}
+	createInstance, err := isCreateDefaultJaegerInstance(ctx)
+	if err != nil {
+		return err
+	}
+	if createInstance {
+		// Create Jaeger secret with the OpenSearch credentials
+		return createJaegerSecret(ctx)
+	}
+	return nil
 }
 
 func buildJaegerHostnameForDomain(dnsDomain string) string {

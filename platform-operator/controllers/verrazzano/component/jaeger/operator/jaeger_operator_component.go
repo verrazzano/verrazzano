@@ -139,6 +139,9 @@ func (c jaegerOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := c.createOrUpdateJaegerResources(ctx); err != nil {
 		return err
 	}
+	if _, err := createOrUpdateMCJaeger(ctx.Client()); err != nil {
+		return err
+	}
 	// these need to be set for helm component post install processing
 	c.IngressNames = c.GetIngressNames(ctx)
 	c.Certificates = c.GetCertificateNames(ctx)
@@ -221,20 +224,30 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	createInstance, err := isCreateDefaultJaegerInstance(ctx)
-	if err != nil {
-		return err
-	}
-	if createInstance {
-		// Create Jaeger secret with the OpenSearch credentials
-		return createJaegerSecret(ctx)
-	}
-	return nil
+	return createJaegerSecrets(ctx)
 }
 
 // Upgrade jaegeroperator component for upgrade processing.
 func (c jaegerOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
 	return c.HelmComponent.Install(ctx)
+}
+
+// Reconcile configures the managed cluster or local cluster Jaeger instance, if Jaeger operator
+// is installed.
+func (c jaegerOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
+	installed, err := c.IsInstalled(ctx)
+	if !installed {
+		return err
+	}
+	created, err := createOrUpdateMCJaeger(ctx.Client())
+	if created || err != nil {
+		return err
+	}
+	// create the local cluster Jaeger instance if we did not create the managed cluster instance
+	if err := createJaegerSecrets(ctx); err != nil {
+		return err
+	}
+	return c.Install(ctx)
 }
 
 // IsInstalled checks if jaeger is installed
