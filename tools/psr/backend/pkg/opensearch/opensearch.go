@@ -40,6 +40,7 @@ func IsOSReady(ctrlRuntimeClient client.Client, cr *vzv1alpha1.Verrazzano) bool 
 	return true
 }
 
+// IsOSNodeReady returns true if the OpenSearch tier is ready
 func IsOSNodeReady(client client.Client, node vzv1alpha1.OpenSearchNode, prefix string) bool {
 	if node.Replicas < 1 {
 		return true

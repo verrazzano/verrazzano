@@ -229,7 +229,7 @@ func (w scaleWorker) updateCr(cr *vzv1alpha1.Verrazzano, m update.CRModifier) er
 		// Modify the CR
 		m.ModifyCR(cr)
 
-		err := psrvz.UpdateVerrazzanoResource(w.psrClient.VzInstall, cr)
+		err := psrvz.UpdateVerrazzano(w.psrClient.VzInstall, cr)
 		if err == nil {
 			break
 		}
@@ -241,7 +241,7 @@ func (w scaleWorker) updateCr(cr *vzv1alpha1.Verrazzano, m update.CRModifier) er
 		logMsg := fmt.Sprintf("VZ conflict error, retrying")
 		w.log.Infof(logMsg)
 
-		cr, err = psrvz.GetVerrazzanoResource(w.psrClient.VzInstall)
+		cr, err = psrvz.GetVerrazzano(w.psrClient.VzInstall)
 		if err != nil {
 			return err
 		}
@@ -253,7 +253,7 @@ func (w scaleWorker) updateCr(cr *vzv1alpha1.Verrazzano, m update.CRModifier) er
 // Wait until Verrazzano is ready or not ready
 func (w scaleWorker) waitReady(desiredReady bool) (cr *vzv1alpha1.Verrazzano, err error) {
 	for {
-		cr, err = psrvz.GetVerrazzanoResource(w.psrClient.VzInstall)
+		cr, err = psrvz.GetVerrazzano(w.psrClient.VzInstall)
 		if err != nil {
 			return nil, err
 		}
