@@ -2,10 +2,8 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def SKIP_ACCEPTANCE_TESTS = false
-def SKIP_TRIGGERED_TESTS = false
 def SUSPECT_LIST = ""
-//def VERRAZZANO_DEV_VERSION = ""
+def VERRAZZANO_DEV_VERSION = ""
 def tarfilePrefix=""
 def storeLocation=""
 
@@ -143,11 +141,6 @@ pipeline {
                         buildCLI("${DOCKER_IMAGE_TAG}")
                     }
                     post {
-                        failure {
-                            script {
-                                SKIP_TRIGGERED_TESTS = true
-                            }
-                        }
                         success {
                             script {
                                 archiveArtifacts artifacts: '**/*.tar.gz*', allowEmptyArchive: true
@@ -172,14 +165,13 @@ pipeline {
                         failure {
                             script {
                                 METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '0')
-                                SKIP_TRIGGERED_TESTS = true
                             }
                         }
                         success {
                             echo "Saving generated files"
                             script {
                                 METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
-                                //archiveArtifacts artifacts: "", allowEmptyArchive: true
+                                archiveArtifacts artifacts: "", allowEmptyArchive: true
                             }
                         }
                     }
@@ -214,7 +206,6 @@ pipeline {
                                     lineCoverageTargets: '68, 68, 68',
                                     packageCoverageTargets: '100, 0, 0',
                             )*/
-                            //archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
                         }
                     }
                 }
@@ -240,57 +231,14 @@ pipeline {
                }
             }
         }
-
-        /*stage("Push Images to OCIR") {
-            environment {
-                OCI_CLI_AUTH="api_key"
-                OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
-                OCI_CLI_USER = credentials('oci-dev-user-ocid')
-                OCI_CLI_FINGERPRINT = credentials('oci-dev-api-key-fingerprint')
-                OCI_CLI_KEY_FILE = credentials('oci-dev-api-key-file')
-                OCI_CLI_REGION = "us-ashburn-1"
-                OCI_REGION = "${env.OCI_CLI_REGION}"
-                // Directory containing the Verrazzano image tar files
-                VERRAZZANO_IMAGES_DIRECTORY = "${WORKSPACE}/vz-full/verrazzano-${VERRAZZANO_DEV_VERSION}/images"
-            }
-            when {
-                expression{params.PUSH_TO_OCIR == true}
-            }
-            steps {
-                script {
-                    try {
-                        sh """
-                            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
-                        """
-                    } catch(error) {
-                        echo "docker login failed, retrying after sleep"
-                        retry(4) {
-                            sleep(30)
-                            sh """
-                            echo "${DOCKER_SCAN_CREDS_PSW}" | docker login ${env.OCIR_SCAN_REGISTRY} -u ${DOCKER_SCAN_CREDS_USR} --password-stdin
-                            """
-                        }
-                    }
-
-                    sh """
-                        echo "Pushing images to OCIR, note that images pushed using this pipeline are NOT treated as the latest scan results, those come from periodic test runs"
-                        ci/scripts/push_to_ocir.sh
-                    """
-                }
-            }
-        }*/
     }
 
     post {
         always {
-            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**', allowEmptyArchive: true
+            archiveArtifacts artifacts: '**/coverage.html,**/logs/**', allowEmptyArchive: true
             junit testResults: '**/*test-result.xml', allowEmptyResults: true
         }
         failure {
-            sh """
-                curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
-            """
-            archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
             sh """
                 curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
                 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
@@ -323,7 +271,7 @@ def buildCLI(dockerImageTag) {
 }
 
 // Called in Stage Build steps
-// Makes target docker push for application/platform operator and analysis
+// Makes target docker push for psr-backend image
 def buildImages(dockerImageTag) {
     sh """
         cd ${PSR_PATH}
@@ -332,6 +280,7 @@ def buildImages(dockerImageTag) {
     """
 }
 
+// REVIEW: seems redundant with the save_psr_tooling script?
 def saveCLIExecutables() {
     sh """
         cd ${GO_REPO_PATH}/tools/psr
