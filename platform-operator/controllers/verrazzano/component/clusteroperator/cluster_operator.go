@@ -6,18 +6,12 @@ package clusteroperator
 import (
 	"fmt"
 
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/runtime"
 )
-
-// AppendClusterOperatorOverrides appends the overrides for the Cluster Operator component
-func AppendClusterOperatorOverrides(_ spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	return kvs, nil
-}
 
 // isClusterOperatorReady checks if the cluster operator deployment is ready
 func (c clusterOperatorComponent) isClusterOperatorReady(ctx spi.ComponentContext) bool {

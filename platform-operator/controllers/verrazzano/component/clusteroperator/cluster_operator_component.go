@@ -42,7 +42,6 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
-			AppendOverridesFunc:       AppendClusterOperatorOverrides,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
 			Dependencies:              []string{networkpolicies.ComponentName, oam.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
