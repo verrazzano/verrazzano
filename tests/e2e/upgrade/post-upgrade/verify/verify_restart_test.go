@@ -120,7 +120,8 @@ var _ = t.Describe("Application pods post-upgrade", Label("f:platform-lcm.upgrad
 		func(namespace string, timeout time.Duration) {
 			exists, err := pkg.DoesNamespaceExist(namespace)
 			if err != nil {
-				Fail(err.Error())
+				t.Logs.Errorf("error while checking if namespace %s exists: %v", namespace, err.Error())
+				return
 			}
 			if exists {
 				Eventually(func() bool {
