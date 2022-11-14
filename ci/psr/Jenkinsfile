@@ -42,8 +42,9 @@ pipeline {
         DOCKER_PSR_BACKEND_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PSR_BACKEND_PUBLISH_IMAGE_NAME : env.DOCKER_PSR_BRANCH_BACKEND_IMAGE_NAME}"
 
         GOPATH = '/home/opc/go'
-        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano/verrazzano"
-        PSR_PATH = '${GO_REPO_PATH}/tools/psr'
+        GO_REPO_PATH = "${env.GOPATH}/src/github.com/verrazzano/verrazzano"
+        PSR_PATH = '${env.GO_REPO_PATH}/tools/psr'
+
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_EMAIL = credentials('github-packages-email')
         DOCKER_REGISTRY = 'ghcr.io'
