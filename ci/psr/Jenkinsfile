@@ -128,7 +128,7 @@ pipeline {
 
                 script {
                     // Create the image tag
-                    def props = readProperties file: '${GO_REPO_PATH}/verrazzano/.verrazzano-development-version'
+                    def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "echo $env.GIT_COMMIT | head -c 8")
@@ -212,8 +212,8 @@ pipeline {
                         always {
                             sh """
                             cd ${PSR_PATH}
-                            //cp coverage.html ${WORKSPACE}
-                            //cp coverage.xml ${WORKSPACE}
+                            #cp coverage.html ${WORKSPACE}
+                            #cp coverage.xml ${WORKSPACE}
                             ${PSR_PATH}/build/copy-junit-output.sh ${WORKSPACE}
                              """
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
