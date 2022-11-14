@@ -10,6 +10,7 @@ import (
 	psropensearch "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/opensearch"
 	psrvz "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/verrazzano"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -24,10 +25,9 @@ import (
 )
 
 const (
-	openSearchTier    = "OPEN_SEARCH_TIER"
-	scaleDelayPerTier = "SCALE_DELAY_PER_TIER"
-	minReplicaCount   = "MIN_REPLICA_COUNT"
-	maxReplicaCount   = "MAX_REPLICA_COUNT"
+	openSearchTier  = "OPEN_SEARCH_TIER"
+	minReplicaCount = "MIN_REPLICA_COUNT"
+	maxReplicaCount = "MAX_REPLICA_COUNT"
 )
 
 type scaleWorker struct {
@@ -39,7 +39,8 @@ type scaleWorker struct {
 }
 
 type state struct {
-	init bool
+	startScaleTime int64
+	directionOut   bool
 }
 
 var _ spi.Worker = scaleWorker{}
@@ -48,6 +49,8 @@ var _ spi.Worker = scaleWorker{}
 type workerMetrics struct {
 	scaleOutCountTotal metrics.MetricItem
 	scaleInCountTotal  metrics.MetricItem
+	scaleOutSeconds    metrics.MetricItem
+	scaleInSeconds     metrics.MetricItem
 }
 
 func NewScaleWorker() (spi.Worker, error) {
@@ -58,15 +61,26 @@ func NewScaleWorker() (spi.Worker, error) {
 	w := scaleWorker{
 		psrClient: c,
 		log:       vzlog.DefaultLogger(),
+		state:     &state{},
 		workerMetrics: &workerMetrics{
 			scaleOutCountTotal: metrics.MetricItem{
-				Name: "scale_out_count_total",
-				Help: "The total number of times OpenSearch has been scaled out",
+				Name: "opensearch_scale_out_count_total",
+				Help: "The total number of times OpenSearch scaled out",
 				Type: prometheus.CounterValue,
 			},
 			scaleInCountTotal: metrics.MetricItem{
-				Name: "scale_in_count_total",
-				Help: "The total number of times OpenSearch has been scaled in",
+				Name: "opensearch_scale_in_count_total",
+				Help: "The total number of times OpenSearch scaled in",
+				Type: prometheus.CounterValue,
+			},
+			scaleOutSeconds: metrics.MetricItem{
+				Name: "opensearch_scale_out_seconds",
+				Help: "The number of seconds taken to scale out OpenSearch",
+				Type: prometheus.CounterValue,
+			},
+			scaleInSeconds: metrics.MetricItem{
+				Name: "opensearch_scale_in_seconds",
+				Help: "The number of seconds taken to scale in OpenSearch",
 				Type: prometheus.CounterValue,
 			},
 		},
@@ -75,6 +89,8 @@ func NewScaleWorker() (spi.Worker, error) {
 	w.metricDescList = []prometheus.Desc{
 		*w.scaleOutCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
 		*w.scaleInCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.scaleOutSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.scaleInSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
 	}
 
 	return w, nil
@@ -92,9 +108,21 @@ func (w scaleWorker) GetWorkerDesc() spi.WorkerDesc {
 func (w scaleWorker) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{
 		{Key: openSearchTier, DefaultVal: "", Required: true},
-		{Key: scaleDelayPerTier, DefaultVal: "5s", Required: false},
 		{Key: minReplicaCount, DefaultVal: "3", Required: false},
 		{Key: maxReplicaCount, DefaultVal: "5", Required: false},
+	}
+}
+
+func (w scaleWorker) GetMetricDescList() []prometheus.Desc {
+	return w.metricDescList
+}
+
+func (w scaleWorker) GetMetricList() []prometheus.Metric {
+	return []prometheus.Metric{
+		w.scaleInCountTotal.BuildMetric(),
+		w.scaleOutCountTotal.BuildMetric(),
+		w.scaleOutSeconds.BuildMetric(),
+		w.scaleInSeconds.BuildMetric(),
 	}
 }
 
@@ -102,24 +130,29 @@ func (w scaleWorker) WantLoopInfoLogged() bool {
 	return false
 }
 
-// DoWork continuously scales a specified OpenSearch out and in by modifying the VZ CR
-// It uses the nextScale value to determine which direction OpenSearch should be scaled next
-// This worker is blocking until the current scaling of replicas has completed and OpenSearch reaches a "ready" state
-// Verrazzano installed using the v1beta1 API is assumed
+// DoWork continuously scales a specified OpenSearch out and in by modifying the VZ CR OpenSearch component
 func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	// validate OS tier
 	tier := config.PsrEnv.GetEnv(openSearchTier)
 	if tier != psropensearch.MasterTier && tier != psropensearch.DataTier && tier != psropensearch.IngestTier {
 		return fmt.Errorf("error, not a valid OpenSearch tier to scale")
 	}
-
 	// Wait until VZ is ready
 	cr, err := w.waitReady(true)
 	if err != nil {
 		log.Progress("Failed to wait for Verrazzano to be ready after update.  The test results are not valid %v", err)
 		return err
 	}
-	// Get the current OpenSearch replica field for the tier in the VZ CR
+	// Update the elapsed time of the scale operation
+	if w.state.startScaleTime > 0 {
+		elapsedSecs := time.Now().UnixNano() - w.state.startScaleTime
+		if w.state.directionOut {
+			atomic.StoreInt64(&w.workerMetrics.scaleOutSeconds.Val, elapsedSecs)
+		} else {
+			atomic.StoreInt64(&w.workerMetrics.scaleInSeconds.Val, elapsedSecs)
+		}
+	}
+	// Get the current number OpenSearch pods that exist for the given tier
 	pods, err := psropensearch.GetPodsForTier(w.psrClient.CrtlRuntime, tier)
 	if err != nil {
 		log.Progress("Failed to get the pods for tier %s: %v", tier, err)
@@ -131,6 +164,16 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 		return err
 	}
 	log.Infof("Updating Verrazzano CR OpenSearch %s tier, scaling to %v replicas", tier, desiredReplicas)
+
+	// Update metrics
+	if desiredReplicas > len(pods) {
+		w.state.directionOut = true
+		atomic.AddInt64(&w.workerMetrics.scaleOutCountTotal.Val, 1)
+	} else {
+		w.state.directionOut = false
+		atomic.AddInt64(&w.workerMetrics.scaleInCountTotal.Val, 1)
+	}
+	w.state.startScaleTime = time.Now().UnixNano()
 
 	// Update the CR to change the replica count
 	err = w.updateCr(cr, m)
@@ -146,17 +189,6 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 	}
 
 	return nil
-}
-
-func (w scaleWorker) GetMetricDescList() []prometheus.Desc {
-	return w.metricDescList
-}
-
-func (w scaleWorker) GetMetricList() []prometheus.Metric {
-	return []prometheus.Metric{
-		w.scaleInCountTotal.BuildMetric(),
-		w.scaleOutCountTotal.BuildMetric(),
-	}
 }
 
 func (w scaleWorker) getUpdateModifier(tier string, currentReplicas int) (update.CRModifier, int, error) {
