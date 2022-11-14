@@ -10,7 +10,9 @@ import (
 	vpoFakeClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/fake"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/k8sclient"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/verrazzano"
 	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"time"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
@@ -161,6 +163,11 @@ func TestGetMetricList(t *testing.T) {
 	}
 }
 
+// TestDoWork tests the DoWork method
+// GIVEN a worker
+//
+//	WHEN the DoWork methods is called
+//	THEN ensure that the correct results are returned
 func TestDoWork(t *testing.T) {
 	asserts := assert.New(t)
 
@@ -184,8 +191,8 @@ func TestDoWork(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			envMap := map[string]string{
 				openSearchTier:  "master",
-				minReplicaCount: "1",
-				maxReplicaCount: "2",
+				minReplicaCount: "3",
+				maxReplicaCount: "4",
 			}
 			f := fakeEnv{data: envMap}
 			saveEnv := osenv.GetEnvFunc
@@ -194,7 +201,11 @@ func TestDoWork(t *testing.T) {
 				osenv.GetEnvFunc = saveEnv
 			}()
 
-			// Setup fake clients
+			// Setup fake VZ client
+			cr := initFakeVzCr(v1alpha1.VzStateReady)
+			vzclient := vpoFakeClient.NewSimpleClientset(cr)
+
+			// Setup fake K8s client
 			podLabels := map[string]string{"opensearch.verrazzano.io/role-master": "true"}
 			scheme := runtime.NewScheme()
 			_ = corev1.AddToScheme(scheme)
@@ -204,9 +215,9 @@ func TestDoWork(t *testing.T) {
 				WithObjects(initFakePodWithLabels(podLabels)).
 				WithScheme(scheme).
 				Build()
-			vzclient := vpoFakeClient.NewSimpleClientset(initFakeVzCr(v1alpha1.VzStateReady))
 
-			fc := fakePsrClient{
+			// Load the PsrClient with both fake clients
+			psrClient := fakePsrClient{
 				psrClient: &k8sclient.PsrClient{
 					CrtlRuntime: crtClient,
 					VzInstall:   vzclient,
@@ -216,7 +227,7 @@ func TestDoWork(t *testing.T) {
 			defer func() {
 				funcNewPsrClient = origFc
 			}()
-			funcNewPsrClient = fc.NewPsrClient
+			funcNewPsrClient = psrClient.NewPsrClient
 
 			// Create worker and call dowork
 			wi, err := NewScaleWorker()
@@ -224,6 +235,13 @@ func TestDoWork(t *testing.T) {
 			w := wi.(worker)
 			err = config.PsrEnv.LoadFromEnv(w.GetEnvDescList())
 			assert.NoError(t, err)
+
+			// Set the CR to any state but ready in 2 secs
+			go func() {
+				time.Sleep(2 * time.Second)
+				cr := initFakeVzCr(v1alpha1.VzStateReconciling)
+				verrazzano.UpdateVerrazzano(vzclient, cr)
+			}()
 
 			err = w.DoWork(config.CommonConfig{
 				WorkerType: "scale",
