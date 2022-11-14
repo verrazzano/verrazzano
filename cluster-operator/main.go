@@ -7,6 +7,7 @@ import (
 	"flag"
 	"os"
 
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 
 	"go.uber.org/zap"
@@ -111,12 +112,14 @@ func main() {
 		os.Exit(1)
 	}*/
 	// Set up the reconciler for VerrazzanoManagedCluster objects
-	/*	if err = (&clusters.VerrazzanoManagedClusterReconciler{
-			Client: mgr.GetClient(),
-			Scheme: mgr.GetScheme(),
-		}).SetupWithManager(mgr); err != nil {
-			return errors.Wrap(err, "Failed to setup controller VerrazzanoManagedCluster")
-		}*/
+	if err = (&vmc.VerrazzanoManagedClusterReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to setup controller VerrazzanoManagedCluster")
+		os.Exit(1)
+		// return errors.Wrap(err, "Failed to setup controller VerrazzanoManagedCluster")
+	}
 
 	// +kubebuilder:scaffold:builder
 
