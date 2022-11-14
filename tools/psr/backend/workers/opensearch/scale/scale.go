@@ -192,19 +192,19 @@ func (w scaleWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) e
 }
 
 func (w scaleWorker) getUpdateModifier(tier string, currentReplicas int) (update.CRModifier, int, error) {
-	max, err := strconv.Atoi(config.PsrEnv.GetEnv(maxReplicaCount))
+	max, err := strconv.ParseInt(config.PsrEnv.GetEnv(maxReplicaCount), 10, 32)
 	if err != nil {
-		return nil, 0, fmt.Errorf("maxReplicaCount can not be parsed to an integer: %f", err)
+		return nil, 0, fmt.Errorf("maxReplicaCount can not be parsed to an integer: %v", err)
 	}
-	min, err := strconv.Atoi(config.PsrEnv.GetEnv(minReplicaCount))
+	min, err := strconv.ParseInt(config.PsrEnv.GetEnv(minReplicaCount), 10, 32)
 	if err != nil {
-		return nil, 0, fmt.Errorf("minReplicaCount can not be parsed to an integer: %f", err)
+		return nil, 0, fmt.Errorf("minReplicaCount can not be parsed to an integer: %v", err)
 	}
 	if min < 3 {
 		return nil, 0, fmt.Errorf("minReplicaCount can not be less than 3")
 	}
 	var desiredReplicas int32
-	if currentReplicas != min {
+	if currentReplicas != int(min) {
 		desiredReplicas = int32(min)
 	} else {
 		desiredReplicas = int32(max)
@@ -238,8 +238,7 @@ func (w scaleWorker) updateCr(cr *vzv1alpha1.Verrazzano, m update.CRModifier) er
 		}
 		// Conflict error, get latest vz cr
 		time.Sleep(1 * time.Second)
-		logMsg := fmt.Sprintf("VZ conflict error, retrying")
-		w.log.Infof(logMsg)
+		w.log.Info("OpenSearch scaling, Verrazzano CR conflict error, retrying")
 
 		cr, err = psrvz.GetVerrazzano(w.psrClient.VzInstall)
 		if err != nil {
