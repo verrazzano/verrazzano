@@ -154,24 +154,6 @@ func GetKubernetesClientsetWithConfig(config *rest.Config) (*kubernetes.Clientse
 	return clientset, err
 }
 
-// GetKubernetesNodeList returns a list of Kubernetes nodes
-func GetKubernetesNodeList(k8sClient client.Client) (*v1.NodeList, error) {
-	nodeList := &v1.NodeList{}
-	err := k8sClient.List(
-		context.TODO(),
-		nodeList,
-		&client.ListOptions{},
-	)
-	if err != nil {
-		return nil, err
-	}
-	nodes := map[string]bool{}
-	for _, node := range nodeList.Items {
-		nodes[node.GetName()] = true
-	}
-	return nodeList, nil
-}
-
 // GetCoreV1Func is the function to return the CoreV1Interface
 var GetCoreV1Func = GetCoreV1Client
 

@@ -5,7 +5,7 @@ package vzchecks
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/k8s/node"
 	k8score "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -19,15 +19,14 @@ func PrerequisiteCheck(client clipkg.Client, profile ProfileType) []error {
 
 func preCheck(client clipkg.Client, profile ProfileType) []error {
 	var errs []error
-	nodeList, err := k8sutil.GetKubernetesNodeList(client)
+	vzReq := getVZRequirement(profile)
+	if vzReq == (VZRequirement{}) {
+		return errs
+	}
+	nodeList, err := node.GetK8sNodeList(client)
 	if err != nil {
 		return []error{err}
 	}
-	if len(profile) == 0 {
-		// Default profile is Prod
-		profile = Prod
-	}
-	vzReq := getVZRequirement(profile)
 	if len(nodeList.Items) < vzReq.nodeCount {
 		errs = append(errs, fmt.Errorf(nodeCountReqMsg, profile, vzReq.nodeCount, len(nodeList.Items)))
 	}

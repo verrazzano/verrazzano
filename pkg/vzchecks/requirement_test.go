@@ -19,7 +19,8 @@ func TestGetVZRequirement(t *testing.T) {
 	}{
 		{Dev, 1, "2", "16G", "100G"},
 		{Prod, 3, "4", "32G", "100G"},
-		{ManagedCluster, 3, "4", "32G", "100G"},
+		{ManagedCluster, 1, "4", "32G", "100G"},
+		{"", 3, "4", "32G", "100G"},
 	}
 
 	for _, tt := range tests {
@@ -31,4 +32,10 @@ func TestGetVZRequirement(t *testing.T) {
 			assert.Equal(t, tt.storage, vzReq.ephemeralStorage.allocatable.String())
 		})
 	}
+}
+
+// TestUnspecifiedProfileRequirement tests getting Verrazzano requirement for unspecified profile
+func TestUnspecifiedProfileRequirement(t *testing.T) {
+	vzReq := getVZRequirement("unspecified")
+	assert.Equal(t, vzReq, VZRequirement{})
 }

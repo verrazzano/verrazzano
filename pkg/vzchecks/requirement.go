@@ -48,33 +48,37 @@ const (
 )
 
 var (
-	DevProfile = VZRequirement{
+	DevReq = VZRequirement{
 		nodeCount:        1,
 		cpu:              &resourceInfo{resourceType: CPU, allocatable: resource.MustParse("2")},
 		memory:           &resourceInfo{resourceType: Memory, allocatable: resource.MustParse("16G")},
 		ephemeralStorage: &resourceInfo{resourceType: EphemeralStorage, allocatable: resource.MustParse("100G")},
 	}
-	ProdProfile = VZRequirement{
+	ProdReq = VZRequirement{
 		nodeCount:        3,
 		cpu:              &resourceInfo{resourceType: CPU, allocatable: resource.MustParse("4")},
 		memory:           &resourceInfo{resourceType: Memory, allocatable: resource.MustParse("32G")},
 		ephemeralStorage: &resourceInfo{resourceType: EphemeralStorage, allocatable: resource.MustParse("100G")},
 	}
-	ManagedProfile = VZRequirement{
-		nodeCount:        3,
+	ManagedReq = VZRequirement{
+		nodeCount:        1,
 		cpu:              &resourceInfo{resourceType: CPU, allocatable: resource.MustParse("4")},
 		memory:           &resourceInfo{resourceType: Memory, allocatable: resource.MustParse("32G")},
 		ephemeralStorage: &resourceInfo{resourceType: EphemeralStorage, allocatable: resource.MustParse("100G")},
 	}
 	profileMap = map[ProfileType]VZRequirement{
-		Dev:            DevProfile,
-		Prod:           ProdProfile,
-		ManagedCluster: ManagedProfile,
+		Dev:            DevReq,
+		Prod:           ProdReq,
+		ManagedCluster: ManagedReq,
 	}
 )
 
 // getVZRequirement gets the VZRequirement based on the profile passed
 func getVZRequirement(requestedProfile ProfileType) VZRequirement {
+	if len(requestedProfile) == 0 {
+		// Default profile is Prod
+		requestedProfile = Prod
+	}
 	if val, ok := profileMap[requestedProfile]; ok {
 		return val
 	}
