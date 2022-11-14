@@ -5,20 +5,30 @@ package scale
 
 import (
 	"github.com/stretchr/testify/assert"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vpoFakeClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/fake"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/k8sclient"
+	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
-	"net/http"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	crtFakeClient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	"strings"
 	"testing"
 )
 
-type fakeHTTP struct {
-	error
-	resp     *http.Response
-	bodyData string
+type fakeEnv struct {
+	data map[string]string
 }
 
-type fakeBody struct {
-	data string
+type fakePsrClient struct {
+	psrClient *k8sclient.PsrClient
 }
 
 // TestGetters tests the worker getters
@@ -117,6 +127,11 @@ func TestGetMetricDescList(t *testing.T) {
 	}
 }
 
+// TestGetMetricList tests the GetMetricList method
+// GIVEN a worker
+//
+//	WHEN the GetMetricList methods is called
+//	THEN ensure that the correct results are returned
 func TestGetMetricList(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -146,105 +161,113 @@ func TestGetMetricList(t *testing.T) {
 	}
 }
 
-//// TestDoWork tests the DoWork method
-//// GIVEN a worker
-////
-////	WHEN the DoWork methods is called
-////	THEN ensure that the correct results are returned
-//func TestDoWork(t *testing.T) {
-//	tests := []struct {
-//		name         string
-//		bodyData     string
-//		getError     error
-//		doworkError  error
-//		statusCode   int
-//		nilResp      bool
-//		reqCount     int
-//		successCount int
-//		failureCount int
-//	}{
-//		{
-//			name:         "1",
-//			bodyData:     "testsuccess",
-//			statusCode:   200,
-//			reqCount:     1,
-//			successCount: 1,
-//			failureCount: 0,
-//		},
-//		{
-//			name:         "2",
-//			bodyData:     "testerror",
-//			getError:     errors.New("error"),
-//			reqCount:     1,
-//			successCount: 0,
-//			failureCount: 1,
-//		},
-//		{
-//			name:         "3",
-//			bodyData:     "testRespError",
-//			statusCode:   500,
-//			reqCount:     1,
-//			successCount: 0,
-//			failureCount: 1,
-//		},
-//		{
-//			name:         "4",
-//			bodyData:     "testNilResp",
-//			doworkError:  errors.New("GET request to endpoint received a nil response"),
-//			nilResp:      true,
-//			reqCount:     1,
-//			successCount: 0,
-//			failureCount: 1,
-//		},
-//	}
-//	for _, test := range tests {
-//		t.Run(test.name, func(t *testing.T) {
-//			f := httpGetFunc
-//			defer func() {
-//				httpGetFunc = f
-//			}()
-//			var resp *http.Response
-//			if !test.nilResp {
-//				resp = &http.Response{
-//					StatusCode:    test.statusCode,
-//					Body:          &fakeBody{data: test.bodyData},
-//					ContentLength: int64(len(test.bodyData)),
-//				}
-//			}
-//			httpGetFunc = fakeHTTP{
-//				bodyData: test.bodyData,
-//				error:    test.getError,
-//				resp:     resp,
-//			}.Get
-//
-//			wi, err := NewScaleWorker()
-//			assert.NoError(t, err)
-//			w := wi.(worker)
-//			err = w.DoWork(config.CommonConfig{
-//				WorkerType: "Fake",
-//			}, vzlog.DefaultLogger())
-//			if test.doworkError == nil && test.getError == nil {
-//				assert.NoError(t, err)
-//			} else {
-//				assert.Error(t, err)
-//			}
-//
-//			assert.Equal(t, int64(test.reqCount), w.getRequestsCountTotal.Val)
-//			assert.Equal(t, int64(test.successCount), w.getRequestsSucceededCountTotal.Val)
-//			assert.Equal(t, int64(test.failureCount), w.getRequestsFailedCountTotal.Val)
-//		})
-//	}
-//}
-//
-//func (f fakeHTTP) Get(url string) (resp *http.Response, err error) {
-//	return f.resp, f.error
-//}
-//
-//func (f fakeBody) Read(d []byte) (n int, err error) {
-//	copy(d, f.data)
-//	return len(f.data), nil
-//}
-//
-//func (f fakeBody) Close() error {
-//	return nil
-//}
+func TestDoWork(t *testing.T) {
+	asserts := assert.New(t)
+
+	tests := []struct {
+		name                   string
+		expectGetAndUpdate     bool
+		image                  string
+		initialLifeCycleAction string
+		updatedLifeCycleAction string
+	}{
+		// Test stopping WebLogic by setting annotation on WebLogic workload because it has an old Istio image with skew more than 2 minor versions.
+		{
+			name:                   "StopWebLogic",
+			expectGetAndUpdate:     true,
+			image:                  "proxyv2:1.4.5",
+			initialLifeCycleAction: "",
+			updatedLifeCycleAction: vzconst.LifecycleActionStop,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			envMap := map[string]string{
+				openSearchTier:  "master",
+				minReplicaCount: "1",
+				maxReplicaCount: "2",
+			}
+			f := fakeEnv{data: envMap}
+			saveEnv := osenv.GetEnvFunc
+			osenv.GetEnvFunc = f.GetEnv
+			defer func() {
+				osenv.GetEnvFunc = saveEnv
+			}()
+
+			// Setup fake clients
+			podLabels := map[string]string{"opensearch.verrazzano.io/role-master": "true"}
+			scheme := runtime.NewScheme()
+			_ = corev1.AddToScheme(scheme)
+			_ = k8sapiext.AddToScheme(scheme)
+			_ = v1alpha1.AddToScheme(scheme)
+			crtClient := crtFakeClient.NewClientBuilder().
+				WithObjects(initFakePodWithLabels(podLabels)).
+				WithScheme(scheme).
+				Build()
+			vzclient := vpoFakeClient.NewSimpleClientset(initFakeVzCr(v1alpha1.VzStateReady))
+
+			fc := fakePsrClient{
+				psrClient: &k8sclient.PsrClient{
+					CrtlRuntime: crtClient,
+					VzInstall:   vzclient,
+				},
+			}
+			origFc := funcNewPsrClient
+			defer func() {
+				funcNewPsrClient = origFc
+			}()
+			funcNewPsrClient = fc.NewPsrClient
+
+			// Create worker and call dowork
+			wi, err := NewScaleWorker()
+			assert.NoError(t, err)
+			w := wi.(worker)
+			err = config.PsrEnv.LoadFromEnv(w.GetEnvDescList())
+			assert.NoError(t, err)
+
+			err = w.DoWork(config.CommonConfig{
+				WorkerType: "scale",
+			}, vzlog.DefaultLogger())
+			//if test.doworkError == nil && test.getError == nil {
+			//	assert.NoError(t, err)
+			//} else {
+			//	assert.Error(t, err)
+			//}
+
+			// Validate the results
+			asserts.NoError(err)
+		})
+	}
+}
+
+// initFakePodWithLabels inits a fake Pod with specified image and labels
+func initFakePodWithLabels(labels map[string]string) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testPod",
+			Namespace: "verrazzano-system",
+			Labels:    labels,
+		},
+	}
+}
+
+// initFakeVzCr inits a fake Verrazzano CR
+func initFakeVzCr(state v1alpha1.VzStateType) *v1alpha1.Verrazzano {
+	return &v1alpha1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "testPod",
+			Namespace: "verrazzano-system",
+		},
+		Status: v1alpha1.VerrazzanoStatus{
+			State: state,
+		},
+	}
+}
+
+func (f *fakeEnv) GetEnv(key string) string {
+	return f.data[key]
+}
+
+func (f *fakePsrClient) NewPsrClient() (k8sclient.PsrClient, error) {
+	return *f.psrClient, nil
+}

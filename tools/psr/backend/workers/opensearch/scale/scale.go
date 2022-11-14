@@ -30,6 +30,8 @@ const (
 	maxReplicaCount = "MAX_REPLICA_COUNT"
 )
 
+var funcNewPsrClient = k8sclient.NewPsrClient
+
 type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetrics
@@ -54,7 +56,7 @@ type workerMetrics struct {
 }
 
 func NewScaleWorker() (spi.Worker, error) {
-	c, err := k8sclient.NewPsrClient()
+	c, err := funcNewPsrClient()
 	if err != nil {
 		return nil, err
 	}
