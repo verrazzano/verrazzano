@@ -116,8 +116,11 @@ func fakeConfigureRealmCommands(url *url.URL) (string, string, error) {
 			return "[{\"id\" : \"quick-fox\",\"clientId\" : \"jump-window\"}]", "", nil
 		}
 
-		if strings.Contains(command, "create client-scopes") {
-			return "Created client-scope 'blah", "", nil
+		if strings.Contains(command, "get client-scopes") {
+			return "[{\"id\" : \"quick-fox\",\"name\" : \"blah\"}]", "", nil
+		}
+		if strings.Contains(command, "create -x client-scopes") {
+			return "Created client-scope 'blah'", "", nil
 		}
 
 		if strings.Contains(command, "create clients/") {
