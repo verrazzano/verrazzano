@@ -7,12 +7,12 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -65,5 +65,5 @@ func (c clusterOperatorComponent) IsReady(context spi.ComponentContext) bool {
 
 // IsEnabled cluster operator enabled check for installation
 func (c clusterOperatorComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsClusterOperatorEnabled(effectiveCR)
+	return vzcr.IsClusterOperatorEnabled(effectiveCR)
 }
