@@ -6,7 +6,6 @@ package clusteroperator
 import (
 	"path/filepath"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -16,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // ComponentName is the name of the component
@@ -46,14 +44,6 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
 			Dependencies:              []string{networkpolicies.ComponentName, oam.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
-			AvailabilityObjects: &ready.AvailabilityObjects{
-				DeploymentNames: []types.NamespacedName{
-					{
-						Name:      ComponentName,
-						Namespace: ComponentNamespace,
-					},
-				},
-			},
 		},
 	}
 }
