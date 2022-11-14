@@ -23,4 +23,16 @@ const (
 	FlagScenarioDir      = "scenario-directory"
 	FlagScenarioDirShort = "d"
 	FlagScenarioDirHelp  = `a directory that contains a scenario directory at any level in the directory tree.  This allows you to run scenarios that are not compiled into the psrctl binary.`
+
+	WorkerImageName      = "worker-image"
+	WorkerImageNameShort = "w"
+	WorkerImageNameHelp  = `The full PSR image name and tag to use for executing scenarios`
+
+	ImageNameKey = "imageName"
 )
+
+var defaultWorkerImage string
+
+func GetDefaultWorkerImage() string {
+	return defaultWorkerImage
+}

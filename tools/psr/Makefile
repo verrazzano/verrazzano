@@ -9,6 +9,7 @@ PSR_DIR:=${MAKEFILE_DIR}
 CLI_DIR:=github.com$(shell echo ${MAKEFILE_DIR} | sed 's/.*github.com//')/psrctl
 
 VERSION_DIR:=$(CLI_DIR)/cmd/version
+CONSTANTS_DIR:=$(CLI_DIR)/cmd/constants
 BACKEND_DIR:=$(PSR_DIR)/backend
 
 DOCKER_REGISTRY ?= ghcr.io
@@ -32,7 +33,7 @@ BUILD_DATE:=$(shell date +"%Y-%m-%dT%H:%M:%SZ")
 
 DIST_DIR:=dist
 GO=GO111MODULE=on GOPRIVATE=github.com/verrazzano/* CGO_ENABLED=0  go
-CLI_GO_LDFLAGS=-X '${VERSION_DIR}.gitCommit=${GIT_COMMIT}' -X '${VERSION_DIR}.buildDate=${BUILD_DATE}' -X '${VERSION_DIR}.cliVersion=${BUILD_VERSION}'
+CLI_GO_LDFLAGS=-X '${VERSION_DIR}.gitCommit=${GIT_COMMIT}' -X '${VERSION_DIR}.buildDate=${BUILD_DATE}' -X '${VERSION_DIR}.cliVersion=${BUILD_VERSION}' -X '${CONSTANTS_DIR}.defaultWorkerImage=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}'
 
 #
 # Go build related tasks
