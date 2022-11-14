@@ -156,7 +156,7 @@ func getNumBadSocketMessages() int {
 			}
 		}`
 	query := fmt.Sprintf(template, "kubernetes.labels.app.keyword", "rancher", searchTimeWindow)
-	resp, err := pkg.PostElasticsearch(fmt.Sprintf("%s/_search", index), query)
+	resp, err := pkg.PostOpensearch(fmt.Sprintf("%s/_search", index), query)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to query Elasticsearch: %v", err))
 		return -1

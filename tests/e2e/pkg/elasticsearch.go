@@ -8,6 +8,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/onsi/gomega"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"html/template"
 	"net/http"
 	url2 "net/url"
@@ -16,10 +19,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/onsi/gomega"
-	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/ginkgo/v2"
@@ -292,7 +291,7 @@ func isUsingDataStreams(kubeconfigPath string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return IsVerrazzanoMinVersionEventually("1.3.0", kubeConfig)
+	return IsVerrazzanoMinVersion("1.3.0", kubeConfig)
 }
 
 func UseExternalElasticsearch() bool {
@@ -361,7 +360,7 @@ func getElasticSearchUsernamePassword(kubeconfigPath string) (username, password
 	return "verrazzano", password, err
 }
 
-// getElasticSearchWithBasicAuth access ES with GET using basic auth, using a given kubeconfig
+// getOpenSearchWithBasicAuth access ES with GET using basic auth, using a given kubeconfig
 func getElasticSearchWithBasicAuth(url string, hostHeader string, username string, password string, kubeconfigPath string) (*HTTPResponse, error) {
 	retryableClient, err := getElasticSearchClient(kubeconfigPath)
 	if err != nil {
@@ -1012,7 +1011,7 @@ func SearchLog(index string, query ElasticQuery) map[string]interface{} {
 
 // PostElasticsearch POST the request entity body to Elasticsearch API path
 // The provided path is appended to the Elasticsearch base URL
-func PostElasticsearch(path string, body string) (*HTTPResponse, error) {
+func PostOpensearch(path string, body string) (*HTTPResponse, error) {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Log(Error, fmt.Sprintf(kubeconfigErrorFormat, err))

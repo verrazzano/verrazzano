@@ -171,8 +171,8 @@ var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multiclust
 		Expect(err).To(BeNil())
 		// GIVEN an admin cluster and at least one managed cluster
 		// WHEN the example application has been deployed to the admin cluster
-		// THEN expect the Elasticsearch index for the app exists on the admin cluster Elasticsearch
-		t.It("Verify Elasticsearch index exists on admin cluster", func() {
+		// THEN expect the Opensearch index for the app exists on the admin cluster Opensearch
+		t.It("Verify Opensearch index exists on admin cluster", func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}

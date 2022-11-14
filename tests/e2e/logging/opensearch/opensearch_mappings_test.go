@@ -44,7 +44,7 @@ var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.e
 				Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 			})
 		}
-		supported, err := pkg.IsVerrazzanoMinVersionEventually("1.3.0", kubeconfigPath)
+		supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
 		if err != nil {
 			t.It(description, func() {
 				Fail(err.Error())
@@ -70,7 +70,7 @@ var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.e
 
 		Eventually(func() bool {
 			doc1 := `{"key":2,"@timestamp":"2022-03-15T19:55:54Z"}`
-			resp, err := pkg.PostElasticsearch(fmt.Sprintf(indexDocumentURL, indexName), doc1)
+			resp, err := pkg.PostOpensearch(fmt.Sprintf(indexDocumentURL, indexName), doc1)
 			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to write to OpenSearch: %v", err))
 				return false
@@ -85,13 +85,13 @@ var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.e
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 				return false
 			}
-			supported, err := pkg.IsVerrazzanoMinVersionEventually("1.3.0", kubeconfigPath)
+			supported, err := pkg.IsVerrazzanoMinVersion("1.3.0", kubeconfigPath)
 			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf("Error getting Verrazzano version: %v", err))
 				return false
 			}
 			doc2 := `{"key":"text","@timestamp":"2022-03-15T19:55:54Z"}`
-			resp, err = pkg.PostElasticsearch(fmt.Sprintf(indexDocumentURL, indexName), doc2)
+			resp, err = pkg.PostOpensearch(fmt.Sprintf(indexDocumentURL, indexName), doc2)
 			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to write a document to OpenSearch: %v", err))
 				return false
@@ -126,7 +126,7 @@ var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.e
 
 		Eventually(func() bool {
 			doc1 := `{"keyObject":{"name":"unit-test-cluster"},"@timestamp":"2022-03-15T19:55:54Z"}`
-			resp, err := pkg.PostElasticsearch(fmt.Sprintf(indexDocumentURL, indexName), doc1)
+			resp, err := pkg.PostOpensearch(fmt.Sprintf(indexDocumentURL, indexName), doc1)
 			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to write to OpenSearch: %v", err))
 				return false
@@ -137,7 +137,7 @@ var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.e
 				return false
 			}
 			doc2 := `{"keyObject":"text","@timestamp":"2022-03-15T19:55:54Z"}`
-			resp, err = pkg.PostElasticsearch(fmt.Sprintf(indexDocumentURL, indexName), doc2)
+			resp, err = pkg.PostOpensearch(fmt.Sprintf(indexDocumentURL, indexName), doc2)
 			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf("Failed to write another document to OpenSearch: %v", err))
 				return false

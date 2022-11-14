@@ -18,19 +18,22 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
-	"github.com/onsi/ginkgo/v2"
-	v12 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	v1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"sigs.k8s.io/yaml"
+
+	v12 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/yaml"
+
+	"github.com/onsi/ginkgo/v2"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 )
 
 const (
@@ -65,7 +68,6 @@ const (
 	//   particular namespace
 	podListingErrorFmt = "Error listing pods in cluster for namespace: %s, error: %v"
 
-	shortWaitTieout = 1 * time.Minute
 	waitTimeout     = 5 * time.Minute
 	pollingInterval = 5 * time.Second
 )

@@ -12,12 +12,14 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 const (
@@ -119,7 +121,7 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			if err != nil {
 				Skip(skipVerifications)
 			}
-			if ok, _ := pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeConfig); !ok {
+			if ok, _ := pkg.IsVerrazzanoMinVersion("1.4.0", kubeConfig); !ok {
 				Skip(skipVerifications)
 			}
 			Eventually(func() bool {
@@ -164,9 +166,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Expected to get OpenSearch App Index")
 
 		// GIVEN an application with logging enabled
-		// WHEN the Elasticsearch index is retrieved
+		// WHEN the Opensearch index is retrieved
 		// THEN verify that it is found
-		t.It("Verify Elasticsearch index exists", func() {
+		t.It("Verify Opensearch index exists", func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}
@@ -176,9 +178,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		})
 
 		// GIVEN an application with logging enabled
-		// WHEN the log records are retrieved from the Elasticsearch index
+		// WHEN the log records are retrieved from the Opensearch index
 		// THEN verify that at least one recent log record is found
-		t.It("Verify recent Elasticsearch log record exists", func() {
+		t.It("Verify recent Opensearch log record exists", func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}
