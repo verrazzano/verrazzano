@@ -519,7 +519,7 @@
           "name": "prometheus-adapter",
           "images": [
             {
-              "image": "prometheus-adapter",
+              "image": "prometheus-adapter-jenkins",
               "tag": "v0.10.0-20221111111842-24bbdefb",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
