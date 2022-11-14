@@ -48,6 +48,7 @@ var t = framework.NewTestFramework("verify")
 var vzcr *vzapi.Verrazzano
 var kubeconfigPath string
 var envoyImage string
+var isVersionAbove1_4_0 bool
 
 var _ = t.BeforeSuite(func() {
 	var err error
@@ -65,6 +66,12 @@ var _ = t.BeforeSuite(func() {
 		}
 		return err
 	}, shortWait, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR")
+
+	isVersionAbove1_4_0, err = pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfigPath)
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
+		Fail(err.Error())
+	}
 
 	// Get the envoy proxy image name and tag
 	Eventually(func() error {
@@ -120,8 +127,7 @@ var _ = t.Describe("Application pods post-upgrade", Label("f:platform-lcm.upgrad
 		func(namespace string, timeout time.Duration) {
 			exists, err := pkg.DoesNamespaceExist(namespace)
 			if err != nil {
-				t.Logs.Errorf("error while checking if namespace %s exists: %v", namespace, err.Error())
-				return
+				Fail(err.Error())
 			}
 			if exists {
 				Eventually(func() bool {
@@ -176,11 +182,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						t.Logs.Infof("Skipping disabled component %s", componentName)
 						return true
 					}
-					isVersionAbove1_4_0, err := pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfigPath)
-					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
-						return false
-					}
+
 					if deploymentName == "mysql" && isVersionAbove1_4_0 {
 						// skip mysql for version greater than 1.4.0
 						return true
@@ -274,11 +276,7 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						t.Logs.Infof("Skipping disabled component %s", componentName)
 						return true
 					}
-					isVersionAbove1_4_0, err := pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfigPath)
-					if err != nil {
-						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
-						return false
-					}
+
 					if stsName == "mysql" && !isVersionAbove1_4_0 {
 						// skip mysql for version less than 1.4.0
 						return true
