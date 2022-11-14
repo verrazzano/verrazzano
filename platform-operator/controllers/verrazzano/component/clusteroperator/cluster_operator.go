@@ -22,7 +22,10 @@ func AppendClusterOperatorOverrides(_ spi.ComponentContext, _ string, _ string, 
 // isClusterOperatorReady checks if the cluster operator deployment is ready
 func (c clusterOperatorComponent) isClusterOperatorReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
+	if c.AvailabilityObjects != nil {
+		return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
+	}
+	return true
 }
 
 // GetOverrides gets the install overrides for the Cluster Operator component
