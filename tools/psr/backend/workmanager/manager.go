@@ -5,8 +5,6 @@ package workmanager
 
 import (
 	"fmt"
-	"sync"
-
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	metrics2 "github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
@@ -15,8 +13,8 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/http/get"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/getlogs"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/postlogs"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/scale"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/writelogs"
+	"sync"
 )
 
 var startMetricsFunc = metrics2.StartMetricsServerOrDie
@@ -85,8 +83,6 @@ func getWorker(wt string) (spi.Worker, error) {
 		return getlogs.NewGetLogsWorker()
 	case config.WorkerTypePostLogs:
 		return postlogs.NewPostLogsWorker()
-	case config.WorkerTypeScale:
-		return scale.NewScaleWorker()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}
