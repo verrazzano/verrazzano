@@ -169,11 +169,10 @@ func appendFluentdOverrides(client clipkg.Client, effectiveCR *vzapi.Verrazzano,
 	// Force the override to be the internal ES secret if the legacy ES secret is being used.
 	// This may be the case during an upgrade from a version that was not using the ES internal password for Fluentd.
 	if overrides.Logging != nil {
-		if overrides.Logging.OpenSearchURL == globalconst.LegacyElasticsearchSecretName {
+		if overrides.Logging.OpenSearchURL == globalconst.LegacyOpensearchSecretName {
 			overrides.Logging.CredentialsSecret = globalconst.VerrazzanoESInternal
 		}
 	}
-
 	overrides.Monitoring = &Monitoring{
 		Enabled:       vzconfig.IsPrometheusOperatorEnabled(effectiveCR),
 		UseIstioCerts: vzconfig.IsIstioEnabled(effectiveCR),
