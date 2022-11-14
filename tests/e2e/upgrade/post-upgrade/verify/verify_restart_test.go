@@ -68,7 +68,7 @@ var _ = t.BeforeSuite(func() {
 		return err
 	}, shortWait, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR")
 
-	isVersionAbove1_4_0, err = pkg.IsVerrazzanoMinVersionEventually("1.4.0", kubeconfigPath)
+	isVersionAbove1_4_0, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
 		Fail(err.Error())
