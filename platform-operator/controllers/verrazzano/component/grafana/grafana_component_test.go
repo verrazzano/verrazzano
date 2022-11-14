@@ -14,9 +14,16 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	appsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/stretchr/testify/assert"
+	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	v1 "k8s.io/api/core/v1"
+	nw "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -165,20 +172,42 @@ func TestMonitorOverrides(t *testing.T) {
 // WHEN we call IsInstalled on the Grafana component
 // THEN the call returns true if grafana is installed and vice versa
 func TestIsInstalled(t *testing.T) {
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	vz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Grafana: &vzapi.GrafanaComponent{
-					Enabled: &trueValue,
+	tests := []struct {
+		name       string
+		client     client.Client
+		expectTrue bool
+	}{
+		{
+			name: "Test isInstalled when Grafana is successfully deployed",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				&appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      grafanaDeployment,
+					},
+					Status: appsv1.DeploymentStatus{
+						AvailableReplicas: 1,
+						Replicas:          1,
+						UpdatedReplicas:   1,
+					},
 				},
-			},
+			).Build(),
+			expectTrue: true,
+		},
+		{
+			name:       "Test isInstalled when Grafana deployment does not exist",
+			client:     fake.NewClientBuilder().WithScheme(testScheme).Build(),
+			expectTrue: false,
 		},
 	}
-	ctx := spi.NewFakeContext(client, vz, nil, false)
-	grafanaInstalled, err := NewComponent().IsInstalled(ctx)
-	assert.Equal(t, grafanaInstalled, false)
-	assert.NoError(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, nil, false)
+			isInstall, err := NewComponent().IsInstalled(ctx)
+			assert.Equal(t, tt.expectTrue, isInstall)
+			assert.NoError(t, err)
+		})
+	}
 }
 
 // TestIsAvailable tests the IsAvailable function for the Grafana component
@@ -186,19 +215,31 @@ func TestIsInstalled(t *testing.T) {
 // WHEN we call IsAvailable on the Grafana component
 // THEN the call returns if the component is available and the reason for unavailability, if any
 func TestIsAvailable(t *testing.T) {
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	vz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Grafana: &vzapi.GrafanaComponent{
-					Enabled: &trueValue,
-				},
-			},
+	tests := []struct {
+		name              string
+		component         grafanaComponent
+		args              spi.ComponentContext
+		expectedReason    string
+		expectedAvailable vzapi.ComponentAvailability
+	}{
+		// GIVEN Default grafana component
+		// WHEN  IsAvailable is called
+		// THEN true is returned if component is available
+		{
+			"TestIsAvailable",
+			grafanaComponent{},
+			spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false),
+			"waiting for deployment verrazzano-system/vmi-system-grafana to exist",
+			vzapi.ComponentUnavailable,
 		},
 	}
-	ctx := spi.NewFakeContext(client, vz, nil, false)
-	reason, _ := NewComponent().IsAvailable(ctx)
-	assert.Equal(t, "waiting for deployment verrazzano-system/vmi-system-grafana to exist", reason)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reason, available := tt.component.IsAvailable(tt.args)
+			assert.Equal(t, reason, tt.expectedReason)
+			assert.Equal(t, available, tt.expectedAvailable)
+		})
+	}
 
 }
 
@@ -207,20 +248,101 @@ func TestIsAvailable(t *testing.T) {
 // WHEN we call IsReady on the Grafana component
 // THEN the call returns true if the component is ready and vice versa
 func TestIsReady(t *testing.T) {
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	vz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Grafana: &vzapi.GrafanaComponent{
-					Enabled: &trueValue,
+	tests := []struct {
+		name       string
+		client     client.Client
+		expectTrue bool
+	}{
+		{
+			name: "Test isReady when Grafana is successfully deployed and the admin secret exists",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				&appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      grafanaDeployment,
+						Labels:    map[string]string{"app": "system-grafana"},
+					},
+					Spec: appsv1.DeploymentSpec{
+						Selector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"app": "system-grafana"},
+						},
+					},
+					Status: appsv1.DeploymentStatus{
+						AvailableReplicas: 1,
+						Replicas:          1,
+						UpdatedReplicas:   1,
+					},
 				},
-			},
+				&v1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      grafanaDeployment + "-95d8c5d96-m6mbr",
+						Labels: map[string]string{
+							"pod-template-hash": "95d8c5d96",
+							"app":               "system-grafana",
+						},
+					},
+				},
+				&appsv1.ReplicaSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace:   ComponentNamespace,
+						Name:        grafanaDeployment + "-95d8c5d96",
+						Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+					},
+				},
+				&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      constants.GrafanaSecret,
+						Namespace: ComponentNamespace,
+					},
+					Data: map[string][]byte{},
+				},
+			).Build(),
+			expectTrue: true,
+		},
+		{
+			name: "Test isReady when Grafana is successfully deployed and the admin secret does not exist",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				&appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      grafanaDeployment,
+					},
+					Status: appsv1.DeploymentStatus{
+						AvailableReplicas: 1,
+						Replicas:          1,
+						UpdatedReplicas:   1,
+					},
+				},
+			).Build(),
+			expectTrue: false,
+		},
+		{
+			name: "Test isReady when Grafana is deployed but there are no available replicas",
+			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+				&appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: ComponentNamespace,
+						Name:      grafanaDeployment,
+					},
+					Status: appsv1.DeploymentStatus{
+						AvailableReplicas: 0,
+						Replicas:          1,
+						UpdatedReplicas:   1,
+					},
+				},
+			).Build(),
+			expectTrue: false,
 		},
 	}
-	ctx := spi.NewFakeContext(client, vz, nil, false)
-	ready := NewComponent().IsReady(ctx)
-	assert.Equal(t, false, ready)
-
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, nil, false)
+			assert.Equal(t, tt.expectTrue, NewComponent().IsReady(ctx))
+			ctx = spi.NewFakeContext(tt.client, &vzapi.Verrazzano{Spec: vzapi.VerrazzanoSpec{Components: vzapi.ComponentSpec{Grafana: &vzapi.GrafanaComponent{Replicas: &replicas}}}}, nil, false)
+			assert.Equal(t, true, NewComponent().IsReady(ctx))
+		})
+	}
 }
 
 // TestPostInstall tests the PostInstall function for the Grafana component
@@ -228,19 +350,39 @@ func TestIsReady(t *testing.T) {
 // WHEN we call PostInstall on the Grafana component
 // THEN the call returns the post install conditions
 func TestPostInstall(t *testing.T) {
-	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
-	vz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Grafana: &vzapi.GrafanaComponent{
-					Enabled: &trueValue,
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, nil, nil, false)
+
+	err := NewComponent().PostInstall(ctx)
+	assert.IsType(t, spi2.RetryableError{}, err)
+
+	vzComp := NewComponent()
+	vzIngressNames := vzComp.(grafanaComponent).GetIngressNames(ctx)
+	for _, ingressName := range vzIngressNames {
+		_ = c.Create(context.TODO(), &nw.Ingress{
+			ObjectMeta: metav1.ObjectMeta{Name: ingressName.Name, Namespace: ingressName.Namespace},
+		})
+	}
+	vzCertNames := vzComp.(grafanaComponent).GetCertificateNames(ctx)
+	for _, certName := range vzCertNames {
+		time := metav1.Now()
+		_ = c.Create(context.TODO(), &certv1.Certificate{
+			ObjectMeta: metav1.ObjectMeta{Name: certName.Name, Namespace: certName.Namespace},
+			Status: certv1.CertificateStatus{
+				Conditions: []certv1.CertificateCondition{
+					{Type: certv1.CertificateConditionIssuing, Status: cmmeta.ConditionTrue, LastTransitionTime: &time},
 				},
 			},
-		},
+		})
 	}
-	ctx := spi.NewFakeContext(client, vz, nil, false)
-	err := NewComponent().PostInstall(ctx)
+	err = vzComp.(grafanaComponent).PostInstall(ctx)
 	assert.Error(t, err)
+	expectedErr := spi2.RetryableError{
+		Source:    vzComp.Name(),
+		Operation: "Check if certificates are ready",
+	}
+	assert.Error(t, err)
+	assert.Equal(t, expectedErr, err)
 
 }
 
