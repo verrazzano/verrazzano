@@ -3,4 +3,8 @@
 
 global:
   envVars:
-    PSR_WORKER_TYPE: 1ms
+    PSR_WORKER_TYPE: scale
+    OPEN_SEARCH_TIER: master
+    SCALE_DELAY_PER_TIER: 5s
+    MIN_REPLICA_COUNT: 3
+    MAX_REPLICA_COUNT: 5
