@@ -52,10 +52,10 @@ func isOSReady(ctx spi.ComponentContext) bool {
 	return common.IsVMISecretReady(ctx)
 }
 
-func nodesToObjectKeys(vz *vzapi.Verrazzano) *ready.AvailabilityObjects {
+func nodesToObjectKeys(vzcr *vzapi.Verrazzano) *ready.AvailabilityObjects {
 	objects := &ready.AvailabilityObjects{}
-	if vz.IsOpenSearchEnabled(vz) && vz.Spec.Components.Elasticsearch != nil {
-		for _, node := range vz.Spec.Components.Elasticsearch.Nodes {
+	if vz.IsOpenSearchEnabled(vzcr) && vzcr.Spec.Components.Elasticsearch != nil {
+		for _, node := range vzcr.Spec.Components.Elasticsearch.Nodes {
 			if node.Replicas < 1 {
 				continue
 			}

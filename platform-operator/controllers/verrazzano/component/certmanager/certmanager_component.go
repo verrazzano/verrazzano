@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	vzpkg "github.com/verrazzano/verrazzano/pkg/vz"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -86,7 +86,7 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default
 func (c certManagerComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vz.IsCertManagerEnabled(effectiveCR)
+	return vzpkg.IsCertManagerEnabled(effectiveCR)
 }
 
 // IsReady component check
@@ -285,7 +285,7 @@ func (c certManagerComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 }
 
 func checkExistingCertManager(vz runtime.Object) error {
-	if !vz.IsCertManagerEnabled(vz) {
+	if !vzpkg.IsCertManagerEnabled(vz) {
 		return nil
 	}
 	client, err := k8sutil.GetCoreV1Func()

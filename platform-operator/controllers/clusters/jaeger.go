@@ -171,13 +171,13 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerSpecConfig(vzList *vzapi.V
 
 // canUseVZOpenSearchStorage determines if Verrazzano's OpenSearch can be used as a storage for Jaeger instance.
 // As default Jaeger uses Authproxy to connect to OpenSearch storage, check if Keycloak component is also enabled.
-func canUseVZOpenSearchStorage(vz vzapi.Verrazzano) bool {
-	if vz.IsOpenSearchEnabled(&vz) && vz.IsKeycloakEnabled(&vz) {
+func canUseVZOpenSearchStorage(vzcr vzapi.Verrazzano) bool {
+	if vz.IsOpenSearchEnabled(&vzcr) && vz.IsKeycloakEnabled(&vzcr) {
 		return true
 	}
 	return false
 }
 
-func isJaegerOperatorEnabled(vz vzapi.Verrazzano) bool {
-	return vz.IsJaegerOperatorEnabled(&vz)
+func isJaegerOperatorEnabled(vzcr vzapi.Verrazzano) bool {
+	return vz.IsJaegerOperatorEnabled(&vzcr)
 }

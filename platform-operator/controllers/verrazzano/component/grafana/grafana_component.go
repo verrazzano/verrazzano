@@ -245,8 +245,8 @@ func (g grafanaComponent) Reconcile(ctx spi.ComponentContext) error {
 
 // checkExistingGrafana checks if Grafana is already installed
 // OLCNE Istio module may have Grafana installed in istio-system namespace
-func checkExistingCNEGrafana(vz runtime.Object) error {
-	if !vz.IsGrafanaEnabled(vz) {
+func checkExistingCNEGrafana(vzcr runtime.Object) error {
+	if !vz.IsGrafanaEnabled(vzcr) {
 		return nil
 	}
 	if err := k8sutil.ErrorIfDeploymentExists(constants.IstioSystemNamespace, ComponentName); err != nil {

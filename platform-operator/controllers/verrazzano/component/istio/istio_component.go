@@ -594,8 +594,8 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 	return kvs, nil
 }
 
-func checkExistingIstio(vz runtime.Object) error {
-	if !vz.IsIstioEnabled(vz) {
+func checkExistingIstio(vzcr runtime.Object) error {
+	if !vz.IsIstioEnabled(vzcr) {
 		return nil
 	}
 	client, err := k8sutil.GetCoreV1Func()

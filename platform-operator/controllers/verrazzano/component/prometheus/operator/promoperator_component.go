@@ -215,8 +215,8 @@ func (c prometheusComponent) GetCertificateNames(ctx spi.ComponentContext) []typ
 
 // checkExistingCNEPrometheus checks if Prometheus is already installed
 // OLCNE Istio module may have Prometheus installed in istio-system namespace
-func checkExistingCNEPrometheus(vz runtime.Object) error {
-	if !vz.IsPrometheusEnabled(vz) {
+func checkExistingCNEPrometheus(vzcr runtime.Object) error {
+	if !vz.IsPrometheusEnabled(vzcr) {
 		return nil
 	}
 	if err := k8sutil.ErrorIfDeploymentExists(constants.IstioSystemNamespace, istioPrometheus); err != nil {

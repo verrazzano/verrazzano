@@ -550,13 +550,13 @@ func createOrUpdateClusterRoleTemplateBindings(ctx spi.ComponentContext) error {
 // +returns false if Keycloak component is itself disabled.
 // +returns the value of the keycloakAuthEnabled attribute if it is set in rancher component of VZ CR.
 // +returns true otherwise.
-func isKeycloakAuthEnabled(vz *vzapi.Verrazzano) bool {
-	if !vz.IsKeycloakEnabled(vz) {
+func isKeycloakAuthEnabled(vzcr *vzapi.Verrazzano) bool {
+	if !vz.IsKeycloakEnabled(vzcr) {
 		return false
 	}
 
-	if vz.Spec.Components.Rancher != nil && vz.Spec.Components.Rancher.KeycloakAuthEnabled != nil {
-		return *vz.Spec.Components.Rancher.KeycloakAuthEnabled
+	if vzcr.Spec.Components.Rancher != nil && vzcr.Spec.Components.Rancher.KeycloakAuthEnabled != nil {
+		return *vzcr.Spec.Components.Rancher.KeycloakAuthEnabled
 	}
 
 	return true
@@ -585,8 +585,8 @@ func configureUISettings(ctx spi.ComponentContext) error {
 }
 
 // checkExistingRancher checks if there is already an existing Rancher or not
-func checkExistingRancher(vz runtime.Object) error {
-	if !vz.IsRancherEnabled(vz) {
+func checkExistingRancher(vzcr runtime.Object) error {
+	if !vz.IsRancherEnabled(vzcr) {
 		return nil
 	}
 	client, err := k8sutil.GetCoreV1Func()
