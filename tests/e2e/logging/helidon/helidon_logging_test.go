@@ -174,9 +174,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Expected to get OpenSearch App Index")
 
 		// GIVEN an application with logging enabled
-		// WHEN the Elasticsearch index for hello-helidon namespace is retrieved
+		// WHEN the Opensearch index for hello-helidon namespace is retrieved
 		// THEN verify that it is found
-		t.It("Verify Elasticsearch index for Logging exists", func() {
+		t.It("Verify Opensearch index for Logging exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for hello-helidon-container")
@@ -184,9 +184,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		pkg.Concurrently(
 			func() {
 				// GIVEN an application with logging enabled
-				// WHEN the log records are retrieved from the Elasticsearch index for hello-helidon-container
+				// WHEN the log records are retrieved from the Opensearch index for hello-helidon-container
 				// THEN verify that at least one recent log record is found
-				t.It("Verify recent Elasticsearch log record exists", func() {
+				t.It("Verify recent Opensearch log record exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.app_oam_dev\\/name": "hello-helidon",
@@ -196,9 +196,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 			},
 			func() {
 				// GIVEN an application with logging enabled
-				// WHEN the log records are retrieved from the Elasticsearch index for other-container
+				// WHEN the log records are retrieved from the Openearch index for other-container
 				// THEN verify that at least one recent log record is found
-				t.It("Verify recent Elasticsearch log record of other-container exists", func() {
+				t.It("Verify recent Opensearch log record of other-container exists", func() {
 					Eventually(func() bool {
 						return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 							"kubernetes.labels.app_oam_dev\\/name": "hello-helidon",

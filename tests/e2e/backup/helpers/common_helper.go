@@ -117,7 +117,7 @@ func GetEsURL(log *zap.SugaredLogger) (string, error) {
 		return "", err
 	}
 	api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
-	ingress, err := api.GetIngress(constants.VerrazzanoSystemNamespace, "vmi-system-os-ingest")
+	ingress, err := api.GetIngress(constants.VerrazzanoSystemNamespace, "vmi-system-es-ingest")
 	if err != nil {
 		return "", err
 	}

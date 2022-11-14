@@ -168,8 +168,8 @@ type ComponentStatusMap map[string]*ComponentStatusDetails
 
 // ComponentStatusDetails defines the observed state of a component.
 type ComponentStatusDetails struct {
-	// Whether or not a component is available for use.
-	Available *bool `json:"available,omitempty"`
+	// Whether a component is available for use.
+	Available *ComponentAvailability `json:"available,omitempty"`
 	// Information about the current state of a component.
 	Conditions []Condition `json:"conditions,omitempty"`
 	// The generation of the last Verrazzano resource the Component was successfully reconciled against.
@@ -233,6 +233,16 @@ type Condition struct {
 	// Type of condition.
 	Type ConditionType `json:"type"`
 }
+
+// ComponentAvailability identifies the availability of a Verrazzano Component.
+type ComponentAvailability string
+
+const (
+	//ComponentAvailable signifies that a Verrazzano Component is ready for use.
+	ComponentAvailable = "Available"
+	//ComponentUnavailable signifies that a Verrazzano Component is not ready for use.
+	ComponentUnavailable = "Unavailable"
+)
 
 // VzStateType identifies the state of a Verrazzano installation.
 type VzStateType string
@@ -302,6 +312,10 @@ type ComponentSpec struct {
 	// The cert-manager component configuration.
 	// +optional
 	CertManager *CertManagerComponent `json:"certManager,omitempty"`
+
+	// The Cluster Operator component configuration.
+	// +optional
+	ClusterOperator *ClusterOperatorComponent `json:"clusterOperator,omitempty"`
 
 	// The Coherence Operator component configuration.
 	// +optional
@@ -655,6 +669,20 @@ type VerrazzanoComponent struct {
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
 	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano/values.yaml %}} )
+	// and invalid values will be ignored.
+	// +optional
+	InstallOverrides `json:",inline"`
+}
+
+// ClusterOperatorComponent specifies the Cluster Operator configuration.
+type ClusterOperatorComponent struct {
+	// If true, then the Cluster Operator will be installed.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-cluster-operator/values.yaml %}} )
 	// and invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`

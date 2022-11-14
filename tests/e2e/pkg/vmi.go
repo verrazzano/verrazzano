@@ -48,11 +48,11 @@ func VerifySystemVMIComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHT
 }
 
 func VerifyOpenSearchComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *UsernamePassword) bool {
-	return VerifySystemVMIComponent(log, api, sysVmiHTTPClient, vmiCredentials, "vmi-system-os-ingest", "https://opensearch.vmi.system")
+	return VerifySystemVMIComponent(log, api, sysVmiHTTPClient, vmiCredentials, "vmi-system-es-ingest", "https://elasticsearch.vmi.system")
 }
 
 func VerifyOpenSearchDashboardsComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *UsernamePassword) bool {
-	return VerifySystemVMIComponent(log, api, sysVmiHTTPClient, vmiCredentials, "vmi-system-opensearchdashboards", "https://opensearchdashboards.vmi.system")
+	return VerifySystemVMIComponent(log, api, sysVmiHTTPClient, vmiCredentials, "vmi-system-kibana", "https://kibana.vmi.system")
 }
 
 func VerifyPrometheusComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *UsernamePassword) bool {

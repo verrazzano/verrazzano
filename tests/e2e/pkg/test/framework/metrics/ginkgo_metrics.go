@@ -21,6 +21,8 @@ const (
 	Status            = "status"
 	attempts          = "attempts"
 	test              = "test"
+	testFilename      = "file_name"
+	testLineNumber    = "line_number"
 	BuildURL          = "build_url"
 	JenkinsJob        = "jenkins_job"
 	BranchName        = "branch_name"
@@ -166,11 +168,21 @@ func Emit(log *zap.SugaredLogger) {
 	}
 	t := spec.FullText()
 	l := spec.Labels()
-
+	filename, linenumber := extractLastCodeLocation(spec)
 	log.With(attempts, spec.NumAttempts).
 		With(test, t).
+		With(testFilename, filename).
+		With(testLineNumber, linenumber).
 		With(Label, l).
 		Info()
+}
+
+func extractLastCodeLocation(spec ginkgo.SpecReport) (string, int) {
+	if len(spec.ContainerHierarchyLocations) < 1 {
+		return "", -1
+	}
+	location := spec.ContainerHierarchyLocations[len(spec.ContainerHierarchyLocations)-1]
+	return location.FileName, location.LineNumber
 }
 
 func DurationMillis() int64 {

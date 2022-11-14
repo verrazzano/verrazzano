@@ -19,7 +19,6 @@ import (
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/logging"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/metricstrait"
@@ -179,7 +178,7 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *wls.Domain) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
@@ -311,7 +310,7 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *wls.Domain) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
@@ -449,7 +448,7 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *wls.Domain) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
@@ -585,7 +584,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *wls.Domain) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
@@ -802,7 +801,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *wls.Domain) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
@@ -980,7 +979,7 @@ func TestReconcileCreateWebLogicDomainWithWDTConfigMap(t *testing.T) {
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *wls.Domain) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
@@ -1104,7 +1103,7 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *wls.Domain) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
 			// return nil error to simulate domain existing
 			return nil
 		})
@@ -1241,7 +1240,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *wls.Domain) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload
@@ -1702,7 +1701,7 @@ func TestReconcileRestart(t *testing.T) {
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *wls.Domain) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
 			// return nil error to simulate domain existing
 			return nil
 		})
@@ -1846,7 +1845,7 @@ func TestReconcileStopDomain(t *testing.T) {
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *wls.Domain) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
 			// return nil error to simulate domain existing
 			return nil
 		})
@@ -1979,7 +1978,7 @@ func TestReconcileStartDomain(t *testing.T) {
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *wls.Domain) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
 			// return nil error to simulate domain existing
 			return nil
 		})
@@ -2122,7 +2121,7 @@ func TestReconcileUserProvidedLogHome(t *testing.T) {
 	// expect call to fetch existing WebLogic Domain
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-cluster"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *wls.Domain) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
 	// expect a call to fetch the VerrazzanoWebLogicWorkload

@@ -11,7 +11,7 @@ import (
 	"os"
 	"text/template"
 
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"

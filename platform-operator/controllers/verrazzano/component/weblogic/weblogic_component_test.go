@@ -4,6 +4,9 @@
 package weblogic
 
 import (
+	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -114,4 +117,78 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Test isReady when it's called with component context
+func TestIsReady(t *testing.T) {
+	c := fake.NewClientBuilder().Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
+	assert.False(t, NewComponent().IsReady(ctx))
+}
+
+// test Monitoroverrides method
+func TestMonitorOverride(t *testing.T) {
+	falseValue := false
+	trueValue := true
+	tests := []struct {
+		name       string
+		actualCR   *vzapi.Verrazzano
+		expectTrue bool
+	}{
+		{
+			// GIVEN a default Verrazzano custom resource
+			// WHEN we call MonitorOverride on the WebLogicOperatorComponent
+			// THEN the call returns false
+			name:       "Test MonitorOverride when using default Verrazzano CR",
+			actualCR:   &vzapi.Verrazzano{},
+			expectTrue: false,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the WebLogicOperatorComponent enabled
+			// WHEN we call MonitorOverride on the WebLogicOperatorComponent
+			// THEN the call returns true
+			name: "Test MonitorOverride when WebLogicOperatorComponent set to enabled",
+			actualCR: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						WebLogicOperator: &vzapi.WebLogicOperatorComponent{
+							Enabled:          &trueValue,
+							InstallOverrides: vzapi.InstallOverrides{MonitorChanges: &trueValue},
+						},
+					},
+				},
+			},
+			expectTrue: true,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the WebLogicOperatorComponent disabled
+			// WHEN we call MonitorOverride on the WebLogicOperatorComponent
+			// THEN the call returns true
+			name: "Test MonitorOverride when WebLogicOperatorComponent set to disabled",
+			actualCR: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						WebLogicOperator: &vzapi.WebLogicOperatorComponent{
+							Enabled: &falseValue,
+						},
+					},
+				},
+			},
+			expectTrue: true,
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(nil, tests[i].actualCR, nil, false)
+			assert.Equal(t, tt.expectTrue, NewComponent().MonitorOverrides(ctx))
+		})
+	}
+}
+
+// test PostUninstall for component class
+func TestPostUninstallcomponent(t *testing.T) {
+	c := fake.NewClientBuilder().Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, true)
+	assert.Nil(t, NewComponent().PostUninstall(ctx))
 }

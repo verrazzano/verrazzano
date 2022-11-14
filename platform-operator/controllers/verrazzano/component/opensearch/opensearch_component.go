@@ -26,7 +26,7 @@ const (
 	ComponentNamespace = constants.VerrazzanoSystemNamespace
 
 	// Certificate names
-	osCertificateName = "system-tls-os-ingest"
+	osCertificateName = "system-tls-es-ingest"
 )
 
 // ComponentJSONName is the josn name of the opensearch component in CRD
@@ -140,7 +140,7 @@ func (o opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
 	return common.CreateOrUpdateVMI(ctx, updateFunc)
 }
 
-func (o opensearchComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available bool) {
+func (o opensearchComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
 	return nodesToObjectKeys(ctx.EffectiveCR()).IsAvailable(ctx.Log(), ctx.Client())
 }
 
