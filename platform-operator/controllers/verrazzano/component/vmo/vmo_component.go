@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -69,7 +69,7 @@ func NewComponent() spi.Component {
 
 // IsEnabled VMO enabled check for installation
 func (c vmoComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vz.IsVMOEnabled(effectiveCR)
+	return vzcr.IsVMOEnabled(effectiveCR)
 }
 
 // IsReady calls VMO isVmoReady function

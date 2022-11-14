@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -65,7 +65,7 @@ func NewComponent() spi.Component {
 
 // IsEnabled Coherence-specific enabled check for installation
 func (c coherenceComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vz.IsCoherenceOperatorEnabled(effectiveCR)
+	return vzcr.IsCoherenceOperatorEnabled(effectiveCR)
 }
 
 // IsReady checks if the Coherence deployment is ready

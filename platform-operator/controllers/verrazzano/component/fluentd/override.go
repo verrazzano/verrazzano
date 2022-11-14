@@ -12,7 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -136,7 +136,7 @@ func appendFluentdLogging(client clipkg.Client, fluentd *vzapi.FluentdComponent,
 
 func appendFluentdOverrides(client clipkg.Client, effectiveCR *vzapi.Verrazzano, overrides *fluentdComponentValues) error {
 	overrides.Fluentd = &fluentdValues{
-		Enabled: vz.IsFluentdEnabled(effectiveCR),
+		Enabled: vzcr.IsFluentdEnabled(effectiveCR),
 	}
 	fluentd := effectiveCR.Spec.Components.Fluentd
 	if fluentd != nil {
@@ -176,8 +176,8 @@ func appendFluentdOverrides(client clipkg.Client, effectiveCR *vzapi.Verrazzano,
 	}
 
 	overrides.Monitoring = &Monitoring{
-		Enabled:       vz.IsPrometheusOperatorEnabled(effectiveCR),
-		UseIstioCerts: vz.IsIstioEnabled(effectiveCR),
+		Enabled:       vzcr.IsPrometheusOperatorEnabled(effectiveCR),
+		UseIstioCerts: vzcr.IsIstioEnabled(effectiveCR),
 	}
 	return nil
 }

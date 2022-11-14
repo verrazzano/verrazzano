@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -82,7 +82,7 @@ func NewComponent() spi.Component {
 
 // IsEnabled authProxyComponent-specific enabled check for installation
 func (c authProxyComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vz.IsAuthProxyEnabled(effectiveCR)
+	return vzcr.IsAuthProxyEnabled(effectiveCR)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated

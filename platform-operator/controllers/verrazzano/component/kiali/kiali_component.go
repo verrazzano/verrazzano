@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -154,12 +154,12 @@ func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 
 // IsEnabled Kiali-specific enabled check for installation
 func (c kialiComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vz.IsKialiEnabled(effectiveCR)
+	return vzcr.IsKialiEnabled(effectiveCR)
 }
 
 // createOrUpdateKialiResources create or update related Kiali resources
 func (c kialiComponent) createOrUpdateKialiResources(ctx spi.ComponentContext) error {
-	if vz.IsNGINXEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		if err := createOrUpdateKialiIngress(ctx, c.ChartNamespace); err != nil {
 			return err
 		}

@@ -17,7 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -589,7 +589,7 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 		ingress.Annotations["cert-manager.io/common-name"] = fmt.Sprintf("%s.%s.%s",
 			ComponentName, ctx.EffectiveCR().Spec.EnvironmentName, dnsSuffix)
 		// update target annotation on Keycloak Ingress for external DNS
-		if vz.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+		if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
 			if err != nil {
 				return err
@@ -754,7 +754,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if vz.IsRancherEnabled(ctx.ActualCR()) {
+	if vzcr.IsRancherEnabled(ctx.ActualCR()) {
 		// Creating rancher client
 		err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
 		if err != nil {

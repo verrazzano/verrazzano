@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,7 +41,7 @@ var dashboardList = []string{
 }
 
 func createGrafanaConfigMaps(ctx spi.ComponentContext) error {
-	if !vz.IsGrafanaEnabled(ctx.EffectiveCR()) {
+	if !vzcr.IsGrafanaEnabled(ctx.EffectiveCR()) {
 		return nil
 	}
 

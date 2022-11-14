@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -130,7 +130,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 			tracker.vzState = vzStateRestartApps
 
 		case vzStateRestartApps:
-			if vz.IsApplicationOperatorEnabled(cr) && vz.IsIstioEnabled(cr) {
+			if vzcr.IsApplicationOperatorEnabled(cr) && vzcr.IsIstioEnabled(cr) {
 				log.Once("Doing Verrazzano post-upgrade application restarts if needed")
 				err := istio.RestartApps(log, r.Client, cr.Generation)
 				if err != nil {

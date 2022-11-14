@@ -6,7 +6,7 @@ package opensearch
 import (
 	"fmt"
 
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -167,7 +167,7 @@ func (o opensearchComponent) PostUpgrade(ctx spi.ComponentContext) error {
 
 // IsEnabled opensearch-specific enabled check for installation
 func (o opensearchComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vz.IsOpenSearchEnabled(effectiveCR)
+	return vzcr.IsOpenSearchEnabled(effectiveCR)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -219,7 +219,7 @@ func (o opensearchComponent) Name() string {
 
 func (o opensearchComponent) isOpenSearchEnabled(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
-	if vz.IsOpenSearchEnabled(old) && !vz.IsOpenSearchEnabled(new) {
+	if vzcr.IsOpenSearchEnabled(old) && !vzcr.IsOpenSearchEnabled(new) {
 		return fmt.Errorf("Disabling component OpenSearch not allowed")
 	}
 	return nil
@@ -229,7 +229,7 @@ func (o opensearchComponent) isOpenSearchEnabled(old *installv1beta1.Verrazzano,
 func (o opensearchComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
 
-	if vz.IsNGINXEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
 			Name:      constants.OpensearchIngress,

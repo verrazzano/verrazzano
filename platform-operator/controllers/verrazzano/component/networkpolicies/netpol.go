@@ -11,7 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -120,17 +120,17 @@ func generateOverridesFile(ctx spi.ComponentContext, overrides *chartValues) (st
 func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) error {
 	effectiveCR := ctx.EffectiveCR()
 
-	overrides.ElasticSearch = &elasticsearchValues{Enabled: vz.IsOpenSearchEnabled(effectiveCR)}
-	overrides.Externaldns = &externalDNSValues{Enabled: vz.IsExternalDNSEnabled(effectiveCR)}
-	overrides.Grafana = &grafanaValues{Enabled: vz.IsGrafanaEnabled(effectiveCR)}
-	overrides.Istio = &istioValues{Enabled: vz.IsIstioEnabled(effectiveCR)}
-	overrides.JaegerOperator = &jaegerOperatorValues{Enabled: vz.IsJaegerOperatorEnabled(effectiveCR)}
-	overrides.Keycloak = &keycloakValues{Enabled: vz.IsKeycloakEnabled(effectiveCR)}
+	overrides.ElasticSearch = &elasticsearchValues{Enabled: vzcr.IsOpenSearchEnabled(effectiveCR)}
+	overrides.Externaldns = &externalDNSValues{Enabled: vzcr.IsExternalDNSEnabled(effectiveCR)}
+	overrides.Grafana = &grafanaValues{Enabled: vzcr.IsGrafanaEnabled(effectiveCR)}
+	overrides.Istio = &istioValues{Enabled: vzcr.IsIstioEnabled(effectiveCR)}
+	overrides.JaegerOperator = &jaegerOperatorValues{Enabled: vzcr.IsJaegerOperatorEnabled(effectiveCR)}
+	overrides.Keycloak = &keycloakValues{Enabled: vzcr.IsKeycloakEnabled(effectiveCR)}
 
-	promEnable := vz.IsPrometheusEnabled(effectiveCR) || vz.IsPrometheusOperatorEnabled(effectiveCR)
+	promEnable := vzcr.IsPrometheusEnabled(effectiveCR) || vzcr.IsPrometheusOperatorEnabled(effectiveCR)
 	overrides.Prometheus = &prometheusValues{Enabled: promEnable}
-	overrides.Rancher = &rancherValues{Enabled: vz.IsRancherEnabled(effectiveCR)}
-	overrides.Velero = &veleroValues{Enabled: vz.IsVeleroEnabled(effectiveCR)}
+	overrides.Rancher = &rancherValues{Enabled: vzcr.IsRancherEnabled(effectiveCR)}
+	overrides.Velero = &veleroValues{Enabled: vzcr.IsVeleroEnabled(effectiveCR)}
 	return nil
 }
 

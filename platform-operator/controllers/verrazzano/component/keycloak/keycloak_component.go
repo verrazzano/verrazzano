@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -187,7 +187,7 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 
 // IsEnabled Keycloak-specific enabled check for installation
 func (c KeycloakComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vz.IsKeycloakEnabled(effectiveCR)
+	return vzcr.IsKeycloakEnabled(effectiveCR)
 }
 
 // IsReady component check

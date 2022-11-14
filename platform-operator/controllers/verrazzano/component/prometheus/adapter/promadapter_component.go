@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -62,7 +62,7 @@ func NewComponent() spi.Component {
 // IsEnabled returns true if the Prometheus Adapter is enabled or if the component is not specified
 // in the Verrazzano CR.
 func (c prometheusAdapterComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vz.IsPrometheusAdapterEnabled(effectiveCR)
+	return vzcr.IsPrometheusAdapterEnabled(effectiveCR)
 }
 
 // IsReady checks if the Prometheus Adapter deployment is ready

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/url"
 
-	vzpkg "github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -56,7 +56,7 @@ func (v *VerrazzanoManagedCluster) ValidateCreate() error {
 	}
 
 	// The secret and configmap are required fields _only_ if Rancher is disabled
-	if !vzpkg.IsRancherEnabled(vz) {
+	if !vzcr.IsRancherEnabled(vz) {
 		err = v.validateSecret(client)
 		if err != nil {
 			return err

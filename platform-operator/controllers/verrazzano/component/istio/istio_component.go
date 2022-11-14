@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -267,7 +267,7 @@ func (i istioComponent) PostUninstall(context spi.ComponentContext) error {
 
 // IsEnabled istio-specific enabled check for installation
 func (i istioComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vz.IsIstioEnabled(effectiveCR)
+	return vzcr.IsIstioEnabled(effectiveCR)
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
@@ -445,7 +445,7 @@ func (i istioComponent) GetDependencies() []string {
 }
 
 func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
-	if vz.IsApplicationOperatorEnabled(context.ActualCR()) {
+	if vzcr.IsApplicationOperatorEnabled(context.ActualCR()) {
 		context.Log().Infof("Stop WebLogic domains that have the old Envoy sidecar where istio version skew is more than 2 minor versions")
 		if err := StopDomainsUsingOldEnvoy(context.Log(), context.Client()); err != nil {
 			return err
@@ -594,8 +594,8 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 	return kvs, nil
 }
 
-func checkExistingIstio(vzcr runtime.Object) error {
-	if !vz.IsIstioEnabled(vzcr) {
+func checkExistingIstio(vz runtime.Object) error {
+	if !vzcr.IsIstioEnabled(vz) {
 		return nil
 	}
 	client, err := k8sutil.GetCoreV1Func()

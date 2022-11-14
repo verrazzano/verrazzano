@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -170,7 +170,7 @@ func (d opensearchDashboardsComponent) PostUpgrade(ctx spi.ComponentContext) err
 
 // IsEnabled OpenSearch-Dashboards specific enabled check for installation
 func (d opensearchDashboardsComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vz.IsOpenSearchDashboardsEnabled(effectiveCR)
+	return vzcr.IsOpenSearchDashboardsEnabled(effectiveCR)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -216,7 +216,7 @@ func (d opensearchDashboardsComponent) Name() string {
 
 func (d opensearchDashboardsComponent) isOpenSearchDashboardEnabled(old runtime.Object, new runtime.Object) error {
 	// Do not allow disabling of any component post-install for now
-	if vz.IsOpenSearchDashboardsEnabled(old) && !vz.IsOpenSearchDashboardsEnabled(new) {
+	if vzcr.IsOpenSearchDashboardsEnabled(old) && !vzcr.IsOpenSearchDashboardsEnabled(new) {
 		return fmt.Errorf("Disabling component OpenSearch-Dashboards not allowed")
 	}
 	return nil
@@ -226,7 +226,7 @@ func (d opensearchDashboardsComponent) isOpenSearchDashboardEnabled(old runtime.
 func (d opensearchDashboardsComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
 
-	if vz.IsNGINXEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
 			Name:      constants.KibanaIngress,

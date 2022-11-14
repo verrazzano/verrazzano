@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -67,7 +67,7 @@ func (g grafanaComponent) GetDependencies() []string {
 func (g grafanaComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var certificateNames []types.NamespacedName
 
-	if vz.IsNGINXEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		certificateNames = append(certificateNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
 			Name:      grafanaCertificateName,
@@ -81,7 +81,7 @@ func (g grafanaComponent) GetCertificateNames(ctx spi.ComponentContext) []types.
 func (g grafanaComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
 
-	if vz.IsNGINXEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
 			Name:      constants.GrafanaIngress,
@@ -121,7 +121,7 @@ func (g grafanaComponent) IsOperatorInstallSupported() bool {
 
 // IsEnabled returns true if the Grafana component is enabled
 func (g grafanaComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vz.IsGrafanaEnabled(effectiveCR)
+	return vzcr.IsGrafanaEnabled(effectiveCR)
 }
 
 // IsInstalled returns true if the Grafana component is installed
@@ -223,7 +223,7 @@ func (g grafanaComponent) PostUpgrade(ctx spi.ComponentContext) error {
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (g grafanaComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// do not allow disabling active components
-	if vz.IsGrafanaEnabled(old) && !vz.IsGrafanaEnabled(new) {
+	if vzcr.IsGrafanaEnabled(old) && !vzcr.IsGrafanaEnabled(new) {
 		return fmt.Errorf("Disabling component Grafana not allowed")
 	}
 	return nil
@@ -232,7 +232,7 @@ func (g grafanaComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (g grafanaComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// do not allow disabling active components
-	if vz.IsGrafanaEnabled(old) && !vz.IsGrafanaEnabled(new) {
+	if vzcr.IsGrafanaEnabled(old) && !vzcr.IsGrafanaEnabled(new) {
 		return fmt.Errorf("Disabling component Grafana not allowed")
 	}
 	return nil
@@ -245,8 +245,8 @@ func (g grafanaComponent) Reconcile(ctx spi.ComponentContext) error {
 
 // checkExistingGrafana checks if Grafana is already installed
 // OLCNE Istio module may have Grafana installed in istio-system namespace
-func checkExistingCNEGrafana(vzcr runtime.Object) error {
-	if !vz.IsGrafanaEnabled(vzcr) {
+func checkExistingCNEGrafana(vz runtime.Object) error {
+	if !vzcr.IsGrafanaEnabled(vz) {
 		return nil
 	}
 	if err := k8sutil.ErrorIfDeploymentExists(constants.IstioSystemNamespace, ComponentName); err != nil {

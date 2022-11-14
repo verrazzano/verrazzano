@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -76,7 +76,7 @@ func NewComponent() spi.Component {
 // IsEnabled returns true only if Rancher Backup component is explicitly enabled
 // in the Verrazzano CR.
 func (rb rancherBackupHelmComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vz.IsRancherBackupEnabled(effectiveCR)
+	return vzcr.IsRancherBackupEnabled(effectiveCR)
 }
 
 // IsInstalled returns true only if Rancher Backup is installed on the system

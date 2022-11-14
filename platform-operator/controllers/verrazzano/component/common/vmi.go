@@ -13,7 +13,7 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/security/password"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -61,7 +61,7 @@ func NewVMI() *vmov1.VerrazzanoMonitoringInstance {
 
 // CreateOrUpdateVMI instantiates the VMI resource
 func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error {
-	if !vz.IsVMOEnabled(ctx.EffectiveCR()) {
+	if !vzcr.IsVMOEnabled(ctx.EffectiveCR()) {
 		return nil
 	}
 
@@ -70,7 +70,7 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 	var dnsSuffix string
 	var envName string
 	var err error
-	if vz.IsNGINXEnabled(effectiveCR) {
+	if vzcr.IsNGINXEnabled(effectiveCR) {
 		dnsSuffix, err = vzconfig.GetDNSSuffix(ctx.Client(), effectiveCR)
 		if err != nil {
 			return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
@@ -93,7 +93,7 @@ func CreateOrUpdateVMI(ctx spi.ComponentContext, updateFunc VMIMutateFunc) error
 			"k8s-app":            "verrazzano.io",
 			"verrazzano.binding": system,
 		}
-		if vz.IsNGINXEnabled(effectiveCR) {
+		if vzcr.IsNGINXEnabled(effectiveCR) {
 			vmi.Spec.URI = fmt.Sprintf("vmi.system.%s.%s", envName, dnsSuffix)
 			vmi.Spec.IngressTargetDNSName = fmt.Sprintf("verrazzano-ingress.%s.%s", envName, dnsSuffix)
 		}

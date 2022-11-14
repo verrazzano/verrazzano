@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 
 	"path/filepath"
 	"strconv"
@@ -80,7 +80,7 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true if the component is enabled for install
 func (c mysqlOperatorComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vz.IsMySQLOperatorEnabled(effectiveCR)
+	return vzcr.IsMySQLOperatorEnabled(effectiveCR)
 }
 
 // IsReady - component specific ready-check

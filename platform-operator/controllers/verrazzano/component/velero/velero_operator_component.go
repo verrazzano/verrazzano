@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	prometheusOperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 
@@ -88,7 +88,7 @@ func NewComponent() spi.Component {
 // IsEnabled returns true only if Velero is explicitly enabled
 // in the Verrazzano CR.
 func (v veleroHelmComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vz.IsVeleroEnabled(effectiveCR)
+	return vzcr.IsVeleroEnabled(effectiveCR)
 }
 
 // IsInstalled returns true only if Velero is installed on the system

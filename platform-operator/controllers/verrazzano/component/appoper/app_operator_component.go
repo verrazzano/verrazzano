@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -125,7 +125,7 @@ func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) erro
 
 // IsEnabled applicationOperator-specific enabled check for installation
 func (c applicationOperatorComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vz.IsApplicationOperatorEnabled(effectiveCR)
+	return vzcr.IsApplicationOperatorEnabled(effectiveCR)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated

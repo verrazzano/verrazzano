@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
@@ -35,7 +35,7 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 	istio := ctx.EffectiveCR().Spec.Components.Istio
 	istioInject := istio != nil && istio.IsInjectionEnabled()
 
-	if vz.IsCertManagerEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsCertManagerEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateCertManagerNamespace(ctx.Client()); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.CertManagerNamespace, err)
 		}
@@ -45,19 +45,19 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.IngressNamespace, err)
 	}
 
-	if vz.IsIstioEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsIstioEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateIstioNamespace(ctx.Client()); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.IstioSystemNamespace, err)
 		}
 	}
 
-	if vz.IsKeycloakEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateKeycloakNamespace(ctx.Client(), istioInject); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.KeycloakNamespace, err)
 		}
 	}
 
-	if vz.IsMySQLOperatorEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsMySQLOperatorEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateMysqlOperator(ctx.Client(), istioInject); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.MySQLOperatorNamespace, err)
 		}
@@ -72,7 +72,7 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", constants.VerrazzanoMonitoringNamespace, err)
 	}
 
-	if vz.IsVeleroEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsVeleroEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateVeleroNamespace(ctx.Client()); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", constants.VeleroNameSpace, err)
 		}

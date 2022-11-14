@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -65,7 +65,7 @@ func NewComponent() spi.Component {
 // IsEnabled returns true if kube-state-metrics is enabled or if the component is not specified
 // in the Verrazzano CR.
 func (c kubeStateMetricsComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vz.IsKubeStateMetricsEnabled(effectiveCR)
+	return vzcr.IsKubeStateMetricsEnabled(effectiveCR)
 }
 
 // IsReady checks if the kube-state-metrics deployment is ready
@@ -96,7 +96,7 @@ func (c kubeStateMetricsComponent) MonitorOverrides(ctx spi.ComponentContext) bo
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Only enable the ServiceMonitor if Prometheus Operator is enabled in this install
 	ctx.Log().Debug("Appending service monitor override for the Prometheus kube-state-metrics component")
-	if vz.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) {
 		kvs = append(kvs, bom.KeyValue{
 			Key: "prometheus.monitor.enabled", Value: "true",
 		})

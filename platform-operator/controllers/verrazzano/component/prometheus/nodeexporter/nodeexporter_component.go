@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -68,7 +68,7 @@ func NewComponent() spi.Component {
 // IsEnabled returns true if the Prometheus Node-Exporter is explicitly enabled in the Verrazzano CR, otherwise
 // it returns true if the Prometheus component is enabled.
 func (c prometheusNodeExporterComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vz.IsNodeExporterEnabled(effectiveCR)
+	return vzcr.IsNodeExporterEnabled(effectiveCR)
 }
 
 // IsReady checks if the Prometheus Node-Exporter deployment is ready
@@ -88,7 +88,7 @@ func (c prometheusNodeExporterComponent) PreInstall(ctx spi.ComponentContext) er
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Only enable the node exporter's ServiceMonitor if Prometheus Operator is enabled in this install
 	ctx.Log().Debug("Appending service monitor override for the Prometheus Node Exporter component")
-	if vz.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) {
 		kvs = append(kvs, bom.KeyValue{
 			Key: "prometheus.monitor.enabled", Value: "true",
 		})

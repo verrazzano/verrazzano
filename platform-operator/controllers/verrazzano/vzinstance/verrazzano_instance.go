@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
@@ -42,7 +42,7 @@ func GetInstanceInfo(ctx spi.ComponentContext) *v1alpha1.InstanceInfo {
 	// Console ingress always exist. Only show console URL if the console was enabled during install.
 
 	var consoleURL *string
-	if vz.IsConsoleEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsConsoleEnabled(ctx.EffectiveCR()) {
 		consoleURL = getComponentIngressURL(ingressList.Items, ctx, authproxy.ComponentName, constants.VzConsoleIngress)
 	} else {
 		consoleURL = nil
