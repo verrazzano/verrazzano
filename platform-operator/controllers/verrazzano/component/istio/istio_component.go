@@ -6,9 +6,11 @@ package istio
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -74,7 +76,7 @@ const istiodIstioSystem = "istiod-istio-system"
 const istioSidecarMutatingWebhook = "istio-sidecar-injector"
 
 const (
-	//ExternalIPArg is used in a special case where Istio helm chart no longer supports ExternalIPs.
+	// ExternalIPArg is used in a special case where Istio helm chart no longer supports ExternalIPs.
 	// Put external IPs into the IstioOperator YAML, which does support it
 	ExternalIPArg            = "gateways.istio-ingressgateway.externalIPs"
 	specServiceJSONPath      = "spec.components.ingressGateways.0.k8s.service"
@@ -265,7 +267,7 @@ func (i istioComponent) PostUninstall(context spi.ComponentContext) error {
 
 // IsEnabled istio-specific enabled check for installation
 func (i istioComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsIstioEnabled(effectiveCR)
+	return vz.IsIstioEnabled(effectiveCR)
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the component
@@ -443,13 +445,13 @@ func (i istioComponent) GetDependencies() []string {
 }
 
 func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
-	if vzconfig.IsApplicationOperatorEnabled(context.ActualCR()) {
+	if vz.IsApplicationOperatorEnabled(context.ActualCR()) {
 		context.Log().Infof("Stop WebLogic domains that have the old Envoy sidecar where istio version skew is more than 2 minor versions")
 		if err := StopDomainsUsingOldEnvoy(context.Log(), context.Client()); err != nil {
 			return err
 		}
 	}
-	//Upgrading Istio may result in a duplicate mutating webhook configuration. Istioctl will recreate the webhook during upgrade.
+	// Upgrading Istio may result in a duplicate mutating webhook configuration. Istioctl will recreate the webhook during upgrade.
 	return webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), istioSidecarMutatingWebhook)
 }
 
@@ -593,7 +595,7 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 }
 
 func checkExistingIstio(vz runtime.Object) error {
-	if !vzconfig.IsIstioEnabled(vz) {
+	if !vz.IsIstioEnabled(vz) {
 		return nil
 	}
 	client, err := k8sutil.GetCoreV1Func()

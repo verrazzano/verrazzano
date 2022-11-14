@@ -6,7 +6,10 @@ package rancher
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vz"
+
 	"os"
 	"path/filepath"
 	"strconv"
@@ -279,7 +282,7 @@ func createEnvVars(kvs []bom.KeyValue, envList []envVar) []bom.KeyValue {
 // IsEnabled Rancher is always enabled on admin clusters,
 // and is not enabled by default on managed clusters
 func (r rancherComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsRancherEnabled(effectiveCR)
+	return vz.IsRancherEnabled(effectiveCR)
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
@@ -495,9 +498,9 @@ func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
 // +disables first login setting to disable prompting for password on first login.
 // +enables or disables Keycloak Auth provider.
 func ConfigureAuthProviders(ctx spi.ComponentContext) error {
-	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) &&
+	if vz.IsKeycloakEnabled(ctx.EffectiveCR()) &&
 		isKeycloakAuthEnabled(ctx.EffectiveCR()) &&
-		vzconfig.IsRancherEnabled(ctx.EffectiveCR()) {
+		vz.IsRancherEnabled(ctx.EffectiveCR()) {
 
 		ctx.Log().Oncef("Configuring Keycloak as a Rancher authentication provider")
 		if err := configureKeycloakOIDC(ctx); err != nil {
@@ -548,7 +551,7 @@ func createOrUpdateClusterRoleTemplateBindings(ctx spi.ComponentContext) error {
 // +returns the value of the keycloakAuthEnabled attribute if it is set in rancher component of VZ CR.
 // +returns true otherwise.
 func isKeycloakAuthEnabled(vz *vzapi.Verrazzano) bool {
-	if !vzconfig.IsKeycloakEnabled(vz) {
+	if !vz.IsKeycloakEnabled(vz) {
 		return false
 	}
 
@@ -583,7 +586,7 @@ func configureUISettings(ctx spi.ComponentContext) error {
 
 // checkExistingRancher checks if there is already an existing Rancher or not
 func checkExistingRancher(vz runtime.Object) error {
-	if !vzconfig.IsRancherEnabled(vz) {
+	if !vz.IsRancherEnabled(vz) {
 		return nil
 	}
 	client, err := k8sutil.GetCoreV1Func()

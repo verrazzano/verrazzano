@@ -8,10 +8,10 @@ import (
 
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
+	"github.com/verrazzano/verrazzano/pkg/vz"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 )
 
 const (
@@ -172,12 +172,12 @@ func (r *VerrazzanoManagedClusterReconciler) getJaegerSpecConfig(vzList *vzapi.V
 // canUseVZOpenSearchStorage determines if Verrazzano's OpenSearch can be used as a storage for Jaeger instance.
 // As default Jaeger uses Authproxy to connect to OpenSearch storage, check if Keycloak component is also enabled.
 func canUseVZOpenSearchStorage(vz vzapi.Verrazzano) bool {
-	if vzconfig.IsOpenSearchEnabled(&vz) && vzconfig.IsKeycloakEnabled(&vz) {
+	if vz.IsOpenSearchEnabled(&vz) && vz.IsKeycloakEnabled(&vz) {
 		return true
 	}
 	return false
 }
 
 func isJaegerOperatorEnabled(vz vzapi.Verrazzano) bool {
-	return vzconfig.IsJaegerOperatorEnabled(&vz)
+	return vz.IsJaegerOperatorEnabled(&vz)
 }

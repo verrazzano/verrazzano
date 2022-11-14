@@ -6,9 +6,11 @@ package certmanager
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vz"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -23,7 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -85,7 +86,7 @@ func NewComponent() spi.Component {
 
 // IsEnabled returns true if the cert-manager is enabled, which is the default
 func (c certManagerComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsCertManagerEnabled(effectiveCR)
+	return vz.IsCertManagerEnabled(effectiveCR)
 }
 
 // IsReady component check
@@ -284,7 +285,7 @@ func (c certManagerComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 }
 
 func checkExistingCertManager(vz runtime.Object) error {
-	if !vzconfig.IsCertManagerEnabled(vz) {
+	if !vz.IsCertManagerEnabled(vz) {
 		return nil
 	}
 	client, err := k8sutil.GetCoreV1Func()

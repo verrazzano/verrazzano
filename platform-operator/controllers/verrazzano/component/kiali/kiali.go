@@ -12,6 +12,7 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/security/password"
+	"github.com/verrazzano/verrazzano/pkg/vz"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -49,7 +50,7 @@ func (c kialiComponent) isKialiReady(ctx spi.ComponentContext) bool {
 
 // AppendOverrides Build the set of Kiali overrides for the helm install
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
+	if vz.IsNGINXEnabled(ctx.EffectiveCR()) {
 		hostName, err := getKialiHostName(ctx)
 		if err != nil {
 			return kvs, err
@@ -128,7 +129,7 @@ func createOrUpdateKialiIngress(ctx spi.ComponentContext, namespace string) erro
 		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
 		ingress.Annotations["cert-manager.io/common-name"] = kialiHostName
-		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+		if vz.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 			ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
 		}

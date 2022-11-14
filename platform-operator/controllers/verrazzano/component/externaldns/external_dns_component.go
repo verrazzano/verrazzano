@@ -5,13 +5,14 @@ package externaldns
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vz"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"k8s.io/apimachinery/pkg/types"
+
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -73,7 +74,7 @@ func (c externalDNSComponent) IsReady(ctx spi.ComponentContext) bool {
 }
 
 func (c externalDNSComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsExternalDNSEnabled(effectiveCR)
+	return vz.IsExternalDNSEnabled(effectiveCR)
 }
 
 // PostUninstall Clean up external-dns resources not removed by Uninstall()

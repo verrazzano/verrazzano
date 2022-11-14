@@ -7,10 +7,12 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"os"
+
+	"github.com/verrazzano/verrazzano/pkg/vz"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"k8s.io/apimachinery/pkg/runtime"
-	"os"
 
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
@@ -21,8 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -73,7 +73,7 @@ func verrazzanoPreUpgrade(ctx spi.ComponentContext) error {
 	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
 		return err
 	}
-	if vzconfig.IsJaegerOperatorEnabled(ctx.EffectiveCR()) || vzconfig.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) {
+	if vz.IsJaegerOperatorEnabled(ctx.EffectiveCR()) || vz.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) {
 		// Auth policies and Network policies created in the helm chart requires verrazzano-monitoring namespace
 		ctx.Log().Debugf("Creating namespace %s for the Verrazzano component", constants.VerrazzanoMonitoringNamespace)
 		if err := common.EnsureVerrazzanoMonitoringNamespace(ctx); err != nil {

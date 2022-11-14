@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/vz"
 	"github.com/verrazzano/verrazzano/pkg/vzmap"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -91,7 +92,7 @@ func CreateOrUpdateSystemComponentIngress(ctx spi.ComponentContext, props Ingres
 		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
 		ingress.Annotations["cert-manager.io/common-name"] = qualifiedHostName
-		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+		if vz.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 			ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"

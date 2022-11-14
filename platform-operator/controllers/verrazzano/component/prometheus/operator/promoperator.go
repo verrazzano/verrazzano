@@ -9,6 +9,7 @@ import (
 	"path"
 	"strconv"
 
+	"github.com/verrazzano/verrazzano/pkg/vz"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -25,7 +26,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	securityv1beta1 "istio.io/api/security/v1beta1"
 	istiov1beta1 "istio.io/api/type/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -307,10 +307,10 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// will use the kube-webhook-certgen image
 	kvs = append(kvs, bom.KeyValue{
 		Key:   "prometheusOperator.admissionWebhooks.certManager.enabled",
-		Value: strconv.FormatBool(vzconfig.IsCertManagerEnabled(ctx.EffectiveCR())),
+		Value: strconv.FormatBool(vz.IsCertManagerEnabled(ctx.EffectiveCR())),
 	})
 
-	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
+	if vz.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		// If storage overrides are specified, set helm overrides
 		resourceRequest, err := common.FindStorageOverride(ctx.EffectiveCR())
 		if err != nil {
@@ -430,10 +430,10 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 // validatePrometheusOperator checks scenarios in which the Verrazzano CR violates install verification due to Prometheus Operator specifications
 func (c prometheusComponent) validatePrometheusOperator(vz *installv1beta1.Verrazzano) error {
 	// Validate if Prometheus is enabled, Prometheus Operator should be enabled
-	if !c.IsEnabled(vz) && vzconfig.IsPrometheusEnabled(vz) {
+	if !c.IsEnabled(vz) && vz.IsPrometheusEnabled(vz) {
 		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled. Also disable the Prometheus component in order to disable Prometheus Operator")
 	}
-	//Validate install overrides for v1beta1.Verrazzano
+	// Validate install overrides for v1beta1.Verrazzano
 	if vz.Spec.Components.PrometheusOperator != nil {
 		if err := vzapi.ValidateInstallOverridesV1Beta1(vz.Spec.Components.PrometheusOperator.ValueOverrides); err != nil {
 			return err

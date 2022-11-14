@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vz"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -24,7 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -99,7 +99,7 @@ func NewComponent() spi.Component {
 // IsEnabled returns true only if the Jaeger Operator is explicitly enabled
 // in the Verrazzano CR.
 func (c jaegerOperatorComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsJaegerOperatorEnabled(effectiveCR)
+	return vz.IsJaegerOperatorEnabled(effectiveCR)
 }
 
 // IsReady checks if the Jaeger Operator deployment is ready
@@ -275,7 +275,7 @@ func (c jaegerOperatorComponent) createOrUpdateJaegerResources(ctx spi.Component
 	if err != nil {
 		return err
 	}
-	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) && jaegerCREnabled {
+	if vz.IsNGINXEnabled(ctx.EffectiveCR()) && jaegerCREnabled {
 		if err := createOrUpdateJaegerIngress(ctx, constants.VerrazzanoSystemNamespace); err != nil {
 			return err
 		}

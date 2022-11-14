@@ -5,10 +5,11 @@ package opensearchdashboards
 
 import (
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vz"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -26,7 +27,7 @@ func getOSDDeployments() []types.NamespacedName {
 // isOSDReady checks if the OpenSearch-Dashboards resources are ready
 func isOSDReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	if vzconfig.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR()) {
+	if vz.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR()) {
 		if !ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), getOSDDeployments(), 1, prefix) {
 			return false
 		}

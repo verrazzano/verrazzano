@@ -11,10 +11,10 @@ import (
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/vz"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -32,7 +32,7 @@ const (
 
 // checkSecretExists whether verrazzano-es-internal secret exists. Return error if secret does not exist.
 func checkSecretExists(ctx spi.ComponentContext) error {
-	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
+	if vz.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		secret := &corev1.Secret{}
 		// Check verrazzano-es-internal secret by default
 		secretName := globalconst.VerrazzanoESInternal
@@ -64,7 +64,7 @@ func checkSecretExists(ctx spi.ComponentContext) error {
 
 // loggingPreInstall copies logging secrets from the verrazzano-install namespace to the verrazzano-system namespace
 func loggingPreInstall(ctx spi.ComponentContext) error {
-	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
+	if vz.IsFluentdEnabled(ctx.EffectiveCR()) {
 		// If fluentd is enabled, copy any custom secrets
 		fluentdConfig := ctx.EffectiveCR().Spec.Components.Fluentd
 		if fluentdConfig != nil {

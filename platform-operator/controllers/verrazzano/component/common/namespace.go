@@ -6,11 +6,12 @@ package common
 import (
 	"context"
 	"fmt"
+
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/vz"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -34,7 +35,7 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 	istio := ctx.EffectiveCR().Spec.Components.Istio
 	istioInject := istio != nil && istio.IsInjectionEnabled()
 
-	if vzconfig.IsCertManagerEnabled(ctx.EffectiveCR()) {
+	if vz.IsCertManagerEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateCertManagerNamespace(ctx.Client()); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.CertManagerNamespace, err)
 		}
@@ -44,19 +45,19 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.IngressNamespace, err)
 	}
 
-	if vzconfig.IsIstioEnabled(ctx.EffectiveCR()) {
+	if vz.IsIstioEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateIstioNamespace(ctx.Client()); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.IstioSystemNamespace, err)
 		}
 	}
 
-	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
+	if vz.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateKeycloakNamespace(ctx.Client(), istioInject); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.KeycloakNamespace, err)
 		}
 	}
 
-	if vzconfig.IsMySQLOperatorEnabled(ctx.EffectiveCR()) {
+	if vz.IsMySQLOperatorEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateMysqlOperator(ctx.Client(), istioInject); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.MySQLOperatorNamespace, err)
 		}
@@ -71,7 +72,7 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", constants.VerrazzanoMonitoringNamespace, err)
 	}
 
-	if vzconfig.IsVeleroEnabled(ctx.EffectiveCR()) {
+	if vz.IsVeleroEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateVeleroNamespace(ctx.Client()); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", constants.VeleroNameSpace, err)
 		}

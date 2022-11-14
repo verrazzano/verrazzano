@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/vz"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -20,7 +21,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -71,7 +71,7 @@ func NewComponent() spi.Component {
 // PreInstall Verrazzano component pre-install processing; create and label required namespaces, copy any
 // required secrets
 func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
-	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
+	if vz.IsVMOEnabled(ctx.EffectiveCR()) {
 		// Make sure the VMI CRD is installed since the Verrazzano component may create/update
 		// a VMI CR
 		if err := common.ApplyCRDYaml(ctx, config.GetHelmVMOChartsDir()); err != nil {
@@ -103,7 +103,7 @@ func (c verrazzanoComponent) Install(ctx spi.ComponentContext) error {
 
 // PreUpgrade Verrazzano component pre-upgrade processing
 func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
+	if vz.IsVMOEnabled(ctx.EffectiveCR()) {
 		if err := common.ExportVMOHelmChart(ctx); err != nil {
 			return err
 		}
@@ -145,17 +145,17 @@ func (c verrazzanoComponent) PostInstall(ctx spi.ComponentContext) error {
 func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("Verrazzano component post-upgrade")
 	cleanTempFiles(ctx)
-	if vzconfig.IsVMOEnabled(ctx.EffectiveCR()) {
+	if vz.IsVMOEnabled(ctx.EffectiveCR()) {
 		if err := common.ReassociateVMOResources(ctx); err != nil {
 			return err
 		}
 	}
-	if vzconfig.IsFluentdEnabled(ctx.EffectiveCR()) {
+	if vz.IsFluentdEnabled(ctx.EffectiveCR()) {
 		if err := fluentd.ReassociateResources(ctx.Client()); err != nil {
 			return err
 		}
 	}
-	if vzconfig.IsJaegerOperatorEnabled(ctx.EffectiveCR()) {
+	if vz.IsJaegerOperatorEnabled(ctx.EffectiveCR()) {
 		if err := jaegeroperator.ReassociateResources(ctx.Client()); err != nil {
 			return err
 		}
@@ -166,7 +166,7 @@ func (c verrazzanoComponent) PostUpgrade(ctx spi.ComponentContext) error {
 
 // IsEnabled verrazzano-specific enabled check for installation
 func (c verrazzanoComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsVerrazzanoComponentEnabled(effectiveCR)
+	return vz.IsVerrazzanoComponentEnabled(effectiveCR)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -212,10 +212,10 @@ func (c verrazzanoComponent) checkEnabled(old runtime.Object, new runtime.Object
 	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	if vzconfig.IsConsoleEnabled(old) && !vzconfig.IsConsoleEnabled(new) {
+	if vz.IsConsoleEnabled(old) && !vz.IsConsoleEnabled(new) {
 		return fmt.Errorf("Disabling component console not allowed")
 	}
-	if vzconfig.IsPrometheusEnabled(old) && !vzconfig.IsPrometheusEnabled(new) {
+	if vz.IsPrometheusEnabled(old) && !vz.IsPrometheusEnabled(new) {
 		return fmt.Errorf("Disabling component prometheus not allowed")
 	}
 	return nil
