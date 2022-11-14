@@ -520,7 +520,7 @@
           "images": [
             {
               "image": "prometheus-adapter-jenkins",
-              "tag": "v0.10.0-20221111111842-24bbdefb",
+              "tag": "v0.10.0-20221114062505-ca46bb4f",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
