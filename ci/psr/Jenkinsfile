@@ -38,12 +38,12 @@ pipeline {
         //CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
 
         DOCKER_PSR_BACKEND_PUBLISH_IMAGE_NAME = 'psr-backend'
-        DOCKER_PSR_BACKEND_IMAGE_NAME = '${DOCKER_PSR_BACKEND_PUBLISH_IMAGE_NAME}-jenkins'
-        DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PSR_BACKEND_PUBLISH_IMAGE_NAME : env.DOCKER_PSR_BACKEND_IMAGE_NAME}"
+        DOCKER_PSR_BRANCH_BACKEND_IMAGE_NAME = '${DOCKER_PSR_BACKEND_PUBLISH_IMAGE_NAME}-jenkins'
+        DOCKER_PSR_BACKEND_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PSR_BACKEND_PUBLISH_IMAGE_NAME : env.DOCKER_PSR_BRANCH_BACKEND_IMAGE_NAME}"
 
         GOPATH = '/home/opc/go'
-        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
-        PSR_PATH = '${GO_REPO_PATH}/verrazzano/tools/psr'
+        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano/verrazzano"
+        PSR_PATH = '${GO_REPO_PATH}/tools/psr'
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
         DOCKER_EMAIL = credentials('github-packages-email')
         DOCKER_REGISTRY = 'ghcr.io'
@@ -84,7 +84,7 @@ pipeline {
         //INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
         //INSTALL_PROFILE = "dev"
         //VZ_ENVIRONMENT_NAME = "default"
-        //TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
+        //TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/tests/e2e/config/scripts"
 
         //WEBLOGIC_PSW = credentials('weblogic-example-domain-password') // Needed by ToDoList example test
         //DATABASE_PSW = credentials('todo-mysql-password') // Needed by ToDoList example test
@@ -214,7 +214,7 @@ pipeline {
                             cd ${PSR_PATH}
                             #cp coverage.html ${WORKSPACE}
                             #cp coverage.xml ${WORKSPACE}
-                            ${PSR_PATH}/build/copy-junit-output.sh ${WORKSPACE}
+                            ${GO_REPO_PATH}/build/copy-junit-output.sh ${WORKSPACE}
                              """
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                             /*cobertura(coberturaReportFile: 'coverage.xml',
@@ -341,9 +341,9 @@ def isPagerDutyEnabled() {
 // Called in Stage Clean workspace and checkout steps
 def moveContentToGoRepoPath() {
     sh """
-        rm -rf ${GO_REPO_PATH}/verrazzano
-        mkdir -p ${GO_REPO_PATH}/verrazzano
-        tar cf - . | (cd ${GO_REPO_PATH}/verrazzano/ ; tar xf -)
+        rm -rf ${GO_REPO_PATH}
+        mkdir -p ${GO_REPO_PATH}
+        tar cf - . | (cd ${GO_REPO_PATH}/ ; tar xf -)
     """
 }
 
@@ -352,8 +352,8 @@ def buildCLI(dockerImageTag) {
     sh """
         cd ${PSR_PATH}
         make go-build-cli
-        ${GO_REPO_PATH}/verrazzano/ci/scripts/save_psr_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
-        cp out/linux_amd64/psrctl ${GO_REPO_PATH}/psrctl
+        ${GO_REPO_PATH}/ci/scripts/save_psr_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
+        #cp out/linux_amd64/psrctl ${GO_REPO_PATH}/psrctl
     """
 }
 
@@ -363,13 +363,13 @@ def buildImages(dockerImageTag) {
     sh """
         cd ${PSR_PATH}
         echo 'Building PSR backend image...'
-        make docker-push DOCKER_REGISTRY=${env.DOCKER_REGISTRY} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_IMAGE_TAG=${dockerImageTag}
+        make docker-push DOCKER_REGISTRY=${env.DOCKER_REGISTRY} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_IMAGE_NAME=${env.DOCKER_PSR_BACKEND_IMAGE_NAME} DOCKER_IMAGE_TAG=${dockerImageTag}
     """
 }
 
 def saveCLIExecutables() {
     sh """
-        cd ${GO_REPO_PATH}/verrazzano/tools/psr
+        cd ${GO_REPO_PATH}/tools/psr
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/psrctl-linux-amd64.tar.gz --file $WORKSPACE/psrctl-linux-amd64.tar.gz
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/psrctl-linux-amd64.tar.gz --file $WORKSPACE/psrctl-linux-amd64.tar.gz
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/psrctl-linux-amd64.tar.gz.sha256 --file $WORKSPACE/psrctl-linux-amd64.tar.gz.sha256
@@ -381,7 +381,7 @@ def saveCLIExecutables() {
 def runGinkgoRandomize(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            cd ${GO_REPO_PATH}/tests/e2e
             ginkgo -p --randomize-all -v --keep-going --no-color ${testSuitePath}/...
             ../../build/copy-junit-output.sh ${WORKSPACE}
         """
@@ -392,24 +392,12 @@ def runGinkgoRandomize(testSuitePath) {
 def runGinkgo(testSuitePath) {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
         sh """
-            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            cd ${GO_REPO_PATH}/tests/e2e
             ginkgo -v --keep-going --no-color ${testSuitePath}/...
             ../../build/copy-junit-output.sh ${WORKSPACE}
         """
     }
 }
-
-// Called in Stage Acceptance Tests post
-/*def dumpK8sCluster(dumpDirectory) {
-    sh """
-        mkdir -p ${dumpDirectory}/cluster-snapshot
-        ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${dumpDirectory}/cluster-snapshot -r ${dumpDirectory}/cluster-snapshot/analysis.report
-        ${GO_REPO_PATH}/vz bug-report --report-file ${dumpDirectory}/bug-report.tar.gz
-        mkdir -p ${dumpDirectory}/bug-report
-        tar -xvf ${dumpDirectory}/bug-report.tar.gz -C ${dumpDirectory}/bug-report
-    """
-}*/
-
 
 // Called in Stage Clean workspace and checkout steps
 @NonCPS

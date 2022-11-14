@@ -3,7 +3,7 @@
 
 include ../../make/retry.mk
 
-BACKEND_NAME:=psr-backend
+BACKEND_NAME ?= psr-backend
 MAKEFILE_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 PSR_DIR:=${MAKEFILE_DIR}
 CLI_DIR:=github.com$(shell echo ${MAKEFILE_DIR} | sed 's/.*github.com//')/psrctl
