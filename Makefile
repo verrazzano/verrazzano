@@ -46,6 +46,8 @@ clean: ## remove coverage and test results
 	find . -name coverage.html -exec rm {} \;
 	find . -name coverage.raw.cov -exec rm {} \;
 	find . -name \*-test-result.xml -exec rm {} \;
+	find . -name coverage.xml -exec rm {} \;
+	find . -name unit-test-coverage-number.txt -exec rm {} \;
 
 ##@ Build
 
