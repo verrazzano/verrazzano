@@ -27,7 +27,9 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 )
 
-type restartWorker struct {
+var funcNewPsrClient = k8sclient.NewPsrClient
+
+type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetrics
 	psrClient        k8sclient.PsrClient
@@ -36,7 +38,7 @@ type restartWorker struct {
 	restartedPodUID  types.UID
 }
 
-var _ spi.Worker = restartWorker{}
+var _ spi.Worker = worker{}
 
 // restartMetrics holds the metrics produced by the worker. Metrics must be thread safe.
 type workerMetrics struct {
@@ -45,11 +47,11 @@ type workerMetrics struct {
 }
 
 func NewRestartWorker() (spi.Worker, error) {
-	c, err := k8sclient.NewPsrClient()
+	c, err := funcNewPsrClient()
 	if err != nil {
 		return nil, err
 	}
-	w := restartWorker{
+	w := worker{
 		psrClient:        c,
 		log:              vzlog.DefaultLogger(),
 		restartStartTime: 0,
@@ -62,7 +64,7 @@ func NewRestartWorker() (spi.Worker, error) {
 			},
 			restartTime: metrics.MetricItem{
 				Name: "opensearch_pod_restart_time_nanoseconds",
-				Help: "The OpenSearch pod restart time in nanoseconds",
+				Help: "The number of nanoseconds elapsed to restart the OpenSearch pod",
 				Type: prometheus.GaugeValue,
 			},
 		},
@@ -78,7 +80,7 @@ func NewRestartWorker() (spi.Worker, error) {
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
-func (w restartWorker) GetWorkerDesc() spi.WorkerDesc {
+func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
 		WorkerType:  config.WorkerTypeRestart,
 		Description: "Worker to restart pods in the specified OpenSearch tier",
@@ -86,17 +88,17 @@ func (w restartWorker) GetWorkerDesc() spi.WorkerDesc {
 	}
 }
 
-func (w restartWorker) GetEnvDescList() []osenv.EnvVarDesc {
+func (w worker) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{
 		{Key: psropensearch.OpenSearchTier, DefaultVal: "", Required: true},
 	}
 }
 
-func (w restartWorker) GetMetricDescList() []prometheus.Desc {
+func (w worker) GetMetricDescList() []prometheus.Desc {
 	return w.metricDescList
 }
 
-func (w restartWorker) GetMetricList() []prometheus.Metric {
+func (w worker) GetMetricList() []prometheus.Metric {
 
 	return []prometheus.Metric{
 		w.restartCount.BuildMetric(),
@@ -104,12 +106,12 @@ func (w restartWorker) GetMetricList() []prometheus.Metric {
 	}
 }
 
-func (w restartWorker) WantLoopInfoLogged() bool {
+func (w worker) WantLoopInfoLogged() bool {
 	return false
 }
 
 // DoWork continuously restarts a specified OpenSearch out and in by modifying the VZ CR OpenSearch component
-func (w restartWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+func (w worker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	// validate OS tier
 	tier, err := psropensearch.ValidateOpenSeachTier()
 	if err != nil {
@@ -136,7 +138,7 @@ func (w restartWorker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger)
 	return nil
 }
 
-func (w restartWorker) podsReady(tier string) error {
+func (w worker) podsReady(tier string) error {
 	var label string
 	var err error
 	switch tier {
@@ -165,7 +167,7 @@ func (w restartWorker) podsReady(tier string) error {
 	return nil
 }
 
-func (w restartWorker) restartPod(tier string) error {
+func (w worker) restartPod(tier string) error {
 	pods, err := psropensearch.GetPodsForTier(w.psrClient.CrtlRuntime, tier)
 	if err != nil {
 		return err
