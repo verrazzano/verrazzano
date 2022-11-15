@@ -274,20 +274,21 @@ pipeline {
                         cd ${GO_REPO_PATH}/verrazzano
                         cp coverage.html ${WORKSPACE}
                         cp coverage.xml ${WORKSPACE}
+                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/unit-test-coverage-number.txt --file $WORKSPACE/unit-test-coverage-number.txt
                         build/copy-junit-output.sh ${WORKSPACE}
                     """
                             archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                             cobertura(coberturaReportFile: 'coverage.xml',
                                     enableNewApi: true,
-                                    autoUpdateHealth: true,
-                                    autoUpdateStability: true,
+                                    autoUpdateHealth: false,
+                                    autoUpdateStability: false,
                                     failUnstable: true,
                                     failUnhealthy: true,
                                     failNoReports: true,
                                     onlyStable: false,
                                     fileCoverageTargets: '100, 0, 0',
-                                    //lineCoverageTargets: '68, 68, 68',
+                                    lineCoverageTargets: '68, 68, 68',
                                     packageCoverageTargets: '100, 0, 0',
                             )
                         }
