@@ -143,8 +143,10 @@ func (w worker) podsReady(tier string) error {
 	var err error
 	switch tier {
 	case psropensearch.MasterTier:
-		label = "opensearch.verrazzano.io/role-master"
-		err = ready.StatefulSetsAreAvailableBySelector(w.psrClient.CrtlRuntime, getSelectortForLabel(label))
+		err = ready.StatefulsetsAreAvailable(w.psrClient.CrtlRuntime, []types.NamespacedName{{
+			Name:      "vmi-system-es-master",
+			Namespace: constants.VerrazzanoSystemNamespace,
+		}})
 	case psropensearch.DataTier:
 		label = "opensearch.verrazzano.io/role-data"
 		err = ready.DeploymentsAreAvailableBySelector(w.psrClient.CrtlRuntime, getSelectortForLabel(label))
