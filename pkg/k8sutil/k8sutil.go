@@ -87,10 +87,10 @@ func GetKubeConfigLocation() (string, error) {
 
 // GetKubeConfigGivenPath GetKubeConfig will get the kubeconfig from the given kubeconfigPath
 func GetKubeConfigGivenPath(kubeconfigPath string) (*rest.Config, error) {
-	return buildKubeConfig(kubeconfigPath)
+	return BuildKubeConfig(kubeconfigPath)
 }
 
-func buildKubeConfig(kubeconfig string) (*rest.Config, error) {
+func BuildKubeConfig(kubeconfig string) (*rest.Config, error) {
 	return clientcmd.BuildConfigFromFlags("", kubeconfig)
 }
 

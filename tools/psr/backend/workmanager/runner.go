@@ -4,13 +4,14 @@
 package workmanager
 
 import (
+	"sync/atomic"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
-	"sync/atomic"
-	"time"
 )
 
 // WorkerRunner interface specifies a runner that loops calling a worker
