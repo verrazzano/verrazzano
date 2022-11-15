@@ -44,6 +44,13 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 		// Create the set of HelmOverrides, initialized from the manager settings
 		helmOverrides := m.HelmOverrides
 
+		// Append the build-in defaults
+		generatedOverrides, err := m.buildDefaultOverrides()
+		if err != nil {
+			return "", err
+		}
+		helmOverrides = append(helmOverrides, generatedOverrides...)
+
 		// This is the usecase path, E.G. manifests/usecases/opensearch/getlogs/getlogs.yaml
 		ucOverride := filepath.Join(m.Manifest.UseCasesAbsDir, uc.UsecasePath)
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: ucOverride})
@@ -62,6 +69,7 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 
 		if m.Verbose {
 			fmt.Printf("Installing use case %s as Helm release %s/%s\n", uc.UsecasePath, m.Namespace, relname)
+			fmt.Printf("Helm overrides: %v", helmOverrides)
 		}
 		_, stderr, err := helmcli.Upgrade(m.Log, relname, m.Namespace, m.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 		if err != nil {
@@ -85,6 +93,21 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 		return "", err
 	}
 	return "", nil
+}
+
+func (m Manager) buildDefaultOverrides() ([]helmcli.HelmOverrides, error) {
+	overridesDirEnts, err := os.ReadDir(m.Manifest.ChartOverrides)
+	if err != nil {
+		return []helmcli.HelmOverrides{}, err
+	}
+	helmOverrides := []helmcli.HelmOverrides{}
+	for _, overrideFile := range overridesDirEnts {
+		if !overrideFile.IsDir() {
+			override := helmcli.HelmOverrides{FileOverride: filepath.Join(m.Manifest.ChartOverrides, overrideFile.Name())}
+			helmOverrides = append(helmOverrides, override)
+		}
+	}
+	return helmOverrides, nil
 }
 
 // readWorkerType reads the worker type from the use case worker YAML file at psr/manifests/usecases/...

@@ -75,7 +75,7 @@ func RunCmdStart(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 
 func buildHelmOverrides() []helmcli.HelmOverrides {
 	return []helmcli.HelmOverrides{
-		{SetOverrides: fmt.Sprintf("%s=%s", constants.ImageNameKey, workerImage)},
+		//{SetOverrides: fmt.Sprintf("%s=%s", constants.ImageNameKey, workerImage)},
 		{SetOverrides: fmt.Sprintf("%s=%s", constants.ImagePullSecKey, imagePullSecret)},
 	}
 }

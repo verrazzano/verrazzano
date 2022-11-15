@@ -53,11 +53,15 @@ go-build:
 		-o out/linux_amd64/psr-backend \
 		${BACKEND_DIR}/main.go
 
+.PHONY: generate-overrides
+generate-overrides:
+	mkdir -p out
+	@echo "imageName: ${DOCKER_IMAGE_FULL_PATH}" > out/defaults.yaml
 #
 # Go build cli related tasks
 #
 .PHONY: go-build-cli
-go-build-cli:
+go-build-cli: generate-overrides
 	GOOS=darwin GOARCH=amd64 $(GO) build \
 		-ldflags "${CLI_GO_LDFLAGS}" \
 		-o out/darwin_amd64/psrctl \
@@ -107,14 +111,14 @@ run-example-k8s: kind-load-image
 # run the CLI
 #
 .PHONY: run-cli
-run-cli:
+run-cli: generate-overrides
 	$(GO) run ${GOPATH}/src/${CLI_DIR}/main.go
 
 #
 # install the CLI
 #
 .PHONY: install-cli
-install-cli:
+install-cli: generate-overrides
 	$(GO) install -ldflags "${CLI_GO_LDFLAGS}" ./...
 
 .PHONY: unit-test

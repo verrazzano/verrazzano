@@ -13,7 +13,15 @@ import (
 //go:embed manifests
 var manifests embed.FS
 
+//go:embed out/*.yaml
+var overrides embed.FS
+
 // GetEmbeddedManifests returns the embedded manifests
 func GetEmbeddedManifests() embed.FS {
 	return manifests
+}
+
+// GetGeneratedChartDefaults returns the set of generated defaults during the build
+func GetGeneratedChartDefaults() embed.FS {
+	return overrides
 }
