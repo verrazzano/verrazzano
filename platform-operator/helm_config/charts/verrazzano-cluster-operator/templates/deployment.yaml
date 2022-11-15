@@ -22,7 +22,7 @@ spec:
         image: {{ .Values.image }}
         imagePullPolicy: {{ .Values.imagePullPolicy }}
         env:
-          name: CLUSTER_SYNC_ENABLED
+        - name: CLUSTER_SYNC_ENABLED
           valueFrom:
             configMapKeyRef:
               name: {{ .Values.name }}-selector
