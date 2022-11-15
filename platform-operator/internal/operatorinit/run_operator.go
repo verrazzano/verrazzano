@@ -61,11 +61,11 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	}
 
 	// Start the goroutine to sync Rancher clusters and VerrazzanoManagedCluster objects
-	rancherClusterSyncer := &clusters.RancherClusterSyncer{
-		Client: mgr.GetClient(),
-		Log:    log,
-	}
-	go rancherClusterSyncer.StartSyncing()
+	//rancherClusterSyncer := &clusters.RancherClusterSyncer{
+	//	Client: mgr.GetClient(),
+	//	Log:    log,
+	//}
+	//go rancherClusterSyncer.StartSyncing()
 
 	// Setup secrets reconciler
 	if err = (&secrets.VerrazzanoSecretsReconciler{
