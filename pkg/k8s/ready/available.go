@@ -89,6 +89,29 @@ func DeploymentsAreAvailableBySelector(client clipkg.Client, selectors []clipkg.
 	return nil
 }
 
+func StatefulSetsAreAvailableBySelector(client clipkg.Client, selectors []clipkg.ListOption) error {
+	if len(selectors) < 1 {
+		return nil
+	}
+	statefulsetList := &appsv1.StatefulSetList{}
+	if err := client.List(context.TODO(), statefulsetList, selectors...); err != nil {
+		return handleListFailure(typeStatefulset, err)
+	}
+	if statefulsetList.Items == nil || len(statefulsetList.Items) < 1 {
+		return handleListNotFound(typeStatefulset, selectors)
+	}
+	for _, sts := range statefulsetList.Items {
+		nsn := types.NamespacedName{
+			Namespace: sts.Namespace,
+			Name:      sts.Name,
+		}
+		if err := handleReplicasNotReady(sts.Status.ReadyReplicas, sts.Status.Replicas, nsn, typeStatefulset); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func objectsAreAvailable(client clipkg.Client, objectKeys []types.NamespacedName, objectAvailableFunc isObjectAvailableSig) error {
 	for _, nsn := range objectKeys {
 		if err := objectAvailableFunc(client, nsn); err != nil {

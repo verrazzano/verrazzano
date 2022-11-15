@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -22,6 +23,9 @@ import (
 const (
 	nodeNamePrefix = "vmi-system-%s"
 	componentName  = "opensearch"
+
+	OpenSearchTier             = "OPENSEARCH_TIER"
+	OpenSearchTierMetricsLabel = "opensearch_tier"
 
 	MasterTier = "master"
 	DataTier   = "data"
@@ -128,3 +132,58 @@ func getPodsByLabels(ctrlRuntimeClient client.Client, namespace string, requirem
 	}
 	return podList.Items, nil
 }
+
+// ValidateOpenSeachTier validates the envvar is a correct opensearch tier
+func ValidateOpenSeachTier() (string, error) {
+	tier := config.PsrEnv.GetEnv(OpenSearchTier)
+	if tier != MasterTier && tier != DataTier && tier != IngestTier {
+		return "", fmt.Errorf("error, %s not a valid OpenSearch tier to restart", tier)
+	}
+	return tier, nil
+}
+
+//
+//func GetDesiredPodsForTier(ctrlRuntimeClient client.Client, tier string) (int32, error) {
+//	var label string
+//	switch tier {
+//	case MasterTier:
+//		label = "opensearch.verrazzano.io/role-master"
+//		masterNodeList := appsv1.StatefulSetList{}
+//		err := ctrlRuntimeClient.List(context.TODO(), &masterNodeList, &client.ListOptions{Namespace: constants.VerrazzanoSystemNamespace, LabelSelector: getSelectortForLabel(label)})
+//		if err != nil {
+//			return 0, err
+//		}
+//		if len(masterNodeList.Items) != 1 {
+//			return 0, fmt.Errorf("expecting to find 1 StatefulSet matching the label %s, found %d", label, len(masterNodeList.Items))
+//		}
+//		return *masterNodeList.Items[0].Spec.Replicas, nil
+//	case DataTier:
+//		label = "opensearch.verrazzano.io/role-data"
+//		dataNodes := int32(0)
+//		dataNodeList := appsv1.DeploymentList{}
+//		err := ctrlRuntimeClient.List(context.TODO(), &dataNodeList, &client.ListOptions{Namespace: constants.VerrazzanoSystemNamespace, LabelSelector: getSelectortForLabel(label)})
+//		if err != nil {
+//			return dataNodes, err
+//		}
+//		if len(dataNodeList.Items) == 0 {
+//			return dataNodes, fmt.Errorf("data node deployments with the label %s not found", label)
+//		}
+//		for i := range dataNodeList.Items {
+//			dataNodes += *dataNodeList.Items[i].Spec.Replicas
+//		}
+//		return dataNodes, nil
+//	case IngestTier:
+//		label = "opensearch.verrazzano.io/role-ingest"
+//		ingestNodeList := appsv1.DeploymentList{}
+//		err := ctrlRuntimeClient.List(context.TODO(), &ingestNodeList, &client.ListOptions{Namespace: constants.VerrazzanoSystemNamespace, LabelSelector: getSelectortForLabel(label)})
+//		if err != nil {
+//			return 0, err
+//		}
+//		if len(ingestNodeList.Items) != 1 {
+//			return 0, fmt.Errorf("ingest node deployments with the label %s not found", label)
+//		}
+//		return *ingestNodeList.Items[0].Spec.Replicas, nil
+//	}
+//	// should never be reachable but just in case
+//	return 0, fmt.Errorf("invalid OpenSearch tier %s", tier)
+//}

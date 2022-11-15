@@ -3,8 +3,6 @@
 
 global:
   envVars:
-    PSR_WORKER_TYPE: scale
-    OPENSEARCH_TIER: master
-    SCALE_DELAY_PER_TIER: 5s
-    MIN_REPLICA_COUNT: 3
-    MAX_REPLICA_COUNT: 5
+    PSR_WORKER_TYPE: restart
+    OPENSEARCH_TIER: data
+    PSR_LOOP_SLEEP: 5s

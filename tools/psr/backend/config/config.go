@@ -47,6 +47,7 @@ const (
 	WorkerTypeHTTPGet   = "httpget"
 	WorkerTypePostLogs  = "postlogs"
 	WorkerTypeScale     = "scale"
+	WorkerTypeRestart   = "restart"
 )
 
 const (
