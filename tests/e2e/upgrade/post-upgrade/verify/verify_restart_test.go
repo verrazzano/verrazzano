@@ -67,7 +67,6 @@ var _ = t.BeforeSuite(func() {
 		}
 		return err
 	}, oneMinute, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR")
-
 	// Get the envoy proxy image name and tag
 	Eventually(func() error {
 		var err error
@@ -76,7 +75,7 @@ var _ = t.BeforeSuite(func() {
 			return err
 		}
 		return err
-	}, oneMinute, pollingInterval).Should(BeNil(), "Expected to get envoy proxy image name and tag")
+	}, shortWait, pollingInterval).Should(BeNil(), "Expected to get envoy proxy image name and tag")
 })
 var _ = t.AfterSuite(func() {})
 var _ = t.AfterEach(func() {})
@@ -118,7 +117,7 @@ var _ = t.Describe("Application pods post-upgrade", Label("f:platform-lcm.upgrad
 		springbootNamespace   = "springboot"
 		todoListNamespace     = "todo-list"
 	)
-	t.DescribeTable(fmt.Sprintf("should contain Envoy sidecar %s", envoyImage),
+	t.DescribeTable("should contain Envoy sidecar with proxyv2 image",
 		func(namespace string, timeout time.Duration) {
 			exists, err := pkg.DoesNamespaceExist(namespace)
 			if err != nil {
@@ -344,23 +343,25 @@ func isDisabled(componentName string) bool {
 
 // getEnvoyProxyImageRef gets the envoy proxy image and its tag from bom in verrazzano-platform-operator pod running in cluster
 func getEnvoyProxyImageRef() (string, error) {
-	bom, err := pkg.GetBOM()
+	bom, err := pkg.GetBOMDoc()
 	if err != nil {
 		return "", fmt.Errorf("error getting bom, %s", err.Error())
 	}
 
 	istiodSubComponent := "istiod"
-	images, err := bom.GetSubcomponentImages(istiodSubComponent)
-	if err != nil {
-		return "", fmt.Errorf("error getting images for %s, %s", istiodSubComponent, err.Error())
-	}
-
 	envoyProxyImageName := "proxyv2"
 	envoyProxyImageRef := ""
-	for _, image := range images {
-		if strings.HasPrefix(image.ImageName, envoyProxyImageName) {
-			envoyProxyImageRef = fmt.Sprintf("%s:%s", image.ImageName, image.ImageTag)
+	for _, component := range bom.Components {
+		for _, subcomponent := range component.SubComponents {
+			if subcomponent.Name == istiodSubComponent {
+				for _, image := range subcomponent.Images {
+					if strings.HasPrefix(image.ImageName, envoyProxyImageName) {
+						envoyProxyImageRef = fmt.Sprintf("%s:%s", image.ImageName, image.ImageTag)
+					}
+				}
+			}
 		}
+
 	}
 
 	if envoyProxyImageRef == "" {
