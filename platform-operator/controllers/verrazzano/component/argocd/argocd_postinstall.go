@@ -23,16 +23,6 @@ import (
 	"time"
 )
 
-//const oidcConfigTemplate = `
-//name: Keycloak
-//issuer: {{.KeycloakUrl}}
-//clientID: argocd
-//clientSecret: $oidc.keycloak.clientSecret
-//requestedScopes: ["openid", "profile", "email", "groups"]
-//rootCA: |
-//  {{.CaCert}}
-//`
-
 type OIDCConfig struct {
 	Name            string   `json:"name"`
 	Issuer          string   `json:"issuer"`
@@ -85,11 +75,6 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 		ctx.Log().Errorf("Failed to get ArgoCD TLS root CA: %v", err)
 		return err
 	}
-
-	/*t, err := template.New("oidcconfig_template").Parse(oidcConfigTemplate)
-	if err != nil {
-		return err
-	}*/
 
 	conf := &OIDCConfig{
 		Name:         "Keycloak",
