@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"os"
 
+	vzk8s "github.com/verrazzano/verrazzano/cluster-operator/internal/k8s"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	clusterapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	vzk8s "github.com/verrazzano/verrazzano/platform-operator/internal/k8s"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"

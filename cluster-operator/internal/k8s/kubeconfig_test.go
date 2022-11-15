@@ -4,8 +4,9 @@
 package k8s
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestKubeConfig tests the building of a kubeconfig
