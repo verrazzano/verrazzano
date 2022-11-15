@@ -171,7 +171,6 @@ pipeline {
                             echo "Saving generated files"
                             script {
                                 METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
-                                archiveArtifacts artifacts: "", allowEmptyArchive: true
                             }
                         }
                     }
