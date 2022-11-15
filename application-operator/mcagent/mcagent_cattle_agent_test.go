@@ -128,7 +128,7 @@ func TestSyncer_syncCattleClusterAgentHashExists(t *testing.T) {
 
 	// GIVEN a call to syncCattleClusterAgent
 	// WHEN a hash already exists
-	// THEN if the hash has changed then update the resources and the hash
+	// THEN if the hash has changed, update the resources and the hash
 	err = s.syncCattleClusterAgent(kubeConfigPath)
 	asserts.NoError(err)
 	asserts.NotEmpty(s.CattleAgentHash)
@@ -138,7 +138,7 @@ func TestSyncer_syncCattleClusterAgentHashExists(t *testing.T) {
 
 	// GIVEN a call to syncCattleClusterAgent
 	// WHEN a hash already exists
-	// THEN if the hash has not changed then do nothing
+	// THEN if the hash has not changed, do nothing
 	err = s.syncCattleClusterAgent("")
 	asserts.NoError(err)
 	asserts.NotEmpty(s.CattleAgentHash)

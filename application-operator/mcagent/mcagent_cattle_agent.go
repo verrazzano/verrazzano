@@ -25,7 +25,7 @@ import (
 const cattleAgent = "cattle-cluster-agent"
 
 // syncCattleClusterAgent syncs the Rancher cattle-cluster-agent deployment
-// and the cattle-credentials from the admin cluster to the managed cluster
+// and the cattle-credentials secret from the admin cluster to the managed cluster
 // if they have changed in the registration-manifest
 func (s *Syncer) syncCattleClusterAgent(kubeconfigPath string) error {
 	manifestSecret := corev1.Secret{}
