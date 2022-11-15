@@ -24,7 +24,9 @@ import (
 
 const cattleAgent = "cattle-cluster-agent"
 
-// syncCattleClusterAgent syncs the cattle-cluster-agent on the managed cluster
+// syncCattleClusterAgent syncs the Rancher cattle-cluster-agent deployment
+// and the cattle-credentials from the admin cluster to the managed cluster
+// if they have changed in the registration-manifest
 func (s *Syncer) syncCattleClusterAgent(kubeconfigPath string) error {
 	manifestSecret := corev1.Secret{}
 	err := s.AdminClient.Get(s.Context, client.ObjectKey{
@@ -38,9 +40,9 @@ func (s *Syncer) syncCattleClusterAgent(kubeconfigPath string) error {
 	s.Log.Debugf(fmt.Sprintf("Found manifest secret for %s cluster: %s", s.ManagedClusterName, manifestSecret.Name))
 
 	manifestData := manifestSecret.Data["yaml"]
-	yamlSlices := bytes.Split(manifestData, []byte("---\n"))
+	yamlSections := bytes.Split(manifestData, []byte("---\n"))
 
-	cattleAgentResource, cattleCredentialResource := checkForCattleResources(yamlSlices)
+	cattleAgentResource, cattleCredentialResource := checkForCattleResources(yamlSections)
 	if cattleAgentResource == nil || cattleCredentialResource == nil {
 		s.Log.Debugf("The registration manifest doesn't contain the required resources. Will try to update the cattle-cluster-agent in the next iteration")
 		return nil

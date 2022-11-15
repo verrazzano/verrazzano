@@ -61,11 +61,11 @@ func TestSyncer_syncCattleClusterAgent(t *testing.T) {
 	asserts.NotEmpty(s.CattleAgentHash)
 }
 
-// TestSyncer_syncCattleClusterAgent2 tests the syncCattleClusterAgent of Syncer
+// TestSyncer_syncCattleClusterAgentNoRancherManifest tests the syncCattleClusterAgent of Syncer
 // GIVEN a call to syncCattleClusterAgent
-// WHEN the registration manifest doesn't have the required resources
+// WHEN the registration manifest doesn't have the required rancher resources
 // THEN do nothing and return
-func TestSyncer_syncCattleClusterAgent2(t *testing.T) {
+func TestSyncer_syncCattleClusterAgentNoRancherManifest(t *testing.T) {
 	asserts := assert.New(t)
 	log := zap.S().With("test")
 
@@ -89,6 +89,60 @@ func TestSyncer_syncCattleClusterAgent2(t *testing.T) {
 	err = s.syncCattleClusterAgent("")
 	asserts.NoError(err)
 	asserts.Empty(s.CattleAgentHash)
+}
+
+// TestSyncer_syncCattleClusterAgentHashExists tests the syncCattleClusterAgent of Syncer
+func TestSyncer_syncCattleClusterAgentHashExists(t *testing.T) {
+	asserts := assert.New(t)
+	log := zap.S().With("test")
+
+	scheme := runtime.NewScheme()
+	err := corev1.SchemeBuilder.AddToScheme(scheme)
+	asserts.NoError(err)
+
+	secret, err := getSampleSecret("testdata/registration-manifest.yaml")
+	asserts.NoError(err)
+
+	adminClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&secret).Build()
+
+	server := newServer()
+	defer server.Close()
+
+	err = createFakeKubeConfig(server.URL)
+	defer deleteFakeKubeConfig()
+	asserts.NoError(err)
+
+	kubeConfigPath, err := getFakeKubeConfigPath()
+	asserts.NoError(err)
+
+	// Initialise the cattleAgentHash with a random hash string
+	previousCattleAgentHash := "[1 61 83 140 196 214 70 37 227 165 192 170 234 13 222 47 123]"
+
+	s := Syncer{
+		AdminClient:        adminClient,
+		Log:                log,
+		ManagedClusterName: "cluster1",
+		Context:            context.TODO(),
+		CattleAgentHash:    previousCattleAgentHash,
+	}
+
+	// GIVEN a call to syncCattleClusterAgent
+	// WHEN a hash already exists
+	// THEN if the hash has changed then update the resources and the hash
+	err = s.syncCattleClusterAgent(kubeConfigPath)
+	asserts.NoError(err)
+	asserts.NotEmpty(s.CattleAgentHash)
+	asserts.NotEqual(previousCattleAgentHash, s.CattleAgentHash)
+
+	previousCattleAgentHash = s.CattleAgentHash
+
+	// GIVEN a call to syncCattleClusterAgent
+	// WHEN a hash already exists
+	// THEN if the hash has not changed then do nothing
+	err = s.syncCattleClusterAgent("")
+	asserts.NoError(err)
+	asserts.NotEmpty(s.CattleAgentHash)
+	asserts.Equal(previousCattleAgentHash, s.CattleAgentHash)
 }
 
 // newServer returns a httptest server which the
