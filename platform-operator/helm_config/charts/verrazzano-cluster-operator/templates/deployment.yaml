@@ -23,6 +23,7 @@ spec:
         imagePullPolicy: {{ .Values.imagePullPolicy }}
         volumeMounts:
           - name: clusterSelector
+            mountPath: /var/selector
       serviceAccountName: {{ .Values.name }}
       volumes:
         - name: clusterSelector
