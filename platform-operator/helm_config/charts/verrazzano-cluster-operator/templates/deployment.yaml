@@ -22,14 +22,14 @@ spec:
         image: {{ .Values.image }}
         imagePullPolicy: {{ .Values.imagePullPolicy }}
         env:
-        - name: CLUSTER_SYNC_ENABLED
+        - name: RANCHER_CLUSTER_SYNC_ENABLED
           valueFrom:
             configMapKeyRef:
               name: {{ .Values.name }}-selector
               key: enabled
         volumeMounts:
           - name: cluster-selector
-            mountPath: /var/selector
+            mountPath: /var/syncRancherClusters
       serviceAccountName: {{ .Values.name }}
       volumes:
         - name: cluster-selector
