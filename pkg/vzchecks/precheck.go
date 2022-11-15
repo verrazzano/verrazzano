@@ -28,7 +28,7 @@ func preCheck(client clipkg.Client, profile ProfileType) []error {
 		return []error{err}
 	}
 	if len(nodeList.Items) < vzReq.nodeCount {
-		errs = append(errs, fmt.Errorf(nodeCountReqMsg, profile, vzReq.nodeCount, len(nodeList.Items)))
+		errs = append(errs, fmt.Errorf(nodeCountReqMsg, vzReq.nodeCount, len(nodeList.Items)))
 	}
 
 	for _, node := range nodeList.Items {
@@ -36,15 +36,15 @@ func preCheck(client clipkg.Client, profile ProfileType) []error {
 		var memoryAllocatable = node.Status.Allocatable[k8score.ResourceMemory]
 		var storageAllocatable = node.Status.Allocatable[k8score.ResourceEphemeralStorage]
 		if cpuAllocatable.MilliValue() < vzReq.cpu.allocatable.MilliValue() {
-			errs = append(errs, fmt.Errorf(cpuReqMsg, profile, vzReq.cpu.allocatable.Value(),
+			errs = append(errs, fmt.Errorf(cpuReqMsg, vzReq.cpu.allocatable.Value(),
 				node.Name, cpuAllocatable.Value()))
 		}
 		if memoryAllocatable.MilliValue() < vzReq.memory.allocatable.MilliValue() {
-			errs = append(errs, fmt.Errorf(memoryReqMsg, profile, convertQuantityToString(vzReq.memory.allocatable),
+			errs = append(errs, fmt.Errorf(memoryReqMsg, convertQuantityToString(vzReq.memory.allocatable),
 				node.Name, convertQuantityToString(memoryAllocatable)))
 		}
 		if storageAllocatable.MilliValue() < vzReq.ephemeralStorage.allocatable.MilliValue() {
-			errs = append(errs, fmt.Errorf(storageReqMsg, profile, convertQuantityToString(vzReq.ephemeralStorage.allocatable),
+			errs = append(errs, fmt.Errorf(storageReqMsg, convertQuantityToString(vzReq.ephemeralStorage.allocatable),
 				node.Name, convertQuantityToString(storageAllocatable)))
 		}
 	}

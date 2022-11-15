@@ -40,8 +40,8 @@ func TestPrerequisiteValidationWarningForV1alpha1(t *testing.T) {
 	res := m.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, allowedFailureMessage)
 	asrt.Len(res.Warnings, 2, expectedWarningFailureMessage)
-	asrt.Contains(res.Warnings[0], "minimum required CPUs for dev profile is 2 but the CPUs on node node1 is 1")
-	asrt.Contains(res.Warnings[1], "minimum required ephemeral storage for dev profile is 100G but the ephemeral storage on node node1 is 40G")
+	asrt.Contains(res.Warnings[0], "minimum required CPUs is 2 but the CPUs on node node1 is 1")
+	asrt.Contains(res.Warnings[1], "minimum required ephemeral storage is 100G but the ephemeral storage on node node1 is 40G")
 }
 
 // TestPrerequisiteValidationNoWarningForV1alpha1 tests presenting a user with no warning

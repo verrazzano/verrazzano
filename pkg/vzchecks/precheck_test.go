@@ -44,28 +44,28 @@ type testData = struct {
 func TestPrerequisiteCheck(t *testing.T) {
 	var tests = []struct {
 		data     testData
-		hasError bool
-		errMsgs  []string
+		errCount int
+		errTypes []string
 	}{
-		{testData{Prod, 2, "1", "423Ki", "50G"}, true, allNotMet},
-		{testData{Prod, 3, "1", "12G", "50G"}, true, onlyNodeCountMet},
-		{testData{Prod, 2, "1", "12G", "100G"}, true, onlyStorageMet},
-		{testData{Prod, 2, "4", "12G", "50G"}, true, onlyCPUMet},
-		{testData{Prod, 2, "1", "32G", "50G"}, true, onlyMemoryMet},
-		{testData{Prod, 1, "6", "35G", "50G"}, true, memoryAndCPUMet},
-		{testData{Prod, 2, "5", "12G", "100G"}, true, storageAndCPUMet},
-		{testData{Prod, 2, "3", "32G", "100G"}, true, storageAndMemoryMet},
-		{testData{Prod, 5, "6", "32G", "500G"}, false, allMet},
-		{testData{Dev, 0, "1", "10G", "50G"}, true, allNotMet},
-		{testData{Dev, 1, "1", "12G", "50G"}, true, onlyNodeCountMet},
-		{testData{ManagedCluster, 2, "1", "12G", "100G"}, true, storageAndNodeCountMet},
-		{testData{ManagedCluster, 2, "4", "12G", "50G"}, true, nodeCountAndCPUMet},
-		{testData{Dev, 2, "2", "2G", "50G"}, true, nodeCountAndCPUMet},
-		{testData{Dev, 1, "1", "5G", "100G"}, true, storageAndNodeCountMet},
-		{testData{ManagedCluster, 2, "5", "12G", "100G"}, true, memoryNotMet},
-		{testData{Dev, 1, "1", "32G", "10G"}, true, memoryAndNodeCountMet},
-		{testData{Dev, 0, "", "", ""}, true, nodeNotMet},
-		{testData{"unspecified", 1, "2", "24G", "50G"}, false, allMet},
+		{testData{Prod, 2, "1", "423Ki", "50G"}, 7, allNotMet},
+		{testData{Prod, 3, "1", "12G", "50G"}, 9, onlyNodeCountMet},
+		{testData{Prod, 2, "1", "12G", "100G"}, 5, onlyStorageMet},
+		{testData{Prod, 2, "4", "12G", "50G"}, 5, onlyCPUMet},
+		{testData{Prod, 2, "1", "32G", "50G"}, 5, onlyMemoryMet},
+		{testData{Prod, 1, "6", "35G", "50G"}, 2, memoryAndCPUMet},
+		{testData{Prod, 2, "5", "12G", "100G"}, 3, storageAndCPUMet},
+		{testData{Prod, 2, "3", "32G", "100G"}, 3, storageAndMemoryMet},
+		{testData{Prod, 5, "6", "32G", "500G"}, 0, allMet},
+		{testData{Dev, 0, "1", "10G", "50G"}, 1, allNotMet},
+		{testData{Dev, 1, "1", "12G", "50G"}, 3, onlyNodeCountMet},
+		{testData{ManagedCluster, 2, "1", "12G", "100G"}, 4, storageAndNodeCountMet},
+		{testData{ManagedCluster, 2, "4", "12G", "50G"}, 4, nodeCountAndCPUMet},
+		{testData{Dev, 2, "2", "2G", "50G"}, 4, nodeCountAndCPUMet},
+		{testData{Dev, 1, "1", "5G", "100G"}, 2, storageAndNodeCountMet},
+		{testData{ManagedCluster, 2, "5", "12G", "100G"}, 2, memoryNotMet},
+		{testData{Dev, 1, "1", "32G", "10G"}, 2, memoryAndNodeCountMet},
+		{testData{Dev, 0, "", "", ""}, 1, nodeNotMet},
+		{testData{"unspecified", 1, "2", "24G", "50G"}, 0, allMet},
 	}
 
 	for _, tt := range tests {
@@ -73,12 +73,9 @@ func TestPrerequisiteCheck(t *testing.T) {
 			client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 				getNodes(tt.data)...).Build()
 			errs := PrerequisiteCheck(client, tt.data.profile)
-			if !tt.hasError {
-				assert.Equal(t, len(errs), 0)
-				return
-			}
+			assert.Equal(t, tt.errCount, len(errs))
 			vzReq := getVZRequirement(tt.data.profile)
-			for _, errMsg := range tt.errMsgs {
+			for _, errMsg := range tt.errTypes {
 				for i := 1; i <= tt.data.nodeCount; i++ {
 					nodeName := fmt.Sprintf("node%d", i)
 					expectedMsg := getExpectedMessage(errMsg, nodeName, vzReq, tt.data)
@@ -130,15 +127,15 @@ func getExpectedMessage(errMsg string, nodeName string, vzReq VZRequirement, dat
 	expectedMsg := ""
 	switch errMsg {
 	case nodeCountReqMsg:
-		expectedMsg = fmt.Sprintf(errMsg, data.profile, vzReq.nodeCount, data.nodeCount)
+		expectedMsg = fmt.Sprintf(errMsg, vzReq.nodeCount, data.nodeCount)
 	case cpuReqMsg:
-		expectedMsg = fmt.Sprintf(errMsg, data.profile, vzReq.cpu.allocatable.Value(),
+		expectedMsg = fmt.Sprintf(errMsg, vzReq.cpu.allocatable.Value(),
 			nodeName, data.cpu)
 	case memoryReqMsg:
-		expectedMsg = fmt.Sprintf(errMsg, data.profile, convertQuantityToString(vzReq.memory.allocatable),
+		expectedMsg = fmt.Sprintf(errMsg, convertQuantityToString(vzReq.memory.allocatable),
 			nodeName, convertQuantityToString(resource.MustParse(data.memory)))
 	case storageReqMsg:
-		expectedMsg = fmt.Sprintf(errMsg, data.profile, convertQuantityToString(vzReq.ephemeralStorage.allocatable),
+		expectedMsg = fmt.Sprintf(errMsg, convertQuantityToString(vzReq.ephemeralStorage.allocatable),
 			nodeName, convertQuantityToString(resource.MustParse(data.storage)))
 	}
 	return expectedMsg

@@ -41,10 +41,10 @@ const (
 )
 
 const (
-	nodeCountReqMsg = "minimum required number of worker nodes for %s profile is %d but the available number of worker nodes is %d"
-	cpuReqMsg       = "minimum required CPUs for %s profile is %v but the CPUs on node %s is %v"
-	memoryReqMsg    = "minimum required memory for %s profile is %sG but the memory on node %s is %sG"
-	storageReqMsg   = "minimum required ephemeral storage for %s profile is %sG but the ephemeral storage on node %s is %sG"
+	nodeCountReqMsg = "minimum required number of worker nodes is %d but the available number of worker nodes is %d"
+	cpuReqMsg       = "minimum required CPUs is %v but the CPUs on node %s is %v"
+	memoryReqMsg    = "minimum required memory is %sG but the memory on node %s is %sG"
+	storageReqMsg   = "minimum required ephemeral storage is %sG but the ephemeral storage on node %s is %sG"
 )
 
 var (
