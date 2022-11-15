@@ -75,7 +75,7 @@ var _ = t.BeforeSuite(func() {
 			return err
 		}
 		return err
-	}, shortWait, pollingInterval).Should(BeNil(), "Expected to get envoy proxy image name and tag")
+	}, oneMinute, pollingInterval).Should(BeNil(), "Expected to get envoy proxy image name and tag")
 })
 var _ = t.AfterSuite(func() {})
 var _ = t.AfterEach(func() {})
