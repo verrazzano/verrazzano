@@ -11,4 +11,3 @@ global:
 
 syncRancherClusters:
   enabled: false
-  labelSelector: ""
