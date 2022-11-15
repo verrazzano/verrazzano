@@ -423,12 +423,12 @@ pipeline {
                         deploySampleApp()
                     }
                 }
-                stage ('Verify Register') {
+                stage ('verify-register') {
                     steps {
                         verifyRegisterManagedClusters()
                     }
                 }
-                stage ('Verify Metrics') {
+                stage ('system component metrics') {
                     steps {
                         runGinkgoRandomize('metrics/syscomponents')
                     }
@@ -479,7 +479,7 @@ pipeline {
                         runGinkgoAdmin('multicluster/verify-cluster-sync')
                     }
                 }
-                stage ('multicluster/verify-install') {
+                stage ('mc verify-install') {
                     steps {
                         runGinkgoRandomize('multicluster/verify-install')
                     }
@@ -525,7 +525,7 @@ pipeline {
                         undeploySampleApp()
                     }
                 }
-                stage ('Multi-cluster Verify Api') {
+                stage ('mc verify-api') {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             script {
@@ -1497,10 +1497,10 @@ def verifyUpgrade() {
         "Verify Register": {
             verifyRegisterManagedClusters()
         },
-        "Verify Managed Cluster Permissions": {
+        "verify-permissions": {
             verifyManagedClusterPermissions()
         },
-        "Verify Metrics": {
+        "system component metrics": {
             runGinkgoRandomize('metrics/syscomponents')
         },
     ]
@@ -1544,10 +1544,10 @@ def verifyInfra() {
         "verify-infra vmi": {
             runGinkgoRandomize('verify-infra/vmi')
         },
-        "verify-infra jaeger-install": {
+        "mc verify-jaeger-install": {
             runGinkgoRandomize('multicluster/verify-jaeger/install')
         },
-        "verify-infra jaeger-system": {
+        "mc verify-jaeger-system": {
             runGinkgoRandomize('multicluster/verify-jaeger/system')
         },
     ]
@@ -1555,25 +1555,25 @@ def verifyInfra() {
 
 def verifyExamples() {
     return [
-        "Examples Helidon": {
+        "mc examples helidon": {
             runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload")
         },
-        "Examples Helidon Deprecated": {
+        "mc examples helidon deprecated": {
             runGinkgo("multicluster/examples/helidon-deprecated", "${TEST_DUMP_ROOT}/helidon-deprecated")
         },
         "Delete Deployed App NS": {
             runHelidonNsOpsTest()
         },
-        "WebLogic Workload": {
+        "mc weblogic workload": {
             runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
         },
-        "Coherence Workload": {
+        "mc coherence workload": {
             runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
         },
-        "Jaeger Helidon": {
+        "jaeger helidon": {
             runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
         },
-        "Jaeger Hotrod": {
+        "jaeger hotrod": {
             runGinkgo("multicluster/verify-jaeger/hotrod", "${TEST_DUMP_ROOT}/jaeger-hotrod")
         },
     ]
