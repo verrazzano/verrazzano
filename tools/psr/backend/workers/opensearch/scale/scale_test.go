@@ -369,7 +369,6 @@ func getTierLabels(tier string) map[string]string {
 	default:
 		return nil
 	}
-	return nil
 }
 
 func overridePsrClient() func() (k8sclient.PsrClient, error) {
