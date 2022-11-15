@@ -14,8 +14,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/cluster-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	corev1 "k8s.io/api/core/v1"
@@ -70,7 +70,7 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 
 			var err error
 
-			adminClient, err = pkg.GetVerrazzanoClientsetInCluster(adminKubeconfig)
+			adminClient, err = pkg.GetClusterOperatorClientset(adminKubeconfig)
 			Expect(err).ShouldNot(HaveOccurred())
 			managedClient, err = pkg.GetKubernetesClientsetForCluster(managedKubeconfig)
 			Expect(err).ShouldNot(HaveOccurred())

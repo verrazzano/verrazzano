@@ -16,9 +16,9 @@ import (
 	. "github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	vmcClient "github.com/verrazzano/verrazzano/cluster-operator/clientset/versioned"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	v1 "k8s.io/api/core/v1"
@@ -92,8 +92,11 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 				Fail(err.Error())
 			}
 			Eventually(func() (*vmcClient.Clientset, error) {
-				var err error
-				client, err = pkg.GetVerrazzanoManagedClusterClientset()
+				kubePath, err := k8sutil.GetKubeConfigLocation()
+				if err != nil {
+					return nil, err
+				}
+				client, err = pkg.GetClusterOperatorClientset(kubePath)
 				return client, err
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 			Eventually(func() bool {
