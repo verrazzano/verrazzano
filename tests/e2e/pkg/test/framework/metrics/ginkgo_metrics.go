@@ -103,17 +103,15 @@ func NewLogger(pkg string, ind string, paths ...string) (*zap.SugaredLogger, err
 }
 
 func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
-	const (
-		urlReplace = "%252F"
-		separator  = "/"
-	)
+	const separator = "/"
 	log, _ = withEnvVar(log, KubernetesVersion, "K8S_VERSION_LABEL")
 	log, branchName := withEnvVar(log, BranchName, "BRANCH_NAME")
 	log, _ = withEnvVarMutate(log, BuildURL, "BUILD_URL", func(buildURL string) string {
-		return strings.Replace(buildURL, urlReplace, separator, 1)
+		buildURL, _ = neturl.QueryUnescape(buildURL)
+		return buildURL
 	})
 	log, _ = withEnvVarMutate(log, JenkinsJob, "JOB_NAME", func(jobName string) string {
-		jobName = strings.Replace(jobName, urlReplace, separator, 1)
+		jobName, _ = neturl.QueryUnescape(jobName)
 		jobNameSplit := strings.Split(jobName, separator)
 		return jobNameSplit[0]
 	})
