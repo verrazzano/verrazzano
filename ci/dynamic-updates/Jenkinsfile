@@ -64,7 +64,15 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
-        booleanParam (description: 'Whether to run Update 1 and the associated tests', name: 'RUN_UPDATE_1', defaultValue: true)
+        booleanParam (description: 'Whether to run Availability Status Updates', name: 'RUN_AVAILABILITY_STATUS', defaultValue: false)
+        booleanParam (description: 'Whether to run API conversion update tests', name: 'RUN_API_CONVERSION', defaultValue: false)
+        booleanParam (description: 'Whether to run AuthProxy update tests', name: 'RUN_AUTHPROXY', defaultValue: false)
+        booleanParam (description: 'Whether to run EnvironmentName/DNS/CertManager tests', name: 'RUN_CERT_MANAGER', defaultValue: false)
+        booleanParam (description: 'Whether to run Nginx/Istio tests', name: 'RUN_NGINX_ISTIO', defaultValue: false)
+        booleanParam (description: 'Whether to run Fluentd update tests', name: 'RUN_FLUENTD', defaultValue: false)
+        booleanParam (description: 'Whether to run Opensearch update tests', name: 'RUN_OPENSEARCH', defaultValue: false)
+        booleanParam (description: 'Whether to run Jaeger Update Tests', name: 'RUN_JAEGER', defaultValue: false)
+        booleanParam (description: 'Whether to run Post-install overrides tests', name: 'RUN_POST_INSTALL_OVERRIDES', defaultValue: false)
     }
 
     environment {
@@ -416,6 +424,7 @@ pipeline {
                 }
 
                 stage('Availability Status Updates') {
+                    when { expression {params.RUN_AVAILABILITY_STATUS} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/availability-update"
@@ -432,6 +441,7 @@ pipeline {
                 }
 
                 stage('API Conversion Update Tests') {
+                    when { expression {params.RUN_API_CONVERSION} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/apiconversion-update"
@@ -448,6 +458,7 @@ pipeline {
                 }
 
                 stage('AuthProxy Update Tests') {
+                    when { expression {params.RUN_AUTHPROXY} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/authproxy-update"
@@ -464,6 +475,7 @@ pipeline {
                 }
 
                 stage('EnvironmentName/DNS/CertManager Update Tests') {
+                    when { expression {params.RUN_CERT_MANAGER} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/env-dns-cm-update"
@@ -480,6 +492,7 @@ pipeline {
                 }
 
                 stage('Nginx/Istio Update Tests') {
+                    when { expression {params.RUN_NGINX_ISTIO} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/nginx-istio-update"
@@ -496,6 +509,7 @@ pipeline {
                 }
 
                 stage('Fluentd Update Tests') {
+                    when { expression {params.RUN_FLUENTD} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/fluentd-update"
@@ -513,6 +527,7 @@ pipeline {
 
 
                 stage('Opensearch Update Tests') {
+                    when { expression {params.RUN_OPENSEARCH} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-update"
@@ -529,6 +544,7 @@ pipeline {
                 }
 
                 stage('Jaeger Update Tests') {
+                    when { expression {params.RUN_JAEGER} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-update"
@@ -545,6 +561,7 @@ pipeline {
                 }
 
                 stage('Post-install overrides Tests') {
+                    when { expression {params.RUN_POST_INSTALL_OVERRIDES} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/overrides"
