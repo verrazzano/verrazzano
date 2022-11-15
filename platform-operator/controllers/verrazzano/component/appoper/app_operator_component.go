@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
+	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"

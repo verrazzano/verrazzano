@@ -11,7 +11,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -39,10 +38,6 @@ func (v *VerrazzanoManagedCluster) ValidateCreate() error {
 	log := zap.S().With("source", "webhook", "operation", "create", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
 	log.Debug("Validate create")
 
-	if !config.Get().WebhookValidationEnabled {
-		log.Info("Validation disabled, skipping")
-		return nil
-	}
 	if v.ObjectMeta.Namespace != constants.VerrazzanoMultiClusterNamespace {
 		return fmt.Errorf("Namespace for the resource must be %s", constants.VerrazzanoMultiClusterNamespace)
 	}
@@ -75,10 +70,6 @@ func (v *VerrazzanoManagedCluster) ValidateUpdate(old runtime.Object) error {
 	log := zap.S().With("source", "webhook", "operation", "update", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
 	log.Debug("Validate update")
 
-	if !config.Get().WebhookValidationEnabled {
-		log.Info("Validation disabled, skipping")
-		return nil
-	}
 	oldResource := old.(*VerrazzanoManagedCluster)
 	log.Debugf("oldResource: %v", oldResource)
 	log.Debugf("v: %v", v)

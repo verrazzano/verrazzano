@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	clusterapi "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
+	clusterapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"

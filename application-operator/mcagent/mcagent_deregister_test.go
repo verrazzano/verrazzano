@@ -10,7 +10,7 @@ import (
 
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

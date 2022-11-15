@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	clusterapi "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
+	clusterapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
+	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"

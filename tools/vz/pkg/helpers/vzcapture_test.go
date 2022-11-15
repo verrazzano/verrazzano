@@ -13,7 +13,7 @@ import (
 	appv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	appclusterv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	appoamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	clusterv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
+	clusterv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"

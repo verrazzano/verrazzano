@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/Jeffail/gabs/v2"
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/pkg/metricsutils"

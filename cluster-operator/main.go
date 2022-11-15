@@ -21,9 +21,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	clustersverrazzanoiov1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
+	clustersverrazzanoiov1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/rancher"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+
 	// +kubebuilder:scaffold:imports
 )
 

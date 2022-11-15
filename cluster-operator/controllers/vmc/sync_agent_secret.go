@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 
-	clusterapi "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
+	clusterapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzk8s "github.com/verrazzano/verrazzano/cluster-operator/internal/k8s"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"

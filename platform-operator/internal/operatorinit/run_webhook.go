@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 
 	"github.com/pkg/errors"

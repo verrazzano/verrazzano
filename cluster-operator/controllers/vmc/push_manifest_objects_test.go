@@ -12,7 +12,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	pkgconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/test/mockmatchers"
