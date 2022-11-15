@@ -6,7 +6,6 @@ package scenario
 import (
 	"fmt"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
-	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"path/filepath"
@@ -42,10 +41,9 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 	// Helm install each use case
 	var i int
 	for _, uc := range scman.Usecases {
-		// Create the set of HelmOverrides, starting with the worker image
-		helmOverrides := []helmcli.HelmOverrides{
-			m.buildWorkerImageOverride(),
-		}
+		// Create the set of HelmOverrides, initialized from the manager settings
+		helmOverrides := m.HelmOverrides
+
 		// This is the usecase path, E.G. manifests/usecases/opensearch/getlogs/getlogs.yaml
 		ucOverride := filepath.Join(m.Manifest.UseCasesAbsDir, uc.UsecasePath)
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: ucOverride})
@@ -104,8 +102,4 @@ func readWorkerType(ucOverride string) (string, error) {
 		return "nil", fmt.Errorf("Failed to find global.envVars.PSR_WORKER_TYPE in %s", ucOverride)
 	}
 	return wt.Global.EnvVars.WorkerType, nil
-}
-
-func (m Manager) buildWorkerImageOverride() helmcli.HelmOverrides {
-	return helmcli.HelmOverrides{SetOverrides: fmt.Sprintf("%s=%s", constants.ImageNameKey, m.WorkerImage)}
 }

@@ -29,6 +29,7 @@ DOCKER_IMAGE_FULLNAME := ${DOCKER_REGISTRY}/${DOCKER_IMAGE_FULLNAME}
 endif
 endif
 DOCKER_IMAGE_TAG ?= local-$(shell git rev-parse --short HEAD)
+DOCKER_IMAGE_FULL_PATH := ${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}
 
 GIT_COMMIT:=$(shell git rev-parse HEAD)
 BUILD_VERSION:=$(shell grep verrazzano-development-version ${MAKEFILE_DIR}/../../.verrazzano-development-version | cut -d= -f 2)
@@ -36,7 +37,7 @@ BUILD_DATE:=$(shell date +"%Y-%m-%dT%H:%M:%SZ")
 
 DIST_DIR:=dist
 GO=GO111MODULE=on GOPRIVATE=github.com/verrazzano/* CGO_ENABLED=0  go
-CLI_GO_LDFLAGS=-X '${VERSION_DIR}.gitCommit=${GIT_COMMIT}' -X '${VERSION_DIR}.buildDate=${BUILD_DATE}' -X '${VERSION_DIR}.cliVersion=${BUILD_VERSION}' -X '${CONSTANTS_DIR}.defaultWorkerImage=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}'
+CLI_GO_LDFLAGS=-X '${VERSION_DIR}.gitCommit=${GIT_COMMIT}' -X '${VERSION_DIR}.buildDate=${BUILD_DATE}' -X '${VERSION_DIR}.cliVersion=${BUILD_VERSION}' -X '${CONSTANTS_DIR}.defaultWorkerImage=${DOCKER_IMAGE_FULL_PATH}'
 
 export TEST_PATHS ?= ./backend/...
 
