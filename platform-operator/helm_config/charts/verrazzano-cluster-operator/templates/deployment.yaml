@@ -21,4 +21,11 @@ spec:
       - name: {{ .Values.name }}
         image: {{ .Values.image }}
         imagePullPolicy: {{ .Values.imagePullPolicy }}
+        volumeMounts:
+          - name: clusterSelector
       serviceAccountName: {{ .Values.name }}
+      volumes:
+        - name: clusterSelector
+          configMap:
+            configMapName: {{ .Values.name }}-selector
+            optional: true
