@@ -263,7 +263,7 @@ pipeline {
 def buildCLI(dockerImageTag) {
     sh """
         cd ${PSR_PATH}
-        make go-build-cli
+        make go-build-cli DOCKER_IMAGE_TAG=${dockerImageTag}
         ${GO_REPO_PATH}/ci/scripts/save_psr_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
         #cp out/linux_amd64/psrctl ${GO_REPO_PATH}/psrctl
     """
