@@ -37,6 +37,11 @@ type fakePsrClient struct {
 //	WHEN the getter methods are calls
 //	THEN ensure that the correct results are returned
 func TestGetters(t *testing.T) {
+	origFunc := overridePsrClient()
+	defer func() {
+		funcNewPsrClient = origFunc
+	}()
+
 	w, err := NewScaleWorker()
 	assert.NoError(t, err)
 
@@ -55,6 +60,11 @@ func TestGetters(t *testing.T) {
 //	WHEN the GetEnvDescList methods is called
 //	THEN ensure that the correct results are returned
 func TestGetEnvDescList(t *testing.T) {
+	origFunc := overridePsrClient()
+	defer func() {
+		funcNewPsrClient = origFunc
+	}()
+
 	tests := []struct {
 		name     string
 		key      string
@@ -99,6 +109,11 @@ func TestGetEnvDescList(t *testing.T) {
 //	WHEN the GetEnvDescList methods is called
 //	THEN ensure that the correct results are returned
 func TestGetMetricDescList(t *testing.T) {
+	origFunc := overridePsrClient()
+	defer func() {
+		funcNewPsrClient = origFunc
+	}()
+
 	tests := []struct {
 		name   string
 		fqName string
@@ -133,6 +148,11 @@ func TestGetMetricDescList(t *testing.T) {
 //	WHEN the GetMetricList methods is called
 //	THEN ensure that the correct results are returned
 func TestGetMetricList(t *testing.T) {
+	origFunc := overridePsrClient()
+	defer func() {
+		funcNewPsrClient = origFunc
+	}()
+
 	tests := []struct {
 		name   string
 		fqName string
@@ -350,4 +370,13 @@ func getTierLabels(tier string) map[string]string {
 		return nil
 	}
 	return nil
+}
+
+func overridePsrClient() func() (k8sclient.PsrClient, error) {
+	f := fakePsrClient{
+		psrClient: &k8sclient.PsrClient{},
+	}
+	origFc := funcNewPsrClient
+	funcNewPsrClient = f.NewPsrClient
+	return origFc
 }
