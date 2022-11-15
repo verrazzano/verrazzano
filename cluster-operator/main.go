@@ -70,7 +70,7 @@ func main() {
 	}
 
 	// if the user has specified a label selector to filter Rancher clusters, create a custom cache that applies the selector
-	// TODO populate this from the selector provided by the user
+	// Note: populate this from the selector provided by the user
 	var clusterSelector *metav1.LabelSelector
 	if clusterSelector != nil {
 		options.NewCache = func(conf *rest.Config, opts cache.Options) (cache.Cache, error) {
