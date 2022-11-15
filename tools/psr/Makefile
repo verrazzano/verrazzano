@@ -53,10 +53,15 @@ go-build:
 		-o out/linux_amd64/psr-backend \
 		${BACKEND_DIR}/main.go
 
+#
+# Generate Helm overrides containing the chart defaults, including the generated worker image
+# - the out/overrides dir will embedded in psrctl and applied when run
+#
 .PHONY: generate-overrides
 generate-overrides:
-	mkdir -p out
-	@echo "imageName: ${DOCKER_IMAGE_FULL_PATH}" > out/defaults.yaml
+	mkdir -p out/overrides
+	@echo "imageName: ${DOCKER_IMAGE_FULL_PATH}" > out/overrides/defaults.yaml
+
 #
 # Go build cli related tasks
 #

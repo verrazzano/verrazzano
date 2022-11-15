@@ -87,7 +87,7 @@ func copyManifestsDir(rootDir string) error {
 	if err != nil {
 		return err
 	}
-	if err := writeDirDeep(filepath.Join(rootDir, "overrides"), "out", psr.GetGeneratedChartDefaults()); err != nil {
+	if err := writeDirDeep(rootDir, "out", psr.GetGeneratedChartOverrides()); err != nil {
 		return err
 	}
 	return nil
