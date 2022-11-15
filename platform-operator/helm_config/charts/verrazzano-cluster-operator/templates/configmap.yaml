@@ -8,7 +8,7 @@ metadata:
   namespace: {{ .Values.namespace }}
 data:
   {{- if .Values.syncRancherClusters.clusterSelector -}}
-  selector.yaml: {{ .Values.syncRancherClusters.clusterSelector }}
+  selector.yaml: {{ .Values.syncRancherClusters.clusterSelector | toString }}
   {{- end -}}
 {{- end -}}
 
