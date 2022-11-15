@@ -7,10 +7,14 @@ import (
 	"context"
 	"fmt"
 	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	vzContext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	v1 "k8s.io/api/batch/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sync"
 	"testing"
@@ -49,12 +53,14 @@ import (
 const testBomFilePath = "../testdata/test_bom.json"
 
 // Generate mocks for the Kerberos Client and StatusWriter interfaces for use in tests.
+//
 //go:generate mockgen -destination=../../../mocks/controller_mock.go -package=mocks -copyright_file=../../../hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
-
+//go:generate mockgen -destination=../../../mocks/runtime_controller_mock.go -package=mocks -copyright_file=../../../hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/controller Controller
 const installPrefix = "verrazzano-install-"
 const uninstallPrefix = "verrazzano-uninstall-"
 const relativeProfilesDir = "../../../manifests/profiles"
 const relativeHelmConfig = "../../../helm_config"
+const unExpectedError = "unexpected error"
 
 type nsMatcher struct {
 	Name string
@@ -1683,4 +1689,449 @@ func TestMysqlOperatorJobPredicateValidBackupJob(t *testing.T) {
 	}
 	isMysqlJob := reconciler.isMysqlOperatorJob(event.CreateEvent{Object: job}, vzlog.DefaultLogger())
 	asserts.True(isMysqlJob)
+}
+
+// TestReconcilerInitForVzResource tests initForVzResource to verify the initialization for the given Verrazzano resource
+func TestReconcilerInitForVzResource(t *testing.T) {
+	type args struct {
+		vz  *vzapi.Verrazzano
+		log vzlog.VerrazzanoLogger
+	}
+	logger := vzlog.DefaultLogger()
+	mocker := gomock.NewController(t)
+	getNoErrorMock := func() client.Client {
+		mockClient := mocks.NewMockClient(mocker)
+		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil).AnyTimes()
+		return mockClient
+	}
+	getDeleteErrorMock := func() client.Client {
+		mockClient := mocks.NewMockClient(mocker)
+		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(fmt.Errorf(unExpectedError))
+		return mockClient
+	}
+	getSADeleteErrorMock := func() client.Client {
+		mockClient := mocks.NewMockClient(mocker)
+		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil)
+		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.ServiceAccount{}), gomock.Any()).Return(fmt.Errorf(unExpectedError))
+		return mockClient
+	}
+	getUpdateErrorMock := func() client.Client {
+		mockClient := mocks.NewMockClient(mocker)
+		mockClient.EXPECT().Update(context.TODO(), gomock.Any()).Return(fmt.Errorf(unExpectedError)).Times(1)
+		return mockClient
+	}
+	setMockControllerNoErr := func(reconciler *Reconciler) {
+		controller := mocks.NewMockController(mocker)
+		controller.EXPECT().Watch(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		reconciler.Controller = controller
+	}
+	setMockControllerErr := func(reconciler *Reconciler) {
+		controller := mocks.NewMockController(mocker)
+		controller.EXPECT().Watch(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf(unExpectedError))
+		reconciler.Controller = controller
+	}
+	vzName := "vzTestName"
+	arg := args{
+		&vzapi.Verrazzano{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: vzName,
+			},
+		},
+		logger,
+	}
+	testVZ := "testVZ"
+	initializedSet[testVZ] = true
+	defer func() {
+		unitTesting = true
+		mocker.Finish()
+	}()
+	argWithInit := args{
+		&vzapi.Verrazzano{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       testVZ,
+				Finalizers: []string{finalizerName},
+			},
+		},
+		logger,
+	}
+	argWithFinalizer := args{
+		&vzapi.Verrazzano{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       vzName,
+				Finalizers: []string{finalizerName},
+			},
+		},
+		logger,
+	}
+	tests := []struct {
+		name               string
+		args               args
+		getClientFunc      func() client.Client
+		mockControllerFunc func(*Reconciler)
+		want               ctrl.Result
+		wantErr            bool
+	}{
+		// GIVEN Verrazzano CR
+		// WHEN initForVzResource is called and error occurs while updating k8s resource
+		// THEN error is returned with result for requeue with delay
+		{
+			"TestReconcilerInitForVzResource when updates the given obj in the K8s cluster fails",
+			arg,
+			getUpdateErrorMock,
+			nil,
+			newRequeueWithDelay(),
+			true,
+		},
+		// GIVEN Verrazzano CR
+		// WHEN initForVzResource is called and no error occurs
+		// THEN no error is returned with result for no requeue
+		{
+			"TestReconcilerInitForVzResource when initialization is already for this resource",
+			argWithInit,
+			nil,
+			nil,
+			ctrl.Result{},
+			false,
+		},
+		// GIVEN Verrazzano CR
+		// WHEN initForVzResource is called and no error occurs
+		// THEN no error is returned with result for requeue with delay
+		{
+			"TestReconcilerInitForVzResource when no error occurs",
+			argWithFinalizer,
+			getNoErrorMock,
+			setMockControllerNoErr,
+			ctrl.Result{Requeue: true},
+			false,
+		},
+		// GIVEN Verrazzano CR
+		// WHEN initForVzResource is called and deletion of cluster role-binding fails
+		// THEN error is returned with result for requeue with delay
+		{
+			"TestReconcilerInitForVzResource when deletion of cluster role-binding fails",
+			argWithFinalizer,
+			getDeleteErrorMock,
+			nil,
+			newRequeueWithDelay(),
+			true,
+		},
+		// GIVEN Verrazzano CR
+		// WHEN initForVzResource is called and deletion of Service account fails
+		// THEN error is returned with result for requeue with delay
+		{
+			"TestReconcilerInitForVzResource when deletion of Service account fails",
+			argWithFinalizer,
+			getSADeleteErrorMock,
+			nil,
+			newRequeueWithDelay(),
+			true,
+		},
+		// GIVEN Verrazzano CR
+		// WHEN initForVzResource is called and error occurs while watching pods
+		// THEN error is returned with result for requeue with delay
+		{"TestReconcilerInitForVzResource when watching for pods get failed",
+			argWithFinalizer,
+			getNoErrorMock,
+			setMockControllerErr,
+			newRequeueWithDelay(),
+			true,
+		},
+	}
+	unitTesting = false
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var reconciler Reconciler
+			if tt.getClientFunc != nil {
+				reconciler = newVerrazzanoReconciler(tt.getClientFunc())
+			} else {
+				reconciler = newVerrazzanoReconciler(nil)
+			}
+			if tt.mockControllerFunc != nil {
+				tt.mockControllerFunc(&reconciler)
+			}
+			got, err := reconciler.initForVzResource(tt.args.vz, tt.args.log)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("initForVzResource() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("initForVzResource() got = %v, want %v", got, tt.want)
+			}
+			delete(initializedSet, tt.args.vz.Name)
+		})
+	}
+}
+
+// TestReconcilerWatch tests AddWatch and ClearWatch
+// GIVEN component name to watch
+// WHEN AddWatch is called
+// THEN component is added to watch component map
+// WHEN ClearWatch is called
+// THEN component is cleared from watch component map
+func TestReconcilerWatch(t *testing.T) {
+	asserts := assert.New(t)
+	reconciler := newVerrazzanoReconciler(nil)
+	watchComp := "testName"
+	reconciler.AddWatch(watchComp)
+	asserts.True(reconciler.WatchedComponents[watchComp])
+	reconciler.ClearWatch(watchComp)
+	asserts.False(reconciler.WatchedComponents[watchComp])
+}
+
+// TestIsManagedClusterRegistrationSecret tests isManagedClusterRegistrationSecret
+// GIVEN Secret resource
+// WHEN isManagedClusterRegistrationSecret is called
+// THEN true is returned if secret is MCRegistrationSecret
+// THEN false is returned if secret is not MCRegistrationSecret
+func TestIsManagedClusterRegistrationSecret(t *testing.T) {
+	asserts := assert.New(t)
+	reconciler := newVerrazzanoReconciler(nil)
+	vzSecret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.MCRegistrationSecret,
+			Namespace: constants.VerrazzanoSystemNamespace,
+		},
+	}
+	secret := corev1.Secret{}
+	asserts.True(reconciler.isManagedClusterRegistrationSecret(&vzSecret))
+	asserts.False(reconciler.isManagedClusterRegistrationSecret(&secret))
+}
+
+// TestReconcile tests Reconcile
+func TestReconcile(t *testing.T) {
+	type args struct {
+		ctx context.Context
+		req ctrl.Request
+	}
+	temp := metricsexporter.MetricsExp
+	defer func() {
+		metricsexporter.MetricsExp = temp
+	}()
+	argsWithNilCtx := args{nil, ctrl.Request{}}
+	argsWithCtx := args{context.TODO(), ctrl.Request{}}
+	tests := []struct {
+		name     string
+		args     args
+		testInit func()
+		want     ctrl.Result
+		wantErr  bool
+	}{
+		// GIVEN reconciler object
+		// WHEN Reconciler is called with nil context
+		// THEN error is returned with empty result of a Reconciler invocation
+		{
+			"TestReconcile with nil context",
+			argsWithNilCtx,
+			nil,
+			ctrl.Result{},
+			true,
+		},
+		// GIVEN reconciler object
+		// WHEN Reconciler is called
+		// THEN error is returned with empty result of a Reconciler invocation if required metrics not found
+		{
+			"TestReconcile when ReconcileCounter metric not found",
+			argsWithCtx,
+			func() {
+				metricsexporter.MetricsExp = metricsexporter.MetricsExporter{}
+			},
+			ctrl.Result{},
+			true,
+		},
+		// GIVEN reconciler object
+		// WHEN Reconciler is called and error metric not found
+		// THEN error is returned with empty result of a Reconciler invocation
+		{
+			"TestReconcile when doReconcile throw error metric not found",
+			argsWithCtx,
+			nil,
+			ctrl.Result{},
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := newVerrazzanoReconciler(nil)
+			if tt.testInit != nil {
+				tt.testInit()
+			}
+			got, err := r.Reconcile(tt.args.ctx, tt.args.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Reconcile() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Reconcile() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestPersistJobLog tests persistJobLog
+// GIVEN backupjob and job pod
+// WHEN persistJobLog is called
+// THEN false is returned if no error occurs
+func TestPersistJobLog(t *testing.T) {
+	type args struct {
+		backupJob v1.Job
+		jobPod    *corev1.Pod
+		log       vzlog.VerrazzanoLogger
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			"TestPersistJobLog",
+			args{v1.Job{ObjectMeta: metav1.ObjectMeta{
+				Name: "test-schedule-1",
+			}}, &corev1.Pod{}, vzlog.DefaultLogger()},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := persistJobLog(tt.args.backupJob, tt.args.jobPod, tt.args.log); got != tt.want {
+				t.Errorf("persistJobLog() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// dummy Status updater for testing purpose
+type statusUpdater string
+
+func (s *statusUpdater) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+	return nil
+}
+func (s *statusUpdater) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+	return nil
+}
+
+// TestReconcilerProcReadyState tests ProcReadyState
+func TestReconcilerProcReadyState(t *testing.T) {
+	temp := unitTesting
+	defer func() {
+		unitTesting = temp
+	}()
+	unitTesting = false
+	helmOverrideNoErr := func() {
+		helm.SetCmdRunner(vzos.GenericTestRunner{
+			StdOut: []byte(""),
+			StdErr: []byte(""),
+			Err:    nil,
+		})
+	}
+
+	k8sClient := fakes.NewClientBuilder().WithScheme(newScheme()).Build()
+	mocker := gomock.NewController(t)
+	var statusUpdaterMock statusUpdater = "test"
+	getMockClient := func() client.Client {
+		mockClient := mocks.NewMockClient(mocker)
+		mockClient.EXPECT().Get(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil).Times(3)
+		mockClient.EXPECT().Update(context.TODO(), gomock.Not(nil)).Return(nil).Times(1)
+		mockClient.EXPECT().Status().Return(&statusUpdaterMock)
+		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil)
+		return mockClient
+	}
+	getClientDeleteError := func() client.Client {
+		mockClient := mocks.NewMockClient(mocker)
+		mockClient.EXPECT().Get(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil).Times(3)
+		mockClient.EXPECT().Update(context.TODO(), gomock.Not(nil)).Return(nil).Times(1)
+		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(fmt.Errorf(unExpectedError))
+		return mockClient
+	}
+	context, _ := vzContext.NewVerrazzanoContext(vzlog.DefaultLogger(), k8sClient, &vzapi.Verrazzano{}, true)
+	contextWithCompReady, _ := vzContext.NewVerrazzanoContext(vzlog.DefaultLogger(), k8sClient, &vzapi.Verrazzano{
+		Status: vzapi.VerrazzanoStatus{
+			Components: map[string]*vzapi.ComponentStatusDetails{
+				rancher.ComponentName: {
+					State: vzapi.ComponentAvailable,
+				},
+			},
+		},
+	}, true)
+	getCompFunc := func() []spi.Component {
+		return []spi.Component{rancher.NewComponent()}
+	}
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	tests := []struct {
+		name           string
+		vzContext      vzContext.VerrazzanoContext
+		k8sClient      client.Client
+		setProfileFunc func()
+		helmOverride   func()
+		want           ctrl.Result
+		wantErr        bool
+	}{
+		// GIVEN Reconciler object
+		// WHEN ProcReadyState is called and component is already installed
+		// THEN no error is returned with result of a Reconciler invocation with delay
+		{
+			"TestReconcilerProcReadyState when component is already installed",
+			context,
+			k8sClient,
+			func() {
+				config.TestProfilesDir = relativeProfilesDir
+			},
+			helmOverrideNoErr,
+			newRequeueWithDelay(),
+			false,
+		},
+		// GIVEN Reconciler object
+		// WHEN ProcReadyState is called and component is in ready state
+		// THEN no error is returned with result of a Reconciler invocation with delay
+		{
+			"TestReconcilerProcReadyState when component is in ready state",
+			contextWithCompReady,
+			getMockClient(),
+			func() {
+				config.TestProfilesDir = relativeProfilesDir
+			},
+			helmOverrideNoErr,
+			newRequeueWithDelay(),
+			false,
+		},
+		// GIVEN Reconciler object
+		// WHEN ProcReadyState is called and error occurs while deleting resource
+		// THEN error is returned with result of a Reconciler invocation with delay
+		{
+			"TestReconcilerProcReadyState when error occurs while deleting resource",
+			contextWithCompReady,
+			getClientDeleteError(),
+			func() {
+				config.TestProfilesDir = relativeProfilesDir
+			},
+			helmOverrideNoErr,
+			newRequeueWithDelay(),
+			true,
+		},
+	}
+	defer func() { config.TestProfilesDir = "" }()
+	defer registry.ResetGetComponentsFn()
+	defer helm.SetDefaultRunner()
+	for _, tt := range tests {
+		registry.OverrideGetComponentsFn(getCompFunc)
+		t.Run(tt.name, func(t *testing.T) {
+			r := newVerrazzanoReconciler(tt.k8sClient)
+			if tt.setProfileFunc != nil {
+				tt.setProfileFunc()
+			}
+			if tt.helmOverride != nil {
+				tt.helmOverride()
+			}
+			got, err := r.ProcReadyState(tt.vzContext)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ProcReadyState() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ProcReadyState() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

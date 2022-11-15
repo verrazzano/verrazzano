@@ -2006,6 +2006,7 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	mySQLPod.Status.Conditions = []v1.PodCondition{{Type: "gate1", Status: v1.ConditionTrue}, {Type: "gate2", Status: v1.ConditionFalse}}
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod, mySQLOperatorPod).Build()
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
+	*mysqlComp.LastTimeReadinessGateRepairStarted = mysqlComp.LastTimeReadinessGateRepairStarted.Truncate(2 * time.Hour)
 	err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
 	assert.NoError(t, err)
 	assert.True(t, mysqlComp.LastTimeReadinessGateRepairStarted.IsZero())

@@ -38,7 +38,7 @@ var validSecret = corev1.Secret{
 
 // TestProcessAgentThreadNoProjects tests agent thread when no projects exist
 // GIVEN a request to process the agent loop
-// WHEN the a new VerrazzanoProjects resources exists
+// WHEN no new VerrazzanoProjects resources exists
 // THEN ensure that there are no calls to sync any multi-cluster resources
 func TestProcessAgentThreadNoProjects(t *testing.T) {
 	assert := asserts.New(t)
