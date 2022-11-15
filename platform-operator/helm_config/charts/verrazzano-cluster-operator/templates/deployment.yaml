@@ -37,4 +37,5 @@ spec:
             name: {{ .Values.name }}-selector
             items:
             - key: selector.yaml
+              path: selector.yaml
             optional: true
