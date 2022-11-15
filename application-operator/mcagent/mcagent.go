@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // ENV VAR for registration secret version
@@ -46,6 +45,7 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 		ProjectNamespaces:     []string{},
 		AgentSecretFound:      false,
 		SecretResourceVersion: "",
+		CattleAgentHash:       "",
 		StatusUpdateChannel:   statusUpdateChannel,
 	}
 
@@ -55,7 +55,6 @@ func StartAgent(client client.Client, statusUpdateChannel chan clusters.StatusUp
 		if err != nil {
 			s.Log.Errorf("Failed processing multi-cluster resources: %v", err)
 		}
-		s.configureJaegerCR(false)
 		if !s.AgentReadyToSync() {
 			// there is no admin cluster we are connected to, so nowhere to send any status updates
 			// received - discard them
@@ -129,18 +128,17 @@ func (s *Syncer) ProcessAgentThread() error {
 	}
 
 	// Check whether the admin or local clusters' CA certs have rolled, and sync as necessary
-	managedClusterResult, err := s.syncClusterCAs()
+	_, err = s.syncClusterCAs()
 	if err != nil {
 		// we couldn't sync the cluster CAs - but we should keep going with the rest of the work
 		s.Log.Errorf("Failed to synchronize cluster CA certificates: %v", err)
 	}
 
-	// if managed cluster information resulted in a change, the fluentd daemonset needs to be restarted and Jaeger CR
-	// needs to be updated
-	if managedClusterResult != controllerutil.OperationResultNone {
-		// configure logging and force a restart of the fluentd daemonset since CA or registration
-		// were updated
-		s.configureJaegerCR(true)
+	// Sync cattle-cluster-agent deployment
+	err = s.syncCattleClusterAgent("")
+	if err != nil {
+		// we couldn't sync the cattle-cluster-agent - but we should keep going with the rest of the work
+		s.Log.Errorf("Failed to synchronize cattle-cluster-agent: %v", err)
 	}
 	return nil
 }

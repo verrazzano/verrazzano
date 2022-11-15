@@ -38,7 +38,7 @@ var validSecret = corev1.Secret{
 
 // TestProcessAgentThreadNoProjects tests agent thread when no projects exist
 // GIVEN a request to process the agent loop
-// WHEN the a new VerrazzanoProjects resources exists
+// WHEN no new VerrazzanoProjects resources exists
 // THEN ensure that there are no calls to sync any multi-cluster resources
 func TestProcessAgentThreadNoProjects(t *testing.T) {
 	assert := asserts.New(t)
@@ -111,6 +111,12 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 			vmc.Namespace = vmcName.Namespace
 			vmc.Spec.CASecret = clusterCASecret
 			return nil
+		})
+
+	adminMock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: getManifestSecretName("cluster1")}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret) error {
+			return errors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, name.Name)
 		})
 
 	// Make the request
