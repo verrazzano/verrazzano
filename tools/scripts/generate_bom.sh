@@ -18,29 +18,35 @@ if [ -z "$2" ]; then
 fi
 VERRAZZANO_VERSION=$2
 
-if [ -z "$3" ]; then
+VERRAZZANO_APPLICATION_OPERATOR_IMAGE=$3
+if [ -z "${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}" ]; then
   echo "You must specify the Application Operator Image"
   exit 1
 fi
-VERRAZZANO_APPLICATION_OPERATOR_IMAGE=$3
 
-if [ -z "$4" ]; then
+VERRAZZANO_CLUSTER_OPERATOR_IMAGE=$4
+if [ -z "${VERRAZZANO_CLUSTER_OPERATOR_IMAGE}" ]; then
+  echo "You must specify the Cluster Operator Image Name"
+  exit 1
+fi
+
+VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=$5
+if [ -z "${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME}" ]; then
   echo "You must specify the Platform Operator Image Name"
   exit 1
 fi
-VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=$4
 
-if [ -z "$5" ]; then
+IMAGE_TAG=$6
+if [ -z "${IMAGE_TAG}" ]; then
   echo "You must specify the Image Tag"
   exit 1
 fi
-IMAGE_TAG=$5
 
-if [ -z "$6" ]; then
+GENERATED_BOM_FILE=$7
+if [ -z "${GENERATED_BOM_FILE}" ]; then
   echo "You must specify the BOM filename as output"
   exit 1
 fi
-GENERATED_BOM_FILE=$6
 
 cp ${BOM_FILE} ${GENERATED_BOM_FILE}
 
@@ -54,6 +60,13 @@ if [[ ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} =~ $regex ]] ; then
 else
   sed -i"" -e "s|VERRAZZANO_APPLICATION_OPERATOR_IMAGE|${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}|g" ${GENERATED_BOM_FILE}
   sed -i"" -e "s|VERRAZZANO_APPLICATION_OPERATOR_TAG|${IMAGE_TAG}|g" ${GENERATED_BOM_FILE}
+fi
+if [[ ${VERRAZZANO_CLUSTER_OPERATOR_IMAGE} =~ $regex ]] ; then
+  sed -i"" -e "s|VERRAZZANO_CLUSTER_OPERATOR_IMAGE|$(echo ${VERRAZZANO_CLUSTER_OPERATOR_IMAGE} | rev | cut -d / -f 1 | rev | cut -d : -f 1)|g" ${GENERATED_BOM_FILE}
+  sed -i"" -e "s|VERRAZZANO_CLUSTER_OPERATOR_TAG|$(echo ${VERRAZZANO_CLUSTER_OPERATOR_IMAGE}:UNDEFINED | rev | cut -d / -f 1 | rev | cut -d : -f 2)|g" ${GENERATED_BOM_FILE}
+else
+  sed -i"" -e "s|VERRAZZANO_CLUSTER_OPERATOR_IMAGE|${VERRAZZANO_CLUSTER_OPERATOR_IMAGE}|g" ${GENERATED_BOM_FILE}
+  sed -i"" -e "s|VERRAZZANO_CLUSTER_OPERATOR_TAG|${IMAGE_TAG}|g" ${GENERATED_BOM_FILE}
 fi
 sed -i"" -e "s|VERRAZZANO_PLATFORM_OPERATOR_IMAGE|${VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME}|g" ${GENERATED_BOM_FILE}
 sed -i"" -e "s|VERRAZZANO_PLATFORM_OPERATOR_TAG|${IMAGE_TAG}|g" ${GENERATED_BOM_FILE}

@@ -32,6 +32,7 @@ type Syncer struct {
 	AgentSecretFound      bool
 	AgentSecretValid      bool
 	SecretResourceVersion string
+	CattleAgentHash       string
 
 	// List of namespaces to watch for multi-cluster objects.
 	ProjectNamespaces   []string

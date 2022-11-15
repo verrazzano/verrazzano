@@ -5,9 +5,11 @@ package operator
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -22,7 +24,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -74,7 +75,7 @@ func NewComponent() spi.Component {
 // IsEnabled returns true if the Prometheus Operator is enabled or if the component is not specified
 // in the Verrazzano CR.
 func (c prometheusComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsPrometheusOperatorEnabled(effectiveCR)
+	return vzcr.IsPrometheusOperatorEnabled(effectiveCR)
 }
 
 // IsReady checks if the Prometheus Operator deployment is ready
@@ -180,9 +181,9 @@ func (c prometheusComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzan
 func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
 
-	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		ns := ComponentNamespace
-		if vzconfig.IsAuthProxyEnabled(ctx.EffectiveCR()) {
+		if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
 			ns = authproxy.ComponentNamespace
 		}
 		ingressNames = append(ingressNames, types.NamespacedName{
@@ -198,9 +199,9 @@ func (c prometheusComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 func (c prometheusComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var certificateNames []types.NamespacedName
 
-	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		ns := ComponentNamespace
-		if vzconfig.IsAuthProxyEnabled(ctx.EffectiveCR()) {
+		if vzcr.IsAuthProxyEnabled(ctx.EffectiveCR()) {
 			ns = authproxy.ComponentNamespace
 		}
 		certificateNames = append(certificateNames, types.NamespacedName{
@@ -215,7 +216,7 @@ func (c prometheusComponent) GetCertificateNames(ctx spi.ComponentContext) []typ
 // checkExistingCNEPrometheus checks if Prometheus is already installed
 // OLCNE Istio module may have Prometheus installed in istio-system namespace
 func checkExistingCNEPrometheus(vz runtime.Object) error {
-	if !vzconfig.IsPrometheusEnabled(vz) {
+	if !vzcr.IsPrometheusEnabled(vz) {
 		return nil
 	}
 	if err := k8sutil.ErrorIfDeploymentExists(constants.IstioSystemNamespace, istioPrometheus); err != nil {
