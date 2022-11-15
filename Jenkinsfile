@@ -62,9 +62,12 @@ pipeline {
         DOCKER_PLATFORM_CI_IMAGE_NAME = 'verrazzano-platform-operator-jenkins'
         DOCKER_PLATFORM_PUBLISH_IMAGE_NAME = 'verrazzano-platform-operator'
         DOCKER_PLATFORM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PLATFORM_PUBLISH_IMAGE_NAME : env.DOCKER_PLATFORM_CI_IMAGE_NAME}"
-        DOCKER_OAM_CI_IMAGE_NAME = 'verrazzano-application-operator-jenkins'
-        DOCKER_OAM_PUBLISH_IMAGE_NAME = 'verrazzano-application-operator'
-        DOCKER_OAM_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_OAM_PUBLISH_IMAGE_NAME : env.DOCKER_OAM_CI_IMAGE_NAME}"
+        DOCKER_APP_CI_IMAGE_NAME = 'verrazzano-application-operator-jenkins'
+        DOCKER_APP_PUBLISH_IMAGE_NAME = 'verrazzano-application-operator'
+        DOCKER_APP_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_APP_PUBLISH_IMAGE_NAME : env.DOCKER_APP_CI_IMAGE_NAME}"
+        DOCKER_CLUSTER_CI_IMAGE_NAME = 'verrazzano-cluster-operator-jenkins'
+        DOCKER_CLUSTER_PUBLISH_IMAGE_NAME = 'verrazzano-cluster-operator'
+        DOCKER_CLUSTER_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_CLUSTER_PUBLISH_IMAGE_NAME : env.DOCKER_CLUSTER_CI_IMAGE_NAME}"
         CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
         USE_V8O_DOC_STAGE = "${env.BRANCH_NAME == 'master' ? 'true' : 'false'}"
         GOPATH = '/home/opc/go'
@@ -304,7 +307,8 @@ pipeline {
             steps {
                 script {
                     scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_PLATFORM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
-                    scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_OAM_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                    scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_APP_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
+                    scanContainerImage "${env.DOCKER_REPO}/${env.DOCKER_NAMESPACE}/${DOCKER_CLUSTER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}"
                 }
             }
             post {
@@ -578,7 +582,7 @@ def buildImages(dockerImageTag) {
     sh """
         cd ${GO_REPO_PATH}/verrazzano
         echo 'Now build...'
-        make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
+        make docker-push VERRAZZANO_PLATFORM_OPERATOR_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_APP_IMAGE_NAME} VERRAZZANO_CLUSTER_OPERATOR_IMAGE_NAME=${DOCKER_CLUSTER_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} CREATE_LATEST_TAG=${CREATE_LATEST_TAG}
         cp ${GO_REPO_PATH}/verrazzano/platform-operator/out/generated-verrazzano-bom.json $WORKSPACE/generated-verrazzano-bom.json
         cp $WORKSPACE/generated-verrazzano-bom.json $WORKSPACE/verrazzano-bom.json
         ${GO_REPO_PATH}/verrazzano/tools/scripts/generate_image_list.sh $WORKSPACE/generated-verrazzano-bom.json $WORKSPACE/verrazzano_images.txt
@@ -596,7 +600,7 @@ def generateOperatorYaml(dockerImageTag) {
                 echo "Adding image pull secrets to operator.yaml for non master/release branch"
                 export IMAGE_PULL_SECRETS=verrazzano-container-registry
         esac
-        DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_OAM_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} OPERATOR_YAML=$WORKSPACE/generated-operator.yaml make generate-operator-yaml
+        DOCKER_IMAGE_NAME=${DOCKER_PLATFORM_IMAGE_NAME} VERRAZZANO_APPLICATION_OPERATOR_IMAGE_NAME=${DOCKER_APP_IMAGE_NAME} VERRAZZANO_CLUSTER_OPERATOR_IMAGE_NAME=${DOCKER_CLUSTER_IMAGE_NAME} DOCKER_REPO=${env.DOCKER_REPO} DOCKER_NAMESPACE=${env.DOCKER_NAMESPACE} DOCKER_IMAGE_TAG=${dockerImageTag} OPERATOR_YAML=$WORKSPACE/generated-operator.yaml make generate-operator-yaml
     """
 }
 

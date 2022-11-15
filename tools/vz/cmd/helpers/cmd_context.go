@@ -5,8 +5,10 @@ package helpers
 
 import (
 	"io"
-	"k8s.io/client-go/dynamic"
 	"net/http"
+
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -38,19 +40,7 @@ func (rc *RootCmdContext) GetInputStream() io.Reader {
 
 // GetClient - return a Kubernetes controller runtime client that supports the schemes used by the CLI
 func (rc *RootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
-	// Get command line value of kubeConfig location
-	kubeConfigLoc, err := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get command line value of kubeContext
-	context, err := cmd.Flags().GetString(constants.GlobalFlagContext)
-	if err != nil {
-		return nil, err
-	}
-
-	config, err := k8sutil.GetKubeConfigGivenPathAndContext(kubeConfigLoc, context)
+	config, err := getKubeConfigGivenCommand(cmd)
 	if err != nil {
 		return nil, err
 	}
@@ -60,19 +50,7 @@ func (rc *RootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
 
 // GetKubeClient - return a Kubernetes clientset for use with the go-client
 func (rc *RootCmdContext) GetKubeClient(cmd *cobra.Command) (kubernetes.Interface, error) {
-	// Get command line value of --kubeconfig
-	kubeConfigLoc, err := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get command line value of --context
-	context, err := cmd.Flags().GetString(constants.GlobalFlagContext)
-	if err != nil {
-		return nil, err
-	}
-
-	config, err := k8sutil.GetKubeConfigGivenPathAndContext(kubeConfigLoc, context)
+	config, err := getKubeConfigGivenCommand(cmd)
 	if err != nil {
 		return nil, err
 	}
@@ -82,6 +60,15 @@ func (rc *RootCmdContext) GetKubeClient(cmd *cobra.Command) (kubernetes.Interfac
 
 // GetDynamicClient - return a dynamic clientset for use with the go-client
 func (rc *RootCmdContext) GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error) {
+	config, err := getKubeConfigGivenCommand(cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	return dynamic.NewForConfig(config)
+}
+
+func getKubeConfigGivenCommand(cmd *cobra.Command) (*rest.Config, error) {
 	// Get command line value of --kubeconfig
 	kubeConfigLoc, err := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
 	if err != nil {
@@ -98,8 +85,7 @@ func (rc *RootCmdContext) GetDynamicClient(cmd *cobra.Command) (dynamic.Interfac
 	if err != nil {
 		return nil, err
 	}
-
-	return dynamic.NewForConfig(config)
+	return config, err
 }
 
 // GetHTTPClient - return an HTTP client

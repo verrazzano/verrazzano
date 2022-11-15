@@ -19,7 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 )
 
 var (
@@ -62,6 +62,7 @@ var _ = t.Describe("Update admin-cluster cert-manager", Label("f:platform-lcm.up
 			start := time.Now()
 			oldIngressCaCrt := updateAdminClusterCA()
 			verifyCaSync(oldIngressCaCrt)
+			// verify new logs are flowing after updating admin cert
 			verifyManagedFluentd(start)
 		})
 	})

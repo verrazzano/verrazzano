@@ -59,6 +59,12 @@ var _ = t.Describe("Multi Cluster Verify Deregister", Label("f:multicluster.dere
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected secret verrazzano-cluster-registration gone in managed cluster")
 		})
 
+		t.It("should not have verrazzano-cluster-agent secret", func() {
+			Eventually(func() bool {
+				return missingSecret(verrazzanoSystemNamespace, "verrazzano-cluster-agent")
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected secret verrazzano-cluster-agent gone in managed cluster")
+		})
+
 		t.It("Fluentd should point to the correct ES", func() {
 			Eventually(func() bool {
 				return pkg.AssertFluentdURLAndSecret(pkg.VmiESURL, pkg.VmiESInternalSecret)

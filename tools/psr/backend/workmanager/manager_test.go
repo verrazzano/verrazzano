@@ -41,37 +41,37 @@ func TestStartWorkerRunners(t *testing.T) {
 			workerType: config.WorkerTypeExample,
 			expectErr:  false,
 			envMap: map[string]string{
-				config.PsrWorkerType:    config.WorkerTypeExample,
-				config.PsrNumIterations: "1",
+				config.PsrWorkerType: config.WorkerTypeExample,
+				config.PsrNumLoops:   "1",
 			},
 		},
 		{name: "WorkerTypeWriteLogs",
 			workerType: config.WorkerTypeWriteLogs,
 			expectErr:  false,
 			envMap: map[string]string{
-				config.PsrWorkerType:    config.WorkerTypeWriteLogs,
-				config.PsrNumIterations: "1",
+				config.PsrWorkerType: config.WorkerTypeWriteLogs,
+				config.PsrNumLoops:   "1",
 			},
 		},
 		{name: "WorkerTypeGetLogs",
 			workerType: config.WorkerTypeGetLogs,
 			expectErr:  false,
 			envMap: map[string]string{
-				config.PsrWorkerType:    config.WorkerTypeGetLogs,
-				config.PsrNumIterations: "1",
+				config.PsrWorkerType: config.WorkerTypeGetLogs,
+				config.PsrNumLoops:   "1",
 			},
 		},
 		{name: "MissingWorkerType",
 			expectErr: true,
 			envMap: map[string]string{
-				config.PsrNumIterations: "1",
+				config.PsrNumLoops: "1",
 			},
 		},
 		{name: "InvalidWorkerType",
 			expectErr: true,
 			envMap: map[string]string{
-				config.PsrWorkerType:    "InvalidWorker",
-				config.PsrNumIterations: "1",
+				config.PsrWorkerType: "InvalidWorker",
+				config.PsrNumLoops:   "1",
 			},
 		},
 	}
@@ -103,7 +103,7 @@ func TestStartWorkerRunners(t *testing.T) {
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w fakeManagerWorker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		EnvName:     config.WorkerTypeExample,
+		WorkerType:  config.WorkerTypeExample,
 		Description: "Example worker that demonstrates executing a fake use case",
 		MetricsName: "example",
 	}
@@ -121,7 +121,7 @@ func (w *fakeManagerWorker) GetMetricList() []prometheus.Metric {
 	return nil
 }
 
-func (w *fakeManagerWorker) WantIterationInfoLogged() bool {
+func (w *fakeManagerWorker) WantLoopInfoLogged() bool {
 	return true
 }
 

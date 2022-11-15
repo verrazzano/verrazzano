@@ -11,6 +11,8 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr"
 )
 
+// PsrManifests contains information related to the manifests, along with the temp
+// directory path.
 type PsrManifests struct {
 	RootTmpDir        string
 	WorkerChartAbsDir string
@@ -20,23 +22,30 @@ type PsrManifests struct {
 
 var Manifests *PsrManifests
 
-// ExtractManifests extracts the manifests in the binary and writes them to a tmep file.
-// The package Manifests var is set if this function succeeds
-func ExtractManifests() (PsrManifests, error) {
-	tmpDir, err := CreatePsrTempDir()
+// InitGlobalManifests extracts the manifests in the binary and writes them to a temp file.
+// The package level Manifests var is set if this function succeeds.
+// The caller is expected to call CleanupManifests when they are no longer needed
+func InitGlobalManifests() error {
+	tmpDir, err := createPsrTempDir()
 	if err != nil {
-		return PsrManifests{}, err
+		return err
 	}
 
-	man, err := NewPsrManifests(tmpDir)
+	man, err := newPsrManifests(tmpDir)
 	if err != nil {
-		return PsrManifests{}, err
+		return err
 	}
 	Manifests = &man
-	return man, nil
+	return nil
 }
 
-func CreatePsrTempDir() (string, error) {
+// CleanupManifests deletes the manifests that were copied to a temp dir
+func CleanupManifests() {
+	os.RemoveAll(Manifests.RootTmpDir)
+}
+
+// createPsrTempDir creates a temp dir to hold the manifests files
+func createPsrTempDir() (string, error) {
 	u, err := user.Current()
 	if err != nil {
 		return "", err
@@ -57,8 +66,9 @@ func CreatePsrTempDir() (string, error) {
 	return topDir, nil
 }
 
-func NewPsrManifests(tmpRootDir string) (PsrManifests, error) {
-	CopyManifestsToTempDir(tmpRootDir)
+// newPsrManifests creates a new PsrManifests structure
+func newPsrManifests(tmpRootDir string) (PsrManifests, error) {
+	copyManifestsDir(tmpRootDir)
 
 	man := PsrManifests{
 		RootTmpDir:        tmpRootDir,
@@ -69,14 +79,17 @@ func NewPsrManifests(tmpRootDir string) (PsrManifests, error) {
 	return man, nil
 }
 
-func CopyManifestsToTempDir(tempRootDir string) error {
-	err := writeDirDeep(tempRootDir, "manifests")
+// copyManifestsDir copies the embedded manifests to a directory
+func copyManifestsDir(rootDir string) error {
+	err := writeDirDeep(rootDir, "manifests")
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
+// writeDirDeep writes the embedded manifests files to a temp directory,
+// retaining the same directory structure as the source directory tree
 func writeDirDeep(destDir string, embeddedParent string) error {
 	dirEntries, err := psr.GetEmbeddedManifests().ReadDir(embeddedParent)
 	if err != nil {

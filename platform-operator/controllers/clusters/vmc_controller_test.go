@@ -865,6 +865,11 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 			return resp, nil
 		})
 
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			return nil
+		})
+
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
@@ -908,6 +913,11 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 				Request:    &http.Request{Method: http.MethodDelete},
 			}
 			return resp, nil
+		})
+
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+			return nil
 		})
 
 	mock.EXPECT().Status().Return(mockStatus)
@@ -996,7 +1006,7 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(clustersapi.RegistrationFailed, vmc.Status.RancherRegistration.Status)
-			asserts.Equal("Failed to create Rancher API client: Failed, Rancher ingress cattle-system/rancher is missing host names", vmc.Status.RancherRegistration.Message)
+			asserts.Contains(vmc.Status.RancherRegistration.Message, "Failed to create Rancher API client")
 			return nil
 		})
 

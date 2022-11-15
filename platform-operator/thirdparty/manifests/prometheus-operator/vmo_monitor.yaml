@@ -32,6 +32,7 @@ spec:
       scheme: http
 {{ end }}
       path: /metrics
+      enableHttp2: false
 {{ if .isIstioEnabled }}
       tlsConfig:
         caFile: /etc/istio-certs/root-cert.pem

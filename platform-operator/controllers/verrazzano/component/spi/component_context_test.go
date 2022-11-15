@@ -3,12 +3,13 @@
 package spi
 
 import (
-	"k8s.io/apimachinery/pkg/api/equality"
 	"os"
 	"path/filepath"
 	"testing"
 
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
+
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"

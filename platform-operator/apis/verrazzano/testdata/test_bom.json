@@ -478,7 +478,7 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.4.2",
+              "tag": "v2.6.0",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -591,5 +591,12 @@
         }
       ]
     }
+  ],
+  "supportedKubernetesVersions": [
+    "v1.20.0",
+    "v1.21.0",
+    "v1.22.0",
+    "v1.23.0",
+    "v1.24.0"
   ]
 }

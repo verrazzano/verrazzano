@@ -8,9 +8,13 @@ import (
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestValidateUpdate(t *testing.T) {
@@ -663,6 +667,86 @@ func TestValidateUpdateV1beta1(t *testing.T) {
 			if err := c.ValidateUpdateV1Beta1(tt.old, tt.new); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdateV1Beta1() error = %v, wantErr %v", err, tt.wantErr)
 			}
+		})
+	}
+}
+
+// TestMonitorOverrides tests the MonitorOverrides func call
+func TestMonitorOverrides(t *testing.T) {
+	cli := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	tests := []struct {
+		name    string
+		vz      vzapi.Verrazzano
+		monitor bool
+	}{
+		// GIVEN a VZ CR with empty Keycloak Component
+		// WHEN MonitorOverrides func is called
+		// THEN the method return a true boolean value
+		{
+			"Default CR",
+			vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Keycloak: &vzapi.KeycloakComponent{},
+					},
+				},
+			},
+			true,
+		},
+		// GIVEN a VZ CR with MonitorChanges explicitly disabled for MySQL
+		// WHEN MonitorOverrides func is called
+		// THEN the method return a false boolean value
+		{
+			"Monitor changes disabled",
+			vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Keycloak: &vzapi.KeycloakComponent{
+							MySQL: vzapi.MySQLComponent{
+								InstallOverrides: vzapi.InstallOverrides{
+									MonitorChanges: getBoolPtr(false),
+								},
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
+		// GIVEN a VZ CR with MonitorChanges explicitly enabled for MySQL
+		// WHEN MonitorOverrides func is called
+		// THEN the method return a true boolean value
+		{
+			"Monitor changes enabled",
+			vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Keycloak: &vzapi.KeycloakComponent{
+							MySQL: vzapi.MySQLComponent{
+								InstallOverrides: vzapi.InstallOverrides{
+									MonitorChanges: getBoolPtr(true),
+								},
+							},
+						},
+					},
+				},
+			},
+			true,
+		},
+		// GIVEN an empty VZ CR
+		// WHEN MonitorOverrides func is called
+		// THEN the method return a false boolean value
+
+		{
+			"Empty vz CR",
+			vzapi.Verrazzano{},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeCtx := spi.NewFakeContext(cli, &tt.vz, nil, false)
+			assert.Equal(t, NewComponent().MonitorOverrides(fakeCtx), tt.monitor)
 		})
 	}
 }

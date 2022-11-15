@@ -4,6 +4,7 @@ package operatorinit
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"os"
 
 	"github.com/pkg/errors"
@@ -12,6 +13,7 @@ import (
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/validator"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
@@ -65,9 +67,12 @@ func StartWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 		return fmt.Errorf("Error creating controller runtime manager: %v", err)
 	}
 
-	if err := updateWebhooks(log, mgr, config.CertDir); err != nil {
+	if err := updateWebhooks(log, mgr, config); err != nil {
 		return err
 	}
+
+	installv1alpha1.SetComponentValidator(validator.ComponentValidatorImpl{})
+	installv1beta1.SetComponentValidator(validator.ComponentValidatorImpl{})
 
 	// +kubebuilder:scaffold:builder
 	log.Info("Starting webhook controller-runtime manager")
@@ -78,7 +83,7 @@ func StartWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 }
 
 // updateWebhooks Updates the webhook configurations and sets up the controllerruntime Manager for the webhook
-func updateWebhooks(log *zap.SugaredLogger, mgr manager.Manager, certsDir string) error {
+func updateWebhooks(log *zap.SugaredLogger, mgr manager.Manager, config internalconfig.OperatorConfig) error {
 	log.Infof("Start called for pod %s", os.Getenv("HOSTNAME"))
 	conf, err := ctrl.GetConfig()
 	if err != nil {
@@ -100,14 +105,14 @@ func updateWebhooks(log *zap.SugaredLogger, mgr manager.Manager, certsDir string
 	if err := createOrUpdateNetworkPolicies(conf, log, kubeClient); err != nil {
 		return err
 	}
-	if err := setupWebhooksWithManager(log, mgr, kubeClient, dynamicClient, certsDir); err != nil {
+	if err := setupWebhooksWithManager(log, mgr, kubeClient, dynamicClient, config); err != nil {
 		return err
 	}
 	return nil
 }
 
 // setupWebhooksWithManager Sets up the webhook with the controllerruntime Manager instance
-func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeClient *kubernetes.Clientset, dynamicClient dynamic.Interface, certsDir string) error {
+func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeClient *kubernetes.Clientset, dynamicClient dynamic.Interface, config internalconfig.OperatorConfig) error {
 	// Setup the validation webhook
 	log.Debug("Setting up Verrazzano webhook with manager")
 	if err := (&installv1alpha1.Verrazzano{}).SetupWebhookWithManager(mgr, log); err != nil {
@@ -117,7 +122,7 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 		return fmt.Errorf("Failed to setup install.v1beta1.Verrazzano webhook with manager: %v", err)
 	}
 
-	mgr.GetWebhookServer().CertDir = certsDir
+	mgr.GetWebhookServer().CertDir = config.CertDir
 
 	// register MySQL backup job mutating webhook
 	mgr.GetWebhookServer().Register(
@@ -132,8 +137,12 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 		},
 	)
 	// register MySQL install values webhooks
-	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1beta1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1beta1{}})
-	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1alpha1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1alpha1{}})
+	bomFile, err := bom.NewBom(internalconfig.GetDefaultBOMFilePath())
+	if err != nil {
+		return err
+	}
+	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1beta1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1beta1{BomVersion: bomFile.GetVersion()}})
+	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1alpha1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1alpha1{BomVersion: bomFile.GetVersion()}})
 
 	// Set up the validation webhook for VMC
 	log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
@@ -146,13 +155,13 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 // updateWebhookConfigurations Creates or updates the webhook configurations as needed
 func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.SugaredLogger, conf *rest.Config) error {
 	log.Debug("Delete old VPO webhook configuration")
-	if err := certificate.DeleteValidatingWebhookConfiguration(kubeClient, certificate.OldOperatorName); err != nil {
+	if err := deleteValidatingWebhookConfiguration(kubeClient, certificate.OldOperatorName); err != nil {
 		return fmt.Errorf("Failed to delete old webhook configuration: %v", err)
 	}
 
 	log.Debug("Updating VPO webhook configuration")
 
-	if err := certificate.UpdateValidatingWebhookConfiguration(kubeClient, certificate.OperatorName); err != nil {
+	if err := updateValidatingWebhookConfiguration(kubeClient, certificate.OperatorName); err != nil {
 		return fmt.Errorf("Failed to update validation webhook configuration: %v", err)
 	}
 
@@ -162,16 +171,16 @@ func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.Suga
 		return fmt.Errorf("Failed to get apix clientset: %v", err)
 	}
 
-	if err := certificate.UpdateConversionWebhookConfiguration(apixClient, kubeClient); err != nil {
+	if err := updateConversionWebhookConfiguration(apixClient, kubeClient); err != nil {
 		return fmt.Errorf("Failed to update conversion webhook: %v", err)
 	}
 
-	if err := certificate.UpdateMutatingWebhookConfiguration(kubeClient, constants.MysqlBackupMutatingWebhookName); err != nil {
+	if err := updateMutatingWebhookConfiguration(kubeClient, constants.MysqlBackupMutatingWebhookName); err != nil {
 		return fmt.Errorf("Failed to update pod mutating webhook configuration: %v", err)
 	}
 
 	log.Debug("Updating MySQL install values webhook configuration")
-	if err := certificate.UpdateValidatingWebhookConfiguration(kubeClient, webhooks.MysqlInstallValuesWebhook); err != nil {
+	if err := updateValidatingWebhookConfiguration(kubeClient, webhooks.MysqlInstallValuesWebhook); err != nil {
 		return fmt.Errorf("Failed to update validation webhook configuration: %v", err)
 	}
 	return nil

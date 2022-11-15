@@ -574,10 +574,7 @@ func (c *Cluster) FluentdLogs(lines int64, restartedAfter time.Time) string {
 	if pod == nil {
 		return fmt.Sprintf(errMsg, "cannot find fluentd pod")
 	}
-	if pod.Status.StartTime != nil && pod.Status.StartTime.After(restartedAfter) {
-		return c.PodLogs(constants.VerrazzanoSystemNamespace, pod.Name, "fluentd", lines)
-	}
-	return fmt.Sprintf(errMsg, "fluentd is not restarted")
+	return c.PodLogs(constants.VerrazzanoSystemNamespace, pod.Name, "fluentd", lines)
 }
 
 func (c *Cluster) PodLogs(ns, podName, container string, lines int64) string {

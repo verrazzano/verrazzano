@@ -6,9 +6,10 @@ package operator
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	"path/filepath"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -109,10 +110,10 @@ func (c jaegerOperatorComponent) IsReady(ctx spi.ComponentContext) bool {
 	return false
 }
 
-func (c jaegerOperatorComponent) IsAvailable(ctx spi.ComponentContext) (string, bool) {
+func (c jaegerOperatorComponent) IsAvailable(ctx spi.ComponentContext) (string, vzapi.ComponentAvailability) {
 	deploys, err := getAllComponentDeployments(ctx)
 	if err != nil {
-		return err.Error(), false
+		return err.Error(), vzapi.ComponentUnavailable
 	}
 	return (&ready.AvailabilityObjects{DeploymentNames: deploys}).IsAvailable(ctx.Log(), ctx.Client())
 }

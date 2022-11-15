@@ -170,10 +170,10 @@ global:
     PSR_WORKER_TYPE - type of worker
     default: example
     
-    PSR_ITERATION_SLEEP - duration to sleep between work iterations
+    PSR_LOOP_SLEEP - duration to sleep between work iterations
     default: 1s
 
-    PSR_NUM_ITERATIONS - number of iterations per worker thread
+    PSR_NUM_LOOPS - number of iterations per worker thread
     default: -1 (run forever)
     
     PSR_WORKER_THREAD_COUNT - threads per worker

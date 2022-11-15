@@ -44,11 +44,18 @@ if [ -n "${APP_OPERATOR_IMAGE}" ] && [[ "${APP_OPERATOR_IMAGE}" == *:* ]] ; then
     APP_OPERATOR_IMAGE_ARG="--set global.appOperatorImage=${APP_OPERATOR_IMAGE}"
 fi
 
+CLUSTER_OPERATOR_IMAGE=${CLUSTER_OPERATOR_IMAGE:-}
+CLUSTER_OPERATOR_IMAGE_ARG=
+if [ -n "${CLUSTER_OPERATOR_IMAGE}" ] && [[ "${CLUSTER_OPERATOR_IMAGE}" == *:* ]] ; then
+    CLUSTER_OPERATOR_IMAGE_ARG="--set global.clusterOperatorImage=${CLUSTER_OPERATOR_IMAGE}"
+fi
+
 helm template \
     --include-crds \
     ${IMAGE_PULL_SECRET_ARG} \
     --set image=${DOCKER_IMAGE} \
     ${APP_OPERATOR_IMAGE_ARG} \
+    ${CLUSTER_OPERATOR_IMAGE_ARG} \
     $SCRIPT_DIR/../../platform-operator/helm_config/charts/verrazzano-platform-operator
 
 exit $?

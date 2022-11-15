@@ -4,6 +4,7 @@
 package pushgateway
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -108,6 +109,85 @@ func TestIsPushgatewayReady(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, nil, false)
 			assert.Equal(t, tt.expectTrue, pushGateway.isPushgatewayReady(ctx))
+		})
+	}
+}
+
+// test preinstall when dryrun is false
+func TestPreInstall(t *testing.T) {
+	c := fake.NewClientBuilder().Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
+	assert.Nil(t, preInstall(ctx))
+}
+
+// test preinstall when dryrun is true
+func TestPreInstallDryRun(t *testing.T) {
+	c := fake.NewClientBuilder().Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, true)
+	assert.Nil(t, preInstall(ctx))
+}
+
+// test GetOverrides method
+func TestGetOverrides(t *testing.T) {
+	ref := &corev1.ConfigMapKeySelector{
+		Key: "foo",
+	}
+	o := v1beta1.InstallOverrides{
+		ValueOverrides: []v1beta1.Overrides{
+			{
+				ConfigMapRef: ref,
+			},
+		},
+	}
+	oV1Alpha1 := vzapi.InstallOverrides{
+		ValueOverrides: []vzapi.Overrides{
+			{
+				ConfigMapRef: ref,
+			},
+		},
+	}
+	var tests = []struct {
+		name string
+		cr   runtime.Object
+		res  interface{}
+	}{
+		{
+			"overrides when component not nil, v1alpha1",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						PrometheusPushgateway: &vzapi.PrometheusPushgatewayComponent{
+							InstallOverrides: oV1Alpha1,
+						},
+					},
+				},
+			},
+			oV1Alpha1.ValueOverrides,
+		},
+		{
+			"Empty overrides when component nil",
+			&v1beta1.Verrazzano{},
+			[]v1beta1.Overrides{},
+		},
+		{
+			"overrides when component not nil",
+			&v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						PrometheusPushgateway: &v1beta1.PrometheusPushgatewayComponent{
+							InstallOverrides: o,
+						},
+					},
+				},
+			},
+			o.ValueOverrides,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			override := GetOverrides(tt.cr)
+			assert.EqualValues(t, tt.res, override)
 		})
 	}
 }

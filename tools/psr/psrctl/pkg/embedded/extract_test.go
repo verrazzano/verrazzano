@@ -15,12 +15,12 @@ import (
 //	WHEN the PsrManifest is created
 //	THEN ensure that the resulting directories exist
 func TestEmbeddedManifests(t *testing.T) {
-	tmpDir, err := CreatePsrTempDir()
+	tmpDir, err := createPsrTempDir()
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 	assertDirExists(t, tmpDir)
 
-	man, err := NewPsrManifests(tmpDir)
+	man, err := newPsrManifests(tmpDir)
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 	assertDirExists(t, man.ScenarioAbsDir)

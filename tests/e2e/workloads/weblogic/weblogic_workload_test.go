@@ -5,19 +5,16 @@ package weblogic
 
 import (
 	"fmt"
-
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-
 	"net/http"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
@@ -250,19 +247,24 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 	})
 
 	t.Context("WebLogic logging", Label("f:observability.logging.es"), func() {
-		indexName, err := pkg.GetOpenSearchAppIndex(namespace)
-		Expect(err).To(BeNil())
+		var indexName string
+		var err error
+		Eventually(func() error {
+			indexName, err = pkg.GetOpenSearchAppIndex(namespace)
+			return err
+		}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Expected to get OpenSearch App Index")
+
 		// GIVEN a WebLogic application with logging enabled
-		// WHEN the Elasticsearch index is retrieved
+		// WHEN the Opensearch index is retrieved
 		// THEN verify that it is found
-		t.It("Verify Elasticsearch index exists", func() {
+		t.It("Verify Opensearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find log index "+indexName)
 		})
 		pkg.Concurrently(
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent log record of hellodomain-adminserver stdout is found
 			func() {
 				t.It("Verify recent hellodomain-adminserver log record exists", func() {
@@ -278,7 +280,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 			},
 
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent log record of hellodomain-adminserver log file is found
 			func() {
 				t.It("Verify recent hellodomain-adminserver log record exists", func() {
@@ -293,7 +295,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent pattern-matched log record of hellodomain-adminserver stdout is found
 			func() {
 				t.It("Verify recent pattern-matched AdminServer log record exists", func() {
@@ -310,7 +312,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent pattern-matched log record of hellodomain-adminserver stdout is found
 			func() {
 				t.It("Verify recent pattern-matched AdminServer log record exists", func() {
