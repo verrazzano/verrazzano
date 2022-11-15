@@ -178,7 +178,6 @@ global:
     
     PSR_WORKER_THREAD_COUNT - threads per worker
     default: 1
-    
 ```
 
 ### Example
@@ -224,8 +223,11 @@ The PostLogs worker makes batch http post requests to OpenSearch, in-cluster. Th
 
 #### Configuration
 ```
-LOG_ENTRIES: 1
-LOG_LENGTH: 1
+LOG_ENTRIES - number of log messages per post request
+default: 1
+
+LOG_LENGTH - number of characters per log message
+defaultL 1
 ```
 
 #### Run
@@ -239,10 +241,17 @@ The Scale worker continuously scales one tier of OpenSearch out and in. This wor
 
 #### Configuration
 ```
-OPEN_SEARCH_TIER: master
-SCALE_DELAY_PER_TIER: 5s
-MIN_REPLICA_COUNT: 3
-MAX_REPLICA_COUNT: 5
+OPEN_SEARCH_TIER - OpenSearch tier
+default: master
+
+SCALE_DELAY_PER_TIER - scale delay
+default: 5s
+
+MIN_REPLICA_COUNT - number of replicas to scale in to
+default: 3
+
+MAX_REPLICA_COUNT - number of replicas to scale out to
+default: 5
 ```
 
 #### Run
@@ -256,10 +265,17 @@ The HTTPGet worker makes http requests to the endpoint for a specified service. 
 
 #### Configuration
 ```
-SERVICE_NAME:
-SERVICE_NAMESPACE:
-SERVICE_PORT:
-PATH:
+SERVICE_NAME - service name
+default: ""
+
+SERVICE_NAMESPACE - service namespace
+default: ""
+
+SERVICE_PORT - service port
+default: ""
+
+PATH - service path 
+default: ""
 ```
 
 #### Run
