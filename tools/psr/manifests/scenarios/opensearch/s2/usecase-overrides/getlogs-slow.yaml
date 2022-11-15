@@ -3,4 +3,4 @@
 
 global:
   envVars:
-    PSR_WORKER_TYPE: 2s
+    PSR_LOOP_SLEEP: 2s
