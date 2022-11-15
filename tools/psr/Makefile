@@ -1,7 +1,10 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
+include ../../make/quality.mk
 include ../../make/retry.mk
+
+SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../../build
+TOOLS_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../../tools
 
 BACKEND_NAME ?= psr-backend
 MAKEFILE_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
@@ -34,6 +37,8 @@ BUILD_DATE:=$(shell date +"%Y-%m-%dT%H:%M:%SZ")
 DIST_DIR:=dist
 GO=GO111MODULE=on GOPRIVATE=github.com/verrazzano/* CGO_ENABLED=0  go
 CLI_GO_LDFLAGS=-X '${VERSION_DIR}.gitCommit=${GIT_COMMIT}' -X '${VERSION_DIR}.buildDate=${BUILD_DATE}' -X '${VERSION_DIR}.cliVersion=${BUILD_VERSION}' -X '${CONSTANTS_DIR}.defaultWorkerImage=${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}'
+
+export TEST_PATHS ?= ./backend/...
 
 #
 # Go build related tasks
@@ -113,4 +118,7 @@ install-cli:
 
 .PHONY: unit-test
 unit-test:
-	$(GO) test -v  ./backend/...
+	$(GO) test -v  ${TEST_PATHS}
+
+.PHONY: psr-quality
+psr-quality: golangci-lint word-linter coverage
