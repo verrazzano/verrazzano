@@ -10,20 +10,27 @@ import (
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/stretchr/testify/assert"
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	//"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1/convert_utils.go"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profilesRelativePath = "../../../../manifests/profiles"
-
+const (
+    profilesRelativePath = "../../../../manifests/profiles"
+	testCaseInstallArgsErr    = "frominstallargserr"
+	testCaseGeneralOverrides  = "overrides"
+)
 var dnsComponents = vzapi.ComponentSpec{
 	DNS: &vzapi.DNSComponent{
 		External: &vzapi.External{Suffix: "blah"},
@@ -39,6 +46,11 @@ var crEnabled = vzapi.Verrazzano{
 		},
 	},
 }
+type converisonTestCase struct {
+	name     string
+	testCase string
+	hasError bool
+}
 
 // TestPreUpgrade tests the OpenSearch PreUpgrade call
 // GIVEN an OpenSearch component
@@ -51,6 +63,200 @@ func TestPreUpgrade(t *testing.T) {
 	config.TestHelmConfigDir = "../../../../helm_config"
 	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
+}
+
+
+func TestComponentNamespace(t *testing.T){
+    NameSpace := NewComponent().Namespace()
+    assert.Equal(t, NameSpace, constants.VerrazzanoSystemNamespace)
+
+}
+
+func TestShouldInstallBeforeUpgrade(t *testing.T){
+    val := NewComponent().ShouldInstallBeforeUpgrade()
+    assert.Equal(t, val, false)
+
+}
+
+func TestGetDependencies(t *testing.T) {
+    strArray := NewComponent().GetDependencies()
+    expArray := []string{"verrazzano-network-policies", "verrazzano-monitoring-operator"}
+    assert.Equal(t,expArray, strArray)
+
+}
+
+func TestGetMinVerrazzanoVersion(t *testing.T) {
+    minVer := NewComponent().GetMinVerrazzanoVersion()
+    expVer := constants.VerrazzanoVersion1_0_0
+    assert.Equal(t, expVer, minVer)
+
+}
+
+func TestGetJSONName(t *testing.T) {
+    jsonName := NewComponent().GetJSONName()
+    assert.Equal(t, jsonName, "opensearch")
+
+}
+
+func TestGetOverrides(t *testing.T) {
+	tests := []struct {
+		name   string
+		object runtime.Object
+		want   interface{}
+	}{
+		{
+			"TestGetOverridesWithInvalidOverrides",
+			nil,
+			[]vzapi.Overrides{},
+		},
+		{
+			"TestGetOverrides With No Opensearch",
+			&vzapi.Verrazzano{},
+			[]vzapi.Overrides{},
+		},
+		{
+			"TestGetOverridesWithV1Beta CR with no Opensearch",
+			&installv1beta1.Verrazzano{},
+			[]installv1beta1.Overrides{},
+		},
+
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+				assert.Equal(t, tt.want ,NewComponent().GetOverrides(tt.object))
+
+		})
+	}
+}
+
+func TestValidateInstall(t *testing.T) {
+/*    vz := &vzapi.Verrazzano{}
+	var tests = []converisonTestCase{
+		{
+			"convert general overrides",
+			testCaseGeneralOverrides,
+			false,
+		},
+		{
+			"convert err on keycloak install args",
+			testCaseInstallArgsErr,
+			true,
+		},
+
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// load the expected v1alpha1 CR for conversion
+			v1alpha1CR, err := vz.loadV1Alpha1CR(tt.testCase)
+			assert.NoError(t, err)
+
+			// compute the actual v1beta1 CR from the v1alpha1 CR
+			v1beta1Actual := &installv1beta1.Verrazzano{}
+			err = v1alpha1CR.ConvertTo(v1beta1Actual)
+
+			if tt.hasError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}*/
+	var tests = []struct {
+		name     string
+		vz       *vzapi.Verrazzano
+		hasError bool
+	}{
+		{
+			"no duplication when component has no args",
+			emptyComponent,
+			false,
+		},
+		{
+			"no duplication when component does not duplicate args",
+			createVZ(&vzapi.ElasticsearchComponent{
+				ESInstallArgs: createInstallArgs(3, 3, 3),
+				Nodes: []vzapi.OpenSearchNode{
+					createNG("a", 1, nil),
+					createNG("b", 2, nil),
+					createNG("c", 3, nil),
+				},
+			}),
+			false,
+		},
+		{
+			"duplication when component has Node groups with the same name",
+			createVZ(&vzapi.ElasticsearchComponent{
+				Nodes: []vzapi.OpenSearchNode{
+					createNG("master", 3, nil),
+					createNG("data", 3, nil),
+					createNG("ingest", 3, nil),
+					createNG("master", 3, nil),
+				},
+			}),
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := NewComponent().ValidateInstall(tt.vz); (err != nil) != tt.hasError {
+				assert.Error(t, err)
+			}
+		})
+	}
+
+
+}
+
+func TestInstallV1Beta1(t *testing.T) {
+	var tests = []struct {
+		name     string
+		vz       *vzapi.Verrazzano
+		hasError bool
+	}{
+		{
+			"no duplication when component has no args",
+			emptyComponent,
+			false,
+		},
+		{
+			"no duplication when component does not duplicate args",
+			createVZ(&vzapi.ElasticsearchComponent{
+				ESInstallArgs: createInstallArgs(3, 3, 3),
+				Nodes: []vzapi.OpenSearchNode{
+					createNG("a", 1, nil),
+					createNG("b", 2, nil),
+					createNG("c", 3, nil),
+				},
+			}),
+			false,
+		},
+		{
+			"duplication when component has Node groups with the same name",
+			createVZ(&vzapi.ElasticsearchComponent{
+				Nodes: []vzapi.OpenSearchNode{
+					createNG("master", 3, nil),
+					createNG("data", 3, nil),
+					createNG("ingest", 3, nil),
+					createNG("master", 3, nil),
+				},
+			}),
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v1beta1vz := &installv1beta1.Verrazzano{}
+			assert.NoError(t, tt.vz.ConvertTo(v1beta1vz))
+			if err := NewComponent().ValidateInstallV1Beta1(v1beta1vz); (err != nil) != tt.hasError {
+				assert.Error(t, err)
+			}
+		})
+	}
+
+
 }
 
 // TestPreInstall tests the OpenSearch PreInstall call
