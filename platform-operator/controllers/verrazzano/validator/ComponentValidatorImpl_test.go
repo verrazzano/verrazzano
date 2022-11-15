@@ -98,7 +98,7 @@ func TestComponentValidatorImpl_ValidateInstallV1Beta1(t *testing.T) {
 			numberOfErrors: 0,
 		},
 		{
-			name: disabledCertAndIngress,
+			name: "disabled cert and ingress",
 			vz: &vzapibeta.Verrazzano{
 				Spec: vzapibeta.VerrazzanoSpec{
 					Components: vzapibeta.ComponentSpec{
@@ -114,7 +114,8 @@ func TestComponentValidatorImpl_ValidateInstallV1Beta1(t *testing.T) {
 			numberOfErrors: 0,
 		},
 	}
-	config.TestProfilesDir = testProfilesDirectory
+
+	config.TestProfilesDir = "../../../manifests/profiles"
 	defer func() {
 		config.TestProfilesDir = ""
 		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
@@ -253,7 +254,8 @@ func TestComponentValidatorImpl_ValidateUpdateV1Beta1(t *testing.T) {
 			numberOfErrors: 1,
 		},
 		{
-			name: disabledCertAndIngress,
+
+			name: "disabled cert and ingress",
 			old:  &vzapibeta.Verrazzano{},
 			new: &vzapibeta.Verrazzano{
 				Spec: vzapibeta.VerrazzanoSpec{
@@ -270,7 +272,8 @@ func TestComponentValidatorImpl_ValidateUpdateV1Beta1(t *testing.T) {
 			numberOfErrors: 2,
 		},
 	}
-	config.TestProfilesDir = testProfilesDirectory
+
+	config.TestProfilesDir = "../../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
