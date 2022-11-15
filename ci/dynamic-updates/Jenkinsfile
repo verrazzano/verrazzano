@@ -64,6 +64,7 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
+        booleanParam (description: 'Whether to run Update 1 and the associated tests', name: 'RUN_UPDATE_1', defaultValue: true)
     }
 
     environment {
@@ -289,6 +290,7 @@ pipeline {
 
                 // Update1 enables disabled components except WLS/COH
                 stage('Verrazzano Update1') {
+                    when { expression {params.RUN_UPDATE_1} }
                     steps {
                         sh """
                             cd ${GO_REPO_PATH}/verrazzano
@@ -323,6 +325,7 @@ pipeline {
                 }
 
                 stage('Post-Update1 Verify Tests') {
+                    when { expression {params.RUN_UPDATE_1} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-verify-infra"
                     }
@@ -338,6 +341,7 @@ pipeline {
                 }
 
                 stage('Post-Update1 Infra Tests') {
+                    when { expression {params.RUN_UPDATE_1} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-infra-tests"
                     }
@@ -355,6 +359,7 @@ pipeline {
                 }
 
                 stage('Post-Update1 Acceptance Tests') {
+                    when { expression {params.RUN_UPDATE_1} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-infra-tests"
                     }
