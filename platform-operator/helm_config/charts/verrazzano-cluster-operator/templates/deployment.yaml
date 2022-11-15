@@ -28,5 +28,5 @@ spec:
       volumes:
         - name: clusterSelector
           configMap:
-            configMapName: {{ .Values.name }}-selector
+            name: {{ .Values.name }}-selector
             optional: true
