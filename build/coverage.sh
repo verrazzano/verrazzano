@@ -4,8 +4,8 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Code coverage generation
-go test -coverprofile ./coverage.raw.cov $(go list ./... | grep -Ev /tests/e2e)
-
+TEST_PATHS=${TEST_PATHS:-"./..."}
+go test -coverprofile ./coverage.raw.cov $(go list ${TEST_PATHS} | grep -Ev /tests/e2e)
 TEST_STATUS=$?
 
 # Remove specific files from coverage report

@@ -137,8 +137,14 @@ pipeline {
         stage('Parallel Build, Test, and Compliance') {
             parallel {
                 stage('Build PSR CLI and Save Binaries') {
+                    environment {
+                      DOCKER_REPO="${DOCKER_REPO}"
+                      DOCKER_REGISTRY="${DOCKER_REGISTRY}"
+                      DOCKER_IMAGE_NAME="${DOCKER_PSR_BACKEND_IMAGE_NAME}"
+                      DOCKER_IMAGE_TAG="${DOCKER_IMAGE_TAG}"
+                    }
                     steps {
-                        buildCLI("${DOCKER_IMAGE_TAG}")
+                        buildCLI()
                     }
                     post {
                         success {
@@ -154,6 +160,12 @@ pipeline {
 
                 stage('Build PSR Images and Save Generated Files') {
                     when { not { buildingTag() } }
+                    environment {
+                      DOCKER_REPO="${DOCKER_REPO}"
+                      DOCKER_REGISTRY="${DOCKER_REGISTRY}"
+                      DOCKER_IMAGE_NAME="${DOCKER_PSR_BACKEND_IMAGE_NAME}"
+                      DOCKER_IMAGE_TAG="${DOCKER_IMAGE_TAG}"
+                    }
                     steps {
                         script {
                             VZ_BUILD_METRIC = metricJobName('psrbuild')
@@ -181,19 +193,18 @@ pipeline {
                     steps {
                         sh """
                             cd ${PSR_PATH}
-                            make unit-test
+                            make psr-quality
                         """
                     }
                     post {
                         always {
                             sh """
-                            cd ${PSR_PATH}
-                            #cp coverage.html ${WORKSPACE}
-                            #cp coverage.xml ${WORKSPACE}
-                            ${GO_REPO_PATH}/build/copy-junit-output.sh ${WORKSPACE}
+                                cd ${PSR_PATH}
+                                cp coverage.html ${WORKSPACE}
+                                cp coverage.xml ${WORKSPACE}
+                                ${GO_REPO_PATH}/build/copy-junit-output.sh ${WORKSPACE}
                              """
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                            /*cobertura(coberturaReportFile: 'coverage.xml',
+                            cobertura(coberturaReportFile: 'coverage.xml',
                                     enableNewApi: true,
                                     autoUpdateHealth: false,
                                     autoUpdateStability: false,
@@ -204,12 +215,13 @@ pipeline {
                                     fileCoverageTargets: '100, 0, 0',
                                     lineCoverageTargets: '68, 68, 68',
                                     packageCoverageTargets: '100, 0, 0',
-                            )*/
+                            )
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
                     }
                 }
             }
-
         }
 
         stage('Scan Images') {
@@ -260,10 +272,10 @@ pipeline {
 }
 
 // Called in Stage CLI steps
-def buildCLI(dockerImageTag) {
+def buildCLI() {
     sh """
         cd ${PSR_PATH}
-        make go-build-cli DOCKER_IMAGE_TAG=${dockerImageTag}
+        make go-build-cli
         ${GO_REPO_PATH}/ci/scripts/save_psr_tooling.sh ${env.BRANCH_NAME} ${SHORT_COMMIT_HASH}
         #cp out/linux_amd64/psrctl ${GO_REPO_PATH}/psrctl
     """
@@ -314,10 +326,10 @@ def runGinkgo(testSuitePath) {
 
 def isPagerDutyEnabled() {
     // this controls whether PD alerts are enabled
-    if (NOTIFY_PAGERDUTY_MAINJOB_FAILURES.equals("true")) {
-        echo "Pager-Duty notifications enabled via global override setting"
-        return true
-    }
+    //if (NOTIFY_PAGERDUTY_MAINJOB_FAILURES.equals("true")) {
+    //    echo "Pager-Duty notifications enabled via global override setting"
+    //    return true
+    //}
     return false
 }
 
