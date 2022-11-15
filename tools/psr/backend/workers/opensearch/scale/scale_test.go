@@ -180,35 +180,33 @@ func TestDoWork(t *testing.T) {
 		secondState   v1alpha1.VzStateType
 		thirtState    v1alpha1.VzStateType
 	}{
-		// Test stopping WebLogic by setting annotation on WebLogic workload because it has an old Istio image with skew more than 2 minor versions.
-		//{
-		//	name:        "master",
-		//	tier:        opensearch.MasterTier,
-		//	expectError: false,
-		//	minReplicas: "3",
-		//	maxReplicas: "4",
-		//	firstState:  v1alpha1.VzStateReady,
-		//	secondState: v1alpha1.VzStateReconciling,
-		//},
-		//{
-		//	name:        "data",
-		//	tier:        opensearch.DataTier,
-		//	expectError: false,
-		//	minReplicas: "3",
-		//	maxReplicas: "4",
-		//	firstState:  v1alpha1.VzStateReady,
-		//	secondState: v1alpha1.VzStateReconciling,
-		//},
-		//{
-		//	name:        "ingest",
-		//	tier:        opensearch.IngestTier,
-		//	expectError: false,
-		//	minReplicas: "3",
-		//	maxReplicas: "4",
-		//	firstState:  v1alpha1.VzStateReady,
-		//	secondState: v1alpha1.VzStateReconciling,
-		//},
-		// Test stopping WebLogic by setting annotation on WebLogic workload because it has an old Istio image with skew more than 2 minor versions.
+		{
+			name:        "master",
+			tier:        opensearch.MasterTier,
+			expectError: false,
+			minReplicas: "3",
+			maxReplicas: "4",
+			firstState:  v1alpha1.VzStateReady,
+			secondState: v1alpha1.VzStateReconciling,
+		},
+		{
+			name:        "data",
+			tier:        opensearch.DataTier,
+			expectError: false,
+			minReplicas: "3",
+			maxReplicas: "4",
+			firstState:  v1alpha1.VzStateReady,
+			secondState: v1alpha1.VzStateReconciling,
+		},
+		{
+			name:        "ingest",
+			tier:        opensearch.IngestTier,
+			expectError: false,
+			minReplicas: "3",
+			maxReplicas: "4",
+			firstState:  v1alpha1.VzStateReady,
+			secondState: v1alpha1.VzStateReconciling,
+		},
 		{
 			name:        "replicaErr",
 			tier:        opensearch.MasterTier,
@@ -227,6 +225,7 @@ func TestDoWork(t *testing.T) {
 			expectError:   true,
 			minReplicas:   "1",
 			maxReplicas:   "4",
+			firstState:    v1alpha1.VzStateReady,
 		},
 	}
 	for _, test := range tests {
@@ -248,7 +247,7 @@ func TestDoWork(t *testing.T) {
 			vzclient := vpoFakeClient.NewSimpleClientset(cr)
 
 			// Setup fake K8s client
-			podLabels := map[string]string{"opensearch.verrazzano.io/role-master": "true"}
+			podLabels := getTierLabels(test.tier)
 			scheme := runtime.NewScheme()
 			_ = corev1.AddToScheme(scheme)
 			_ = k8sapiext.AddToScheme(scheme)
@@ -339,14 +338,16 @@ func (f *fakePsrClient) NewPsrClient() (k8sclient.PsrClient, error) {
 	return *f.psrClient, nil
 }
 
-func getTierLabel(tier string) string {
+func getTierLabels(tier string) map[string]string {
 	switch tier {
 	case opensearch.MasterTier:
-		return `"opensearch.verrazzano.io/role-master="true"`
+		return map[string]string{"opensearch.verrazzano.io/role-master": "true"}
 	case opensearch.DataTier:
-		return `"opensearch.verrazzano.io/role-data="true"`
+		return map[string]string{"opensearch.verrazzano.io/role-data": "true"}
 	case opensearch.IngestTier:
-		return `"opensearch.verrazzano.io/role-ingest="true"`
+		return map[string]string{"opensearch.verrazzano.io/role-ingest": "true"}
+	default:
+		return nil
 	}
-	return ""
+	return nil
 }

@@ -137,13 +137,12 @@ func (w worker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error 
 	// validate OS tier
 	tier := config.PsrEnv.GetEnv(openSearchTier)
 	if tier != psropensearch.MasterTier && tier != psropensearch.DataTier && tier != psropensearch.IngestTier {
-		return fmt.Errorf("error, not a valid OpenSearch tier to scale")
+		return log.ErrorfNewErr("Failed %s tier is not valid", tier)
 	}
 	// Wait until VZ is ready
 	cr, err := w.waitReady(true)
 	if err != nil {
-		log.Progress("Failed to wait for Verrazzano to be ready after update.  The test results are not valid %v", err)
-		return err
+		return log.ErrorfNewErr("Failed to wait for Verrazzano to be ready after update.  The test results are not valid %v", err)
 	}
 	// Update the elapsed time of the scale operation
 	if w.state.startScaleTime > 0 {
@@ -157,11 +156,17 @@ func (w worker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error 
 	// Get the current number OpenSearch pods that exist for the given tier
 	pods, err := psropensearch.GetPodsForTier(w.psrClient.CrtlRuntime, tier)
 	if err != nil {
-		log.Progress("Failed to get the pods for tier %s: %v", tier, err)
-		return err
+		return log.ErrorfNewErr("Failed to get the pods for tier %s: %v", tier, err)
+	}
+	existingReplicas := len(pods)
+	if err != nil {
+		return log.ErrorfNewErr("Failed to get the pods for tier %s: %v", tier, err)
+	}
+	if existingReplicas == 0 {
+		return log.ErrorfNewErr("Failed, no pods exist for tier %s", tier)
 	}
 	// Create a modifier that is used to update the Verrazzno CR opensearch replica field
-	m, desiredReplicas, err := w.getUpdateModifier(tier, len(pods))
+	m, desiredReplicas, err := w.getUpdateModifier(tier, existingReplicas)
 	if err != nil {
 		return err
 	}
@@ -186,8 +191,7 @@ func (w worker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error 
 	// Wait until VZ is NOT ready, this means it started working on the change
 	_, err = w.waitReady(false)
 	if err != nil {
-		log.Progress("Failed to wait for Verrazzano to be NOT ready after update.  The test results are not valid %v", err)
-		return err
+		return log.ErrorfNewErr("Failed to wait for Verrazzano to be NOT ready after update.  The test results are not valid %v", err)
 	}
 
 	return nil
