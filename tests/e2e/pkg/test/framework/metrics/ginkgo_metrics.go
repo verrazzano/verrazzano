@@ -17,7 +17,6 @@ import (
 
 const (
 	Duration          = "duration"
-	Started           = "started"
 	Status            = "status"
 	attempts          = "attempts"
 	test              = "test"
@@ -38,6 +37,8 @@ const (
 	searchURL        = "SEARCH_HTTP_ENDPOINT"
 	searchPW         = "SEARCH_PASSWORD"
 	searchUser       = "SEARCH_USERNAME"
+	stageNameEnv     = "STAGE_NAME"
+	stageName        = "stage_name"
 )
 
 var logger = internalLogger()
@@ -103,23 +104,13 @@ func NewLogger(pkg string, ind string, paths ...string) (*zap.SugaredLogger, err
 }
 
 func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
-
-	kubernetesVersion := os.Getenv("K8S_VERSION_LABEL")
-	if kubernetesVersion != "" {
-		log = log.With(KubernetesVersion, kubernetesVersion)
-	}
-
-	branchName := os.Getenv("BRANCH_NAME")
-	if branchName != "" {
-		log = log.With(BranchName, branchName)
-	}
-
+	log, _ = withEnvVar(log, KubernetesVersion, "K8S_VERSION_LABEL")
+	log, branchName := withEnvVar(log, BranchName, "BRANCH_NAME")
 	buildURL := os.Getenv("BUILD_URL")
 	if buildURL != "" {
 		buildURL = strings.Replace(buildURL, "%252F", "/", 1)
 		log = log.With(BuildURL, buildURL)
 	}
-
 	jobName := os.Getenv("JOB_NAME")
 	if jobName != "" {
 		jobName = strings.Replace(jobName, "%252F", "/", 1)
@@ -127,20 +118,22 @@ func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
 		jobPipeline := jobNameSplit[0]
 		log = log.With(JenkinsJob, jobPipeline)
 	}
-
 	gitCommit := os.Getenv("GIT_COMMIT")
 	//Tagging commit with the branch.
 	if gitCommit != "" {
 		gitCommitAndBranch := branchName + "/" + gitCommit
 		log = log.With(CommitHash, gitCommitAndBranch)
 	}
-
-	testEnv := os.Getenv("TEST_ENV")
-	if testEnv != "" {
-		log = log.With(TestEnv, testEnv)
-	}
-
+	log, _ = withEnvVar(log, TestEnv, "TEST_ENV")
 	return log
+}
+
+func withEnvVar(log *zap.SugaredLogger, withKey, envVar string) (*zap.SugaredLogger, string) {
+	val := os.Getenv(envVar)
+	if len(val) > 0 {
+		log = log.With(withKey, val)
+	}
+	return log, val
 }
 
 // configureOutputs configures the search output path if it is available
@@ -169,11 +162,12 @@ func Emit(log *zap.SugaredLogger) {
 	t := spec.FullText()
 	l := spec.Labels()
 	filename, linenumber := extractLastCodeLocation(spec)
-	log.With(attempts, spec.NumAttempts).
-		With(test, t).
-		With(testFilename, filename).
-		With(testLineNumber, linenumber).
-		With(Label, l).
+	log, _ = withEnvVar(log, stageName, stageNameEnv)
+	log.With(attempts, spec.NumAttempts,
+		test, t,
+		testFilename, filename,
+		testLineNumber, linenumber,
+		Label, l).
 		Info()
 }
 
