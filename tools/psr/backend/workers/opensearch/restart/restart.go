@@ -135,6 +135,8 @@ func (w worker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error 
 		w.restartStartTime = 0
 		return err
 	}
+	atomic.AddInt64(&w.workerMetrics.restartCount.Val, 1)
+
 	return nil
 }
 
