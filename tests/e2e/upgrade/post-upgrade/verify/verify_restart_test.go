@@ -50,7 +50,6 @@ var t = framework.NewTestFramework("verify")
 var vzcr *vzapi.Verrazzano
 var kubeconfigPath string
 var envoyImage string
-var isVersionAbove1_4_0 bool
 
 var _ = t.BeforeSuite(func() {
 	var err error
@@ -68,13 +67,6 @@ var _ = t.BeforeSuite(func() {
 		}
 		return err
 	}, shortWait, pollingInterval).Should(BeNil(), "Expected to get Verrazzano CR")
-
-	isVersionAbove1_4_0, err = pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
-		Fail(err.Error())
-	}
-
 	// Get the envoy proxy image name and tag
 	Eventually(func() error {
 		var err error
@@ -125,7 +117,7 @@ var _ = t.Describe("Application pods post-upgrade", Label("f:platform-lcm.upgrad
 		springbootNamespace   = "springboot"
 		todoListNamespace     = "todo-list"
 	)
-	t.DescribeTable("should contain Envoy sidecar with proxyv2 image",
+	t.DescribeTable("should contain Envoy sidecar 1.15.1",
 		func(namespace string, timeout time.Duration) {
 			exists, err := pkg.DoesNamespaceExist(namespace)
 			if err != nil {
@@ -184,7 +176,11 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						t.Logs.Infof("Skipping disabled component %s", componentName)
 						return true
 					}
-
+					isVersionAbove1_4_0, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
+						return false
+					}
 					if deploymentName == "mysql" && isVersionAbove1_4_0 {
 						// skip mysql for version greater than 1.4.0
 						return true
@@ -278,7 +274,11 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						t.Logs.Infof("Skipping disabled component %s", componentName)
 						return true
 					}
-
+					isVersionAbove1_4_0, err := pkg.IsVerrazzanoMinVersion("1.4.0", kubeconfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
+						return false
+					}
 					if stsName == "mysql" && !isVersionAbove1_4_0 {
 						// skip mysql for version less than 1.4.0
 						return true
@@ -351,13 +351,12 @@ func getEnvoyProxyImageRef() (string, error) {
 
 	istiodSubComponent := "istiod"
 	envoyProxyImageName := "proxyv2"
-	envoyProxyImageRef := ""
 	for _, component := range bom.Components {
 		for _, subcomponent := range component.SubComponents {
 			if subcomponent.Name == istiodSubComponent {
 				for _, image := range subcomponent.Images {
 					if strings.HasPrefix(image.ImageName, envoyProxyImageName) {
-						envoyProxyImageRef = fmt.Sprintf("%s:%s", image.ImageName, image.ImageTag)
+						return fmt.Sprintf("%s:%s", image.ImageName, image.ImageTag), nil
 					}
 				}
 			}
@@ -365,9 +364,5 @@ func getEnvoyProxyImageRef() (string, error) {
 
 	}
 
-	if envoyProxyImageRef == "" {
-		return "", fmt.Errorf("envoy proxy image %s not defined in subcomponent %s in bom", envoyProxyImageName, istiodSubComponent)
-	}
-
-	return envoyProxyImageRef, nil
+	return "", fmt.Errorf("envoy proxy image %s not defined in subcomponent %s in bom", envoyProxyImageName, istiodSubComponent)
 }
