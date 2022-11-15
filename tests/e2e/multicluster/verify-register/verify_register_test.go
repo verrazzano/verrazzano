@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -17,7 +18,6 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vmcClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -363,7 +363,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 	})
 })
 
-func vmcRancherStatusCheckOkay(vmc *vmcv1alpha1.VerrazzanoManagedCluster, versionSupportsClusterID bool) bool {
+func vmcRancherStatusCheckOkay(vmc *v1alpha1.VerrazzanoManagedCluster, versionSupportsClusterID bool) bool {
 	pkg.Log(pkg.Info, fmt.Sprintf("VMC %s has Rancher status %s and cluster id %s\n",
 		vmc.Name, vmc.Status.RancherRegistration.Status, vmc.Status.RancherRegistration.ClusterID))
 	clusterIDConditionMet := true
@@ -371,22 +371,22 @@ func vmcRancherStatusCheckOkay(vmc *vmcv1alpha1.VerrazzanoManagedCluster, versio
 		// if this VZ version supports cluster id in rancher reg status, then it should be present
 		clusterIDConditionMet = vmc.Status.RancherRegistration.ClusterID != ""
 	}
-	return vmc.Status.RancherRegistration.Status == vmcv1alpha1.RegistrationCompleted && clusterIDConditionMet
+	return vmc.Status.RancherRegistration.Status == v1alpha1.RegistrationCompleted && clusterIDConditionMet
 }
 
-func vmcStatusCheckOkay(vmc *vmcv1alpha1.VerrazzanoManagedCluster, managedCAConditionSupported bool) bool {
+func vmcStatusCheckOkay(vmc *v1alpha1.VerrazzanoManagedCluster, managedCAConditionSupported bool) bool {
 	pkg.Log(pkg.Info, fmt.Sprintf("VMC %s has %d status conditions\n", vmc.Name, len(vmc.Status.Conditions)))
 	readyConditionMet := false
 	managedCAConditionMet := false
 	for _, cond := range vmc.Status.Conditions {
 		pkg.Log(pkg.Info, fmt.Sprintf("VMC %s has status condition %s with value %s with message %s\n", vmc.Name, cond.Type, cond.Status, cond.Message))
-		if cond.Type == vmcv1alpha1.ConditionReady && cond.Status == v1.ConditionTrue {
+		if cond.Type == v1alpha1.ConditionReady && cond.Status == v1.ConditionTrue {
 			readyConditionMet = true
 		}
 		// If admin cluster VZ version at registration time supports it, check the ManagedCARetrieved condition as well
 		if managedCAConditionSupported {
 			pkg.Log(pkg.Info, "Checking for ManagedCARetrieved condition")
-			if cond.Type == vmcv1alpha1.ConditionManagedCARetrieved && cond.Status == v1.ConditionTrue {
+			if cond.Type == v1alpha1.ConditionManagedCARetrieved && cond.Status == v1.ConditionTrue {
 				managedCAConditionMet = true
 			}
 		} else {
@@ -437,7 +437,7 @@ func findVerrazzanoProject(projectName string) (bool, error) {
 
 	scheme := runtime.NewScheme()
 	_ = clustersv1alpha1.AddToScheme(scheme)
-	_ = vmcv1alpha1.AddToScheme(scheme)
+	_ = v1alpha1.AddToScheme(scheme)
 
 	clustersClient, err := client.New(config, client.Options{Scheme: scheme})
 	if err != nil {

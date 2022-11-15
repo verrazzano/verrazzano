@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	mcapi "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -25,7 +26,6 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	mcapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	mcClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -397,7 +397,7 @@ func (c *Cluster) GetSecretDataAsString(ns, name, key string) string {
 }
 
 func (c *Cluster) getCacrt() ([]byte, error) {
-	//cattle-system get secret tls-ca-additional
+	// cattle-system get secret tls-ca-additional
 	data, err := c.GetSecretData(constants.RancherSystemNamespace, "tls-ca-additional", "ca-additional.pem")
 	if len(data) != 0 {
 		return data, err

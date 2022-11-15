@@ -6,7 +6,10 @@ package verrazzanoproject
 import (
 	"context"
 	"fmt"
+
 	"github.com/go-logr/logr"
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
+
 	"testing"
 	"time"
 
@@ -18,7 +21,6 @@ import (
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/scheme"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"

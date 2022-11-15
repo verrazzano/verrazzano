@@ -8,7 +8,7 @@ import (
 
 	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	v1alpha13 "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
@@ -18,12 +18,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-var testManagedCluster = v1alpha1.VerrazzanoManagedCluster{
+var testManagedCluster = v1alpha13.VerrazzanoManagedCluster{
 	ObjectMeta: metav1.ObjectMeta{
 		Name:      "test-managed-cluster-name",
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
 	},
-	Spec: v1alpha1.VerrazzanoManagedClusterSpec{
+	Spec: v1alpha13.VerrazzanoManagedClusterSpec{
 		CASecret:                     "test-secret",
 		ManagedClusterManifestSecret: "test-cluster-manifest-secret",
 		ServiceAccount:               "test-service-account",
@@ -100,6 +100,6 @@ func newScheme() *runtime.Scheme {
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
 	}, &corev1.Secret{}, &corev1.SecretList{})
-	_ = v1alpha1.AddToScheme(scheme)
+	_ = v1alpha13.AddToScheme(scheme)
 	return scheme
 }

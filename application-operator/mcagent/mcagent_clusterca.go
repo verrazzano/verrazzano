@@ -8,9 +8,9 @@ import (
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	platformopclusters "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
-	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"

@@ -16,12 +16,12 @@ import (
 	"github.com/Jeffail/gabs/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/pkg/metricsutils"
 	"github.com/verrazzano/verrazzano/pkg/test/mockmatchers"
-	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
@@ -809,7 +809,7 @@ func TestDeleteVMC(t *testing.T) {
 	// Expect a call to update the VerrazzanoManagedCluster finalizer
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.True(len(vmc.ObjectMeta.Finalizers) == 0, "Wrong number of finalizers")
 			return nil
 		})
@@ -865,16 +865,16 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 			return resp, nil
 		})
 
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
 			return nil
 		})
 
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.Equal(clustersapi.DeleteFailed, vmc.Status.RancherRegistration.Status)
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(v1alpha1.DeleteFailed, vmc.Status.RancherRegistration.Status)
 			asserts.Equal("Failed to create Rancher API client", vmc.Status.RancherRegistration.Message)
 			return nil
 		})
@@ -915,16 +915,16 @@ func TestDeleteVMCFailedDeletingRancherCluster(t *testing.T) {
 			return resp, nil
 		})
 
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
 			return nil
 		})
 
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.Equal(clustersapi.DeleteFailed, vmc.Status.RancherRegistration.Status)
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(v1alpha1.DeleteFailed, vmc.Status.RancherRegistration.Status)
 			asserts.Equal("Failed deleting cluster", vmc.Status.RancherRegistration.Message)
 			return nil
 		})
@@ -996,16 +996,16 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 		})
 
 	// Expect to get existing VMC for status update
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: clusterName}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: clusterName}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
 			return nil
 		})
 
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.Equal(clustersapi.RegistrationFailed, vmc.Status.RancherRegistration.Status)
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(v1alpha1.RegistrationFailed, vmc.Status.RancherRegistration.Status)
 			asserts.Contains(vmc.Status.RancherRegistration.Message, "Failed to create Rancher API client")
 			return nil
 		})
@@ -1022,14 +1022,14 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 	// Expect a call to update the VerrazzanoManagedCluster kubeconfig secret testManagedCluster - return success
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(vmc.Spec.ManagedClusterManifestSecret, GetManifestSecretName(clusterName), "Manifest secret testManagedCluster did not match")
 			return nil
 		})
 
 	// Create a reconciler and call the function to sync the manifest secret - the call to register the cluster with Rancher will
 	// fail but the result of syncManifestSecret should be success
-	vmc := clustersapi.VerrazzanoManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}}
+	vmc := v1alpha1.VerrazzanoManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}}
 	reconciler := newVMCReconciler(mock)
 	reconciler.log = vzlog.DefaultLogger()
 
@@ -1097,24 +1097,24 @@ func TestSyncManifestSecretEmptyRancherManifest(t *testing.T) {
 	expectRegisterClusterWithRancher(t, mock, mockRequestSender, testManagedCluster, false, "")
 
 	// Expect to get existing VMC for status update
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
 			return nil
 		})
 
 	// Expect the Rancher registration status to be set appropriately
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.Equal(clustersapi.RegistrationFailed, vmc.Status.RancherRegistration.Status)
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(v1alpha1.RegistrationFailed, vmc.Status.RancherRegistration.Status)
 			asserts.Equal(unitTestRancherClusterID, vmc.Status.RancherRegistration.ClusterID)
 			asserts.Equal("Empty Rancher manifest YAML", vmc.Status.RancherRegistration.Message)
 			return nil
 		})
 
 	// Create a reconciler and call the function to sync the manifest secret
-	vmc := clustersapi.VerrazzanoManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: testManagedCluster, Namespace: constants.VerrazzanoMultiClusterNamespace}}
+	vmc := v1alpha1.VerrazzanoManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: testManagedCluster, Namespace: constants.VerrazzanoMultiClusterNamespace}}
 	reconciler := newVMCReconciler(mock)
 	reconciler.log = vzlog.DefaultLogger()
 
@@ -1456,8 +1456,8 @@ func TestUpateStatus(t *testing.T) {
 	asserts.NotNil(mockStatus)
 
 	// Expect the requests for the existing VMC resource
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
 			return nil
 		}).AnyTimes()
 
@@ -1466,18 +1466,18 @@ func TestUpateStatus(t *testing.T) {
 	// THEN the status state is updated to pending
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.Equal(clustersapi.StatePending, vmc.Status.State)
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(v1alpha1.StatePending, vmc.Status.State)
 			return nil
 		})
 
-	vmc := clustersapi.VerrazzanoManagedCluster{
+	vmc := v1alpha1.VerrazzanoManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testManagedCluster,
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
-		Status: clustersapi.VerrazzanoManagedClusterStatus{
+		Status: v1alpha1.VerrazzanoManagedClusterStatus{
 			LastAgentConnectTime: &metav1.Time{
 				Time: time.Now(),
 			},
@@ -1497,9 +1497,9 @@ func TestUpateStatus(t *testing.T) {
 	// THEN the status state is updated to active
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.Equal(clustersapi.StateActive, vmc.Status.State)
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(v1alpha1.StateActive, vmc.Status.State)
 			return nil
 		})
 
@@ -1518,9 +1518,9 @@ func TestUpateStatus(t *testing.T) {
 	// Expect the Rancher registration status to be set appropriately
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.Equal(clustersapi.StateInactive, vmc.Status.State)
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(v1alpha1.StateInactive, vmc.Status.State)
 			return nil
 		})
 
@@ -1535,7 +1535,7 @@ func TestUpateStatus(t *testing.T) {
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	_ = corev1.AddToScheme(scheme)
-	_ = clustersapi.AddToScheme(scheme)
+	_ = v1alpha1.AddToScheme(scheme)
 	return scheme
 }
 
@@ -1628,7 +1628,7 @@ func expectSyncServiceAccount(t *testing.T, mock *mocks.MockClient, name string,
 	// failure depending on the succeed argument
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			if succeed {
 				asserts.Equal(vmc.Spec.ServiceAccount, generateManagedResourceName(name), "ServiceAccount testManagedCluster did not match")
 				return nil
@@ -1923,16 +1923,16 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 	expectRegisterClusterWithRancher(t, mock, mockRequestSender, name, clusterAlreadyRegistered, expectedRancherYAML)
 
 	// Expect to get existing VMC for status update
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
 			return nil
 		})
 
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
-			asserts.Equal(clustersapi.RegistrationCompleted, vmc.Status.RancherRegistration.Status)
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			asserts.Equal(v1alpha1.RegistrationCompleted, vmc.Status.RancherRegistration.Status)
 			asserts.Equal(unitTestRancherClusterID, vmc.Status.RancherRegistration.ClusterID)
 			asserts.Equal("Registration of managed cluster completed successfully", vmc.Status.RancherRegistration.Message)
 			return nil
@@ -1955,7 +1955,7 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 	// Expect a call to update the VerrazzanoManagedCluster kubeconfig secret testManagedCluster - return success
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(vmc.Spec.ManagedClusterManifestSecret, GetManifestSecretName(name), "Manifest secret testManagedCluster did not match")
 			return nil
 		})
@@ -1982,7 +1982,7 @@ func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string, ca
 	// Expect a call to get the VerrazzanoManagedCluster resource.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: name}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
 			vmc.TypeMeta = metav1.TypeMeta{
 				APIVersion: apiVersion,
 				Kind:       kind}
@@ -1991,16 +1991,16 @@ func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string, ca
 				Name:      name.Name,
 				Labels:    labels}
 			if caSecretExists {
-				vmc.Spec = clustersapi.VerrazzanoManagedClusterSpec{
+				vmc.Spec = v1alpha1.VerrazzanoManagedClusterSpec{
 					CASecret: getCASecretName(name.Name),
 				}
 			}
-			vmc.Status = clustersapi.VerrazzanoManagedClusterStatus{
+			vmc.Status = v1alpha1.VerrazzanoManagedClusterStatus{
 				PrometheusHost: getPrometheusHost(),
 			}
 			if rancherClusterAlreadyRegistered {
-				vmc.Status.RancherRegistration = clustersapi.RancherRegistration{
-					Status:    clustersapi.RegistrationCompleted,
+				vmc.Status.RancherRegistration = v1alpha1.RancherRegistration{
+					Status:    v1alpha1.RegistrationCompleted,
 					ClusterID: unitTestRancherClusterID,
 				}
 			}
@@ -2010,7 +2010,7 @@ func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string, ca
 	// Expect a call to update the VerrazzanoManagedCluster finalizer
 	mock.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.True(len(vmc.ObjectMeta.Finalizers) == 1, "Wrong number of finalizers")
 			asserts.Equal(finalizerName, vmc.ObjectMeta.Finalizers[0], "wrong finalizer")
 			return nil
@@ -2263,8 +2263,8 @@ func expectSyncCACertRancherK8sCalls(t *testing.T, k8sMock *mocks.MockClient, mo
 
 		// Expect a call to update the VMC with ca secret name
 		k8sMock.EXPECT().
-			Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+			Update(gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{}), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 				asserts.Equal(vmc.Spec.CASecret, getCASecretName(vmc.Name), "CA secret name %s did not match", vmc.Spec.CASecret)
 				return nil
 			})
@@ -2308,28 +2308,28 @@ func getCaCrt() string {
 }
 
 func expectStatusUpdateReadyCondition(asserts *assert.Assertions, mock *mocks.MockClient, mockStatus *mocks.MockStatusWriter, expectReady corev1.ConditionStatus, msg string, assertManagedCACondition bool) {
-	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).
-		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+	mock.EXPECT().Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: testManagedCluster}, gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
 			return nil
 		})
 
 	mock.EXPECT().Status().Return(mockStatus)
 	mockStatus.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			readyFound := false
 			managedCaFound := false
 			readyConditionCount := 0
 			managedCaConditionCount := 0
 			for _, condition := range vmc.Status.Conditions {
-				if condition.Type == clustersapi.ConditionReady {
+				if condition.Type == v1alpha1.ConditionReady {
 					readyConditionCount++
 					if condition.Status == expectReady {
 						readyFound = true
 						asserts.Contains(condition.Message, msg)
 					}
 				}
-				if condition.Type == clustersapi.ConditionManagedCARetrieved {
+				if condition.Type == v1alpha1.ConditionManagedCARetrieved {
 					managedCaConditionCount++
 					if condition.Status == expectReady {
 						managedCaFound = true
@@ -2420,7 +2420,7 @@ func expectMockCallsForDelete(t *testing.T, mock *mocks.MockClient, namespace st
 	// Expect a call to get the VerrazzanoManagedCluster resource.
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: testManagedCluster}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *v1alpha1.VerrazzanoManagedCluster) error {
 			vmc.TypeMeta = metav1.TypeMeta{
 				APIVersion: apiVersion,
 				Kind:       kind}
@@ -2429,9 +2429,9 @@ func expectMockCallsForDelete(t *testing.T, mock *mocks.MockClient, namespace st
 				Name:              name.Name,
 				DeletionTimestamp: &metav1.Time{Time: time.Now()},
 				Finalizers:        []string{finalizerName}}
-			vmc.Status = clustersapi.VerrazzanoManagedClusterStatus{
+			vmc.Status = v1alpha1.VerrazzanoManagedClusterStatus{
 				PrometheusHost: getPrometheusHost(),
-				RancherRegistration: clustersapi.RancherRegistration{
+				RancherRegistration: v1alpha1.RancherRegistration{
 					ClusterID: unitTestRancherClusterID,
 				},
 			}

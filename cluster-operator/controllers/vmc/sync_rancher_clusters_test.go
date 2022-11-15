@@ -13,10 +13,10 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/test/mockmatchers"
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
@@ -48,7 +48,7 @@ var testScheme = runtime.NewScheme()
 
 func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)
-	_ = clustersv1alpha1.AddToScheme(testScheme)
+	_ = v1alpha1.AddToScheme(testScheme)
 }
 
 // TestSyncRancherClusters tests the SyncRancherClusters function.
@@ -84,7 +84,7 @@ func TestSyncRancherClusters(t *testing.T) {
 
 	// we should have created two VMCs
 	// note that the VMCs we create are named using the Rancher cluster name
-	cr := &clustersv1alpha1.VerrazzanoManagedCluster{}
+	cr := &v1alpha1.VerrazzanoManagedCluster{}
 	err := r.Get(context.TODO(), types.NamespacedName{Name: clusterName1, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
 	asserts.NoError(err)
 	asserts.Equal(createdByVerrazzano, cr.Labels[createdByLabel])
@@ -142,7 +142,7 @@ func TestSyncRancherClustersWithPaging(t *testing.T) {
 
 	// we should have created three VMCs (2 from the first page of the clusters API response and one from the 2nd)
 	// note that the VMCs we create are named using the Rancher cluster name
-	cr := &clustersv1alpha1.VerrazzanoManagedCluster{}
+	cr := &v1alpha1.VerrazzanoManagedCluster{}
 	err := r.Get(context.TODO(), types.NamespacedName{Name: clusterName1, Namespace: constants.VerrazzanoMultiClusterNamespace}, cr)
 	asserts.NoError(err)
 	asserts.Equal(createdByVerrazzano, cr.Labels[createdByLabel])
@@ -246,19 +246,19 @@ func createK8sFake() client.Client {
 				},
 			},
 		},
-		&clustersv1alpha1.VerrazzanoManagedCluster{
+		&v1alpha1.VerrazzanoManagedCluster{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      preExistingClusterNoClusterID,
 				Namespace: constants.VerrazzanoMultiClusterNamespace,
 			},
 		},
-		&clustersv1alpha1.VerrazzanoManagedCluster{
+		&v1alpha1.VerrazzanoManagedCluster{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      preExistingClusterWithClusterID,
 				Namespace: constants.VerrazzanoMultiClusterNamespace,
 			},
-			Status: clustersv1alpha1.VerrazzanoManagedClusterStatus{
-				RancherRegistration: clustersv1alpha1.RancherRegistration{
+			Status: v1alpha1.VerrazzanoManagedClusterStatus{
+				RancherRegistration: v1alpha1.RancherRegistration{
 					ClusterID: "c-v76wj",
 				},
 			},

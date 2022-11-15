@@ -4,12 +4,13 @@ package operatorinit
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	"os"
+
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 
 	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
