@@ -5,9 +5,9 @@ package scenario
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/embedded"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
@@ -19,26 +19,23 @@ type Manager struct {
 	Manifest            embedded.PsrManifests
 	ExternalScenarioDir string
 	Namespace           string
-	WorkerImage         string
+	HelmOverrides       []helm.HelmOverrides
 	DryRun              bool
 	Verbose             bool
 }
 
 // NewManager returns a scenario Manager
-func NewManager(namespace string, externalScenarioDir string, imageName string) (Manager, error) {
+func NewManager(namespace string, externalScenarioDir string, helmOverrides ...helm.HelmOverrides) (Manager, error) {
 	client, err := k8sutil.GetCoreV1Client(vzlog.DefaultLogger())
 	if err != nil {
 		return Manager{}, fmt.Errorf("Failed to get CoreV1 client: %v", err)
-	}
-	if len(imageName) == 0 {
-		imageName = constants.GetDefaultWorkerImage()
 	}
 	m := Manager{
 		Namespace:           namespace,
 		Log:                 vzlog.DefaultLogger(),
 		Manifest:            *embedded.Manifests,
 		ExternalScenarioDir: externalScenarioDir,
-		WorkerImage:         imageName,
+		HelmOverrides:       helmOverrides,
 		Client:              client,
 		Verbose:             true,
 	}

@@ -6,6 +6,7 @@ package start
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
@@ -25,6 +26,9 @@ var scenarioID string
 var namespace string
 var scenarioDir string
 var workerImage string
+var imagePullSecret string
+
+const imagePullSecDefault = "verrazzano-container-registry"
 
 func NewCmdStart(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -38,13 +42,14 @@ func NewCmdStart(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().StringVarP(&namespace, constants.FlagNamespace, constants.FlagNamespaceShort, "default", constants.FlagNamespaceHelp)
 	cmd.PersistentFlags().StringVarP(&scenarioDir, constants.FlagScenarioDir, constants.FlagScenarioDirShort, "", constants.FlagScenarioDirHelp)
 	cmd.PersistentFlags().StringVarP(&workerImage, constants.WorkerImageName, constants.WorkerImageNameShort, constants.GetDefaultWorkerImage(), constants.WorkerImageNameHelp)
+	cmd.PersistentFlags().StringVarP(&imagePullSecret, constants.ImagePullSecretName, constants.ImagePullSecretNameShort, imagePullSecDefault, constants.ImagePullSecretNameHelp)
 
 	return cmd
 }
 
 // RunCmdStart - Run the "psrctl start" command
 func RunCmdStart(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	m, err := scenario.NewManager(namespace, scenarioDir, workerImage)
+	m, err := scenario.NewManager(namespace, scenarioDir, buildHelmOverrides()...)
 	if err != nil {
 		return fmt.Errorf("Failed to create scenario Manager %v", err)
 	}
@@ -66,4 +71,11 @@ func RunCmdStart(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	fmt.Printf("Scenario %s successfully started\n", scman.ID)
 
 	return nil
+}
+
+func buildHelmOverrides() []helmcli.HelmOverrides {
+	return []helmcli.HelmOverrides{
+		{SetOverrides: fmt.Sprintf("%s=%s", constants.ImageNameKey, workerImage)},
+		{SetOverrides: fmt.Sprintf("%s=%s", constants.ImagePullSecKey, imagePullSecret)},
+	}
 }

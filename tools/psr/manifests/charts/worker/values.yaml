@@ -1,9 +1,9 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-imagePullSecrets: [ ]
-
-#imageName: ghcr.io/verrazzano/psr-backend:local-c10faf9
+#imageName:
+imagePullSecrets:
+  - name: verrazzano-container-registry
 imagePullPolicy: IfNotPresent
 
 replicas: 1
@@ -21,4 +21,3 @@ appType: oam
 # Each worker that has a subchart needs to override this property
 opensearch-authpol:
   enabled: false
-
