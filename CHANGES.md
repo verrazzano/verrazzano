@@ -17,6 +17,7 @@ Component version updates:
 - External DNS v0.12.2
 - kube-state-metrics v2.6.0
 - cert-manager v1.9.1
+- Prometheus Adapter for Kubernetes Metrics APIs v0.10.0
 
 Components added:
 - MySQL Operator 8.0.30-2.0.6
