@@ -56,6 +56,10 @@ spec:
             - name: APP_OPERATOR_IMAGE
               value: {{ .Values.global.appOperatorImage }}
             {{- end }}
+            {{- if .Values.global.clusterOperatorImage }}
+            - name: CLUSTER_OPERATOR_IMAGE
+              value: {{ .Values.global.clusterOperatorImage }}
+            {{- end }}
             {{- if .Values.global.imagePullSecrets }}
             - name: IMAGE_PULL_SECRETS
               value: {{ join "," .Values.global.imagePullSecrets }}

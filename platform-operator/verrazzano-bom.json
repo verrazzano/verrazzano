@@ -297,8 +297,25 @@
       ]
     },
     {
+      "name": "verrazzano-cluster-operator",
+      "version": "1.5.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "verrazzano-cluster-operator",
+          "images": [
+            {
+              "image": "VERRAZZANO_CLUSTER_OPERATOR_IMAGE",
+              "tag": "VERRAZZANO_CLUSTER_OPERATOR_TAG",
+              "helmFullImageKey": "image"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "verrazzano-application-operator",
-      "version": "1.4.0",
+      "version": "1.5.0",
       "subcomponents": [
         {
           "repository": "verrazzano",

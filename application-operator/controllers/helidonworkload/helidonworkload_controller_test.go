@@ -5,6 +5,7 @@ package helidonworkload
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"os"
 	"strconv"
 	"strings"
@@ -43,6 +44,7 @@ import (
 const (
 	namespace          = "unit-test-namespace"
 	testRestartVersion = "new-restart"
+	helidonWorkload    = "testdata/templates/helidon_workload.yaml"
 )
 
 // TestReconcilerSetupWithManager test the creation of the VerrazzanoHelidonWorkload reconciler.
@@ -507,7 +509,7 @@ func TestReconcileCreateVerrazzanoHelidonWorkloadWithLoggingScope(t *testing.T) 
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
-			assert.NoError(updateObjectFromYAMLTemplate(workload, "testdata/templates/helidon_workload.yaml", params))
+			assert.NoError(updateObjectFromYAMLTemplate(workload, helidonWorkload, params))
 			return nil
 		}).Times(1)
 
@@ -866,7 +868,7 @@ func TestReconcileRestart(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: "test-verrazzano-helidon-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoHelidonWorkload) error {
-			assert.NoError(updateObjectFromYAMLTemplate(workload, "testdata/templates/helidon_workload.yaml", params))
+			assert.NoError(updateObjectFromYAMLTemplate(workload, helidonWorkload, params))
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
 			return nil
@@ -979,4 +981,79 @@ func TestReconcileFailed(t *testing.T) {
 	reconciler.Reconcile(context.TODO(), request)
 	reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
 	assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
+}
+
+// TestAddMetrics tests to add metrics and make sure no error comes
+func TestAddMetrics(t *testing.T) {
+	assert := asserts.New(t)
+	var mocker = gomock.NewController(t)
+	var cli = mocks.NewMockClient(mocker)
+	appConfigName := "test-appconf"
+	componentName := "test-component"
+	testNamespace := "test-namespace"
+	loggingSecretName := "test-secret-name"
+	params := map[string]string{
+		"##APPCONF_NAME##":       appConfigName,
+		"##APPCONF_NAMESPACE##":  testNamespace,
+		"##COMPONENT_NAME##":     componentName,
+		"##SCOPE_NAME##":         "test-scope",
+		"##SCOPE_NAMESPACE##":    testNamespace,
+		"##INGEST_URL##":         "http://test-ingest-host:9200",
+		"##INGEST_SECRET_NAME##": loggingSecretName,
+		"##FLUENTD_IMAGE##":      "test-fluentd-image-name",
+		"##WORKLOAD_APIVER##":    "oam.verrazzano.io/v1alpha1",
+		"##WORKLOAD_KIND##":      "VerrazzanoHelidonWorkload",
+		"##WORKLOAD_NAME##":      "test-workload-name",
+		"##WORKLOAD_NAMESPACE##": testNamespace,
+		"##DEPLOYMENT_NAME##":    "test-deployment",
+		"##LOGGING_SCOPE_NAME##": "test-logging-scope",
+		"##INGRESS_TRAIT_NAME##": "test-ingress-trait",
+		"##INGRESS_TRAIT_PATH##": "/test-ingress-path",
+	}
+
+	labels := map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: componentName}
+	annotations := map[string]string{vzconst.RestartVersionAnnotation: testRestartVersion}
+	request := types.NamespacedName{
+		Namespace: testNamespace,
+		Name:      componentName,
+	}
+	reconciler := newReconciler(cli)
+	// Fetch the workload
+	var workload vzapi.VerrazzanoHelidonWorkload
+	cli.EXPECT().
+		// GIVEN a default mocker client
+		// WHEN we call Get from the addMetrics method
+		// THEN the call feeds workload to get metrics traits
+		Get(gomock.Any(), request, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload1 *vzapi.VerrazzanoHelidonWorkload) error {
+			assert.NoError(updateObjectFromYAMLTemplate(workload1, helidonWorkload, params))
+			workload1.ObjectMeta.Labels = labels
+			workload1.ObjectMeta.Annotations = annotations
+			return nil
+		})
+
+	cli.EXPECT().
+		// GIVEN a default mocker client
+		// WHEN we call Get from the ComponentFromWorkloadLabels method
+		// THEN the call feeds workload and component to get metrics traits
+		Get(gomock.Any(), request, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload1 *oamapi.ApplicationConfiguration) error {
+			assert.NoError(updateObjectFromYAMLTemplate(workload1, helidonWorkload, params))
+			workload1.ObjectMeta.Labels = labels
+			workload1.ObjectMeta.Annotations = annotations
+			workload1.Spec.Components = []oamapi.ApplicationConfigurationComponent{{ComponentName: componentName, Traits: []oamapi.ComponentTrait{{Trait: runtime.RawExtension{Raw: []byte(`{"app":"hello"}`)}}}}}
+			return nil
+		})
+
+	err := reconciler.Get(context.TODO(), request, &workload)
+	assert.NoError(err)
+
+	log, err := clusters.GetResourceLogger("verrazzanohelidonworkload", request, &workload)
+	assert.NoError(err)
+	// Unwrap the apps/DeploymentSpec and meta/ObjectMeta
+	deploy, err := reconciler.convertWorkloadToDeployment(&workload, log)
+	assert.NoError(err)
+	err = reconciler.addMetrics(context.TODO(), log, workload.Namespace, &workload, deploy)
+	assert.NoError(err)
+	mocker.Finish()
 }

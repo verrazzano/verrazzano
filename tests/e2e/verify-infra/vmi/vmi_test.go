@@ -94,7 +94,7 @@ var (
 	vzCRD                  *apiextv1.CustomResourceDefinition
 	ingressURLs            map[string]string
 	volumeClaims           map[string]*corev1.PersistentVolumeClaim
-	elastic                *vmi.Elastic
+	elastic                *vmi.Opensearch
 	waitTimeout            = 10 * time.Minute
 	pollingInterval        = 5 * time.Second
 	elasticWaitTimeout     = 2 * time.Minute
@@ -133,7 +133,7 @@ var _ = t.BeforeSuite(func() {
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	creds = pkg.EventuallyGetSystemVMICredentials()
-	elastic = vmi.GetElastic("system")
+	elastic = vmi.GetOpensearch("system")
 })
 
 var _ = t.AfterEach(func() {})
