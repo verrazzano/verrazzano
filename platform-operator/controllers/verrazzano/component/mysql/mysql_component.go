@@ -8,11 +8,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"k8s.io/apimachinery/pkg/types"
-
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -24,6 +22,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // ComponentName is the name of the component
@@ -41,27 +40,24 @@ const DeploymentPersistentVolumeClaim = "mysql"
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "keycloak.mysql"
 
-// Last time the MySQL StatefulSet was ready
-var lastTimeStatefulSetReady time.Time
-
 // mysqlComponent represents an MySQL component
 type mysqlComponent struct {
-	LastTimeReadinessGateRepairStarted *time.Time
+	LastTimeReadinessGateRepairStarted time.Time
 
 	helm.HelmComponent
 }
 
 // Verify that mysqlComponent implements Component
-var _ spi.Component = mysqlComponent{}
+var _ spi.Component = &mysqlComponent{}
 
 // NewComponent returns a new MySQL component
 func NewComponent() spi.Component {
 
-	// Cannot include mysqloperatorcomponent because of import cycle
+	// Cannot include MySQLOperatorComponent because of import cycle
 	const MySQLOperatorComponentName = "mysql-operator"
 
-	return mysqlComponent{
-		&lastTimeStatefulSetReady,
+	return &mysqlComponent{
+		time.Time{},
 		helm.HelmComponent{
 			ReleaseName:               helmReleaseName,
 			JSONName:                  ComponentJSONName,
@@ -88,12 +84,12 @@ func NewComponent() spi.Component {
 }
 
 // IsReady calls MySQL isMySQLReady function
-func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
+func (c *mysqlComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
 		ready := c.isMySQLReady(context)
 		if ready {
 			// Once ready, zero out the timestamp
-			*c.LastTimeReadinessGateRepairStarted = time.Time{}
+			c.LastTimeReadinessGateRepairStarted = time.Time{}
 		}
 		return ready
 	}
@@ -102,32 +98,32 @@ func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 
 // IsEnabled mysql-specific enabled check for installation
 // If keycloak is enabled, mysql is enabled; disabled otherwise
-func (c mysqlComponent) IsEnabled(effectiveCR runtime.Object) bool {
+func (c *mysqlComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzcr.IsKeycloakEnabled(effectiveCR)
 }
 
 // PreInstall calls MySQL preInstall function
-func (c mysqlComponent) PreInstall(ctx spi.ComponentContext) error {
+func (c *mysqlComponent) PreInstall(ctx spi.ComponentContext) error {
 	return preInstall(ctx, c.ChartNamespace)
 }
 
 // PreUpgrade updates resources necessary for the MySQL Component upgrade
-func (c mysqlComponent) PreUpgrade(ctx spi.ComponentContext) error {
+func (c *mysqlComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return preUpgrade(ctx)
 }
 
 // PostInstall calls MySQL postInstall function
-func (c mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
+func (c *mysqlComponent) PostInstall(ctx spi.ComponentContext) error {
 	return postInstall(ctx)
 }
 
 // PostUpgrade creates/updates associated resources after this component is upgraded
-func (c mysqlComponent) PostUpgrade(ctx spi.ComponentContext) error {
+func (c *mysqlComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	return postUpgrade(ctx)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c *mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Block all changes for now, particularly around storage changes
 
 	// compare the VolumeSourceOverrides and reject if the type or size or storage class is different
@@ -158,8 +154,8 @@ func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazz
 	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (c mysqlComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
+// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
+func (c *mysqlComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
 	// compare the VolumeSourceOverrides and reject if the type or size or storage class is different
 	oldSetting, err := doGenerateVolumeSourceOverrides(old, []bom.KeyValue{})
 	if err != nil {
@@ -191,7 +187,7 @@ func validatePersistenceSpecificChanges(oldSetting, newSetting []bom.KeyValue) e
 	return nil
 }
 
-func (c mysqlComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
+func (c *mysqlComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs {
 	if vz != nil && vz.Spec.Components.Keycloak != nil {
 		return vz.Spec.Components.Keycloak.MySQL.MySQLInstallArgs
 	}
@@ -199,7 +195,7 @@ func (c mysqlComponent) getInstallArgs(vz *vzapi.Verrazzano) []vzapi.InstallArgs
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
-func (c mysqlComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
+func (c *mysqlComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	if ctx.EffectiveCR().Spec.Components.Keycloak != nil {
 		if ctx.EffectiveCR().Spec.Components.Keycloak.MySQL.MonitorChanges != nil {
 			return *ctx.EffectiveCR().Spec.Components.Keycloak.MySQL.MonitorChanges

@@ -156,7 +156,7 @@ var (
 )
 
 // isMySQLReady checks to see if the MySQL component is in ready state
-func (c mysqlComponent) isMySQLReady(ctx spi.ComponentContext) bool {
+func (c *mysqlComponent) isMySQLReady(ctx spi.ComponentContext) bool {
 	deployment := []types.NamespacedName{
 		{
 			Name:      fmt.Sprintf("%s-router", ComponentName),
@@ -204,7 +204,7 @@ func (c mysqlComponent) isMySQLReady(ctx spi.ComponentContext) bool {
 
 // repairMySQLPodsWaitingReadinessGates - temporary workaround to repair issue were a MySQL pod
 // can be stuck waiting for its readiness gates to be met.
-func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentContext) error {
+func (c *mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentContext) error {
 	podsWaiting, err := c.mySQLPodsWaitingForReadinessGates(ctx)
 	if err != nil {
 		return err
@@ -223,16 +223,16 @@ func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentCo
 		}
 
 		// Clear the timer
-		*c.LastTimeReadinessGateRepairStarted = time.Time{}
+		c.LastTimeReadinessGateRepairStarted = time.Time{}
 	}
 	return nil
 }
 
 // mySQLPodsWaitingForReadinessGates - detect if there are MySQL pods stuck waiting for
 // their readiness gates to be true.
-func (c mysqlComponent) mySQLPodsWaitingForReadinessGates(ctx spi.ComponentContext) (bool, error) {
+func (c *mysqlComponent) mySQLPodsWaitingForReadinessGates(ctx spi.ComponentContext) (bool, error) {
 	if c.LastTimeReadinessGateRepairStarted.IsZero() {
-		*c.LastTimeReadinessGateRepairStarted = time.Now()
+		c.LastTimeReadinessGateRepairStarted = time.Now()
 		return false, nil
 	}
 
