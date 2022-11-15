@@ -1,0 +1,17 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.name }}-selector
+  namespace: {{ .Values.namespace }}
+data:
+  {{ if .Values.syncRancherClusters.clusterSelector -}}
+  selector.yaml: |
+{{ toYaml .Values.syncRancherClusters.clusterSelector | indent 4 }}
+  {{- end }}
+  {{ if .Values.syncRancherClusters.enabled -}}
+  enabled: "true"
+  {{ else -}}
+  enabled: "false"
+  {{- end }}

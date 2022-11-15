@@ -21,4 +21,21 @@ spec:
       - name: {{ .Values.name }}
         image: {{ .Values.image }}
         imagePullPolicy: {{ .Values.imagePullPolicy }}
+        env:
+        - name: RANCHER_CLUSTER_SYNC_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .Values.name }}-selector
+              key: enabled
+        volumeMounts:
+          - name: cluster-selector
+            mountPath: /var/syncRancherClusters
       serviceAccountName: {{ .Values.name }}
+      volumes:
+        - name: cluster-selector
+          configMap:
+            name: {{ .Values.name }}-selector
+            items:
+            - key: selector.yaml
+              path: selector.yaml
+            optional: true
