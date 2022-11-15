@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 
 	"github.com/pkg/errors"
@@ -145,11 +144,6 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1beta1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1beta1{BomVersion: bomFile.GetVersion()}})
 	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1alpha1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1alpha1{BomVersion: bomFile.GetVersion()}})
 
-	// Set up the validation webhook for VMC
-	log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
-	if err := (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
-		return fmt.Errorf("Failed to setup webhook with manager: %v", err)
-	}
 	return nil
 }
 
