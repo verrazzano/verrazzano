@@ -5,24 +5,22 @@ package scale
 
 import (
 	"github.com/stretchr/testify/assert"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoFakeClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/fake"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/k8sclient"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/opensearch"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/verrazzano"
-	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"time"
-
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	corev1 "k8s.io/api/core/v1"
+	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	crtFakeClient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-
 	"strings"
 	"testing"
+	"time"
 )
 
 type fakeEnv struct {
@@ -169,30 +167,74 @@ func TestGetMetricList(t *testing.T) {
 //	WHEN the DoWork methods is called
 //	THEN ensure that the correct results are returned
 func TestDoWork(t *testing.T) {
-	asserts := assert.New(t)
-
 	tests := []struct {
-		name                   string
-		expectGetAndUpdate     bool
-		image                  string
-		initialLifeCycleAction string
-		updatedLifeCycleAction string
+		name          string
+		expectErr     bool
+		tier          string
+		expectError   bool
+		minReplicas   string
+		maxReplicas   string
+		skipUpdate    bool
+		skipPodCreate bool
+		firstState    v1alpha1.VzStateType
+		secondState   v1alpha1.VzStateType
+		thirtState    v1alpha1.VzStateType
 	}{
 		// Test stopping WebLogic by setting annotation on WebLogic workload because it has an old Istio image with skew more than 2 minor versions.
+		//{
+		//	name:        "master",
+		//	tier:        opensearch.MasterTier,
+		//	expectError: false,
+		//	minReplicas: "3",
+		//	maxReplicas: "4",
+		//	firstState:  v1alpha1.VzStateReady,
+		//	secondState: v1alpha1.VzStateReconciling,
+		//},
+		//{
+		//	name:        "data",
+		//	tier:        opensearch.DataTier,
+		//	expectError: false,
+		//	minReplicas: "3",
+		//	maxReplicas: "4",
+		//	firstState:  v1alpha1.VzStateReady,
+		//	secondState: v1alpha1.VzStateReconciling,
+		//},
+		//{
+		//	name:        "ingest",
+		//	tier:        opensearch.IngestTier,
+		//	expectError: false,
+		//	minReplicas: "3",
+		//	maxReplicas: "4",
+		//	firstState:  v1alpha1.VzStateReady,
+		//	secondState: v1alpha1.VzStateReconciling,
+		//},
+		// Test stopping WebLogic by setting annotation on WebLogic workload because it has an old Istio image with skew more than 2 minor versions.
 		{
-			name:                   "StopWebLogic",
-			expectGetAndUpdate:     true,
-			image:                  "proxyv2:1.4.5",
-			initialLifeCycleAction: "",
-			updatedLifeCycleAction: vzconst.LifecycleActionStop,
+			name:        "replicaErr",
+			tier:        opensearch.MasterTier,
+			skipUpdate:  true,
+			expectError: true,
+			minReplicas: "1",
+			maxReplicas: "4",
+			firstState:  v1alpha1.VzStateReady,
+		},
+		// Test missing pods
+		{
+			name:          "noPods",
+			tier:          opensearch.MasterTier,
+			skipUpdate:    true,
+			skipPodCreate: true,
+			expectError:   true,
+			minReplicas:   "1",
+			maxReplicas:   "4",
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			envMap := map[string]string{
-				openSearchTier:  "master",
-				minReplicaCount: "3",
-				maxReplicaCount: "4",
+				openSearchTier:  test.tier,
+				minReplicaCount: test.minReplicas,
+				maxReplicaCount: test.maxReplicas,
 			}
 			f := fakeEnv{data: envMap}
 			saveEnv := osenv.GetEnvFunc
@@ -202,7 +244,7 @@ func TestDoWork(t *testing.T) {
 			}()
 
 			// Setup fake VZ client
-			cr := initFakeVzCr(v1alpha1.VzStateReady)
+			cr := initFakeVzCr(test.firstState)
 			vzclient := vpoFakeClient.NewSimpleClientset(cr)
 
 			// Setup fake K8s client
@@ -211,10 +253,11 @@ func TestDoWork(t *testing.T) {
 			_ = corev1.AddToScheme(scheme)
 			_ = k8sapiext.AddToScheme(scheme)
 			_ = v1alpha1.AddToScheme(scheme)
-			crtClient := crtFakeClient.NewClientBuilder().
-				WithObjects(initFakePodWithLabels(podLabels)).
-				WithScheme(scheme).
-				Build()
+			builder := crtFakeClient.NewClientBuilder().WithScheme(scheme)
+			if !test.skipPodCreate {
+				builder = builder.WithObjects(initFakePodWithLabels(podLabels))
+			}
+			crtClient := builder.Build()
 
 			// Load the PsrClient with both fake clients
 			psrClient := fakePsrClient{
@@ -236,24 +279,30 @@ func TestDoWork(t *testing.T) {
 			err = config.PsrEnv.LoadFromEnv(w.GetEnvDescList())
 			assert.NoError(t, err)
 
-			// Set the CR to any state but ready in 2 secs
-			go func() {
-				time.Sleep(2 * time.Second)
-				cr := initFakeVzCr(v1alpha1.VzStateReconciling)
-				verrazzano.UpdateVerrazzano(vzclient, cr)
-			}()
+			// DoWork expects the Verrazzano CR state to change.
+			// Worker waits for CR to be ready, modifies it, then waits for it to be not ready (e.g. reconciling)
+			// Run a background thread to change the state after the work starts
+			if !test.skipUpdate {
+				go func() {
+					time.Sleep(1 * time.Second)
+					cr := initFakeVzCr(test.secondState)
+					verrazzano.UpdateVerrazzano(vzclient, cr)
+					if len(test.thirtState) > 0 {
+						time.Sleep(1 * time.Second)
+						cr := initFakeVzCr(test.thirtState)
+						verrazzano.UpdateVerrazzano(vzclient, cr)
+					}
+				}()
+			}
 
 			err = w.DoWork(config.CommonConfig{
 				WorkerType: "scale",
 			}, vzlog.DefaultLogger())
-			//if test.doworkError == nil && test.getError == nil {
-			//	assert.NoError(t, err)
-			//} else {
-			//	assert.Error(t, err)
-			//}
-
-			// Validate the results
-			asserts.NoError(err)
+			if test.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }
@@ -288,4 +337,16 @@ func (f *fakeEnv) GetEnv(key string) string {
 
 func (f *fakePsrClient) NewPsrClient() (k8sclient.PsrClient, error) {
 	return *f.psrClient, nil
+}
+
+func getTierLabel(tier string) string {
+	switch tier {
+	case opensearch.MasterTier:
+		return `"opensearch.verrazzano.io/role-master="true"`
+	case opensearch.DataTier:
+		return `"opensearch.verrazzano.io/role-data="true"`
+	case opensearch.IngestTier:
+		return `"opensearch.verrazzano.io/role-ingest="true"`
+	}
+	return ""
 }
