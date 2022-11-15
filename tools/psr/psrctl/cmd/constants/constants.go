@@ -28,7 +28,12 @@ const (
 	WorkerImageNameShort = "w"
 	WorkerImageNameHelp  = `The full PSR image name and tag to use for executing scenarios`
 
-	ImageNameKey = "imageName"
+	ImagePullSecretName      = "pull-secret"
+	ImagePullSecretNameShort = "p"
+	ImagePullSecretNameHelp  = `The name of the imagePullSecret for the PSR worker image`
+
+	ImageNameKey    = "imageName"
+	ImagePullSecKey = "imagePullSecrets[0].name"
 )
 
 var defaultWorkerImage string
