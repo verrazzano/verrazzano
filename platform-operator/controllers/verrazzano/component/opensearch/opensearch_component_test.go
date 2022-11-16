@@ -7,26 +7,24 @@ import (
 	"fmt"
 	"testing"
 
-	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-	"github.com/stretchr/testify/assert"
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/runtime"
-	//"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1/convert_utils.go"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	"github.com/stretchr/testify/assert"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	//"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	//"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -64,18 +62,33 @@ func TestPreUpgrade(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestComponentNamespace tests the OpenSearch ComponentNamespace call
+// GIVEN an OpenSearch component
+//
+//	WHEN I call ComponentNamespace with defaults
+//	THEN the component namespace is returned
 func TestComponentNamespace(t *testing.T) {
 	NameSpace := NewComponent().Namespace()
 	assert.Equal(t, NameSpace, constants.VerrazzanoSystemNamespace)
 
 }
 
+// TestShouldInstallBeforeUpgrade tests the ShouldInstallBeforeUpgrade call
+// GIVEN an OpenSearch component
+//
+//	WHEN I call ShouldInstallBeforeUpgrade with defaults
+//	THEN false is returned
 func TestShouldInstallBeforeUpgrade(t *testing.T) {
 	val := NewComponent().ShouldInstallBeforeUpgrade()
 	assert.Equal(t, val, false)
 
 }
 
+// TestGetDependencies tests the GetDependencies call
+// GIVEN an OpenSearch component
+//
+//	WHEN I call GetDependencies with defaults
+//	THEN a string array containing different dependencies is returned
 func TestGetDependencies(t *testing.T) {
 	strArray := NewComponent().GetDependencies()
 	expArray := []string{"verrazzano-network-policies", "verrazzano-monitoring-operator"}
@@ -83,6 +96,11 @@ func TestGetDependencies(t *testing.T) {
 
 }
 
+// TestGetMinVerrazzanoVersion tests the GetMinVerrazzanoVersion call
+// GIVEN an OpenSearch component
+//
+//	WHEN I call GetMinVerrazzanoVersion with defaults
+//	THEN a string containing MinVerrazzanoVersion is returned
 func TestGetMinVerrazzanoVersion(t *testing.T) {
 	minVer := NewComponent().GetMinVerrazzanoVersion()
 	expVer := constants.VerrazzanoVersion1_0_0
@@ -90,12 +108,22 @@ func TestGetMinVerrazzanoVersion(t *testing.T) {
 
 }
 
+// TestGetJSONName tests the GetJSONName call
+// GIVEN an OpenSearch component
+//
+//	WHEN I call GetJSONName with defaults
+//	THEN a string containing JSONName is returned
 func TestGetJSONName(t *testing.T) {
 	jsonName := NewComponent().GetJSONName()
 	assert.Equal(t, jsonName, "opensearch")
 
 }
 
+// TestGetOverrides tests the GetOverrides call
+// GIVEN an OpenSearch component and a runtime object
+//
+//	WHEN I call GetOverrides with defaults
+//	THEN an interface containing overrides is returned
 func TestGetOverrides(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -126,39 +154,12 @@ func TestGetOverrides(t *testing.T) {
 	}
 }
 
+// TestValidateInstall tests the ValidateInstall call
+// GIVEN an OpenSearch component and a vzapi
+//
+//	WHEN I call ValidateInstall with defaults
+//	THEN an bool value is returned
 func TestValidateInstall(t *testing.T) {
-	/*    vz := &vzapi.Verrazzano{}
-	var tests = []converisonTestCase{
-		{
-			"convert general overrides",
-			testCaseGeneralOverrides,
-			false,
-		},
-		{
-			"convert err on keycloak install args",
-			testCaseInstallArgsErr,
-			true,
-		},
-
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// load the expected v1alpha1 CR for conversion
-			v1alpha1CR, err := vz.loadV1Alpha1CR(tt.testCase)
-			assert.NoError(t, err)
-
-			// compute the actual v1beta1 CR from the v1alpha1 CR
-			v1beta1Actual := &installv1beta1.Verrazzano{}
-			err = v1alpha1CR.ConvertTo(v1beta1Actual)
-
-			if tt.hasError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}*/
 	var tests = []struct {
 		name     string
 		vz       *vzapi.Verrazzano
@@ -205,7 +206,12 @@ func TestValidateInstall(t *testing.T) {
 
 }
 
-func TestInstallV1Beta1(t *testing.T) {
+// TestValidateInstallV1Beta1 tests the ValidateInstallV1Beta1 call
+// GIVEN an OpenSearch component and a installv1beta1
+//
+//	WHEN I call ValidateInstallV1Beta1 with defaults
+//	THEN an bool value is returned
+func TestValidateInstallV1Beta1(t *testing.T) {
 	var tests = []struct {
 		name     string
 		vz       *vzapi.Verrazzano
@@ -254,6 +260,11 @@ func TestInstallV1Beta1(t *testing.T) {
 
 }
 
+// TestMonitorOverrides tests the MonitorOverrides call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call MonitorOverrides with defaults
+//	THEN an true is returned
 func TestMonitorOverrides(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
@@ -261,11 +272,21 @@ func TestMonitorOverrides(t *testing.T) {
 	assert.Equal(t, val, true)
 }
 
+// TestIsOperatorInstallSupported tests the IsOperatorInstallSupported call
+// GIVEN an OpenSearch component
+//
+//	WHEN I call IsOperatorInstallSupported with defaults
+//	THEN an true is returned
 func TestIsOperatorInstallSupported(t *testing.T) {
 	val := NewComponent().IsOperatorInstallSupported()
 	assert.Equal(t, val, true)
 }
 
+// TestIsInstalled tests the IsInstalled call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call IsInstalled with defaults
+//	THEN a value showing the status of installation and nil error is returned
 func TestIsInstalled(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&appsv1.StatefulSet{
@@ -291,6 +312,11 @@ func TestIsInstalled(t *testing.T) {
 
 }
 
+// TestReconcile tests the Reconcile call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call Reconcile with defaults
+//	THEN a nil error is returned
 func TestReconcile(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
@@ -298,11 +324,21 @@ func TestReconcile(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestIsOperatorUninstallSupported tests the IsOperatorUninstallSupported call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call IsOperatorUninstallSupported with defaults
+//	THEN a false value is returned
 func TestIsOperatorUninstallSupported(t *testing.T) {
 	val := NewComponent().IsOperatorUninstallSupported()
 	assert.Equal(t, val, false)
 }
 
+// TestPreUninstall tests the PreUninstall call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call PreUninstall with defaults
+//	THEN a nil error is returned
 func TestPreUninstall(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
@@ -310,6 +346,11 @@ func TestPreUninstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestUninstall tests the Uninstall call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call Uninstall with defaults
+//	THEN a nil error is returned
 func TestUninstall(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
@@ -317,6 +358,11 @@ func TestUninstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestPostUninstall tests the PostUninstall call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call PostUninstall with defaults
+//	THEN a nil error is returned
 func TestPostUninstall(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
@@ -324,6 +370,11 @@ func TestPostUninstall(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestIsAvailable tests the IsAvailable call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call IsAvailable with defaults
+//	THEN a value showing availability of opensearch and reason for its unavailability, if any are returned
 func TestIsAvailable(t *testing.T) {
 	tests := []struct {
 		name              string
@@ -350,6 +401,11 @@ func TestIsAvailable(t *testing.T) {
 
 }
 
+// TestIsReadyForComponent tests the IsReady call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call IsReady with defaults
+//	THEN a bool value is returned
 func TestIsReadyForComponent(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	falseValue := false
