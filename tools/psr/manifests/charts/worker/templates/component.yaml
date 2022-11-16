@@ -18,6 +18,7 @@ spec:
         app: psr-worker
         version: v1
     spec:
+      serviceAccountName: {{ template "worker.fullName" .}}
       containers:
         - name: psr-backend
           image: {{  .Values.imageName }}
