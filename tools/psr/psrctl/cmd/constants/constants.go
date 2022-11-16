@@ -23,4 +23,22 @@ const (
 	FlagScenarioDir      = "scenario-directory"
 	FlagScenarioDirShort = "d"
 	FlagScenarioDirHelp  = `a directory that contains a scenario directory at any level in the directory tree.  This allows you to run scenarios that are not compiled into the psrctl binary.`
+
+	WorkerImageName      = "worker-image"
+	WorkerImageNameShort = "w"
+	WorkerImageNameHelp  = `The full PSR image name and tag to use for executing scenarios`
+
+	ImagePullSecretName      = "pull-secret"
+	ImagePullSecretNameShort = "p"
+	ImagePullSecretNameHelp  = `The name of the imagePullSecret for the PSR worker image`
+
+	ImageNameKey        = "imageName"
+	ImagePullSecKey     = "imagePullSecrets[0].name"
+	ImagePullSecDefault = "verrazzano-container-registry"
 )
+
+var defaultWorkerImage string
+
+func GetDefaultWorkerImage() string {
+	return defaultWorkerImage
+}

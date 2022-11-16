@@ -5,7 +5,10 @@ package authproxy
 
 import (
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+
 	"io/fs"
 	"os"
 
@@ -59,7 +62,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// Environment name
 	overrides.Config = &configValues{
 		EnvName:                   vzconfig.GetEnvName(effectiveCR),
-		PrometheusOperatorEnabled: vzconfig.IsPrometheusOperatorEnabled(effectiveCR),
+		PrometheusOperatorEnabled: vzcr.IsPrometheusOperatorEnabled(effectiveCR),
 		IngressClassName:          vzconfig.GetIngressClassName(effectiveCR),
 	}
 

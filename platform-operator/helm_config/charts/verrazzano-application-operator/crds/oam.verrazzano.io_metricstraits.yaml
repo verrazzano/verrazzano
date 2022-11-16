@@ -51,8 +51,7 @@ spec:
                   to `8080`.
                 type: integer
               ports:
-                description: The HTTP ports for the related metrics trait. Defaults
-                  to `8080`.
+                description: The HTTP endpoints for the related metrics.
                 items:
                   description: PortSpec defines an HTTP port and path combination.
                   properties:

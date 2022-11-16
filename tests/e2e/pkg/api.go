@@ -187,8 +187,8 @@ func (api *APIEndpoint) GetIngress(namespace, name string) (*networkingv1.Ingres
 	return &ingress, nil
 }
 
-// GetElasticURL fetches OpenSearch endpoint URL
-func (api *APIEndpoint) GetElasticURL() (string, error) {
+// GetOpensearchURL fetches OpenSearch endpoint URL
+func (api *APIEndpoint) GetOpensearchURL() (string, error) {
 	ingress, err := api.GetIngress("verrazzano-system", "vmi-system-os-ingest")
 	if err != nil {
 		return "", err

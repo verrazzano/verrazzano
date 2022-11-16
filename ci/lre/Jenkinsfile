@@ -289,7 +289,7 @@ pipeline {
                     }
                 }
 
-                stage('security role based access') {
+                stage('security rbac') {
                     steps {
                         runGinkgo('security/rbac')
                     }
@@ -312,7 +312,7 @@ pipeline {
             }
         }
 
-        stage('Hello Helidon Application Test') {
+        stage('examples helidon') {
             when {
                expression {
                    return params.RUN_TESTS

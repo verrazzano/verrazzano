@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -86,7 +87,7 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 		return ctx.Log().ErrorfNewErr("Failed getting DNS suffix: %v", err)
 	}
 
-	if externalDNSEnabled := vzconfig.IsExternalDNSEnabled(effectiveCR); externalDNSEnabled {
+	if externalDNSEnabled := vzcr.IsExternalDNSEnabled(effectiveCR); externalDNSEnabled {
 		overrides.Externaldns = &externalDNSValues{
 			Enabled: externalDNSEnabled,
 		}
@@ -98,15 +99,15 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *verrazzanoValue
 		DNSSuffix: dnsSuffix,
 	}
 
-	overrides.Istio = &istioValues{Enabled: vzconfig.IsIstioEnabled(effectiveCR)}
-	overrides.Keycloak = &keycloakValues{Enabled: vzconfig.IsKeycloakEnabled(effectiveCR)}
-	overrides.Rancher = &rancherValues{Enabled: vzconfig.IsRancherEnabled(effectiveCR)}
-	overrides.PrometheusOperator = &prometheusOperatorValues{Enabled: vzconfig.IsPrometheusOperatorEnabled(effectiveCR)}
-	overrides.PrometheusAdapter = &prometheusAdapterValues{Enabled: vzconfig.IsPrometheusAdapterEnabled(effectiveCR)}
-	overrides.KubeStateMetrics = &kubeStateMetricsValues{Enabled: vzconfig.IsKubeStateMetricsEnabled(effectiveCR)}
-	overrides.PrometheusPushgateway = &prometheusPushgatewayValues{Enabled: vzconfig.IsPrometheusPushgatewayEnabled(effectiveCR)}
-	overrides.PrometheusNodeExporter = &prometheusNodeExporterValues{Enabled: vzconfig.IsPrometheusNodeExporterEnabled(effectiveCR)}
-	overrides.JaegerOperator = &jaegerOperatorValues{Enabled: vzconfig.IsJaegerOperatorEnabled(effectiveCR)}
+	overrides.Istio = &istioValues{Enabled: vzcr.IsIstioEnabled(effectiveCR)}
+	overrides.Keycloak = &keycloakValues{Enabled: vzcr.IsKeycloakEnabled(effectiveCR)}
+	overrides.Rancher = &rancherValues{Enabled: vzcr.IsRancherEnabled(effectiveCR)}
+	overrides.PrometheusOperator = &prometheusOperatorValues{Enabled: vzcr.IsPrometheusOperatorEnabled(effectiveCR)}
+	overrides.PrometheusAdapter = &prometheusAdapterValues{Enabled: vzcr.IsPrometheusAdapterEnabled(effectiveCR)}
+	overrides.KubeStateMetrics = &kubeStateMetricsValues{Enabled: vzcr.IsKubeStateMetricsEnabled(effectiveCR)}
+	overrides.PrometheusPushgateway = &prometheusPushgatewayValues{Enabled: vzcr.IsPrometheusPushgatewayEnabled(effectiveCR)}
+	overrides.PrometheusNodeExporter = &prometheusNodeExporterValues{Enabled: vzcr.IsPrometheusNodeExporterEnabled(effectiveCR)}
+	overrides.JaegerOperator = &jaegerOperatorValues{Enabled: vzcr.IsJaegerOperatorEnabled(effectiveCR)}
 	return nil
 }
 
@@ -170,10 +171,10 @@ func appendVerrazzanoComponentOverrides(effectiveCR *vzapi.Verrazzano, kvs []bom
 }
 
 func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValues, storageOverrides *common.ResourceRequestValues, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
-	overrides.Kibana = &kibanaValues{Enabled: vzconfig.IsOpenSearchDashboardsEnabled(effectiveCR)}
+	overrides.Kibana = &kibanaValues{Enabled: vzcr.IsOpenSearchDashboardsEnabled(effectiveCR)}
 
 	overrides.ElasticSearch = &elasticsearchValues{
-		Enabled: vzconfig.IsOpenSearchEnabled(effectiveCR),
+		Enabled: vzcr.IsOpenSearchEnabled(effectiveCR),
 	}
 	multiNodeCluster, err := common.IsMultiNodeOpenSearch(effectiveCR)
 	if err != nil {
@@ -182,12 +183,12 @@ func appendVMIOverrides(effectiveCR *vzapi.Verrazzano, overrides *verrazzanoValu
 	overrides.ElasticSearch.MultiNodeCluster = multiNodeCluster
 
 	overrides.Prometheus = &prometheusValues{
-		Enabled:  vzconfig.IsPrometheusEnabled(effectiveCR),
+		Enabled:  vzcr.IsPrometheusEnabled(effectiveCR),
 		Requests: storageOverrides,
 	}
 
 	overrides.Grafana = &grafanaValues{
-		Enabled:  vzconfig.IsGrafanaEnabled(effectiveCR),
+		Enabled:  vzcr.IsGrafanaEnabled(effectiveCR),
 		Requests: storageOverrides,
 	}
 	return kvs, nil

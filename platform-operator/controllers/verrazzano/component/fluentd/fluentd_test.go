@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	scheme2 "k8s.io/client-go/kubernetes/scheme"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -414,4 +415,30 @@ func getFakeClient(scheduled int32) clipkg.Client {
 			Revision: 1,
 		},
 	).Build()
+}
+
+// TestReassociateResources tests the fluentd reassociateResources function
+// GIVEN a VMO component
+//
+//	WHEN I call reassociateResources with a fluentd service resource
+//	THEN no error is returned and the fluentd service contains expected Helm labels and annotations
+func TestReassociateResources(t *testing.T) {
+	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
+	// for the Component interface hook
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme2.Scheme).WithObjects(&corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      ComponentName,
+		},
+	}).Build()
+
+	err := ReassociateResources(fakeClient)
+	assert.NoError(t, err)
+	service := corev1.Service{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &service)
+	assert.NoError(t, err)
+	assert.NotContains(t, service.Annotations["helm.sh/resource-policy"], "keep")
 }

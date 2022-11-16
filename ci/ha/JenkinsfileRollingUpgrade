@@ -341,7 +341,7 @@ pipeline {
                     }
                 }
 
-                stage('Install and Test Hello-Helidon') {
+                stage('examples helidon') {
                     when {
                         expression { TESTS_FAILED == false }
                     }

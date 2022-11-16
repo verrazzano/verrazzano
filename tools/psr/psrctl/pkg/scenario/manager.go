@@ -5,6 +5,7 @@ package scenario
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/embedded"
@@ -18,12 +19,13 @@ type Manager struct {
 	Manifest            embedded.PsrManifests
 	ExternalScenarioDir string
 	Namespace           string
+	HelmOverrides       []helm.HelmOverrides
 	DryRun              bool
 	Verbose             bool
 }
 
 // NewManager returns a scenario Manager
-func NewManager(namespace string, externalScenarioDir string) (Manager, error) {
+func NewManager(namespace string, externalScenarioDir string, helmOverrides ...helm.HelmOverrides) (Manager, error) {
 	client, err := k8sutil.GetCoreV1Client(vzlog.DefaultLogger())
 	if err != nil {
 		return Manager{}, fmt.Errorf("Failed to get CoreV1 client: %v", err)
@@ -33,6 +35,7 @@ func NewManager(namespace string, externalScenarioDir string) (Manager, error) {
 		Log:                 vzlog.DefaultLogger(),
 		Manifest:            *embedded.Manifests,
 		ExternalScenarioDir: externalScenarioDir,
+		HelmOverrides:       helmOverrides,
 		Client:              client,
 		Verbose:             true,
 	}

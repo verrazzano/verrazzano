@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
@@ -63,6 +64,7 @@ const (
 	weblogicMetricName             metricName = weblogic.ComponentName
 	nginxMetricName                metricName = nginx.ComponentName
 	certmanagerMetricName          metricName = certmanager.ComponentName
+	clusterOperatorMetricName      metricName = clusteroperator.ComponentName
 	externaldnsMetricName          metricName = externaldns.ComponentName
 	rancherMetricName              metricName = rancher.ComponentName
 	verrazzanoMetricName           metricName = verrazzano.ComponentName
@@ -160,6 +162,7 @@ func initMetricComponentMap() map[metricName]*MetricsComponent {
 		weblogicMetricName:             newMetricsComponent("weblogic"),
 		nginxMetricName:                newMetricsComponent("nginx"),
 		certmanagerMetricName:          newMetricsComponent("certManager"),
+		clusterOperatorMetricName:      newMetricsComponent("cluster_operator"),
 		externaldnsMetricName:          newMetricsComponent("externalDNS"),
 		rancherMetricName:              newMetricsComponent("rancher"),
 		verrazzanoMetricName:           newMetricsComponent("verrazzano"),
