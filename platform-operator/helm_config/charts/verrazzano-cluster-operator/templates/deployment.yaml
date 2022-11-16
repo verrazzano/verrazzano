@@ -30,6 +30,8 @@ spec:
         volumeMounts:
           - name: cluster-selector
             mountPath: /var/syncRancherClusters
+          - name: webhook-certs
+            mountPath: /etc/certs
       serviceAccountName: {{ .Values.name }}
       volumes:
         - name: cluster-selector
@@ -39,3 +41,5 @@ spec:
             - key: selector.yaml
               path: selector.yaml
             optional: true
+        - name: webhook-certs
+          emptyDir: { }

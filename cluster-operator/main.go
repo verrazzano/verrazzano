@@ -8,14 +8,16 @@ import (
 	"os"
 
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
+	"github.com/verrazzano/verrazzano/cluster-operator/internal/certificate"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -44,6 +46,7 @@ func main() {
 	var enableLeaderElection bool
 	var probeAddr string
 	var enableWebhooks bool
+	var certDir string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -51,6 +54,7 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", true,
 		"Enable webhooks")
+	flag.StringVar(&certDir, "cert-dir", "/etc/certs/", "The directory containing tls.crt and tls.key.")
 
 	opts := kzap.Options{}
 	opts.BindFlags(flag.CommandLine)
@@ -116,6 +120,32 @@ func main() {
 	}
 
 	if enableWebhooks {
+		config, err := ctrl.GetConfig()
+		if err != nil {
+			log.Errorf("Failed to get kubeconfig: %v", err)
+			os.Exit(1)
+		}
+
+		kubeClient, err := kubernetes.NewForConfig(config)
+		if err != nil {
+			log.Errorf("Failed to get clientset", err)
+			os.Exit(1)
+		}
+
+		log.Debug("Setting up certificates for webhook")
+		caCert, err := certificate.SetupCertificates(certDir)
+		if err != nil {
+			log.Errorf("Failed to setup certificates for webhook: %v", err)
+			os.Exit(1)
+		}
+		log.Debug("Updating webhook configuration")
+		// VMC validating webhook
+		err = certificate.UpdateValidatingWebhookConfiguration(kubeClient, caCert, certificate.VerrazzanoManagedClusterValidatingWebhookName)
+		if err != nil {
+			log.Errorf("Failed to update VerrazzanoManagedCluster validation webhook configuration: %v", err)
+			os.Exit(1)
+		}
+
 		// Set up the validation webhook for VMC
 		log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
 		if err := (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
