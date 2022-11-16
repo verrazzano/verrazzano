@@ -13,7 +13,7 @@ webhooks:
         - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
-        name: {{ .Values.name }}-webhook
+        name: {{ .Values.name }}
         namespace: {{ .Values.namespace }}
         path: /validate-clusters-verrazzano-io-v1alpha1-verrazzanomanagedcluster
     rules:

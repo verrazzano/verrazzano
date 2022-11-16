@@ -32,6 +32,13 @@ spec:
             mountPath: /var/syncRancherClusters
           - name: webhook-certs
             mountPath: /etc/certs
+        ports:
+          - containerPort: 9443
+            name: https-webhook
+            protocol: TCP
+          - containerPort: 9100
+            name: http-metric
+            protocol: TCP
       serviceAccountName: {{ .Values.name }}
       volumes:
         - name: cluster-selector
