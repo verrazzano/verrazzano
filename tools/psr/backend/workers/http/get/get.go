@@ -5,6 +5,7 @@ package http
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"sync/atomic"
 
@@ -137,5 +138,8 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 		" total successful requests %v, total failed requests %v",
 		lc, ls, lf)
 	log.Debugf(logMsg)
+	// read the body and close
+	io.ReadAll(resp.Body)
+	resp.Body.Close()
 	return nil
 }

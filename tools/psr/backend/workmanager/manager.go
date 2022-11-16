@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/postlogs"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/scale"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/writelogs"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/operator/scaledomain"
 )
 
 var startMetricsFunc = metrics2.StartMetricsServerOrDie
@@ -87,6 +88,8 @@ func getWorker(wt string) (spi.Worker, error) {
 		return postlogs.NewPostLogsWorker()
 	case config.WorkerTypeScale:
 		return scale.NewScaleWorker()
+	case config.WorkerTypeScaleDomain:
+		return scaledomain.NewScaleDomainWorker()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}
