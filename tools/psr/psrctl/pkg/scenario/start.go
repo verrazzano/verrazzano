@@ -25,7 +25,7 @@ type WorkerType struct {
 
 // StartScenario starts a Scenario
 func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
-	helmReleases := []types.NamespacedName{}
+	helmReleases := []HelmRelease{}
 
 	// Make sure the scenario is not running already
 	running, err := m.FindRunningScenarios()
@@ -41,14 +41,15 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 	// Helm install each use case
 	var i int
 	for _, uc := range scman.Usecases {
-		helmOverrides := []helmcli.HelmOverrides{}
+		// Create the set of HelmOverrides, initialized from the manager settings
+		helmOverrides := m.HelmOverrides
 
-		// This is the usecase path, E.G. manifests/usecases/opensearch/getlogs/getlogs.yaml
+		// Build the usecase path, E.G. manifests/usecases/opensearch/getlogs/getlogs.yaml
 		ucOverride := filepath.Join(m.Manifest.UseCasesAbsDir, uc.UsecasePath)
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: ucOverride})
 
-		// This is the scenario override path for the use case
-		scOverride := filepath.Join(scman.ScenarioUsecaseOverridesDir, uc.OverrideFile)
+		// Build scenario override path for the use case, E.G manifests/scenarios/opensearch/s1/usecase-overrides/getlogs-fast.yaml
+		scOverride := filepath.Join(scman.ScenarioUsecaseOverridesAbsDir, uc.OverrideFile)
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: scOverride})
 
 		wType, err := readWorkerType(ucOverride)
@@ -66,11 +67,17 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 		if err != nil {
 			return string(stderr), err
 		}
-		helmReleases = append(helmReleases, types.NamespacedName{
-			Namespace: m.Namespace,
-			Name:      relname,
-		})
-		i = i + 1
+
+		// Save the HelmRelease info
+		helmRelease := HelmRelease{
+			NamespacedName: types.NamespacedName{
+				Namespace: m.Namespace,
+				Name:      relname,
+			},
+			Usecase: uc,
+		}
+		helmReleases = append(helmReleases, helmRelease)
+		i++
 	}
 
 	// Save the scenario in a ConfigMap

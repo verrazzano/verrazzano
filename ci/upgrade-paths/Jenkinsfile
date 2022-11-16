@@ -350,7 +350,7 @@ pipeline {
                                 registerManagedClusters()
                             }
                         }
-                        stage('Verify register managed clusters') {
+                        stage('verify-register') {
                             steps {
                                 verifyRegisterManagedClusters(true)
                             }
@@ -384,31 +384,31 @@ pipeline {
                                 runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
                             }
                         }
-                        stage ('Deploy Helidon example application - single cluster') {
+                        stage ('examples helidon') {
                             when { expression { isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
                             steps {
                                 runGinkgoVerify('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true", "hello-helidon-sc")
                             }
                         }
-                        stage ('Deploy Helidon example application - multi cluster') {
+                        stage ('mc examples helidon') {
                             when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
                             steps {
                                 runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "false", "true", "true")
                             }
                         }
-                        stage ('Deploy Coherence example application - single cluster') {
+                        stage ('coherence workload') {
                             when { expression { isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
                             steps {
                                 runGinkgoVerify('workloads/coherence', "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "true", "hello-coherence-sc")
                             }
                         }
-                        stage ('Deploy Coherence example application - multi cluster') {
+                        stage ('mc coherence workload') {
                             when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") && checkUpgradeBelowVer("v1.3.0") } }
                             steps {
                                 runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "true", "true")
                             }
                         }
-                        stage('Prometheus pre-upgrade') {
+                        stage('deployment metrics') {
                             steps {
                                 runGinkgoVerifyParallel('Prometheus pre-upgrade', 'metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompreupgrade", "false", "true", "true", "deploymetrics")
                             }
@@ -438,19 +438,19 @@ pipeline {
         stage('Verify Upgrade') {
             // Rerun some stages to verify the upgrade
             parallel {
-                stage ('Verify Register') {
+                stage ('verify-register') {
                     when { expression { isMultiCluster() } }
                     steps {
                         verifyRegisterManagedClusters(false)
                     }
                 }
-                stage ('Verify Managed Cluster Permissions') {
+                stage ('verify-permissions') {
                     when { expression { isMultiCluster() } }
                     steps {
                         verifyManagedClusterPermissions()
                     }
                 }
-                stage ('Verify Metrics') {
+                stage ('system component metrics') {
                     steps {
                         runGinkgoRandomizeParallel('metrics/syscomponents')
                     }
@@ -472,7 +472,7 @@ pipeline {
                     }
                 }
 
-                stage ('multicluster/verify-install') {
+                stage ('mc verify-install') {
                     when { expression { isMultiCluster() } }
                     steps {
                         runGinkgoRandomizeParallel('multicluster/verify-install')
@@ -482,7 +482,7 @@ pipeline {
         }
 
         // Run Verify Registry
-        stage('Verify Registry') {
+        stage('verify-registry') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                     script {
@@ -563,7 +563,7 @@ pipeline {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
                             }
                         }
-                        stage('Prometheus post-upgrade') {
+                        stage('deployment metrics') {
                             steps {
                                 runGinkgoVerifyParallel('Prometheus post-upgrade', 'metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompostupgrade", "true", "false", "false", "deploymetrics")
                             }
@@ -573,7 +573,7 @@ pipeline {
                                 runGinkgoRandomizeAdmin("scripts/install", "${TEST_DUMP_ROOT}/install-scripts")
                             }
                         }
-                        stage ('Multi-cluster Verify Api') {
+                        stage ('mc verify-api') {
                             when { expression { isMultiCluster() } }
                             steps {
                                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -595,12 +595,12 @@ pipeline {
                 stage ('Verify & Uninstall Example Apps') {
                     when { expression { isMultiCluster() } }
                     parallel {
-                        stage ('Examples Helidon') {
+                        stage ('mc examples helidon') {
                             steps {
                                 runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "true", "false", "false")
                             }
                         }
-                        stage ('Verify/Uninstall Example Coherence') {
+                        stage ('mc coherence workload') {
                             steps {
                                 runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", checkUpgradeBelowVer("v1.3.0"), "false", "false")
                             }
