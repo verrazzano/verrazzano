@@ -6,6 +6,7 @@ package embedded
 import (
 	"embed"
 	"github.com/verrazzano/verrazzano/tools/psr"
+	"io/fs"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -69,7 +70,12 @@ func createPsrTempDir() (string, error) {
 
 // newPsrManifests creates a new PsrManifests structure
 func newPsrManifests(tmpRootDir string) (PsrManifests, error) {
-	copyManifestsDir(tmpRootDir)
+	if err := copyManifestsDir(tmpRootDir); err != nil {
+		return PsrManifests{}, err
+	}
+	if err := copyOverridesDir(tmpRootDir); err != nil {
+		return PsrManifests{}, err
+	}
 
 	man := PsrManifests{
 		RootTmpDir:        tmpRootDir,
@@ -83,14 +89,12 @@ func newPsrManifests(tmpRootDir string) (PsrManifests, error) {
 
 // copyManifestsDir copies the embedded manifests to a directory
 func copyManifestsDir(rootDir string) error {
-	err := writeDirDeep(rootDir, "manifests", psr.GetEmbeddedManifests())
-	if err != nil {
-		return err
-	}
-	if err := writeDirDeep(rootDir, "out", psr.GetGeneratedChartOverrides()); err != nil {
-		return err
-	}
-	return nil
+	return writeDirDeep(rootDir, "manifests", psr.GetEmbeddedManifests())
+}
+
+// copyManifestsDir copies the embedded manifests to a directory
+func copyOverridesDir(rootDir string) error {
+	return writeDirDeep(rootDir, "out", psr.GetGeneratedChartOverrides())
 }
 
 // writeDirDeep writes the embedded manifests files to a temp directory,
@@ -102,31 +106,46 @@ func writeDirDeep(destDir string, embeddedParent string, fs embed.FS) error {
 	}
 	for _, d := range dirEntries {
 		if d.IsDir() {
-			dir := filepath.Join(destDir, d.Name())
-			err := os.Mkdir(dir, 0700)
-			if err != nil && !os.IsExist(err) {
-				return err
-			}
-			embeddedChild := filepath.Join(embeddedParent, d.Name())
-			if err := writeDirDeep(dir, embeddedChild, fs); err != nil {
+			if err := handleEmbeddedDir(destDir, embeddedParent, fs, d); err != nil {
 				return err
 			}
 			continue
 		}
 		// Write the file
-		inEmbeddedPath := filepath.Join(embeddedParent, d.Name())
-		f, err := fs.ReadFile(inEmbeddedPath)
-		if err != nil {
+		if err := handleEmbeddedFile(destDir, embeddedParent, fs, d); err != nil {
 			return err
 		}
-		if err := createDirIfNecessary(destDir); err != nil {
-			return err
-		}
-		outPath := filepath.Join(destDir, d.Name())
-		err = os.WriteFile(outPath, f, 0600)
-		if err != nil {
-			return err
-		}
+	}
+	return nil
+}
+
+func handleEmbeddedFile(destDir string, embeddedParent string, fs embed.FS, d fs.DirEntry) error {
+	inEmbeddedPath := filepath.Join(embeddedParent, d.Name())
+	f, err := fs.ReadFile(inEmbeddedPath)
+	if err != nil {
+		return err
+	}
+	// May be needed if it's a full file path, e.g., embed path/*.yaml
+	if err := createDirIfNecessary(destDir); err != nil {
+		return err
+	}
+	outPath := filepath.Join(destDir, d.Name())
+	err = os.WriteFile(outPath, f, 0600)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func handleEmbeddedDir(destDir string, embeddedParent string, fs embed.FS, d fs.DirEntry) error {
+	dir := filepath.Join(destDir, d.Name())
+	err := os.Mkdir(dir, 0700)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
+	embeddedChild := filepath.Join(embeddedParent, d.Name())
+	if err := writeDirDeep(dir, embeddedChild, fs); err != nil {
+		return err
 	}
 	return nil
 }
