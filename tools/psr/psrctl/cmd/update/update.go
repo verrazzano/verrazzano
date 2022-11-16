@@ -24,11 +24,9 @@ and apply them.  For example, if you are running a scenario with the -d paramete
 a custom scenario, you can modify those scenario files and update the running scenario.  
 You cannot change the scenario.yaml file, you can only change the usecase-override files`
 	helpExample = `
-// Update the backend image for all running scenarios
-psrctl update -s ops-s1 --set imageName=ghcr.io/verrazzano/psr-backend:xyz
-
-// Update the scenario usecase overrides for a custom scenario
-psrctl update -s custom-s1 -d mycustom-scenario-dir`
+// Update the backend image for all workers in running scenario ops-s1
+psrctl update -s ops-s1 -w=ghcr.io/verrazzano/psr-backend:xyz
+`
 )
 
 var scenarioID string

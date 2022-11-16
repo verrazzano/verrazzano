@@ -12,7 +12,7 @@ type Usecase struct {
 	Description  string
 }
 
-// ScenarioManifest specifies a PSR scenario manifest which consists of multiple use cases
+// ScenarioManifest specifies a PSR scenario manifest which consists of multiple use cases.
 // The manifest represents files on disk, not a runtime scenario.
 type ScenarioManifest struct {
 	Name        string

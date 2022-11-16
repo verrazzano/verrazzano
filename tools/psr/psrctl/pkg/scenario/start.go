@@ -48,7 +48,7 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 		ucOverride := filepath.Join(m.Manifest.UseCasesAbsDir, uc.UsecasePath)
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: ucOverride})
 
-		// This is the scenario override path for the use case
+		// This is the scenario override path for the use case, E.G manifests/scenarios/opensearch/s1/usecase-overrides/getlogs-fast.yaml
 		scOverride := filepath.Join(scman.ScenarioUsecaseOverridesDir, uc.OverrideFile)
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: scOverride})
 
