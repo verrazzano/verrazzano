@@ -61,6 +61,7 @@ helm install psr-scale manifests/charts/worker -f manifests/usecases/opensearch/
 
 The override file for the scale use case might look like this:
 ```
+global:
   envVars:
     PSR_WORKER_TYPE: scale
     OPEN_SEARCH_TIER: master
@@ -159,7 +160,7 @@ helm install psr-writelogs manifests/charts/worker --set global.envVars.PSR_WORK
 ```
 
 ## Workers
-All of the workers are deployed using the same worker Helm chart.  Every worker, except the example, has the following requirements: 
+All of the workers are deployed using the same worker Helm chart. Worker configs are stored in global.envVars. Every worker, except the example, has the following requirements: 
 * must emit metrics
 * must not log while doing work, unless that is the purpose of the worker
 
@@ -223,11 +224,13 @@ The PostLogs worker makes batch http post requests to OpenSearch, in-cluster. Th
 
 #### Configuration
 ```
-LOG_ENTRIES - number of log messages per post request
-default: 1
-
-LOG_LENGTH - number of characters per log message
-defaultL 1
+global:
+  envVars:
+    LOG_ENTRIES - number of log messages per post request
+    default: 1
+    
+    LOG_LENGTH - number of characters per log message
+    default: 1
 ```
 
 #### Run
@@ -241,17 +244,16 @@ The Scale worker continuously scales one tier of OpenSearch out and in. This wor
 
 #### Configuration
 ```
-OPEN_SEARCH_TIER - OpenSearch tier
-default: master
-
-SCALE_DELAY_PER_TIER - scale delay
-default: 5s
-
-MIN_REPLICA_COUNT - number of replicas to scale in to
-default: 3
-
-MAX_REPLICA_COUNT - number of replicas to scale out to
-default: 5
+global:
+  envVars:
+    OPEN_SEARCH_TIER - OpenSearch tier
+    default: master
+    
+    MIN_REPLICA_COUNT - number of replicas to scale in to
+    default: 3
+    
+    MAX_REPLICA_COUNT - number of replicas to scale out to
+    default: 5
 ```
 
 #### Run
@@ -265,17 +267,19 @@ The HTTPGet worker makes http requests to the endpoint for a specified service. 
 
 #### Configuration
 ```
-SERVICE_NAME - service name
-default: ""
-
-SERVICE_NAMESPACE - service namespace
-default: ""
-
-SERVICE_PORT - service port
-default: ""
-
-PATH - service path 
-default: ""
+global:
+  envVars:
+    SERVICE_NAME - service name
+    default: ""
+    
+    SERVICE_NAMESPACE - service namespace
+    default: ""
+    
+    SERVICE_PORT - service port
+    default: ""
+    
+    PATH - service path 
+    default: ""
 ```
 
 #### Run
