@@ -163,7 +163,9 @@ pipeline {
                     DOCKER_IMAGE_TAG = "v${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
                     def analysisurl="https://verrazzano.io/" + env.VERRAZZANO_VERSION + "/docs/troubleshooting/diagnostictools/analysisadvice/"
                     def effectiveVersion=env.VERRAZZANO_VERSION
+                    println effectiveVersion
                     setEffectiveDocsVersion()
+                    println effectiveVersion
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
                     def currentCommitHash = env.GIT_COMMIT
