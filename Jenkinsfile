@@ -69,7 +69,6 @@ pipeline {
         DOCKER_CLUSTER_PUBLISH_IMAGE_NAME = 'verrazzano-cluster-operator'
         DOCKER_CLUSTER_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_CLUSTER_PUBLISH_IMAGE_NAME : env.DOCKER_CLUSTER_CI_IMAGE_NAME}"
         CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
-        USE_V8O_DOC_STAGE = "${env.BRANCH_NAME ==~ /^release-.*/ ? 'false' : 'true'}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         DOCKER_CREDS = credentials('github-packages-credentials-rw')
@@ -162,8 +161,9 @@ pipeline {
                         env.VERRAZZANO_VERSION = "${env.VERRAZZANO_VERSION}-${env.BUILD_NUMBER}+${SHORT_COMMIT_HASH}"
                     }
                     DOCKER_IMAGE_TAG = "v${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+                    def analysisurl="https://verrazzano.io/" + env.VERRAZZANO_VERSION + "/docs/troubleshooting/diagnostictools/analysisadvice/"
+                    def effectiveVersion=env.VERRAZZANO_VERSION
                     setEffectiveDocsVersion()
-                    echo $USE_V8O_DOC_STAGE
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
                     def currentCommitHash = env.GIT_COMMIT
@@ -849,12 +849,8 @@ def metricBuildDuration() {
 
 def setEffectiveDocsVersion() {
     sh """
-        echo "USE_V8O_DOC_STAGE before is: $USE_V8O_DOC_STAGE"
-        export USE_V8O_DOC_STAGE="${env.VERRAZZANO_VERSION}""
-        export url="https://verrazzano.io/$USE_V8O_DOC_STAGE/docs/troubleshooting/diagnostictools/analysisadvice/"
-        if curl $url --compressed | grep '404 Page not found'; then
-          export USE_V8O_DOC_STAGE="devel"
+        if curl $analysisurl | grep '404 Page not found'; then
+            export effectiveVersion="devel"
         fi
-        echo "USE_V8O_DOC_STAGE after is: $USE_V8O_DOC_STAGE"
     """
 }
