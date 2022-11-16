@@ -30,7 +30,7 @@ var verbose bool
 func NewCmdExplain(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return explainCmdExplain(cmd, vzHelper)
+		return RunCmdExplain(cmd, vzHelper)
 	}
 	cmd.Example = helpExample
 
@@ -40,8 +40,8 @@ func NewCmdExplain(vzHelper helpers.VZHelper) *cobra.Command {
 	return cmd
 }
 
-// explainCmdExplain - explain the "psrctl explain" command
-func explainCmdExplain(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+// RunCmdExplain - explain the "psrctl explain" command
+func RunCmdExplain(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	fmt.Println()
 	fmt.Println("Listing available scenarios ...")
 

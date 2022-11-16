@@ -363,6 +363,20 @@ func IsVerrazzanoComponentEnabled(cr runtime.Object) bool {
 	return true
 }
 
+// IsClusterOperatorEnabled returns false only if Cluster Operator is explicitly disabled in the CR
+func IsClusterOperatorEnabled(cr runtime.Object) bool {
+	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.ClusterOperator != nil && vzv1alpha1.Spec.Components.ClusterOperator.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.ClusterOperator.Enabled
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.ClusterOperator != nil && vzv1beta1.Spec.Components.ClusterOperator.Enabled != nil {
+			return *vzv1beta1.Spec.Components.ClusterOperator.Enabled
+		}
+	}
+	return true
+}
+
 // IsWebLogicOperatorEnabled returns false if WebLogicOperator is explicitly disabled in the CR
 func IsWebLogicOperatorEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
