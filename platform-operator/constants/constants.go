@@ -78,7 +78,7 @@ const OpensearchURLEnvVar = "OPENSEARCH_URL"
 const OpensearchIngress = "vmi-system-os-ingest"
 
 // OpensearchdashboardsIngress is the name of the ingress for Opensearchdashboards
-const OpensearchDashboardsIngress = "vmi-system-opensearchdashboards"
+const OpensearchDashboardsIngress = "vmi-system-osd"
 
 // GrafanaIngress is the name of the ingress for Grafana
 const GrafanaIngress = "vmi-system-grafana"

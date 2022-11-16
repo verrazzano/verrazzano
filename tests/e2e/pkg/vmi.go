@@ -52,7 +52,7 @@ func VerifyOpenSearchComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiH
 }
 
 func VerifyOpenSearchDashboardsComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *UsernamePassword) bool {
-	return VerifySystemVMIComponent(log, api, sysVmiHTTPClient, vmiCredentials, "vmi-system-opensearchdashboards", "https://opensearchdashboards.vmi.system")
+	return VerifySystemVMIComponent(log, api, sysVmiHTTPClient, vmiCredentials, "vmi-system-osd", "https://osd.vmi.system")
 }
 
 func VerifyPrometheusComponent(log *zap.SugaredLogger, api *APIEndpoint, sysVmiHTTPClient *retryablehttp.Client, vmiCredentials *UsernamePassword) bool {

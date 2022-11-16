@@ -59,7 +59,7 @@ const esURL = "opensearch." + dnsDomain
 const promURL = "prometheus." + dnsDomain
 const grafanaURL = "grafana." + dnsDomain
 const kialiURL = "kiali." + dnsDomain
-const kibanaURL = "opensearchdashboards." + dnsDomain
+const kibanaURL = "osd." + dnsDomain
 const rancherURL = "rancher." + dnsDomain
 const consoleURL = "verrazzano." + dnsDomain
 const jaegerURL = "jaeger." + dnsDomain
@@ -1572,7 +1572,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 			},
 		},
 		&networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-opensearchdashboards"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-osd"},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
 					{Host: kibanaURL},
@@ -1759,7 +1759,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 			},
 		},
 		&networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-opensearchdashboards"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-osd"},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
 					{Host: kibanaURL},

@@ -28,7 +28,7 @@ const (
 	vzSysRealm        = "verrazzano-system"
 	realmMgmt         = "realm-management"
 	viewUsersRole     = "view-users"
-	osdURI            = "opensearchdashboards.vmi.system."
+	osdURI            = "osd.vmi.system."
 	osURI             = "opensearch.vmi.system."
 	grafanaURI        = "grafana.vmi.system."
 	prometheusURI     = "prometheus.vmi.system."

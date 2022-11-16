@@ -245,8 +245,8 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				return result
 			}
 			Eventually(kibanaPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "kibana pods did not all show up")
-			Expect(ingressURLs).To(HaveKey("vmi-system-opensearchdashboards"), "Ingress vmi-system-opensearchdashboards not found")
-			assertOidcIngressByName("vmi-system-opensearchdashboards")
+			Expect(ingressURLs).To(HaveKey("vmi-system-osd"), "Ingress vmi-system-osd not found")
+			assertOidcIngressByName("vmi-system-osd")
 		})
 
 		t.It("Prometheus helm override for replicas is in effect", Label("f:observability.monitoring.prom"), func() {

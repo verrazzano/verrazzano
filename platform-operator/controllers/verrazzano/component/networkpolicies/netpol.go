@@ -58,7 +58,7 @@ var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-es-master"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-es-data"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-os-ingest"},
-	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-opensearchdashboards"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-osd"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-grafana"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "weblogic-operator"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "coherence-operator"},
