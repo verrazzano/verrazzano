@@ -19,12 +19,15 @@ import (
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 )
 
 const (
 	createdByLabel      = "app.kubernetes.io/created-by"
 	createdByVerrazzano = "verrazzano"
 	localClusterName    = "local"
+
+	finalizerName = "verrazzano.io/rancher-cluster"
 )
 
 type RancherClusterReconciler struct {
@@ -58,7 +61,7 @@ func (r *RancherClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	cluster := &unstructured.Unstructured{}
 	cluster.SetGroupVersionKind(gvk)
-	err := r.Client.Get(context.TODO(), req.NamespacedName, cluster)
+	err := r.Get(context.TODO(), req.NamespacedName, cluster)
 	if err != nil && !errors.IsNotFound(err) {
 		return ctrl.Result{}, err
 	}
@@ -69,11 +72,18 @@ func (r *RancherClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	// if the deletion timestamp is set, delete the corresponding VMC
-	if cluster.GetDeletionTimestamp() != nil {
-		if err := r.deleteVMC(cluster); err != nil {
-			return ctrl.Result{}, err
+	if !cluster.GetDeletionTimestamp().IsZero() {
+		if vzstring.SliceContainsString(cluster.GetFinalizers(), finalizerName) {
+			if err := r.deleteVMC(cluster); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, r.removeFinalizer(cluster)
+	}
+
+	// add a finalizer to the Rancher cluster if it doesn't already exist
+	if err := r.ensureFinalizer(cluster); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// ensure the VMC exists
@@ -82,6 +92,32 @@ func (r *RancherClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// ensureFinalizer adds a finalizer to the Rancher cluster if the finalizer is not already present
+func (r *RancherClusterReconciler) ensureFinalizer(cluster *unstructured.Unstructured) error {
+	// do not add finalizer to the "local" cluster resource
+	if localClusterName == cluster.GetName() {
+		return nil
+	}
+	if finalizers, added := vzstring.SliceAddString(cluster.GetFinalizers(), finalizerName); added {
+		cluster.SetFinalizers(finalizers)
+		if err := r.Update(context.TODO(), cluster); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// removeFinalizer removes the finalizer from the Rancher cluster resource
+func (r *RancherClusterReconciler) removeFinalizer(cluster *unstructured.Unstructured) error {
+	finalizers := vzstring.RemoveStringFromSlice(cluster.GetFinalizers(), finalizerName)
+	cluster.SetFinalizers(finalizers)
+
+	if err := r.Update(context.TODO(), cluster); err != nil {
+		return err
+	}
+	return nil
 }
 
 // getClusterDisplayName returns the displayName spec field from the Rancher cluster resource
@@ -99,14 +135,14 @@ func (r *RancherClusterReconciler) getClusterDisplayName(cluster *unstructured.U
 // ensureVMC ensures that a VMC exists for the Rancher cluster. It will also set the Rancher cluster id in the VMC status
 // if it is not already set.
 func (r *RancherClusterReconciler) ensureVMC(cluster *unstructured.Unstructured) error {
+	// ignore the "local" cluster
+	if localClusterName == cluster.GetName() {
+		return nil
+	}
+
 	displayName, err := r.getClusterDisplayName(cluster)
 	if err != nil {
 		return err
-	}
-
-	// ignore the "local" cluster
-	if displayName == localClusterName {
-		return nil
 	}
 
 	// attempt to create the VMC, if it already exists we just ignore the error
@@ -141,14 +177,14 @@ func (r *RancherClusterReconciler) ensureVMC(cluster *unstructured.Unstructured)
 
 // deleteVMC deletes the VMC associated with a Rancher cluster
 func (r *RancherClusterReconciler) deleteVMC(cluster *unstructured.Unstructured) error {
+	// ignore the "local" cluster
+	if localClusterName == cluster.GetName() {
+		return nil
+	}
+
 	displayName, err := r.getClusterDisplayName(cluster)
 	if err != nil {
 		return err
-	}
-
-	// ignore the "local" cluster
-	if displayName == localClusterName {
-		return nil
 	}
 
 	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{}

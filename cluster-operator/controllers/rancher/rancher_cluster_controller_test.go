@@ -77,6 +77,7 @@ func TestReconcileDeleteVMC(t *testing.T) {
 	cluster := newCattleCluster(clusterName, displayName)
 	now := metav1.Now()
 	cluster.SetDeletionTimestamp(&now)
+	cluster.SetFinalizers([]string{finalizerName})
 	vmc := newVMC(displayName)
 	vmc.Status.RancherRegistration.ClusterID = clusterName
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(cluster, vmc).Build()
@@ -90,6 +91,13 @@ func TestReconcileDeleteVMC(t *testing.T) {
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: displayName, Namespace: vzconst.VerrazzanoMultiClusterNamespace}, vmc)
 	asserts.Error(err)
 	asserts.True(errors.IsNotFound(err))
+
+	// since the last finalizer was removed from the Rancher cluster, the cluster should be gone as well
+	cluster = &unstructured.Unstructured{}
+	cluster.SetGroupVersionKind(gvk)
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName}, cluster)
+	asserts.Error(err)
+	asserts.True(errors.IsNotFound(err))
 }
 
 // GIVEN a Rancher cluster resource is being deleted and the VMC does not exist
@@ -101,6 +109,7 @@ func TestReconcileDeleteVMCNotFound(t *testing.T) {
 	cluster := newCattleCluster(clusterName, displayName)
 	now := metav1.Now()
 	cluster.SetDeletionTimestamp(&now)
+	cluster.SetFinalizers([]string{finalizerName})
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(cluster).Build()
 	reconciler := newRancherClusterReconciler(fakeClient)
 	request := newRequest(clusterName)
@@ -129,7 +138,7 @@ func TestReconcileClusterGone(t *testing.T) {
 func TestReconcileLocalCluster(t *testing.T) {
 	asserts := assert.New(t)
 
-	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(newCattleCluster(clusterName, localClusterName)).Build()
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(newCattleCluster(localClusterName, localClusterName)).Build()
 	reconciler := newRancherClusterReconciler(fakeClient)
 	request := newRequest(clusterName)
 
