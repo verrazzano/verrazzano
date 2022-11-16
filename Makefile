@@ -75,7 +75,7 @@ test-platform-operator-install-logs:
 	kubectl logs -f -n verrazzano-install $(shell kubectl get pods -n verrazzano-install --no-headers | grep "^verrazzano-platform-operator-" | cut -d ' ' -f 1)
 
 .PHONY: precommit
-precommit: precommit-check precommit-build unit-test-coverage unit-test-coverage-number
+precommit: precommit-check precommit-build unit-test-coverage get-unit-test-coverage-master-release
 
 .PHONY: precommit-nocover
 precommit-nocover: precommit-check precommit-build unit-test
@@ -91,9 +91,9 @@ precommit-build:
 unit-test-coverage:
 	${SCRIPT_DIR}/coverage.sh html
 
-.PHONY: unit-test-coverage-number
-unit-test-coverage-number:
-	${SCRIPT_DIR}/coverage-number.sh
+.PHONY: get-unit-test-coverage-master-release
+get-unit-test-coverage-master-release:
+	${SCRIPT_DIR}/coverage-number-comparison.sh
 
 .PHONY: unit-test
 unit-test:

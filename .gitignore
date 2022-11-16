@@ -31,6 +31,7 @@ coverageTmp.cov
 coverage.html
 coverage.xml
 coverage.raw.cov
+unit-test-coverage-number.txt
 out/
 **/test-report.xml
 **/*test-result.xml
