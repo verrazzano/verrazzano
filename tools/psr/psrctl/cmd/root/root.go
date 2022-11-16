@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/list"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/start"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/stop"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/update"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/version"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -37,9 +38,10 @@ func NewRootCmd(vzHelper helpers.VZHelper) *cobra.Command {
 
 	// Add commands
 	cmd.AddCommand(explain.NewCmdExplain(vzHelper))
+	cmd.AddCommand(list.NewCmdList(vzHelper))
 	cmd.AddCommand(start.NewCmdStart(vzHelper))
 	cmd.AddCommand(stop.NewCmdStop(vzHelper))
-	cmd.AddCommand(list.NewCmdList(vzHelper))
+	cmd.AddCommand(update.NewCmdUpdate(vzHelper))
 	cmd.AddCommand(version.NewCmdVersion(vzHelper))
 
 	return cmd

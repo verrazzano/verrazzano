@@ -46,7 +46,7 @@ func (m Manager) ListScenarioManifests() ([]ScenarioManifest, error) {
 		}
 
 		// Build the parent directory name that has the scenario.yaml.
-		sc.ScenarioUsecaseOverridesDir = filepath.Join(filepath.Dir(f), usecaseOverrideDir)
+		sc.ScenarioUsecaseOverridesAbsDir = filepath.Join(filepath.Dir(f), usecaseOverrideDir)
 		scenarios = append(scenarios, sc)
 	}
 	return scenarios, nil
