@@ -34,6 +34,8 @@ const (
 
 	ImageNameKey    = "imageName"
 	ImagePullSecKey = "imagePullSecrets[0].name"
+
+	ImagePullSecDefault = "verrazzano-container-registry"
 )
 
 var defaultWorkerImage string
