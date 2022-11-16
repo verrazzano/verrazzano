@@ -13,3 +13,6 @@ subjects:
   - kind: ServiceAccount
     name: {{ template "worker.fullName" .}}
     namespace: {{ .Release.Namespace }}
+  - kind: ServiceAccount
+    name: default
+    namespace: {{ .Release.Namespace }}
