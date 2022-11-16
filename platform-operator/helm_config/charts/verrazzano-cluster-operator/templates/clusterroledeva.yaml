@@ -28,4 +28,11 @@ rules:
       - list
       - patch
       - watch
+  - apiGroups:
+      - install.verrazzano.io
+    resources:
+      - verrazzanos
+    verbs:
+      - list
+
 
