@@ -120,7 +120,86 @@ pipeline {
 
         stage ('Kick off dynamic update tests') {
             parallel {
-                // TODO: kick off all the parallel jobs
+                stage ('Post-Update1 Tests') {
+                    steps {
+                        retry (count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                    parameters: [
+                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
+                                        booleanParam(name: 'RUN_POST_UPDATE1', value: true)
+
+                                    ], wait: true
+                            }
+                        }
+                    }
+                }
+                stage ('Post-Update2 Tests') {
+                    steps {
+                        // TODO: fill
+                        echo 'Hello'
+                    }
+                }
+                stage ('Availability Status Updates') {
+                    steps {
+                        // TODO: fill
+                        echo 'Hello'
+                    }
+                }
+                stage ('API Conversion Update Tests') {
+                    steps {
+                        // TODO: fill
+                        echo 'Hello'
+                    }
+                }
+                stage ('AuthProxy Update Tests') {
+                    steps {
+                        // TODO: fill
+                        echo 'Hello'
+                    }
+                }
+                stage ('EnvironmentName/DNS/CertManager Update Tests') {
+                    steps {
+                        // TODO: fill
+                        echo 'Hello'
+                    }
+                }
+                stage ('Nginx/Istio Update Tests') {
+                    steps {
+                        // TODO: fill
+                        echo 'Hello'
+                    }
+                }
+                stage ('Fluentd Update Tests') {
+                    steps {
+                        // TODO: fill
+                        echo 'Hello'
+                    }
+                }
+                stage ('Opensearch Update Tests') {
+                    steps {
+                        // TODO: fill
+                        echo 'Hello'
+                    }
+                }
+                stage ('Jaeger Update Tests') {
+                    steps {
+                        // TODO: fill
+                        echo 'Hello'
+                    }
+                }
+                stage ('Post-install overrides Tests') {
+                    steps {
+                        // TODO: fill
+                        echo 'Hello'
+                    }
+                }
             }
         }
     }
@@ -310,14 +389,4 @@ def metricBuildDuration() {
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }
-}
-
-// TODO: delete this maybe?
-def getCronSchedule() {
-    if (env.BRANCH_NAME.equals("master")) {
-        return "H */2 * * *"
-    } else if (env.BRANCH_NAME.startsWith("release-1")) {
-        return "@daily"
-    }
-    return ""
 }
