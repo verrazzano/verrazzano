@@ -97,16 +97,6 @@ func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		return nil
 	}
 
-	// Perform any required worker initialization
-	if err := r.Worker.Init(); err != nil {
-		return err
-	}
-
-	// Wait for any dependencies to be resolved before continuing
-	if err := r.Worker.WaitForDependencies(); err != nil {
-		return err
-	}
-
 	r.incThreadCount()
 	startTimeSecs := time.Now().Unix()
 	for {

@@ -58,6 +58,16 @@ func StartWorkerRunners(log vzlog.VerrazzanoLogger) error {
 	mProviders = append(mProviders, worker)
 	go startMetricsFunc(mProviders)
 
+	// Perform any required worker initialization
+	if err := worker.Init(); err != nil {
+		return err
+	}
+
+	// Wait for any dependencies to be resolved before continuing
+	if err := worker.WaitForDependencies(); err != nil {
+		return err
+	}
+
 	// run the worker in go-routine to completion (usually forever)
 	var wg sync.WaitGroup
 	for i := 1; i <= conf.WorkerThreadCount; i++ {
