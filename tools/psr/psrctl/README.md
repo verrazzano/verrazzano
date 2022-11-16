@@ -7,18 +7,26 @@ You can run a PSR scenario against a live cluster using existing scenarios such 
 psrctl start -s ops-s1
 ```
 
-To create new scenarios, create a `scenario.yaml` file under `manifests/scenarios` using the following convention:
+To create new scenarios, create a `scenario.yaml` file under `manifests/scenarios/myscenario` using the following convention:
 ```
-name: opensearch-s1
-ID: ops-s1
+name: myscenario-1
+ID: ops-myscenario-1
 description: |
-  This is a scenario that writes logs to STDOUT and gets logs from OpenSearch at a moderated rate. 
-  The purpose of the scenario is to test a moderate load on both Fluend and OpenSearch by logging records.
+  This is a new scenario. It runs the use case opensearch/writelogs.yaml.
 usecases:
   - usecasePath: opensearch/writelogs.yaml
     overrideFile: writelogs.yaml
     description: write logs to STDOUT 10 times a second
 ```
+
+To start the above scenario, run:
+```
+psrctl start -d manifests/scenarios/myscenario -s ops-myscenario-1
+```
+The flag `-d` allows you to specify a scenario directory that is not compiled into the `psrctl` binary, such as the one created above.
+
+For newly created scenarios, a `usecase-overrides` directory must be provided with each override values for each `use case`.
+See the file structure of `manifests/scenarios/opensearch/s1` as an example.
 
 ## Building the CLI
 
