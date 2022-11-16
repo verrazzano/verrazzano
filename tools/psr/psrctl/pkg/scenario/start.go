@@ -41,7 +41,8 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 	// Helm install each use case
 	var i int
 	for _, uc := range scman.Usecases {
-		helmOverrides := []helmcli.HelmOverrides{}
+		// Create the set of HelmOverrides, initialized from the manager settings
+		helmOverrides := m.HelmOverrides
 
 		// This is the usecase path, E.G. manifests/usecases/opensearch/getlogs/getlogs.yaml
 		ucOverride := filepath.Join(m.Manifest.UseCasesAbsDir, uc.UsecasePath)
@@ -70,7 +71,7 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 			Namespace: m.Namespace,
 			Name:      relname,
 		})
-		i = i + 1
+		i++
 	}
 
 	// Save the scenario in a ConfigMap

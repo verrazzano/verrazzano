@@ -51,7 +51,7 @@ type MetricsTraitSpec struct {
 	// +optional
 	Port *int `json:"port,omitempty"`
 
-	// The HTTP ports for the related metrics trait. Defaults to `8080`.
+	// The HTTP endpoints for the related metrics.
 	// +optional
 	Ports []PortSpec `json:"ports,omitempty"`
 
