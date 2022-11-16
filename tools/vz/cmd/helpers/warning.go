@@ -22,7 +22,6 @@ func getWarningHandler(w io.Writer) rest.WarningHandler {
 
 // allowsColorOutput returns true if the specified writer is a terminal and
 // the process environment indicates color output is supported and desired.
-// Copied from k8s.io/kubectl/pkg/util/term.AllowsColorOutput.
 func allowsColorOutput(w io.Writer) bool {
 	if !isTerminal(w) {
 		return false
