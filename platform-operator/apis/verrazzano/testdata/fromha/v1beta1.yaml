@@ -78,7 +78,7 @@ spec:
               replicas: 2
     opensearch:
       nodes:
-        - name: es-ingest
+        - name: os-ingest
           replicas: 2
           roles:
             - ingest

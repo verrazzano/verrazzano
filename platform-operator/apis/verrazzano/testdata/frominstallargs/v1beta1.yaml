@@ -27,7 +27,7 @@ spec:
               memory: 3Gi
           storage:
             size: 250Gi
-        - name: es-ingest
+        - name: os-ingest
           replicas: 1
           roles:
             - ingest

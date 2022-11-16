@@ -26,7 +26,7 @@ import (
 const LogEntries = "LOG_ENTRIES"
 const LogLength = "LOG_LENGTH"
 
-const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
+const osIngestService = "vmi-system-os-ingest.verrazzano-system:9200"
 
 // Use an http client interface so that we can override http.Client for unit tests
 type httpClientI interface {

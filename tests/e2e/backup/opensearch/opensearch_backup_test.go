@@ -39,8 +39,8 @@ const (
 	idSearchAllURL       = "verrazzano-system/_search?"
 )
 
-var esPods = []string{"vmi-system-es-master", "vmi-system-es-ingest", "vmi-system-es-data"}
-var esPodsUp = []string{"vmi-system-es-master", "vmi-system-es-ingest", "vmi-system-es-data", "verrazzano-monitoring-operator", "vmi-system-kibana"}
+var esPods = []string{"vmi-system-es-master", "vmi-system-os-ingest", "vmi-system-es-data"}
+var esPodsUp = []string{"vmi-system-es-master", "vmi-system-os-ingest", "vmi-system-es-data", "verrazzano-monitoring-operator", "vmi-system-kibana"}
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()

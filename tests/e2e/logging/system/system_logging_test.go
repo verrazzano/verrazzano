@@ -432,7 +432,7 @@ func validateGrafanaLogs() bool {
 
 func validateOpenSearchLogs() bool {
 	valid := true
-	openSearchAppComponents := []string{"system-kibana", "system-es-data", "system-es-master", "system-es-ingest"}
+	openSearchAppComponents := []string{"system-kibana", "system-es-data", "system-es-master", "system-os-ingest"}
 	for _, appLabel := range openSearchAppComponents {
 		valid = validateOpensearchRecords(
 			noLevelOpensearchRecordValidator,
