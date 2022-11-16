@@ -162,6 +162,7 @@ pipeline {
                         env.VERRAZZANO_VERSION = "${env.VERRAZZANO_VERSION}-${env.BUILD_NUMBER}+${SHORT_COMMIT_HASH}"
                     }
                     DOCKER_IMAGE_TAG = "v${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
+                    setEffectiveDocsVersion()
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
                     def currentCommitHash = env.GIT_COMMIT
@@ -843,4 +844,16 @@ def metricBuildDuration() {
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }
+}
+
+def setEffectiveDocsVersion() {
+    sh """
+        echo "USE_V8O_DOC_STAGE before is: $USE_V8O_DOC_STAGE"
+        USE_V8O_DOC_STAGE=$VERRAZZANO_DEV_VERSION
+        url="https://verrazzano.io/$USE_V8O_DOC_STAGE/docs/troubleshooting/diagnostictools/analysisadvice/"
+        if curl $url --compressed | grep '404 Page not found'; then
+          USE_V8O_DOC_STAGE="devel"
+        fi
+        echo "USE_V8O_DOC_STAGE after is: $USE_V8O_DOC_STAGE"
+    """
 }
