@@ -69,7 +69,7 @@ pipeline {
         DOCKER_CLUSTER_PUBLISH_IMAGE_NAME = 'verrazzano-cluster-operator'
         DOCKER_CLUSTER_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_CLUSTER_PUBLISH_IMAGE_NAME : env.DOCKER_CLUSTER_CI_IMAGE_NAME}"
         CREATE_LATEST_TAG = "${env.BRANCH_NAME == 'master' ? '1' : '0'}"
-        USE_V8O_DOC_STAGE = "${env.BRANCH_NAME == 'master' ? 'true' : 'false'}"
+        USE_V8O_DOC_STAGE = "${env.BRANCH_NAME ==~ /^release-.*/ ? 'false' : 'true'}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         DOCKER_CREDS = credentials('github-packages-credentials-rw')

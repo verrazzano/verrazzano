@@ -78,7 +78,7 @@ pipeline {
     environment {
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         NETRC_FILE = credentials('netrc')
-        USE_V8O_DOC_STAGE = "${env.BRANCH_NAME == 'master' ? 'true' : 'false'}"
+        USE_V8O_DOC_STAGE = "${env.BRANCH_NAME ==~ /^release-.*/ ? 'false' : 'true'}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         DOCKER_CREDS = credentials('github-packages-credentials-rw')

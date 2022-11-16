@@ -53,7 +53,7 @@ pipeline {
 
     environment {
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
-        USE_V8O_DOC_STAGE = "${env.BRANCH_NAME == 'master' ? 'true' : 'false'}"
+        USE_V8O_DOC_STAGE = "${env.BRANCH_NAME ==~ /^release-.*/ ? 'false' : 'true'}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')

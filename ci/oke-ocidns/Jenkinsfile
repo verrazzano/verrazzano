@@ -114,7 +114,7 @@ pipeline {
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
         OCIR_PHX_REPO = 'phx.ocir.io'
         POST_DUMP_FAILED = 'false'
-        USE_V8O_DOC_STAGE = "${env.BRANCH_NAME == 'master' ? 'true' : 'false'}"
+        USE_V8O_DOC_STAGE = "${env.BRANCH_NAME ==~ /^release-.*/ ? 'false' : 'true'}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
 
