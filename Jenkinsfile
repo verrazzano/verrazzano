@@ -849,7 +849,7 @@ def metricBuildDuration() {
 def setEffectiveDocsVersion() {
     sh """
         echo "USE_V8O_DOC_STAGE before is: $USE_V8O_DOC_STAGE"
-        USE_V8O_DOC_STAGE=$VERRAZZANO_DEV_VERSION
+        USE_V8O_DOC_STAGE="${env.VERRAZZANO_VERSION}""
         url="https://verrazzano.io/$USE_V8O_DOC_STAGE/docs/troubleshooting/diagnostictools/analysisadvice/"
         if curl $url --compressed | grep '404 Page not found'; then
           USE_V8O_DOC_STAGE="devel"
