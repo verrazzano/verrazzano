@@ -14,16 +14,16 @@ import (
 // The scenario manifest directory can be different that the one used to start the
 // scenario.  However, the scenario.yaml must be identical.  In fact, the scenario.yaml
 // is ignored during update, the code uses the scenario YAML information stored in the ConfigMap.
-func (m Manager) UpdateScenario(ID string) (string, error) {
+func (m Manager) UpdateScenario(scman *ScenarioManifest) (string, error) {
 	// Make sure the scenario is running
-	scenario, err := m.FindRunningScenarioByID(ID)
+	scenario, err := m.FindRunningScenarioByID(scman.ID)
 	if err != nil {
 		return "", err
 	}
 
 	// Helm upgrade each use case
 	for _, hr := range scenario.HelmReleases {
-		stderr, err := m.doUpgrade(hr)
+		stderr, err := m.doUpgrade(scman, hr)
 		if err != nil {
 			return stderr, err
 		}
@@ -31,7 +31,7 @@ func (m Manager) UpdateScenario(ID string) (string, error) {
 	return "", nil
 }
 
-func (m Manager) doUpgrade(hr HelmRelease) (string, error) {
+func (m Manager) doUpgrade(scman *ScenarioManifest, hr HelmRelease) (string, error) {
 	// Create the set of HelmOverrides, initialized from the manager settings
 	helmOverrides := m.HelmOverrides
 
@@ -52,8 +52,8 @@ func (m Manager) doUpgrade(hr HelmRelease) (string, error) {
 	defer os.RemoveAll(tmpPath)
 	helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: tmpPath})
 
-	// Build scenario override path for the use case, E.G manifests/scenarios/opensearch/s1/usecase-overrides/getlogs-fast.yaml
-	scOverride := filepath.Join(Scenario{}.ScenarioUsecaseOverridesAbsDir, hr.OverrideFile)
+	// Build scenario override absolute path for the use case, E.G manifests/scenarios/opensearch/s1/usecase-overrides/getlogs-fast.yaml
+	scOverride := filepath.Join(scman.ScenarioUsecaseOverridesAbsDir, hr.OverrideFile)
 	helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: scOverride})
 
 	if m.Verbose {

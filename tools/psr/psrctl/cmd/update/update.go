@@ -34,6 +34,7 @@ psrctl update -s ops-s1 -d=tmp/myscenario
 
 var scenarioID string
 var namespace string
+var scenarioDir string
 var workerImage string
 var imagePullSecret string
 
@@ -46,7 +47,8 @@ func NewCmdUpdate(vzHelper helpers.VZHelper) *cobra.Command {
 
 	cmd.PersistentFlags().StringVarP(&scenarioID, constants.FlagScenario, constants.FlagsScenarioShort, "", constants.FlagScenarioHelp)
 	cmd.PersistentFlags().StringVarP(&namespace, constants.FlagNamespace, constants.FlagNamespaceShort, "default", constants.FlagNamespaceHelp)
-	cmd.PersistentFlags().StringVarP(&workerImage, constants.WorkerImageName, constants.WorkerImageNameShort, constants.GetDefaultWorkerImage(), constants.WorkerImageNameHelp)
+	cmd.PersistentFlags().StringVarP(&scenarioDir, constants.FlagScenarioDir, constants.FlagScenarioDirShort, "", constants.FlagScenarioDirHelp)
+	cmd.PersistentFlags().StringVarP(&workerImage, constants.WorkerImageName, constants.WorkerImageNameShort, "", constants.WorkerImageNameHelp)
 	cmd.PersistentFlags().StringVarP(&imagePullSecret, constants.ImagePullSecretName, constants.ImagePullSecretNameShort, constants.ImagePullSecDefault, constants.ImagePullSecretNameHelp)
 
 	return cmd
@@ -54,13 +56,21 @@ func NewCmdUpdate(vzHelper helpers.VZHelper) *cobra.Command {
 
 // RunCmdUpdate - update the "psrctl update" command
 func RunCmdUpdate(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	m, err := scenario.NewManager(namespace, "", buildHelmOverrides()...)
+	m, err := scenario.NewManager(namespace, scenarioDir, buildHelmOverrides()...)
 	if err != nil {
 		return fmt.Errorf("Failed to create scenario Manager %v", err)
 	}
 
+	scman, err := m.FindScenarioManifestByID(scenarioID)
+	if err != nil {
+		return fmt.Errorf("Failed to find scenario manifest %s: %v", scenarioID, err)
+	}
+	if scman == nil {
+		return fmt.Errorf("Failed to find scenario manifest with ID %s", scenarioID)
+	}
+
 	fmt.Printf("Updating scenario %s\n", scenarioID)
-	msg, err := m.UpdateScenario(scenarioID)
+	msg, err := m.UpdateScenario(scman)
 	if err != nil {
 		// Cobra will display failure message
 		return fmt.Errorf("Failed to update scenario %s/%s: %v\n%s", namespace, scenarioID, err, msg)
@@ -71,6 +81,11 @@ func RunCmdUpdate(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 }
 
 func buildHelmOverrides() []helmcli.HelmOverrides {
+	if len(workerImage) == 0 {
+		return []helmcli.HelmOverrides{
+			{SetOverrides: fmt.Sprintf("%s=%s", constants.ImagePullSecKey, imagePullSecret)},
+		}
+	}
 	return []helmcli.HelmOverrides{
 		{SetOverrides: fmt.Sprintf("%s=%s", constants.ImageNameKey, workerImage)},
 		{SetOverrides: fmt.Sprintf("%s=%s", constants.ImagePullSecKey, imagePullSecret)},

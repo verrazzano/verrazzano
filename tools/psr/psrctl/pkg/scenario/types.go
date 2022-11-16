@@ -32,7 +32,7 @@ type ScenarioManifest struct {
 	// Usecases are the scenario use cases
 	Usecases []Usecase
 
-	// This is the absolute directory that contains scenario usecase-overrides.  It is not specified by the user,
+	// This is the absolute directory that contains scenario.yaml and scenario usecase-overrides.  It is not specified by the user,
 	// but built at runtime
 	ScenarioUsecaseOverridesAbsDir string
 }
@@ -52,9 +52,6 @@ type Scenario struct {
 type HelmRelease struct {
 	// The namespaced name of the Helm release
 	types.NamespacedName
-
-	// OverrideFile is the use case override file in the scenario usecase-overrides directory that was used for this helm release
-	OverrideFile string
 
 	// The scenario use case for this HelmRelase
 	Usecase
