@@ -133,10 +133,11 @@ func (w worker) WantLoopInfoLogged() bool {
 // DoWork continuously scales a specified OpenSearch out and in by modifying the VZ CR OpenSearch component
 func (w worker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	// validate OS tier
-	tier := config.PsrEnv.GetEnv(psropensearch.OpenSearchTier)
-	if tier != psropensearch.MasterTier && tier != psropensearch.DataTier && tier != psropensearch.IngestTier {
-		return log.ErrorfNewErr("Failed %s tier is not valid", tier)
+	tier, err := psropensearch.ValidateOpenSeachTier()
+	if err != nil {
+		return err
 	}
+
 	// Wait until VZ is ready
 	cr, err := w.waitReady(true)
 	if err != nil {
