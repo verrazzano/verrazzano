@@ -125,8 +125,8 @@ func (w *fakeManagerWorker) WantLoopInfoLogged() bool {
 	return true
 }
 
-func (w *fakeManagerWorker) WaitForDependencies() error {
-	return nil
+func (w *fakeManagerWorker) PreconditionsMet() (bool, error) {
+	return true, nil
 }
 
 func (w *fakeManagerWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {

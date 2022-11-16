@@ -130,8 +130,8 @@ func (w *fakeWorker) WantLoopInfoLogged() bool {
 	return true
 }
 
-func (w fakeWorker) WaitForDependencies() error {
-	return nil
+func (w fakeWorker) PreconditionsMet() (bool, error) {
+	return true, nil
 }
 
 func (w *fakeWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {

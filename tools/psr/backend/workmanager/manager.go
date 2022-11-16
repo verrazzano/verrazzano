@@ -6,6 +6,7 @@ package workmanager
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
@@ -59,7 +60,7 @@ func StartWorkerRunners(log vzlog.VerrazzanoLogger) error {
 	go startMetricsFunc(mProviders)
 
 	// Wait for any dependencies to be resolved before continuing
-	if err := worker.WaitForDependencies(); err != nil {
+	if err := waitForPreconditions(log, worker); err != nil {
 		return err
 	}
 
@@ -74,6 +75,23 @@ func StartWorkerRunners(log vzlog.VerrazzanoLogger) error {
 		}()
 	}
 	wg.Wait()
+	return nil
+}
+
+// waitForPreconditions Waits indefinitely for any worker preconditions to be met
+func waitForPreconditions(log vzlog.VerrazzanoLogger, worker spi.Worker) error {
+	for {
+		log.Progressf("Waiting for worker preconditions to be met")
+		readyToExecute, err := worker.PreconditionsMet()
+		if err != nil {
+			return err
+		}
+		if readyToExecute {
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
+	log.Progressf("Worker preconditions be met, continuing")
 	return nil
 }
 

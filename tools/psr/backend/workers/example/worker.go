@@ -51,8 +51,8 @@ func (w exampleWorker) WantLoopInfoLogged() bool {
 	return true
 }
 
-func (w exampleWorker) WaitForDependencies() error {
-	return nil
+func (w exampleWorker) PreconditionsMet() (bool, error) {
+	return true, nil
 }
 
 func (w exampleWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {

@@ -25,9 +25,9 @@ type WorkerDesc struct {
 // Worker is an interface that must be implemented by all workers
 type Worker interface {
 
-	// WaitForDependencies Waits for any other dependencies to become available before DoWork() can be called;
-	// returns an error if there is an issue with any of the dependencies, and is considered fatal to worker execution
-	WaitForDependencies() error
+	// PreconditionsMet Checks for any worker preconditions to ensure they are met before DoWork() can be called;
+	// returns true if any preconditions are met, or an error if there is an unrecoverable issue
+	PreconditionsMet() (bool, error)
 
 	// GetWorkerDesc returns the WorkerDesc for the worker
 	GetWorkerDesc() WorkerDesc
