@@ -17,7 +17,7 @@ const (
 	CommandName = "update"
 	helpShort   = "Update a running PSR scenario configuration"
 	helpLong    = `The command 'update' updates the configuration of a running PSR scenario.  
-The underlying use case helm charts will be updated using the "helm upgrade --reuse-values" command.  
+The underlying use case helm charts will be updated with any overrides you provide.  
 If you provide any overrides then they will be applied to all the helm charts in the scenario.  
 The only way to modify a use case specific configuration is to put the changes in the scenario files 
 and apply them.  For example, if you are running a scenario with the -d parameter providing 
@@ -26,6 +26,9 @@ You cannot change the scenario.yaml file, you can only change the usecase-overri
 	helpExample = `
 // Update the backend image for all workers in running scenario ops-s1
 psrctl update -s ops-s1 -w=ghcr.io/verrazzano/psr-backend:xyz
+
+// Update the scenario with usecase overrides at directory tmp/myscenario
+psrctl update -s ops-s1 -d=tmp/myscenario
 `
 )
 
