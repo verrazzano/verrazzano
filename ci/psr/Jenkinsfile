@@ -37,7 +37,7 @@ pipeline {
         DOCKER_PSR_BACKEND_PUBLISH_IMAGE_NAME = 'psr-backend'
         DOCKER_PSR_BRANCH_BACKEND_IMAGE_NAME = '${DOCKER_PSR_BACKEND_PUBLISH_IMAGE_NAME}-jenkins'
         DOCKER_PSR_BACKEND_IMAGE_NAME = "${env.BRANCH_NAME ==~ /^release-.*/ || env.BRANCH_NAME == 'master' ? env.DOCKER_PSR_BACKEND_PUBLISH_IMAGE_NAME : env.DOCKER_PSR_BRANCH_BACKEND_IMAGE_NAME}"
-
+        USE_V8O_DOC_STAGE = "${env.BRANCH_NAME == 'master' ? 'true' : 'false'}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano/verrazzano"
         PSR_PATH = "${GO_REPO_PATH}/tools/psr"
