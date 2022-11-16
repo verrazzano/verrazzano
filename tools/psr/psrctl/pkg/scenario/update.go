@@ -23,7 +23,7 @@ func (m Manager) UpdateScenario(scman *ScenarioManifest) (string, error) {
 
 	// Helm upgrade each use case
 	for _, hr := range scenario.HelmReleases {
-		stderr, err := m.doUpgrade(scman, hr)
+		stderr, err := m.doHelmUpgrade(scman, hr)
 		if err != nil {
 			return stderr, err
 		}
@@ -31,7 +31,8 @@ func (m Manager) UpdateScenario(scman *ScenarioManifest) (string, error) {
 	return "", nil
 }
 
-func (m Manager) doUpgrade(scman *ScenarioManifest, hr HelmRelease) (string, error) {
+// doHelmUpgrade runs the Helm upgrade command, applying helm overrides.
+func (m Manager) doHelmUpgrade(scman *ScenarioManifest, hr HelmRelease) (string, error) {
 	// Create the set of HelmOverrides, initialized from the manager settings
 	helmOverrides := m.HelmOverrides
 
@@ -41,7 +42,7 @@ func (m Manager) doUpgrade(scman *ScenarioManifest, hr HelmRelease) (string, err
 		return "", err
 	}
 
-	// Create a temp file with the existing values and add to helm overides
+	// Create a temp file with the existing values and add to helm overrides
 	tmpPath := filepath.Join(m.Manifest.RootTmpDir, fmt.Sprintf("upgrade-%s-%s", hr.Namespace, hr.Name))
 	// delete any existing update tmp file, shouldn't exist but just in case
 	os.RemoveAll(tmpPath)

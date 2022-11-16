@@ -49,6 +49,7 @@ type Scenario struct {
 	*ScenarioManifest
 }
 
+// HelmRelease specifies a HelmRelease for a use case within a scenario
 type HelmRelease struct {
 	// The namespaced name of the Helm release
 	types.NamespacedName
