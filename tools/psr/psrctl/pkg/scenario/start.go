@@ -34,14 +34,15 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 	}
 	for _, sc := range running {
 		if strings.EqualFold(sc.ID, scman.ID) {
-			return "", fmt.Errorf("Scenario %s already running", sc.ID)
+			return "", fmt.Errorf("Scenario %s already running in namespace %s", sc.ID, m.Namespace)
 		}
 	}
 
 	// Helm install each use case
 	var i int
 	for _, uc := range scman.Usecases {
-		helmOverrides := []helmcli.HelmOverrides{}
+		// Create the set of HelmOverrides, initialized from the manager settings
+		helmOverrides := m.HelmOverrides
 
 		// This is the usecase path, E.G. manifests/usecases/opensearch/getlogs/getlogs.yaml
 		ucOverride := filepath.Join(m.Manifest.UseCasesAbsDir, uc.UsecasePath)
@@ -58,6 +59,10 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 
 		// Build release name psr-<scenarioID>-workertype-<index>
 		relname := fmt.Sprintf("psr-%s-%s-%v", scman.ID, wType, i)
+
+		if m.Verbose {
+			fmt.Printf("Installing use case %s as Helm release %s/%s\n", uc.UsecasePath, m.Namespace, relname)
+		}
 		_, stderr, err := helmcli.Upgrade(m.Log, relname, m.Namespace, m.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 		if err != nil {
 			return string(stderr), err
@@ -66,11 +71,12 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 			Namespace: m.Namespace,
 			Name:      relname,
 		})
-		i = i + 1
+		i++
 	}
 
 	// Save the scenario in a ConfigMap
 	sc := Scenario{
+		Namespace:        m.Namespace,
 		HelmReleases:     helmReleases,
 		ScenarioManifest: scman,
 	}

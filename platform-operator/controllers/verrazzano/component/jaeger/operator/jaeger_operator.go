@@ -11,12 +11,13 @@ import (
 	"os"
 	"text/template"
 
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -149,15 +150,7 @@ func preInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	createInstance, err := isCreateDefaultJaegerInstance(ctx)
-	if err != nil {
-		return err
-	}
-	if createInstance {
-		// Create Jaeger secret with the OpenSearch credentials
-		return createJaegerSecret(ctx)
-	}
-	return nil
+	return createJaegerSecrets(ctx)
 }
 
 // AppendOverrides appends Helm value overrides for the Jaeger Operator component's Helm chart
@@ -249,24 +242,31 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 		return nil, err
 	}
 
-	createInstance, err := isCreateDefaultJaegerInstance(compContext)
+	registrationSecret, err := common.GetManagedClusterRegistrationSecret(compContext.Client())
 	if err != nil {
 		return nil, err
 	}
-	if createInstance {
-		// use jaegerCRTemplate to populate Jaeger spec data
-		jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerCreateTemplate)
+	// Check to create a default Jaeger instance if the Verrazzano is a local cluster
+	if registrationSecret == nil {
+		createInstance, err := isCreateDefaultJaegerInstance(compContext)
 		if err != nil {
 			return nil, err
 		}
-		var osReplicaCount int32 = 1
-		if opensearch.IsSingleDataNodeCluster(compContext) {
-			osReplicaCount = 0
-		}
-		data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: osReplicaCount}
-		err = jaegerCRTemplate.Execute(&b, data)
-		if err != nil {
-			return nil, err
+		if createInstance {
+			// use jaegerCRTemplate to populate Jaeger spec data
+			jaegerCRTemplate, err := template.New("jaeger").Parse(jaegerCreateTemplate)
+			if err != nil {
+				return nil, err
+			}
+			var osReplicaCount int32 = 1
+			if opensearch.IsSingleDataNodeCluster(compContext) {
+				osReplicaCount = 0
+			}
+			data := jaegerData{OpenSearchURL: openSearchURL, SecretName: globalconst.DefaultJaegerSecretName, OpenSearchReplicaCount: osReplicaCount}
+			err = jaegerCRTemplate.Execute(&b, data)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -280,7 +280,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	kvs = append(kvs, bom.KeyValue{Value: overridesFileName, IsFile: true})
 
 	// If metricsStorage type is set to prometheus, set the prometheus server URL override
-	if vzconfig.IsPrometheusEnabled(compContext.EffectiveCR()) {
+	if vzcr.IsPrometheusEnabled(compContext.EffectiveCR()) {
 		metricsStorageVal, err := getOverrideVal(compContext, metricsStorageField)
 		if err != nil {
 			return kvs, err
@@ -416,7 +416,7 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 // getESInternalSecret checks whether verrazzano-es-internal secret exists. Return error if the secret does not exist.
 func getESInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
 	secret := corev1.Secret{}
-	if vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		// Check verrazzano-es-internal Secret. return error which will cause requeue
 		err := ctx.Client().Get(context.TODO(), clipkg.ObjectKey{
 			Namespace: constants.VerrazzanoSystemNamespace,
@@ -472,7 +472,7 @@ func isJaegerCREnabled(ctx spi.ComponentContext) (bool, error) {
 // canUseVZOpenSearchStorage determines if Verrazzano's OpenSearch can be used as a storage for Jaeger instance.
 // As default Jaeger uses Authproxy to connect to OpenSearch storage, check if Keycloak component is also enabled.
 func canUseVZOpenSearchStorage(ctx spi.ComponentContext) bool {
-	if vzconfig.IsOpenSearchEnabled(ctx.EffectiveCR()) && vzconfig.IsKeycloakEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) && vzcr.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		return true
 	}
 	return false
@@ -765,7 +765,7 @@ func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) err
 		ingress.Annotations["nginx.ingress.kubernetes.io/service-upstream"] = "true"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
 		ingress.Annotations["cert-manager.io/common-name"] = jaegerHostName
-		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+		if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 			ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"
@@ -776,6 +776,27 @@ func createOrUpdateJaegerIngress(ctx spi.ComponentContext, namespace string) err
 		return ctx.Log().ErrorfNewErr("Failed create/update Jaeger ingress: %v", err)
 	}
 	return err
+}
+
+// createJaegerSecrets create or update Jaeger resources depending on if running a managed cluster, or local cluster
+// with the default Jaeger instance.
+func createJaegerSecrets(ctx spi.ComponentContext) error {
+	registrationSecret, err := common.GetManagedClusterRegistrationSecret(ctx.Client())
+	if err != nil {
+		return err
+	}
+	if registrationSecret != nil {
+		return nil
+	}
+	createInstance, err := isCreateDefaultJaegerInstance(ctx)
+	if err != nil {
+		return err
+	}
+	if createInstance {
+		// Create Jaeger secret with the OpenSearch credentials
+		return createJaegerSecret(ctx)
+	}
+	return nil
 }
 
 func buildJaegerHostnameForDomain(dnsDomain string) string {

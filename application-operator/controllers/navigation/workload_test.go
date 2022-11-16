@@ -6,20 +6,23 @@ package navigation
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"strings"
 	"testing"
+
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
-	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	"go.uber.org/zap"
 	k8sapps "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -487,4 +490,246 @@ func TestFetchContainedWorkload(t *testing.T) {
 	assert.Equal(containedAPIVersion, contained.GetAPIVersion())
 	assert.Equal(containedKind, contained.GetKind())
 	assert.Equal(containedName, contained.GetName())
+}
+
+// TestLoggingTraitFromWorkloadLabels tests the LoggingTraitFromWorkloadLabels function
+func TestLoggingTraitFromWorkloadLabels(t *testing.T) {
+	assert := asserts.New(t)
+
+	logger := vzlog.DefaultLogger()
+	ctx := context.TODO()
+
+	componentName := "unit-test-component"
+	componentNamespace := "unit-test-namespace"
+
+	ownerReferences := []metav1.OwnerReference{{
+		Name: "test-workload-name",
+		UID:  "test-workload-uid"}}
+
+	objectMeta := metav1.ObjectMeta{
+		Labels:          map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: "unit-test-app-config"},
+		OwnerReferences: ownerReferences,
+	}
+
+	// GIVEN a workload with no LoggingTrait
+	// WHEN a call to LoggingTraitFromWorkloadLabels is made
+	// THEN return nil
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
+
+	result, err := LoggingTraitFromWorkloadLabels(ctx, cli, logger, componentNamespace, objectMeta)
+	assert.NoError(err)
+	assert.Nil(result)
+
+	item := vzapi.LoggingTrait{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "LoggingTrait"},
+	}
+
+	// GIVEN a workload with associated LoggingTrait but no OwnerReferences
+	// WHEN a call to LoggingTraitFromWorkloadLabels is made
+	// THEN return an error
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName,
+				Traits: []oamcore.ComponentTrait{{
+					Trait: runtime.RawExtension{Object: &item}},
+				}}
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
+
+	cli.EXPECT().
+		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), client.InNamespace(componentNamespace)).
+		DoAndReturn(func(ctx context.Context, list *vzapi.LoggingTraitList, opts ...client.ListOption) error {
+			list.Items = []vzapi.LoggingTrait{item}
+			return nil
+		})
+
+	result, err = LoggingTraitFromWorkloadLabels(ctx, cli, logger, componentNamespace, objectMeta)
+	assert.Error(err)
+	assert.Nil(result)
+
+	item = vzapi.LoggingTrait{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "LoggingTrait",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "test-logging-trait",
+			OwnerReferences: ownerReferences,
+		},
+	}
+
+	// GIVEN a workload with associated LoggingTrait and OwnerReferences
+	// WHEN a call to LoggingTraitFromWorkloadLabels is made
+	// THEN return the associated LoggingTrait
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName,
+				Traits: []oamcore.ComponentTrait{{
+					Trait: runtime.RawExtension{Object: &item}},
+				}}
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
+
+	cli.EXPECT().
+		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), client.InNamespace(componentNamespace)).
+		DoAndReturn(func(ctx context.Context, list *vzapi.LoggingTraitList, opts ...client.ListOption) error {
+			list.Items = []vzapi.LoggingTrait{item}
+			return nil
+		})
+
+	result, err = LoggingTraitFromWorkloadLabels(ctx, cli, logger, componentNamespace, objectMeta)
+	assert.NoError(err)
+	assert.Equal(result.Name, "test-logging-trait")
+}
+
+// TestMetricsTraitFromWorkloadLabels tests the MetricsTraitFromWorkloadLabels function
+func TestMetricsTraitFromWorkloadLabels(t *testing.T) {
+	assert := asserts.New(t)
+
+	logger := zap.S().With("test")
+	ctx := context.TODO()
+
+	componentName := "unit-test-component"
+	componentNamespace := "unit-test-namespace"
+
+	ownerReferences := []metav1.OwnerReference{{
+		Name: "test-workload-name",
+		UID:  "test-workload-uid"}}
+
+	objectMeta := metav1.ObjectMeta{
+		Labels:          map[string]string{oam.LabelAppComponent: componentName, oam.LabelAppName: "unit-test-app-config"},
+		OwnerReferences: ownerReferences,
+	}
+
+	// GIVEN a workload with no MetricsTrait
+	// WHEN a call to MetricsTraitFromWorkloadLabels is made
+	// THEN return nil
+	mocker := gomock.NewController(t)
+	cli := mocks.NewMockClient(mocker)
+
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName}
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
+
+	result, err := MetricsTraitFromWorkloadLabels(ctx, cli, logger, componentNamespace, objectMeta)
+	assert.NoError(err)
+	assert.Nil(result)
+
+	item := vzapi.MetricsTrait{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "MetricsTrait"},
+	}
+
+	// GIVEN a workload with associated MetricsTrait but no OwnerReferences
+	// WHEN a call to MetricsTraitFromWorkloadLabels is made
+	// THEN return an error
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName,
+				Traits: []oamcore.ComponentTrait{{
+					Trait: runtime.RawExtension{Object: &item}},
+				}}
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
+
+	cli.EXPECT().
+		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), client.InNamespace(componentNamespace)).
+		DoAndReturn(func(ctx context.Context, list *vzapi.MetricsTraitList, opts ...client.ListOption) error {
+			list.Items = []vzapi.MetricsTrait{item}
+			return nil
+		})
+
+	result, err = MetricsTraitFromWorkloadLabels(ctx, cli, logger, componentNamespace, objectMeta)
+	assert.Error(err)
+	assert.Nil(result)
+
+	item = vzapi.MetricsTrait{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "MetricsTrait",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "test-metrics-trait",
+			OwnerReferences: ownerReferences,
+		},
+	}
+
+	// GIVEN a workload with associated MetricsTrait and OwnerReferences
+	// WHEN a call to MetricsTraitFromWorkloadLabels is made
+	// THEN return the associated MetricsTrait
+	mocker = gomock.NewController(t)
+	cli = mocks.NewMockClient(mocker)
+
+	cli.EXPECT().
+		Get(gomock.Eq(ctx), gomock.Eq(client.ObjectKey{Namespace: componentNamespace, Name: "unit-test-app-config"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, appConfig *oamcore.ApplicationConfiguration) error {
+			component := oamcore.ApplicationConfigurationComponent{ComponentName: componentName,
+				Traits: []oamcore.ComponentTrait{{
+					Trait: runtime.RawExtension{Object: &item}},
+				}}
+			appConfig.Spec.Components = []oamcore.ApplicationConfigurationComponent{component}
+			return nil
+		})
+
+	cli.EXPECT().
+		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), client.InNamespace(componentNamespace)).
+		DoAndReturn(func(ctx context.Context, list *vzapi.MetricsTraitList, opts ...client.ListOption) error {
+			list.Items = []vzapi.MetricsTrait{item}
+			return nil
+		})
+
+	result, err = MetricsTraitFromWorkloadLabels(ctx, cli, logger, componentNamespace, objectMeta)
+	assert.NoError(err)
+	assert.Equal(result.Name, "test-metrics-trait")
+}
+
+// TestIsOwnedByVerrazzanoWorkloadKind tests the IsOwnedByVerrazzanoWorkloadKind function
+// GIVEN a workload with OwnerReferences
+// WHEN a call to IsOwnedByVerrazzanoWorkloadKind is made
+// THEN return true is the workload is owned by VerrazzanoWorkloadKind, false otherwise
+func TestIsOwnedByVerrazzanoWorkloadKind(t *testing.T) {
+	assert := asserts.New(t)
+	workload := &unstructured.Unstructured{}
+
+	ownerReference := []metav1.OwnerReference{{
+		Name: "test-workload",
+		Kind: oamcore.ContainerizedWorkloadKind,
+	}}
+	verrazzanoOwnerReferences := []metav1.OwnerReference{{
+		Name: "test-verrazzano-workload",
+		Kind: "VerrazzanoCoherenceWorkload",
+	}}
+
+	workload.SetOwnerReferences(ownerReference)
+	assert.False(IsOwnedByVerrazzanoWorkloadKind(workload))
+
+	workload.SetOwnerReferences(verrazzanoOwnerReferences)
+	assert.True(IsOwnedByVerrazzanoWorkloadKind(workload))
 }

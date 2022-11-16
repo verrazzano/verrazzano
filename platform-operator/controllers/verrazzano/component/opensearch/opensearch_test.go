@@ -5,27 +5,33 @@ package opensearch
 
 import (
 	"fmt"
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	"github.com/stretchr/testify/assert"
+	"testing"
+
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	"github.com/stretchr/testify/assert"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const (
 	vmoDeployment = "verrazzano-monitoring-operator"
 	masterAppName = "system-es-master"
+	vzsys         = "verrazzano-system"
 )
 
 var (
@@ -358,6 +364,103 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 	}
 	ctx := spi.NewFakeContext(c, vz, nil, false)
 	assert.False(t, isOSReady(ctx))
+}
+
+// TestFindESReplicas tests the OpenSearch FindESReplicas call
+// GIVEN an OpenSearch component, a context and a vmov1.NodeRole
+//
+//	WHEN I call FindESReplicas
+//	THEN the number of replicas of that NodeRole is returned
+func TestFindESReplicas(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
+	val := findESReplicas(ctx, "data")
+	assert.Equal(t, val, int32(0))
+
+	trueVal := true
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Elasticsearch: &vzapi.ElasticsearchComponent{
+					Enabled: &(trueVal),
+					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 4, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+				},
+			},
+		},
+	}
+	ctx = spi.NewFakeContext(c, vz, nil, false)
+	val = findESReplicas(ctx, "data")
+	assert.Equal(t, val, int32(4))
+
+	val = findESReplicas(ctx, "master")
+	assert.Equal(t, val, int32(7))
+
+	val = findESReplicas(ctx, "ingest")
+	assert.Equal(t, val, int32(8))
+
+}
+
+// TestNodesToObjectKeys tests the OpenSearch NodesToObjectKeys call
+// GIVEN an OpenSearch component and a vzapi
+//
+//	WHEN I call NodesToObjectKeys
+//	THEN objects are returned
+func TestNodesToObjectKeys(t *testing.T) {
+	trueVal := true
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Elasticsearch: &vzapi.ElasticsearchComponent{
+					Enabled: &(trueVal),
+				},
+			},
+		},
+	}
+	expected := nodesToObjectKeys(vz)
+	actual := &ready.AvailabilityObjects{}
+	assert.Equal(t, expected, actual)
+
+	vztwo := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Elasticsearch: &vzapi.ElasticsearchComponent{
+					Enabled: &(trueVal),
+					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 1, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{"ingest"}}},
+				},
+			},
+		},
+	}
+	actual = &ready.AvailabilityObjects{StatefulsetNames: []types.NamespacedName{{Namespace: vzsys, Name: "vmi-system-node2"}}, DeploymentNames: []types.NamespacedName{{Namespace: vzsys, Name: "vmi-system-node1-0"}, {Namespace: vzsys, Name: "vmi-system-node3"}}, DeploymentSelectors: []client.ListOption(nil), DaemonsetNames: []types.NamespacedName(nil)}
+	expected = nodesToObjectKeys(vztwo)
+	assert.Equal(t, expected, actual)
+}
+
+// TestIsSingleDataNodeCluster tests the OpenSearch IsSingleDataNodeCluster call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call IsSingleDataNodeCluster
+//	THEN a bool value is returned
+func TestIsSingleDataNodeCluster(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
+	val := IsSingleDataNodeCluster(ctx)
+	assert.True(t, val)
+
+	trueVal := true
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Elasticsearch: &vzapi.ElasticsearchComponent{
+					Enabled: &(trueVal),
+					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 4, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+				},
+			},
+		},
+	}
+	ctx = spi.NewFakeContext(c, vz, nil, false)
+	val = IsSingleDataNodeCluster(ctx)
+	assert.False(t, val)
+
 }
 
 // TestIsReadyDeploymentVMIDisabled tests the OpenSearch isOpenSearchReady call

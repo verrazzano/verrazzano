@@ -21,6 +21,16 @@ application-manifests: controller-gen
 	# Add copyright headers to the kubebuilder generated manifests
 	./hack/add-yml-header.sh PROJECT
 
+# Generate manifests e.g. CRD, RBAC etc. for cluster operator
+.PHONY: cluster-manifests
+cluster-manifests: controller-gen
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role paths="./apis/..." output:crd:artifacts:config=$(CRD_PATH)
+	# Add copyright headers to the kubebuilder generated CRDs
+	./hack/add-crd-header.sh
+	./hack/update-codegen.sh "clusters:v1alpha1" "boilerplate.go.txt"
+	# Add copyright headers to the kubebuilder generated manifests
+	./hack/add-yml-header.sh PROJECT
+
 # Generate code
 .PHONY: generate
 generate: controller-gen
@@ -41,6 +51,7 @@ endif
 	ACTUAL_CONTROLLER_GEN_VERSION=$$(${CONTROLLER_GEN} --version | awk '{print $$2}') ; \
 	if [ "$${ACTUAL_CONTROLLER_GEN_VERSION}" != "${CONTROLLER_GEN_VERSION}" ] ; then \
 		echo  "Bad controller-gen version $${ACTUAL_CONTROLLER_GEN_VERSION}, please install ${CONTROLLER_GEN_VERSION}" ; \
+		exit 1; \
 	fi ; \
 	}
 

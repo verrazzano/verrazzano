@@ -5,9 +5,6 @@ package coherence
 
 import (
 	"fmt"
-
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	"net/http"
 	"time"
 
@@ -16,6 +13,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
@@ -107,18 +106,23 @@ var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("
 	})
 
 	t.Context("Logging.", Label("f:observability.logging.es"), func() {
-		indexName, err := pkg.GetOpenSearchAppIndex(namespace)
-		Expect(err).To(BeNil())
-		t.It("Verify Elasticsearch index exists", func() {
+		var indexName string
+		var err error
+		Eventually(func() error {
+			indexName, err = pkg.GetOpenSearchAppIndex(namespace)
+			return err
+		}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Expected to get OpenSearch App Index")
+
+		t.It("Verify Opensearch index exists", func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index for Coherence application.")
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Opensearch index for Coherence application.")
 		})
 
-		t.It("Verify recent Elasticsearch log record exists", func() {
+		t.It("Verify recent Opensearch log record exists", func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}

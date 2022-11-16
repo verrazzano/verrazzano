@@ -62,6 +62,7 @@ var _ = t.Describe("Update admin-cluster cert-manager", Label("f:platform-lcm.up
 			start := time.Now()
 			oldIngressCaCrt := updateAdminClusterCA()
 			verifyCaSync(oldIngressCaCrt)
+			// verify new logs are flowing after updating admin cert
 			verifyManagedFluentd(start)
 		})
 	})

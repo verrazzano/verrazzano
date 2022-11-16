@@ -6,15 +6,19 @@ package fluentd
 import (
 	"crypto/sha256"
 	"fmt"
+	"io/fs"
+	"os"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"io/fs"
-	"os"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
@@ -32,10 +36,11 @@ type fluentdComponentValues struct {
 }
 
 type loggingValues struct {
-	Name                string `json:"name,omitempty"`
-	ElasticsearchURL    string `json:"elasticsearchURL,omitempty"`
-	ElasticsearchSecret string `json:"elasticsearchSecret,omitempty"`
-	ConfigHash          string `json:"configHash,omitempty"`
+	Name              string `json:"name,omitempty"`
+	OpenSearchURL     string `json:"osURL,omitempty"`
+	CredentialsSecret string `json:"credentialsSecret,omitempty"`
+	ClusterName       string `json:"clusterName"`
+	ConfigHash        string `json:"configHash,omitempty"`
 }
 
 type fluentdValues struct {
@@ -91,7 +96,9 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// Overrides object to store any user overrides
 	overrides := fluentdComponentValues{}
 	// append any fluentd overrides
-	appendFluentdOverrides(effectiveCR, &overrides)
+	if err := appendFluentdOverrides(ctx.Client(), effectiveCR, &overrides); err != nil {
+		return kvs, err
+	}
 
 	// Write the overrides file to a temp dir and add a helm file override argument
 	overridesFileName, err := generateOverridesFile(ctx, &overrides)
@@ -103,19 +110,38 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	return kvs, nil
 }
 
-func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *fluentdComponentValues) {
-	overrides.Fluentd = &fluentdValues{
-		Enabled: vzconfig.IsFluentdEnabled(effectiveCR),
+func appendFluentdLogging(client clipkg.Client, fluentd *vzapi.FluentdComponent, overrides *fluentdComponentValues) error {
+	overrides.Logging = &loggingValues{}
+	registrationSecret, err := common.GetManagedClusterRegistrationSecret(client)
+	if err != nil {
+		return err
 	}
-
-	fluentd := effectiveCR.Spec.Components.Fluentd
-	if fluentd != nil {
-		overrides.Logging = &loggingValues{ConfigHash: HashSum(fluentd)}
+	if registrationSecret == nil {
+		overrides.Logging.ConfigHash = HashSum(fluentd)
+		overrides.Logging.ClusterName = vzconst.MCLocalCluster
 		if len(fluentd.ElasticsearchURL) > 0 {
-			overrides.Logging.ElasticsearchURL = fluentd.ElasticsearchURL
+			overrides.Logging.OpenSearchURL = fluentd.ElasticsearchURL
 		}
 		if len(fluentd.ElasticsearchSecret) > 0 {
-			overrides.Logging.ElasticsearchSecret = fluentd.ElasticsearchSecret
+			overrides.Logging.CredentialsSecret = fluentd.ElasticsearchSecret
+		}
+		return nil
+	}
+	overrides.Logging.ConfigHash = HashSum(registrationSecret)
+	overrides.Logging.OpenSearchURL = string(registrationSecret.Data[vzconst.OpensearchURLData])
+	overrides.Logging.ClusterName = string(registrationSecret.Data[vzconst.ClusterNameData])
+	overrides.Logging.CredentialsSecret = vzconst.MCRegistrationSecret
+	return nil
+}
+
+func appendFluentdOverrides(client clipkg.Client, effectiveCR *vzapi.Verrazzano, overrides *fluentdComponentValues) error {
+	overrides.Fluentd = &fluentdValues{
+		Enabled: vzcr.IsFluentdEnabled(effectiveCR),
+	}
+	fluentd := effectiveCR.Spec.Components.Fluentd
+	if fluentd != nil {
+		if err := appendFluentdLogging(client, fluentd, overrides); err != nil {
+			return err
 		}
 		if len(fluentd.ExtraVolumeMounts) > 0 {
 			for _, vm := range fluentd.ExtraVolumeMounts {
@@ -144,15 +170,15 @@ func appendFluentdOverrides(effectiveCR *vzapi.Verrazzano, overrides *fluentdCom
 	// Force the override to be the internal ES secret if the legacy ES secret is being used.
 	// This may be the case during an upgrade from a version that was not using the ES internal password for Fluentd.
 	if overrides.Logging != nil {
-		if overrides.Logging.ElasticsearchSecret == globalconst.LegacyElasticsearchSecretName {
-			overrides.Logging.ElasticsearchSecret = globalconst.VerrazzanoESInternal
+		if overrides.Logging.OpenSearchURL == globalconst.LegacyOpensearchSecretName {
+			overrides.Logging.CredentialsSecret = globalconst.VerrazzanoESInternal
 		}
 	}
-
 	overrides.Monitoring = &Monitoring{
-		Enabled:       vzconfig.IsPrometheusOperatorEnabled(effectiveCR),
-		UseIstioCerts: vzconfig.IsIstioEnabled(effectiveCR),
+		Enabled:       vzcr.IsPrometheusOperatorEnabled(effectiveCR),
+		UseIstioCerts: vzcr.IsIstioEnabled(effectiveCR),
 	}
+	return nil
 }
 
 func generateOverridesFile(ctx spi.ComponentContext, overrides *fluentdComponentValues) (string, error) {

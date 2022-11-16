@@ -445,7 +445,9 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 	}
 
 	// Replace the existing status conditions and state with the conditions generated from this reconcile
-	existingVMC.Status.Conditions = vmc.Status.Conditions
+	for _, genCondition := range vmc.Status.Conditions {
+		r.setStatusCondition(existingVMC, genCondition, genCondition.Type == clustersv1alpha1.ConditionManifestPushed)
+	}
 	existingVMC.Status.State = vmc.Status.State
 
 	r.log.Debugf("Updating Status of VMC %s: %v", vmc.Name, vmc.Status.Conditions)

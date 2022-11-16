@@ -7,11 +7,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	cmdHelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
-	installcmd "github.com/verrazzano/verrazzano/tools/vz/cmd/install"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
@@ -20,10 +21,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
+)
+
+const (
+	captureVerrazzanoErrMsg = "Capturing Verrazzano resource"
+	captureResourceErrMsg   = "Capturing resources from the cluster"
+	sensitiveDataErrMsg     = "WARNING: Please examine the contents of the bug report for any sensitive data"
+	captureLogErrMsg        = "Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace"
+	dummyNamespaceErrMsg    = "Namespace dummy not found in the cluster"
 )
 
 // TestBugReportHelp
@@ -55,7 +62,7 @@ func TestBugReportExistingReportFile(t *testing.T) {
 	assert.NotNil(t, cmd)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer os.RemoveAll(tmpDir)
+	defer cleanupTempDir(t, tmpDir)
 
 	// Define and create the bug report file
 	reportFile := "bug-report.tgz"
@@ -63,9 +70,10 @@ func TestBugReportExistingReportFile(t *testing.T) {
 	if err != nil {
 		assert.Error(t, err)
 	}
-	defer bugRepFile.Close()
+	defer cleanupFile(t, bugRepFile)
 
-	cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile.Name())
+	err = cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile.Name())
+	assert.NoError(t, err)
 	err = cmd.Execute()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), fmt.Sprintf("%s already exists", reportFile))
@@ -83,15 +91,16 @@ func TestBugReportExistingDir(t *testing.T) {
 	assert.NotNil(t, cmd)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer os.RemoveAll(tmpDir)
+	defer cleanupTempDir(t, tmpDir)
 
 	reportDir := tmpDir + string(os.PathSeparator) + "test-report"
 	if err := os.Mkdir(reportDir, os.ModePerm); err != nil {
 		assert.Error(t, err)
 	}
 
-	cmd.PersistentFlags().Set(constants.BugReportFileFlagName, reportDir)
-	err := cmd.Execute()
+	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, reportDir)
+	assert.NoError(t, err)
+	err = cmd.Execute()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "test-report is an existing directory")
 }
@@ -108,13 +117,14 @@ func TestBugReportNonExistingFileDir(t *testing.T) {
 	assert.NotNil(t, cmd)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer os.RemoveAll(tmpDir)
+	defer cleanupTempDir(t, tmpDir)
 
 	reportDir := tmpDir + string(os.PathSeparator) + "test-report"
 	reportFile := reportDir + string(os.PathSeparator) + string(os.PathSeparator) + "bug-report.tgz"
 
-	cmd.PersistentFlags().Set(constants.BugReportFileFlagName, reportFile)
-	err := cmd.Execute()
+	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, reportFile)
+	assert.NoError(t, err)
+	err = cmd.Execute()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "test-report: no such file or directory")
 }
@@ -131,7 +141,7 @@ func TestBugReportFileNoPermission(t *testing.T) {
 	assert.NotNil(t, cmd)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer os.RemoveAll(tmpDir)
+	defer cleanupTempDir(t, tmpDir)
 
 	reportDir := tmpDir + string(os.PathSeparator) + "test-report"
 	// Create a directory with only read permission
@@ -139,8 +149,9 @@ func TestBugReportFileNoPermission(t *testing.T) {
 		assert.Error(t, err)
 	}
 	reportFile := reportDir + string(os.PathSeparator) + "bug-report.tgz"
-	cmd.PersistentFlags().Set(constants.BugReportFileFlagName, reportFile)
-	err := cmd.Execute()
+	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, reportFile)
+	assert.NoError(t, err)
+	err = cmd.Execute()
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "permission denied to create the bug report")
 }
@@ -150,8 +161,7 @@ func TestBugReportFileNoPermission(t *testing.T) {
 // WHEN I call cmd.Execute
 // THEN expect the command to show the resources captured in the standard output and create the bug report file
 func TestBugReportSuccess(t *testing.T) {
-	c := getClientWithWatch()
-	installVZ(t, c)
+	c := getClientWithVZWatch()
 
 	// Verify the vz resource is as expected
 	vz := v1beta1.Verrazzano{}
@@ -166,45 +176,51 @@ func TestBugReportSuccess(t *testing.T) {
 	assert.NotNil(t, cmd)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer os.RemoveAll(tmpDir)
+	defer cleanupTempDir(t, tmpDir)
 
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
-	cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
-	cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install,default")
-	cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
+	assert.NoError(t, err)
+	err = cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
+	assert.NoError(t, err)
+	err = cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install,default")
+	assert.NoError(t, err)
+	err = cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
+	assert.NoError(t, err)
 	err = cmd.Execute()
 	if err != nil {
 		assert.Error(t, err)
 	}
 
 	assert.NoError(t, err)
-	// Commenting the assertions due to intermittent failures
-	// assert.Contains(t, buf.String(), "Capturing resources from the cluster", "Capturing Verrazzano resource",
-	//	"Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace",
-	//	"Successfully created the bug report",
-	//	"WARNING: Please examine the contents of the bug report for sensitive data", "Namespace dummy not found in the cluster")
-	// assert.FileExists(t, bugRepFile)
 
-	// Validate the fact that --verbose is disabled by default
-	// buf = new(bytes.Buffer)
-	// errBuf = new(bytes.Buffer)
-	// rc = helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	// rc.SetClient(c)
-	// bugRepFile = tmpDir + string(os.PathSeparator) + "bug-report-verbose-false.tgz"
-	// cmd = NewCmdBugReport(rc)
-	// cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
-	// err = cmd.Execute()
-	// if err != nil {
-	//	assert.Error(t, err)
-	// }
+	assert.Contains(t, buf.String(), captureResourceErrMsg)
+	assert.Contains(t, buf.String(), captureVerrazzanoErrMsg)
+	assert.Contains(t, buf.String(), captureLogErrMsg)
+	assert.Contains(t, buf.String(), sensitiveDataErrMsg)
+	assert.Contains(t, buf.String(), dummyNamespaceErrMsg)
 
-	// assert.NoError(t, err)
-	// assert.Contains(t, buf.String(), "Capturing resources from the cluster",
-	//	"Successfully created the bug report",
-	//	"WARNING: Please examine the contents of the bug report for sensitive data")
-	// assert.NotContains(t, buf.String(), "Capturing Verrazzano resource",
-	//	"Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace")
-	// assert.FileExists(t, bugRepFile)
+	assert.FileExists(t, bugRepFile)
+
+	//Validate the fact that --verbose is disabled by default
+	buf = new(bytes.Buffer)
+	errBuf = new(bytes.Buffer)
+	rc = helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	bugRepFile = tmpDir + string(os.PathSeparator) + "bug-report-verbose-false.tgz"
+	cmd = NewCmdBugReport(rc)
+	err = cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
+	assert.NoError(t, err)
+	err = cmd.Execute()
+	if err != nil {
+		assert.Error(t, err)
+	}
+
+	assert.NoError(t, err)
+	assert.Contains(t, buf.String(), captureResourceErrMsg)
+	assert.Contains(t, buf.String(), sensitiveDataErrMsg)
+	assert.NotContains(t, buf.String(), captureVerrazzanoErrMsg)
+	assert.NotContains(t, buf.String(), captureLogErrMsg)
+	assert.FileExists(t, bugRepFile)
 }
 
 // TestBugReportDefaultReportFile
@@ -213,10 +229,13 @@ func TestBugReportSuccess(t *testing.T) {
 // THEN expect the command to create the report bug-report.tar.gz under the current directory
 func TestBugReportDefaultReportFile(t *testing.T) {
 	// clean up the bugreport file that is generated
-	defer os.Remove(constants.BugReportFileDefaultValue)
+	defer func(t *testing.T) {
+		if err := os.Remove(constants.BugReportFileDefaultValue); err != nil {
+			t.Fatal(err.Error())
+		}
+	}(t)
 
-	c := getClientWithWatch()
-	installVZ(t, c)
+	c := getClientWithVZWatch()
 
 	// Verify the vz resource is as expected
 	vz := v1beta1.Verrazzano{}
@@ -228,15 +247,16 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
-	cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
+	err = cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
+	assert.NoError(t, err)
 	assert.NotNil(t, cmd)
 	err = cmd.Execute()
 	assert.NoError(t, err)
-	// Commenting the assertions due to intermittent failures
-	// assert.Contains(t, buf.String(), "Capturing Verrazzano resource",
-	//	"Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace",
-	//	"Created the bug report",
-	//	"WARNING: Please examine the contents of the bug report for sensitive data", "Namespace dummy not found in the cluster")
+
+	assert.Contains(t, buf.String(), captureVerrazzanoErrMsg)
+	assert.Contains(t, buf.String(), captureLogErrMsg)
+	assert.Contains(t, buf.String(), "Created bug report")
+	assert.Contains(t, buf.String(), sensitiveDataErrMsg)
 }
 
 // TestBugReportNoVerrazzano
@@ -253,12 +273,14 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 	assert.NotNil(t, cmd)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer os.RemoveAll(tmpDir)
+	defer cleanupTempDir(t, tmpDir)
 
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
-	cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
-	cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install")
-	err := cmd.Execute()
+	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
+	assert.NoError(t, err)
+	err = cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install")
+	assert.NoError(t, err)
+	err = cmd.Execute()
 	if err != nil {
 		assert.Error(t, err)
 	}
@@ -279,12 +301,14 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 	assert.NotNil(t, cmd)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer os.RemoveAll(tmpDir)
+	defer cleanupTempDir(t, tmpDir)
 
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
-	cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
-	cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install")
-	err := cmd.Execute()
+	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
+	assert.NoError(t, err)
+	err = cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install")
+	assert.NoError(t, err)
+	err = cmd.Execute()
 	if err != nil {
 		assert.Error(t, err)
 	}
@@ -293,44 +317,62 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 	assert.NoFileExists(t, bugRepFile)
 }
 
-// getClientWithWatch returns a client for installing Verrazzano
+// getClientWithWatch returns a client containing all VPO objects
 func getClientWithWatch() client.WithWatch {
-	vpo := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      constants.VerrazzanoPlatformOperator,
-			Labels: map[string]string{
-				"app":               constants.VerrazzanoPlatformOperator,
-				"pod-template-hash": "45f78ffddd",
+	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()[1:]...).Build()
+}
+
+// getClientWithVZWatch returns a client containing all VPO objects and the Verrazzano CR
+func getClientWithVZWatch() client.WithWatch {
+	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()...).Build()
+}
+
+func getVpoObjects() []client.Object {
+	return []client.Object{
+		&v1beta1.Verrazzano{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "verrazzano",
+			},
+			Spec: v1beta1.VerrazzanoSpec{
+				Profile: v1beta1.Dev,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.VerrazzanoInstallNamespace,
+				Name:      constants.VerrazzanoPlatformOperator,
+				Labels: map[string]string{
+					"app":               constants.VerrazzanoPlatformOperator,
+					"pod-template-hash": "45f78ffddd",
+				},
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.VerrazzanoInstallNamespace,
+				Name:      constants.VerrazzanoPlatformOperator,
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.VerrazzanoInstallNamespace,
+				Name:      fmt.Sprintf("%s-45f78ffddd", constants.VerrazzanoPlatformOperator),
+				Annotations: map[string]string{
+					"deployment.kubernetes.io/revision": "1",
+				},
 			},
 		},
 	}
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      constants.VerrazzanoPlatformOperator,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
-			},
-		},
-		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
-			UpdatedReplicas:   1,
-		},
-	}
-	replicaset := &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      fmt.Sprintf("%s-45f78ffddd", constants.VerrazzanoPlatformOperator),
-			Annotations: map[string]string{
-				"deployment.kubernetes.io/revision": "1",
-			},
-		},
-	}
-	c := fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(vpo, deployment, replicaset).Build()
-	return c
 }
 
 // getInvalidClient returns an invalid client
@@ -356,25 +398,22 @@ func getInvalidClient() client.WithWatch {
 			},
 		},
 	}
-	c := fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(testObj, deployment).Build()
-	return c
+	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(testObj, deployment).Build()
 }
 
-// installVZ installs Verrazzano using the given client
-func installVZ(t *testing.T, c client.WithWatch) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	rc.SetClient(c)
-	cmd := installcmd.NewCmdInstall(rc)
-	assert.NotNil(t, cmd)
-	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
-	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
-	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
-	defer cmdHelpers.SetDefaultDeleteFunc()
+// cleanupTempDir cleans up the given temp directory after the test run
+func cleanupTempDir(t *testing.T, dirName string) {
+	if err := os.RemoveAll(dirName); err != nil {
+		t.Fatalf("Remove directory failed: %v", err)
+	}
+}
 
-	// Run install command
-	err := cmd.Execute()
-	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+// cleanupTempDir cleans up the given temp file after the test run
+func cleanupFile(t *testing.T, file *os.File) {
+	if err := file.Close(); err != nil {
+		t.Fatalf("Close file failed: %v", err)
+	}
+	if err := os.Remove(file.Name()); err != nil {
+		t.Fatalf("Close file failed: %v", err)
+	}
 }

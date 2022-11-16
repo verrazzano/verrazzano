@@ -19,6 +19,7 @@ spec:
     - prom
     singular: prometheus
   scope: Namespaced
+  preserveUnknownFields: false
   versions:
   - additionalPrinterColumns:
     - description: The version of Prometheus

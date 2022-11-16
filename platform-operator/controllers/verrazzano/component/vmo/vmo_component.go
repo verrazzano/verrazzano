@@ -5,11 +5,12 @@ package vmo
 
 import (
 	"context"
-	"fmt"
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
-	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -18,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -69,7 +69,7 @@ func NewComponent() spi.Component {
 
 // IsEnabled VMO enabled check for installation
 func (c vmoComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsVMOEnabled(effectiveCR)
+	return vzcr.IsVMOEnabled(effectiveCR)
 }
 
 // IsReady calls VMO isVmoReady function
@@ -78,14 +78,6 @@ func (c vmoComponent) IsReady(context spi.ComponentContext) bool {
 		return c.isVMOReady(context)
 	}
 	return false
-}
-
-func (c vmoComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = c.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", c.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // IsInstalled checks if VMO is installed

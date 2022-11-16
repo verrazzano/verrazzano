@@ -5,6 +5,7 @@ package version
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"os"
 	"regexp"
 
@@ -28,9 +29,10 @@ const (
 
 // statusOutputTemplate - template for output of status command
 const versionOutputTemplate = `
-Version: v{{.cli_version}}
-BuildDate: {{.build_date}}
-GitCommit: {{.git_commit}}
+Version:     v{{.cli_version}}
+BuildDate:   {{.build_date}}
+GitCommit:   {{.git_commit}}
+WorkerImage: {{.worker_image}}
 `
 
 func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
@@ -46,9 +48,10 @@ func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
 func runCmdVersion(vzHelper helpers.VZHelper) error {
 
 	templateValues := map[string]string{
-		"cli_version": cliVersion,
-		"build_date":  buildDate,
-		"git_commit":  gitCommit,
+		"cli_version":  cliVersion,
+		"build_date":   buildDate,
+		"git_commit":   gitCommit,
+		"worker_image": constants.GetDefaultWorkerImage(),
 	}
 
 	result, err := templates.ApplyTemplate(versionOutputTemplate, templateValues)

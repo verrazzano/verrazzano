@@ -35,7 +35,7 @@ that define the configuration. For example, to deploy a use case to
 generate logs using 10 replicas, you would run the following command:
 
 ```
-helm install psr-log-gen manifests/charts/k8s -f manifests/usecases/writelogs.yaml --set replicas=10
+helm install psr-writelogs manifests/charts/worker -f manifests/usecases/opensearch/writelogs.yaml --set replicas=10
 ```
 
 **NOTE** The worker code for a use case expects all dependencies to exist at the
@@ -54,22 +54,19 @@ OpenSearch out and in, repeatedly.
 
 To run a scenario, you install two Helm releases as follows (note some use cases
 might not exist yet):
-
 ```
-helm install psr-log-gen manifests/charts/k8s -f manifests/usecases/opensearch/writelogs.yaml --set replicas=5
-helm install psr-scale-out manifests/charts/k8s -f manifests/usecases/opensearch/scale-out-in.yaml --set replicas=1
+helm install psr-writelogs manifests/charts/worker -f manifests/usecases/opensearch/writelogs.yaml --set replicas=5
+helm install psr-scale manifests/charts/worker -f manifests/usecases/opensearch/scale.yaml --set replicas=1
 ```
 
 The override file for the scale use case might look like this:
-
 ```
-envVars:
-  PSR_WORKER_TYPE: WT_OPENSEARCH_SCALE_OUT_IN
-  PSR_OS_TIER: master
-  PSR_MAX_PODS: 5
-  PSR_MIN_PODS: 3  
-  PSR_INTERATION_DELAY: 5s
-  PSR_DURATION : 1h
+  envVars:
+    PSR_WORKER_TYPE: scale
+    OPEN_SEARCH_TIER: master
+    SCALE_DELAY_PER_TIER: 5s
+    MIN_REPLICA_COUNT: 3
+    MAX_REPLICA_COUNT: 5
 ```
 
 The OpenSearch worker code would read those Env vars at run time and behave
@@ -77,14 +74,14 @@ accordingly.
 
 ### Metrics
 
-The workers themselves will generator metrics so that we know what kind of load
+The workers themselves will generate metrics so that we know what kind of load
 they are putting on the system,
-and to also have insight to their progress to be sure that they working as
+and to also have insight to their progress to be sure that they are working as
 expected.
 
 ### Remote Execution
 
-There is nothing preventing a worker accessing a cluster different than the one
+There is nothing preventing a worker accessing a cluster different from the one
 it is running in. You
 would just need to put the KUBECONFIG in a secret and pass the secret info to as
 an Env var. However,
@@ -130,11 +127,14 @@ example.
 
 The other Make targets include:  
 * go-build - build the code
+* go-build-cli - build the psrctl CLI
+* docker-clean - remove artifacts from a previous build
 * docker-build - calls go-build, then build the image
 * docker-push - calls docker-build, then push the image to ghcr.io.
 * kind-load-image - calls docker-build, then load the image to a local Kind cluster
 * run-example-oam - calls kind-load-image, then deploy the example worker as an OAM app
 * run-example-k8s - calls kind-load-image, then deploy the example worker as a Kubernetes deployment
+* install-cli - build and install the psrctl CLI to your go path
 
 ### Example Helm Installs
 
@@ -148,18 +148,18 @@ Install the example worker as an OAM application using the default image in the 
 helm install psr-example manifests/charts/worker --set imagePullSecrets[0].name=verrazzano-container-registry
 ```
 
-Install the logging generator worker as a Kubernetes deployment using the default image in the helm chart.  Note the appType must be supplied:
+Install the WriteLogs worker as a Kubernetes deployment using the default image in the helm chart.  Note the appType must be supplied:
 ```
 helm install psr-writelogs manifests/charts/worker --set appType=k8s -f manifests/usecases/opensearch/writelogs.yaml
 ```
 
-Install the logging generator worker as a OAM application with 5 worker threads and the default 1 replica.
+Install the WriteLogs worker as an OAM application with 5 worker threads and the default 1 replica.
 ```
 helm install psr-writelogs manifests/charts/worker --set global.envVars.PSR_WORKER_THREAD_COUNT=5 -f manifests/usecases/opensearch/writelogs.yaml
 ```
 
 ## Workers
-All of the worker are deployed using the same worker Helm chart.  Every worker, except the example, have the following requirements: 
+All of the workers are deployed using the same worker Helm chart.  Every worker, except the example, has the following requirements: 
 * must emit metrics
 * must not log while doing work, unless that is the purpose of the worker
 
@@ -178,7 +178,6 @@ global:
     
     PSR_WORKER_THREAD_COUNT - threads per worker
     default: 1
-    
 ```
 
 ### Example
@@ -193,9 +192,9 @@ no configuration overrides
 helm install psr-example manifests/charts/worker 
 ```
 
-### writelogs
+### WriteLogs
 #### Description
-The writelogs worker periodically logs messages.  The goal is to put a load on OpenSearch since fluentd collects the container logs and
+The WriteLogs worker periodically logs messages.  The goal is to put a load on OpenSearch since fluentd collects the container logs and
 sends them to OpenSearch.
 
 #### Configuration
@@ -208,7 +207,7 @@ helm install psr-writelogs manifests/charts/worker -f manifests/usecases/opensea
 
 ### GetLogs
 #### Description
-The GetLogs worker periodically get messages from OpenSearch, in-cluster.  This worker must run in the mesh.
+The GetLogs worker periodically gets messages from OpenSearch, in-cluster.  This worker must run in the mesh.
 
 #### Configuration
 no configuration overrides
@@ -216,4 +215,70 @@ no configuration overrides
 #### Run
 ```
 helm install psr-getlogs manifests/charts/worker -f manifests/usecases/opensearch/getlogs.yaml
+```
+
+### PostLogs
+#### Description
+The PostLogs worker makes batch http post requests to OpenSearch, in-cluster. This worker must run in the mesh.
+
+#### Configuration
+```
+LOG_ENTRIES - number of log messages per post request
+default: 1
+
+LOG_LENGTH - number of characters per log message
+defaultL 1
+```
+
+#### Run
+```
+helm install psr-postlogs manifests/charts/worker -f manifests/usecases/opensearch/postlogs.yaml
+```
+
+### Scale
+#### Description
+The Scale worker continuously scales one tier of OpenSearch out and in. This worker must run in the mesh.
+
+#### Configuration
+```
+OPEN_SEARCH_TIER - OpenSearch tier
+default: master
+
+SCALE_DELAY_PER_TIER - scale delay
+default: 5s
+
+MIN_REPLICA_COUNT - number of replicas to scale in to
+default: 3
+
+MAX_REPLICA_COUNT - number of replicas to scale out to
+default: 5
+```
+
+#### Run
+```
+helm install psr-scale manifests/charts/worker -f manifests/usecases/opensearch/scale.yaml
+```
+
+### HTTPGet
+#### Description
+The HTTPGet worker makes http requests to the endpoint for a specified service. This worker must run in the mesh.
+
+#### Configuration
+```
+SERVICE_NAME - service name
+default: ""
+
+SERVICE_NAMESPACE - service namespace
+default: ""
+
+SERVICE_PORT - service port
+default: ""
+
+PATH - service path 
+default: ""
+```
+
+#### Run
+```
+helm install psr-httpget manifests/charts/worker -f manifests/usecases/http/get.yaml
 ```

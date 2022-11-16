@@ -19,6 +19,7 @@ spec:
     - am
     singular: alertmanager
   scope: Namespaced
+  preserveUnknownFields: false
   versions:
   - additionalPrinterColumns:
     - description: The version of Alertmanager

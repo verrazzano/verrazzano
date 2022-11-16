@@ -6,6 +6,9 @@ package start
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -14,17 +17,18 @@ import (
 const (
 	CommandName = "start"
 	helpShort   = "Start a PSR scenario"
-	helpLong    = `The command 'start' starts a PSR scenario`
+	helpLong    = `The command 'start' starts a PSR scenario in the specified namespace. 
+Multiple scenarios can be started in the same namespace.`
 	helpExample = `psrctl start -s ops-s1`
 )
 
-const (
-	flagScenario       = "scenarioID"
-	flagsScenarioShort = "s"
-	flagScenarioHelp   = "specifies the scenario ID"
-)
-
 var scenarioID string
+var namespace string
+var scenarioDir string
+var workerImage string
+var imagePullSecret string
+
+const imagePullSecDefault = "verrazzano-container-registry"
 
 func NewCmdStart(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -34,33 +38,44 @@ func NewCmdStart(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.Args = cobra.ExactArgs(0)
 	cmd.Example = helpExample
 
-	cmd.PersistentFlags().StringVarP(&scenarioID, flagScenario, flagsScenarioShort, "", flagScenarioHelp)
+	cmd.PersistentFlags().StringVarP(&scenarioID, constants.FlagScenario, constants.FlagsScenarioShort, "", constants.FlagScenarioHelp)
+	cmd.PersistentFlags().StringVarP(&namespace, constants.FlagNamespace, constants.FlagNamespaceShort, "default", constants.FlagNamespaceHelp)
+	cmd.PersistentFlags().StringVarP(&scenarioDir, constants.FlagScenarioDir, constants.FlagScenarioDirShort, "", constants.FlagScenarioDirHelp)
+	cmd.PersistentFlags().StringVarP(&workerImage, constants.WorkerImageName, constants.WorkerImageNameShort, constants.GetDefaultWorkerImage(), constants.WorkerImageNameHelp)
+	cmd.PersistentFlags().StringVarP(&imagePullSecret, constants.ImagePullSecretName, constants.ImagePullSecretNameShort, imagePullSecDefault, constants.ImagePullSecretNameHelp)
 
 	return cmd
 }
 
 // RunCmdStart - Run the "psrctl start" command
 func RunCmdStart(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	m, err := scenario.NewManager("default")
+	m, err := scenario.NewManager(namespace, scenarioDir, buildHelmOverrides()...)
 	if err != nil {
 		return fmt.Errorf("Failed to create scenario Manager %v", err)
 	}
 
 	scman, err := m.FindScenarioManifestByID(scenarioID)
 	if err != nil {
-		return fmt.Errorf("Failed to find scenario %s: %v", scenarioID, err)
+		return fmt.Errorf("Failed to find scenario manifest %s: %v", scenarioID, err)
 	}
 	if scman == nil {
-		return fmt.Errorf("Failed to find scenario with ID %s", scenarioID)
+		return fmt.Errorf("Failed to find scenario manifest with ID %s", scenarioID)
 	}
 
 	fmt.Printf("Starting scenario %s\n", scman.ID)
 	msg, err := m.StartScenario(scman)
 	if err != nil {
 		// Cobra will display failure message
-		return fmt.Errorf("Failed to start scenario %s: %v\n%s", scenarioID, err, msg)
+		return fmt.Errorf("Failed to start scenario %s/%s: %v\n%s", namespace, scenarioID, err, msg)
 	}
-	fmt.Printf("ScenarioManifest %s successfully started\n", scman.ID)
+	fmt.Printf("Scenario %s successfully started\n", scman.ID)
 
 	return nil
+}
+
+func buildHelmOverrides() []helmcli.HelmOverrides {
+	return []helmcli.HelmOverrides{
+		{SetOverrides: fmt.Sprintf("%s=%s", constants.ImageNameKey, workerImage)},
+		{SetOverrides: fmt.Sprintf("%s=%s", constants.ImagePullSecKey, imagePullSecret)},
+	}
 }

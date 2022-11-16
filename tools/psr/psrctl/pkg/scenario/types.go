@@ -27,6 +27,9 @@ type ScenarioManifest struct {
 
 // Scenario specifies a PSR scenario that was installed in the cluster
 type Scenario struct {
+	// The namespace where the scenario is installed
+	Namespace string
+
 	// The namespaced names of the helm releases that comprise the scenario
 	HelmReleases []types.NamespacedName
 

@@ -6,13 +6,14 @@ package fluentd
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -165,6 +166,17 @@ func (c fluentdComponent) PreInstall(ctx spi.ComponentContext) error {
 	return nil
 }
 
+func (c fluentdComponent) Reconcile(ctx spi.ComponentContext) error {
+	installed, err := c.IsInstalled(ctx)
+	if err != nil {
+		return err
+	}
+	if installed {
+		err = c.Install(ctx)
+	}
+	return err
+}
+
 // Install Fluentd component install processing
 func (c fluentdComponent) Install(ctx spi.ComponentContext) error {
 	if err := c.HelmComponent.Install(ctx); err != nil {
@@ -244,7 +256,7 @@ func (c fluentdComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 
 // IsEnabled fluentd-specific enabled check for installation
 func (c fluentdComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsFluentdEnabled(effectiveCR)
+	return vzcr.IsFluentdEnabled(effectiveCR)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
