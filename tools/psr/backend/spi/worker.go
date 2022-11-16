@@ -25,10 +25,6 @@ type WorkerDesc struct {
 // Worker is an interface that must be implemented by all workers
 type Worker interface {
 
-	// Init Performs any required initialization before DoWork() can be called; returns an error if there is an issue
-	// during initialization, and is considered fatal to worker execution
-	Init() error
-
 	// WaitForDependencies Waits for any other dependencies to become available before DoWork() can be called;
 	// returns an error if there is an issue with any of the dependencies, and is considered fatal to worker execution
 	WaitForDependencies() error

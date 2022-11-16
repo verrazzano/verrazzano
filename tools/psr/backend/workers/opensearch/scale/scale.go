@@ -131,10 +131,6 @@ func (w worker) WantLoopInfoLogged() bool {
 	return false
 }
 
-func (w worker) Init() error {
-	return nil
-}
-
 func (w worker) WaitForDependencies() error {
 	return nil
 }
