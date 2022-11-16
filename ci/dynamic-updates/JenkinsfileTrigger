@@ -122,7 +122,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -142,7 +142,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -162,7 +162,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -182,7 +182,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -202,7 +202,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -222,7 +222,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -242,7 +242,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -262,7 +262,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -282,7 +282,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -302,7 +302,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -322,7 +322,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
@@ -344,7 +344,7 @@ pipeline {
     post {
         failure {
             script {
-                if (env.JOB_NAME == "verrazzano-dynamic-suite-suite/master" || env.JOB_NAME ==~ "verrazzano-dynamic-update-suite/release-1.*") {
+                if (env.JOB_NAME == "verrazzano-dynamic-config-suite/master" || env.JOB_NAME ==~ "verrazzano-dynamic-config-suite/release-1.*") {
                     if (isPagerDutyEnabled()) {
                         pagerduty(resolve: false, serviceKey: "$SERVICE_KEY", incDescription: "Verrazzano: ${env.JOB_NAME} - Failed", incDetails: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}")
                     }
