@@ -7,24 +7,21 @@ import (
 	"fmt"
 	"testing"
 
-	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
-
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-
-	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 
+	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -222,6 +219,10 @@ func TestIsKialiNotReadyChartNotFound(t *testing.T) {
 	assert.False(t, kiali.isKialiReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
+// TestGetOverrides tests the GetOverrides function
+// GIVEN a call to GetInstallOverrides
+// WHEN there is a valid Kiali configuration
+// THEN the correct Helm overrides are returned
 func TestGetOverrides(t *testing.T) {
 	overridesValue := []byte("{\"key1\": \"value1\"}")
 	vz := &vzapi.Verrazzano{
