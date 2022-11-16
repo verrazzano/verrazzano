@@ -37,7 +37,7 @@ func (c *AvailabilityObjects) IsAvailable(log vzlog.VerrazzanoLogger, client cli
 	if err := DeploymentsAreAvailableBySelector(client, c.DeploymentSelectors); err != nil {
 		return handleNotAvailableError(log, err)
 	}
-	if err := StatefulsetsAreAvailable(client, c.StatefulsetNames); err != nil {
+	if err := StatefulSetsAreAvailable(client, c.StatefulsetNames); err != nil {
 		return handleNotAvailableError(log, err)
 	}
 	if err := DaemonsetsAreAvailable(client, c.DaemonsetNames); err != nil {
@@ -56,8 +56,8 @@ func DeploymentsAreAvailable(client clipkg.Client, deployments []types.Namespace
 	return objectsAreAvailable(client, deployments, isDeploymentAvailable)
 }
 
-// StatefulsetsAreAvailable a list of statefulsets is available when the expected replicas is equal to the ready replicas
-func StatefulsetsAreAvailable(client clipkg.Client, statefulsets []types.NamespacedName) error {
+// StatefulSetsAreAvailable a list of statefulsets is available when the expected replicas is equal to the ready replicas
+func StatefulSetsAreAvailable(client clipkg.Client, statefulsets []types.NamespacedName) error {
 	return objectsAreAvailable(client, statefulsets, isStatefulsetAvailable)
 }
 

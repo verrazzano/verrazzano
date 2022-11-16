@@ -32,8 +32,12 @@ var funcNewPsrClient = k8sclient.NewPsrClient
 type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetrics
-	psrClient        k8sclient.PsrClient
-	log              vzlog.VerrazzanoLogger
+	psrClient k8sclient.PsrClient
+	log       vzlog.VerrazzanoLogger
+	*restartData
+}
+
+type restartData struct {
 	restartStartTime int64
 	restartedPodUID  types.UID
 }
@@ -52,10 +56,9 @@ func NewRestartWorker() (spi.Worker, error) {
 		return nil, err
 	}
 	w := worker{
-		psrClient:        c,
-		log:              vzlog.DefaultLogger(),
-		restartStartTime: 0,
-		restartedPodUID:  types.UID(""),
+		psrClient:   c,
+		log:         vzlog.DefaultLogger(),
+		restartData: &restartData{},
 		workerMetrics: &workerMetrics{
 			restartCount: metrics.MetricItem{
 				Name: "opensearch_pod_restart_count",
@@ -145,7 +148,7 @@ func (w worker) podsReady(tier string) error {
 	var err error
 	switch tier {
 	case psropensearch.MasterTier:
-		err = ready.StatefulsetsAreAvailable(w.psrClient.CrtlRuntime, []types.NamespacedName{{
+		err = ready.StatefulSetsAreAvailable(w.psrClient.CrtlRuntime, []types.NamespacedName{{
 			Name:      "vmi-system-es-master",
 			Namespace: constants.VerrazzanoSystemNamespace,
 		}})
