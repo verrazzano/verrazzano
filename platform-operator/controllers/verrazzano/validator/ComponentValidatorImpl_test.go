@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapibeta "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	appsv1Cli "k8s.io/client-go/kubernetes/typed/apps/v1"
@@ -16,6 +17,9 @@ import (
 )
 
 var disabled = false
+
+const disabledCertAndIngress string = "disabled cert and ingress"
+const testProfilesDirectory string = "../../../manifests/profiles"
 
 // TestComponentValidatorImpl_ValidateInstall tests the ValidateInstall function
 // GIVEN a valid CR
@@ -39,7 +43,7 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 			numberOfErrors: 0,
 		},
 		{
-			name: "disabled cert and ingress",
+			name: disabledCertAndIngress,
 			vz: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
@@ -55,7 +59,7 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 			numberOfErrors: 0,
 		},
 	}
-	config.TestProfilesDir = "../../../manifests/profiles"
+	config.TestProfilesDir = testProfilesDirectory
 	defer func() {
 		config.TestProfilesDir = ""
 		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
@@ -67,6 +71,61 @@ func TestComponentValidatorImpl_ValidateInstall(t *testing.T) {
 			got := c.ValidateInstall(tt.vz)
 			if len(got) != tt.numberOfErrors {
 				t.Errorf("ValidateInstall() = %v, numberOfErrors %v", len(got), tt.numberOfErrors)
+			}
+		})
+	}
+}
+
+// TestComponentValidatorImpl_ValidateInstallV1Beta1 tests the ValidateInstallV1Beta1 function
+// GIVEN a valid CR
+// WHEN ValidateInstallV1Beta1 is called
+// THEN ensure that no error is raised
+func TestComponentValidatorImpl_ValidateInstallV1Beta1(t *testing.T) {
+	k8sutil.GetCoreV1Func = func(_ ...vzlog.VerrazzanoLogger) (corev1Cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset().CoreV1(), nil
+	}
+	k8sutil.GetAppsV1Func = func(_ ...vzlog.VerrazzanoLogger) (appsv1Cli.AppsV1Interface, error) {
+		return k8sfake.NewSimpleClientset().AppsV1(), nil
+	}
+	tests := []struct {
+		name           string
+		vz             *vzapibeta.Verrazzano
+		numberOfErrors int
+	}{
+		{
+			name:           "default CR",
+			vz:             &vzapibeta.Verrazzano{},
+			numberOfErrors: 0,
+		},
+		{
+			name: disabledCertAndIngress,
+			vz: &vzapibeta.Verrazzano{
+				Spec: vzapibeta.VerrazzanoSpec{
+					Components: vzapibeta.ComponentSpec{
+						CertManager: &vzapibeta.CertManagerComponent{
+							Enabled: &disabled,
+						},
+						IngressNGINX: &vzapibeta.IngressNginxComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			numberOfErrors: 0,
+		},
+	}
+	config.TestProfilesDir = testProfilesDirectory
+	defer func() {
+		config.TestProfilesDir = ""
+		k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client
+		k8sutil.GetAppsV1Func = k8sutil.GetAppsV1Client
+	}()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := ComponentValidatorImpl{}
+			got := c.ValidateInstallV1Beta1(tt.vz)
+			if len(got) != tt.numberOfErrors {
+				t.Errorf("ValidateInstallV1Beta1() = %v, numberOfErrors %v", len(got), tt.numberOfErrors)
 			}
 		})
 	}
@@ -118,7 +177,7 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 			numberOfErrors: 1,
 		},
 		{
-			name: "disabled cert and ingress",
+			name: disabledCertAndIngress,
 			old:  &vzapi.Verrazzano{},
 			new: &vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
@@ -135,12 +194,88 @@ func TestComponentValidatorImpl_ValidateUpdate(t *testing.T) {
 			numberOfErrors: 2,
 		},
 	}
-	config.TestProfilesDir = "../../../manifests/profiles"
+	config.TestProfilesDir = testProfilesDirectory
 	defer func() { config.TestProfilesDir = "" }()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := ComponentValidatorImpl{}
 			got := c.ValidateUpdate(tt.old, tt.new)
+			if len(got) != tt.numberOfErrors {
+				t.Errorf("ValidateUpdate() = %v, numberOfErrors %v", len(got), tt.numberOfErrors)
+			}
+		})
+	}
+}
+
+// TestComponentValidatorImpl_ValidateUpdateV1Beta1 tests the ValidateUpdate function
+// GIVEN a valid CR
+// WHEN ValidateUpdateV1Beta1 is called
+// THEN ensure that no error is raised
+func TestComponentValidatorImpl_ValidateUpdateV1Beta1(t *testing.T) {
+	tests := []struct {
+		name           string
+		old            *vzapibeta.Verrazzano
+		new            *vzapibeta.Verrazzano
+		numberOfErrors int
+	}{
+		{
+			name:           "no change",
+			old:            &vzapibeta.Verrazzano{},
+			new:            &vzapibeta.Verrazzano{},
+			numberOfErrors: 0,
+		},
+		{
+			name: "disable rancher",
+			old:  &vzapibeta.Verrazzano{},
+			new: &vzapibeta.Verrazzano{
+				Spec: vzapibeta.VerrazzanoSpec{
+					Components: vzapibeta.ComponentSpec{
+						Rancher: &vzapibeta.RancherComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			numberOfErrors: 1,
+		},
+		{
+			name: "disable cert",
+			old:  &vzapibeta.Verrazzano{},
+			new: &vzapibeta.Verrazzano{
+				Spec: vzapibeta.VerrazzanoSpec{
+					Components: vzapibeta.ComponentSpec{
+						CertManager: &vzapibeta.CertManagerComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			numberOfErrors: 1,
+		},
+		{
+			name: disabledCertAndIngress,
+			old:  &vzapibeta.Verrazzano{},
+			new: &vzapibeta.Verrazzano{
+				Spec: vzapibeta.VerrazzanoSpec{
+					Components: vzapibeta.ComponentSpec{
+						CertManager: &vzapibeta.CertManagerComponent{
+							Enabled: &disabled,
+						},
+						IngressNGINX: &vzapibeta.IngressNginxComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			numberOfErrors: 2,
+		},
+	}
+	config.TestProfilesDir = testProfilesDirectory
+	defer func() { config.TestProfilesDir = "" }()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := ComponentValidatorImpl{}
+			got := c.ValidateUpdateV1Beta1(tt.old, tt.new)
 			if len(got) != tt.numberOfErrors {
 				t.Errorf("ValidateUpdate() = %v, numberOfErrors %v", len(got), tt.numberOfErrors)
 			}
