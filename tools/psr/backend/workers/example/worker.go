@@ -51,6 +51,14 @@ func (w exampleWorker) WantLoopInfoLogged() bool {
 	return true
 }
 
+func (w exampleWorker) Init() error {
+	return nil
+}
+
+func (w exampleWorker) WaitForDependencies() error {
+	return nil
+}
+
 func (w exampleWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	log.Infof("Example Worker doing work")
 	w.state.loggedLinesTotal++

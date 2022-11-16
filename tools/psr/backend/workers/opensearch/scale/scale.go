@@ -131,6 +131,14 @@ func (w worker) WantLoopInfoLogged() bool {
 	return false
 }
 
+func (w worker) Init() error {
+	return nil
+}
+
+func (w worker) WaitForDependencies() error {
+	return nil
+}
+
 // DoWork continuously scales a specified OpenSearch out and in by modifying the VZ CR OpenSearch component
 func (w worker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	// validate OS tier
