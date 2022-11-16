@@ -31,6 +31,7 @@ import (
 const (
 	vmoDeployment = "verrazzano-monitoring-operator"
 	masterAppName = "system-es-master"
+	vzsys         = "verrazzano-system"
 )
 
 var (
@@ -429,7 +430,7 @@ func TestNodesToObjectKeys(t *testing.T) {
 			},
 		},
 	}
-	actual = &ready.AvailabilityObjects{StatefulsetNames: []types.NamespacedName{{Namespace: "verrazzano-system", Name: "vmi-system-node2"}}, DeploymentNames: []types.NamespacedName{{Namespace: "verrazzano-system", Name: "vmi-system-node1-0"}, {Namespace: "verrazzano-system", Name: "vmi-system-node3"}}, DeploymentSelectors: []client.ListOption(nil), DaemonsetNames: []types.NamespacedName(nil)}
+	actual = &ready.AvailabilityObjects{StatefulsetNames: []types.NamespacedName{{Namespace: vzsys, Name: "vmi-system-node2"}}, DeploymentNames: []types.NamespacedName{{Namespace: vzsys, Name: "vmi-system-node1-0"}, {Namespace: vzsys, Name: "vmi-system-node3"}}, DeploymentSelectors: []client.ListOption(nil), DaemonsetNames: []types.NamespacedName(nil)}
 	expected = nodesToObjectKeys(vztwo)
 	assert.Equal(t, expected, actual)
 }

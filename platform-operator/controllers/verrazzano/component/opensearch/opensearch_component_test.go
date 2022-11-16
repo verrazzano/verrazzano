@@ -31,6 +31,10 @@ const (
 	profilesRelativePath     = "../../../../manifests/profiles"
 	testCaseInstallArgsErr   = "frominstallargserr"
 	testCaseGeneralOverrides = "overrides"
+	systemesdata             = "system-es-data"
+	podtemplatehash          = "pod-template-hash"
+	depKube                  = "deployment.kubernetes.io/revision"
+	systemesingest           = "system-es-ingest"
 )
 
 var dnsComponents = vzapi.ComponentSpec{
@@ -437,14 +441,14 @@ func TestIsReadyForComponent(t *testing.T) {
 				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-0", esDataDeployment),
 				Labels: map[string]string{
-					"app":   "system-es-data",
+					"app":   systemesdata,
 					"index": "0",
 				},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
-						"app":   "system-es-data",
+						"app":   systemesdata,
 						"index": "0",
 					},
 				},
@@ -460,9 +464,9 @@ func TestIsReadyForComponent(t *testing.T) {
 				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-0-95d8c5d96-m6mbr", esDataDeployment),
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					"app":               "system-es-data",
-					"index":             "0",
+					podtemplatehash: "95d8c5d96",
+					"app":           systemesdata,
+					"index":         "0",
 				},
 			},
 		},
@@ -470,7 +474,7 @@ func TestIsReadyForComponent(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   ComponentNamespace,
 				Name:        fmt.Sprintf("%s-0-95d8c5d96", esDataDeployment),
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Annotations: map[string]string{depKube: "1"},
 			},
 		},
 		&appsv1.Deployment{
@@ -478,14 +482,14 @@ func TestIsReadyForComponent(t *testing.T) {
 				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-1", esDataDeployment),
 				Labels: map[string]string{
-					"app":   "system-es-data",
+					"app":   systemesdata,
 					"index": "1",
 				},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
-						"app":   "system-es-data",
+						"app":   systemesdata,
 						"index": "1",
 					},
 				},
@@ -501,9 +505,9 @@ func TestIsReadyForComponent(t *testing.T) {
 				Namespace: ComponentNamespace,
 				Name:      fmt.Sprintf("%s-1-95d8c5d96-m6mbr", esDataDeployment),
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					"app":               "system-es-data",
-					"index":             "1",
+					podtemplatehash: "95d8c5d96",
+					"app":           systemesdata,
+					"index":         "1",
 				},
 			},
 		},
@@ -511,18 +515,18 @@ func TestIsReadyForComponent(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   ComponentNamespace,
 				Name:        fmt.Sprintf("%s-1-95d8c5d96", esDataDeployment),
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Annotations: map[string]string{depKube: "1"},
 			},
 		},
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      esIngestDeployment,
-				Labels:    map[string]string{"app": "system-es-ingest"},
+				Labels:    map[string]string{"app": systemesingest},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"app": "system-es-ingest"},
+					MatchLabels: map[string]string{"app": systemesingest},
 				},
 			},
 			Status: appsv1.DeploymentStatus{
@@ -536,8 +540,8 @@ func TestIsReadyForComponent(t *testing.T) {
 				Namespace: ComponentNamespace,
 				Name:      esIngestDeployment + "-95d8c5d96-m6mbr",
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					"app":               "system-es-ingest",
+					podtemplatehash: "95d8c5d96",
+					"app":           systemesingest,
 				},
 			},
 		},
@@ -546,8 +550,8 @@ func TestIsReadyForComponent(t *testing.T) {
 				Namespace: ComponentNamespace,
 				Name:      esIngestDeployment + "-95d8c5d96-x1v76",
 				Labels: map[string]string{
-					"pod-template-hash": "95d8c5d96",
-					"app":               "system-es-ingest",
+					podtemplatehash: "95d8c5d96",
+					"app":           systemesingest,
 				},
 			},
 		},
@@ -555,7 +559,7 @@ func TestIsReadyForComponent(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   ComponentNamespace,
 				Name:        esIngestDeployment + "-95d8c5d96",
-				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
+				Annotations: map[string]string{depKube: "1"},
 			},
 		},
 		&appsv1.StatefulSet{
