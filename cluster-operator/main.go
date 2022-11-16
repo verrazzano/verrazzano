@@ -120,6 +120,7 @@ func main() {
 	}
 
 	if enableWebhooks {
+		mgr.GetWebhookServer().CertDir = certDir
 		config, err := ctrl.GetConfig()
 		if err != nil {
 			log.Errorf("Failed to get kubeconfig: %v", err)
