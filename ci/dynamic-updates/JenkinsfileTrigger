@@ -122,18 +122,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                        booleanParam(name: 'RUN_POST_UPDATE1', value: true)
-
-                                    ], wait: true
+                                startBuildJob([booleanParam(name: 'RUN_POST_UPDATE1', value: true)])
                             }
                         }
                     }
@@ -142,18 +131,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                        booleanParam(name: 'RUN_POST_UPDATE2', value: true)
-
-                                    ], wait: true
+                                startBuildJob([booleanParam(name: 'RUN_POST_UPDATE2', value: true)])
                             }
                         }
                     }
@@ -162,18 +140,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                        booleanParam(name: 'RUN_AVAILABILITY_STATUS', value: true)
-
-                                    ], wait: true
+                                startBuildJob([booleanParam(name: 'RUN_AVAILABILITY_STATUS', value: true)])
                             }
                         }
                     }
@@ -182,18 +149,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                        booleanParam(name: 'RUN_API_CONVERSION', value: true)
-
-                                    ], wait: true
+                                startBuildJob([booleanParam(name: 'RUN_API_CONVERSION', value: true)])
                             }
                         }
                     }
@@ -202,18 +158,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                        booleanParam(name: 'RUN_AUTHPROXY', value: true)
-
-                                    ], wait: true
+                                startBuildJob([booleanParam(name: 'RUN_AUTHPROXY', value: true)])
                             }
                         }
                     }
@@ -222,18 +167,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                        booleanParam(name: 'RUN_CERT_MANAGER', value: true)
-
-                                    ], wait: true
+                                startBuildJob([booleanParam(name: 'RUN_CERT_MANAGER', value: true)])
                             }
                         }
                     }
@@ -242,18 +176,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                        booleanParam(name: 'RUN_NGINX_ISTIO', value: true)
-
-                                    ], wait: true
+                                startBuildJob([booleanParam(name: 'RUN_NGINX_ISTIO', value: true)])
                             }
                         }
                     }
@@ -262,18 +185,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                        booleanParam(name: 'RUN_FLUENTD', value: true)
-
-                                    ], wait: true
+                                startBuildJob([booleanParam(name: 'RUN_FLUENTD', value: true)])
                             }
                         }
                     }
@@ -282,18 +194,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                        booleanParam(name: 'RUN_OPENSEARCH', value: true)
-
-                                    ], wait: true
+                                startBuildJob([booleanParam(name: 'RUN_OPENSEARCH', value: true)])
                             }
                         }
                     }
@@ -302,18 +203,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                        booleanParam(name: 'RUN_JAEGER', value: true)
-
-                                    ], wait: true
+                                startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])
                             }
                         }
                     }
@@ -322,18 +212,7 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
-                                        booleanParam(name: 'RUN_POST_INSTALL_OVERRIDES', value: true)
-
-                                    ], wait: true
+                                startBuildJob([booleanParam(name: 'RUN_POST_INSTALL_OVERRIDES', value: true)])
                             }
                         }
                     }
@@ -527,4 +406,21 @@ def metricBuildDuration() {
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }
+}
+
+def startBuildJob(additionalParams) {
+    def jobParameters = [
+        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
+        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
+        string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
+        string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
+        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
+        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
+        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
+        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
+    ]
+    jobParameters = jobParameters + additionalParams
+
+    build job: "/verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
+        parameters: jobParameters, wait: true
 }
