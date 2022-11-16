@@ -37,8 +37,7 @@ var nsGvr = schema.GroupVersionResource{
 	Resource: "namespaces",
 }
 
-// CreateOrUpdateResourceFromFile creates or updates a Kubernetes resources from a YAML test data file.
-// The test data file is found using the FindTestDataFile function.
+// CreateOrUpdateResourceFromFile creates or updates a Kubernetes resources from a YAML file.
 // This is intended to be equivalent to `kubectl apply`
 // The cluster used is the one set by default in the environment
 func CreateOrUpdateResourceFromFile(file string, log *zap.SugaredLogger) error {
@@ -51,7 +50,7 @@ func CreateOrUpdateResourceFromFile(file string, log *zap.SugaredLogger) error {
 	return CreateOrUpdateResourceFromFileInCluster(file, kubeconfigPath)
 }
 
-// CreateOrUpdateResourceFromBytes creates or updates a Kubernetes resources from a YAML test data byte array.
+// CreateOrUpdateResourceFromBytes creates or updates a Kubernetes resources from a YAML data byte array.
 // The cluster used is the one set by default in the environment
 func CreateOrUpdateResourceFromBytes(data []byte, log *zap.SugaredLogger) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -112,46 +111,35 @@ func CreateOrUpdateResourceFromBytesUsingConfig(data []byte, config *rest.Config
 		}
 
 		namespace := uns.GetNamespace()
+		var cli dynamic.ResourceInterface
 
 		if namespace != "" {
-			// Attempt to create the resource.
-			_, err = client.Resource(unsMap.Resource).Namespace(namespace).Create(context.TODO(), uns, metav1.CreateOptions{})
-			if err != nil && errors.IsAlreadyExists(err) {
-				// Get, read the resource version, and then update the resource.
-				resource, err := client.Resource(unsMap.Resource).Namespace(namespace).Get(context.TODO(), uns.GetName(), metav1.GetOptions{})
-				if err != nil {
-					return fmt.Errorf("failed to get resource for update: %w", err)
-				}
-				uns.SetResourceVersion(resource.GetResourceVersion())
-				_, err = client.Resource(unsMap.Resource).Namespace(namespace).Update(context.TODO(), uns, metav1.UpdateOptions{})
-				if err != nil {
-					return fmt.Errorf("failed to update resource: %w", err)
-				}
-			} else if err != nil {
-				return fmt.Errorf("failed to create resource: %w", err)
-			}
+			cli = client.Resource(unsMap.Resource).Namespace(namespace)
 		} else {
-			_, err = client.Resource(unsMap.Resource).Create(context.TODO(), uns, metav1.CreateOptions{})
-			if err != nil && errors.IsAlreadyExists(err) {
-				resource, err := client.Resource(unsMap.Resource).Get(context.TODO(), uns.GetName(), metav1.GetOptions{})
-				if err != nil {
-					return fmt.Errorf("failed to get resource for update: %v", err)
-				}
-				uns.SetResourceVersion(resource.GetResourceVersion())
-				_, err = client.Resource(unsMap.Resource).Update(context.TODO(), uns, metav1.UpdateOptions{})
-				if err != nil {
-					return fmt.Errorf("failed to update resource: %v", err)
-				}
-			} else if err != nil {
-				return fmt.Errorf("failed to create resource: %v", err)
+			cli = client.Resource(unsMap.Resource)
+		}
+
+		// Attempt to create the resource.
+		_, err = cli.Create(context.TODO(), uns, metav1.CreateOptions{})
+		if err != nil && errors.IsAlreadyExists(err) {
+			// Get, read the resource version, and then update the resource.
+			resource, err := cli.Get(context.TODO(), uns.GetName(), metav1.GetOptions{})
+			if err != nil {
+				return fmt.Errorf("failed to get resource for update: %w", err)
 			}
+			uns.SetResourceVersion(resource.GetResourceVersion())
+			_, err = cli.Update(context.TODO(), uns, metav1.UpdateOptions{})
+			if err != nil {
+				return fmt.Errorf("failed to update resource: %w", err)
+			}
+		} else if err != nil {
+			return fmt.Errorf("failed to create resource: %w", err)
 		}
 	}
 	// no return since you can't get here
 }
 
-// CreateOrUpdateResourceFromFileInGeneratedNamespace creates or updates a Kubernetes resources from a YAML test data file.
-// The test data file is found using the FindTestDataFile function.
+// CreateOrUpdateResourceFromFileInGeneratedNamespace creates or updates a Kubernetes resources from a YAML file.
 // Namespaces are not in the resource yaml files. They are generated and passed in
 // Resources will be created in the namespace that is passed in
 // This is intended to be equivalent to `kubectl apply`
@@ -180,12 +168,12 @@ func CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file string, ku
 		return fmt.Errorf("failed to get kube config: %w", err)
 	}
 
-	return createOrUpdateResourceFromBytesInGeneratedNamespace(bytes, config, namespace)
+	return createOrUpdateResourceFromBytesInNamespace(bytes, config, namespace)
 }
 
-// createOrUpdateResourceFromBytesInGeneratedNamespace creates or updates a Kubernetes resource from bytes in the provided namespace.
+// createOrUpdateResourceFromBytesInNamespace creates or updates a Kubernetes resource from bytes in the provided namespace.
 // This is intended to be equivalent to `kubectl apply`
-func createOrUpdateResourceFromBytesInGeneratedNamespace(data []byte, config *rest.Config, namespace string) error {
+func createOrUpdateResourceFromBytesInNamespace(data []byte, config *rest.Config, namespace string) error {
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return fmt.Errorf("failed to create dynamic client: %w", err)
@@ -269,9 +257,8 @@ func readNextResourceFromBytes(reader *utilyaml.YAMLReader, mapper *restmapper.D
 	return unsMap, nil
 }
 
-// DeleteResourceFromFile deletes Kubernetes resources using names found in a YAML test data file.
+// DeleteResourceFromFile deletes Kubernetes resources using names found in a YAML file.
 // This is intended to be equivalent to `kubectl delete`
-// The test data file is found using the FindTestDataFile function.
 func DeleteResourceFromFile(file string, log *zap.SugaredLogger) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -332,8 +319,7 @@ func deleteResourceFromBytes(data []byte, config *rest.Config) error {
 	}
 }
 
-// DeleteResourceFromFileInGeneratedNamespace deletes Kubernetes resources using names found in a YAML test data file.
-// The test data file is found using the FindTestDataFile function.
+// DeleteResourceFromFileInGeneratedNamespace deletes Kubernetes resources using names found in a YAML file.
 // The namespace is generated and passed in
 func DeleteResourceFromFileInGeneratedNamespace(file string, namespace string) error {
 	var logger = vzlog.DefaultLogger()
@@ -357,12 +343,12 @@ func DeleteResourceFromFileInClusterInGeneratedNamespace(file string, kubeconfig
 		return fmt.Errorf("failed to get kube config: %w", err)
 	}
 
-	return deleteResourceFromBytesInGeneratedNamespace(bytes, config, namespace)
+	return deleteResourceFromBytesInNamespace(bytes, config, namespace)
 }
 
-// deleteResourceFromBytes deletes Kubernetes resources using names found in YAML bytes.
+// deleteResourceFromBytesInNamespace deletes Kubernetes resources using names found in YAML bytes.
 // This is intended to be equivalent to `kubectl delete`
-func deleteResourceFromBytesInGeneratedNamespace(data []byte, config *rest.Config, namespace string) error {
+func deleteResourceFromBytesInNamespace(data []byte, config *rest.Config, namespace string) error {
 	client, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return fmt.Errorf("failed to create dynamic client: %w", err)
