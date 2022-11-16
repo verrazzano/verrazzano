@@ -6,6 +6,8 @@ import (
 	"context"
 	"testing"
 
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+
 	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/stretchr/testify/assert"
@@ -399,6 +401,130 @@ func Test_kialiComponent_ValidateUpdate(t *testing.T) {
 			if err := c.ValidateUpdate(tt.old, tt.new); (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
+		})
+	}
+}
+
+// TestKialiComponent_ValidateUpdateV1Beta1 tests the ValidateUpdateV1Beta1 function
+// GIVEN an old and new v1beta1 VZ resource
+// WHEN a call to ValidateUpdateV1Beta1 is made
+// THEN return an error if the component is being disabled
+func TestKialiComponent_ValidateUpdateV1Beta1(t *testing.T) {
+	disabled := false
+	tests := []struct {
+		name    string
+		old     *installv1beta1.Verrazzano
+		new     *installv1beta1.Verrazzano
+		wantErr bool
+	}{
+		{
+			name: "enable",
+			old: &installv1beta1.Verrazzano{
+				Spec: installv1beta1.VerrazzanoSpec{
+					Components: installv1beta1.ComponentSpec{
+						Kiali: &installv1beta1.KialiComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			new:     &installv1beta1.Verrazzano{},
+			wantErr: false,
+		},
+		{
+			name: "disable",
+			old:  &installv1beta1.Verrazzano{},
+			new: &installv1beta1.Verrazzano{
+				Spec: installv1beta1.VerrazzanoSpec{
+					Components: installv1beta1.ComponentSpec{
+						Kiali: &installv1beta1.KialiComponent{
+							Enabled: &disabled,
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:    "no change",
+			old:     &installv1beta1.Verrazzano{},
+			new:     &installv1beta1.Verrazzano{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			if err := c.ValidateUpdateV1Beta1(tt.old, tt.new); (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// TestKialiComponent_MonitorOverrides tests the MonitorOverrides function
+// GIVEN an effective VZ CR
+// WHEN a call to MonitorOverrides is made
+// THEN return true if monitoring of install overrides is enabled, false otherwise
+func TestKialiComponent_MonitorOverrides(t *testing.T) {
+	c := NewComponent()
+	cli := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	tests := []struct {
+		name   string
+		vz     *vzapi.Verrazzano
+		result bool
+	}{
+		{
+			"Kiali Component is nil",
+			&vzapi.Verrazzano{},
+			false,
+		},
+		{
+			"Kiali component initialised",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Kiali: &vzapi.KialiComponent{},
+					},
+				},
+			},
+			true,
+		},
+		{
+			"MonitorChanges explicitly enabled in Kiali component",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Kiali: &vzapi.KialiComponent{
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: getBoolPtr(true)},
+						},
+					},
+				},
+			},
+			true,
+		},
+		{
+			"MonitorChanges explicitly disabled in Kiali component",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Kiali: &vzapi.KialiComponent{
+							InstallOverrides: vzapi.InstallOverrides{
+								MonitorChanges: getBoolPtr(false)},
+						},
+					},
+				},
+			},
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(cli, tt.vz, nil, false)
+			result := c.MonitorOverrides(ctx)
+			assert.Equal(t, tt.result, result)
 		})
 	}
 }
