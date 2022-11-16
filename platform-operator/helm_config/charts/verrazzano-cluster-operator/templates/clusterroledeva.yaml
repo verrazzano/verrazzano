@@ -34,5 +34,28 @@ rules:
       - verrazzanos
     verbs:
       - list
+  - apiGroups:
+      - ""
+    resources:
+      - serviceaccounts
+      - configmaps
+    verbs:
+      - create
+      - get
+      - list
+      - update
+      - watch
+  # TODO do we need delete?
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - rolebindings
+    verbs:
+      - create
+      - get
+      - list
+      - update
+      - watch
+# TODO do we need delete?
 
 
