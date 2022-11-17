@@ -33,7 +33,9 @@ rules:
     resources:
       - verrazzanos
     verbs:
+      - get
       - list
+      - watch
   - apiGroups:
       - ""
     resources:
@@ -47,6 +49,13 @@ rules:
       - update
       - watch
   # TODO do we need delete?
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs:
+      - list
+      - watch
   - apiGroups:
       - rbac.authorization.k8s.io
     resources:
