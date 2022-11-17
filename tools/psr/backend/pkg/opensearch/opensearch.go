@@ -24,9 +24,6 @@ const (
 	nodeNamePrefix = "vmi-system-%s"
 	componentName  = "opensearch"
 
-	// OpenSearchTier is the environment variable helm value override that specifies the OpenSearch tier to workers
-	OpenSearchTier = "OPENSEARCH_TIER"
-
 	MasterTier = "master"
 	DataTier   = "data"
 	IngestTier = "ingest"
@@ -134,8 +131,8 @@ func getPodsByLabels(ctrlRuntimeClient client.Client, namespace string, requirem
 }
 
 // ValidateOpenSeachTier validates the envvar is a correct opensearch tier
-func ValidateOpenSeachTier() (string, error) {
-	tier := config.PsrEnv.GetEnv(OpenSearchTier)
+func ValidateOpenSeachTier(opensearchTierEnvVar string) (string, error) {
+	tier := config.PsrEnv.GetEnv(opensearchTierEnvVar)
 	if tier != MasterTier && tier != DataTier && tier != IngestTier {
 		return "", fmt.Errorf("error, %s not a valid OpenSearch tier to restart", tier)
 	}

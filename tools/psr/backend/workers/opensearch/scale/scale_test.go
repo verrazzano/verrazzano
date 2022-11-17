@@ -74,7 +74,7 @@ func TestGetEnvDescList(t *testing.T) {
 		required bool
 	}{
 		{name: "1",
-			key:      opensearchpsr.OpenSearchTier,
+			key:      openSearchTier,
 			defval:   "",
 			required: true,
 		},
@@ -252,9 +252,9 @@ func TestDoWork(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			envMap := map[string]string{
-				opensearchpsr.OpenSearchTier: test.tier,
-				minReplicaCount:              test.minReplicas,
-				maxReplicaCount:              test.maxReplicas,
+				openSearchTier:  test.tier,
+				minReplicaCount: test.minReplicas,
+				maxReplicaCount: test.maxReplicas,
 			}
 			f := fakeEnv{data: envMap}
 			saveEnv := osenv.GetEnvFunc

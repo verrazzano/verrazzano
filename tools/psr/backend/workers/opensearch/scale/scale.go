@@ -24,6 +24,7 @@ import (
 )
 
 const (
+	openSearchTier  = "OPENSEARCH_TIER"
 	minReplicaCount = "MIN_REPLICA_COUNT"
 	maxReplicaCount = "MAX_REPLICA_COUNT"
 )
@@ -107,7 +108,7 @@ func (w worker) GetWorkerDesc() spi.WorkerDesc {
 
 func (w worker) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{
-		{Key: psropensearch.OpenSearchTier, DefaultVal: "", Required: true},
+		{Key: openSearchTier, DefaultVal: "", Required: true},
 		{Key: minReplicaCount, DefaultVal: "3", Required: false},
 		{Key: maxReplicaCount, DefaultVal: "5", Required: false},
 	}
@@ -133,7 +134,7 @@ func (w worker) WantLoopInfoLogged() bool {
 // DoWork continuously scales a specified OpenSearch out and in by modifying the VZ CR OpenSearch component
 func (w worker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	// validate OS tier
-	tier, err := psropensearch.ValidateOpenSeachTier()
+	tier, err := psropensearch.ValidateOpenSeachTier(openSearchTier)
 	if err != nil {
 		return err
 	}

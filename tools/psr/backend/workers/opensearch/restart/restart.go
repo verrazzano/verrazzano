@@ -27,6 +27,8 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 )
 
+const openSearchTier = "OPENSEARCH_TIER"
+
 var funcNewPsrClient = k8sclient.NewPsrClient
 
 type worker struct {
@@ -93,7 +95,7 @@ func (w worker) GetWorkerDesc() spi.WorkerDesc {
 
 func (w worker) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{
-		{Key: psropensearch.OpenSearchTier, DefaultVal: "", Required: true},
+		{Key: openSearchTier, DefaultVal: "", Required: true},
 	}
 }
 
@@ -115,7 +117,7 @@ func (w worker) WantLoopInfoLogged() bool {
 // DoWork restarts a pod in the specified OpenSearch tier
 func (w worker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	// validate OS tier
-	tier, err := psropensearch.ValidateOpenSeachTier()
+	tier, err := psropensearch.ValidateOpenSeachTier(openSearchTier)
 	if err != nil {
 		return err
 	}

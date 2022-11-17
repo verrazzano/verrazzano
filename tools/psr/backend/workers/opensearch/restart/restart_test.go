@@ -73,7 +73,7 @@ func TestGetEnvDescList(t *testing.T) {
 		required bool
 	}{
 		{name: "1",
-			key:      opensearchpsr.OpenSearchTier,
+			key:      openSearchTier,
 			defval:   "",
 			required: true,
 		},
@@ -233,7 +233,7 @@ func TestDoWork(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			envMap := map[string]string{
-				opensearchpsr.OpenSearchTier: test.tier,
+				openSearchTier: test.tier,
 			}
 			f := fakeEnv{data: envMap}
 			saveEnv := osenv.GetEnvFunc
@@ -318,15 +318,6 @@ func initFakePodWithLabels(labels map[string]string) *corev1.Pod {
 			Namespace: "verrazzano-system",
 			Labels:    labels,
 			UID:       "poduid",
-		},
-	}
-}
-
-// initFakeVzCr inits a fake Verrazzano CR
-func initFakeVzCr() *v1beta1.Verrazzano {
-	return &v1beta1.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "testVZ",
 		},
 	}
 }
