@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	openSearchTier  = "OPEN_SEARCH_TIER"
+	openSearchTier  = "OPENSEARCH_TIER"
 	minReplicaCount = "MIN_REPLICA_COUNT"
 	maxReplicaCount = "MAX_REPLICA_COUNT"
 )
@@ -138,10 +138,11 @@ func (w worker) PreconditionsMet() (bool, error) {
 // DoWork continuously scales a specified OpenSearch out and in by modifying the VZ CR OpenSearch component
 func (w worker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	// validate OS tier
-	tier := config.PsrEnv.GetEnv(openSearchTier)
-	if tier != psropensearch.MasterTier && tier != psropensearch.DataTier && tier != psropensearch.IngestTier {
-		return log.ErrorfNewErr("Failed %s tier is not valid", tier)
+	tier, err := psropensearch.ValidateOpenSeachTier(openSearchTier)
+	if err != nil {
+		return err
 	}
+
 	// Wait until VZ is ready
 	cr, err := w.waitReady(true)
 	if err != nil {
@@ -266,9 +267,6 @@ func (w worker) waitReady(desiredReady bool) (cr *vzv1alpha1.Verrazzano, err err
 			return nil, err
 		}
 		ready := psrvz.IsReady(cr)
-		if err != nil {
-			return nil, err
-		}
 		if ready == desiredReady {
 			break
 		}

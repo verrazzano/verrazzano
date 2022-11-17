@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
-
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/manifest"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -47,26 +47,31 @@ func NewCmdStart(vzHelper helpers.VZHelper) *cobra.Command {
 
 // RunCmdStart - Run the "psrctl start" command
 func RunCmdStart(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	m, err := scenario.NewManager(namespace, scenarioDir, buildHelmOverrides()...)
+	// GetScenarioManifest gets the ScenarioManifest for the given scenarioID
+	manifestMan, err := manifest.NewManager(scenarioDir)
 	if err != nil {
-		return fmt.Errorf("Failed to create scenario Manager %v", err)
+		return fmt.Errorf("Failed to create scenario ScenarioMananger %v", err)
 	}
-
-	scman, err := m.FindScenarioManifestByID(scenarioID)
+	scenarioMan, err := manifestMan.FindScenarioManifestByID(scenarioID)
 	if err != nil {
 		return fmt.Errorf("Failed to find scenario manifest %s: %v", scenarioID, err)
 	}
-	if scman == nil {
+	if scenarioMan == nil {
 		return fmt.Errorf("Failed to find scenario manifest with ID %s", scenarioID)
 	}
 
-	fmt.Printf("Starting scenario %s\n", scman.ID)
-	msg, err := m.StartScenario(scman)
+	m, err := scenario.NewManager(namespace, buildHelmOverrides()...)
+	if err != nil {
+		return fmt.Errorf("Failed to create scenario ScenarioMananger %v", err)
+	}
+
+	fmt.Printf("Starting scenario %s\n", scenarioMan.ID)
+	msg, err := m.StartScenario(manifestMan, scenarioMan)
 	if err != nil {
 		// Cobra will display failure message
 		return fmt.Errorf("Failed to start scenario %s/%s: %v\n%s", namespace, scenarioID, err, msg)
 	}
-	fmt.Printf("Scenario %s successfully started\n", scman.ID)
+	fmt.Printf("Scenario %s successfully started\n", scenarioMan.ID)
 
 	return nil
 }

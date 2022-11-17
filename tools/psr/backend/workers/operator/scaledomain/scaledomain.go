@@ -115,6 +115,10 @@ func (w scaleDomain) WantLoopInfoLogged() bool {
 	return false
 }
 
+func (w scaleDomain) PreconditionsMet() (bool, error) {
+	return true, nil
+}
+
 func (w scaleDomain) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 
 	//increment scaleDomainCountTotal
