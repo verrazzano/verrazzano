@@ -42,6 +42,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
 			Dependencies:              []string{networkpolicies.ComponentName},
+			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{
