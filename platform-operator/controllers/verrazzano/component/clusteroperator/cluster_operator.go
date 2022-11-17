@@ -5,13 +5,29 @@ package clusteroperator
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/runtime"
 )
+
+// AppendOverrides appends any additional overrides needed by the Cluster Operator component
+func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	envImageOverride := os.Getenv(constants.VerrazzanoClusterOperatorImageEnvVar)
+	if len(envImageOverride) > 0 {
+		kvs = append(kvs, bom.KeyValue{
+			Key:   "image",
+			Value: envImageOverride,
+		})
+	}
+
+	return kvs, nil
+}
 
 // isClusterOperatorReady checks if the cluster operator deployment is ready
 func (c clusterOperatorComponent) isClusterOperatorReady(ctx spi.ComponentContext) bool {
