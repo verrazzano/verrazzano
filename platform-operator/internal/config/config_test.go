@@ -76,6 +76,7 @@ func TestSetConfig(t *testing.T) {
 
 	conf := Get()
 	SetDefaultBomFilePath("/etc/bom.json")
+	defer SetDefaultBomFilePath("")
 	asserts.Equal("/test/certs", conf.CertDir, "CertDir is incorrect")
 	asserts.True(conf.RunWebhookInit, "RunWebhookInit is incorrect")
 	asserts.True(conf.LeaderElectionEnabled, "LeaderElectionEnabled is incorrect")
