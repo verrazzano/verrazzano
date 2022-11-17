@@ -27,7 +27,6 @@ import (
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/rancher"
-
 	// +kubebuilder:scaffold:imports
 )
 
