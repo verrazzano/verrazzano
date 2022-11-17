@@ -270,7 +270,7 @@ pipeline {
                             }
                         }
                         always {
-                            sh"""
+                            sh """
                         EX_STATUS=$(cat exit_status.txt)
                         STATUS=$(echo $((EX_STATUS == 1)) | bc)
                         if [ "$STATUS" -eq 1 ] \
