@@ -1,15 +1,20 @@
 package restart
 
 import (
-	"github.com/stretchr/testify/assert"
+	"strings"
+	"testing"
+
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoFakeClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/fake"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/k8sclient"
 	opensearchpsr "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/opensearch"
+
+	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -17,8 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	crtFakeClient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"strings"
-	"testing"
 )
 
 type fakeEnv struct {
@@ -177,17 +180,9 @@ func TestDoWork(t *testing.T) {
 	podUID := "poduid"
 
 	tests := []struct {
-		name           string
-		tier           string
-		state          string
-		podStillExists bool
-		minReplicas    string
-		maxReplicas    string
-		skipUpdate     bool
-		skipPodCreate  bool
-		firstState     v1alpha1.VzStateType
-		secondState    v1alpha1.VzStateType
-		thirtState     v1alpha1.VzStateType
+		name  string
+		tier  string
+		state string
 	}{
 		{
 			name:  "master-ready",
@@ -248,7 +243,11 @@ func TestDoWork(t *testing.T) {
 			}()
 
 			// Setup fake VZ client
-			cr := initFakeVzCr(test.firstState)
+			cr := &v1beta1.Verrazzano{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "testVZ",
+				},
+			}
 			vzclient := vpoFakeClient.NewSimpleClientset(cr)
 
 			// Setup fake K8s client
@@ -324,14 +323,10 @@ func initFakePodWithLabels(labels map[string]string) *corev1.Pod {
 }
 
 // initFakeVzCr inits a fake Verrazzano CR
-func initFakeVzCr(state v1alpha1.VzStateType) *v1alpha1.Verrazzano {
-	return &v1alpha1.Verrazzano{
+func initFakeVzCr() *v1beta1.Verrazzano {
+	return &v1beta1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testPod",
-			Namespace: "verrazzano-system",
-		},
-		Status: v1alpha1.VerrazzanoStatus{
-			State: state,
+			Name: "testVZ",
 		},
 	}
 }

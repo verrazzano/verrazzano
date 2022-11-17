@@ -4,7 +4,10 @@
 package scale
 
 import (
-	"github.com/stretchr/testify/assert"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoFakeClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/fake"
@@ -13,14 +16,13 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/k8sclient"
 	opensearchpsr "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/opensearch"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/verrazzano"
+
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	crtFakeClient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"strings"
-	"testing"
-	"time"
 )
 
 type fakeEnv struct {
