@@ -55,7 +55,7 @@ func (t *TestFramework) AfterEach(args ...interface{}) bool {
 	}
 
 	f := func() {
-		metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
+		metrics.EmitStatus(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
 		reflect.ValueOf(body).Call([]reflect.Value{})
 	}
 	args[0] = f

@@ -157,11 +157,20 @@ func configureOutputs(ind string) ([]string, error) {
 	return outputs, nil
 }
 
-func Emit(log *zap.SugaredLogger) {
+func EmitStatus(log *zap.SugaredLogger) {
 	spec := ginkgo.CurrentSpecReport()
 	if spec.State != types.SpecStateInvalid {
 		log = log.With(Status, spec.State)
 	}
+	emitInternal(log, spec)
+}
+
+func Emit(log *zap.SugaredLogger) {
+	spec := ginkgo.CurrentSpecReport()
+	emitInternal(log, spec)
+}
+
+func emitInternal(log *zap.SugaredLogger, spec ginkgo.SpecReport) {
 	t := spec.FullText()
 	l := spec.Labels()
 	log = withCodeLocation(log, spec)
