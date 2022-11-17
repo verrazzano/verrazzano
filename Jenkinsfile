@@ -291,7 +291,7 @@ pipeline {
                                     lineCoverageTargets: '68, 68, 68',
                                     packageCoverageTargets: '100, 0, 0',
                             )
-                            sh"""
+                            sh """
                                 EX_STATUS=$(cat exit_status.txt)
                                 STATUS=$(echo $((EX_STATUS == 1)) | bc)
 
