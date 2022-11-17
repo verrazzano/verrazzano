@@ -143,6 +143,10 @@ func (w worker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error 
 	return nil
 }
 
+func (w worker) PreconditionsMet() (bool, error) {
+	return true, nil
+}
+
 func (w worker) podsReady(tier string) error {
 	var label string
 	var err error
