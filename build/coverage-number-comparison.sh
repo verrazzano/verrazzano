@@ -7,7 +7,6 @@
 #Get latest line-rate from master/release for comparison
 OBJECT_URL=https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/abehern/vz-7560-Enforce-UT-branch-coverage-gt-or-eq-master/unit-test-coverage-number.txt
 COV_TXT=unit-test-coverage-number.txt
-EXIT_TXT=exit_status.txt
 COV_XML=coverage.xml
 
 EXIT_STATUS=$?
