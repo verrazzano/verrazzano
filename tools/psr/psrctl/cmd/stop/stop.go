@@ -38,13 +38,13 @@ func NewCmdStop(vzHelper helpers.VZHelper) *cobra.Command {
 
 // RunCmdStop - Run the "psrctl Stop" command
 func RunCmdStop(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	m, err := scenario.NewManager(namespace, "")
+	scenarioMan, err := scenario.NewManager(namespace)
 	if err != nil {
-		return fmt.Errorf("Failed to create scenario Manager %v", err)
+		return fmt.Errorf("Failed to create scenario ScenarioMananger %v", err)
 	}
 
 	fmt.Printf("Stopping scenario %s\n", scenarioID)
-	msg, err := m.StopScenarioByID(scenarioID)
+	msg, err := scenarioMan.StopScenarioByID(scenarioID)
 	if err != nil {
 		// Cobra will display failure message
 		return fmt.Errorf("Failed to stop scenario %s/%s: %v\n%s", namespace, scenarioID, err, msg)
