@@ -48,11 +48,11 @@ func NewCmdStart(vzHelper helpers.VZHelper) *cobra.Command {
 // RunCmdStart - Run the "psrctl start" command
 func RunCmdStart(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	// GetScenarioManifest gets the ScenarioManifest for the given scenarioID
-	sman, err := manifest.NewManager(scenarioDir)
+	manifestMan, err := manifest.NewManager(scenarioDir)
 	if err != nil {
 		return fmt.Errorf("Failed to create scenario ScenarioMananger %v", err)
 	}
-	scman, err := sman.FindScenarioManifestByID(scenarioID)
+	scman, err := manifestMan.FindScenarioManifestByID(scenarioID)
 	if err != nil {
 		return fmt.Errorf("Failed to find scenario manifest %s: %v", scenarioID, err)
 	}
@@ -66,7 +66,7 @@ func RunCmdStart(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 
 	fmt.Printf("Starting scenario %s\n", scman.ID)
-	msg, err := m.StartScenario(scman)
+	msg, err := m.StartScenario(manifestMan, scman)
 	if err != nil {
 		// Cobra will display failure message
 		return fmt.Errorf("Failed to start scenario %s/%s: %v\n%s", namespace, scenarioID, err, msg)

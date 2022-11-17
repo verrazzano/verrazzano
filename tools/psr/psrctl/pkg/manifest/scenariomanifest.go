@@ -33,7 +33,4 @@ type ScenarioManifest struct {
 	// This is the absolute directory that contains scenario.yaml and scenario usecase-overrides.  It is not specified by the user,
 	// but built at runtime
 	ScenarioUsecaseOverridesAbsDir string
-
-	// ManifestManager is the manifest manager
-	*ManifestManager
 }
