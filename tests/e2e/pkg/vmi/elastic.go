@@ -47,7 +47,7 @@ func (e *Opensearch) PodsRunning() bool {
 
 	if running {
 		expectedOpensearchPods = []string{
-			fmt.Sprintf("vmi-%s-os-ingest", e.binding),
+			fmt.Sprintf("vmi-%s-es-ingest", e.binding),
 			fmt.Sprintf("vmi-%s-es-data", e.binding)}
 		running, _ = pkg.PodsRunning("verrazzano-system", expectedOpensearchPods)
 	}

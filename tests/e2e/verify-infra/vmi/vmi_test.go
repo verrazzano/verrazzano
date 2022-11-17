@@ -55,6 +55,10 @@ func vmiIngressURLs() (map[string]string, error) {
 
 	for _, ingress := range ingressList.Items {
 		var ingressRules = ingress.Spec.Rules
+		if len(ingressRules) != 1 {
+			return nil, fmt.Errorf("expected ingress %s in namespace %s to have 1 ingress rule, but had %v",
+				ingress.Name, ingress.Namespace, ingressRules)
+		}
 		ingressURLs[ingress.Name] = fmt.Sprintf("https://%s/", ingressRules[0].Host)
 	}
 	return ingressURLs, nil
