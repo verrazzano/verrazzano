@@ -288,7 +288,7 @@ pipeline {
                             echo "PASS BUILD"
                             oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
                         fi
-                    """
+                        """
                             archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                             cobertura(coberturaReportFile: 'coverage.xml',
@@ -303,7 +303,6 @@ pipeline {
                                     lineCoverageTargets: '68, 68, 68',
                                     packageCoverageTargets: '100, 0, 0',
                             )
-                                }
                         }
                     }
                 }
