@@ -9,7 +9,7 @@ import (
 )
 
 // StopScenarioByID stops a running scenario specified by the scenario ID
-func (m Manager) StopScenarioByID(ID string) (string, error) {
+func (m ScenarioMananger) StopScenarioByID(ID string) (string, error) {
 	cm, err := m.getConfigMapByID(ID)
 	if err != nil {
 		return "", err

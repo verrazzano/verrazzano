@@ -6,6 +6,7 @@ package scenario
 import (
 	"fmt"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/manifest"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"path/filepath"
@@ -24,7 +25,7 @@ type WorkerType struct {
 }
 
 // StartScenario starts a Scenario
-func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
+func (m ScenarioMananger) StartScenario(scman *manifest.ScenarioManifest) (string, error) {
 	helmReleases := []HelmRelease{}
 
 	// Make sure the scenario is not running already
@@ -45,7 +46,7 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 		helmOverrides := m.HelmOverrides
 
 		// Build the usecase path, E.G. manifests/usecases/opensearch/getlogs/getlogs.yaml
-		ucOverride := filepath.Join(m.Manifest.UseCasesAbsDir, uc.UsecasePath)
+		ucOverride := filepath.Join(scman.ManifestManager.Manifest.UseCasesAbsDir, uc.UsecasePath)
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: ucOverride})
 
 		// Build scenario override path for the use case, E.G manifests/scenarios/opensearch/s1/usecase-overrides/getlogs-fast.yaml
@@ -63,7 +64,7 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 		if m.Verbose {
 			fmt.Printf("Installing use case %s as Helm release %s/%s\n", uc.UsecasePath, m.Namespace, relname)
 		}
-		_, stderr, err := helmcli.Upgrade(m.Log, relname, m.Namespace, m.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
+		_, stderr, err := helmcli.Upgrade(m.Log, relname, m.Namespace, scman.ManifestManager.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 		if err != nil {
 			return string(stderr), err
 		}

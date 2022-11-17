@@ -6,6 +6,7 @@ package scenario
 import (
 	"fmt"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/manifest"
 	"os"
 	"path/filepath"
 )
@@ -14,7 +15,7 @@ import (
 // The scenario manifest directory can be different that the one used to start the
 // scenario.  However, the scenario.yaml must be identical.  In fact, the scenario.yaml
 // is ignored during update, the code uses the scenario YAML information stored in the ConfigMap.
-func (m Manager) UpdateScenario(scman *ScenarioManifest) (string, error) {
+func (m ScenarioMananger) UpdateScenario(scman *manifest.ScenarioManifest) (string, error) {
 	// Make sure the scenario is running
 	scenario, err := m.FindRunningScenarioByID(scman.ID)
 	if err != nil {
@@ -32,7 +33,7 @@ func (m Manager) UpdateScenario(scman *ScenarioManifest) (string, error) {
 }
 
 // doHelmUpgrade runs the Helm upgrade command, applying helm overrides.
-func (m Manager) doHelmUpgrade(scman *ScenarioManifest, hr HelmRelease) (string, error) {
+func (m ScenarioMananger) doHelmUpgrade(scman *manifest.ScenarioManifest, hr HelmRelease) (string, error) {
 	// Create the set of HelmOverrides, initialized from the manager settings
 	helmOverrides := m.HelmOverrides
 
@@ -43,7 +44,7 @@ func (m Manager) doHelmUpgrade(scman *ScenarioManifest, hr HelmRelease) (string,
 	}
 
 	// Create a temp file with the existing values and add to helm overrides
-	tmpPath := filepath.Join(m.Manifest.RootTmpDir, fmt.Sprintf("upgrade-%s-%s", hr.Namespace, hr.Name))
+	tmpPath := filepath.Join(scman.ManifestManager.Manifest.RootTmpDir, fmt.Sprintf("upgrade-%s-%s", hr.Namespace, hr.Name))
 	// delete any existing update tmp file, shouldn't exist but just in case
 	os.RemoveAll(tmpPath)
 	err = os.WriteFile(tmpPath, stdout, 0600)
@@ -60,7 +61,7 @@ func (m Manager) doHelmUpgrade(scman *ScenarioManifest, hr HelmRelease) (string,
 	if m.Verbose {
 		fmt.Printf("Updating use case %s for Helm release %s/%s\n", hr.Usecase.UsecasePath, hr.Namespace, hr.Name)
 	}
-	_, stderr, err := helmcli.Upgrade(m.Log, hr.Name, m.Namespace, m.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
+	_, stderr, err := helmcli.Upgrade(m.Log, hr.Name, m.Namespace, scman.ManifestManager.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 	if err != nil {
 		return string(stderr), err
 	}

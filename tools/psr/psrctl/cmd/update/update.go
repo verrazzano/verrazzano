@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/manifest"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -56,17 +57,22 @@ func NewCmdUpdate(vzHelper helpers.VZHelper) *cobra.Command {
 
 // RunCmdUpdate - update the "psrctl update" command
 func RunCmdUpdate(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	m, err := scenario.NewManager(namespace, scenarioDir, buildHelmOverrides()...)
+	// GetScenarioManifest gets the ScenarioManifest for the given scenarioID
+	sman, err := manifest.NewManager(scenarioDir)
 	if err != nil {
-		return fmt.Errorf("Failed to create scenario Manager %v", err)
+		return fmt.Errorf("Failed to create scenario ScenarioMananger %v", err)
 	}
-
-	scman, err := m.FindScenarioManifestByID(scenarioID)
+	scman, err := sman.FindScenarioManifestByID(scenarioID)
 	if err != nil {
 		return fmt.Errorf("Failed to find scenario manifest %s: %v", scenarioID, err)
 	}
 	if scman == nil {
 		return fmt.Errorf("Failed to find scenario manifest with ID %s", scenarioID)
+	}
+
+	m, err := scenario.NewManager(namespace, buildHelmOverrides()...)
+	if err != nil {
+		return fmt.Errorf("Failed to create scenario ScenarioMananger %v", err)
 	}
 
 	fmt.Printf("Updating scenario %s\n", scenarioID)

@@ -8,36 +8,31 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/embedded"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
-// Manager contains the information needed to manage a Scenario
-type Manager struct {
-	Log                 vzlog.VerrazzanoLogger
-	Client              corev1.CoreV1Interface
-	Manifest            embedded.PsrManifests
-	ExternalScenarioDir string
-	Namespace           string
-	HelmOverrides       []helm.HelmOverrides
-	DryRun              bool
-	Verbose             bool
+// ScenarioMananger contains the information needed to manage a Scenario
+type ScenarioMananger struct {
+	Namespace     string
+	DryRun        bool
+	Verbose       bool
+	Log           vzlog.VerrazzanoLogger
+	Client        corev1.CoreV1Interface
+	HelmOverrides []helm.HelmOverrides
 }
 
-// NewManager returns a scenario Manager
-func NewManager(namespace string, externalScenarioDir string, helmOverrides ...helm.HelmOverrides) (Manager, error) {
+// NewManager returns a scenario ScenarioMananger
+func NewManager(namespace string, helmOverrides ...helm.HelmOverrides) (ScenarioMananger, error) {
 	client, err := k8sutil.GetCoreV1Client(vzlog.DefaultLogger())
 	if err != nil {
-		return Manager{}, fmt.Errorf("Failed to get CoreV1 client: %v", err)
+		return ScenarioMananger{}, fmt.Errorf("Failed to get CoreV1 client: %v", err)
 	}
-	m := Manager{
-		Namespace:           namespace,
-		Log:                 vzlog.DefaultLogger(),
-		Manifest:            *embedded.Manifests,
-		ExternalScenarioDir: externalScenarioDir,
-		HelmOverrides:       helmOverrides,
-		Client:              client,
-		Verbose:             true,
+	m := ScenarioMananger{
+		Namespace:     namespace,
+		Log:           vzlog.DefaultLogger(),
+		HelmOverrides: helmOverrides,
+		Client:        client,
+		Verbose:       true,
 	}
 	return m, nil
 }
