@@ -287,7 +287,8 @@ func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dyna
 			return false, err
 		}
 
-		if stdout != logoSVG {
+		fmt.Println(logoSVG)
+		if stdout != "foobar" {
 			t.Logs.Errorf("Got %s for Rancher UI logo path, expected %s", stdout, logoSVG)
 			return false, nil
 		}
