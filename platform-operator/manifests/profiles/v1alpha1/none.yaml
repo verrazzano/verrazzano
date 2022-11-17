@@ -3,12 +3,14 @@
 spec:
   components:
     applicationOperator:
-      enabled: true
+      enabled: false
     authProxy:
       enabled: false
     certManager:
       enabled: false
     coherenceOperator:
+      enabled: false
+    clusterOperator:
       enabled: false
     console:
       enabled: false

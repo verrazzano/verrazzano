@@ -50,9 +50,9 @@ func NewMinimalContext(c clipkg.Client, log vzlog.VerrazzanoLogger) (ComponentCo
 // profilesDir Optional override to the location of the profiles dir; if not provided, EffectiveCR == ActualCR
 func NewFakeContext(c clipkg.Client, actualCR *v1alpha1.Verrazzano, actualV1beta1CR *v1beta1.Verrazzano, dryRun bool, profilesDir ...string) ComponentContext {
 	log := vzlog.DefaultLogger()
-	effectiveCR := actualCR
-	effectiveV1beta1CR := actualV1beta1CR
 
+	effectiveCR := actualCR.DeepCopy()
+	effectiveV1beta1CR := actualV1beta1CR.DeepCopy()
 	if len(profilesDir) > 0 {
 		config.TestProfilesDir = profilesDir[0]
 		log.Debugf("Profiles location: %s", config.TestProfilesDir)
@@ -187,15 +187,13 @@ func (c componentContext) GetComponent() string {
 }
 
 func computeEffectiveCRs(actualCR *v1alpha1.Verrazzano, actualV1beta1CR *v1beta1.Verrazzano) (*v1alpha1.Verrazzano, *v1beta1.Verrazzano, error) {
-	effectiveCR := actualCR.DeepCopy()
-	effectiveV1beta1CR := actualV1beta1CR.DeepCopy()
 	var err error
 
-	effectiveCR, err = transform.GetEffectiveCR(actualCR)
+	effectiveCR, err := transform.GetEffectiveCR(actualCR)
 	if err != nil {
 		return nil, nil, err
 	}
-	effectiveV1beta1CR, err = transform.GetEffectiveV1beta1CR(actualV1beta1CR)
+	effectiveV1beta1CR, err := transform.GetEffectiveV1beta1CR(actualV1beta1CR)
 	if err != nil {
 		return nil, nil, err
 	}
