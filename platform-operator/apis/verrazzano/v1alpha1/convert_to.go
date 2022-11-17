@@ -33,7 +33,7 @@ const (
 
 	masterNodeName = "es-master"
 	dataNodeName   = "es-data"
-	ingestNodeName = "os-ingest"
+	ingestNodeName = "es-ingest"
 
 	authProxyReplicasKey = "replicas"
 	authProxyAffinityKey = "affinity"

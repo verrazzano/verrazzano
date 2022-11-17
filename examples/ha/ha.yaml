@@ -107,5 +107,5 @@ spec:
                 replicas: 2
     opensearch:
       nodes:
-        - name: os-ingest
+        - name: es-ingest
           replicas: 2

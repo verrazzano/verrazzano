@@ -17,7 +17,7 @@ spec:
             - data
           storage:
             size: 50Gi
-        - name: os-ingest
+        - name: es-ingest
           replicas: 1
           resources:
             requests:

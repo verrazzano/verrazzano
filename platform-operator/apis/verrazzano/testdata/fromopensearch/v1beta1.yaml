@@ -44,7 +44,7 @@ spec:
           replicas: 3
           roles:
             - data
-        - name: os-ingest
+        - name: es-ingest
           replicas: 1
           roles:
             - ingest

@@ -9,7 +9,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: system-os-ingest
+      app: system-es-ingest
   action: ALLOW
   rules:
     - from:

@@ -17,7 +17,6 @@ http://registry.example.com/
 http://test-ingest-host:9200
 http://tracing/jaeger
 http://vmi-system-es-ingest-oidc:8775
-http://vmi-system-os-ingest-oidc:8775
 http://zipkin
 https://1.2.3.4:1234
 https://elasticsearch.vmi.system

@@ -103,7 +103,7 @@ spec:
         - name: es-data
           roles:
             - data
-        - name: os-ingest
+        - name: es-ingest
           replicas: 2
           roles:
             - ingest
