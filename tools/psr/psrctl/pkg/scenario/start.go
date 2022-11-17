@@ -6,7 +6,6 @@ package scenario
 import (
 	"fmt"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
-	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"path/filepath"
@@ -26,7 +25,7 @@ type WorkerType struct {
 
 // StartScenario starts a Scenario
 func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
-	helmReleases := []types.NamespacedName{}
+	helmReleases := []HelmRelease{}
 
 	// Make sure the scenario is not running already
 	running, err := m.FindRunningScenarios()
@@ -42,16 +41,15 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 	// Helm install each use case
 	var i int
 	for _, uc := range scman.Usecases {
-		// Create the set of HelmOverrides, starting with the worker image
-		helmOverrides := []helmcli.HelmOverrides{
-			m.buildWorkerImageOverride(),
-		}
-		// This is the usecase path, E.G. manifests/usecases/opensearch/getlogs/getlogs.yaml
+		// Create the set of HelmOverrides, initialized from the manager settings
+		helmOverrides := m.HelmOverrides
+
+		// Build the usecase path, E.G. manifests/usecases/opensearch/getlogs/getlogs.yaml
 		ucOverride := filepath.Join(m.Manifest.UseCasesAbsDir, uc.UsecasePath)
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: ucOverride})
 
-		// This is the scenario override path for the use case
-		scOverride := filepath.Join(scman.ScenarioUsecaseOverridesDir, uc.OverrideFile)
+		// Build scenario override path for the use case, E.G manifests/scenarios/opensearch/s1/usecase-overrides/getlogs-fast.yaml
+		scOverride := filepath.Join(scman.ScenarioUsecaseOverridesAbsDir, uc.OverrideFile)
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: scOverride})
 
 		wType, err := readWorkerType(ucOverride)
@@ -69,10 +67,16 @@ func (m Manager) StartScenario(scman *ScenarioManifest) (string, error) {
 		if err != nil {
 			return string(stderr), err
 		}
-		helmReleases = append(helmReleases, types.NamespacedName{
-			Namespace: m.Namespace,
-			Name:      relname,
-		})
+
+		// Save the HelmRelease info
+		helmRelease := HelmRelease{
+			NamespacedName: types.NamespacedName{
+				Namespace: m.Namespace,
+				Name:      relname,
+			},
+			Usecase: uc,
+		}
+		helmReleases = append(helmReleases, helmRelease)
 		i++
 	}
 
@@ -104,8 +108,4 @@ func readWorkerType(ucOverride string) (string, error) {
 		return "nil", fmt.Errorf("Failed to find global.envVars.PSR_WORKER_TYPE in %s", ucOverride)
 	}
 	return wt.Global.EnvVars.WorkerType, nil
-}
-
-func (m Manager) buildWorkerImageOverride() helmcli.HelmOverrides {
-	return helmcli.HelmOverrides{SetOverrides: fmt.Sprintf("%s=%s", constants.ImageNameKey, m.WorkerImage)}
 }
