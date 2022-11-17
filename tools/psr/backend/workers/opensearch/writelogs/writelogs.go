@@ -66,6 +66,10 @@ func (w worker) WantLoopInfoLogged() bool {
 	return false
 }
 
+func (w worker) PreconditionsMet() (bool, error) {
+	return true, nil
+}
+
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	lc := atomic.AddInt64(&w.workerMetrics.loggedLinesCountTotal.Val, 1)
 	logMsg := fmt.Sprintf("Writelogs worker logging line %v", lc)

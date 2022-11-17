@@ -51,6 +51,10 @@ func (w exampleWorker) WantLoopInfoLogged() bool {
 	return true
 }
 
+func (w exampleWorker) PreconditionsMet() (bool, error) {
+	return true, nil
+}
+
 func (w exampleWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	log.Infof("Example Worker doing work")
 	w.state.loggedLinesTotal++

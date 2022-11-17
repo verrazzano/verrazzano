@@ -110,6 +110,10 @@ func (w worker) WantLoopInfoLogged() bool {
 	return false
 }
 
+func (w worker) PreconditionsMet() (bool, error) {
+	return true, nil
+}
+
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	c := httpClient
 	logEntries, err := strconv.Atoi(config.PsrEnv.GetEnv(LogEntries))
