@@ -520,7 +520,7 @@ metadata:
   name: verrazzano-application-appconfig-defaulter
   namespace: {{ .Values.namespace }}
   labels:
-    app: {{ .Values.name }}
+    app: {{ .Values.name }}-webhook
 webhooks:
   - name: verrazzano-application-appconfig-defaulter.verrazzano.io
     namespaceSelector:
@@ -528,7 +528,7 @@ webhooks:
         - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
-        name: {{ .Values.name }}
+        name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
         path: "/appconfig-defaulter"
     rules:
@@ -556,7 +556,7 @@ metadata:
   name: verrazzano-application-ingresstrait-validator
   namespace: {{ .Values.namespace }}
   labels:
-    app: {{ .Values.name }}
+    app: {{ .Values.name }}-webhook
 webhooks:
   - name: verrazzano-application-ingresstrait-validator.verrazzano.io
     namespaceSelector:
@@ -564,7 +564,7 @@ webhooks:
         - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
-        name: {{ .Values.name }}
+        name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
         path: "/validate-oam-verrazzano-io-v1alpha1-ingresstrait"
     rules:
@@ -591,7 +591,7 @@ metadata:
   name: verrazzano-application-istio-defaulter
   namespace: {{ .Values.namespace }}
   labels:
-    app: {{ .Values.name }}
+    app: {{ .Values.name }}-webhook
 webhooks:
   - name: verrazzano-application-istio-defaulter.verrazzano.io
     namespaceSelector:
@@ -600,7 +600,7 @@ webhooks:
           - {key: verrazzano.io/namespace, operator: NotIn, values: [verrazzano-system, kube-system, verrazzano-monitoring]}
     clientConfig:
       service:
-        name: {{ .Values.name }}
+        name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
         path: "/istio-defaulter"
     rules:
@@ -626,7 +626,7 @@ metadata:
   name: verrazzano-application-verrazzanoproject
   namespace: {{ .Values.namespace }}
   labels:
-    app: {{ .Values.name }}
+    app: {{ .Values.name }}-webhook
 webhooks:
   - name: verrazzano-clusters-verrazzanoproject-validator.verrazzano.io
     namespaceSelector:
@@ -634,7 +634,7 @@ webhooks:
         - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
-        name: {{ .Values.name }}
+        name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
         path: "/validate-clusters-verrazzano-io-v1alpha1-verrazzanoproject"
     rules:
@@ -661,7 +661,7 @@ metadata:
   name: verrazzano-application-multiclusterapplicationconfiguration
   namespace: {{ .Values.namespace }}
   labels:
-    app: {{ .Values.name }}
+    app: {{ .Values.name }}-webhook
 webhooks:
   - name: verrazzano-clusters-multiclusterapplicationconfiguration-validator.verrazzano.io
     namespaceSelector:
@@ -669,7 +669,7 @@ webhooks:
         - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
-        name: {{ .Values.name }}
+        name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
         path: "/validate-clusters-verrazzano-io-v1alpha1-multiclusterapplicationconfiguration"
     rules:
@@ -696,7 +696,7 @@ metadata:
   name: verrazzano-application-multiclustercomponent
   namespace: {{ .Values.namespace }}
   labels:
-    app: {{ .Values.name }}
+    app: {{ .Values.name }}-webhook
 webhooks:
   - name: verrazzano-clusters-multiclustercomponent-validator.verrazzano.io
     namespaceSelector:
@@ -704,7 +704,7 @@ webhooks:
         - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
-        name: {{ .Values.name }}
+        name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
         path: "/validate-clusters-verrazzano-io-v1alpha1-multiclustercomponent"
     rules:
@@ -731,7 +731,7 @@ metadata:
   name: verrazzano-application-multiclusterconfigmap
   namespace: {{ .Values.namespace }}
   labels:
-    app: {{ .Values.name }}
+    app: {{ .Values.name }}-webhook
 webhooks:
   - name: verrazzano-clusters-multiclusterconfigmap-validator.verrazzano.io
     namespaceSelector:
@@ -739,7 +739,7 @@ webhooks:
         - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
-        name: {{ .Values.name }}
+        name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
         path: "/validate-clusters-verrazzano-io-v1alpha1-multiclusterconfigmap"
     rules:
@@ -766,7 +766,7 @@ metadata:
   name: verrazzano-application-multiclustersecret
   namespace: {{ .Values.namespace }}
   labels:
-    app: {{ .Values.name }}
+    app: {{ .Values.name }}-webhook
 webhooks:
   - name: verrazzano-clusters-multiclustersecret-validator.verrazzano.io
     namespaceSelector:
@@ -774,7 +774,7 @@ webhooks:
         - { key: verrazzano.io/namespace, operator: NotIn, values: [ kube-system ] }
     clientConfig:
       service:
-        name: {{ .Values.name }}
+        name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
         path: "/validate-clusters-verrazzano-io-v1alpha1-multiclustersecret"
     rules:
@@ -801,7 +801,7 @@ metadata:
   name: verrazzano-application-metrics-binding
   namespace: {{ .Values.namespace }}
   labels:
-    app: {{ .Values.name }}
+    app: {{ .Values.name }}-webhook
 webhooks:
   - name: metrics-binding-generator-workload.verrazzano.io
     namespaceSelector:
@@ -815,7 +815,7 @@ webhooks:
           operator: DoesNotExist
     clientConfig:
       service:
-        name: {{ .Values.name }}
+        name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
         path: "/metrics-binding-generator-workload"
     rules:
@@ -843,7 +843,7 @@ webhooks:
           operator: DoesNotExist
     clientConfig:
       service:
-        name: {{ .Values.name }}
+        name: {{ .Values.name }}-webhook
         namespace: {{ .Values.namespace }}
         path: "/metrics-binding-labeler-pod"
     rules:
