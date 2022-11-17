@@ -24,8 +24,8 @@ const (
 	nodeNamePrefix = "vmi-system-%s"
 	componentName  = "opensearch"
 
-	OpenSearchTier             = "OPENSEARCH_TIER"
-	OpenSearchTierMetricsLabel = "opensearch_tier"
+	// OpenSearchTier is the environment variable helm value override that specifies the OpenSearch tier to workers
+	OpenSearchTier = "OPENSEARCH_TIER"
 
 	MasterTier = "master"
 	DataTier   = "data"

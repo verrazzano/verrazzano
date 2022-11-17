@@ -102,7 +102,6 @@ func (w worker) GetMetricDescList() []prometheus.Desc {
 }
 
 func (w worker) GetMetricList() []prometheus.Metric {
-
 	return []prometheus.Metric{
 		w.restartCount.BuildMetric(),
 		w.restartTime.BuildMetric(),
@@ -113,7 +112,7 @@ func (w worker) WantLoopInfoLogged() bool {
 	return false
 }
 
-// DoWork continuously restarts a specified OpenSearch out and in by modifying the VZ CR OpenSearch component
+// DoWork restarts a pod in the specified OpenSearch tier
 func (w worker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	// validate OS tier
 	tier, err := psropensearch.ValidateOpenSeachTier()
@@ -129,7 +128,6 @@ func (w worker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error 
 	// Update the elapsed time of the restart operation
 	if w.restartStartTime > 0 {
 		atomic.StoreInt64(&w.workerMetrics.restartTime.Val, time.Now().UnixNano()-w.restartStartTime)
-
 	}
 
 	w.restartStartTime = time.Now().UnixNano()
@@ -148,16 +146,21 @@ func (w worker) podsReady(tier string) error {
 	var err error
 	switch tier {
 	case psropensearch.MasterTier:
-		err = ready.StatefulSetsAreAvailable(w.psrClient.CrtlRuntime, []types.NamespacedName{{
-			Name:      "vmi-system-es-master",
-			Namespace: constants.VerrazzanoSystemNamespace,
-		}})
+		//err = ready.StatefulSetsAreAvailable(w.psrClient.CrtlRuntime, []types.NamespacedName{{
+		//	Name:      "vmi-system-es-master",
+		//	Namespace: constants.VerrazzanoSystemNamespace,
+		//}})
+
+		// there's no opensearch.verrazzano.io/role-master label on the master statefulset
+		// however master is the only tier that's deployed as a statefulset, so any opensearch sts must be master
+		label = "verrazzano-component"
+		err = ready.StatefulSetsAreAvailableBySelector(w.psrClient.CrtlRuntime, getSelectortForLabel(label, "opensearch"))
 	case psropensearch.DataTier:
 		label = "opensearch.verrazzano.io/role-data"
-		err = ready.DeploymentsAreAvailableBySelector(w.psrClient.CrtlRuntime, getSelectortForLabel(label))
+		err = ready.DeploymentsAreAvailableBySelector(w.psrClient.CrtlRuntime, getSelectortForLabel(label, "true"))
 	case psropensearch.IngestTier:
 		label = "opensearch.verrazzano.io/role-ingest"
-		err = ready.DeploymentsAreAvailableBySelector(w.psrClient.CrtlRuntime, getSelectortForLabel(label))
+		err = ready.DeploymentsAreAvailableBySelector(w.psrClient.CrtlRuntime, getSelectortForLabel(label, "true"))
 	}
 	if err != nil {
 		return err
@@ -180,7 +183,7 @@ func (w worker) restartPod(tier string) error {
 		return err
 	}
 	if len(pods) == 0 {
-		return fmt.Errorf("no pods found for tier %s", tier)
+		return fmt.Errorf("Failed, no pods found for tier %s", tier)
 	}
 	i, err := rand.Int(rand.Reader, big.NewInt(int64(len(pods))))
 	if err != nil {
@@ -190,8 +193,8 @@ func (w worker) restartPod(tier string) error {
 	return w.psrClient.CrtlRuntime.Delete(context.TODO(), &pods[i.Int64()])
 }
 
-func getSelectortForLabel(label string) []client.ListOption {
-	req, _ := labels.NewRequirement(label, selection.Equals, []string{"true"})
+func getSelectortForLabel(key, val string) []client.ListOption {
+	req, _ := labels.NewRequirement(key, selection.Equals, []string{val})
 	selector := labels.NewSelector().Add(*req)
 	return []client.ListOption{&client.ListOptions{
 		Namespace:     constants.VerrazzanoSystemNamespace,
