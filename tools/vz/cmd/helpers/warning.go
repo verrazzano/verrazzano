@@ -8,7 +8,6 @@ import (
 	"io"
 	"k8s.io/client-go/rest"
 	"os"
-	"runtime"
 )
 
 // getWarningHandler returns an implementation of WarningHandler that outputs code 299 warnings to the specified writer.
@@ -16,34 +15,8 @@ func getWarningHandler(w io.Writer) rest.WarningHandler {
 	// deduplicate and attempt color warnings when running from a terminal
 	return rest.NewWarningWriter(w, rest.WarningWriterOptions{
 		Deduplicate: true,
-		Color:       allowsColorOutput(w),
+		Color:       isTerminal(w),
 	})
-}
-
-// allowsColorOutput returns true if the specified writer is a terminal and
-// the process environment indicates color output is supported and desired.
-func allowsColorOutput(w io.Writer) bool {
-	if !isTerminal(w) {
-		return false
-	}
-
-	// https://en.wikipedia.org/wiki/Computer_terminal#Dumb_terminals
-	if os.Getenv("TERM") == "dumb" {
-		return false
-	}
-
-	// https://no-color.org/
-	if _, nocolor := os.LookupEnv("NO_COLOR"); nocolor {
-		return false
-	}
-
-	// On Windows WT_SESSION is set by the modern terminal component.
-	// Older terminals have poor support for UTF-8, VT escape codes, etc.
-	if runtime.GOOS == "windows" && os.Getenv("WT_SESSION") == "" {
-		return false
-	}
-
-	return true
 }
 
 func isTerminal(w io.Writer) bool {
