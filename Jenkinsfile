@@ -276,6 +276,18 @@ pipeline {
                         cp coverage.html ${WORKSPACE}
                         cp coverage.xml ${WORKSPACE}
                         build/copy-junit-output.sh ${WORKSPACE}
+
+                        EX_STATUS=$(cat exit_status.txt)
+                        STATUS=$(echo $((EX_STATUS == 1)) | bc)
+                        if [ "$STATUS" -eq 1 ]
+                        then
+                            echo "BUILD FAILED..."
+                            echo "Does not pass master Unit Test coverage."
+                            exit 1
+                        else
+                            echo "PASS BUILD"
+                            oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
+                        fi
                     """
                             archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
@@ -291,20 +303,6 @@ pipeline {
                                     lineCoverageTargets: '68, 68, 68',
                                     packageCoverageTargets: '100, 0, 0',
                             )
-                            sh """
-                                EX_STATUS=$(cat exit_status.txt)
-                                STATUS=$(echo $((EX_STATUS == 1)) | bc)
-
-                                if [ "$STATUS" -eq 1 ]
-                                then
-                                  echo "BUILD FAILED..."
-                                  echo "Does not pass master Unit Test coverage."
-                                  exit 1
-                                else
-                                  echo "PASS BUILD"
-                                  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
-                                fi
-                            """
                                 }
                         }
                     }
