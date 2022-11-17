@@ -1,5 +1,6 @@
 # Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{- if .Values.weblogicOperator.enabled }}
 ---
 # Network policy for WebLogic operator
 # Ingress: allow from istio-system
@@ -31,6 +32,8 @@ spec:
       ports:
         - port: 15090
           protocol: TCP
+{{- end }}
+{{- if .Values.coherenceOperator.enabled }}
 ---
 # Network policy for Coherence Operator
 # Ingress: allow connect from Kubernetes API server to validating webhook port 9443
@@ -52,6 +55,7 @@ spec:
           protocol: TCP
         - port: 8000
           protocol: TCP
+{{- end }}
 {{- if .Values.grafana.enabled}}
 ---
 # Network policy for VMI System Grafana
@@ -91,6 +95,7 @@ spec:
         - port: 15090
           protocol: TCP
 {{- end }}
+{{- if .Values.certManager.enabled }}
 ---
 # Network policy for Cert Manager
 # Ingress: allow connect from Prometheus for scraping metrics
@@ -118,6 +123,7 @@ spec:
       ports:
         - port: 9402
           protocol: TCP
+{{- end }}
 {{- if .Values.externaldns.enabled }}
 ---
 # Network policy for External DNS
@@ -289,6 +295,7 @@ spec:
           protocol: TCP
 
 {{- end }}
+{{- if .Values.rancher.enabled }}
 ---
 # Network policy for Rancher cluster agent
 # Ingress: deny all
@@ -304,7 +311,6 @@ spec:
       app: cattle-cluster-agent
   policyTypes:
     - Ingress
-{{- if .Values.rancher.enabled }}
 ---
 # Network policy for Rancher UI/API
 # Ingress: allow nginx ingress
@@ -357,6 +363,7 @@ spec:
         - port: 9443
           protocol: TCP
 {{- end }}
+{{- if .Values.ingressNGINX.enabled }}
 ---
 # Network policy for NGINX Ingress controller
 # Egress: allow all
@@ -431,6 +438,7 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/name: prometheus
+{{- end }}
 {{- if .Values.istio.enabled}}
 ---
 # Network policy for istio-system pod communication
