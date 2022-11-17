@@ -6,6 +6,7 @@
 #
 set -o pipefail
 
+echo "Current value for VERRAZZANO_DEV_VERSION IS $VERRAZZANO_DEV_VERSION"
 if [ -z "$VERRAZZANO_DEV_VERSION" ]; then
   echo "This script must only be called from Jenkins and requires environment variables VERRAZZANO_DEV_VERSION is set."
   exit 1
