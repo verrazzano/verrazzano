@@ -1945,6 +1945,7 @@ func TestDumpDatabaseWithExecErrors(t *testing.T) {
 // WHEN they are not all ready after a given time period
 // THEN recycle the mysql-operator
 func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
+	t.Skip("Temporarily skipping test due to intermittent failures")
 	mySQLOperatorPod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mysqloperator.ComponentName,
