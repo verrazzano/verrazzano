@@ -647,3 +647,86 @@ func getFakeComponentContext(c client.WithWatch) spi.ComponentContext {
 	}, nil, false)
 	return ctx
 }
+
+// Test isReady when it's called with component context
+func TestIsReady(t *testing.T) {
+	c := fake.NewClientBuilder().Build()
+	ctx := spi.NewFakeContext(c, &v1alpha1.Verrazzano{}, nil, false)
+	assert.False(t, NewComponent().IsReady(ctx))
+}
+
+// test Monitoroverrides method
+func TestMonitorOverride(t *testing.T) {
+	falseValue := false
+	trueValue := true
+	tests := []struct {
+		name       string
+		actualCR   *v1alpha1.Verrazzano
+		expectTrue bool
+	}{
+		{
+			// GIVEN a default Verrazzano custom resource
+			// WHEN we call MonitorOverride on the FluentdComponent
+			// THEN the call returns false
+			name:       "Test MonitorOverride when using default Verrazzano CR",
+			actualCR:   &v1alpha1.Verrazzano{},
+			expectTrue: false,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the FluentdComponent enabled
+			// WHEN we call MonitorOverride on the FluentdComponent
+			// THEN the call returns true
+			name: "Test MonitorOverride when FluentdComponent set to enabled",
+			actualCR: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Fluentd: &v1alpha1.FluentdComponent{
+							Enabled:          &trueValue,
+							InstallOverrides: v1alpha1.InstallOverrides{MonitorChanges: &trueValue},
+						},
+					},
+				},
+			},
+			expectTrue: true,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the FluentdComponent disabled
+			// WHEN we call MonitorOverride on the FluentdComponent
+			// THEN the call returns true
+			name: "Test MonitorOverride when FluentdComponent set to disabled",
+			actualCR: &v1alpha1.Verrazzano{
+				Spec: v1alpha1.VerrazzanoSpec{
+					Components: v1alpha1.ComponentSpec{
+						Fluentd: &v1alpha1.FluentdComponent{
+							Enabled: &falseValue,
+						},
+					},
+				},
+			},
+			expectTrue: true,
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(nil, tests[i].actualCR, nil, false)
+			assert.Equal(t, tt.expectTrue, NewComponent().MonitorOverrides(ctx))
+		})
+	}
+}
+
+// test Postinstall for component class
+func TestPostInstall(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := getFakeComponentContext(c)
+	err := NewComponent().PostInstall(ctx)
+	assert.NoError(t, err)
+}
+
+// test reconcile for component class
+func TestReconcile(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := getFakeComponentContext(c)
+	err := NewComponent().Reconcile(ctx)
+	assert.NoError(t, err)
+}

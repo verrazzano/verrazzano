@@ -5,11 +5,13 @@ package clusteroperator
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
@@ -75,4 +77,19 @@ func TestGetOverrides(t *testing.T) {
 			asserts.Equal(t, tt.expB1Overrides, NewComponent().GetOverrides(spi.NewFakeContext(nil, tt.verrazzanoA1, tt.verrazzanoB1, false, profilesRelativePath).EffectiveCRV1Beta1()))
 		})
 	}
+}
+
+// GIVEN a call to AppendOverrides
+// WHEN  the env var for the cluster operator image is set
+// THEN  the returned key/value pairs contains the image override
+func TestAppendOverrides(t *testing.T) {
+	customImage := "myreg.io/myrepo/v8o/verrazzano-cluster-operator-dev:local-20210707002801-b7449154"
+	os.Setenv(constants.VerrazzanoClusterOperatorImageEnvVar, customImage)
+	defer func() { os.Unsetenv(constants.VerrazzanoClusterOperatorImageEnvVar) }()
+
+	kvs, err := AppendOverrides(nil, "", "", "", nil)
+	asserts.NoError(t, err)
+	asserts.Len(t, kvs, 1)
+	asserts.Equal(t, "image", kvs[0].Key)
+	asserts.Equal(t, customImage, kvs[0].Value)
 }

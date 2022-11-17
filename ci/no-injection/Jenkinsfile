@@ -241,7 +241,7 @@ pipeline {
                     }
                 }
 
-                stage('Verify Install') {
+                stage('verify-install') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-install"
                     }
@@ -287,7 +287,7 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
-                        stage('security role based access') {
+                        stage('security rbac') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
                             }
@@ -353,7 +353,7 @@ pipeline {
 //                                 }
 //                             }
 //                         }
-                        stage('k8s deployment workload metrics') {
+                        stage('deployment metrics') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
                             }

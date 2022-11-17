@@ -371,7 +371,7 @@ pipeline {
             }
         }
 
-        stage('Initiate opensearch backup hook tests') {
+        stage('opensearch backup') {
             when {
                 expression {params.OPENSEARCH_BACKUP == true}
             }
@@ -397,7 +397,7 @@ pipeline {
             }
         }
 
-        stage('Initiate rancher backup operator tests') {
+        stage('rancher backup operator') {
             when {
                 expression {params.RANCHER_BACKUP == true}
             }
@@ -420,7 +420,7 @@ pipeline {
             }
         }
 
-        stage('Initiate mysql-operator backup restore tests') {
+        stage('mysql operator backup') {
             when {
                 expression {params.MYSQL_BACKUP == true}
             }

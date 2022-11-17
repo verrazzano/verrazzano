@@ -56,6 +56,9 @@ const ImageRepoOverrideEnvVar = "IMAGE_REPO"
 // VerrazzanoAppOperatorImageEnvVar is the environment variable used to override the Verrazzano Application Operator image
 const VerrazzanoAppOperatorImageEnvVar = "APP_OPERATOR_IMAGE"
 
+// VerrazzanoClusterOperatorImageEnvVar is the environment variable used to override the Verrazzano Cluster Operator image
+const VerrazzanoClusterOperatorImageEnvVar = "CLUSTER_OPERATOR_IMAGE"
+
 // The Kubernetes default namespace
 const DefaultNamespace = "default"
 

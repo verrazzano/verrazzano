@@ -311,7 +311,7 @@ pipeline {
             }
         }
 
-        stage('Verify Distribution') {
+        stage('verify distribution') {
             environment {
                 VERRAZZANO_DEV_VERSION="${VERRAZZANO_DEV_VERSION}"
                 TARBALL_DIR="${TARBALL_ROOT_DIR}/verrazzano-${VERRAZZANO_DEV_VERSION}"
@@ -428,7 +428,7 @@ pipeline {
                                         runGinkgoKeepGoing('istio/authz')
                                     }
                                 }
-                                stage('security role based access') {
+                                stage('security rbac') {
                                     environment {
                                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
                                     }
@@ -448,7 +448,7 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage('k8s deployment workload metrics') {
+                                stage('deployment metrics') {
                                     environment {
                                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
                                     }
@@ -532,17 +532,13 @@ pipeline {
                 }
                 // Run Verify Registry after the other tests, when we know all the pods are up and ready without
                 // having to duplicate the waits.
-                stage('Verify Registry') {
+                stage('verify-registry') {
                     environment {
                         REGISTRY="${ocirRegistry}"
                         PRIVATE_REPO="${baseImageRepo}"
                     }
-                    parallel {
-                        stage('verify-registry-url') {
-                            steps {
-                                runGinkgo('registry')
-                            }
-                        }
+                    steps {
+                        runGinkgo('registry')
                     }
                     post {
                         always {

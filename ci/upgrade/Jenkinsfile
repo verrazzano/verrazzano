@@ -250,7 +250,7 @@ pipeline {
             stages {
                 stage('Run Acceptance Tests Before Upgrade') {
                     parallel {
-                        stage('examples spring') {
+                        stage('examples springboot') {
                             steps {
                                 runGinkgoNamespace('examples/springboot', "false", "true", "springboot")
                             }
@@ -498,7 +498,7 @@ pipeline {
                                 runGinkgoNamespace('examples/socks', "false", "false", "sockshop")
                             }
                         }
-                        stage('examples spring') {
+                        stage('examples springboot') {
                             steps {
                                 runGinkgoNamespace('examples/springboot', "true", "false", "springboot")
                             }

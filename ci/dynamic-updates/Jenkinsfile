@@ -720,7 +720,7 @@ def generate_security_tests(dumpRoot) {
         "istio authorization policy": {
             runGinkgo('istio/authz', "${dumpRoot}/istio-authz-policy")
         },
-        "security role based access": {
+        "security rbac": {
             runGinkgo('security/rbac', "${dumpRoot}/sec-role-based-access")
         },
         "security network policies": {
@@ -735,13 +735,13 @@ def generate_security_tests(dumpRoot) {
 
 def generate_nonwls_tests(dumpRoot, skipDeploy = 'false', skipUndeploy = 'false') {
     return [
-        "k8s deployment workload metrics": {
+        "deployment metrics": {
             runGinkgo('metrics/deploymetrics', "${dumpRoot}/k8sdeploy-workload-metrics")
         },
         "examples logging helidon": {
             runGinkgo('logging/helidon', "${dumpRoot}/examples-logging-helidon")
         },
-        "examples spring": {
+        "examples springboot": {
             runGinkgoAppTest('examples/springboot', "springboot", "${dumpRoot}/examples-spring", skipDeploy, skipUndeploy)
         },
         "examples helidon": {

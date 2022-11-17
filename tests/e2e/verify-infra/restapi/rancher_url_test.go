@@ -287,8 +287,12 @@ func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dyna
 			return false, err
 		}
 
-		return stdout == string(logoSVG), nil
-	}, waitTimeout, pollingInterval).Should(Equal(true), fmt.Sprintf("rancher UI setting %s value does not match logo path %s", settingName, logoPath))
+		if stdout != logoSVG {
+			t.Logs.Errorf("Got %s for Rancher UI logo path, expected %s", stdout, logoSVG)
+			return false, nil
+		}
+		return true, nil
+	}, waitTimeout, pollingInterval).Should(Equal(true))
 	metrics.Emit(t.Metrics.With("get_ui_setting_elapsed_time", time.Since(start).Milliseconds()))
 
 }

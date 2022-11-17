@@ -272,7 +272,7 @@ pipeline {
             }
         }
 
-        stage('Pre-upgrade tests') {
+        stage('examples helidon') {
             steps {
                 runGinkgoNamespace('examples/helidon', "false", "true", "hello-helidon")
                 runGinkgoRandomize('upgrade/pre-upgrade/verify')

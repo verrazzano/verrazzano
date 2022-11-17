@@ -5,10 +5,6 @@ package scale
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/k8sclient"
-	psropensearch "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/opensearch"
-	psrvz "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/verrazzano"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -16,12 +12,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	er "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/k8sclient"
+	psropensearch "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/opensearch"
+	psrvz "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/verrazzano"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
-
-	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
 const (
@@ -130,6 +129,10 @@ func (w worker) GetMetricList() []prometheus.Metric {
 
 func (w worker) WantLoopInfoLogged() bool {
 	return false
+}
+
+func (w worker) PreconditionsMet() (bool, error) {
+	return true, nil
 }
 
 // DoWork continuously scales a specified OpenSearch out and in by modifying the VZ CR OpenSearch component
