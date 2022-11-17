@@ -259,7 +259,7 @@ pipeline {
                     setDisplayName()
                     currentBuild.description = params.KUBERNETES_CLUSTER_VERSION + " : " + SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                     // derive the USE_V8O_DOC_STAGE for the docs
-                    chmod +x ${WORKSPACE}/ci/scripts/derive_v8o_doc_stage.sh
+                    sh "chmod +x ${WORKSPACE}/ci/scripts/derive_v8o_doc_stage.sh"
                     USE_V8O_DOC_STAGE = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_v8o_doc_stage.sh").trim()
                 }
                 script {
