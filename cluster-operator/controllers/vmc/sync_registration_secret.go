@@ -11,7 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -159,11 +159,11 @@ func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret(vzList *vzapi.Verr
 	// what to do when there is more than one Verrazzano CR
 	for _, vz := range vzList.Items {
 		if vz.Spec.Components.Fluentd != nil {
-			if len(vz.Spec.Components.Fluentd.ElasticsearchURL) > 0 {
-				url = vz.Spec.Components.Fluentd.ElasticsearchURL
+			if len(vz.Spec.Components.Fluentd.OpenSearchURL) > 0 {
+				url = vz.Spec.Components.Fluentd.OpenSearchURL
 			}
-			if len(vz.Spec.Components.Fluentd.ElasticsearchSecret) > 0 {
-				secret = vz.Spec.Components.Fluentd.ElasticsearchSecret
+			if len(vz.Spec.Components.Fluentd.OpenSearchSecret) > 0 {
+				secret = vz.Spec.Components.Fluentd.OpenSearchSecret
 			}
 		}
 	}

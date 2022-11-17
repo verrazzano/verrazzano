@@ -10,7 +10,7 @@ import (
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	k8net "k8s.io/api/networking/v1"
@@ -41,7 +41,7 @@ var keycloakDisabledCR = &vzapi.Verrazzano{
 var openSearchDisabledCR = &vzapi.Verrazzano{
 	Spec: vzapi.VerrazzanoSpec{
 		Components: vzapi.ComponentSpec{
-			Elasticsearch: &vzapi.ElasticsearchComponent{
+			OpenSearch: &vzapi.OpenSearchComponent{
 				Enabled: &falseValue,
 			},
 			JaegerOperator: &vzapi.JaegerOperatorComponent{
@@ -257,7 +257,7 @@ func createVZWithOSDisabledAndJaegerOverride(json string) *vzapi.Verrazzano {
 	return &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: vzapi.ComponentSpec{
-				Elasticsearch: &vzapi.ElasticsearchComponent{
+				OpenSearch: &vzapi.OpenSearchComponent{
 					Enabled: &falseValue,
 				},
 				JaegerOperator: &vzapi.JaegerOperatorComponent{

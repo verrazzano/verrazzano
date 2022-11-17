@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,17 +25,17 @@ var trueValue = true
 // List of Verrazzano resources that have status InstallComplete
 
 // verrazzanoList contains Verrazzano with defaults and InstallComplete status condition
-var verrazzanoList = &v1alpha1.VerrazzanoList{
-	Items: []v1alpha1.Verrazzano{
+var verrazzanoList = &v1beta1.VerrazzanoList{
+	Items: []v1beta1.Verrazzano{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "my-verrazzano",
 				Namespace: "default",
 			},
-			Status: v1alpha1.VerrazzanoStatus{
-				Conditions: []v1alpha1.Condition{
+			Status: v1beta1.VerrazzanoStatus{
+				Conditions: []v1beta1.Condition{
 					{
-						Type: v1alpha1.CondInstallComplete,
+						Type: v1beta1.CondInstallComplete,
 					},
 				},
 			},
@@ -44,14 +44,14 @@ var verrazzanoList = &v1alpha1.VerrazzanoList{
 }
 
 // verrazzanoListRancherDisabled contains Verrazzano with Rancher disabled and InstallComplete status condition
-var verrazzanoListRancherDisabled = &v1alpha1.VerrazzanoList{
-	Items: []v1alpha1.Verrazzano{
+var verrazzanoListRancherDisabled = &v1beta1.VerrazzanoList{
+	Items: []v1beta1.Verrazzano{
 		{
 			ObjectMeta: verrazzanoList.Items[0].ObjectMeta,
 			Status:     verrazzanoList.Items[0].Status,
-			Spec: v1alpha1.VerrazzanoSpec{
-				Components: v1alpha1.ComponentSpec{
-					Rancher: &v1alpha1.RancherComponent{Enabled: &falseValue},
+			Spec: v1beta1.VerrazzanoSpec{
+				Components: v1beta1.ComponentSpec{
+					Rancher: &v1beta1.RancherComponent{Enabled: &falseValue},
 				},
 			},
 		},
@@ -59,14 +59,14 @@ var verrazzanoListRancherDisabled = &v1alpha1.VerrazzanoList{
 }
 
 // verrazzanoListRancherEnabled contains Verrazzano with Rancher explicitly enabled and InstallComplete status condition
-var verrazzanoListRancherEnabled = &v1alpha1.VerrazzanoList{
-	Items: []v1alpha1.Verrazzano{
+var verrazzanoListRancherEnabled = &v1beta1.VerrazzanoList{
+	Items: []v1beta1.Verrazzano{
 		{
 			ObjectMeta: verrazzanoList.Items[0].ObjectMeta,
 			Status:     verrazzanoList.Items[0].Status,
-			Spec: v1alpha1.VerrazzanoSpec{
-				Components: v1alpha1.ComponentSpec{
-					Rancher: &v1alpha1.RancherComponent{Enabled: &trueValue},
+			Spec: v1beta1.VerrazzanoSpec{
+				Components: v1beta1.ComponentSpec{
+					Rancher: &v1beta1.RancherComponent{Enabled: &trueValue},
 				},
 			},
 		},
@@ -81,7 +81,7 @@ func TestCreateWithSecretAndConfigMap(t *testing.T) {
 	const secretName = "mySecret"
 	tests := []struct {
 		name        string
-		verrazzanos *v1alpha1.VerrazzanoList
+		verrazzanos *v1beta1.VerrazzanoList
 	}{
 		{testNameDefaultVZ, verrazzanoList},
 		{testNameRancherDisabled, verrazzanoListRancherDisabled},
@@ -137,7 +137,7 @@ func TestCreateNoConfigMap(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		verrazzanos    *v1alpha1.VerrazzanoList
+		verrazzanos    *v1beta1.VerrazzanoList
 		errorExpected  bool
 		errMsgExpected string
 	}{
@@ -189,7 +189,7 @@ func TestCreateWithSecretConfigMapMissingServer(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		verrazzanos    *v1alpha1.VerrazzanoList
+		verrazzanos    *v1beta1.VerrazzanoList
 		errorExpected  bool
 		errMsgExpected string
 	}{
@@ -276,7 +276,7 @@ func TestCreateMissingSecret(t *testing.T) {
 	const secretName = "mySecret"
 	tests := []struct {
 		name           string
-		verrazzanos    *v1alpha1.VerrazzanoList
+		verrazzanos    *v1beta1.VerrazzanoList
 		errorExpected  bool
 		errMsgExpected string
 	}{
@@ -319,17 +319,17 @@ func TestCreateMissingSecret(t *testing.T) {
 func TestCreateVerrazzanoNotInstalled(t *testing.T) {
 	const secretName = "mySecret"
 
-	var notInstalledList = &v1alpha1.VerrazzanoList{
-		Items: []v1alpha1.Verrazzano{
+	var notInstalledList = &v1beta1.VerrazzanoList{
+		Items: []v1beta1.Verrazzano{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "my-verrazzano",
 					Namespace: "default",
 				},
-				Status: v1alpha1.VerrazzanoStatus{
-					Conditions: []v1alpha1.Condition{
+				Status: v1beta1.VerrazzanoStatus{
+					Conditions: []v1beta1.Condition{
 						{
-							Type: v1alpha1.CondInstallStarted,
+							Type: v1beta1.CondInstallStarted,
 						},
 					},
 				},

@@ -22,7 +22,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/pkg/metricsutils"
 	"github.com/verrazzano/verrazzano/pkg/test/mockmatchers"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
@@ -1670,16 +1670,16 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string, rancherE
 	// and return a Verrazzano that has Rancher URL in status only if rancherEnabled is true
 	if rancherBasedKubeConfigEnabled {
 		mock.EXPECT().
-			List(gomock.Any(), &vzapi.VerrazzanoList{}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, list *vzapi.VerrazzanoList, opts ...client.ListOption) error {
-				var status vzapi.VerrazzanoStatus
+			List(gomock.Any(), &v1beta1.VerrazzanoList{}, gomock.Not(gomock.Nil())).
+			DoAndReturn(func(ctx context.Context, list *v1beta1.VerrazzanoList, opts ...client.ListOption) error {
+				var status v1beta1.VerrazzanoStatus
 				if rancherEnabled {
-					status = vzapi.VerrazzanoStatus{
-						VerrazzanoInstance: &vzapi.InstanceInfo{RancherURL: &rancherURL},
+					status = v1beta1.VerrazzanoStatus{
+						VerrazzanoInstance: &v1beta1.InstanceInfo{RancherURL: &rancherURL},
 					}
 				}
-				vz := vzapi.Verrazzano{
-					Spec:   vzapi.VerrazzanoSpec{},
+				vz := v1beta1.Verrazzano{
+					Spec:   v1beta1.VerrazzanoSpec{},
 					Status: status,
 				}
 				list.Items = append(list.Items, vz)
@@ -1772,14 +1772,14 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 
 	// Expect a call to list Verrazzanos - return the Verrazzano configured with fluentd
 	mock.EXPECT().
-		List(gomock.Any(), &vzapi.VerrazzanoList{}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, list *vzapi.VerrazzanoList, opts ...client.ListOption) error {
-			vz := vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						Fluentd: &vzapi.FluentdComponent{
-							ElasticsearchURL:    fluentdESURL,
-							ElasticsearchSecret: fluentdESSecret,
+		List(gomock.Any(), &v1beta1.VerrazzanoList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *v1beta1.VerrazzanoList, opts ...client.ListOption) error {
+			vz := v1beta1.Verrazzano{
+				Spec: v1beta1.VerrazzanoSpec{
+					Components: v1beta1.ComponentSpec{
+						Fluentd: &v1beta1.FluentdComponent{
+							OpenSearchURL:    fluentdESURL,
+							OpenSearchSecret: fluentdESSecret,
 						},
 					},
 				},

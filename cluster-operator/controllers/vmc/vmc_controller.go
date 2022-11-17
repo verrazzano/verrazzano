@@ -14,7 +14,7 @@ import (
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -455,9 +455,9 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 }
 
 // getVerrazzanoResource gets the installed Verrazzano resource in the cluster (of which only one is expected)
-func (r *VerrazzanoManagedClusterReconciler) getVerrazzanoResource() (*v1alpha1.Verrazzano, error) {
+func (r *VerrazzanoManagedClusterReconciler) getVerrazzanoResource() (*v1beta1.Verrazzano, error) {
 	// Get the Verrazzano resource
-	verrazzano := v1alpha1.VerrazzanoList{}
+	verrazzano := v1beta1.VerrazzanoList{}
 	err := r.Client.List(context.TODO(), &verrazzano, &client.ListOptions{})
 	if err != nil || len(verrazzano.Items) == 0 {
 		return nil, fmt.Errorf("Verrazzano must be installed: %v", err)

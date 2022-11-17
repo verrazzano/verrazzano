@@ -9,7 +9,7 @@ import (
 	"net/url"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -98,8 +98,8 @@ func newScheme() *runtime.Scheme {
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
 	}, &corev1.Secret{}, &corev1.ConfigMap{})
-	scheme.AddKnownTypes(v1alpha1.SchemeGroupVersion, &v1alpha1.Verrazzano{}, &v1alpha1.VerrazzanoList{})
-	meta_v1.AddToGroupVersion(scheme, v1alpha1.SchemeGroupVersion)
+	scheme.AddKnownTypes(v1beta1.SchemeGroupVersion, &v1beta1.Verrazzano{}, &v1beta1.VerrazzanoList{})
+	meta_v1.AddToGroupVersion(scheme, v1beta1.SchemeGroupVersion)
 
 	return scheme
 }
@@ -150,9 +150,9 @@ func (v VerrazzanoManagedCluster) validateConfigMap(client client.Client) error 
 }
 
 // validateVerrazzanoInstalled enforces that a Verrazzano installation successfully completed
-func (v VerrazzanoManagedCluster) validateVerrazzanoInstalled(localClient client.Client) (*v1alpha1.Verrazzano, error) {
+func (v VerrazzanoManagedCluster) validateVerrazzanoInstalled(localClient client.Client) (*v1beta1.Verrazzano, error) {
 	// Get the Verrazzano resource
-	verrazzano := v1alpha1.VerrazzanoList{}
+	verrazzano := v1beta1.VerrazzanoList{}
 	err := localClient.List(context.TODO(), &verrazzano, &client.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("Verrazzano must be installed: %v", err)
@@ -161,7 +161,7 @@ func (v VerrazzanoManagedCluster) validateVerrazzanoInstalled(localClient client
 	// Verify the state is install complete
 	if len(verrazzano.Items) > 0 {
 		for _, cond := range verrazzano.Items[0].Status.Conditions {
-			if cond.Type == v1alpha1.CondInstallComplete {
+			if cond.Type == v1beta1.CondInstallComplete {
 				return &verrazzano.Items[0], nil
 			}
 		}
