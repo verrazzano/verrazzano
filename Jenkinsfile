@@ -161,11 +161,6 @@ pipeline {
                         env.VERRAZZANO_VERSION = "${env.VERRAZZANO_VERSION}-${env.BUILD_NUMBER}+${SHORT_COMMIT_HASH}"
                     }
                     DOCKER_IMAGE_TAG = "v${VERRAZZANO_DEV_VERSION}-${TIMESTAMP}-${SHORT_COMMIT_HASH}"
-                    def analysisurl="https://verrazzano.io/" + env.VERRAZZANO_VERSION + "/docs/troubleshooting/diagnostictools/analysisadvice/"
-                    def effectiveVersion=env.VERRAZZANO_VERSION
-                    println effectiveVersion
-                    setEffectiveDocsVersion()
-                    println effectiveVersion
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT
                     def currentCommitHash = env.GIT_COMMIT
@@ -175,6 +170,8 @@ pipeline {
                         SUSPECT_LIST = getSuspectList(commitList, userMappings)
                         echo "Suspect list: ${SUSPECT_LIST}"
                     }
+                    // derive the USE_V8O_DOC_STAGE for the docs
+                    USE_V8O_DOC_STAGE = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_v8o_doc_stage.sh").trim()
                 }
             }
         }
@@ -847,12 +844,4 @@ def metricBuildDuration() {
             echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
         }
     }
-}
-
-def setEffectiveDocsVersion() {
-    sh """
-        if curl $analysisurl | grep '404 Page not found'; then
-            export effectiveVersion="devel"
-        fi
-    """
 }
