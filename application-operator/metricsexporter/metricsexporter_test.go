@@ -29,6 +29,10 @@ func TestCollectReconcileMetrics(t *testing.T) {
 		reconcileCounterObject.Inc(logForTest, nil)
 		reconcileSuccessfulCounterAfter := testutil.ToFloat64(reconcileCounterObject.Get())
 		assert.Equal(reconcileSuccessfulCounterBefore, reconcileSuccessfulCounterAfter-1)
+		reconcileSuccessfulCounterBefore = reconcileSuccessfulCounterAfter
+		reconcileCounterObject.Add(3)
+		reconcileSuccessfulCounterAfter = testutil.ToFloat64(reconcileCounterObject.Get())
+		assert.Equal(reconcileSuccessfulCounterBefore, reconcileSuccessfulCounterAfter-3)
 
 		reconcileerrorCounterObject, err := GetSimpleCounterMetric(AppconfigReconcileError)
 		assert.NoError(err)
@@ -36,6 +40,10 @@ func TestCollectReconcileMetrics(t *testing.T) {
 		reconcileerrorCounterObject.Inc(logForTest, nil)
 		reconcileFailedCounterAfter := testutil.ToFloat64(reconcileerrorCounterObject.Get())
 		assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-1)
+		reconcileFailedCounterBefore = reconcileFailedCounterAfter
+		reconcileerrorCounterObject.Add(3)
+		reconcileFailedCounterAfter = testutil.ToFloat64(reconcileerrorCounterObject.Get())
+		assert.Equal(reconcileFailedCounterBefore, reconcileFailedCounterAfter-3)
 
 		// Duration Metric test
 		reconcileDurationCount, _ := GetDurationMetric(AppconfigReconcileDuration)
