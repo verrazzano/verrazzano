@@ -5,7 +5,10 @@ package authproxy
 
 import (
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+
 	"io/fs"
 	"os"
 
@@ -45,15 +48,9 @@ func resetWriteFileFunc() {
 }
 
 // isAuthProxyReady checks if the AuthProxy deployment is ready
-func isAuthProxyReady(ctx spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c authProxyComponent) isAuthProxyReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 // AppendOverrides builds the set of verrazzano-authproxy overrides for the helm install
@@ -65,7 +62,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// Environment name
 	overrides.Config = &configValues{
 		EnvName:                   vzconfig.GetEnvName(effectiveCR),
-		PrometheusOperatorEnabled: vzconfig.IsPrometheusOperatorEnabled(effectiveCR),
+		PrometheusOperatorEnabled: vzcr.IsPrometheusOperatorEnabled(effectiveCR),
 		IngressClassName:          vzconfig.GetIngressClassName(effectiveCR),
 	}
 

@@ -66,16 +66,11 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		}), nil
 }
 
-func isConsoleReady(ctx spi.ComponentContext) bool {
+func (c consoleComponent) isConsoleReady(ctx spi.ComponentContext) bool {
 	return ready.DeploymentsAreReady(
 		ctx.Log(),
 		ctx.Client(),
-		[]types.NamespacedName{
-			{
-				Namespace: ComponentNamespace,
-				Name:      ComponentName,
-			},
-		},
+		c.AvailabilityObjects.DeploymentNames,
 		1,
 		fmt.Sprintf("Component %s", ctx.GetComponent()))
 }

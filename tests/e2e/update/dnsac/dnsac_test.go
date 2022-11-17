@@ -9,13 +9,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
+
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/multicluster"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -93,7 +94,7 @@ func updateAdminClusterDNS() string {
 }
 
 func systemOpenSearch() bool {
-	return !pkg.UseExternalElasticsearch() &&
+	return !pkg.UseExternalOpensearch() &&
 		(adminFluentd == nil || reflect.DeepEqual(*adminFluentd, vzapi.FluentdComponent{}))
 }
 

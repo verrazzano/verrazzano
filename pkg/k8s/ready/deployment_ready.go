@@ -92,7 +92,6 @@ func deploymentFullyReady(log vzlog.VerrazzanoLogger, client clipkg.Client, depl
 			expectedReplicas, deployment.Status.AvailableReplicas)
 		return false
 	}
-
 	// Velero install deploys a daemonset and deployment with common labels. The labels need to be adjusted so the pod fetch logic works
 	// as expected
 	podSelector := deployment.Spec.Selector

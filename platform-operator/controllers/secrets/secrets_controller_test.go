@@ -6,6 +6,7 @@ package secrets
 import (
 	"context"
 	"fmt"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"testing"
 	"time"
@@ -622,7 +623,9 @@ func newRequest(namespace string, name string) ctrl.Request {
 func newSecretsReconciler(c client.Client) VerrazzanoSecretsReconciler {
 	scheme := newScheme()
 	reconciler := VerrazzanoSecretsReconciler{
-		Client: c,
-		Scheme: scheme}
+		Client:        c,
+		Scheme:        scheme,
+		StatusUpdater: &vzstatus.FakeVerrazzanoStatusUpdater{Client: c},
+	}
 	return reconciler
 }

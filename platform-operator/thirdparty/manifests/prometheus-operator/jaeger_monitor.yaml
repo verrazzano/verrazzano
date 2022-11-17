@@ -15,7 +15,8 @@ spec:
   selector: {}
   endpoints:
   - path: /metrics
-{{ if .isIstioEnabled }}
+    enableHttp2: false
+  {{ if .isIstioEnabled }}
     scheme: https
     tlsConfig:
       caFile: /etc/istio-certs/root-cert.pem

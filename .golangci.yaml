@@ -8,9 +8,7 @@ linters-settings:
   stylecheck:
     go: "1.19"
     checks: ["ST1019"]
-  misspell:
-    ignore-words:
-      - succesful
+
 
 linters:
   enable:

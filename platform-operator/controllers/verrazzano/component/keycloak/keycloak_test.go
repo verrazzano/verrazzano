@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	certmanager "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	certmanager "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -1443,7 +1443,7 @@ func TestIsKeycloakReady(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.c, testVZ, nil, false)
-			assert.Equal(t, tt.isReady, isKeycloakReady(ctx))
+			assert.Equal(t, tt.isReady, NewComponent().(KeycloakComponent).isKeycloakReady(ctx))
 		})
 	}
 }

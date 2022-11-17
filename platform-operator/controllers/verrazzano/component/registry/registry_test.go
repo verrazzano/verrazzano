@@ -5,6 +5,7 @@ package registry
 
 import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -133,6 +134,7 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), rancherbackup.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), argocd.ComponentName)
+	a.Equal(comps[i].Name(), clusteroperator.ComponentName)
 }
 
 // TestFindComponent tests FindComponent
@@ -764,6 +766,14 @@ func (f fakeComponent) GetDependencies() []string {
 
 func (f fakeComponent) IsReady(_ spi.ComponentContext) bool {
 	return f.ready
+}
+
+func (f fakeComponent) IsAvailable(_ spi.ComponentContext) (string, v1alpha1.ComponentAvailability) {
+	var available v1alpha1.ComponentAvailability = v1alpha1.ComponentAvailable
+	if !f.ready {
+		available = v1alpha1.ComponentUnavailable
+	}
+	return "", available
 }
 
 func (f fakeComponent) IsEnabled(_ runtime.Object) bool {

@@ -23,6 +23,9 @@ const (
 	TimeoutFlag     = "timeout"
 	TimeoutFlagHelp = "Limits the amount of time a command will wait to complete"
 
+	VPOTimeoutFlag     = "platform-operator-timeout"
+	VPOTimeoutFlagHelp = "Limits the amount of time a command will wait for the Verrazzano Platform Operator to be ready"
+
 	VersionFlag            = "version"
 	VersionFlagDefault     = "latest"
 	VersionFlagInstallHelp = "The version of Verrazzano to install"
@@ -61,6 +64,10 @@ const VerrazzanoPlatformOperatorURL = "https://github.com/verrazzano/verrazzano/
 
 const VerrazzanoPlatformOperator = "verrazzano-platform-operator"
 
+const VerrazzanoPlatformOperatorWebhook = "verrazzano-platform-operator-webhook"
+
+const VerrazzanoMysqlInstallValuesWebhook = "verrazzano-platform-mysqlinstalloverrides"
+
 const VerrazzanoApplicationOperator = "verrazzano-application-operator"
 
 const VerrazzanoMonitoringOperator = "verrazzano-monitoring-operator"
@@ -92,6 +99,9 @@ const OAMManagedClusters = "verrazzanomanagedclusters"
 const VerrazzanoManagedLabel = "verrazzano-managed=true"
 
 const LineSeparator = "-"
+
+// MysqlBackupMutatingWebhookName specifies the name of mysql webhook.
+const MysqlBackupMutatingWebhookName = "verrazzano-mysql-backup"
 
 // Analysis tool flags
 const (

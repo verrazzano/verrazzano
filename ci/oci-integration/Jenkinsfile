@@ -6,11 +6,10 @@
 def DEFAULT_REPO_URL
 def testEnvironments = [ "magicdns_oke" ]
 def installProfiles = [ "dev", "prod", "managed-cluster" ]
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 
 // pulling "ap-*" from the test regions given discovery of image pull issues
-def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "me-jeddah-1",
-                          "sa-saopaulo-1", "uk-london-1" ]
+def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
 Collections.shuffle(availableRegions)
 def keepOKEClusterOnFailure = "false"
 def OKE_CLUSTER_PREFIX = ""
@@ -38,7 +37,7 @@ pipeline {
             choices: availableRegions )
         choice (description: 'OKE node pool configuration', name: 'OKE_NODE_POOL',
             // 1st choice is the default value
-            choices: [ "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
+            choices: [ "VM.Standard.E3.Flex-4-2", "VM.Standard2.4-2", "VM.Standard.E3.Flex-8-2", "VM.Standard.E2.2" ])
         choice (description: 'Kubernetes Version for OKE Cluster', name: 'OKE_CLUSTER_VERSION',
             // 1st choice is the default value
             choices: [ "v1.24.1", "v1.23.4", "v1.22.5", "v1.21.5" ])
@@ -399,7 +398,7 @@ pipeline {
                             }
                         }
 
-                        stage('Verify Install') {
+                        stage('verify-install verrazzano') {
                             steps {
                                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                                     sh """
@@ -410,7 +409,7 @@ pipeline {
                             }
                         }
 
-                        stage('OCI Logging tests') {
+                        stage('OCI logging') {
                             environment {
                                 LOG_GROUP_ID="${OKE_LOG_GROUP_ID}"
                                 NS_LOG_ID="${OKE_NS_LOG_ID}"
@@ -614,7 +613,7 @@ pipeline {
                             }
                         }
 
-                        stage('Verify Install') {
+                        stage('verify-install verrazzano') {
                             steps {
                                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                                     sh """
@@ -625,7 +624,7 @@ pipeline {
                             }
                         }
 
-                        stage('OCI Logging tests') {
+                        stage('OCI logging') {
                             environment {
                                 LOG_GROUP_ID="${KIND_LOG_GROUP_ID}"
                                 NS_LOG_ID="${KIND_NS_LOG_ID}"

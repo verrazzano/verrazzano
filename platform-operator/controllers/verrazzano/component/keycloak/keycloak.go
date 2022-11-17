@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -683,7 +684,7 @@ func updateKeycloakIngress(ctx spi.ComponentContext) error {
 		ingress.Annotations["cert-manager.io/common-name"] = fmt.Sprintf("%s.%s.%s",
 			ComponentName, ctx.EffectiveCR().Spec.EnvironmentName, dnsSuffix)
 		// update target annotation on Keycloak Ingress for external DNS
-		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+		if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
 			if err != nil {
 				return err
@@ -848,7 +849,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if vzconfig.IsRancherEnabled(ctx.ActualCR()) {
+	if vzcr.IsRancherEnabled(ctx.ActualCR()) {
 		// Creating rancher client
 		err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
 		if err != nil {
@@ -1486,15 +1487,9 @@ func getClientScopeName(keycloakClientScopes KeycloakClientScopes, groupname str
 	return ""
 }
 
-func isKeycloakReady(ctx spi.ComponentContext) bool {
-	statefulset := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c KeycloakComponent) isKeycloakReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, 1, prefix)
+	return ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.StatefulsetNames, 1, prefix)
 }
 
 // isPodReady determines if the pod is running by checking for a Ready condition with Status equal True

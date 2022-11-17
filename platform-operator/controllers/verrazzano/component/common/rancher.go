@@ -31,9 +31,11 @@ const (
 	APIGroupRancherManagement               = "management.cattle.io"
 	APIGroupVersionRancherManagement        = "v3"
 	AuthConfigKeycloak                      = "keycloakoidc"
+	SettingFirstLogin                       = "first-login"
 )
 
 var GVKAuthConfig = GetRancherMgmtAPIGVKForKind("AuthConfig")
+var GVKSetting = GetRancherMgmtAPIGVKForKind("Setting")
 
 // GetAdminSecret fetches the Rancher admin secret
 func GetAdminSecret(c client.Reader) (string, error) {

@@ -40,7 +40,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 						return "", err
 					}
 					api := pkg.EventuallyGetAPIEndpoint(kubeConfigPath)
-					esURL, err := api.GetElasticURL()
+					esURL, err := api.GetOpensearchURL()
 					if err != nil {
 						t.Logs.Errorf("Error getting Elasticsearch URL: %v", err)
 						return "", err
@@ -71,7 +71,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 						return "", err
 					}
 					api := pkg.EventuallyGetAPIEndpoint(kubeConfigPath)
-					esURL, err := api.GetElasticURL()
+					esURL, err := api.GetOpensearchURL()
 					if err != nil {
 						t.Logs.Errorf("Error getting Elasticsearch URL: %v", err)
 						return "", err
@@ -89,7 +89,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 		})
 
 		t.ItMinimumVersion("Incorrect host returns a 404", minimumVersion, kubeconfigPath, func() {
-			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" && os.Getenv("TEST_ENV") != "OCNE" && os.Getenv("TEST_ENV") != "LRE" {
+			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" && os.Getenv("TEST_ENV") != "OCNE" && os.Getenv("TEST_ENV") != "LRE" && os.Getenv("TEST_ENV") != "kind_oci_dns" {
 				Eventually(func() (string, error) {
 					kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
 					if err != nil {
@@ -121,7 +121,7 @@ var _ = t.Describe("nginx error pages", Label("f:mesh.ingress", "f:mesh.traffic-
 		})
 
 		t.ItMinimumVersion("Directory traversal returns a 400", minimumVersion, kubeconfigPath, func() {
-			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" && os.Getenv("TEST_ENV") != "OCNE" && os.Getenv("TEST_ENV") != "LRE" {
+			if !pkg.IsManagedClusterProfile() && os.Getenv("TEST_ENV") != "ocidns_oke" && os.Getenv("TEST_ENV") != "OCNE" && os.Getenv("TEST_ENV") != "LRE" && os.Getenv("TEST_ENV") != "kind_oci_dns" {
 				Eventually(func() (string, error) {
 					api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
 					vzURL, err := api.GetVerrazzanoIngressURL()

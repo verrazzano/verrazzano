@@ -53,3 +53,33 @@ rules:
       - list
       - watch
       - update
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+      - cronjobs
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - mysql.oracle.com
+    resources:
+      - mysqlbackups
+    verbs:
+      - create
+      - get
+      - list
+      - patch
+      - update
+      - watch
+      - delete
+  - apiGroups:
+      - mysql.oracle.com
+    resources:
+      - mysqlbackups/status
+    verbs:
+      - get
+      - patch
+      - update
+      - watch

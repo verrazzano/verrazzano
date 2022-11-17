@@ -4,6 +4,7 @@
 package mockmatchers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/golang/mock/gomock"
@@ -28,4 +29,26 @@ func (u *URIMatcher) Matches(x interface{}) bool {
 
 func (u *URIMatcher) String() string {
 	return "is a request whose URI path matches " + u.path
+}
+
+// URIMethodMatcher for use with gomock for http requests
+// matches both the path and the method for and http request
+type URIMethodMatcher struct {
+	method, path string
+}
+
+func MatchesURIMethod(method, path string) gomock.Matcher {
+	return &URIMethodMatcher{method, path}
+}
+
+func (u *URIMethodMatcher) Matches(x interface{}) bool {
+	if !gomock.AssignableToTypeOf(&http.Request{}).Matches(x) {
+		return false
+	}
+	req := x.(*http.Request)
+	return req.URL.Path == u.path && req.Method == u.method
+}
+
+func (u *URIMethodMatcher) String() string {
+	return fmt.Sprintf("is a request whose method matches %s and URI path matches %s", u.method, u.path)
 }

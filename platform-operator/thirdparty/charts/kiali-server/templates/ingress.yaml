@@ -1,5 +1,5 @@
 {{- if not (.Capabilities.APIVersions.Has "route.openshift.io/v1") }}
-{{- if .Values.deployment.ingress_enabled }}
+{{- if eq "true" (include "kiali-server.deployment.ingress.enabled" .) }}
 ---
 {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
 apiVersion: networking.k8s.io/v1
@@ -11,10 +11,13 @@ metadata:
   name: {{ include "kiali-server.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
+    {{- if .Values.deployment.ingress.additional_labels }}
+    {{- toYaml .Values.deployment.ingress.additional_labels | nindent 4 }}
+    {{- end }}
     {{- include "kiali-server.labels" . | nindent 4 }}
   annotations:
-    {{- if hasKey .Values.deployment.override_ingress_yaml.metadata "annotations" }}
-    {{- toYaml .Values.deployment.override_ingress_yaml.metadata.annotations | nindent 4 }}
+    {{- if .Values.deployment.ingress.override_yaml.metadata.annotations }}
+    {{- toYaml .Values.deployment.ingress.override_yaml.metadata.annotations | nindent 4 }}
     {{- else }}
     # For ingress-nginx versions older than 0.20.0 use secure-backends.
     # (see: https://github.com/kubernetes/ingress-nginx/issues/3416#issuecomment-438247948)
@@ -28,9 +31,12 @@ metadata:
     {{- end }}
     {{- end }}
 spec:
-  {{- if hasKey .Values.deployment.override_ingress_yaml "spec" }}
-  {{- toYaml .Values.deployment.override_ingress_yaml.spec | nindent 2 }}
+  {{- if hasKey .Values.deployment.ingress.override_yaml "spec" }}
+  {{- toYaml .Values.deployment.ingress.override_yaml.spec | nindent 2 }}
   {{- else }}
+  {{- if .Values.deployment.ingress.class_name }}
+  ingressClassName: {{ .Values.deployment.ingress.class_name }}
+  {{- end }}
   rules:
   - http:
       paths:

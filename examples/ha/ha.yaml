@@ -86,12 +86,12 @@ spec:
     keycloak:
       overrides:
         - values:
-            replicas: 2
+            replicas: 3
       mysql:
         overrides:
           - values:
               serverInstances: 3
-              routerInstances: 2
+              routerInstances: 3
     opensearchDashboards:
       replicas: 2
     kiali:

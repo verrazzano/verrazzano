@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -11,42 +11,47 @@ import (
 const MultiClusterAppConfigKind = "MultiClusterApplicationConfiguration"
 const MultiClusterAppConfigResource = "multiclusterapplicationconfigurations"
 
-// MultiClusterApplicationConfigurationSpec defines the desired state of MultiClusterApplicationConfiguration
+// MultiClusterApplicationConfigurationSpec defines the desired state of a multicluster application.
 type MultiClusterApplicationConfigurationSpec struct {
-	// The embedded OAM ApplicationConfiguration
-	Template ApplicationConfigurationTemplate `json:"template"`
-
-	// Clusters in which the application is to be placed
+	// Clusters in which the application is to be created.
 	Placement Placement `json:"placement"`
 
-	// List of secrets used by the application
-	Secrets []string `json:"secrets,omitempty"`
-}
-
-// ApplicationConfigurationTemplate has the metadata and spec of the underlying
-// OAM ApplicationConfiguration
-type ApplicationConfigurationTemplate struct {
+	// List of secrets used by the application. These secrets must be created in the application’s namespace before
+	// deploying a MultiClusterApplicationConfiguration resource.
 	// +optional
-	Metadata EmbeddedObjectMeta                    `json:"metadata,omitempty"`
-	Spec     v1alpha2.ApplicationConfigurationSpec `json:"spec,omitempty"`
+	Secrets []string `json:"secrets,omitempty"`
+
+	// Template containing the metadata and spec for an OAM applicationConfiguration resource.
+	Template ApplicationConfigurationTemplate `json:"template"`
 }
 
+// ApplicationConfigurationTemplate has the metadata and embedded spec of the OAM applicationConfiguration resource.
+type ApplicationConfigurationTemplate struct {
+	// Metadata describing the application.
+	Metadata EmbeddedObjectMeta `json:"metadata,omitempty"`
+	// The embedded OAM application specification.
+	Spec v1alpha2.ApplicationConfigurationSpec `json:"spec,omitempty"`
+}
+
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mcappconf;mcappconfs
 // +kubebuilder:subresource:status
 
-// MultiClusterApplicationConfiguration is the Schema for the multiclusterapplicationconfigurations API
+// MultiClusterApplicationConfiguration specifies the multicluster application API.
 type MultiClusterApplicationConfiguration struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MultiClusterApplicationConfigurationSpec `json:"spec,omitempty"`
-	Status MultiClusterResourceStatus               `json:"status,omitempty"`
+	// The desired state of a multicluster application resource.
+	Spec MultiClusterApplicationConfigurationSpec `json:"spec,omitempty"`
+	// The observed state of a multicluster application resource.
+	Status MultiClusterResourceStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// MultiClusterApplicationConfigurationList contains a list of MultiClusterApplicationConfiguration
+// MultiClusterApplicationConfigurationList contains a list of MultiClusterApplicationConfiguration resources.
 type MultiClusterApplicationConfigurationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -57,12 +62,12 @@ func init() {
 	SchemeBuilder.Register(&MultiClusterApplicationConfiguration{}, &MultiClusterApplicationConfigurationList{})
 }
 
-// GetStatus returns the MultiClusterResourceStatus of this resource
+// GetStatus returns the MultiClusterResourceStatus of this resource.
 func (in *MultiClusterApplicationConfiguration) GetStatus() MultiClusterResourceStatus {
 	return in.Status
 }
 
-// GetPlacement returns the Placement of this resource
+// GetPlacement returns the Placement of this resource.
 func (in *MultiClusterApplicationConfiguration) GetPlacement() Placement {
 	return in.Spec.Placement
 }

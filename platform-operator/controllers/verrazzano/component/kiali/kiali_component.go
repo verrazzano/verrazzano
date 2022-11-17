@@ -6,8 +6,11 @@ package kiali
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -15,15 +18,12 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -65,7 +65,15 @@ func NewComponent() spi.Component {
 			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, nginx.ComponentName, certmanager.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_1_0,
-			Certificates:              certificates,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      kialiSystemName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
+			Certificates: certificates,
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
@@ -92,7 +100,7 @@ func (c kialiComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := removeDeploymentAndService(ctx); err != nil {
 		return err
 	}
-	return common.ApplyCRDYaml(ctx, config.GetHelmKialiChartsDir())
+	return nil
 }
 
 // removeDeploymentAndService removes the Kiali deployment and service during pre-upgrade.
@@ -139,19 +147,19 @@ func (c kialiComponent) PostUpgrade(ctx spi.ComponentContext) error {
 // IsReady Kiali-specific ready-check
 func (c kialiComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
-		return isKialiReady(context)
+		return c.isKialiReady(context)
 	}
 	return false
 }
 
 // IsEnabled Kiali-specific enabled check for installation
 func (c kialiComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsKialiEnabled(effectiveCR)
+	return vzcr.IsKialiEnabled(effectiveCR)
 }
 
 // createOrUpdateKialiResources create or update related Kiali resources
 func (c kialiComponent) createOrUpdateKialiResources(ctx spi.ComponentContext) error {
-	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		if err := createOrUpdateKialiIngress(ctx, c.ChartNamespace); err != nil {
 			return err
 		}

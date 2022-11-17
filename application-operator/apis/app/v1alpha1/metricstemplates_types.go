@@ -7,14 +7,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// MetricsTemplateKind is the Kind of the MetricsTemplate
+// MetricsTemplateKind identifies the Kind for the MetricsTemplate.
 const MetricsTemplateKind string = "MetricsTemplate"
 
 func init() {
 	SchemeBuilder.Register(&MetricsTemplate{}, &MetricsTemplateList{})
 }
 
-// MetricsTemplateList contains a list of metrics templates
+// MetricsTemplateList contains a list of metrics template resources.
 // +kubebuilder:object:root=true
 type MetricsTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -22,9 +22,10 @@ type MetricsTemplateList struct {
 	Items           []MetricsTemplate `json:"items"`
 }
 
-// MetricsTemplate specifies the metrics template API
-// +kubebuilder:object:root=true
 // +genclient
+// +kubebuilder:object:root=true
+
+// MetricsTemplate specifies the metrics template API.
 type MetricsTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -32,43 +33,53 @@ type MetricsTemplate struct {
 	Spec MetricsTemplateSpec `json:"spec"`
 }
 
-// MetricsTemplateSpec specifies the desired state of a metrics template
+// MetricsTemplateSpec specifies the desired state of a metrics template.
 type MetricsTemplateSpec struct {
-	WorkloadSelector WorkloadSelector `json:"workloadSelector,omitempty"`
+	// Prometheus configuration details.
+	// +optional
 	PrometheusConfig PrometheusConfig `json:"prometheusConfig,omitempty"`
+	// Selector for target workloads.
+	// +optional
+	WorkloadSelector WorkloadSelector `json:"workloadSelector,omitempty"`
 }
 
-// WorkloadSelector identifies the workloads to which this template applies
+// WorkloadSelector identifies the workloads to which a template applies.
 type WorkloadSelector struct {
-	// NamespaceSelector scopes the template to a namespace
-	NamespaceSelector metav1.LabelSelector `json:"namespaceSelector,omitempty"`
-
-	// ObjectSelector scopes the template to a specifically labelled object instance
-	ObjectSelector metav1.LabelSelector `json:"objectSelector,omitempty"`
-
-	// APIGroups scopes the template to listed APIGroups
+	// Scopes the template to given API Groups.
+	// +optional
 	APIGroups []string `json:"apiGroups,omitempty"`
 
-	// APIVersions scopes the template to listed APIVersions
+	// Scopes the template to given API Versions.
+	// +optional
 	APIVersions []string `json:"apiVersions,omitempty"`
 
-	// Resources scopes the template to listed object kind
+	// Scopes the template to a namespace.
+	// +optional
+	NamespaceSelector metav1.LabelSelector `json:"namespaceSelector,omitempty"`
+
+	// Scopes the template to a specifically-labelled object instance.
+	// +optional
+	ObjectSelector metav1.LabelSelector `json:"objectSelector,omitempty"`
+
+	// Scopes the template to given API Resources.
+	// +optional
 	Resources []string `json:"resources,omitempty"`
 }
 
-// PrometheusConfig refers to the templated metrics scraping configuration
+// PrometheusConfig refers to the templated metrics scraping configuration.
 type PrometheusConfig struct {
-	TargetConfigMap TargetConfigMap `json:"targetConfigMap"`
-
-	// ScrapeConfigTemplate is a template for the Prometheus scrape job to be added to the Prometheus Configmap
+	// Scrape configuration template to be added to the Prometheus configuration.
 	ScrapeConfigTemplate string `json:"scrapeConfigTemplate"`
+
+	// Identity of the ConfigMap to be updated with the scrape configuration specified in `scrapeConfigTemplate`.
+	TargetConfigMap TargetConfigMap `json:"targetConfigMap"`
 }
 
-// TargetConfigMap contains metadata about the Prometheus ConfigMap
+// TargetConfigMap contains metadata about the Prometheus ConfigMap.
 type TargetConfigMap struct {
-	// Namespace containing the Prometheus ConfigMap
-	Namespace string `json:"namespace"`
-
-	// Name of the Prometheus ConfigMap
+	// Name of the ConfigMap to be updated with the scrape target configuration.
 	Name string `json:"name"`
+
+	// Namespace of the ConfigMap to be updated with the scrape target configuration.
+	Namespace string `json:"namespace"`
 }

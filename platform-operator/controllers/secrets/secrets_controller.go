@@ -5,6 +5,7 @@ package secrets
 
 import (
 	"context"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -31,8 +32,9 @@ import (
 // This controller also manages install override sources from the Verrazzano CR
 type VerrazzanoSecretsReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	log    vzlog.VerrazzanoLogger
+	Scheme        *runtime.Scheme
+	log           vzlog.VerrazzanoLogger
+	StatusUpdater vzstatus.Updater
 }
 
 // SetupWithManager creates a new controller and adds it to the manager

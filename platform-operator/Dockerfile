@@ -12,7 +12,8 @@ COPY . .
 COPY out/linux_amd64/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
 
 RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
-    && chmod +x scripts/install/*.sh
+    && chmod +x scripts/install/*.sh \
+    && chmod +x scripts/*.sh
 
 # Create the verrazzano-platform-operator image
 FROM ghcr.io/oracle/oraclelinux:7-slim
@@ -27,7 +28,7 @@ RUN yum update -y \
     && yum install -y kubectl-1.23.11-1.el7 \
     && yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/olcne/x86_64 \
     && yum install -y helm-3.9.2-1.el7 \
-    && yum install -y istio-istioctl-1.14.3-1.el7 \
+    && yum install -y istio-istioctl-1.15.1-2.el7 \
     && yum clean all \
     && rm -rf /var/cache/yum
 
@@ -48,6 +49,7 @@ COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-p
 WORKDIR /verrazzano
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/thirdparty ./platform-operator/thirdparty
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/manifests ./platform-operator/manifests
+COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/scripts/wait4webhook.sh ./platform-operator/scripts/wait4webhook.sh
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/scripts/hooks ./platform-operator/scripts/hooks
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/scripts/install ./platform-operator/scripts/install
 COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/verrazzano/platform-operator/config/scripts/run.sh .

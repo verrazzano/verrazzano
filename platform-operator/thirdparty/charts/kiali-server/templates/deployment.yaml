@@ -61,10 +61,17 @@ spec:
         - "-config"
         - "/kiali-configuration/config.yaml"
         securityContext:
+        {{- if .Values.deployment.security_context}}
+        {{- toYaml .Values.deployment.security_context | nindent 10 }}
+        {{- else }}
           allowPrivilegeEscalation: false
           privileged: false
           readOnlyRootFilesystem: true
           runAsNonRoot: true
+          capabilities:
+            drop:
+            - ALL
+        {{- end }}
         ports:
         - name: api-port
           containerPort: {{ .Values.server.port | default 20001 }}
@@ -104,7 +111,7 @@ spec:
         - name: LOG_FORMAT
           value: "{{ .Values.deployment.logger.log_format }}"
         - name: LOG_TIME_FIELD_FORMAT
-          value: "{{ .Values.deployment.logger.time_field_format }}" 
+          value: "{{ .Values.deployment.logger.time_field_format }}"
         - name: LOG_SAMPLER_RATE
           value: "{{ .Values.deployment.logger.sampler_rate }}"
         volumeMounts:
@@ -116,6 +123,10 @@ spec:
           mountPath: "/kiali-secret"
         - name: {{ include "kiali-server.fullname" . }}-cabundle
           mountPath: "/kiali-cabundle"
+        {{- range .Values.deployment.custom_secrets }}
+        - name: {{ .name }}
+          mountPath: "{{ .mount }}"
+        {{- end }}
         {{- if .Values.deployment.resources }}
         resources:
         {{- toYaml .Values.deployment.resources | nindent 10 }}
@@ -143,6 +154,12 @@ spec:
           name: {{ include "kiali-server.fullname" . }}-cabundle
       {{- if not (.Capabilities.APIVersions.Has "route.openshift.io/v1") }}
           optional: true
+      {{- end }}
+      {{- range .Values.deployment.custom_secrets }}
+      - name: {{ .name }}
+        secret:
+          secretName: {{ .name }}
+          optional: {{ .optional | default false }}
       {{- end }}
       {{- if or (.Values.deployment.affinity.node) (or (.Values.deployment.affinity.pod) (.Values.deployment.affinity.pod_anti)) }}
       affinity:

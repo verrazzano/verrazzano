@@ -5,11 +5,13 @@ package authproxy
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"path/filepath"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -57,6 +59,14 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
 			GetInstallOverridesFunc:   GetOverrides,
 			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName},
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 			Certificates: []types.NamespacedName{
 				{Name: constants.VerrazzanoIngressSecret, Namespace: ComponentNamespace},
 			},
@@ -72,7 +82,7 @@ func NewComponent() spi.Component {
 
 // IsEnabled authProxyComponent-specific enabled check for installation
 func (c authProxyComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsAuthProxyEnabled(effectiveCR)
+	return vzcr.IsAuthProxyEnabled(effectiveCR)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
@@ -96,7 +106,7 @@ func (c authProxyComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano
 // IsReady component check
 func (c authProxyComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isAuthProxyReady(ctx)
+		return c.isAuthProxyReady(ctx)
 	}
 	return false
 }

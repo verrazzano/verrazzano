@@ -6,13 +6,14 @@ package mysqloperator
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	config "github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	config "github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -55,13 +56,13 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 }
 
 // isReady - component specific checks for being ready
-func isReady(ctx spi.ComponentContext) bool {
-	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), getDeploymentList(), 1, getPrefix(ctx))
+func (c mysqlOperatorComponent) isReady(ctx spi.ComponentContext) bool {
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, getPrefix(ctx))
 }
 
 // isInstalled checks that the deployment exists
-func isInstalled(ctx spi.ComponentContext) bool {
-	return ready.DoDeploymentsExist(ctx.Log(), ctx.Client(), getDeploymentList(), 1, getPrefix(ctx))
+func (c mysqlOperatorComponent) isInstalled(ctx spi.ComponentContext) bool {
+	return ready.DoDeploymentsExist(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, getPrefix(ctx))
 }
 
 func getPrefix(ctx spi.ComponentContext) string {

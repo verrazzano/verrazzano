@@ -5,15 +5,16 @@ package coherence
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	"net/http"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
@@ -105,18 +106,23 @@ var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("
 	})
 
 	t.Context("Logging.", Label("f:observability.logging.es"), func() {
-		indexName, err := pkg.GetOpenSearchAppIndex(namespace)
-		Expect(err).To(BeNil())
-		t.It("Verify Elasticsearch index exists", func() {
+		var indexName string
+		var err error
+		Eventually(func() error {
+			indexName, err = pkg.GetOpenSearchAppIndex(namespace)
+			return err
+		}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Expected to get OpenSearch App Index")
+
+		t.It("Verify Opensearch index exists", func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
-			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Elasticsearch index for Coherence application.")
+			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find Opensearch index for Coherence application.")
 		})
 
-		t.It("Verify recent Elasticsearch log record exists", func() {
+		t.It("Verify recent Opensearch log record exists", func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}
@@ -194,12 +200,20 @@ func deployCoherenceApp(namespace string) {
 
 	t.Logs.Info("Create component resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(compConfiguration, namespace)
+		file, err := pkg.FindTestDataFile(compConfiguration)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval, "Failed to create component resources for Coherence application").ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create application resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(appConfiguration, namespace)
+		file, err := pkg.FindTestDataFile(appConfiguration)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 }
 
@@ -208,12 +222,20 @@ func undeployCoherenceApp() {
 	t.Logs.Info("Delete application")
 	start := time.Now()
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(appConfiguration, namespace)
+		file, err := pkg.FindTestDataFile(appConfiguration)
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete component")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(compConfiguration, namespace)
+		file, err := pkg.FindTestDataFile(compConfiguration)
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for pod to terminate")

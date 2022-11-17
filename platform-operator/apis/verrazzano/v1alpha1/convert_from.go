@@ -31,6 +31,7 @@ func (in *Verrazzano) ConvertFrom(srcRaw conversion.Hub) error {
 	in.Status.Conditions = convertConditionsFromV1Beta1(src.Status.Conditions)
 	in.Status.Components = convertComponentStatusMapFromV1Beta1(src.Status.Components)
 	in.Status.VerrazzanoInstance = convertVerrazzanoInstanceFromV1Beta1(src.Status.VerrazzanoInstance)
+	in.Status.Available = src.Status.Available
 	return nil
 }
 
@@ -69,6 +70,7 @@ func convertComponentStatusMapFromV1Beta1(components v1beta1.ComponentStatusMap)
 				Name:                     detail.Name,
 				Conditions:               convertConditionsFromV1Beta1(detail.Conditions),
 				State:                    CompStateType(detail.State),
+				Available:                convertAvailabilityFrom(detail.Available),
 				Version:                  detail.Version,
 				LastReconciledGeneration: detail.LastReconciledGeneration,
 				ReconcilingGeneration:    detail.ReconcilingGeneration,
@@ -76,6 +78,14 @@ func convertComponentStatusMapFromV1Beta1(components v1beta1.ComponentStatusMap)
 		}
 	}
 	return componentStatusMap
+}
+
+func convertAvailabilityFrom(availability *v1beta1.ComponentAvailability) *ComponentAvailability {
+	if availability == nil {
+		return nil
+	}
+	newAvailability := ComponentAvailability(*availability)
+	return &newAvailability
 }
 
 func convertVerrazzanoInstanceFromV1Beta1(instance *v1beta1.InstanceInfo) *InstanceInfo {
@@ -111,6 +121,7 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		AuthProxy:              convertAuthProxyFromV1Beta1(in.AuthProxy),
 		OAM:                    convertOAMFromV1Beta1(in.OAM),
 		Console:                convertConsoleFromV1Beta1(in.Console),
+		ClusterOperator:        convertClusterOperatorFromV1Beta1(in.ClusterOperator),
 		DNS:                    convertDNSFromV1Beta1(in.DNS),
 		Elasticsearch:          convertOpenSearchFromV1Beta1(in.OpenSearch),
 		Fluentd:                convertFluentdFromV1Beta1(in.Fluentd),
@@ -532,6 +543,16 @@ func convertArgoCDFromV1Beta1(in *v1beta1.ArgoCDComponent) *ArgoCDComponent {
 		return nil
 	}
 	return &ArgoCDComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
+	}
+}
+
+func convertClusterOperatorFromV1Beta1(in *v1beta1.ClusterOperatorComponent) *ClusterOperatorComponent {
+	if in == nil {
+		return nil
+	}
+	return &ClusterOperatorComponent{
 		Enabled:          in.Enabled,
 		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}

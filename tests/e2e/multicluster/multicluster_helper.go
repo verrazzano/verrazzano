@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/google/uuid"
 	"github.com/onsi/ginkgo/v2"
@@ -25,7 +27,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	mcapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	mcClient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned"
+	mcClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	yv2 "gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
@@ -56,7 +58,11 @@ const (
 
 // DeployVerrazzanoProject deploys the VerrazzanoProject to the cluster with the given kubeConfig
 func DeployVerrazzanoProject(projectConfiguration, kubeConfig string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInCluster(projectConfiguration, kubeConfig); err != nil {
+	file, err := pkg.FindTestDataFile(projectConfiguration)
+	if err != nil {
+		return err
+	}
+	if err := resource.CreateOrUpdateResourceFromFileInCluster(file, kubeConfig); err != nil {
 		return fmt.Errorf("failed to create project resource: %v", err)
 	}
 	return nil
@@ -70,7 +76,11 @@ func TestNamespaceExists(kubeConfig string, namespace string) bool {
 
 // DeployCompResource deploys the OAM Component resource to the cluster with the given kubeConfig
 func DeployCompResource(compConfiguration, testNamespace, kubeConfig string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(compConfiguration, kubeConfig, testNamespace); err != nil {
+	file, err := pkg.FindTestDataFile(compConfiguration)
+	if err != nil {
+		return err
+	}
+	if err := resource.CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file, kubeConfig, testNamespace); err != nil {
 		return fmt.Errorf("failed to create multi-cluster component resources: %v", err)
 	}
 	return nil
@@ -78,7 +88,11 @@ func DeployCompResource(compConfiguration, testNamespace, kubeConfig string) err
 
 // DeployAppResource deploys the OAM Application resource to the cluster with the given kubeConfig
 func DeployAppResource(appConfiguration, testNamespace, kubeConfig string) error {
-	if err := pkg.CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(appConfiguration, kubeConfig, testNamespace); err != nil {
+	file, err := pkg.FindTestDataFile(appConfiguration)
+	if err != nil {
+		return err
+	}
+	if err := resource.CreateOrUpdateResourceFromFileInClusterInGeneratedNamespace(file, kubeConfig, testNamespace); err != nil {
 		return fmt.Errorf("failed to create multi-cluster application resource: %v", err)
 	}
 	return nil
@@ -560,10 +574,7 @@ func (c *Cluster) FluentdLogs(lines int64, restartedAfter time.Time) string {
 	if pod == nil {
 		return fmt.Sprintf(errMsg, "cannot find fluentd pod")
 	}
-	if pod.Status.StartTime != nil && pod.Status.StartTime.After(restartedAfter) {
-		return c.PodLogs(constants.VerrazzanoSystemNamespace, pod.Name, "fluentd", lines)
-	}
-	return fmt.Sprintf(errMsg, "fluentd is not restarted")
+	return c.PodLogs(constants.VerrazzanoSystemNamespace, pod.Name, "fluentd", lines)
 }
 
 func (c *Cluster) PodLogs(ns, podName, container string, lines int64) string {

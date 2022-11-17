@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -19,6 +20,17 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+var enabled = true
+var veleroEnabledCR = &vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			Velero: &vzapi.VeleroComponent{
+				Enabled: &enabled,
+			},
+		},
+	},
+}
 
 // GIVEN a network policies helm component
 //
@@ -35,7 +47,7 @@ func TestIsEnabled(t *testing.T) {
 //	THEN the expected namespaces have been created
 func TestPreInstall(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
-	ctx := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
+	ctx := spi.NewFakeContext(fakeClient, veleroEnabledCR, nil, false)
 	comp := NewComponent()
 
 	err := comp.PreInstall(ctx)
@@ -67,6 +79,11 @@ func TestPreUpgrade(t *testing.T) {
 		&netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: constants.IstioSystemNamespace, Name: netPolName}},
 	).Build()
 
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
 	// associate the network policy with the verrazzano helm release
 	obj := &netv1.NetworkPolicy{}
 	netPolNSN := types.NamespacedName{Namespace: constants.IstioSystemNamespace, Name: netPolName}
@@ -76,7 +93,7 @@ func TestPreUpgrade(t *testing.T) {
 	_, err := common.AssociateHelmObject(fakeClient, obj, vzComponentNSN, netPolNSN, false)
 	assert.NoError(t, err)
 
-	ctx := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
+	ctx := spi.NewFakeContext(fakeClient, veleroEnabledCR, nil, false)
 	comp := NewComponent()
 
 	err = comp.PreUpgrade(ctx)
@@ -113,7 +130,7 @@ func TestPostUpgrade(t *testing.T) {
 			},
 		},
 	).Build()
-	ctx := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
+	ctx := spi.NewFakeContext(fakeClient, veleroEnabledCR, nil, false)
 	comp := NewComponent()
 
 	err := comp.PostUpgrade(ctx)
@@ -137,7 +154,7 @@ func TestPostUpgrade(t *testing.T) {
 			},
 		},
 	).Build()
-	ctx = spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
+	ctx = spi.NewFakeContext(fakeClient, veleroEnabledCR, nil, false)
 
 	err = comp.PostUpgrade(ctx)
 	assert.NoError(t, err)

@@ -6,6 +6,7 @@ package helpers
 import (
 	"context"
 	"fmt"
+	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/semver"
@@ -17,7 +18,9 @@ import (
 	"io"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	appv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -175,6 +178,9 @@ func NewScheme() *runtime.Scheme {
 	_ = adminv1.SchemeBuilder.AddToScheme(scheme)
 	_ = rbacv1.SchemeBuilder.AddToScheme(scheme)
 	_ = appv1.SchemeBuilder.AddToScheme(scheme)
+	_ = networkingv1.AddToScheme(scheme)
+	_ = oam.AddToScheme(scheme)
+	_ = batchv1.AddToScheme(scheme)
 	return scheme
 }
 

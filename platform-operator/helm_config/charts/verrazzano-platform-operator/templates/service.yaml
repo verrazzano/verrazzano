@@ -9,12 +9,24 @@ metadata:
     app: {{ .Values.name }}
 spec:
   ports:
-    - name: webhook
-      port: 443
-      targetPort: 9443
     - name: http-metric
       protocol: TCP
       port: 9100
       targetPort: 9100
   selector:
     app: {{ .Values.name }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.name }}-webhook
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}-webhook
+spec:
+  ports:
+    - name: webhook
+      port: 443
+      targetPort: 9443
+  selector:
+    app: {{ .Values.name }}-webhook

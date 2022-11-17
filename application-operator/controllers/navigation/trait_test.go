@@ -335,3 +335,28 @@ func TestFetchWorkloadResource(t *testing.T) {
 	assert.Error(err)
 	assert.Equal("test-error", err.Error())
 }
+
+// TestIsWeblogicWorkloadKind tests the IsWeblogicWorkloadKind function
+// GIVEN a trait with a WorkloadReference
+// WHEN a call to IsWeblogicWorkloadKind is made
+// THEN return true if the trait references a VerrazzanoWebLogic workload kind, false otherwise
+func TestIsWeblogicWorkloadKind(t *testing.T) {
+	assert := asserts.New(t)
+
+	trait := &vzapi.IngressTrait{}
+	assert.False(IsWeblogicWorkloadKind(trait))
+
+	trait = &vzapi.IngressTrait{
+		Spec: vzapi.IngressTraitSpec{
+			WorkloadReference: oamrt.TypedReference{Kind: "VerrazzanoCoherenceWorkload"},
+		},
+	}
+	assert.False(IsWeblogicWorkloadKind(trait))
+
+	trait = &vzapi.IngressTrait{
+		Spec: vzapi.IngressTraitSpec{
+			WorkloadReference: oamrt.TypedReference{Kind: "VerrazzanoWebLogicWorkload"},
+		},
+	}
+	assert.True(IsWeblogicWorkloadKind(trait))
+}

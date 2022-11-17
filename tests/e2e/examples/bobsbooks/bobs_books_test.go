@@ -5,14 +5,15 @@ package bobsbooks
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
@@ -124,12 +125,20 @@ func deployBobsBooksExample(namespace string) {
 	// Note: creating the app config first to verify that default metrics traits are created properly if the app config exists before the components
 	t.Logs.Info("Create application resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-app.yaml", namespace)
+		file, err := pkg.FindTestDataFile("examples/bobs-books/bobs-books-app.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create component resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-comp.yaml", namespace)
+		file, err := pkg.FindTestDataFile("examples/bobs-books/bobs-books-comp.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval, "Failed to create Bobs Books component resources").ShouldNot(HaveOccurred())
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 }
@@ -139,12 +148,20 @@ func undeployBobsBooksExample() {
 	t.Logs.Info("Delete application")
 	start := time.Now()
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-app.yaml", namespace)
+		file, err := pkg.FindTestDataFile("examples/bobs-books/bobs-books-app.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/bobs-books/bobs-books-comp.yaml", namespace)
+		file, err := pkg.FindTestDataFile("examples/bobs-books/bobs-books-comp.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for pods to terminate")
@@ -338,19 +355,23 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		})
 	})
 	t.Context("WebLogic logging.", Label("f:observability.logging.es"), func() {
-		bobsIndexName, err := pkg.GetOpenSearchAppIndex(namespace)
-		Expect(err).To(BeNil())
+		var bobsIndexName string
+		Eventually(func() error {
+			bobsIndexName, err = pkg.GetOpenSearchAppIndex(namespace)
+			return err
+		}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Expected to get OpenSearch App Index")
+
 		// GIVEN a WebLogic application with logging enabled
-		// WHEN the Elasticsearch index is retrieved
+		// WHEN the Opensearch index is retrieved
 		// THEN verify that it is found
-		t.It("Verify Elasticsearch index exists", func() {
+		t.It("Verify Opensearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(bobsIndexName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find log index "+bobsIndexName)
 		})
 		pkg.Concurrently(
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent log record of bobbys-front-end-adminserver stdout is found
 			func() {
 				t.It("Verify recent bobbys-front-end-adminserver log record exists", func() {
@@ -365,7 +386,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent log record of bobbys-front-end-adminserver log file is found
 			func() {
 				t.It("Verify recent bobbys-front-end-adminserver log record exists", func() {
@@ -380,7 +401,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent log record of bobbys-front-end-managed-server stdout is found
 			func() {
 				t.It("Verify recent bobbys-front-end-managed-server1 log record exists", func() {
@@ -396,7 +417,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 			},
 
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent pattern-matched log record of bobbys-front-end-adminserver stdout is found
 			func() {
 				t.It("Verify recent pattern-matched AdminServer log record exists", func() {
@@ -413,7 +434,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent pattern-matched log record of bobbys-front-end-adminserver stdout is found
 			func() {
 				t.It("Verify recent pattern-matched AdminServer log record exists", func() {
@@ -430,7 +451,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent log record of bobbys-front-end-managed-server log file is found
 			func() {
 				t.It("Verify recent bobbys-front-end-managed-server1 log record exists", func() {
@@ -449,7 +470,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent pattern-matched log record of bobbys-front-end-managed-server stdout is found
 			func() {
 				t.It("Verify recent pattern-matched managed-server log record exists", func() {
@@ -466,7 +487,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent pattern-matched log record of bobbys-front-end-managed-server stdout is found
 			func() {
 				t.It("Verify recent pattern-matched managed-server log record exists", func() {
@@ -485,7 +506,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		)
 		pkg.Concurrently(
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent log record of bobs-bookstore-adminserver stdout is found
 			func() {
 				t.It("Verify recent bobs-bookstore-adminserver log record exists", func() {
@@ -500,7 +521,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent log record of bobs-bookstore-adminserver log file is found
 			func() {
 				t.It("Verify recent bobs-bookstore-adminserver log record exists", func() {
@@ -515,7 +536,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent log record of bobs-bookstore-managed-server stdout is found
 			func() {
 				t.It("Verify recent bobs-bookstore-managed-server1 log record exists", func() {
@@ -530,7 +551,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent log record of bobs-bookstore-managed-server log file is found
 			func() {
 				t.It("Verify recent bobs-bookstore-managed-server1 log record exists", func() {
@@ -551,19 +572,23 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 		)
 	})
 	t.Context("Coherence logging.", Label("f:observability.logging.es"), func() {
-		indexName, err := pkg.GetOpenSearchAppIndex(namespace)
-		Expect(err).To(BeNil())
+		var indexName string
+		Eventually(func() error {
+			indexName, err = pkg.GetOpenSearchAppIndex(namespace)
+			return err
+		}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Expected to get OpenSearch App Index")
+
 		// GIVEN a Coherence application with logging enabled
-		// WHEN the Elasticsearch index is retrieved
+		// WHEN the Opensearch index is retrieved
 		// THEN verify that it is found
-		t.It("Verify Elasticsearch index exists", func() {
+		t.It("Verify Opensearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find log index "+indexName)
 		})
 		pkg.Concurrently(
 			// GIVEN a Coherence application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent log record of roberts-coherence-0 stdout is found
 			func() {
 				t.It("Verify recent roberts-coherence-0 log record exists", func() {
@@ -578,7 +603,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				})
 			},
 			// GIVEN a Coherence application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent log record of roberts-coherence-0 log file is found
 			func() {
 				t.It("Verify recent roberts-coherence-0 log record exists", func() {
@@ -596,7 +621,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				})
 			},
 			// GIVEN a Coherence application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent log record of roberts-coherence-1 stdout is found
 			func() {
 				t.It("Verify recent roberts-coherence-1 log record exists", func() {
@@ -614,7 +639,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				})
 			},
 			// GIVEN a Coherence application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent log record of roberts-coherence-1 log file is found
 			func() {
 				t.It("Verify recent roberts-coherence-1 log record exists", func() {
@@ -630,7 +655,7 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 				})
 			},
 			// GIVEN a Coherence application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent log record of bobbys-coherence log file is found
 			func() {
 				t.It("Verify recent roberts-coherence-1 log record exists", func() {

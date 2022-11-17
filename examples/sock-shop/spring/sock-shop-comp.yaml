@@ -17,7 +17,7 @@ spec:
           cluster: SockShopCarts
           role: Carts
           replicas: 1
-          image: ghcr.io/oracle/coherence-spring-sockshop-carts:1.2.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-carts:1.2.3
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.carts.CartsApp
@@ -60,7 +60,7 @@ spec:
           cluster: SockShopCatalog
           role: Catalog
           replicas: 1
-          image: ghcr.io/oracle/coherence-spring-sockshop-catalog:1.2.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-catalog:1.2.3
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.catalog.CatalogApp
@@ -103,7 +103,7 @@ spec:
           cluster: SockShopOrders
           role: Orders
           replicas: 1
-          image: ghcr.io/oracle/coherence-spring-sockshop-orders:1.2.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-orders:1.2.3
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.orders.OrdersApp
@@ -147,7 +147,7 @@ spec:
           cluster: SockShopPayment
           role: Payment
           replicas: 1
-          image: ghcr.io/oracle/coherence-spring-sockshop-payment:1.2.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-payment:1.2.3
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.payment.PaymentApp
@@ -194,7 +194,7 @@ spec:
           cluster: SockShopShipping
           role: Shipping
           replicas: 1
-          image: ghcr.io/oracle/coherence-spring-sockshop-shipping:1.2.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-shipping:1.2.3
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.shipping.ShippingApp
@@ -241,7 +241,7 @@ spec:
           cluster: SockShopUsers
           role: Users
           replicas: 1
-          image: ghcr.io/oracle/coherence-spring-sockshop-users:1.2.0
+          image: ghcr.io/oracle/coherence-spring-sockshop-users:1.2.3
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.spring.users.UsersApp
