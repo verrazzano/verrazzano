@@ -54,13 +54,8 @@ pipeline {
     environment {
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         GOPATH = '/home/opc/go'
-        GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
         PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
-
-        OCI_CLI_AUTH="instance_principal"
-        OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-        OCI_OS_BUCKET="verrazzano-builds"
     }
 
     stages {
