@@ -397,7 +397,7 @@ spec:
               command:
                 - sh
                 - -c
-                - 'reply=$(curl -s -o /dev/null -w %{http_code} -o /dev/null -k -H "Content-Type: application/json"  https://127.0.0.1:9443/appconfig-defaulter); if [ \"$reply\" -lt 200 -o \"$reply\" -ge 400 ]; then exit 1; fi; reply=$(curl -s -o /dev/null -w %{http_code} -o /dev/null -k -H "Content-Type: application/json"  https://127.0.0.1:9443/validate-oam-verrazzano-io-v1alpha1-ingresstrait); if [ \"$reply\" -lt 200 -o \"$reply\" -ge 400 ]; then exit 1; fi;'
+                - 'reply=$(curl -s -o /dev/null -w %{http_code} -o /dev/null -k -H "Content-Type: application/json"  https://127.0.0.1:9443/validate-oam-verrazzano-io-v1alpha1-ingresstrait); if [ \"$reply\" -lt 200 -o \"$reply\" -ge 400 ]; then exit 1; fi;'
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 5
@@ -419,6 +419,100 @@ spec:
         - name: webhook-certs
           emptyDir: {}
       serviceAccountName: {{ .Values.name }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.name }}-webhook
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}-webhook
+spec:
+  ports:
+    - name: https-webhook
+      port: 443
+      targetPort: 9443
+    - name: http-metric
+      protocol: TCP
+      port: 9100
+      targetPort: 9100
+  selector:
+    app: {{ .Values.name }}-webhook
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}-webhook
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}-webhook
+spec:
+  replicas: {{ .Values.webhook.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}-webhook
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}-webhook
+    spec:
+      initContainers:
+        - name: initwebhooks
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ .Values.image }}
+          args:
+            - --zap-log-level=info
+            - --run-webhook-init=true
+            - --run-webhook=false
+          resources:
+            requests:
+              memory: {{ .Values.requestMemory }}
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/certs
+      containers:
+        - name: {{ .Values.name }}-webhook
+          image: {{ .Values.image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          ports:
+            - containerPort: 9443
+              name: https-webhook
+              protocol: TCP
+            - containerPort: 9100
+              name: http-metric
+              protocol: TCP
+          args:
+            - --zap-log-level={{ .Values.logLevel }}
+            - --run-webhooks=true
+            - --run-webhook-init=false
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - 'reply=$(curl -s -o /dev/null -w %{http_code} -o /dev/null -k -H "Content-Type: application/json"  https://127.0.0.1:9443/validate-oam-verrazzano-io-v1alpha1-ingresstrait); if [ \"$reply\" -lt 200 -o \"$reply\" -ge 400 ]; then exit 1; fi;'
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 10
+          resources:
+            requests:
+              memory: {{ .Values.requestMemory }}
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/certs
+          env:
+            - name: DEFAULT_FLUENTD_IMAGE
+              value: {{ .Values.fluentdImage }}
+            - name: ISTIO_PROXY_IMAGE
+              value: {{ .Values.istioProxyImage }}
+            - name: WEBLOGIC_MONITORING_EXPORTER_IMAGE
+              value: {{ .Values.weblogicMonitoringExporterImage }}
+      volumes:
+        - name: webhook-certs
+          emptyDir: {}
+      serviceAccountName: {{ .Values.name }}
+
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
