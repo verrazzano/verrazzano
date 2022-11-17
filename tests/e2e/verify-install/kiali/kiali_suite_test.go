@@ -5,11 +5,11 @@ package kiali
 
 import (
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+
 	"testing"
 )
 
-func TestKiali(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Kiali Test Suite")
+func TestKiali(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Kiali Test Suite")
 }

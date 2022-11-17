@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestVerifyDeregister(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Verify Deregister Managed Cluster multi-cluster Suite")
+func TestVerifyDeregister(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Verify Deregister Managed Cluster multi-cluster Suite")
 }

@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestVerrazzano(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Verrazzano Suite")
+func TestVerrazzano(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Verrazzano Suite")
 }

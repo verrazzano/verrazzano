@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestKubernetes(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Kubernetes Suite")
+func TestKubernetes(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Kubernetes Suite")
 }

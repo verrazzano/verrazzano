@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 var skipDeploy bool
@@ -23,7 +22,7 @@ func init() {
 }
 
 // TestOAMWorkloads runs the OAM workload test suite that tests various OAM workload types
-func TestOAMWorkloads(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Test Suite to validate the support for OAM workloads")
+func TestOAMWorkloads(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Test Suite to validate the support for OAM workloads")
 }

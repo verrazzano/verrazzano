@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
-func TestEnvironmentNameDNSCertManagerUpdate(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Update env-dns-cm Suite")
+func TestEnvironmentNameDNSCertManagerUpdate(test *testing.T) {
+	t.RegisterFailHandler()
+	RunSpecs(test, "Update env-dns-cm Suite")
 }

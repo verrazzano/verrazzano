@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestOpenSearchPostInstallUpdate(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Post Install Update Opensearch Suite")
+func TestOpenSearchPostInstallUpdate(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Post Install Update Opensearch Suite")
 }

@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestMultiClusterSockShopExample(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Multi-cluster Sock Shop Suite")
+func TestMultiClusterSockShopExample(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Multi-cluster Sock Shop Suite")
 }

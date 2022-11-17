@@ -5,11 +5,11 @@ package verify
 
 import (
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+
 	"testing"
 )
 
-func TestVerifyAppRestart(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Upgrade Verify App Restart Suite")
+func TestVerifyAppRestart(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Upgrade Verify App Restart Suite")
 }

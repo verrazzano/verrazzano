@@ -12,7 +12,7 @@ import (
 
 var t = framework.NewTestFramework("restapi_test")
 
-func TestRestApi(t2 *testing.T) {
+func TestRestApi(test *testing.T) {
 	t.RegisterFailHandler()
-	ginkgo.RunSpecs(t2, "REST API Suite")
+	ginkgo.RunSpecs(test, "REST API Suite")
 }

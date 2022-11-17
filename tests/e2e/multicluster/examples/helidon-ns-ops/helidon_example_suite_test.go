@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestMultiClusterHelidonExample(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Multi-cluster Hello Helidon NS Ops Suite")
+func TestMultiClusterHelidonExample(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Multi-cluster Hello Helidon NS Ops Suite")
 }

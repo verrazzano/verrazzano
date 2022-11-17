@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestJaegerPostInstallUpdate(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Post Install Update of Jaeger Operator Suite")
+func TestJaegerPostInstallUpdate(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Post Install Update of Jaeger Operator Suite")
 }
