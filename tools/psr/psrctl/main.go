@@ -5,7 +5,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/embedded"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/manifest"
 	"os"
 
 	"github.com/spf13/pflag"
@@ -17,12 +17,12 @@ import (
 func main() {
 	// Extract the manifests and write them to a temp directory
 	// This sets the global embedded.Manifests var
-	err := embedded.InitGlobalManifests()
+	err := manifest.InitGlobalManifests()
 	if err != nil {
 		fmt.Printf("Failed to initial manifests %v", err)
 		os.Exit(1)
 	}
-	defer embedded.CleanupManifests()
+	defer manifest.CleanupManifests()
 
 	flags := pflag.NewFlagSet("psrctl", pflag.ExitOnError)
 	pflag.CommandLine = flags

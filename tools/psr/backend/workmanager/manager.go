@@ -5,6 +5,7 @@ package workmanager
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/restart"
 	"sync"
 	"time"
 
@@ -110,6 +111,8 @@ func getWorker(wt string) (spi.Worker, error) {
 		return postlogs.NewPostLogsWorker()
 	case config.WorkerTypeScale:
 		return scale.NewScaleWorker()
+	case config.WorkerTypeRestart:
+		return restart.NewRestartWorker()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}

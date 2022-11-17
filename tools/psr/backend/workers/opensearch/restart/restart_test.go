@@ -1,27 +1,29 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package scale
+package restart
 
 import (
 	"strings"
 	"testing"
-	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoFakeClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/fake"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/k8sclient"
 	opensearchpsr "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/opensearch"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/verrazzano"
 
 	"github.com/stretchr/testify/assert"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	crtFakeClient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -44,13 +46,13 @@ func TestGetters(t *testing.T) {
 		funcNewPsrClient = origFunc
 	}()
 
-	w, err := NewScaleWorker()
+	w, err := NewRestartWorker()
 	assert.NoError(t, err)
 
 	wd := w.GetWorkerDesc()
-	assert.Equal(t, config.WorkerTypeScale, wd.WorkerType)
-	assert.Equal(t, "The OpenSearch scale worker scales an OpenSearch tier in and out continuously", wd.Description)
-	assert.Equal(t, config.WorkerTypeScale, wd.MetricsName)
+	assert.Equal(t, config.WorkerTypeRestart, wd.WorkerType)
+	assert.Equal(t, "Worker to restart pods in the specified OpenSearch tier", wd.Description)
+	assert.Equal(t, config.WorkerTypeRestart, wd.MetricsName)
 
 	logged := w.WantLoopInfoLogged()
 	assert.False(t, logged)
@@ -78,21 +80,11 @@ func TestGetEnvDescList(t *testing.T) {
 			defval:   "",
 			required: true,
 		},
-		{name: "2",
-			key:      minReplicaCount,
-			defval:   "3",
-			required: false,
-		},
-		{name: "3",
-			key:      maxReplicaCount,
-			defval:   "5",
-			required: false,
-		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			w, err := NewScaleWorker()
+			w, err := NewRestartWorker()
 			assert.NoError(t, err)
 			el := w.GetEnvDescList()
 			for _, e := range el {
@@ -121,14 +113,12 @@ func TestGetMetricDescList(t *testing.T) {
 		fqName string
 		help   string
 	}{
-		{name: "1", fqName: "opensearch_scale_out_count_total", help: "The total number of times OpenSearch scaled out"},
-		{name: "2", fqName: "opensearch_scale_in_count_total", help: "The total number of times OpenSearch scaled in"},
-		{name: "3", fqName: "opensearch_scale_out_seconds", help: "The number of seconds elapsed to scale out OpenSearch"},
-		{name: "4", fqName: "opensearch_scale_in_seconds", help: "The number of seconds elapsed to scale in OpenSearch"},
+		{name: "1", fqName: "opensearch_pod_restart_count", help: "The total number of OpenSearch pod restarts"},
+		{name: "2", fqName: "opensearch_pod_restart_time_nanoseconds", help: "The number of nanoseconds elapsed to restart the OpenSearch pod"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			wi, err := NewScaleWorker()
+			wi, err := NewRestartWorker()
 			w := wi.(worker)
 			assert.NoError(t, err)
 			dl := w.GetMetricDescList()
@@ -160,14 +150,12 @@ func TestGetMetricList(t *testing.T) {
 		fqName string
 		help   string
 	}{
-		{name: "1", fqName: "opensearch_scale_out_count_total", help: "The total number of times OpenSearch scaled out"},
-		{name: "2", fqName: "opensearch_scale_in_count_total", help: "The total number of times OpenSearch scaled in"},
-		{name: "3", fqName: "opensearch_scale_out_seconds", help: "The number of seconds elapsed to scale out OpenSearch"},
-		{name: "4", fqName: "opensearch_scale_in_seconds", help: "The number of seconds elapsed to scale in OpenSearch"},
+		{name: "1", fqName: "opensearch_pod_restart_count", help: "The total number of OpenSearch pod restarts"},
+		{name: "2", fqName: "opensearch_pod_restart_time_nanoseconds", help: "The number of nanoseconds elapsed to restart the OpenSearch pod"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			wi, err := NewScaleWorker()
+			wi, err := NewRestartWorker()
 			w := wi.(worker)
 			assert.NoError(t, err)
 			ml := w.GetMetricList()
@@ -189,72 +177,66 @@ func TestGetMetricList(t *testing.T) {
 //	WHEN the DoWork methods is called
 //	THEN ensure that the correct results are returned
 func TestDoWork(t *testing.T) {
+	readyState := "ready"
+	notReadyState := "notready"
+	podExistsState := "podexists"
+	podUID := "poduid"
+
 	tests := []struct {
-		name          string
-		tier          string
-		expectError   bool
-		minReplicas   string
-		maxReplicas   string
-		skipUpdate    bool
-		skipPodCreate bool
-		firstState    v1alpha1.VzStateType
-		secondState   v1alpha1.VzStateType
-		thirtState    v1alpha1.VzStateType
+		name  string
+		tier  string
+		state string
 	}{
 		{
-			name:        "master",
-			tier:        opensearchpsr.MasterTier,
-			expectError: false,
-			minReplicas: "3",
-			maxReplicas: "4",
-			firstState:  v1alpha1.VzStateReady,
-			secondState: v1alpha1.VzStateReconciling,
+			name:  "master-ready",
+			tier:  opensearchpsr.MasterTier,
+			state: readyState,
 		},
 		{
-			name:        "data",
-			tier:        opensearchpsr.DataTier,
-			expectError: false,
-			minReplicas: "3",
-			maxReplicas: "4",
-			firstState:  v1alpha1.VzStateReady,
-			secondState: v1alpha1.VzStateReconciling,
+			name:  "data-ready",
+			tier:  opensearchpsr.DataTier,
+			state: readyState,
 		},
 		{
-			name:        "ingest",
-			tier:        opensearchpsr.IngestTier,
-			expectError: false,
-			minReplicas: "3",
-			maxReplicas: "4",
-			firstState:  v1alpha1.VzStateReady,
-			secondState: v1alpha1.VzStateReconciling,
+			name:  "ingest-ready",
+			tier:  opensearchpsr.IngestTier,
+			state: readyState,
 		},
 		{
-			name:        "replicaErr",
-			tier:        opensearchpsr.MasterTier,
-			skipUpdate:  true,
-			expectError: true,
-			minReplicas: "1",
-			maxReplicas: "4",
-			firstState:  v1alpha1.VzStateReady,
+			name:  "master-not-ready",
+			tier:  opensearchpsr.MasterTier,
+			state: notReadyState,
 		},
-		// Test missing pods
 		{
-			name:          "noPods",
-			tier:          opensearchpsr.MasterTier,
-			skipUpdate:    true,
-			skipPodCreate: true,
-			expectError:   true,
-			minReplicas:   "1",
-			maxReplicas:   "4",
-			firstState:    v1alpha1.VzStateReady,
+			name:  "data-not-ready",
+			tier:  opensearchpsr.DataTier,
+			state: notReadyState,
+		},
+		{
+			name:  "ingest-not-ready",
+			tier:  opensearchpsr.IngestTier,
+			state: notReadyState,
+		},
+		{
+			name:  "master-pod-exists",
+			tier:  opensearchpsr.MasterTier,
+			state: podExistsState,
+		},
+		{
+			name:  "data-pod-exists",
+			tier:  opensearchpsr.DataTier,
+			state: podExistsState,
+		},
+		{
+			name:  "ingest-pod-exists",
+			tier:  opensearchpsr.IngestTier,
+			state: podExistsState,
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			envMap := map[string]string{
-				openSearchTier:  test.tier,
-				minReplicaCount: test.minReplicas,
-				maxReplicaCount: test.maxReplicas,
+				openSearchTier: test.tier,
 			}
 			f := fakeEnv{data: envMap}
 			saveEnv := osenv.GetEnvFunc
@@ -264,18 +246,28 @@ func TestDoWork(t *testing.T) {
 			}()
 
 			// Setup fake VZ client
-			cr := initFakeVzCr(test.firstState)
+			cr := &v1beta1.Verrazzano{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "testVZ",
+				},
+			}
 			vzclient := vpoFakeClient.NewSimpleClientset(cr)
 
 			// Setup fake K8s client
 			podLabels := getTierLabels(test.tier)
+			masterSTSLabel := map[string]string{"verrazzano-component": "opensearch"}
 			scheme := runtime.NewScheme()
 			_ = corev1.AddToScheme(scheme)
 			_ = k8sapiext.AddToScheme(scheme)
 			_ = v1alpha1.AddToScheme(scheme)
+			_ = appsv1.AddToScheme(scheme)
 			builder := crtFakeClient.NewClientBuilder().WithScheme(scheme)
-			if !test.skipPodCreate {
-				builder = builder.WithObjects(initFakePodWithLabels(podLabels))
+			if test.state == readyState {
+				builder = builder.WithObjects(initFakePodWithLabels(podLabels)).WithLists(initReadyDeployments(podLabels), initReadyStatefulSets(masterSTSLabel))
+			} else if test.state == notReadyState {
+				builder = builder.WithLists(initNotReadyDeployments(podLabels), initNotReadyStatefulSets(masterSTSLabel))
+			} else {
+				builder = builder.WithObjects(initFakePodWithLabels(podLabels)).WithLists(initReadyDeployments(podLabels), initReadyStatefulSets(masterSTSLabel))
 			}
 			crtClient := builder.Build()
 
@@ -293,35 +285,29 @@ func TestDoWork(t *testing.T) {
 			funcNewPsrClient = psrClient.NewPsrClient
 
 			// Create worker and call dowork
-			wi, err := NewScaleWorker()
+			wi, err := NewRestartWorker()
 			assert.NoError(t, err)
 			w := wi.(worker)
 			err = config.PsrEnv.LoadFromEnv(w.GetEnvDescList())
 			assert.NoError(t, err)
-
-			// DoWork expects the Verrazzano CR state to change.
-			// Worker waits for CR to be ready, modifies it, then waits for it to be not ready (e.g. reconciling)
-			// Run a background thread to change the state after the work starts
-			if !test.skipUpdate {
-				go func() {
-					time.Sleep(1 * time.Second)
-					cr := initFakeVzCr(test.secondState)
-					verrazzano.UpdateVerrazzano(vzclient, cr)
-					if len(test.thirtState) > 0 {
-						time.Sleep(1 * time.Second)
-						cr := initFakeVzCr(test.thirtState)
-						verrazzano.UpdateVerrazzano(vzclient, cr)
-					}
-				}()
+			if test.state == podExistsState {
+				w.restartedPodUID = types.UID(podUID)
 			}
-
 			err = w.DoWork(config.CommonConfig{
-				WorkerType: "scale",
+				WorkerType: "restart",
 			}, vzlog.DefaultLogger())
-			if test.expectError {
-				assert.Error(t, err)
-			} else {
+			if test.state == readyState {
 				assert.NoError(t, err)
+				assert.True(t, w.restartStartTime > 0)
+				assert.Equal(t, w.restartedPodUID, types.UID(podUID))
+			} else if test.state == notReadyState {
+				assert.Error(t, err)
+				assert.False(t, w.restartStartTime > 0)
+				assert.NotEqual(t, w.restartedPodUID, types.UID(podUID))
+			} else {
+				assert.Error(t, err)
+				assert.False(t, w.restartStartTime > 0)
+				assert.Equal(t, w.restartedPodUID, types.UID(podUID))
 			}
 		})
 	}
@@ -334,19 +320,123 @@ func initFakePodWithLabels(labels map[string]string) *corev1.Pod {
 			Name:      "testPod",
 			Namespace: "verrazzano-system",
 			Labels:    labels,
+			UID:       "poduid",
 		},
 	}
 }
 
-// initFakeVzCr inits a fake Verrazzano CR
-func initFakeVzCr(state v1alpha1.VzStateType) *v1alpha1.Verrazzano {
-	return &v1alpha1.Verrazzano{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "testPod",
-			Namespace: "verrazzano-system",
+func initReadyDeployments(labels map[string]string) *appsv1.DeploymentList {
+	return &appsv1.DeploymentList{
+		Items: []appsv1.Deployment{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "vmi-system-es-ingest",
+					Namespace: constants.VerrazzanoSystemNamespace,
+					Labels:    labels,
+				},
+				Status: appsv1.DeploymentStatus{
+					Replicas:      3,
+					ReadyReplicas: 3,
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "vmi-system-es-data-0",
+					Namespace: constants.VerrazzanoSystemNamespace,
+					Labels:    labels,
+				},
+				Status: appsv1.DeploymentStatus{
+					Replicas:      1,
+					ReadyReplicas: 1,
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "vmi-system-es-data-1",
+					Namespace: constants.VerrazzanoSystemNamespace,
+					Labels:    labels,
+				},
+				Status: appsv1.DeploymentStatus{
+					Replicas:      1,
+					ReadyReplicas: 1,
+				},
+			},
 		},
-		Status: v1alpha1.VerrazzanoStatus{
-			State: state,
+	}
+}
+
+func initNotReadyDeployments(labels map[string]string) *appsv1.DeploymentList {
+	return &appsv1.DeploymentList{
+		Items: []appsv1.Deployment{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "vmi-system-es-ingest",
+					Namespace: constants.VerrazzanoSystemNamespace,
+					Labels:    labels,
+				},
+				Status: appsv1.DeploymentStatus{
+					Replicas:      2,
+					ReadyReplicas: 3,
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "vmi-system-es-data-0",
+					Namespace: constants.VerrazzanoSystemNamespace,
+					Labels:    labels,
+				},
+				Status: appsv1.DeploymentStatus{
+					Replicas:      1,
+					ReadyReplicas: 1,
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "vmi-system-es-data-1",
+					Namespace: constants.VerrazzanoSystemNamespace,
+					Labels:    labels,
+				},
+				Status: appsv1.DeploymentStatus{
+					Replicas:      0,
+					ReadyReplicas: 1,
+				},
+			},
+		},
+	}
+}
+
+func initReadyStatefulSets(labels map[string]string) *appsv1.StatefulSetList {
+	return &appsv1.StatefulSetList{
+		Items: []appsv1.StatefulSet{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "vmi-system-es-master",
+					Namespace: constants.VerrazzanoSystemNamespace,
+					Labels:    labels,
+				},
+				Status: appsv1.StatefulSetStatus{
+					Replicas:      3,
+					ReadyReplicas: 3,
+				},
+			},
+		},
+	}
+}
+
+func initNotReadyStatefulSets(labels map[string]string) *appsv1.StatefulSetList {
+	return &appsv1.StatefulSetList{
+		Items: []appsv1.StatefulSet{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "vmi-system-es-master",
+					Namespace: constants.VerrazzanoSystemNamespace,
+					Labels:    labels,
+				},
+				Status: appsv1.StatefulSetStatus{
+					Replicas:      2,
+					ReadyReplicas: 3,
+				},
+			},
 		},
 	}
 }
