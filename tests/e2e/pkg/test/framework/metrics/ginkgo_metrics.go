@@ -159,9 +159,7 @@ func configureOutputs(ind string) ([]string, error) {
 
 func EmitFail(log *zap.SugaredLogger) {
 	spec := ginkgo.CurrentSpecReport()
-	if spec.State != types.SpecStateInvalid {
-		log = log.With(Status, spec.State)
-	}
+	log = log.With(Status, types.SpecStateFailed)
 	emitInternal(log, spec)
 }
 
