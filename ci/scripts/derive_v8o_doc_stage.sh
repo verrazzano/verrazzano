@@ -6,13 +6,14 @@
 #
 set -o pipefail
 
-echo "Current value for VERRAZZANO_DEV_VERSION IS $VERRAZZANO_DEV_VERSION"
-if [ -z "$VERRAZZANO_DEV_VERSION" ]; then
+#echo "Current value for VERRAZZANO_DEV_VERSION IS $VERRAZZANO_DEV_VERSION"
+if [ -z "$1" ]; then
   echo "This script must only be called from Jenkins and requires environment variables VERRAZZANO_DEV_VERSION is set."
   exit 1
 fi
 
-docsVersion="v$(echo $VERRAZZANO_DEV_VERSION | cut -d '.' -f 1-2)"
+#docsVersion="v$(echo $VERRAZZANO_DEV_VERSION | cut -d '.' -f 1-2)"
+docsVersion="v$(echo $1 | cut -d '.' -f 1-2)"
 
 # Phone-homing the URL with vz dev version to see if the docs exists
 analysisUrl="https://verrazzano.io/$docsVersion/docs/troubleshooting/diagnostictools/analysisadvice/"
