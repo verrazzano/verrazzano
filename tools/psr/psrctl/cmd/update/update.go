@@ -58,15 +58,15 @@ func NewCmdUpdate(vzHelper helpers.VZHelper) *cobra.Command {
 // RunCmdUpdate - update the "psrctl update" command
 func RunCmdUpdate(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	// GetScenarioManifest gets the ScenarioManifest for the given scenarioID
-	sman, err := manifest.NewManager(scenarioDir)
+	manifestMan, err := manifest.NewManager(scenarioDir)
 	if err != nil {
 		return fmt.Errorf("Failed to create scenario ScenarioMananger %v", err)
 	}
-	scman, err := sman.FindScenarioManifestByID(scenarioID)
+	scenarioMan, err := manifestMan.FindScenarioManifestByID(scenarioID)
 	if err != nil {
 		return fmt.Errorf("Failed to find scenario manifest %s: %v", scenarioID, err)
 	}
-	if scman == nil {
+	if scenarioMan == nil {
 		return fmt.Errorf("Failed to find scenario manifest with ID %s", scenarioID)
 	}
 
@@ -76,7 +76,7 @@ func RunCmdUpdate(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 
 	fmt.Printf("Updating scenario %s\n", scenarioID)
-	msg, err := m.UpdateScenario(scman)
+	msg, err := m.UpdateScenario(manifestMan, scenarioMan)
 	if err != nil {
 		// Cobra will display failure message
 		return fmt.Errorf("Failed to update scenario %s/%s: %v\n%s", namespace, scenarioID, err, msg)

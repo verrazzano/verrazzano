@@ -15,7 +15,7 @@ import (
 // The scenario manifest directory can be different that the one used to start the
 // scenario.  However, the scenario.yaml must be identical.  In fact, the scenario.yaml
 // is ignored during update, the code uses the scenario YAML information stored in the ConfigMap.
-func (m ScenarioMananger) UpdateScenario(scman *manifest.ScenarioManifest) (string, error) {
+func (m ScenarioMananger) UpdateScenario(manifestMan manifest.ManifestManager, scman *manifest.ScenarioManifest) (string, error) {
 	// Make sure the scenario is running
 	scenario, err := m.FindRunningScenarioByID(scman.ID)
 	if err != nil {
@@ -24,7 +24,7 @@ func (m ScenarioMananger) UpdateScenario(scman *manifest.ScenarioManifest) (stri
 
 	// Helm upgrade each use case
 	for _, hr := range scenario.HelmReleases {
-		stderr, err := m.doHelmUpgrade(scman, hr)
+		stderr, err := m.doHelmUpgrade(manifestMan, scman, hr)
 		if err != nil {
 			return stderr, err
 		}
@@ -33,7 +33,7 @@ func (m ScenarioMananger) UpdateScenario(scman *manifest.ScenarioManifest) (stri
 }
 
 // doHelmUpgrade runs the Helm upgrade command, applying helm overrides.
-func (m ScenarioMananger) doHelmUpgrade(scman *manifest.ScenarioManifest, hr HelmRelease) (string, error) {
+func (m ScenarioMananger) doHelmUpgrade(manifestMan manifest.ManifestManager, scman *manifest.ScenarioManifest, hr HelmRelease) (string, error) {
 	// Create the set of HelmOverrides, initialized from the manager settings
 	helmOverrides := m.HelmOverrides
 
@@ -44,7 +44,7 @@ func (m ScenarioMananger) doHelmUpgrade(scman *manifest.ScenarioManifest, hr Hel
 	}
 
 	// Create a temp file with the existing values and add to helm overrides
-	tmpPath := filepath.Join(scman.ManifestManager.Manifest.RootTmpDir, fmt.Sprintf("upgrade-%s-%s", hr.Namespace, hr.Name))
+	tmpPath := filepath.Join(manifestMan.Manifest.RootTmpDir, fmt.Sprintf("upgrade-%s-%s", hr.Namespace, hr.Name))
 	// delete any existing update tmp file, shouldn't exist but just in case
 	os.RemoveAll(tmpPath)
 	err = os.WriteFile(tmpPath, stdout, 0600)
@@ -61,7 +61,7 @@ func (m ScenarioMananger) doHelmUpgrade(scman *manifest.ScenarioManifest, hr Hel
 	if m.Verbose {
 		fmt.Printf("Updating use case %s for Helm release %s/%s\n", hr.Usecase.UsecasePath, hr.Namespace, hr.Name)
 	}
-	_, stderr, err := helmcli.Upgrade(m.Log, hr.Name, m.Namespace, scman.ManifestManager.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
+	_, stderr, err := helmcli.Upgrade(m.Log, hr.Name, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 	if err != nil {
 		return string(stderr), err
 	}
