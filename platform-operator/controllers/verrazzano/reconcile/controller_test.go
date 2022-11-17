@@ -57,7 +57,6 @@ const testBomFilePath = "../testdata/test_bom.json"
 //go:generate mockgen -destination=../../../mocks/controller_mock.go -package=mocks -copyright_file=../../../hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
 //go:generate mockgen -destination=../../../mocks/runtime_controller_mock.go -package=mocks -copyright_file=../../../hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/controller Controller
 const installPrefix = "verrazzano-install-"
-
 const uninstallPrefix = "verrazzano-uninstall-"
 const relativeProfilesDir = "../../../manifests/profiles"
 const relativeHelmConfig = "../../../helm_config"

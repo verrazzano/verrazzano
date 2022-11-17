@@ -39,6 +39,7 @@ pipeline {
         booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
         booleanParam (description: 'Whether to perform a scan of the built images', name: 'PERFORM_SCAN', defaultValue: false)
         booleanParam (description: 'Whether to wait for triggered tests or not. This defaults to false, this setting is useful for things like release automation that require everything to complete successfully', name: 'WAIT_FOR_TRIGGERED', defaultValue: false)
+        booleanParam (description: 'Whether or not the current build passes Unit Test coverage. This compares the coverage number from master to the local branch.', name: 'UT_COVERAGE_NUMBER', defaultValue: true)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'Wildcard DNS Domain',
                 // 1st choice is the default value
@@ -274,7 +275,6 @@ pipeline {
                         cd ${GO_REPO_PATH}/verrazzano
                         cp coverage.html ${WORKSPACE}
                         cp coverage.xml ${WORKSPACE}
-                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
                         build/copy-junit-output.sh ${WORKSPACE}
                     """
                             archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
@@ -291,6 +291,21 @@ pipeline {
                                     lineCoverageTargets: '68, 68, 68',
                                     packageCoverageTargets: '100, 0, 0',
                             )
+                            sh"""
+                                EX_STATUS=$(cat exit_status.txt)
+                                STATUS=$(echo $((EX_STATUS == 1)) | bc)
+
+                                if [ "$STATUS" -eq 1 ]
+                                then
+                                  echo "BUILD FAILED..."
+                                  echo "Does not pass master Unit Test coverage."
+                                  exit 1
+                                else
+                                  echo "PASS BUILD"
+                                  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
+                                fi
+                            """
+                                }
                         }
                     }
                 }
