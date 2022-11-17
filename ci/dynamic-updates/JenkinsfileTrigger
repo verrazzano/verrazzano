@@ -113,20 +113,13 @@ pipeline {
 
         stage ('Kick off dynamic update tests') {
             parallel {
-                stage ('Post-Update1 Tests') {
+                stage ('Post-Update1, Post-Update2, and Nginx/Istio Update Tests') {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                startBuildJob([booleanParam(name: 'RUN_POST_UPDATE1', value: true)])
-                            }
-                        }
-                    }
-                }
-                stage ('Post-Update2 Tests') {
-                    steps {
-                        retry (count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                startBuildJob([booleanParam(name: 'RUN_POST_UPDATE2', value: true)])
+                                startBuildJob([booleanParam(name: 'RUN_POST_UPDATE1', value: true),
+                                               booleanParam(name: 'RUN_POST_UPDATE2', value: true),
+                                               booleanParam(name: 'RUN_NGINX_ISTIO', value: true)])
                             }
                         }
                     }
@@ -163,15 +156,6 @@ pipeline {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
                                 startBuildJob([booleanParam(name: 'RUN_CERT_MANAGER', value: true)])
-                            }
-                        }
-                    }
-                }
-                stage ('Nginx/Istio Update Tests') {
-                    steps {
-                        retry (count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                startBuildJob([booleanParam(name: 'RUN_NGINX_ISTIO', value: true)])
                             }
                         }
                     }
