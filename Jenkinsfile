@@ -171,7 +171,7 @@ pipeline {
                         echo "Suspect list: ${SUSPECT_LIST}"
                     }
                     // derive the USE_V8O_DOC_STAGE for the docs
-                    chmod +x ${WORKSPACE}/ci/scripts/derive_v8o_doc_stage.sh
+                    sh "chmod +x ${WORKSPACE}/ci/scripts/derive_v8o_doc_stage.sh"
                     USE_V8O_DOC_STAGE = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_v8o_doc_stage.sh").trim()
                 }
             }
