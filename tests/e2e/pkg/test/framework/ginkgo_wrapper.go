@@ -32,16 +32,7 @@ func NewTestFramework(pkg string) *TestFramework {
 }
 
 func (t *TestFramework) RegisterFailHandler() {
-	gomega.RegisterFailHandler(func(message string, callerSkip ...int) {
-		// Recover only to emit a fail, then re-panic
-		defer func() {
-			if p := recover(); p != nil {
-				metrics.EmitFail(t.Metrics)
-				panic(p)
-			}
-		}()
-		ginkgo.Fail(message, callerSkip...)
-	})
+	gomega.RegisterFailHandler(t.Fail)
 }
 
 // initDumpDirectoryIfNecessary - sets the DUMP_DIRECTORY env variable to a default if not set externally
@@ -206,6 +197,13 @@ func (t *TestFramework) Entry(description interface{}, args ...interface{}) gink
 
 // Fail - wrapper function for Ginkgo Fail
 func (t *TestFramework) Fail(message string, callerSkip ...int) {
+	// Recover only to emit a fail, then re-panic
+	defer func() {
+		if p := recover(); p != nil {
+			metrics.EmitFail(t.Metrics)
+			panic(p)
+		}
+	}()
 	ginkgo.Fail(message, callerSkip...)
 }
 
