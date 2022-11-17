@@ -117,19 +117,16 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                startBuildJob([booleanParam(name: 'RUN_POST_UPDATE1', value: true),
-                                               booleanParam(name: 'RUN_POST_UPDATE2', value: true),
-                                               booleanParam(name: 'RUN_NGINX_ISTIO', value: true)])
+                                startBuildJob([booleanParam(name: 'RUN_POST_UPDATE_AND_NGINX', value: true)])
                             }
                         }
                     }
                 }
-                stage ('Availability Status, API Conversion, AuthProxy, CertManager, and Fluentd Update Tests') {
+                stage ('Availability Status, AuthProxy, CertManager, and Fluentd Update Tests') {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
                                 startBuildJob([booleanParam(name: 'RUN_AVAILABILITY_STATUS', value: true),
-                                               booleanParam(name: 'RUN_API_CONVERSION', value: true),
                                                booleanParam(name: 'RUN_AUTHPROXY', value: true),
                                                booleanParam(name: 'RUN_CERT_MANAGER', value: true),
                                                booleanParam(name: 'RUN_FLUENTD', value: true)])
@@ -137,11 +134,12 @@ pipeline {
                         }
                     }
                 }
-                stage ('Opensearch Update, Jaeger Update, and Post-install Overrides Tests') {
+                stage ('API Conversion Udpate, Opensearch Update, Jaeger Update, and Post-install Overrides Tests') {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                startBuildJob([booleanParam(name: 'RUN_OPENSEARCH', value: true),
+                                startBuildJob([booleanParam(name: 'RUN_API_CONVERSION', value: true),
+                                               booleanParam(name: 'RUN_OPENSEARCH', value: true),
                                                booleanParam(name: 'RUN_JAEGER', value: true),
                                                booleanParam(name: 'RUN_POST_INSTALL_OVERRIDES', value: true)])
                             }
