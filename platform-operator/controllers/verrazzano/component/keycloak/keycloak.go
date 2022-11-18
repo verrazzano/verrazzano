@@ -1425,7 +1425,7 @@ func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string,
 	data := templateData{}
 
 	// Update verrazzano-pkce client redirect and web origin uris if deprecated host exists in the ingress
-	osHostExists, err := DoesDeprecatedIngressHostExist(ctx)
+	osHostExists, err := DoesDeprecatedIngressHostExist(ctx, constants.VerrazzanoSystemNamespace)
 	if err != nil {
 		return "", err
 	}
@@ -1603,9 +1603,11 @@ func addClientRoleToUser(ctx spi.ComponentContext, cfg *restclient.Config, cli k
 }
 
 // DoesDeprecatedIngressHostExist returns true if ingress host exists
-func DoesDeprecatedIngressHostExist(ctx spi.ComponentContext) (bool, error) {
+func DoesDeprecatedIngressHostExist(ctx spi.ComponentContext, namespace string) (bool, error) {
 	ingressList := &networkv1.IngressList{}
-	err := ctx.Client().List(context.TODO(), ingressList)
+
+	listOptions := &client.ListOptions{Namespace: namespace}
+	err := ctx.Client().List(context.TODO(), ingressList, listOptions)
 	if err != nil && len(ingressList.Items) > 0 {
 		return false, err
 	}
