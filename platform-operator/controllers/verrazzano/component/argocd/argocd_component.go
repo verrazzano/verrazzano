@@ -6,6 +6,7 @@ package argocd
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -19,7 +20,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"path/filepath"
@@ -90,7 +90,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 // IsEnabled ArgoCD is always enabled on admin clusters,
 // and is not enabled by default on managed clusters
 func (r argoCDComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsArgoCDEnabled(effectiveCR)
+	return vzcr.IsArgoCDEnabled(effectiveCR)
 }
 
 // IsReady component check
@@ -145,7 +145,7 @@ func (r argoCDComponent) PostInstall(ctx spi.ComponentContext) error {
 // - Patch argocd-rbac-cm by providing role admin to verrazzano-admins group
 func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	log := ctx.Log()
-	if vzconfig.IsKeycloakEnabled(ctx.ActualCR()) {
+	if vzcr.IsKeycloakEnabled(ctx.ActualCR()) {
 		if err := patchArgoCDSecret(ctx); err != nil {
 			return log.ErrorfThrottledNewErr("Failed patching ArgoCD secret: %s", err.Error())
 		}

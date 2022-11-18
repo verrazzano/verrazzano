@@ -6,6 +6,7 @@ package argocd
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -75,7 +76,7 @@ func patchArgoCDIngress(ctx spi.ComponentContext) error {
 		ingress.Annotations["nginx.ingress.kubernetes.io/session-cookie-name"] = "route"
 		ingress.Annotations["nginx.ingress.kubernetes.io/session-cookie-samesite"] = "Strict"
 		ingress.Annotations["nginx.ingress.kubernetes.io/upstream-vhost"] = "${service_name}.${namespace}.svc.cluster.local"
-		if vzconfig.IsExternalDNSEnabled(ctx.EffectiveCR()) {
+		if vzcr.IsExternalDNSEnabled(ctx.EffectiveCR()) {
 			ingressTarget := fmt.Sprintf("verrazzano-ingress.%s", dnsSubDomain)
 			ingress.Annotations["external-dns.alpha.kubernetes.io/target"] = ingressTarget
 			ingress.Annotations["external-dns.alpha.kubernetes.io/ttl"] = "60"

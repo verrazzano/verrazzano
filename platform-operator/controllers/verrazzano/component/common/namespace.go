@@ -63,7 +63,7 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 		}
 	}
 
-	if vzconfig.IsArgoCDEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsArgoCDEnabled(ctx.EffectiveCR()) {
 		if err := namespace.CreateArgoCDNamespace(ctx.Client(), istioInject); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", constants.ArgoCDNamespace, err)
 		}

@@ -869,7 +869,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		}
 	}
 
-	if vzconfig.IsArgoCDEnabled(ctx.ActualCR()) {
+	if vzcr.IsArgoCDEnabled(ctx.ActualCR()) {
 		//Creating groups client scope
 		err = createOrUpdateClientScope(ctx, cfg, cli, "groups")
 		if err != nil {

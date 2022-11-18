@@ -89,7 +89,7 @@ func InitRegistry() {
 		velero.NewComponent(),
 		rancherbackup.NewComponent(),
 		clusteroperator.NewComponent(),
-                argocd.NewComponent(),
+		argocd.NewComponent(),
 	}
 }
 
