@@ -485,16 +485,6 @@ spec:
             - --zap-log-level={{ .Values.logLevel }}
             - --run-webhooks=true
             - --run-webhook-init=false
-          readinessProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - 'reply=$(curl -s -o /dev/null -w %{http_code} -o /dev/null -k -H "Content-Type: application/json"  https://127.0.0.1:9443/validate-oam-verrazzano-io-v1alpha1-ingresstrait); if [ \"$reply\" -lt 200 -o \"$reply\" -ge 400 ]; then exit 1; fi;'
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 10
           resources:
             requests:
               memory: {{ .Values.requestMemory }}
