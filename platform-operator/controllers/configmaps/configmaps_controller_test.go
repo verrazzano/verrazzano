@@ -5,6 +5,7 @@ package configmaps
 
 import (
 	"context"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"testing"
 	"time"
@@ -285,9 +286,10 @@ func newConfigMapReconciler(c client.Client) VerrazzanoConfigMapsReconciler {
 	vzLog := vzlog.DefaultLogger()
 	scheme := newScheme()
 	reconciler := VerrazzanoConfigMapsReconciler{
-		Client: c,
-		Scheme: scheme,
-		log:    vzLog,
+		Client:        c,
+		Scheme:        scheme,
+		log:           vzLog,
+		StatusUpdater: &vzstatus.FakeVerrazzanoStatusUpdater{Client: c},
 	}
 	return reconciler
 }

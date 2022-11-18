@@ -348,19 +348,19 @@ func getHTTPClientWithCABundle(caData []byte, kubeconfigPath string) (*http.Clie
 
 // getVerrazzanoCACert returns the Verrazzano CA cert in the specified cluster
 func getVerrazzanoCACert(kubeconfigPath string) ([]byte, error) {
-	cacert, err := doGetCACertFromSecret("verrazzano-tls", "verrazzano-system", kubeconfigPath)
+	cacert, err := GetCACertFromSecret("verrazzano-tls", "verrazzano-system", "ca.crt", kubeconfigPath)
 	if err != nil {
 		envName, err := GetEnvName(kubeconfigPath)
 		if err != nil {
 			return nil, err
 		}
-		return doGetCACertFromSecret(envName+"-secret", "verrazzano-system", kubeconfigPath)
+		return GetCACertFromSecret(envName+"-secret", "verrazzano-system", "ca.crt", kubeconfigPath)
 	}
 	return cacert, nil
 }
 
-// doGetCACertFromSecret returns the CA cert from the specified kubernetes secret in the given cluster
-func doGetCACertFromSecret(secretName string, namespace string, kubeconfigPath string) ([]byte, error) {
+// GetCACertFromSecret returns the CA cert from the specified kubernetes secret in the given cluster
+func GetCACertFromSecret(secretName string, namespace string, caKey string, kubeconfigPath string) ([]byte, error) {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	if err != nil {
 		return nil, err
@@ -369,7 +369,7 @@ func doGetCACertFromSecret(secretName string, namespace string, kubeconfigPath s
 	if err != nil {
 		return nil, err
 	}
-	return certSecret.Data["ca.crt"], nil
+	return certSecret.Data[caKey], nil
 }
 
 // newRetryableHTTPClient returns a new instance of a retryable HTTP client

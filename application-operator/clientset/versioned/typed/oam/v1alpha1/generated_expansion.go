@@ -5,4 +5,14 @@
 
 package v1alpha1
 
+type IngressTraitExpansion interface{}
+
+type LoggingTraitExpansion interface{}
+
+type MetricsTraitExpansion interface{}
+
+type VerrazzanoCoherenceWorkloadExpansion interface{}
+
 type VerrazzanoHelidonWorkloadExpansion interface{}
+
+type VerrazzanoWebLogicWorkloadExpansion interface{}

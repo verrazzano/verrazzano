@@ -7,6 +7,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -19,11 +22,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
-	"testing"
 )
 
 // TestInstallCmdDefaultNoWait
@@ -78,11 +79,10 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 
 	// Run install command
-	cmdHelpers.SetVpoWaitRetries(1) // override for unit testing
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
+	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
 	err := cmd.Execute()
-	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
 	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
@@ -98,11 +98,10 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 
 	// Run install command
-	cmdHelpers.SetVpoWaitRetries(1) // override for unit testing
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
+	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
 	err := cmd.Execute()
-	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
 	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
@@ -353,7 +352,7 @@ func TestInstallValidations(t *testing.T) {
 //	THEN the default timeout duration is returned
 func TestGetWaitTimeoutDefault(t *testing.T) {
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, nil)
-	duration, err := cmdHelpers.GetWaitTimeout(cmd)
+	duration, err := cmdHelpers.GetWaitTimeout(cmd, constants.TimeoutFlag)
 	assert.NoError(t, err)
 	assert.Equal(t, "30m0s", duration.String())
 }
@@ -366,7 +365,7 @@ func TestGetWaitTimeoutDefault(t *testing.T) {
 func TestGetWaitTimeoutNoWait(t *testing.T) {
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, nil)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
-	duration, err := cmdHelpers.GetWaitTimeout(cmd)
+	duration, err := cmdHelpers.GetWaitTimeout(cmd, constants.TimeoutFlag)
 	assert.NoError(t, err)
 	assert.Equal(t, "0s", duration.String())
 }
@@ -379,7 +378,7 @@ func TestGetWaitTimeoutNoWait(t *testing.T) {
 func TestGetWaitTimeoutSpecified(t *testing.T) {
 	cmd, _, _, _ := createNewTestCommandAndBuffers(t, nil)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "10m")
-	duration, err := cmdHelpers.GetWaitTimeout(cmd)
+	duration, err := cmdHelpers.GetWaitTimeout(cmd, constants.TimeoutFlag)
 	assert.NoError(t, err)
 	assert.Equal(t, "10m0s", duration.String())
 }

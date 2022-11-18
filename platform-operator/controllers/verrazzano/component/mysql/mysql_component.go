@@ -6,6 +6,11 @@ package mysql
 import (
 	"fmt"
 	"path/filepath"
+	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -18,7 +23,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -37,8 +41,13 @@ const DeploymentPersistentVolumeClaim = "mysql"
 // ComponentJSONName is the josn name of the verrazzano component in CRD
 const ComponentJSONName = "keycloak.mysql"
 
+// Last time the MySQL StatefulSet was ready
+var lastTimeStatefulSetReady time.Time
+
 // mysqlComponent represents an MySQL component
 type mysqlComponent struct {
+	LastTimeReadinessGateRepairStarted *time.Time
+
 	helm.HelmComponent
 }
 
@@ -52,6 +61,7 @@ func NewComponent() spi.Component {
 	const MySQLOperatorComponentName = "mysql-operator"
 
 	return mysqlComponent{
+		&lastTimeStatefulSetReady,
 		helm.HelmComponent{
 			ReleaseName:               helmReleaseName,
 			JSONName:                  ComponentJSONName,
@@ -65,6 +75,14 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       appendMySQLOverrides,
 			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, MySQLOperatorComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				StatefulsetNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -72,7 +90,12 @@ func NewComponent() spi.Component {
 // IsReady calls MySQL isMySQLReady function
 func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
-		return isMySQLReady(context)
+		ready := c.isMySQLReady(context)
+		if ready {
+			// Once ready, zero out the timestamp
+			*c.LastTimeReadinessGateRepairStarted = time.Time{}
+		}
+		return ready
 	}
 	return false
 }
@@ -80,7 +103,7 @@ func (c mysqlComponent) IsReady(context spi.ComponentContext) bool {
 // IsEnabled mysql-specific enabled check for installation
 // If keycloak is enabled, mysql is enabled; disabled otherwise
 func (c mysqlComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsKeycloakEnabled(effectiveCR)
+	return vzcr.IsKeycloakEnabled(effectiveCR)
 }
 
 // PreInstall calls MySQL preInstall function

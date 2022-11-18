@@ -4,9 +4,12 @@
 package adapter
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -44,6 +47,14 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "prometheus-adapter-values.yaml"),
 			Dependencies:              []string{},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -51,13 +62,13 @@ func NewComponent() spi.Component {
 // IsEnabled returns true if the Prometheus Adapter is enabled or if the component is not specified
 // in the Verrazzano CR.
 func (c prometheusAdapterComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsPrometheusAdapterEnabled(effectiveCR)
+	return vzcr.IsPrometheusAdapterEnabled(effectiveCR)
 }
 
 // IsReady checks if the Prometheus Adapter deployment is ready
 func (c prometheusAdapterComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isPrometheusAdapterReady(ctx)
+		return c.isPrometheusAdapterReady(ctx)
 	}
 	return false
 }

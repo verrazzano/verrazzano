@@ -4,6 +4,7 @@
 package pkg
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"reflect"
 	"strings"
 
@@ -14,6 +15,22 @@ const (
 	NipDomain   = "nip.io"
 	SslipDomain = "sslip.io"
 )
+
+// GetDNS gets the DNS configured in the CR
+func GetDNS(cr *vzapi.Verrazzano) string {
+	if cr.Spec.Components.DNS != nil {
+		if cr.Spec.Components.DNS.Wildcard != nil {
+			return cr.Spec.Components.DNS.Wildcard.Domain
+		}
+		if cr.Spec.Components.DNS.OCI != nil {
+			return cr.Spec.Components.DNS.OCI.DNSZoneName
+		}
+		if cr.Spec.Components.DNS.External != nil {
+			return cr.Spec.Components.DNS.External.Suffix
+		}
+	}
+	return NipDomain
+}
 
 // Returns well-known wildcard DNS name is used
 func GetWildcardDNS(s string) string {
@@ -35,4 +52,13 @@ func IsDefaultDNS(dns *vzapi.DNSComponent) bool {
 	return dns == nil ||
 		reflect.DeepEqual(*dns, vzapi.DNSComponent{}) ||
 		reflect.DeepEqual(*dns, vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: NipDomain}})
+}
+
+// GetEnvironmentName returns the name of the Verrazzano install environment
+func GetEnvironmentName(cr *vzapi.Verrazzano) string {
+	if cr.Spec.EnvironmentName != "" {
+		return cr.Spec.EnvironmentName
+	}
+
+	return constants.DefaultEnvironmentName
 }

@@ -7,11 +7,10 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 // TestMetricsBindingPostUpgrade tests the Metrics Binding status after an upgrade
-func TestMetricsBindingPostUpgrade(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Metrics Binding Post-Upgrade Test Suite")
+func TestMetricsBindingPostUpgrade(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Metrics Binding Post-Upgrade Test Suite")
 }

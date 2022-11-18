@@ -8,11 +8,10 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -57,7 +56,7 @@ func (v *VerrazzanoManagedCluster) ValidateCreate() error {
 	}
 
 	// The secret and configmap are required fields _only_ if Rancher is disabled
-	if !vzconfig.IsRancherEnabled(vz) {
+	if !vzcr.IsRancherEnabled(vz) {
 		err = v.validateSecret(client)
 		if err != nil {
 			return err

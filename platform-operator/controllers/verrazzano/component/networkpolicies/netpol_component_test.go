@@ -21,6 +21,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+var enabled = true
+var veleroEnabledCR = &vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			Velero: &vzapi.VeleroComponent{
+				Enabled: &enabled,
+			},
+		},
+	},
+}
+
 // GIVEN a network policies helm component
 //
 //	WHEN the IsEnabled function is called
@@ -36,7 +47,7 @@ func TestIsEnabled(t *testing.T) {
 //	THEN the expected namespaces have been created
 func TestPreInstall(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
-	ctx := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
+	ctx := spi.NewFakeContext(fakeClient, veleroEnabledCR, nil, false)
 	comp := NewComponent()
 
 	err := comp.PreInstall(ctx)
@@ -82,7 +93,7 @@ func TestPreUpgrade(t *testing.T) {
 	_, err := common.AssociateHelmObject(fakeClient, obj, vzComponentNSN, netPolNSN, false)
 	assert.NoError(t, err)
 
-	ctx := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
+	ctx := spi.NewFakeContext(fakeClient, veleroEnabledCR, nil, false)
 	comp := NewComponent()
 
 	err = comp.PreUpgrade(ctx)
@@ -119,7 +130,7 @@ func TestPostUpgrade(t *testing.T) {
 			},
 		},
 	).Build()
-	ctx := spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
+	ctx := spi.NewFakeContext(fakeClient, veleroEnabledCR, nil, false)
 	comp := NewComponent()
 
 	err := comp.PostUpgrade(ctx)
@@ -143,7 +154,7 @@ func TestPostUpgrade(t *testing.T) {
 			},
 		},
 	).Build()
-	ctx = spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)
+	ctx = spi.NewFakeContext(fakeClient, veleroEnabledCR, nil, false)
 
 	err = comp.PostUpgrade(ctx)
 	assert.NoError(t, err)

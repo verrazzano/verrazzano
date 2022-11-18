@@ -38,9 +38,9 @@ debug: false
 restrictedAdmin: false
 
 # Extra environment variables passed to the rancher pods.
-extraEnv:
-- name: CATTLE_UI_OFFLINE_PREFERRED
-  value: "true"
+# extraEnv:
+# - name: CATTLE_TLS_MIN_VERSION
+#   value: "1.0"
 
 # Fully qualified name to reach your Rancher server
 # hostname: rancher.my.org

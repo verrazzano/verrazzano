@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 var namespace string
@@ -17,7 +16,7 @@ func init() {
 	flag.StringVar(&namespace, "namespace", "ha-hello-helidon", "namespace is the app namespace")
 }
 
-func TestHAHelidonExample(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "HA Hello Helidon Suite")
+func TestHAHelidonExample(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "HA Hello Helidon Suite")
 }

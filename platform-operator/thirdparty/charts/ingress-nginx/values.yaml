@@ -7,16 +7,25 @@
 # nameOverride:
 # fullnameOverride:
 
+## Labels to apply to all resources
+##
+commonLabels: {}
+# scmhash: abc123
+# myLabel: aakkmd
+
 controller:
   name: controller
   image:
-    registry: k8s.gcr.io
+    ## Keep false as default for now!
+    chroot: false
+    registry: registry.k8s.io
     image: ingress-nginx/controller
     ## for backwards compatibility consider setting the full image url via the repository value below
     ## use *either* current default registry/image or repository format or installing chart by providing the values.yaml will fail
     ## repository:
-    tag: "v1.1.1"
-    digest: sha256:0bc88eb15f9e7f84e8e56c14fa5735aaa488b840983f87bd79b1054190e660de
+    tag: "v1.3.1"
+    digest: sha256:54f7fe2c6c5a9db9a0ebf1131797109bb7a4d91f56b9b362bde2abd237dd1974
+    digestChroot: sha256:a8466b19c621bd550b1645e27a004a5cc85009c858a9ab19490216735ac432b1
     pullPolicy: IfNotPresent
     # www-data -> uid 101
     runAsUser: 101
@@ -28,7 +37,7 @@ controller:
   # -- Configures the controller container name
   containerName: controller
 
-  # -- Configures the ports the nginx-controller listens on
+  # -- Configures the ports that the nginx-controller listens on
   containerPort:
     http: 80
     https: 443
@@ -36,7 +45,7 @@ controller:
   # -- Will add custom configuration options to Nginx https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/configmap/
   config: {}
 
-  # -- Annotations to be added to the controller config configuration configmap
+  # -- Annotations to be added to the controller config configuration configmap.
   configAnnotations: {}
 
   # -- Will add custom headers before sending traffic to backends according to https://github.com/kubernetes/ingress-nginx/tree/main/docs/examples/customization/custom-headers
@@ -65,7 +74,7 @@ controller:
   # Defaults to false
   watchIngressWithoutClass: false
 
-  # -- Process IngressClass per name (additionally as per spec.controller)
+  # -- Process IngressClass per name (additionally as per spec.controller).
   ingressClassByName: false
 
   # -- This configuration defines if Ingress Controller should allow users to set
@@ -109,6 +118,10 @@ controller:
     # configuration for the controller. This is optional if the controller
     # does not require extra parameters.
     parameters: {}
+
+  # -- For backwards compatibility with ingress.class annotation, use ingressClass.
+  # Algorithm is as follows, first ingressClassName is considered, if not present, controller looks for ingress.class annotation
+  ingressClass: nginx
 
   # -- Labels to add to the pod container metadata
   podLabels: {}
@@ -262,7 +275,7 @@ controller:
   ##
   topologySpreadConstraints: []
     # - maxSkew: 1
-    #   topologyKey: failure-domain.beta.kubernetes.io/zone
+    #   topologyKey: topology.kubernetes.io/zone
     #   whenUnsatisfiable: DoNotSchedule
     #   labelSelector:
     #     matchLabels:
@@ -447,7 +460,8 @@ controller:
     ##
     externalIPs: []
 
-    # loadBalancerIP: ""
+    # -- Used by cloud providers to connect the resulting `LoadBalancer` to a pre-existing static IP according to https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer
+    loadBalancerIP: ""
     loadBalancerSourceRanges: []
 
     enableHttp: true
@@ -519,6 +533,10 @@ controller:
       ## Ref: https://kubernetes.io/docs/tutorials/services/source-ip/#source-ip-for-services-with-typeloadbalancer
       # externalTrafficPolicy: ""
 
+  # shareProcessNamespace enables process namespace sharing within the pod.
+  # This can be used for example to signal log rotation using `kill -USR1` from a sidecar.
+  shareProcessNamespace: false
+
   # -- Additional containers to be added to the controller pod.
   # See https://github.com/lemonldap-ng-controller/lemonldap-ng-controller as example.
   extraContainers: []
@@ -559,6 +577,15 @@ controller:
   #   image: busybox
   #   command: ['sh', '-c', 'until nslookup myservice; do echo waiting for myservice; sleep 2; done;']
 
+  extraModules: []
+  ## Modules, which are mounted into the core nginx image
+  # - name: opentelemetry
+  #   image: registry.k8s.io/ingress-nginx/opentelemetry:v20220801-g00ee51f09@sha256:482562feba02ad178411efc284f8eb803a185e3ea5588b6111ccbc20b816b427
+  #
+  # The image must contain a `/usr/local/bin/init_module.sh` executable, which
+  # will be executed as initContainers, to move its config files within the
+  # mounted volume.
+
   admissionWebhooks:
     annotations: {}
     # ignore-check.kube-linter.io/no-read-only-rootfs: "This deployment needs write access to root filesystem".
@@ -567,6 +594,15 @@ controller:
     ## These annotations will be added to the ValidatingWebhookConfiguration and
     ## the Jobs Spec of the admission webhooks.
     enabled: true
+    # -- Additional environment variables to set
+    extraEnvs: []
+    # extraEnvs:
+    #   - name: FOO
+    #     valueFrom:
+    #       secretKeyRef:
+    #         key: FOO
+    #         name: secret-resource
+    # -- Admission Webhook failure policy to use
     failurePolicy: Fail
     # timeoutSeconds: 10
     port: 8443
@@ -579,6 +615,7 @@ controller:
 
     # -- Use an existing PSP instead of creating one
     existingPsp: ""
+    networkPolicyEnabled: false
 
     service:
       annotations: {}
@@ -604,13 +641,13 @@ controller:
     patch:
       enabled: true
       image:
-        registry: k8s.gcr.io
+        registry: registry.k8s.io
         image: ingress-nginx/kube-webhook-certgen
         ## for backwards compatibility consider setting the full image url via the repository value below
         ## use *either* current default registry/image or repository format or installing chart by providing the values.yaml will fail
         ## repository:
-        tag: v1.1.1
-        digest: sha256:64d8c73dca984af206adf9d6d7e46aa550362b1d7a01f3a0a91b20cc67868660
+        tag: v1.3.0
+        digest: sha256:549e71a6ca248c5abd51cdb73dbc3083df62cf92ed5e6147c780e30f7e007a47
         pullPolicy: IfNotPresent
       # -- Provide a priority class name to the webhook patching job
       ##
@@ -621,7 +658,11 @@ controller:
       tolerations: []
       # -- Labels to be added to patch job resources
       labels: {}
-      runAsUser: 2000
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 2000
+        fsGroup: 2000
+
 
   metrics:
     port: 10254
@@ -730,7 +771,7 @@ defaultBackend:
 
   name: defaultbackend
   image:
-    registry: k8s.gcr.io
+    registry: registry.k8s.io
     image: defaultbackend-amd64
     ## for backwards compatibility consider setting the full image url via the repository value below
     ## use *either* current default registry/image or repository format or installing chart by providing the values.yaml will fail
@@ -873,23 +914,29 @@ serviceAccount:
   create: true
   name: ""
   automountServiceAccountToken: true
+  # -- Annotations for the controller service account
+  annotations: {}
 
 # -- Optional array of imagePullSecrets containing private registry credentials
 ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: []
 # - name: secretName
 
-# -- TCP service key:value pairs
+# -- TCP service key-value pairs
 ## Ref: https://github.com/kubernetes/ingress-nginx/blob/main/docs/user-guide/exposing-tcp-udp-services.md
 ##
 tcp: {}
 #  8080: "default/example-tcp-svc:9000"
 
-# -- UDP service key:value pairs
+# -- UDP service key-value pairs
 ## Ref: https://github.com/kubernetes/ingress-nginx/blob/main/docs/user-guide/exposing-tcp-udp-services.md
 ##
 udp: {}
 #  53: "kube-system/kube-dns:53"
+
+# -- Prefix for TCP and UDP ports names in ingress controller service
+## Some cloud providers, like Yandex Cloud may have a requirements for a port name regex to support cloud load balancer integration
+portNamePrefix: ""
 
 # -- (string) A base64-encoded Diffie-Hellman parameter.
 # This can be generated with: `openssl dhparam 4096 2> /dev/null | base64`

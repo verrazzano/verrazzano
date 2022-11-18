@@ -7,13 +7,17 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	"k8s.io/apimachinery/pkg/api/errors"
+
 	"net/http"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -62,11 +66,19 @@ var _ = clusterDump.BeforeSuite(func() {
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/sock-shop/"+variant+"/sock-shop-comp.yaml", namespace)
+			file, err := pkg.FindTestDataFile("examples/sock-shop/" + variant + "/sock-shop-comp.yaml")
+			if err != nil {
+				return err
+			}
+			return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/sock-shop/"+variant+"/sock-shop-app.yaml", namespace)
+			file, err := pkg.FindTestDataFile("examples/sock-shop/" + variant + "/sock-shop-app.yaml")
+			if err != nil {
+				return err
+			}
+			return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval, "Failed to create Sock Shop application resource").ShouldNot(HaveOccurred())
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
@@ -369,12 +381,20 @@ var _ = clusterDump.AfterSuite(func() {
 		t.Logs.Info("Delete application")
 
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/sock-shop/"+variant+"/sock-shop-app.yaml", namespace)
+			file, err := pkg.FindTestDataFile("examples/sock-shop/" + variant + "/sock-shop-app.yaml")
+			if err != nil {
+				return err
+			}
+			return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		t.Logs.Info("Delete components")
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/sock-shop/"+variant+"/sock-shop-comp.yaml", namespace)
+			file, err := pkg.FindTestDataFile("examples/sock-shop/" + variant + "/sock-shop-comp.yaml")
+			if err != nil {
+				return err
+			}
+			return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		t.Logs.Info("Wait for sockshop application to be deleted")

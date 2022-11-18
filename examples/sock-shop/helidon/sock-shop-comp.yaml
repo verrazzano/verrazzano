@@ -20,7 +20,7 @@ spec:
           cluster: SockShop
           role: Carts
           replicas: 1
-          image: ghcr.io/oracle/coherence-helidon-sockshop-carts:1.2.0
+          image: ghcr.io/oracle/coherence-helidon-sockshop-carts:1.2.2
           imagePullPolicy: IfNotPresent
           application:
             type: helidon
@@ -63,7 +63,7 @@ spec:
           cluster: SockShop
           role: Catalog
           replicas: 1
-          image: ghcr.io/oracle/coherence-helidon-sockshop-catalog:1.2.0
+          image: ghcr.io/oracle/coherence-helidon-sockshop-catalog:1.2.2
           imagePullPolicy: IfNotPresent
           application:
             type: helidon
@@ -106,7 +106,7 @@ spec:
           cluster: SockShop
           role: Orders
           replicas: 1
-          image: ghcr.io/oracle/coherence-helidon-sockshop-orders:1.2.0
+          image: ghcr.io/oracle/coherence-helidon-sockshop-orders:1.2.2
           imagePullPolicy: IfNotPresent
           application:
             type: helidon
@@ -149,7 +149,7 @@ spec:
           cluster: SockShop
           role: Payment
           replicas: 1
-          image: ghcr.io/oracle/coherence-helidon-sockshop-payment:1.2.0
+          image: ghcr.io/oracle/coherence-helidon-sockshop-payment:1.2.2
           imagePullPolicy: IfNotPresent
           application:
             type: helidon
@@ -196,7 +196,7 @@ spec:
           cluster: SockShop
           role: Shipping
           replicas: 1
-          image: ghcr.io/oracle/coherence-helidon-sockshop-shipping:1.2.0
+          image: ghcr.io/oracle/coherence-helidon-sockshop-shipping:1.2.2
           imagePullPolicy: IfNotPresent
           application:
             type: helidon
@@ -243,7 +243,7 @@ spec:
           cluster: SockShop
           role: Users
           replicas: 1
-          image: ghcr.io/oracle/coherence-helidon-sockshop-users:1.2.0
+          image: ghcr.io/oracle/coherence-helidon-sockshop-users:1.2.2
           imagePullPolicy: IfNotPresent
           application:
             type: helidon

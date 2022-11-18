@@ -43,6 +43,7 @@
     },
     {
       "name": "cert-manager",
+      "version": "v1.7.1",
       "subcomponents": [
         {
           "repository": "verrazzano",

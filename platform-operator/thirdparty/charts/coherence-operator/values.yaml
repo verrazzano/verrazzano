@@ -3,7 +3,7 @@
 # http://oss.oracle.com/licenses/upl.
 
 # image is the Coherence Operator image
-image: "ghcr.io/oracle/coherence-operator:3.2.8"
+image: "ghcr.io/oracle/coherence-operator:3.2.9"
 
 # defaultCoherenceImage is the default application image that will be used if a Coherence
 # resource does not specify an image name.
@@ -11,7 +11,7 @@ defaultCoherenceImage: "ghcr.io/oracle/coherence-ce:22.06.1"
 
 # defaultCoherenceUtilsImage is the Coherence Operator image that will be used when running
 # Coherence Pods. This image version should typically match the Operator version.
-defaultCoherenceUtilsImage: "ghcr.io/oracle/coherence-operator:3.2.8"
+defaultCoherenceUtilsImage: "ghcr.io/oracle/coherence-operator:3.2.9"
 
 # watchNamespaces is the comma delimited list of namespaces that the operator should
 # manage Coherence resources in. The default is to manage all namespaces.

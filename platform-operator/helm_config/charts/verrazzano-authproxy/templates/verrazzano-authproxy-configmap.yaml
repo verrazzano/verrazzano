@@ -471,9 +471,9 @@ data:
             end
         end
         if backend_name == "kibana" then
-            if not (uri == "/" or uri:find("/app/kibana") == 1) then
-                able_to_redirect = false
-            end
+           if not (uri == "/" or uri:find("/app/") == 1) then
+               able_to_redirect = false
+           end
         end
         if able_to_redirect == true then
             me.debug("returning backend_name '"..backend_name.."', able_to_redirect is true")
@@ -1296,8 +1296,6 @@ data:
         expires           0;
         #add_header        Cache-Control private;
         add_header        Cache-Control no-store always;
-
-        root     /opt/nginx/html;
 
         proxy_http_version 1.1;
 

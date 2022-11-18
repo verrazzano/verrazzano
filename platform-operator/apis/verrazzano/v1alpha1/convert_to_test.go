@@ -134,16 +134,6 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 					Name:     masterNodeName,
 					Roles:    []vmov1.NodeRole{vmov1.MasterRole},
 				},
-				dataNodeName: {
-					Replicas: 0,
-					Name:     dataNodeName,
-					Roles:    []vmov1.NodeRole{vmov1.DataRole},
-				},
-				ingestNodeName: {
-					Replicas: 0,
-					Name:     ingestNodeName,
-					Roles:    []vmov1.NodeRole{vmov1.IngestRole},
-				},
 			},
 		},
 		{
@@ -217,23 +207,7 @@ func TestConvertInstallArgsToOSNodes(t *testing.T) {
 					Value: "0",
 				},
 			},
-			map[string]v1beta1.OpenSearchNode{
-				masterNodeName: {
-					Replicas: 0,
-					Name:     masterNodeName,
-					Roles:    []vmov1.NodeRole{vmov1.MasterRole},
-				},
-				dataNodeName: {
-					Replicas: 0,
-					Name:     dataNodeName,
-					Roles:    []vmov1.NodeRole{vmov1.DataRole},
-				},
-				ingestNodeName: {
-					Replicas: 0,
-					Name:     ingestNodeName,
-					Roles:    []vmov1.NodeRole{vmov1.IngestRole},
-				},
-			},
+			map[string]v1beta1.OpenSearchNode{},
 		},
 	}
 
@@ -424,6 +398,11 @@ func TestConvertToV1Beta1(t *testing.T) {
 		{
 			"converts from v1alpha1 in the OCNE HA case",
 			testCaseOCNEHA,
+			false,
+		},
+		{
+			"converts from v1alpha1 in the Cluster Operator case",
+			testCaseClusterOperator,
 			false,
 		},
 	}

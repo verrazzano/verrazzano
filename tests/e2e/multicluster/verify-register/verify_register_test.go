@@ -9,6 +9,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -59,7 +61,11 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			}
 			// create a project
 			Eventually(func() error {
-				return pkg.CreateOrUpdateResourceFromFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
+				file, err := pkg.FindTestDataFile(fmt.Sprintf("testdata/multicluster/verrazzanoproject-%s.yaml", managedClusterName))
+				if err != nil {
+					return err
+				}
+				return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
 			Eventually(func() (bool, error) {
@@ -92,6 +98,11 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 			Eventually(func() bool {
 				vmc, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(multiclusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
+				if vmc.Status.LastAgentConnectTime == nil {
+					pkg.Log(pkg.Info, "Last agent connect time is nil")
+				} else {
+					pkg.Log(pkg.Info, fmt.Sprintf("Last agent connect time: %v", vmc.Status.LastAgentConnectTime))
+				}
 				return err == nil &&
 					vmcStatusCheckOkay(vmc, regVersion14) &&
 					vmcRancherStatusCheckOkay(vmc, curAdminVersion14) &&
@@ -246,7 +257,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			if err != nil {
 				Fail(err.Error())
 			}
-			if pkg.UseExternalElasticsearch() {
+			if pkg.UseExternalOpensearch() {
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "external-es-secret")
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in admin cluster fluentd Daemonset setting")
@@ -339,7 +350,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			if minimalVerification {
 				Skip("Skipping since not part of minimal verification")
 			}
-			if pkg.UseExternalElasticsearch() {
+			if pkg.UseExternalOpensearch() {
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret(externalEsURL, "verrazzano-cluster-registration")
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in managed cluster fluentd Daemonset setting")
@@ -452,7 +463,7 @@ func assertRegistrationSecret() {
 	regSecret, err := pkg.GetSecret(verrazzanoSystemNamespace, "verrazzano-cluster-registration")
 	Expect(err).To(BeNil())
 	Expect(regSecret).To(Not(BeNil()))
-	if pkg.UseExternalElasticsearch() {
+	if pkg.UseExternalOpensearch() {
 		Expect(string(regSecret.Data["es-url"])).To(Equal(externalEsURL))
 		esSecret, err := pkg.GetSecretInCluster("verrazzano-system", "external-es-secret", os.Getenv("ADMIN_KUBECONFIG"))
 		Expect(err).To(BeNil())

@@ -3,9 +3,10 @@
 package controller
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // TestNewRequeueWithDelay tests the NewRequeueWithDelay func for the following use case
@@ -17,18 +18,21 @@ func TestNewRequeueWithDelay(t *testing.T) {
 	requeueWithDelay := NewRequeueWithDelay(3, 5, time.Second)
 	t.Logf("Requeue result: %v", requeueWithDelay)
 	asserts.True(requeueWithDelay.Requeue)
+	asserts.True(ShouldRequeue(requeueWithDelay))
 	asserts.GreaterOrEqual(requeueWithDelay.RequeueAfter.Seconds(), (time.Duration(3) * time.Second).Seconds())
 	asserts.LessOrEqual(requeueWithDelay.RequeueAfter.Seconds(), (time.Duration(5) * time.Second).Seconds())
 
 	requeueWithDelay = NewRequeueWithDelay(3, 5, time.Second)
 	t.Logf("Requeue result: %v", requeueWithDelay)
 	asserts.True(requeueWithDelay.Requeue)
+	asserts.True(ShouldRequeue(requeueWithDelay))
 	asserts.GreaterOrEqual(requeueWithDelay.RequeueAfter.Seconds(), (time.Duration(3) * time.Second).Seconds())
 	asserts.LessOrEqual(requeueWithDelay.RequeueAfter.Seconds(), (time.Duration(5) * time.Second).Seconds())
 
 	requeueWithDelay = NewRequeueWithDelay(3, 5, time.Minute)
 	t.Logf("Requeue result: %v", requeueWithDelay)
 	asserts.True(requeueWithDelay.Requeue)
+	asserts.True(ShouldRequeue(requeueWithDelay))
 	asserts.GreaterOrEqual(requeueWithDelay.RequeueAfter.Seconds(), (time.Duration(3) * time.Minute).Seconds())
 	asserts.LessOrEqual(requeueWithDelay.RequeueAfter.Seconds(), (time.Duration(5) * time.Minute).Seconds())
 }

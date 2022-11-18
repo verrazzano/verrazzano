@@ -69,7 +69,8 @@ func TestIsVMOReady(t *testing.T) {
 			},
 		},
 	).Build()
-	assert.True(t, isVMOReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
+	vmo := NewComponent().(vmoComponent)
+	assert.True(t, vmo.isVMOReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsVMONotReady tests the isVMOReady function
@@ -90,7 +91,8 @@ func TestIsVMONotReady(t *testing.T) {
 			UpdatedReplicas:   1,
 		},
 	}).Build()
-	assert.False(t, isVMOReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
+	vmo := NewComponent().(vmoComponent)
+	assert.False(t, vmo.isVMOReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestAppendVMOOverrides tests the appendVMOOverrides function

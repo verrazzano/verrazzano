@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	scheme2 "k8s.io/client-go/kubernetes/scheme"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
@@ -43,7 +44,7 @@ var keycloakDisabledCR = &vzapi.Verrazzano{
 }
 
 func TestIsFluentdReady(t *testing.T) {
-	boolTrue, boolFalse := true, false
+	boolTrue := true
 	var tests = []struct {
 		testName string
 		spec     vzapi.Verrazzano
@@ -57,13 +58,6 @@ func TestIsFluentdReady(t *testing.T) {
 				}},
 			},
 		}, getFakeClient(1), true},
-		{"2", vzapi.Verrazzano{
-			Spec: vzapi.VerrazzanoSpec{
-				Components: vzapi.ComponentSpec{Fluentd: &vzapi.FluentdComponent{
-					Enabled: &boolFalse,
-				}},
-			},
-		}, getFakeClient(1), false},
 		{"3", vzapi.Verrazzano{
 			Spec: vzapi.VerrazzanoSpec{
 				Components: vzapi.ComponentSpec{Fluentd: &vzapi.FluentdComponent{
@@ -86,9 +80,10 @@ func TestIsFluentdReady(t *testing.T) {
 			},
 		}, getFakeClient(0), false},
 	}
+	fluentd := NewComponent().(fluentdComponent)
 	for _, test := range tests {
 		ctx := spi.NewFakeContext(test.client, &test.spec, nil, false)
-		if actual := isFluentdReady(ctx); actual != test.expected {
+		if actual := fluentd.isFluentdReady(ctx); actual != test.expected {
 			t.Errorf("test name %s: got fluent ready = %v, want %v", test.testName, actual, test.expected)
 		}
 	}
@@ -136,7 +131,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 									Value: "managed1",
 								},
 								{
-									Name:  vpoconst.ElasticsearchURLEnvVar,
+									Name:  vpoconst.OpensearchURLEnvVar,
 									Value: someURL,
 								},
 							},
@@ -164,7 +159,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 	// create a secret with needed keys
 	data := make(map[string][]byte)
 	data[vpoconst.ClusterNameData] = []byte("managed1")
-	data[vpoconst.ElasticsearchURLData] = []byte(someURL)
+	data[vpoconst.OpensearchURLData] = []byte(someURL)
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: defNs,
@@ -189,7 +184,7 @@ func TestFixupFluentdDaemonset(t *testing.T) {
 			LocalObjectReference: corev1.LocalObjectReference{
 				Name: vpoconst.MCRegistrationSecret,
 			},
-			Key: vpoconst.ElasticsearchURLData,
+			Key: vpoconst.OpensearchURLData,
 		},
 	}
 	daemonSet.Spec.Template.Spec.Containers[0].Env[0].Value = ""
@@ -357,6 +352,33 @@ func TestCheckSecretExists(t *testing.T) {
 	}
 }
 
+// TestExternalSecretExists tests the Fluentd checkSecretExists call
+func TestExternalSecretExists(t *testing.T) {
+	// GIVEN a Fluentd component
+	//  WHEN I call checkSecretExists with fluentd overrides for ES and a custom ES secret
+	//  THEN no error is returned and external secret is checked and not the internal.
+	trueValue := true
+	secretName := "my-es-secret" //nolint:gosec //#gosec G101
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Namespace: vpoconst.VerrazzanoSystemNamespace, Name: secretName},
+	}).Build()
+
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Fluentd: &vzapi.FluentdComponent{
+					Enabled:             &trueValue,
+					ElasticsearchURL:    "https://myes.mydomain.com:9200",
+					ElasticsearchSecret: secretName,
+				},
+			},
+		},
+	}, nil, false)
+
+	err := checkSecretExists(ctx)
+	assert.NoError(t, err)
+}
+
 func getFakeClient(scheduled int32) clipkg.Client {
 	return fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
 		&appsv1.DaemonSet{
@@ -393,4 +415,30 @@ func getFakeClient(scheduled int32) clipkg.Client {
 			Revision: 1,
 		},
 	).Build()
+}
+
+// TestReassociateResources tests the fluentd reassociateResources function
+// GIVEN a VMO component
+//
+//	WHEN I call reassociateResources with a fluentd service resource
+//	THEN no error is returned and the fluentd service contains expected Helm labels and annotations
+func TestReassociateResources(t *testing.T) {
+	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
+	// for the Component interface hook
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme2.Scheme).WithObjects(&corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      ComponentName,
+		},
+	}).Build()
+
+	err := ReassociateResources(fakeClient)
+	assert.NoError(t, err)
+	service := corev1.Service{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: ComponentName}, &service)
+	assert.NoError(t, err)
+	assert.NotContains(t, service.Annotations["helm.sh/resource-policy"], "keep")
 }
