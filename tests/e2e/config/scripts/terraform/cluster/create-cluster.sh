@@ -100,3 +100,40 @@ if [ $? -eq 0 ]; then
 else
   echo "Failed to update the OKE private_workers_seclist"
 fi
+
+# find control plane NSG id
+CP_NSG_ID=$(oci network nsg list \
+  --compartment-id "${TF_VAR_compartment_id}" \
+  --display-name "${TF_VAR_label_prefix}-control-plane" \
+  --vcn-id "${VCN_ID}" \
+  | jq -r '.data[0].id')
+
+if [ -z "$CP_NSG_ID" ]; then
+    echo "Failed to get the id for NSG ${TF_VAR_label_prefix}-control-plane"
+    exit 0
+fi
+
+# find bastion CIDR
+BASTION_SUBNET_CIDR=$(oci network subnet list \
+  --compartment-id "${TF_VAR_compartment_id}" \
+  --display-name "${TF_VAR_label_prefix}-bastion" \
+  --vcn-id "${VCN_ID}" \
+  | jq -r '.data[0]."cidr-block"')
+
+if [ -z "$BASTION_SUBNET_CIDR" ]; then
+    echo "Failed to get the cidr-block for subnet ${TF_VAR_label_prefix}-bastion"
+    exit 0
+fi
+
+# add bastion ingress-security-rule
+cat <<EOF > new.bastion-ingress-security-rules.json
+[{"description": "allow bastion access to control-plane","is-stateless": false,"direction": "INGRESS","protocol": "6","source": "$BASTION_SUBNET_CIDR","tcp-options": {"destination-port-range": "6443"}}]
+EOF
+
+# update private_workers_seclist
+oci network nsg rules add --nsg-id "${CP_NSG_ID}" --security-rules "file://${PWD}/new.bastion-ingress-security-rules.json"
+if [ $? -eq 0 ]; then
+  echo "Updated the OKE control plane NSG to allow bastion access"
+else
+  echo "Failed to update the OKE control plane NSG"
+fi
