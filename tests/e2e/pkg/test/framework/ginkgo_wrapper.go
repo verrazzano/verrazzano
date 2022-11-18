@@ -195,7 +195,6 @@ func (t *TestFramework) Entry(description interface{}, args ...interface{}) gink
 
 // Fail - wrapper function for Ginkgo Fail
 func (t *TestFramework) Fail(message string, callerSkip ...int) {
-	defer t.panicHandler()
 	ginkgo.Fail(message, callerSkip...)
 }
 
