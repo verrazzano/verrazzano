@@ -762,7 +762,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if vzcr.IsRancherEnabled(ctx.ActualCR()) {
+	if vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
 		// Creating rancher client
 		err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
 		if err != nil {
