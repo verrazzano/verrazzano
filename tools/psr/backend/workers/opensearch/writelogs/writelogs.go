@@ -88,3 +88,7 @@ func (w worker) GetMetricList() []prometheus.Metric {
 		w.loggedCharsCountTotal.BuildMetric(),
 	}
 }
+
+func (w worker) SetMetricsDesc() error {
+	return nil
+}

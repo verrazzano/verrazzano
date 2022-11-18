@@ -107,6 +107,10 @@ func (w worker) GetMetricList() []prometheus.Metric {
 	}
 }
 
+func (w worker) SetMetricsDesc() error {
+	return nil
+}
+
 func (w worker) WantLoopInfoLogged() bool {
 	return false
 }

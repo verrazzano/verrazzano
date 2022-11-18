@@ -27,7 +27,10 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 )
 
-const openSearchTier = "OPENSEARCH_TIER"
+const (
+	openSearchTier           = "OPENSEARCH_TIER"
+	openSearchTierMetricName = "opensearch_tier"
+)
 
 var funcNewPsrClient = k8sclient.NewPsrClient
 
@@ -108,6 +111,23 @@ func (w worker) GetMetricList() []prometheus.Metric {
 		w.restartCount.BuildMetric(),
 		w.restartTime.BuildMetric(),
 	}
+}
+
+func (w worker) SetMetricsDesc() error {
+	tier, err := psropensearch.ValidateOpenSeachTier(openSearchTier)
+	if err != nil {
+		return err
+	}
+
+	metricsLabels := map[string]string{openSearchTierMetricName: tier}
+	w.restartCount.ConstLabels = metricsLabels
+	w.restartTime.ConstLabels = metricsLabels
+
+	w.metricDescList = []prometheus.Desc{
+		*w.restartCount.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.restartTime.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+	}
+	return nil
 }
 
 func (w worker) WantLoopInfoLogged() bool {

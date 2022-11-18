@@ -24,9 +24,10 @@ import (
 )
 
 const (
-	openSearchTier  = "OPENSEARCH_TIER"
-	minReplicaCount = "MIN_REPLICA_COUNT"
-	maxReplicaCount = "MAX_REPLICA_COUNT"
+	openSearchTier           = "OPENSEARCH_TIER"
+	minReplicaCount          = "MIN_REPLICA_COUNT"
+	maxReplicaCount          = "MAX_REPLICA_COUNT"
+	openSearchTierMetricName = "opensearch_tier"
 )
 
 var funcNewPsrClient = k8sclient.NewPsrClient
@@ -87,13 +88,6 @@ func NewScaleWorker() (spi.Worker, error) {
 		},
 	}
 
-	w.metricDescList = []prometheus.Desc{
-		*w.scaleOutCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.scaleInCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.scaleOutSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.scaleInSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-	}
-
 	return w, nil
 }
 
@@ -125,6 +119,27 @@ func (w worker) GetMetricList() []prometheus.Metric {
 		w.scaleOutSeconds.BuildMetric(),
 		w.scaleInSeconds.BuildMetric(),
 	}
+}
+
+func (w worker) SetMetricsDesc() error {
+	tier, err := psropensearch.ValidateOpenSeachTier(openSearchTier)
+	if err != nil {
+		return err
+	}
+
+	metricsLabels := map[string]string{openSearchTierMetricName: tier}
+	w.scaleOutCountTotal.ConstLabels = metricsLabels
+	w.scaleInCountTotal.ConstLabels = metricsLabels
+	w.scaleOutSeconds.ConstLabels = metricsLabels
+	w.scaleInSeconds.ConstLabels = metricsLabels
+
+	w.metricDescList = []prometheus.Desc{
+		*w.scaleOutCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.scaleInCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.scaleOutSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.scaleInSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+	}
+	return nil
 }
 
 func (w worker) WantLoopInfoLogged() bool {

@@ -51,7 +51,7 @@ type workerMetrics struct {
 }
 
 func NewGetLogsWorker() (spi.Worker, error) {
-	w := worker{workerMetrics: &workerMetrics{
+	return worker{workerMetrics: &workerMetrics{
 		openSearchGetSuccessCountTotal: metrics.MetricItem{
 			Name: "opensearch_get_success_count_total",
 			Help: "The total number of successful OpenSearch GET requests",
@@ -77,16 +77,7 @@ func NewGetLogsWorker() (spi.Worker, error) {
 			Help: "The total number of characters return from OpenSearch get request",
 			Type: prometheus.CounterValue,
 		},
-	}}
-
-	w.metricDescList = []prometheus.Desc{
-		*w.openSearchGetSuccessCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.openSearchGetFailureCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.openSearchGetSuccessLatencyNanoSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.openSearchGetFailureLatencyNanoSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.openSearchGetDataCharsTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-	}
-	return w, nil
+	}}, nil
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
@@ -160,6 +151,17 @@ func (w worker) GetMetricList() []prometheus.Metric {
 		w.openSearchGetFailureLatencyNanoSeconds.BuildMetric(),
 		w.openSearchGetDataCharsTotal.BuildMetric(),
 	}
+}
+
+func (w worker) SetMetricsDesc() error {
+	w.metricDescList = []prometheus.Desc{
+		*w.openSearchGetSuccessCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.openSearchGetFailureCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.openSearchGetSuccessLatencyNanoSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.openSearchGetFailureLatencyNanoSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.openSearchGetDataCharsTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+	}
+	return nil
 }
 
 func getBody() io.ReadCloser {

@@ -90,7 +90,7 @@ func TestRunWorker(t *testing.T) {
 			log := vzlog.DefaultLogger()
 			f := fakeWorker{}
 			r, err := NewRunner(&f, config.CommonConfig{}, log)
-			actualRunner := r.(runner)
+			actualRunner := r.(workerRunner)
 			assert.NoError(t, err)
 
 			err = r.RunWorker(config.CommonConfig{
