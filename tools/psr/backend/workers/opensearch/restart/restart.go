@@ -78,7 +78,6 @@ func NewRestartWorker() (spi.Worker, error) {
 		},
 	}
 
-	// add the worker config
 	if err = config.PsrEnv.LoadFromEnv(w.GetEnvDescList()); err != nil {
 		return w, err
 	}
@@ -88,14 +87,10 @@ func NewRestartWorker() (spi.Worker, error) {
 		return w, err
 	}
 
-	workerType := config.PsrEnv.GetEnv(config.PsrWorkerType)
-
 	metricsLabels := map[string]string{
 		openSearchTierMetricName:        tier,
-		config.PsrWorkerTypeMetricsName: workerType,
+		config.PsrWorkerTypeMetricsName: config.PsrEnv.GetEnv(config.PsrWorkerType),
 	}
-	w.restartCount.ConstLabels = metricsLabels
-	w.restartTime.ConstLabels = metricsLabels
 
 	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
 		&w.restartCount,

@@ -80,13 +80,22 @@ func NewPostLogsWorker() (spi.Worker, error) {
 		},
 	}}
 
-	w.metricDescList = []prometheus.Desc{
-		*w.openSearchPostSuccessCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.openSearchPostFailureCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.openSearchPostSuccessLatencyNanoSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.openSearchPostFailureLatencyNanoSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.openSearchPostDataCharsTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+	if err := config.PsrEnv.LoadFromEnv(w.GetEnvDescList()); err != nil {
+		return w, err
 	}
+
+	metricsLabels := map[string]string{
+		config.PsrWorkerTypeMetricsName: config.PsrEnv.GetEnv(config.PsrWorkerType),
+	}
+
+	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
+		&w.openSearchPostSuccessCountTotal,
+		&w.openSearchPostFailureCountTotal,
+		&w.openSearchPostSuccessLatencyNanoSeconds,
+		&w.openSearchPostFailureLatencyNanoSeconds,
+		&w.openSearchPostDataCharsTotal,
+	}, metricsLabels, w.GetWorkerDesc().MetricsName)
+
 	return w, nil
 }
 

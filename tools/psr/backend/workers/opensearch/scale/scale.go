@@ -88,38 +88,26 @@ func NewScaleWorker() (spi.Worker, error) {
 		},
 	}
 
-	tier, err := psropensearch.ValidateOpenSeachTier(openSearchTier)
-	if err != nil {
+	if err = config.PsrEnv.LoadFromEnv(w.GetEnvDescList()); err != nil {
 		return w, err
 	}
 
-	workerType, err := psropensearch.ValidateOpenSeachTier(config.PsrWorkerType)
+	tier, err := psropensearch.ValidateOpenSeachTier(openSearchTier)
 	if err != nil {
 		return w, err
 	}
 
 	metricsLabels := map[string]string{
 		openSearchTierMetricName:        tier,
-		config.PsrWorkerTypeMetricsName: workerType,
-	}
-	w.scaleOutCountTotal.ConstLabels = metricsLabels
-	w.scaleInCountTotal.ConstLabels = metricsLabels
-	w.scaleOutSeconds.ConstLabels = metricsLabels
-	w.scaleInSeconds.ConstLabels = metricsLabels
-
-	w.metricDescList = []prometheus.Desc{
-		*w.scaleOutCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.scaleInCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.scaleOutSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.scaleInSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		config.PsrWorkerTypeMetricsName: config.PsrEnv.GetEnv(config.PsrWorkerType),
 	}
 
-	w.metricDescList = []prometheus.Desc{
-		*w.scaleOutCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.scaleInCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.scaleOutSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.scaleInSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-	}
+	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
+		&w.scaleOutCountTotal,
+		&w.scaleInCountTotal,
+		&w.scaleOutSeconds,
+		&w.scaleInSeconds,
+	}, metricsLabels, w.GetWorkerDesc().MetricsName)
 
 	return w, nil
 }

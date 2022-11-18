@@ -46,6 +46,17 @@ func TestGetters(t *testing.T) {
 		funcNewPsrClient = origFunc
 	}()
 
+	envMap := map[string]string{
+		openSearchTier:       opensearchpsr.MasterTier,
+		config.PsrWorkerType: config.WorkerTypeRestart,
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
+	}()
+
 	w, err := NewRestartWorker()
 	assert.NoError(t, err)
 
@@ -67,6 +78,17 @@ func TestGetEnvDescList(t *testing.T) {
 	origFunc := overridePsrClient()
 	defer func() {
 		funcNewPsrClient = origFunc
+	}()
+
+	envMap := map[string]string{
+		openSearchTier:       opensearchpsr.MasterTier,
+		config.PsrWorkerType: config.WorkerTypeRestart,
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
 	}()
 
 	tests := []struct {
@@ -108,6 +130,17 @@ func TestGetMetricDescList(t *testing.T) {
 		funcNewPsrClient = origFunc
 	}()
 
+	envMap := map[string]string{
+		openSearchTier:       opensearchpsr.MasterTier,
+		config.PsrWorkerType: config.WorkerTypeRestart,
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
+	}()
+
 	tests := []struct {
 		name   string
 		fqName string
@@ -143,6 +176,17 @@ func TestGetMetricList(t *testing.T) {
 	origFunc := overridePsrClient()
 	defer func() {
 		funcNewPsrClient = origFunc
+	}()
+
+	envMap := map[string]string{
+		openSearchTier:       opensearchpsr.MasterTier,
+		config.PsrWorkerType: config.WorkerTypeRestart,
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
 	}()
 
 	tests := []struct {

@@ -79,40 +79,22 @@ func NewGetLogsWorker() (spi.Worker, error) {
 		},
 	}}
 
-	//workerType, err := psropensearch.ValidateOpenSeachTier(config.PsrWorkerType)
-	//if err != nil {
-	//	return w, err
-	//}
-
-	//metricsLabels := map[string]string{
-	//	config.PsrWorkerTypeMetricsName: workerType,
-	//}
-
-	//w.scaleOutCountTotal.ConstLabels = metricsLabels
-	//w.scaleInCountTotal.ConstLabels = metricsLabels
-	//w.scaleOutSeconds.ConstLabels = metricsLabels
-	//w.scaleInSeconds.ConstLabels = metricsLabels
-	//
-	//w.metricDescList = []prometheus.Desc{
-	//	*w.scaleOutCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-	//	*w.scaleInCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-	//	*w.scaleOutSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-	//	*w.scaleInSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-	//}
-	//
-	//w.metricDescList = []prometheus.Desc{
-	//	*w.scaleOutCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-	//	*w.scaleInCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-	//	*w.scaleOutSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-	//	*w.scaleInSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-	//}
-	w.metricDescList = []prometheus.Desc{
-		*w.openSearchGetSuccessCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.openSearchGetFailureCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.openSearchGetSuccessLatencyNanoSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.openSearchGetFailureLatencyNanoSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.openSearchGetDataCharsTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+	if err := config.PsrEnv.LoadFromEnv(w.GetEnvDescList()); err != nil {
+		return w, err
 	}
+
+	metricsLabels := map[string]string{
+		config.PsrWorkerTypeMetricsName: config.PsrEnv.GetEnv(config.PsrWorkerType),
+	}
+
+	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
+		&w.openSearchGetSuccessCountTotal,
+		&w.openSearchGetFailureCountTotal,
+		&w.openSearchGetSuccessLatencyNanoSeconds,
+		&w.openSearchGetFailureLatencyNanoSeconds,
+		&w.openSearchGetDataCharsTotal,
+	}, metricsLabels, w.GetWorkerDesc().MetricsName)
+
 	return w, nil
 }
 
