@@ -31,12 +31,13 @@ compare-coverage-numbers(){
     echo "Writing $BRANCH_LINE_RATE to $COV_TXT"
     echo "$BRANCH_LINE_RATE" > "$COV_TXT"
     echo "Putting " "$COV_TXT" " into OCI Object Storage..."
-    oci --region us-phoenix-1 os object put --force --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name "$LOCAL_BRANCH_NAME"/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
+    UT_COVERAGE_TEST="true"
     exit 0
 
   else
     echo "WARNING: Unit Test coverage(line-rate) does NOT pass"
     echo "Branch-line-rate: $BRANCH_LINE_RATE is lte to Master-line-rate: $MASTER_LINE_RATE"
+    UT_COVERAGE_TEST="false"
     exit 1
   fi
 }

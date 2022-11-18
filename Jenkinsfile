@@ -39,6 +39,7 @@ pipeline {
         booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
         booleanParam (description: 'Whether to perform a scan of the built images', name: 'PERFORM_SCAN', defaultValue: false)
         booleanParam (description: 'Whether to wait for triggered tests or not. This defaults to false, this setting is useful for things like release automation that require everything to complete successfully', name: 'WAIT_FOR_TRIGGERED', defaultValue: false)
+        booleanParam (description: 'Whether to fail a build or pass based on its UT coverage %. This will only issue a warning when not building master or release.', name: 'COVERAGE_TEST', defaultValue: false)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'Wildcard DNS Domain',
                 // 1st choice is the default value
@@ -115,6 +116,9 @@ pipeline {
         OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
         OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
         DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
+
+        // used to fail build if coverage test fails
+        UT_COVERAGE_TEST = '${params.COVERAGE_TEST}'
     }
 
     stages {
@@ -267,6 +271,13 @@ pipeline {
                         failure {
                             script {
                                 SKIP_TRIGGERED_TESTS = true
+                            }
+                        }
+                        script{
+                            if (UT_COVERAGE_TEST == true){
+                                sh """
+                                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
+                                """
                             }
                         }
                         always {
