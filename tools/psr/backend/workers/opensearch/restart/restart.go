@@ -78,11 +78,6 @@ func NewRestartWorker() (spi.Worker, error) {
 		},
 	}
 
-	w.metricDescList = []prometheus.Desc{
-		*w.restartCount.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.restartTime.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-	}
-
 	return w, nil
 
 }
