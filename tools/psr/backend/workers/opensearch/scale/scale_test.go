@@ -45,8 +45,7 @@ func TestGetters(t *testing.T) {
 	}()
 
 	envMap := map[string]string{
-		openSearchTier:       opensearchpsr.MasterTier,
-		config.PsrWorkerType: config.WorkerTypeRestart,
+		openSearchTier: opensearchpsr.MasterTier,
 	}
 	f := fakeEnv{data: envMap}
 	saveEnv := osenv.GetEnvFunc
@@ -79,8 +78,7 @@ func TestGetEnvDescList(t *testing.T) {
 	}()
 
 	envMap := map[string]string{
-		openSearchTier:       opensearchpsr.MasterTier,
-		config.PsrWorkerType: config.WorkerTypeRestart,
+		openSearchTier: opensearchpsr.MasterTier,
 	}
 	f := fakeEnv{data: envMap}
 	saveEnv := osenv.GetEnvFunc
@@ -139,8 +137,7 @@ func TestGetMetricDescList(t *testing.T) {
 	}()
 
 	envMap := map[string]string{
-		openSearchTier:       opensearchpsr.MasterTier,
-		config.PsrWorkerType: config.WorkerTypeRestart,
+		openSearchTier: opensearchpsr.MasterTier,
 	}
 	f := fakeEnv{data: envMap}
 	saveEnv := osenv.GetEnvFunc
@@ -189,8 +186,7 @@ func TestGetMetricList(t *testing.T) {
 	}()
 
 	envMap := map[string]string{
-		openSearchTier:       opensearchpsr.MasterTier,
-		config.PsrWorkerType: config.WorkerTypeRestart,
+		openSearchTier: opensearchpsr.MasterTier,
 	}
 	f := fakeEnv{data: envMap}
 	saveEnv := osenv.GetEnvFunc
