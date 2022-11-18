@@ -45,7 +45,7 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 		MetricsBindAddress: metricsAddr,
 		Port:               9443,
 		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "5df248b3.verrazzano.io",
+		LeaderElectionID:   "5df248b4.verrazzano.io",
 	})
 	if err != nil {
 		log.Errorf("Failed to start manager: %v", err)
