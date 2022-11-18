@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"reflect"
 	"strings"
 	"text/template"
@@ -1426,7 +1425,7 @@ func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string,
 	data := templateData{}
 
 	// Update verrazzano-pkce client redirect and web origin uris if deprecated host exists in the ingress
-	osHostExists, err := DoesDeprecatedIngressHostExist(ctx, constants.VerrazzanoSystemNamespace, constants.OpensearchIngress)
+	osHostExists, err := DoesDeprecatedIngressHostExist(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -1604,17 +1603,15 @@ func addClientRoleToUser(ctx spi.ComponentContext, cfg *restclient.Config, cli k
 }
 
 // DoesDeprecatedIngressHostExist returns true if ingress host exists
-func DoesDeprecatedIngressHostExist(ctx spi.ComponentContext, namespace string, ingressName string) (bool, error) {
-	ingress := &networkv1.Ingress{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: ingressName}, ingress)
-	if err != nil && !k8serrors.IsNotFound(err) {
+func DoesDeprecatedIngressHostExist(ctx spi.ComponentContext) (bool, error) {
+	ingressList := &networkv1.IngressList{}
+	err := ctx.Client().List(context.TODO(), ingressList)
+	if err != nil && len(ingressList.Items) > 0 {
 		return false, err
 	}
-	if ingress != nil && ingress.Spec.Rules[0].Size() > 1 {
-		for _, rule := range ingress.Spec.Rules {
-			if strings.HasPrefix(rule.Host, "elasticsearch") {
-				return true, nil
-			}
+	for _, ingress := range ingressList.Items {
+		if len(ingress.Spec.Rules) > 0 && strings.HasPrefix(ingress.Spec.Rules[0].Host, "elasticsearch") {
+			return true, nil
 		}
 	}
 	return false, nil
