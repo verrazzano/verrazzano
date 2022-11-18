@@ -303,7 +303,7 @@ pipeline {
                                 runSocksVariant('spring')
                             }
                         }
-                        stage('examples spring') {
+                        stage('examples springboot') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-spring"
                             }
@@ -335,7 +335,7 @@ pipeline {
                                 runGinkgo('examples/helidonconfig')
                             }
                         }
-                        stage('examples bobs') {
+                        stage('examples bobs books') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
                             }

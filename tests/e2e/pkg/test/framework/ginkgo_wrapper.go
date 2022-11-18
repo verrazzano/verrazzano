@@ -5,14 +5,15 @@ package framework
 
 import (
 	"fmt"
+	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
+	"go.uber.org/zap"
 	"os"
 	"reflect"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-	"go.uber.org/zap"
 )
 
 type TestFramework struct {
@@ -28,6 +29,10 @@ func NewTestFramework(pkg string) *TestFramework {
 	t.Logs, _ = metrics.NewLogger(pkg, metrics.TestLogIndex, "stdout")
 	t.initDumpDirectoryIfNecessary()
 	return t
+}
+
+func (t *TestFramework) RegisterFailHandler() {
+	gomega.RegisterFailHandler(t.Fail)
 }
 
 // initDumpDirectoryIfNecessary - sets the DUMP_DIRECTORY env variable to a default if not set externally
@@ -104,7 +109,7 @@ func (t *TestFramework) It(text string, args ...interface{}) bool {
 }
 
 func (t *TestFramework) ItMinimumVersion(text string, version string, kubeconfigPath string, args ...interface{}) bool {
-	supported, err := pkg.IsVerrazzanoMinVersionEventually(version, kubeconfigPath)
+	supported, err := pkg.IsVerrazzanoMinVersion(version, kubeconfigPath)
 	if err != nil {
 		t.Logs.Errorf("Error getting Verrazzano version: %v", err)
 		return false
@@ -192,6 +197,13 @@ func (t *TestFramework) Entry(description interface{}, args ...interface{}) gink
 
 // Fail - wrapper function for Ginkgo Fail
 func (t *TestFramework) Fail(message string, callerSkip ...int) {
+	// Recover only to emit a fail, then re-panic
+	defer func() {
+		if p := recover(); p != nil {
+			metrics.EmitFail(t.Metrics)
+			panic(p)
+		}
+	}()
 	ginkgo.Fail(message, callerSkip...)
 }
 

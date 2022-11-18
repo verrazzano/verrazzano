@@ -8,13 +8,12 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/internal/operatorinit"
 	"os"
 
+	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
-	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
@@ -42,7 +41,6 @@ func init() {
 	_ = vzapi.AddToScheme(scheme)
 	_ = vzapp.AddToScheme(scheme)
 	_ = istioclinet.AddToScheme(scheme)
-	_ = wls.AddToScheme(scheme)
 	_ = clisecurity.AddToScheme(scheme)
 
 	_ = clustersv1alpha1.AddToScheme(scheme)

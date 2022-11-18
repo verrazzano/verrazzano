@@ -4,25 +4,38 @@ package opensearch
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-
-	"github.com/stretchr/testify/assert"
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	"github.com/stretchr/testify/assert"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profilesRelativePath = "../../../../manifests/profiles"
+const (
+	profilesRelativePath     = "../../../../manifests/profiles"
+	testCaseInstallArgsErr   = "frominstallargserr"
+	testCaseGeneralOverrides = "overrides"
+	systemesdata             = "system-es-data"
+	podtemplatehash          = "pod-template-hash"
+	depKube                  = "deployment.kubernetes.io/revision"
+	systemesingest           = "system-es-ingest"
+)
 
 var dnsComponents = vzapi.ComponentSpec{
 	DNS: &vzapi.DNSComponent{
@@ -51,6 +64,562 @@ func TestPreUpgrade(t *testing.T) {
 	config.TestHelmConfigDir = "../../../../helm_config"
 	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vzapi.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
+}
+
+// TestComponentNamespace tests the OpenSearch ComponentNamespace call
+// GIVEN an OpenSearch component
+//
+//	WHEN I call ComponentNamespace with defaults
+//	THEN the component namespace is returned
+func TestComponentNamespace(t *testing.T) {
+	NameSpace := NewComponent().Namespace()
+	assert.Equal(t, NameSpace, constants.VerrazzanoSystemNamespace)
+
+}
+
+// TestShouldInstallBeforeUpgrade tests the ShouldInstallBeforeUpgrade call
+// GIVEN an OpenSearch component
+//
+//	WHEN I call ShouldInstallBeforeUpgrade with defaults
+//	THEN false is returned
+func TestShouldInstallBeforeUpgrade(t *testing.T) {
+	val := NewComponent().ShouldInstallBeforeUpgrade()
+	assert.Equal(t, val, false)
+
+}
+
+// TestGetDependencies tests the GetDependencies call
+// GIVEN an OpenSearch component
+//
+//	WHEN I call GetDependencies with defaults
+//	THEN a string array containing different dependencies is returned
+func TestGetDependencies(t *testing.T) {
+	strArray := NewComponent().GetDependencies()
+	expArray := []string{"verrazzano-network-policies", "verrazzano-monitoring-operator"}
+	assert.Equal(t, expArray, strArray)
+
+}
+
+// TestGetMinVerrazzanoVersion tests the GetMinVerrazzanoVersion call
+// GIVEN an OpenSearch component
+//
+//	WHEN I call GetMinVerrazzanoVersion with defaults
+//	THEN a string containing MinVerrazzanoVersion is returned
+func TestGetMinVerrazzanoVersion(t *testing.T) {
+	minVer := NewComponent().GetMinVerrazzanoVersion()
+	expVer := constants.VerrazzanoVersion1_0_0
+	assert.Equal(t, expVer, minVer)
+
+}
+
+// TestGetJSONName tests the GetJSONName call
+// GIVEN an OpenSearch component
+//
+//	WHEN I call GetJSONName with defaults
+//	THEN a string containing JSONName is returned
+func TestGetJSONName(t *testing.T) {
+	jsonName := NewComponent().GetJSONName()
+	assert.Equal(t, jsonName, "opensearch")
+
+}
+
+// TestGetOverrides tests the GetOverrides call
+// GIVEN an OpenSearch component and a runtime object
+//
+//	WHEN I call GetOverrides with defaults
+//	THEN an interface containing overrides is returned
+func TestGetOverrides(t *testing.T) {
+	tests := []struct {
+		name   string
+		object runtime.Object
+		want   interface{}
+	}{
+		{
+			"TestGetOverridesWithInvalidOverrides",
+			nil,
+			[]vzapi.Overrides{},
+		},
+		{
+			"TestGetOverrides With No Opensearch",
+			&vzapi.Verrazzano{},
+			[]vzapi.Overrides{},
+		},
+		{
+			"TestGetOverridesWithV1Beta CR with no Opensearch",
+			&installv1beta1.Verrazzano{},
+			[]installv1beta1.Overrides{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, NewComponent().GetOverrides(tt.object))
+
+		})
+	}
+}
+
+// TestValidateInstall tests the ValidateInstall call
+// GIVEN an OpenSearch component and a vzapi
+//
+//	WHEN I call ValidateInstall with defaults
+//	THEN an bool value is returned
+func TestValidateInstall(t *testing.T) {
+	var tests = []struct {
+		name     string
+		vz       *vzapi.Verrazzano
+		hasError bool
+	}{
+		{
+			"no duplication when component has no args",
+			emptyComponent,
+			false,
+		},
+		{
+			"no duplication when component does not duplicate args",
+			createVZ(&vzapi.ElasticsearchComponent{
+				ESInstallArgs: createInstallArgs(3, 3, 3),
+				Nodes: []vzapi.OpenSearchNode{
+					createNG("a", 1, nil),
+					createNG("b", 2, nil),
+					createNG("c", 3, nil),
+				},
+			}),
+			false,
+		},
+		{
+			"duplication when component has Node groups with the same name",
+			createVZ(&vzapi.ElasticsearchComponent{
+				Nodes: []vzapi.OpenSearchNode{
+					createNG("master", 3, nil),
+					createNG("data", 3, nil),
+					createNG("ingest", 3, nil),
+					createNG("master", 3, nil),
+				},
+			}),
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := NewComponent().ValidateInstall(tt.vz); (err != nil) != tt.hasError {
+				assert.Error(t, err)
+			}
+		})
+	}
+
+}
+
+// TestValidateInstallV1Beta1 tests the ValidateInstallV1Beta1 call
+// GIVEN an OpenSearch component and a installv1beta1
+//
+//	WHEN I call ValidateInstallV1Beta1 with defaults
+//	THEN an bool value is returned
+func TestValidateInstallV1Beta1(t *testing.T) {
+	var tests = []struct {
+		name     string
+		vz       *vzapi.Verrazzano
+		hasError bool
+	}{
+		{
+			"no duplication when component has no args",
+			emptyComponent,
+			false,
+		},
+		{
+			"no duplication when component does not duplicate args",
+			createVZ(&vzapi.ElasticsearchComponent{
+				ESInstallArgs: createInstallArgs(3, 3, 3),
+				Nodes: []vzapi.OpenSearchNode{
+					createNG("a", 1, nil),
+					createNG("b", 2, nil),
+					createNG("c", 3, nil),
+				},
+			}),
+			false,
+		},
+		{
+			"duplication when component has Node groups with the same name",
+			createVZ(&vzapi.ElasticsearchComponent{
+				Nodes: []vzapi.OpenSearchNode{
+					createNG("master", 3, nil),
+					createNG("data", 3, nil),
+					createNG("ingest", 3, nil),
+					createNG("master", 3, nil),
+				},
+			}),
+			true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v1beta1vz := &installv1beta1.Verrazzano{}
+			assert.NoError(t, tt.vz.ConvertTo(v1beta1vz))
+			if err := NewComponent().ValidateInstallV1Beta1(v1beta1vz); (err != nil) != tt.hasError {
+				assert.Error(t, err)
+			}
+		})
+	}
+
+}
+
+// TestMonitorOverrides tests the MonitorOverrides call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call MonitorOverrides with defaults
+//	THEN an true is returned
+func TestMonitorOverrides(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
+	val := NewComponent().MonitorOverrides(ctx)
+	assert.Equal(t, val, true)
+}
+
+// TestIsOperatorInstallSupported tests the IsOperatorInstallSupported call
+// GIVEN an OpenSearch component
+//
+//	WHEN I call IsOperatorInstallSupported with defaults
+//	THEN an true is returned
+func TestIsOperatorInstallSupported(t *testing.T) {
+	val := NewComponent().IsOperatorInstallSupported()
+	assert.Equal(t, val, true)
+}
+
+// TestIsInstalled tests the IsInstalled call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call IsInstalled with defaults
+//	THEN a value showing the status of installation and nil error is returned
+func TestIsInstalled(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      esMasterStatefulset,
+				Labels:    map[string]string{"app": masterAppName},
+			},
+		},
+	).Build()
+
+	vz := &vzapi.Verrazzano{}
+	ctx := spi.NewFakeContext(c, vz, nil, false)
+	val, err := NewComponent().IsInstalled(ctx)
+	assert.Equal(t, val, true)
+	assert.NoError(t, err)
+
+	clientFake := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctxnew := spi.NewFakeContext(clientFake, vz, nil, false)
+	val, err = NewComponent().IsInstalled(ctxnew)
+	assert.Equal(t, val, false)
+	assert.NoError(t, err)
+
+}
+
+// TestReconcile tests the Reconcile call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call Reconcile with defaults
+//	THEN a nil error is returned
+func TestReconcile(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
+	err := NewComponent().Reconcile(ctx)
+	assert.NoError(t, err)
+}
+
+// TestIsOperatorUninstallSupported tests the IsOperatorUninstallSupported call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call IsOperatorUninstallSupported with defaults
+//	THEN a false value is returned
+func TestIsOperatorUninstallSupported(t *testing.T) {
+	val := NewComponent().IsOperatorUninstallSupported()
+	assert.Equal(t, val, false)
+}
+
+// TestPreUninstall tests the PreUninstall call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call PreUninstall with defaults
+//	THEN a nil error is returned
+func TestPreUninstall(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
+	err := NewComponent().PreUninstall(ctx)
+	assert.NoError(t, err)
+}
+
+// TestUninstall tests the Uninstall call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call Uninstall with defaults
+//	THEN a nil error is returned
+func TestUninstall(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
+	err := NewComponent().Uninstall(ctx)
+	assert.NoError(t, err)
+}
+
+// TestPostUninstall tests the PostUninstall call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call PostUninstall with defaults
+//	THEN a nil error is returned
+func TestPostUninstall(t *testing.T) {
+	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
+	err := NewComponent().PostUninstall(ctx)
+	assert.NoError(t, err)
+}
+
+// TestIsAvailable tests the IsAvailable call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call IsAvailable with defaults
+//	THEN a value showing availability of opensearch and reason for its unavailability, if any are returned
+func TestIsAvailable(t *testing.T) {
+	tests := []struct {
+		name              string
+		component         opensearchComponent
+		args              spi.ComponentContext
+		expectedReason    string
+		expectedAvailable vzapi.ComponentAvailability
+	}{
+		{
+			"TestIsAvailable",
+			opensearchComponent{},
+			spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false),
+			"",
+			vzapi.ComponentAvailable,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reason, available := tt.component.IsAvailable(tt.args)
+			assert.Equal(t, reason, tt.expectedReason)
+			assert.Equal(t, available, tt.expectedAvailable)
+		})
+	}
+
+}
+
+// TestIsReadyForComponent tests the IsReady call
+// GIVEN an OpenSearch component and a context
+//
+//	WHEN I call IsReady with defaults
+//	THEN a bool value is returned
+func TestIsReadyForComponent(t *testing.T) {
+	vz := &vzapi.Verrazzano{}
+	falseValue := false
+	vz.Spec.Components = vzapi.ComponentSpec{
+		Console:       &vzapi.ConsoleComponent{Enabled: &falseValue},
+		Fluentd:       &vzapi.FluentdComponent{Enabled: &falseValue},
+		Kibana:        &vzapi.KibanaComponent{Enabled: &falseValue},
+		Elasticsearch: &vzapi.ElasticsearchComponent{Enabled: &falseValue},
+		Prometheus:    &vzapi.PrometheusComponent{Enabled: &falseValue},
+		Grafana:       &vzapi.GrafanaComponent{Enabled: &falseValue},
+	}
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(&appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      vmoDeployment,
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
+		},
+	}).Build()
+	ctx := spi.NewFakeContext(c, vz, nil, false)
+	assert.False(t, NewComponent().IsReady(ctx))
+
+	clientnew := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      fmt.Sprintf("%s-0", esDataDeployment),
+				Labels: map[string]string{
+					"app":   systemesdata,
+					"index": "0",
+				},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"app":   systemesdata,
+						"index": "0",
+					},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      fmt.Sprintf("%s-0-95d8c5d96-m6mbr", esDataDeployment),
+				Labels: map[string]string{
+					podtemplatehash: "95d8c5d96",
+					"app":           systemesdata,
+					"index":         "0",
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        fmt.Sprintf("%s-0-95d8c5d96", esDataDeployment),
+				Annotations: map[string]string{depKube: "1"},
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      fmt.Sprintf("%s-1", esDataDeployment),
+				Labels: map[string]string{
+					"app":   systemesdata,
+					"index": "1",
+				},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"app":   systemesdata,
+						"index": "1",
+					},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      fmt.Sprintf("%s-1-95d8c5d96-m6mbr", esDataDeployment),
+				Labels: map[string]string{
+					podtemplatehash: "95d8c5d96",
+					"app":           systemesdata,
+					"index":         "1",
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        fmt.Sprintf("%s-1-95d8c5d96", esDataDeployment),
+				Annotations: map[string]string{depKube: "1"},
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      esIngestDeployment,
+				Labels:    map[string]string{"app": systemesingest},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": systemesingest},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 2,
+				Replicas:          2,
+				UpdatedReplicas:   2,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      esIngestDeployment + "-95d8c5d96-m6mbr",
+				Labels: map[string]string{
+					podtemplatehash: "95d8c5d96",
+					"app":           systemesingest,
+				},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      esIngestDeployment + "-95d8c5d96-x1v76",
+				Labels: map[string]string{
+					podtemplatehash: "95d8c5d96",
+					"app":           systemesingest,
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        esIngestDeployment + "-95d8c5d96",
+				Annotations: map[string]string{depKube: "1"},
+			},
+		},
+		&appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      esMasterStatefulset,
+				Labels:    map[string]string{"app": masterAppName},
+			},
+			Spec: appsv1.StatefulSetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": masterAppName},
+				},
+			},
+			Status: appsv1.StatefulSetStatus{
+				ReadyReplicas:   1,
+				UpdatedReplicas: 1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      esMasterStatefulset + "-0",
+				Labels: map[string]string{
+					"app":                      masterAppName,
+					"controller-revision-hash": "test-95d8c5d96",
+				},
+			},
+		},
+		&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "verrazzano",
+			Namespace: ComponentNamespace}},
+		&appsv1.ControllerRevision{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-95d8c5d96",
+				Namespace: ComponentNamespace,
+			},
+			Revision: 1,
+		}).Build()
+
+	vznew := &vzapi.Verrazzano{}
+	vz.Spec.Components = vzapi.ComponentSpec{
+		Elasticsearch: &vzapi.ElasticsearchComponent{
+			ESInstallArgs: []vzapi.InstallArgs{
+				{
+					Name:  "nodes.master.replicas",
+					Value: "1",
+				},
+				{
+					Name:  "nodes.data.replicas",
+					Value: "2",
+				},
+				{
+					Name:  "nodes.ingest.replicas",
+					Value: "2",
+				},
+			},
+		},
+	}
+	ctxnew := spi.NewFakeContext(clientnew, vznew, nil, false)
+	assert.True(t, NewComponent().IsReady(ctxnew))
+
 }
 
 // TestPreInstall tests the OpenSearch PreInstall call

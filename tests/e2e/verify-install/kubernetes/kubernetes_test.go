@@ -96,7 +96,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("does not include verrazzano-web", "verrazzano-web", false),
 			t.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 			t.Entry("does not include verrazzano-ldap", "verrazzano-ldap", false),
-			t.Entry("does not include verrazzano-cluster-operator", "verrazzano-cluster-operator", false),
+			t.Entry("includes verrazzano-cluster-operator", "verrazzano-cluster-operator", true),
 			t.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
 			t.Entry("Check weblogic-operator deployment", "weblogic-operator", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
 			t.Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
@@ -182,7 +182,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 		t.DescribeTable("VMI components that don't exist in older versions are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
-					ok, _ := pkg.IsVerrazzanoMinVersionEventually("1.1.0", kubeconfigPath)
+					ok, _ := pkg.IsVerrazzanoMinVersion("1.1.0", kubeconfigPath)
 					if !ok {
 						// skip test
 						fmt.Printf("Skipping Kiali check since version < 1.1.0")

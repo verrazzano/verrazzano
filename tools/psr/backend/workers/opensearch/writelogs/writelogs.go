@@ -5,13 +5,14 @@ package writelogs
 
 import (
 	"fmt"
+	"sync/atomic"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
-	"sync/atomic"
 )
 
 type worker struct {
@@ -63,6 +64,10 @@ func (w worker) GetEnvDescList() []osenv.EnvVarDesc {
 
 func (w worker) WantLoopInfoLogged() bool {
 	return false
+}
+
+func (w worker) PreconditionsMet() (bool, error) {
+	return true, nil
 }
 
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {

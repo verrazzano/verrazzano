@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 var namespace string
@@ -20,7 +19,7 @@ func init() {
 }
 
 // TestCoherenceLoggingTrait tests an ingress trait setup for console access.
-func TestCoherenceLoggingTrait(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Coherence Logging Trait Test Suite")
+func TestCoherenceLoggingTrait(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Coherence Logging Trait Test Suite")
 }

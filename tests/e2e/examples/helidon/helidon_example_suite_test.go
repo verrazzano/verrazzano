@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 var skipDeploy bool
@@ -28,7 +27,7 @@ func init() {
 
 }
 
-func TestHelidonExample(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Hello Helidon Suite")
+func TestHelidonExample(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Hello Helidon Suite")
 }

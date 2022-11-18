@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 var namespace string
@@ -25,11 +24,11 @@ func isUsingCalico() bool {
 	return usingCalico == "true"
 }
 
-func TestSecurityNetworkPolicies(t *testing.T) {
+func TestSecurityNetworkPolicies(test *testing.T) {
 	if !isUsingCalico() {
-		t.Skip("Calico not enabled, skipping test")
+		test.Skip("Calico not enabled, skipping test")
 		return
 	}
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Verrazzano Network Policy Suite")
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Verrazzano Network Policy Suite")
 }

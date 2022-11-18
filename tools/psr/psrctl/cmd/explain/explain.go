@@ -8,8 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
-	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/embedded"
-	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/manifest"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 )
@@ -30,7 +29,7 @@ var verbose bool
 func NewCmdExplain(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return explainCmdExplain(cmd, vzHelper)
+		return RunCmdExplain(cmd, vzHelper)
 	}
 	cmd.Example = helpExample
 
@@ -40,15 +39,14 @@ func NewCmdExplain(vzHelper helpers.VZHelper) *cobra.Command {
 	return cmd
 }
 
-// explainCmdExplain - explain the "psrctl explain" command
-func explainCmdExplain(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
+// RunCmdExplain - explain the "psrctl explain" command
+func RunCmdExplain(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	fmt.Println()
 	fmt.Println("Listing available scenarios ...")
 
-	m := scenario.Manager{
-		Namespace: "default",
-		Log:       vzlog.DefaultLogger(),
-		Manifest:  *embedded.Manifests,
+	m := manifest.ManifestManager{
+		Log:      vzlog.DefaultLogger(),
+		Manifest: *manifest.Manifests,
 	}
 
 	scs, err := m.ListScenarioManifests()

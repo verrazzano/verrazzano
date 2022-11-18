@@ -47,13 +47,13 @@ func RunCmdList(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	if allNamepaces {
 		namespace = ""
 	}
-	m, err := scenario.NewManager(namespace, "")
+	scenarioMan, err := scenario.NewManager(namespace)
 
 	if err != nil {
-		return fmt.Errorf("Failed to create scenario Manager %v", err)
+		return fmt.Errorf("Failed to create scenario ScenarioMananger %v", err)
 	}
 
-	scenarios, err := m.FindRunningScenarios()
+	scenarios, err := scenarioMan.FindRunningScenarios()
 	if err != nil {
 		return fmt.Errorf("Failed to find running scenarios %s: %v", scenarioID, err)
 	}
