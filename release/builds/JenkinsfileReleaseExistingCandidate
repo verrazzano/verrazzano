@@ -56,6 +56,7 @@ pipeline {
                         """
                         def propsDevVersion = readProperties file: "current_dev_version.txt"
                         VERRAZZANO_DEV_VERSION = propsDevVersion['verrazzano-development-version']
+                        env.VERRAZZANO_DEV_VERSION = "${VERRAZZANO_DEV_VERSION}"
                         println("Current dev version is ${VERRAZZANO_DEV_VERSION}")
                         sh """
                           oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${cleanBranchName}/last-${VERRAZZANO_DEV_VERSION}-releasable-candidate-commit.txt --file ${WORKSPACE}/last_releasable_candidate_commit.txt
@@ -68,7 +69,7 @@ pipeline {
                         }
                         IMAGES_TO_PUBLISH_OBJECT_STORE_FILE="${env.CLEAN_BRANCH_NAME}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt"
                         // derive the USE_V8O_DOC_STAGE for the docs
-                        USE_V8O_DOC_STAGE = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_v8o_doc_stage.sh ${VERRAZZANO_DEV_VERSION}").trim()
+                        USE_V8O_DOC_STAGE = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_v8o_doc_stage.sh").trim()
                     }
                 }
             }
