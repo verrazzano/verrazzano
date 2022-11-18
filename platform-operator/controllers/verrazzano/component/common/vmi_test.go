@@ -25,17 +25,7 @@ const profileDir = "../../../../manifests/profiles"
 
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
-// return address of a bool var with true value
-func True() *bool {
-	x := true
-	return &x
-}
-
-// Test_FindStorageOverride tests the FindStorageOverride function
-// GIVEN a call to FindStorageOverride
-//
-//	WHEN I call with a ComponentContext with different profiles and overrides
-//	THEN the correct resource overrides or an error are returned
+// Test_Vmi tests the Multiple VMI functions
 func Test_Vmi(t *testing.T) {
 	b := true
 	tests := []struct {
@@ -201,6 +191,7 @@ func Test_Vmi(t *testing.T) {
 	}
 }
 
+// Test_StorageOverrideBeta1 tests the StorageOverrides functions for V1Beta1
 func Test_StorageOverrideBeta1(t *testing.T) {
 	tests := []struct {
 		name             string
