@@ -15,7 +15,7 @@ import (
 )
 
 // createConfigMap creates a ConfigMap with the scenario data
-func (m Manager) createConfigMap(scenario Scenario) (*corev1.ConfigMap, error) {
+func (m ScenarioMananger) createConfigMap(scenario Scenario) (*corev1.ConfigMap, error) {
 	y, err := yaml.Marshal(scenario)
 	if err != nil {
 		return nil, m.Log.ErrorfNewErr("Failed to marshal scenario to YAML: %v", err)
@@ -42,7 +42,7 @@ func (m Manager) createConfigMap(scenario Scenario) (*corev1.ConfigMap, error) {
 }
 
 // deleteConfigMap deletes a ConfigMap
-func (m Manager) deleteConfigMap(cm *corev1.ConfigMap) error {
+func (m ScenarioMananger) deleteConfigMap(cm *corev1.ConfigMap) error {
 	err := m.Client.ConfigMaps(cm.Namespace).Delete(context.TODO(), cm.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return m.Log.ErrorfNewErr("Failed to delete scenario ConfigMap %s/%s: %v", cm.Namespace, cm.Name, err)
@@ -51,13 +51,13 @@ func (m Manager) deleteConfigMap(cm *corev1.ConfigMap) error {
 }
 
 // getAllConfigMaps gets all the configmaps that have scenario information
-func (m Manager) getAllConfigMaps() ([]corev1.ConfigMap, error) {
+func (m ScenarioMananger) getAllConfigMaps() ([]corev1.ConfigMap, error) {
 	req, _ := labels.NewRequirement(LabelScenario, selection.Exists, nil)
 	return m.getConfigMapsByLabels(*req)
 }
 
 // getConfigMapByID gets the configmap that matches a specific Scenario ID
-func (m Manager) getConfigMapByID(ID string) (*corev1.ConfigMap, error) {
+func (m ScenarioMananger) getConfigMapByID(ID string) (*corev1.ConfigMap, error) {
 	// Find the scenario configmaps in the cluster
 	req1, _ := labels.NewRequirement(LabelScenario, selection.Exists, nil)
 	req2, _ := labels.NewRequirement(LabelScenarioID, selection.Equals, []string{ID})
@@ -72,7 +72,7 @@ func (m Manager) getConfigMapByID(ID string) (*corev1.ConfigMap, error) {
 }
 
 // getConfigMapsByLabels gets the configmaps by label
-func (m Manager) getConfigMapsByLabels(requirements ...labels.Requirement) ([]corev1.ConfigMap, error) {
+func (m ScenarioMananger) getConfigMapsByLabels(requirements ...labels.Requirement) ([]corev1.ConfigMap, error) {
 	// Find the scenario configmaps in the cluster
 	selector := labels.NewSelector()
 	for _, req := range requirements {
@@ -86,7 +86,7 @@ func (m Manager) getConfigMapsByLabels(requirements ...labels.Requirement) ([]co
 }
 
 // getScenarioFromConfigmap gets the Scenario from the ConfigMap
-func (m Manager) getScenarioFromConfigmap(cm *corev1.ConfigMap) (*Scenario, error) {
+func (m ScenarioMananger) getScenarioFromConfigmap(cm *corev1.ConfigMap) (*Scenario, error) {
 	// Load the scenario from the base64
 	decoded, err := base64.StdEncoding.DecodeString(cm.Data[DataScenarioKey])
 	if err != nil {

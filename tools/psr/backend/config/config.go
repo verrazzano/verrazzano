@@ -41,12 +41,13 @@ const (
 
 // Define worker types
 const (
-	WorkerTypeExample   = "example"
-	WorkerTypeWriteLogs = "writelogs"
-	WorkerTypeGetLogs   = "getlogs"
-	WorkerTypeHTTPGet   = "httpget"
-	WorkerTypePostLogs  = "postlogs"
-	WorkerTypeScale     = "scale"
+	WorkerTypeExample      = "example"
+	WorkerTypeOpsWriteLogs = "ops-writelogs"
+	WorkerTypeOpsGetLogs   = "ops-getlogs"
+	WorkerTypeOpsPostLogs  = "ops-postlogs"
+	WorkerTypeOpsScale     = "ops-scale"
+	WorkerTypeOpsRestart   = "ops-restart"
+	WorkerTypeHTTPGet      = "http_get"
 )
 
 const (

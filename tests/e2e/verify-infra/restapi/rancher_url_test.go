@@ -256,6 +256,8 @@ func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dyna
 
 		value := clusterData.UnstructuredContent()["value"].(string)
 		logoSVG := strings.Split(value, rancher.SettingUILogoValueprefix)[1]
+		// Strip out any extra carriage returns
+		logoSVG = strings.ReplaceAll(logoSVG, "\r\r", "\r")
 		cfg, err := k8sutil.GetKubeConfig()
 		if err != nil {
 			t.Logs.Error(fmt.Sprintf("Error getting client config to verify value of %s setting: %v", settingName, err))
@@ -287,8 +289,14 @@ func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dyna
 			return false, err
 		}
 
-		return stdout == string(logoSVG), nil
-	}, waitTimeout, pollingInterval).Should(Equal(true), fmt.Sprintf("rancher UI setting %s value does not match logo path %s", settingName, logoPath))
+		// Strip out any extra carriage returns
+		stdout = strings.ReplaceAll(stdout, "\r\r", "\r")
+		if stdout != logoSVG {
+			t.Logs.Errorf("Got %s for Rancher UI logo path, expected %s", stdout, logoSVG)
+			return false, nil
+		}
+		return true, nil
+	}, waitTimeout, pollingInterval).Should(Equal(true))
 	metrics.Emit(t.Metrics.With("get_ui_setting_elapsed_time", time.Since(start).Milliseconds()))
 
 }

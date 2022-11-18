@@ -421,7 +421,7 @@ func isReadyAndRunning(pod v1.Pod) bool {
 	if pod.Status.Phase == v1.PodSucceeded {
 		return true
 	}
-	if pod.Status.Reason == "Evicted" && len(pod.Status.ContainerStatuses) == 0 {
+	if pod.Status.Reason == "Evicted" {
 		Log(Info, fmt.Sprintf("Pod %v was Evicted", pod.Name))
 		return true // ignore this evicted pod
 	}

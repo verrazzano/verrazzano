@@ -4,6 +4,7 @@
 package clusteroperator
 
 import (
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -99,4 +100,18 @@ func TestClusterOperatorEnabled(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Test isReady when it's called with component context
+func TestIsReady(t *testing.T) {
+	c := fake.NewClientBuilder().Build()
+	ctx := spi.NewFakeContext(c, &v1alpha1.Verrazzano{}, nil, true)
+	assert.False(t, NewComponent().IsReady(ctx))
+}
+
+// Test isReady when it's called with component context when dry run false
+func TestIsReadyFalse(t *testing.T) {
+	c := fake.NewClientBuilder().Build()
+	ctx := spi.NewFakeContext(c, &v1alpha1.Verrazzano{}, nil, false)
+	assert.False(t, NewComponent().IsReady(ctx))
 }

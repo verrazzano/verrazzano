@@ -1,14 +1,14 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package permissions_test
 
 import (
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+
 	"testing"
 )
 
-func TestVerifyPermissions(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Verify kubeconfig permissions multi-cluster Suite")
+func TestVerifyPermissions(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Verify kubeconfig permissions multi-cluster Suite")
 }

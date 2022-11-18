@@ -4,23 +4,25 @@
 package scale
 
 import (
-	"github.com/stretchr/testify/assert"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoFakeClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/fake"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/k8sclient"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/opensearch"
+	opensearchpsr "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/opensearch"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/verrazzano"
+
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	crtFakeClient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"strings"
-	"testing"
-	"time"
 )
 
 type fakeEnv struct {
@@ -46,9 +48,9 @@ func TestGetters(t *testing.T) {
 	assert.NoError(t, err)
 
 	wd := w.GetWorkerDesc()
-	assert.Equal(t, config.WorkerTypeScale, wd.WorkerType)
+	assert.Equal(t, config.WorkerTypeOpsScale, wd.WorkerType)
 	assert.Equal(t, "The OpenSearch scale worker scales an OpenSearch tier in and out continuously", wd.Description)
-	assert.Equal(t, config.WorkerTypeScale, wd.MetricsName)
+	assert.Equal(t, metricsPrefix, wd.MetricsPrefix)
 
 	logged := w.WantLoopInfoLogged()
 	assert.False(t, logged)
@@ -119,10 +121,10 @@ func TestGetMetricDescList(t *testing.T) {
 		fqName string
 		help   string
 	}{
-		{name: "1", fqName: "opensearch_scale_out_count_total", help: "The total number of times OpenSearch scaled out"},
-		{name: "2", fqName: "opensearch_scale_in_count_total", help: "The total number of times OpenSearch scaled in"},
-		{name: "3", fqName: "opensearch_scale_out_seconds", help: "The number of seconds elapsed to scale out OpenSearch"},
-		{name: "4", fqName: "opensearch_scale_in_seconds", help: "The number of seconds elapsed to scale in OpenSearch"},
+		{name: "1", fqName: metricsPrefix + "_scale_out_count_total", help: "The total number of times OpenSearch scaled out"},
+		{name: "2", fqName: metricsPrefix + "_scale_in_count_total", help: "The total number of times OpenSearch scaled in"},
+		{name: "3", fqName: metricsPrefix + "_scale_out_seconds", help: "The number of seconds elapsed to scale out OpenSearch"},
+		{name: "4", fqName: metricsPrefix + "_scale_in_seconds", help: "The number of seconds elapsed to scale in OpenSearch"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -158,10 +160,10 @@ func TestGetMetricList(t *testing.T) {
 		fqName string
 		help   string
 	}{
-		{name: "1", fqName: "opensearch_scale_out_count_total", help: "The total number of times OpenSearch scaled out"},
-		{name: "2", fqName: "opensearch_scale_in_count_total", help: "The total number of times OpenSearch scaled in"},
-		{name: "3", fqName: "opensearch_scale_out_seconds", help: "The number of seconds elapsed to scale out OpenSearch"},
-		{name: "4", fqName: "opensearch_scale_in_seconds", help: "The number of seconds elapsed to scale in OpenSearch"},
+		{name: "1", fqName: metricsPrefix + "_scale_out_count_total", help: "The total number of times OpenSearch scaled out"},
+		{name: "2", fqName: metricsPrefix + "_scale_in_count_total", help: "The total number of times OpenSearch scaled in"},
+		{name: "3", fqName: metricsPrefix + "_scale_out_seconds", help: "The number of seconds elapsed to scale out OpenSearch"},
+		{name: "4", fqName: metricsPrefix + "_scale_in_seconds", help: "The number of seconds elapsed to scale in OpenSearch"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -189,7 +191,6 @@ func TestGetMetricList(t *testing.T) {
 func TestDoWork(t *testing.T) {
 	tests := []struct {
 		name          string
-		expectErr     bool
 		tier          string
 		expectError   bool
 		minReplicas   string
@@ -202,7 +203,7 @@ func TestDoWork(t *testing.T) {
 	}{
 		{
 			name:        "master",
-			tier:        opensearch.MasterTier,
+			tier:        opensearchpsr.MasterTier,
 			expectError: false,
 			minReplicas: "3",
 			maxReplicas: "4",
@@ -211,7 +212,7 @@ func TestDoWork(t *testing.T) {
 		},
 		{
 			name:        "data",
-			tier:        opensearch.DataTier,
+			tier:        opensearchpsr.DataTier,
 			expectError: false,
 			minReplicas: "3",
 			maxReplicas: "4",
@@ -220,7 +221,7 @@ func TestDoWork(t *testing.T) {
 		},
 		{
 			name:        "ingest",
-			tier:        opensearch.IngestTier,
+			tier:        opensearchpsr.IngestTier,
 			expectError: false,
 			minReplicas: "3",
 			maxReplicas: "4",
@@ -229,7 +230,7 @@ func TestDoWork(t *testing.T) {
 		},
 		{
 			name:        "replicaErr",
-			tier:        opensearch.MasterTier,
+			tier:        opensearchpsr.MasterTier,
 			skipUpdate:  true,
 			expectError: true,
 			minReplicas: "1",
@@ -239,7 +240,7 @@ func TestDoWork(t *testing.T) {
 		// Test missing pods
 		{
 			name:          "noPods",
-			tier:          opensearch.MasterTier,
+			tier:          opensearchpsr.MasterTier,
 			skipUpdate:    true,
 			skipPodCreate: true,
 			expectError:   true,
@@ -360,11 +361,11 @@ func (f *fakePsrClient) NewPsrClient() (k8sclient.PsrClient, error) {
 
 func getTierLabels(tier string) map[string]string {
 	switch tier {
-	case opensearch.MasterTier:
+	case opensearchpsr.MasterTier:
 		return map[string]string{"opensearch.verrazzano.io/role-master": "true"}
-	case opensearch.DataTier:
+	case opensearchpsr.DataTier:
 		return map[string]string{"opensearch.verrazzano.io/role-data": "true"}
-	case opensearch.IngestTier:
+	case opensearchpsr.IngestTier:
 		return map[string]string{"opensearch.verrazzano.io/role-ingest": "true"}
 	default:
 		return nil

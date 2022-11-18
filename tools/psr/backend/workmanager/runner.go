@@ -67,10 +67,10 @@ func NewRunner(worker spi.Worker, conf config.CommonConfig, log vzlog.Verrazzano
 	}}
 
 	r.metricDescList = []prometheus.Desc{
-		*r.loopCount.BuildMetricDesc(r.GetWorkerDesc().MetricsName),
-		*r.workerThreadCount.BuildMetricDesc(r.GetWorkerDesc().MetricsName),
-		*r.workerLoopNanoSeconds.BuildMetricDesc(r.GetWorkerDesc().MetricsName),
-		*r.workerDurationTotalSeconds.BuildMetricDesc(r.GetWorkerDesc().MetricsName),
+		*r.loopCount.BuildMetricDesc(r.GetWorkerDesc().MetricsPrefix),
+		*r.workerThreadCount.BuildMetricDesc(r.GetWorkerDesc().MetricsPrefix),
+		*r.workerLoopNanoSeconds.BuildMetricDesc(r.GetWorkerDesc().MetricsPrefix),
+		*r.workerDurationTotalSeconds.BuildMetricDesc(r.GetWorkerDesc().MetricsPrefix),
 	}
 
 	return r, nil
@@ -107,7 +107,7 @@ func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 		err := r.Worker.DoWork(conf, log)
 		if err != nil {
 			r.prevWorkFailed = true
-			log.Errorf("Failed calling %s to do work: %v", r.Worker.GetWorkerDesc().WorkerType, err)
+			log.ErrorfThrottled("Failed calling %s to do work: %v", r.Worker.GetWorkerDesc().WorkerType, err)
 		} else {
 			if r.prevWorkFailed {
 				// If we had a failure on the prev call then log success so you can tell

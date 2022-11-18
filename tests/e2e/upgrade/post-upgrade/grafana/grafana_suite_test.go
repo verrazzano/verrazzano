@@ -5,11 +5,11 @@ package grafana
 
 import (
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+
 	"testing"
 )
 
-func TestGrafanaDashboardPostUpgrade(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Post Upgrade Grafana Dashboard Suite")
+func TestGrafanaDashboardPostUpgrade(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Post Upgrade Grafana Dashboard Suite")
 }

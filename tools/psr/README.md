@@ -63,7 +63,7 @@ The override file for the scale use case might look like this:
 ```
 global:
   envVars:
-    PSR_WORKER_TYPE: scale
+    PSR_WORKER_TYPE: ops-scale
     OPEN_SEARCH_TIER: master
     SCALE_DELAY_PER_TIER: 5s
     MIN_REPLICA_COUNT: 3
@@ -169,7 +169,7 @@ All of the workers are deployed using the same worker Helm chart. Worker configs
 global:
   envVars:
     PSR_WORKER_TYPE - type of worker
-    default: example
+    default: ops-postlogs
     
     PSR_LOOP_SLEEP - duration to sleep between work iterations
     default: 1s

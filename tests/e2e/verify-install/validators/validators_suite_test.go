@@ -6,10 +6,9 @@ import (
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
-func TestValidators(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Verrazzano Validators Suite")
+func TestValidators(test *testing.T) {
+	t.RegisterFailHandler()
+	RunSpecs(test, "Verrazzano Validators Suite")
 }

@@ -5,6 +5,7 @@ package framework
 
 import (
 	"fmt"
+	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	"go.uber.org/zap"
@@ -28,6 +29,10 @@ func NewTestFramework(pkg string) *TestFramework {
 	t.Logs, _ = metrics.NewLogger(pkg, metrics.TestLogIndex, "stdout")
 	t.initDumpDirectoryIfNecessary()
 	return t
+}
+
+func (t *TestFramework) RegisterFailHandler() {
+	gomega.RegisterFailHandler(ginkgo.Fail)
 }
 
 // initDumpDirectoryIfNecessary - sets the DUMP_DIRECTORY env variable to a default if not set externally
@@ -56,7 +61,7 @@ func (t *TestFramework) AfterEach(args ...interface{}) bool {
 
 	f := func() {
 		metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
-		reflect.ValueOf(body).Call([]reflect.Value{})
+		t.invoke(body)
 	}
 	args[0] = f
 
@@ -75,9 +80,7 @@ func (t *TestFramework) BeforeEach(args ...interface{}) bool {
 	}
 
 	f := func() {
-
-		reflect.ValueOf(body).Call([]reflect.Value{})
-
+		t.invoke(body)
 	}
 	args[0] = f
 
@@ -95,7 +98,7 @@ func (t *TestFramework) It(text string, args ...interface{}) bool {
 	}
 	f := func() {
 		metrics.Emit(t.Metrics) // Starting point metric
-		reflect.ValueOf(body).Call([]reflect.Value{})
+		t.invoke(body)
 	}
 
 	args[len(args)-1] = ginkgo.Offset(1)
@@ -127,7 +130,7 @@ func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 	}
 	f := func() {
 		metrics.Emit(t.Metrics)
-		reflect.ValueOf(body).Call([]reflect.Value{})
+		t.invoke(body)
 		metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
 	}
 	args[len(args)-1] = ginkgo.Offset(1)
@@ -147,7 +150,7 @@ func (t *TestFramework) DescribeTable(text string, args ...interface{}) bool {
 	funcType := reflect.TypeOf(body)
 	f := reflect.MakeFunc(funcType, func(args []reflect.Value) (results []reflect.Value) {
 		metrics.Emit(t.Metrics)
-		rv := reflect.ValueOf(body).Call(args)
+		rv := t.invoke(body)
 		metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
 		return rv
 	})
@@ -163,7 +166,7 @@ func (t *TestFramework) BeforeSuite(body func()) bool {
 
 	f := func() {
 		metrics.Emit(t.Metrics)
-		reflect.ValueOf(body).Call([]reflect.Value{})
+		t.invoke(body)
 	}
 	return ginkgo.BeforeSuite(f)
 }
@@ -176,7 +179,7 @@ func (t *TestFramework) AfterSuite(body func()) bool {
 
 	f := func() {
 		metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
-		reflect.ValueOf(body).Call([]reflect.Value{})
+		t.invoke(body)
 	}
 	return ginkgo.AfterSuite(f)
 }
@@ -193,6 +196,21 @@ func (t *TestFramework) Entry(description interface{}, args ...interface{}) gink
 // Fail - wrapper function for Ginkgo Fail
 func (t *TestFramework) Fail(message string, callerSkip ...int) {
 	ginkgo.Fail(message, callerSkip...)
+}
+
+// panicHandler is used with defer to emit a failed status metric when a panic occurs
+func (t *TestFramework) panicHandler() {
+	// Recover only to emit a fail, then re-panic
+	if p := recover(); p != nil {
+		metrics.EmitFail(t.Metrics)
+		panic(p)
+	}
+}
+
+// invoke calls body as a function, wrapped with the panicHandler
+func (t *TestFramework) invoke(body interface{}) []reflect.Value {
+	defer t.panicHandler()
+	return reflect.ValueOf(body).Call([]reflect.Value{})
 }
 
 // Context - wrapper function for Ginkgo Context

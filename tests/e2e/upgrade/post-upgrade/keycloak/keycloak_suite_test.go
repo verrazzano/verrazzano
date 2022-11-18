@@ -5,11 +5,11 @@ package keycloak
 
 import (
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+
 	"testing"
 )
 
-func TestKeycloakPostUpgrade(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Post Upgrade Keycloak Suite")
+func TestKeycloakPostUpgrade(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Post Upgrade Keycloak Suite")
 }

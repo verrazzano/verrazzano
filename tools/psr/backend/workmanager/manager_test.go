@@ -45,19 +45,19 @@ func TestStartWorkerRunners(t *testing.T) {
 				config.PsrNumLoops:   "1",
 			},
 		},
-		{name: "WorkerTypeWriteLogs",
-			workerType: config.WorkerTypeWriteLogs,
+		{name: "WorkerTypeOpsWriteLogs",
+			workerType: config.WorkerTypeOpsWriteLogs,
 			expectErr:  false,
 			envMap: map[string]string{
-				config.PsrWorkerType: config.WorkerTypeWriteLogs,
+				config.PsrWorkerType: config.WorkerTypeOpsWriteLogs,
 				config.PsrNumLoops:   "1",
 			},
 		},
-		{name: "WorkerTypeGetLogs",
-			workerType: config.WorkerTypeGetLogs,
+		{name: "WorkerTypeOpsGetLogs",
+			workerType: config.WorkerTypeOpsGetLogs,
 			expectErr:  false,
 			envMap: map[string]string{
-				config.PsrWorkerType: config.WorkerTypeGetLogs,
+				config.PsrWorkerType: config.WorkerTypeOpsGetLogs,
 				config.PsrNumLoops:   "1",
 			},
 		},
@@ -103,9 +103,9 @@ func TestStartWorkerRunners(t *testing.T) {
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w fakeManagerWorker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		WorkerType:  config.WorkerTypeExample,
-		Description: "Example worker that demonstrates executing a fake use case",
-		MetricsName: "example",
+		WorkerType:    config.WorkerTypeExample,
+		Description:   "Example worker that demonstrates executing a fake use case",
+		MetricsPrefix: "example",
 	}
 }
 
@@ -123,6 +123,10 @@ func (w *fakeManagerWorker) GetMetricList() []prometheus.Metric {
 
 func (w *fakeManagerWorker) WantLoopInfoLogged() bool {
 	return true
+}
+
+func (w *fakeManagerWorker) PreconditionsMet() (bool, error) {
+	return true, nil
 }
 
 func (w *fakeManagerWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
