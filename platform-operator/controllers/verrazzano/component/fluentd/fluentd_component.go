@@ -162,7 +162,7 @@ func (c fluentdComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := checkSecretExists(ctx); err != nil {
 		return err
 	}
-	return f.HelmComponent.PreInstall(ctx)
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 func (c fluentdComponent) Reconcile(ctx spi.ComponentContext) error {
@@ -192,7 +192,7 @@ func (c fluentdComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := checkSecretExists(ctx); err != nil {
 		return err
 	}
-	return f.HelmComponent.PreUpgrade(ctx)
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // Uninstall Fluentd to handle upgrade case where Fluentd was not its own helm chart.
