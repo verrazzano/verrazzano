@@ -150,7 +150,7 @@ func (t *TestFramework) DescribeTable(text string, args ...interface{}) bool {
 	funcType := reflect.TypeOf(body)
 	f := reflect.MakeFunc(funcType, func(args []reflect.Value) (results []reflect.Value) {
 		metrics.Emit(t.Metrics)
-		rv := t.invoke(body)
+		rv := t.invokeWithArgs(body, args)
 		metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
 		return rv
 	})
@@ -209,8 +209,12 @@ func (t *TestFramework) panicHandler() {
 
 // invoke calls body as a function, wrapped with the panicHandler
 func (t *TestFramework) invoke(body interface{}) []reflect.Value {
+	return t.invokeWithArgs(body, []reflect.Value{})
+}
+
+func (t *TestFramework) invokeWithArgs(body interface{}, args []reflect.Value) []reflect.Value {
 	defer t.panicHandler()
-	return reflect.ValueOf(body).Call([]reflect.Value{})
+	return reflect.ValueOf(body).Call(args)
 }
 
 // Context - wrapper function for Ginkgo Context
