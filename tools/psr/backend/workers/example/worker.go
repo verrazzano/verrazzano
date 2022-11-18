@@ -47,10 +47,6 @@ func (w exampleWorker) GetMetricList() []prometheus.Metric {
 	return nil
 }
 
-func (w exampleWorker) SetMetricsDesc() error {
-	return nil
-}
-
 func (w exampleWorker) WantLoopInfoLogged() bool {
 	return true
 }

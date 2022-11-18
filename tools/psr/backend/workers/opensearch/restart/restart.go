@@ -88,17 +88,21 @@ func NewRestartWorker() (spi.Worker, error) {
 		return w, err
 	}
 
-	metricsLabels := map[string]string{openSearchTierMetricName: tier}
+	workerType := config.PsrEnv.GetEnv(config.PsrWorkerType)
+
+	metricsLabels := map[string]string{
+		openSearchTierMetricName:        tier,
+		config.PsrWorkerTypeMetricsName: workerType,
+	}
 	w.restartCount.ConstLabels = metricsLabels
 	w.restartTime.ConstLabels = metricsLabels
 
-	w.metricDescList = []prometheus.Desc{
-		*w.restartCount.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.restartTime.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-	}
+	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
+		&w.restartCount,
+		&w.restartTime,
+	}, metricsLabels, w.GetWorkerDesc().MetricsName)
 
 	return w, nil
-
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
@@ -125,23 +129,6 @@ func (w worker) GetMetricList() []prometheus.Metric {
 		w.restartCount.BuildMetric(),
 		w.restartTime.BuildMetric(),
 	}
-}
-
-func (w worker) SetMetricsDesc() error {
-	tier, err := psropensearch.ValidateOpenSeachTier(openSearchTier)
-	if err != nil {
-		return err
-	}
-
-	metricsLabels := map[string]string{openSearchTierMetricName: tier}
-	w.restartCount.ConstLabels = metricsLabels
-	w.restartTime.ConstLabels = metricsLabels
-
-	w.metricDescList = []prometheus.Desc{
-		*w.restartCount.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.restartTime.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-	}
-	return nil
 }
 
 func (w worker) WantLoopInfoLogged() bool {

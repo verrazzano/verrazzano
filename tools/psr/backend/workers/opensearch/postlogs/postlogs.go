@@ -177,10 +177,6 @@ func (w worker) GetMetricList() []prometheus.Metric {
 	}
 }
 
-func (w worker) SetMetricsDesc() error {
-	return nil
-}
-
 func getBody(logCount int, dataLength int) (io.ReadCloser, int64, error) {
 	var body string
 	for i := 0; i < logCount; i++ {

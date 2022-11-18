@@ -41,9 +41,6 @@ type Worker interface {
 	// WantLoopInfoLogged returns true if the runner should log information for each loop
 	WantLoopInfoLogged() bool
 
-	// SetMetricsDesc sets the worker metrics descriptions
-	SetMetricsDesc() error
-
 	// WorkerMetricsProvider is an interface to get prometheus metrics information for the worker
 	WorkerMetricsProvider
 }

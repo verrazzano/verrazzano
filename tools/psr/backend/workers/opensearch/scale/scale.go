@@ -88,6 +88,39 @@ func NewScaleWorker() (spi.Worker, error) {
 		},
 	}
 
+	tier, err := psropensearch.ValidateOpenSeachTier(openSearchTier)
+	if err != nil {
+		return w, err
+	}
+
+	workerType, err := psropensearch.ValidateOpenSeachTier(config.PsrWorkerType)
+	if err != nil {
+		return w, err
+	}
+
+	metricsLabels := map[string]string{
+		openSearchTierMetricName:        tier,
+		config.PsrWorkerTypeMetricsName: workerType,
+	}
+	w.scaleOutCountTotal.ConstLabels = metricsLabels
+	w.scaleInCountTotal.ConstLabels = metricsLabels
+	w.scaleOutSeconds.ConstLabels = metricsLabels
+	w.scaleInSeconds.ConstLabels = metricsLabels
+
+	w.metricDescList = []prometheus.Desc{
+		*w.scaleOutCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.scaleInCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.scaleOutSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.scaleInSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+	}
+
+	w.metricDescList = []prometheus.Desc{
+		*w.scaleOutCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.scaleInCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.scaleOutSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.scaleInSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+	}
+
 	return w, nil
 }
 
@@ -119,27 +152,6 @@ func (w worker) GetMetricList() []prometheus.Metric {
 		w.scaleOutSeconds.BuildMetric(),
 		w.scaleInSeconds.BuildMetric(),
 	}
-}
-
-func (w worker) SetMetricsDesc() error {
-	tier, err := psropensearch.ValidateOpenSeachTier(openSearchTier)
-	if err != nil {
-		return err
-	}
-
-	metricsLabels := map[string]string{openSearchTierMetricName: tier}
-	w.scaleOutCountTotal.ConstLabels = metricsLabels
-	w.scaleInCountTotal.ConstLabels = metricsLabels
-	w.scaleOutSeconds.ConstLabels = metricsLabels
-	w.scaleInSeconds.ConstLabels = metricsLabels
-
-	w.metricDescList = []prometheus.Desc{
-		*w.scaleOutCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.scaleInCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.scaleOutSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.scaleInSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-	}
-	return nil
 }
 
 func (w worker) WantLoopInfoLogged() bool {
