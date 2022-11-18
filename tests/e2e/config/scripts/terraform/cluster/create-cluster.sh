@@ -127,11 +127,11 @@ fi
 
 # add bastion ingress-security-rule
 cat <<EOF > new.bastion-ingress-security-rules.json
-[{"description": "allow bastion access to control-plane","is-stateless": false,"direction": "INGRESS","protocol": "6","source": "$BASTION_SUBNET_CIDR","tcp-options": {"destination-port-range": "6443"}}]
+[{"description": "allow bastion access to control-plane","is-stateless": false,"direction": "INGRESS","protocol": "6","source": "$BASTION_SUBNET_CIDR","tcp-options": {"destination-port-range": {"max": 6443,"min": 6443}}}]
 EOF
 
 # update private_workers_seclist
-oci network nsg rules add --nsg-id "${CP_NSG_ID}" --security-rules "file://${PWD}/new.bastion-ingress-security-rules.json"
+oci --debug network nsg rules add --nsg-id "${CP_NSG_ID}" --security-rules "file://${PWD}/new.bastion-ingress-security-rules.json"
 if [ $? -eq 0 ]; then
   echo "Updated the OKE control plane NSG to allow bastion access"
 else
