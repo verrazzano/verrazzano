@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -24,7 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -99,7 +99,7 @@ func NewComponent() spi.Component {
 // IsEnabled returns true only if the Jaeger Operator is explicitly enabled
 // in the Verrazzano CR.
 func (c jaegerOperatorComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsJaegerOperatorEnabled(effectiveCR)
+	return vzcr.IsJaegerOperatorEnabled(effectiveCR)
 }
 
 // IsReady checks if the Jaeger Operator deployment is ready
@@ -140,6 +140,9 @@ func (c jaegerOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
 // PostInstall creates the ingress resource for exposing Jaeger UI service.
 func (c jaegerOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := c.createOrUpdateJaegerResources(ctx); err != nil {
+		return err
+	}
+	if _, err := createOrUpdateMCJaeger(ctx.Client()); err != nil {
 		return err
 	}
 	// these need to be set for helm component post install processing
@@ -240,6 +243,24 @@ func (c jaegerOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
 	return c.HelmComponent.Install(ctx)
 }
 
+// Reconcile configures the managed cluster or local cluster Jaeger instance, if Jaeger operator
+// is installed.
+func (c jaegerOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
+	installed, err := c.IsInstalled(ctx)
+	if !installed {
+		return err
+	}
+	created, err := createOrUpdateMCJaeger(ctx.Client())
+	if created || err != nil {
+		return err
+	}
+	// create the local cluster Jaeger instance if we did not create the managed cluster instance
+	if err := createJaegerSecrets(ctx); err != nil {
+		return err
+	}
+	return c.Install(ctx)
+}
+
 // IsInstalled checks if jaeger is installed
 func (c jaegerOperatorComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	deployment := &appsv1.Deployment{}
@@ -278,7 +299,7 @@ func (c jaegerOperatorComponent) createOrUpdateJaegerResources(ctx spi.Component
 	if err != nil {
 		return err
 	}
-	if vzconfig.IsNGINXEnabled(ctx.EffectiveCR()) && jaegerCREnabled {
+	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) && jaegerCREnabled {
 		if err := createOrUpdateJaegerIngress(ctx, constants.VerrazzanoSystemNamespace); err != nil {
 			return err
 		}

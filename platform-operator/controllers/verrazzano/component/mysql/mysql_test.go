@@ -1976,6 +1976,7 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod, mySQLOperatorPod).Build()
 	mysqlComp := NewComponent().(mysqlComponent)
+	mysqlComp.LastTimeReadinessGateRepairStarted = &time.Time{}
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
 
 	// First time calling, expect timer to get initialized

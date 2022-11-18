@@ -24,6 +24,11 @@ type WorkerDesc struct {
 
 // Worker is an interface that must be implemented by all workers
 type Worker interface {
+
+	// PreconditionsMet Checks for any worker preconditions to ensure they are met before DoWork() can be called;
+	// returns true if any preconditions are met, or an error if there is an unrecoverable issue
+	PreconditionsMet() (bool, error)
+
 	// GetWorkerDesc returns the WorkerDesc for the worker
 	GetWorkerDesc() WorkerDesc
 

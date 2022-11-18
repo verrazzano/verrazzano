@@ -111,6 +111,10 @@ func (w worker) WantLoopInfoLogged() bool {
 	return false
 }
 
+func (w worker) PreconditionsMet() (bool, error) {
+	return true, nil
+}
+
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	var lc, ls, lf int64
 	//increment getRequestsCountTotal

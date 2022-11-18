@@ -7,11 +7,10 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 // TestMetricsBindingPreUpgrade tests the deployment of resources before upgrade to verify the Metrics Binding upgrade
-func TestMetricsBindingPreUpgrade(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Metrics Binding Pre-Upgrade Test Suite")
+func TestMetricsBindingPreUpgrade(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Metrics Binding Pre-Upgrade Test Suite")
 }

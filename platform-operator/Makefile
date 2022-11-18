@@ -106,6 +106,7 @@ manifests: platform-manifests
 mock-gen:
 	mockgen -destination=mocks/component_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi ComponentContext,ComponentInfo,ComponentInstaller,ComponentUpgrader,Component
 	mockgen -destination=mocks/controller_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
+	mockgen -destination=mocks/runtime_controller_mock.go -package=mocks -copyright_file=hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/controller Controller
 
 # find or download go-bindata
 # download go-bindata if necessary
@@ -210,7 +211,7 @@ create-test-deploy:
 	if [ -n "${VZ_DEV_IMAGE}" ]; then \
 		IMAGE=$$(echo $${VZ_DEV_IMAGE} | cut -f 1 -d :) ; \
 		IMAGE_TAG=$$(echo $${VZ_DEV_IMAGE} | cut -f 2 -d :) ; \
-		DOCKER_IMAGE_FULLNAME=$${IMAGE} DOCKER_IMAGE_TAG=$${IMAGE_TAG} VERRAZZANO_APPLICATION_OPERATOR_IMAGE=$${VZ_APP_OP_IMAGE} $(MAKE) generate-operator-yaml ; \
+		DOCKER_IMAGE_FULLNAME=$${IMAGE} DOCKER_IMAGE_TAG=$${IMAGE_TAG} VERRAZZANO_APPLICATION_OPERATOR_IMAGE=$${VZ_APP_OP_IMAGE} VERRAZZANO_CLUSTER_OPERATOR_IMAGE=$${VZ_CLUSTER_OP_IMAGE} $(MAKE) generate-operator-yaml ; \
 	else \
 		echo "VZ_DEV_IMAGE not defined, please set it to a valid image name/tag"; \
 	fi

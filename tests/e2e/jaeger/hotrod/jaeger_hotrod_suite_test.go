@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 var namespace string
@@ -17,7 +16,7 @@ func init() {
 	flag.StringVar(&namespace, "namespace", generatedNamespace, "namespace is the app namespace")
 }
 
-func TestJaegerHotrodTracing(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Jaeger Hotrod Application Tracing Suite")
+func TestJaegerHotrodTracing(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Jaeger Hotrod Application Tracing Suite")
 }

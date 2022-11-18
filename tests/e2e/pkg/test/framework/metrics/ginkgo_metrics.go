@@ -17,12 +17,11 @@ import (
 
 const (
 	Duration          = "duration"
-	Started           = "started"
 	Status            = "status"
 	attempts          = "attempts"
 	test              = "test"
-	testFilename      = "file_name"
-	testLineNumber    = "line_number"
+	codeLocation      = "code_location"
+	stageName         = "stage_name"
 	BuildURL          = "build_url"
 	JenkinsJob        = "jenkins_job"
 	BranchName        = "branch_name"
@@ -38,6 +37,7 @@ const (
 	searchURL        = "SEARCH_HTTP_ENDPOINT"
 	searchPW         = "SEARCH_PASSWORD"
 	searchUser       = "SEARCH_USERNAME"
+	stageNameEnv     = "STAGE_NAME"
 )
 
 var logger = internalLogger()
@@ -103,44 +103,40 @@ func NewLogger(pkg string, ind string, paths ...string) (*zap.SugaredLogger, err
 }
 
 func configureLoggerWithJenkinsEnv(log *zap.SugaredLogger) *zap.SugaredLogger {
-
-	kubernetesVersion := os.Getenv("K8S_VERSION_LABEL")
-	if kubernetesVersion != "" {
-		log = log.With(KubernetesVersion, kubernetesVersion)
-	}
-
-	branchName := os.Getenv("BRANCH_NAME")
-	if branchName != "" {
-		log = log.With(BranchName, branchName)
-	}
-
-	buildURL := os.Getenv("BUILD_URL")
-	if buildURL != "" {
-		buildURL = strings.Replace(buildURL, "%252F", "/", 1)
-		log = log.With(BuildURL, buildURL)
-	}
-
-	jobName := os.Getenv("JOB_NAME")
-	if jobName != "" {
-		jobName = strings.Replace(jobName, "%252F", "/", 1)
-		jobNameSplit := strings.Split(jobName, "/")
-		jobPipeline := jobNameSplit[0]
-		log = log.With(JenkinsJob, jobPipeline)
-	}
-
-	gitCommit := os.Getenv("GIT_COMMIT")
-	//Tagging commit with the branch.
-	if gitCommit != "" {
-		gitCommitAndBranch := branchName + "/" + gitCommit
-		log = log.With(CommitHash, gitCommitAndBranch)
-	}
-
-	testEnv := os.Getenv("TEST_ENV")
-	if testEnv != "" {
-		log = log.With(TestEnv, testEnv)
-	}
-
+	const separator = "/"
+	log, _ = withEnvVar(log, KubernetesVersion, "K8S_VERSION_LABEL")
+	log, branchName := withEnvVar(log, BranchName, "BRANCH_NAME")
+	log, _ = withEnvVarMutate(log, BuildURL, "BUILD_URL", func(buildURL string) string {
+		buildURL, _ = neturl.QueryUnescape(buildURL)
+		return buildURL
+	})
+	log, _ = withEnvVarMutate(log, JenkinsJob, "JOB_NAME", func(jobName string) string {
+		jobName, _ = neturl.QueryUnescape(jobName)
+		jobNameSplit := strings.Split(jobName, separator)
+		return jobNameSplit[0]
+	})
+	log, _ = withEnvVarMutate(log, CommitHash, "GIT_COMMIT", func(gitCommit string) string {
+		return branchName + separator + gitCommit
+	})
+	log, _ = withEnvVar(log, TestEnv, "TEST_ENV")
 	return log
+}
+
+// withEnvVarMutate enriches the logger with the mutated value of envVar, if it exists
+func withEnvVarMutate(log *zap.SugaredLogger, withKey, envVar string, mutateFunc func(string) string) (*zap.SugaredLogger, string) {
+	val := os.Getenv(envVar)
+	if len(val) > 0 {
+		val = mutateFunc(val)
+		log = log.With(withKey, val)
+	}
+	return log, val
+}
+
+// withEnvVar enriches the logger with the value of envVar, if it exists in the environment
+func withEnvVar(log *zap.SugaredLogger, withKey, envVar string) (*zap.SugaredLogger, string) {
+	return withEnvVarMutate(log, withKey, envVar, func(val string) string {
+		return val
+	})
 }
 
 // configureOutputs configures the search output path if it is available
@@ -161,28 +157,40 @@ func configureOutputs(ind string) ([]string, error) {
 	return outputs, nil
 }
 
+func EmitFail(log *zap.SugaredLogger) {
+	spec := ginkgo.CurrentSpecReport()
+	log = log.With(Status, types.SpecStateFailed)
+	emitInternal(log, spec)
+}
+
 func Emit(log *zap.SugaredLogger) {
 	spec := ginkgo.CurrentSpecReport()
-	if spec.State != types.SpecStateInvalid {
+	if spec.State == types.SpecStatePassed {
 		log = log.With(Status, spec.State)
 	}
+	emitInternal(log, spec)
+}
+
+func emitInternal(log *zap.SugaredLogger, spec ginkgo.SpecReport) {
 	t := spec.FullText()
 	l := spec.Labels()
-	filename, linenumber := extractLastCodeLocation(spec)
-	log.With(attempts, spec.NumAttempts).
-		With(test, t).
-		With(testFilename, filename).
-		With(testLineNumber, linenumber).
-		With(Label, l).
+	log = withCodeLocation(log, spec)
+	log, _ = withEnvVar(log, stageName, stageNameEnv)
+	log.With(attempts, spec.NumAttempts,
+		test, t,
+		Label, l).
 		Info()
 }
 
-func extractLastCodeLocation(spec ginkgo.SpecReport) (string, int) {
-	if len(spec.ContainerHierarchyLocations) < 1 {
-		return "", -1
+func withCodeLocation(log *zap.SugaredLogger, spec ginkgo.SpecReport) *zap.SugaredLogger {
+	filePath := spec.LeafNodeLocation.FileName
+	if len(filePath) < 1 {
+		return log
 	}
-	location := spec.ContainerHierarchyLocations[len(spec.ContainerHierarchyLocations)-1]
-	return location.FileName, location.LineNumber
+	lineNumber := spec.LeafNodeLocation.LineNumber
+	split := strings.Split(filePath, "/")
+	fileName := split[len(split)-1]
+	return log.With(codeLocation, fmt.Sprintf("%s:%d", fileName, lineNumber))
 }
 
 func DurationMillis() int64 {

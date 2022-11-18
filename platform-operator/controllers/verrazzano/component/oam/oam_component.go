@@ -5,12 +5,13 @@ package oam
 
 import (
 	"fmt"
+	"path/filepath"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -63,7 +64,7 @@ func NewComponent() spi.Component {
 
 // IsEnabled OAM-specific enabled check for installation
 func (c oamComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsOAMEnabled(effectiveCR)
+	return vzcr.IsOAMEnabled(effectiveCR)
 }
 
 // IsReady component check

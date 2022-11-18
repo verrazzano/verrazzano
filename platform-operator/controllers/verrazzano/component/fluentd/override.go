@@ -6,17 +6,18 @@ package fluentd
 import (
 	"crypto/sha256"
 	"fmt"
+	"io/fs"
+	"os"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"io/fs"
-	"os"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
@@ -135,7 +136,7 @@ func appendFluentdLogging(client clipkg.Client, fluentd *vzapi.FluentdComponent,
 
 func appendFluentdOverrides(client clipkg.Client, effectiveCR *vzapi.Verrazzano, overrides *fluentdComponentValues) error {
 	overrides.Fluentd = &fluentdValues{
-		Enabled: vzconfig.IsFluentdEnabled(effectiveCR),
+		Enabled: vzcr.IsFluentdEnabled(effectiveCR),
 	}
 	fluentd := effectiveCR.Spec.Components.Fluentd
 	if fluentd != nil {
@@ -169,14 +170,13 @@ func appendFluentdOverrides(client clipkg.Client, effectiveCR *vzapi.Verrazzano,
 	// Force the override to be the internal ES secret if the legacy ES secret is being used.
 	// This may be the case during an upgrade from a version that was not using the ES internal password for Fluentd.
 	if overrides.Logging != nil {
-		if overrides.Logging.OpenSearchURL == globalconst.LegacyElasticsearchSecretName {
+		if overrides.Logging.OpenSearchURL == globalconst.LegacyOpensearchSecretName {
 			overrides.Logging.CredentialsSecret = globalconst.VerrazzanoESInternal
 		}
 	}
-
 	overrides.Monitoring = &Monitoring{
-		Enabled:       vzconfig.IsPrometheusOperatorEnabled(effectiveCR),
-		UseIstioCerts: vzconfig.IsIstioEnabled(effectiveCR),
+		Enabled:       vzcr.IsPrometheusOperatorEnabled(effectiveCR),
+		UseIstioCerts: vzcr.IsIstioEnabled(effectiveCR),
 	}
 	return nil
 }

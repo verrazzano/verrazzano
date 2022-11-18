@@ -5,6 +5,10 @@ package workmanager
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/restart"
+	"sync"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	metrics2 "github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
@@ -13,8 +17,8 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/http/get"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/getlogs"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/postlogs"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/scale"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/writelogs"
-	"sync"
 )
 
 var startMetricsFunc = metrics2.StartMetricsServerOrDie
@@ -56,6 +60,11 @@ func StartWorkerRunners(log vzlog.VerrazzanoLogger) error {
 	mProviders = append(mProviders, worker)
 	go startMetricsFunc(mProviders)
 
+	// Wait for any dependencies to be resolved before continuing
+	if err := waitForPreconditions(log, worker); err != nil {
+		return err
+	}
+
 	// run the worker in go-routine to completion (usually forever)
 	var wg sync.WaitGroup
 	for i := 1; i <= conf.WorkerThreadCount; i++ {
@@ -67,6 +76,23 @@ func StartWorkerRunners(log vzlog.VerrazzanoLogger) error {
 		}()
 	}
 	wg.Wait()
+	return nil
+}
+
+// waitForPreconditions Waits indefinitely for any worker preconditions to be met
+func waitForPreconditions(log vzlog.VerrazzanoLogger, worker spi.Worker) error {
+	for {
+		log.Progressf("Waiting for worker preconditions to be met")
+		readyToExecute, err := worker.PreconditionsMet()
+		if err != nil {
+			return err
+		}
+		if readyToExecute {
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
+	log.Progressf("Worker preconditions be met, continuing")
 	return nil
 }
 
@@ -83,6 +109,10 @@ func getWorker(wt string) (spi.Worker, error) {
 		return getlogs.NewGetLogsWorker()
 	case config.WorkerTypePostLogs:
 		return postlogs.NewPostLogsWorker()
+	case config.WorkerTypeScale:
+		return scale.NewScaleWorker()
+	case config.WorkerTypeRestart:
+		return restart.NewRestartWorker()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}

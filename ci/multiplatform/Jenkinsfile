@@ -389,7 +389,7 @@ pipeline {
                                 runGinkgo('examples/sock-shop')
                             }
                         }
-                        stage('examples spring') {
+                        stage('examples springboot') {
                             when {
                                 expression {params.RUN_EXAMPLE_TESTS == true}
                             }
@@ -405,7 +405,7 @@ pipeline {
                                 runGinkgo('examples/hello-helidon')
                             }
                         }
-                                    stage('examples bobs') {
+                                    stage('examples bobs books') {
                             when {
                                 expression {params.RUN_EXAMPLE_TESTS == true}
                             }

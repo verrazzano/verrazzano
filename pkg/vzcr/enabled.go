@@ -1,7 +1,7 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package vzconfig
+package vzcr
 
 import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -358,6 +358,20 @@ func IsVerrazzanoComponentEnabled(cr runtime.Object) bool {
 	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
 		if vzv1beta1 != nil && vzv1beta1.Spec.Components.Verrazzano != nil && vzv1beta1.Spec.Components.Verrazzano.Enabled != nil {
 			return *vzv1beta1.Spec.Components.Verrazzano.Enabled
+		}
+	}
+	return true
+}
+
+// IsClusterOperatorEnabled returns false only if Cluster Operator is explicitly disabled in the CR
+func IsClusterOperatorEnabled(cr runtime.Object) bool {
+	if vzv1alpha1, ok := cr.(*vzapi.Verrazzano); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.ClusterOperator != nil && vzv1alpha1.Spec.Components.ClusterOperator.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.ClusterOperator.Enabled
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.ClusterOperator != nil && vzv1beta1.Spec.Components.ClusterOperator.Enabled != nil {
+			return *vzv1beta1.Spec.Components.ClusterOperator.Enabled
 		}
 	}
 	return true

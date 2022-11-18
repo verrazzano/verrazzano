@@ -10,8 +10,6 @@ import (
 )
 
 func RunE2ETests(t *testing.T) {
-
 	gomega.RegisterFailHandler(ginkgo.Fail)
-
 	ginkgo.RunSpecs(t, "Verrazzano e2e tests")
 }

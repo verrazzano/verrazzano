@@ -88,6 +88,7 @@ var excludePodsVS = []string{
 	"oam-kubernetes-runtime",
 	"verrazzano-application-operator",
 	"verrazzano-monitoring-operator",
+	"verrazzano-cluster-operator",
 	"verrazzano-operator",
 }
 

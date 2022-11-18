@@ -18,14 +18,13 @@ spec:
         app: psr-worker
         version: v1
     spec:
-      {{- if .Values.imagePullSecrets }}
-      imagePullSecrets:
-      {{ toYaml .Values.imagePullSecrets | indent 2 }}
-      {{- end }}
       containers:
         - name: psr-backend
           image: {{  .Values.imageName }}
           imagePullPolicy: {{  .Values.imagePullPolicy }}
+          {{- with (first .Values.imagePullSecrets) }}
+          imagePullSecret: {{ .name }}
+          {{- end }}
           env:
             {{- range $key, $val := .Values.global.envVars }}
             - name: {{ $key }}
