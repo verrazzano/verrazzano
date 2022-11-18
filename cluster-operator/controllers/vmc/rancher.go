@@ -110,7 +110,7 @@ func registerManagedClusterWithRancher(rc *RancherConfig, clusterName string, ra
 		}
 	}
 
-	log.Once("Getting registration YAML from Rancher for cluster %s with id %s", clusterName, clusterID)
+	log.Oncef("Getting registration YAML from Rancher for cluster %s with id %s", clusterName, clusterID)
 	regYAML, err := getRegistrationYAMLFromRancher(rc, clusterID, log)
 	if err != nil {
 		log.Errorf("Failed to get registration YAML from Rancher: %v", err)

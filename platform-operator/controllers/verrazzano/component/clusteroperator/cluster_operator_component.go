@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -54,6 +55,15 @@ func NewComponent() spi.Component {
 			},
 		},
 	}
+}
+
+// PreUpgrade processing for the cluster-operator
+func (c clusterOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	err := common.ApplyCRDYaml(ctx, config.GetHelmClusterOpChartsDir())
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // IsReady component check
