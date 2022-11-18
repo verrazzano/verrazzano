@@ -48,7 +48,6 @@ clean: ## remove coverage and test results
 	find . -name \*-test-result.xml -exec rm {} \;
 	find . -name coverage.xml -exec rm {} \;
 	find . -name unit-test-coverage-number.txt -exec rm {} \;
-	find . -name exit_status.txt -exec rm {} \;
 
 ##@ Build
 

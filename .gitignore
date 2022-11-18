@@ -32,7 +32,6 @@ coverage.html
 coverage.xml
 coverage.raw.cov
 unit-test-coverage-number.txt
-exit_status.txt
 out/
 **/test-report.xml
 **/*test-result.xml

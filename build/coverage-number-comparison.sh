@@ -5,11 +5,11 @@
 #
 
 #Get latest line-rate from master/release for comparison
-OBJECT_URL=https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/abehern/vz-7560-Enforce-UT-branch-coverage-gt-or-eq-master/unit-test-coverage-number.txt
+LOCAL_BRANCH_NAME=$(git branch  --no-color  | grep -E '^\*' | sed 's/\*[^a-z]*//g')
+OBJECT_URL=https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/"$LOCAL_BRANCH_NAME"/unit-test-coverage-number.txt
 COV_TXT=unit-test-coverage-number.txt
 COV_XML=coverage.xml
 
-EXIT_STATUS=$?
 
 if [ ! -f "$COV_TXT" ]
 then
@@ -22,8 +22,7 @@ fi
 
 compare-coverage-numbers(){
   MASTER_LINE_RATE=$(cat "$COV_TXT")
-  BRANCH_LINE_RATE=$(grep -i '<coverage' "$COV_XML" | awk -F' ' '{print $2}' | \
-    sed -E 's/line-rate=\"(.*)\"/\1/')
+  BRANCH_LINE_RATE=$(grep -i '<coverage' "$COV_XML" | awk -F' ' '{print $2}' | sed -E 's/line-rate=\"(.*)\"/\1/')
 
   RATE=$(echo "$BRANCH_LINE_RATE >= $MASTER_LINE_RATE" | bc)
   if [ "$RATE" -eq 1 ]
@@ -31,12 +30,14 @@ compare-coverage-numbers(){
     echo "Branch-line-rate: $BRANCH_LINE_RATE is gte to Master-line-rate: $MASTER_LINE_RATE"
     echo "Writing $BRANCH_LINE_RATE to $COV_TXT"
     echo "$BRANCH_LINE_RATE" > "$COV_TXT"
-    echo 0 > "$EXIT_TXT"
+    echo "Putting " "$COV_TXT" " into OCI Object Storage..."
+    oci --region us-phoenix-1 os object put --force --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name "$LOCAL_BRANCH_NAME"/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
+    exit 0
 
   else
     echo "WARNING: Unit Test coverage(line-rate) does NOT pass"
     echo "Branch-line-rate: $BRANCH_LINE_RATE is lte to Master-line-rate: $MASTER_LINE_RATE"
-    echo 1 > "$EXIT_TXT"
+    exit 1
   fi
 }
 compare-coverage-numbers
