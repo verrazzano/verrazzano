@@ -306,6 +306,38 @@ spec:
     - Ingress
 {{- if .Values.rancher.enabled }}
 ---
+# Network policy for ArgoCD UI/API
+# Ingress: allow nginx ingress
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: argocd-netpolicy
+  namespace: argocd
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-server
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: argocd
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ingress-controller
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 8080
+---
 # Network policy for Rancher UI/API
 # Ingress: allow nginx ingress
 # Egress: allow all
@@ -630,6 +662,12 @@ spec:
           podSelector:
             matchLabels:
               name: mysql-operator
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: argocd
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: argocd
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: verrazzano-backup

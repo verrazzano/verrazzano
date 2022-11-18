@@ -113,6 +113,12 @@ const KeycloakNamespace = "keycloak"
 // KeycloakIngress - the name of the ingress for Keycloak console and api
 const KeycloakIngress = "keycloak"
 
+// ArgoCDNamespace - the name of the ArgoCD namespace
+const ArgoCDNamespace = "argocd"
+
+// ArgoCDIngress - the name of the ingress for Argo CD
+const ArgoCDIngress = "argocd-server"
+
 // VerrazzanoAuthProxyServiceName is the name of the Verrazzano auth proxy service
 const VerrazzanoAuthProxyServiceName = "verrazzano-authproxy"
 

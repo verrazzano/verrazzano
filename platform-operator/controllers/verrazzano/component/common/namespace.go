@@ -63,6 +63,12 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 		}
 	}
 
+	if vzcr.IsArgoCDEnabled(ctx.EffectiveCR()) {
+		if err := namespace.CreateArgoCDNamespace(ctx.Client(), istioInject); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", constants.ArgoCDNamespace, err)
+		}
+	}
+
 	// cattle-system NS must be created since the rancher NetworkPolicy, which is always installed, requires it
 	if err := namespace.CreateRancherNamespace(ctx.Client()); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", globalconst.RancherSystemNamespace, err)

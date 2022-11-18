@@ -5,6 +5,7 @@ package metricsexporter
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"net/http"
 	"time"
 
@@ -88,6 +89,7 @@ const (
 	veleroMetricName               metricName = velero.ComponentName
 	rancherBackupMetricName        metricName = rancherbackup.ComponentName
 	networkpoliciesMetricName      metricName = networkpolicies.ComponentName
+	argoCDMetricName               metricName = argocd.ComponentName
 )
 
 func init() {
@@ -186,6 +188,7 @@ func initMetricComponentMap() map[metricName]*MetricsComponent {
 		veleroMetricName:               newMetricsComponent("velero"),
 		rancherBackupMetricName:        newMetricsComponent("rancher-backup"),
 		networkpoliciesMetricName:      newMetricsComponent("networkpolicies"),
+		argoCDMetricName:               newMetricsComponent("argocd"),
 	}
 }
 

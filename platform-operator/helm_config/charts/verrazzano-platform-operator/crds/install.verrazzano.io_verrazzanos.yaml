@@ -88,6 +88,42 @@ spec:
                           type: object
                         type: array
                     type: object
+                  argocd:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
                   authProxy:
                     properties:
                       enabled:
@@ -4075,6 +4111,8 @@ spec:
                 type: array
               instance:
                 properties:
+                  argoCDUrl:
+                    type: string
                   consoleUrl:
                     type: string
                   elasticUrl:
@@ -4164,6 +4202,42 @@ spec:
                               - key
                               type: object
                               x-kubernetes-map-type: atomic
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                          type: object
+                        type: array
+                    type: object
+                  argocd:
+                    properties:
+                      enabled:
+                        type: boolean
+                      monitorChanges:
+                        type: boolean
+                      overrides:
+                        items:
+                          properties:
+                            configMapRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                            secretRef:
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                optional:
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
                             values:
                               x-kubernetes-preserve-unknown-fields: true
                           type: object
@@ -6908,6 +6982,8 @@ spec:
                 type: array
               instance:
                 properties:
+                  argoCDUrl:
+                    type: string
                   consoleUrl:
                     type: string
                   grafanaUrl:
