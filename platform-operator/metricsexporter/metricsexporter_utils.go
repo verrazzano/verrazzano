@@ -420,13 +420,12 @@ func GetMetricComponent(name metricName) (*MetricsComponent, error) {
 }
 
 // SetComponentAvailabilityMetric updates the components availability status metric
-func SetComponentAvailabilityMetric(name string, availability bool) error {
+func SetComponentAvailabilityMetric(name string, availability vzapi.ComponentAvailability) error {
 	compMetric, err := GetMetricComponent(metricName(name))
 	if err != nil {
 		return err
 	}
-	zap.S().Infof("Updating %v with availability status for component %s", compMetric, name)
-	MetricsExp.internalData.componentHealth.SetComponentHealth(compMetric.metricName, availability)
+	MetricsExp.internalData.componentHealth.SetComponentHealth(compMetric.metricName, availability == vzapi.ComponentAvailable)
 
 	return nil
 }

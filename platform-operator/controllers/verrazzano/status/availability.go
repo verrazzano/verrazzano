@@ -70,18 +70,13 @@ func (p *HealthChecker) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazza
 			a := p.getComponentAvailability(component, componentStatus.State, ctx)
 			if a.available == vzapi.ComponentAvailable {
 				countAvailable++
-				// update the component availability metric
-				err := metricsexporter.SetComponentAvailabilityMetric(component.Name(), true)
-				if err != nil {
-					return nil, err
-				}
-			} else {
-				err := metricsexporter.SetComponentAvailabilityMetric(component.Name(), false)
-				if err != nil {
-					return nil, err
-				}
-
 			}
+			// update the component availability metric
+			err := metricsexporter.SetComponentAvailabilityMetric(component.Name(), a.available)
+			if err != nil {
+				return nil, err
+			}
+
 			status.Components[a.name] = a.available
 		}
 	}
