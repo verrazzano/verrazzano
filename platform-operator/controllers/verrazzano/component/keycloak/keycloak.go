@@ -1608,7 +1608,7 @@ func DoesDeprecatedIngressHostExist(ctx spi.ComponentContext, namespace string) 
 
 	listOptions := &client.ListOptions{Namespace: namespace}
 	err := ctx.Client().List(context.TODO(), ingressList, listOptions)
-	if err != nil && len(ingressList.Items) > 0 {
+	if err != nil && len(ingressList.Items) == 0 {
 		return false, err
 	}
 	for _, ingress := range ingressList.Items {
