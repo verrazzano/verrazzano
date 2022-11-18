@@ -266,18 +266,18 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano
                     make precommit
                 """
-                    }
-                    post {
-                        failure {
-                            script {
-                                SKIP_TRIGGERED_TESTS = true
-                            }
-                        }
                         script{
                             if (UT_COVERAGE_TEST == true){
                                 sh """
                                 oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
                                 """
+                            }
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                SKIP_TRIGGERED_TESTS = true
                             }
                         }
                         always {
