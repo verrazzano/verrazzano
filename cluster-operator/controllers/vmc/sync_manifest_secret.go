@@ -70,22 +70,27 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 		rc, err := newRancherConfig(r.Client, r.log)
 		if err != nil {
 			msg := "Failed to create Rancher API client"
-			r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, "", msg)
 			r.log.Infof("Unable to connect to Rancher API on admin cluster, manifest secret will not contain Rancher YAML: %v", err)
+			r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, "", msg)
 		} else {
 			var rancherYAML string
 			rancherYAML, clusterID, err = registerManagedClusterWithRancher(rc, vmc.Name, vmc.Status.RancherRegistration.ClusterID, r.log)
 			if err != nil {
 				msg := "Failed to register managed cluster with Rancher"
-				r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, vmc.Status.RancherRegistration.ClusterID, msg)
+				// Even if there was a failure, if the cluster id was retrieved and is currently empty
+				// on the VMC, populate it during status update
 				r.log.Info("Failed to register managed cluster, manifest secret will not contain Rancher YAML")
+				r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, clusterID, msg)
 			} else if len(rancherYAML) == 0 {
 				// we successfully called the Rancher API but for some reason the returned registration manifest YAML is empty,
 				// set the status on the VMC and return an error so we reconcile again
 				r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationFailed, clusterID, "Empty Rancher manifest YAML")
-				return vzVMCWaitingForClusterID, r.log.ErrorNewErr("Failed retrieving Rancher manifest, YAML is an empty string")
+				msg := fmt.Sprintf("Failed retrieving Rancher manifest, YAML is an empty string for cluster ID %s", clusterID)
+				r.log.Infof(msg)
+				return vzVMCWaitingForClusterID, r.log.ErrorNewErr(msg)
 			} else {
-				msg := "Registration of managed cluster completed successfully"
+				msg := fmt.Sprintf("Registration of managed cluster completed successfully for cluster %s with ID %s", vmc.Name, clusterID)
+				r.log.Once(msg)
 				r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationCompleted, clusterID, msg)
 				sb.WriteString(rancherYAML)
 			}
@@ -177,7 +182,10 @@ func (r *VerrazzanoManagedClusterReconciler) updateRancherStatus(ctx context.Con
 		return
 	}
 	vmc.Status.RancherRegistration.Status = status
-	vmc.Status.RancherRegistration.ClusterID = rancherClusterID
+	// don't wipe out existing cluster id with empty string
+	if rancherClusterID != "" {
+		vmc.Status.RancherRegistration.ClusterID = rancherClusterID
+	}
 	vmc.Status.RancherRegistration.Message = message
 
 	// Fetch the existing VMC to avoid conflicts in the status update
