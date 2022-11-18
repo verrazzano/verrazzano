@@ -66,15 +66,13 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 		return err
 	}
 
-	// Get the v1alpha1 if present and convert them to v1beta1 for use in the report
+	// Loop through the existing v1alpha1 Verrazzano and convert them to v1beta1
+	// Add them to the vz list so that the bug report is not skipped
 	vzA1 := v1alpha1.VerrazzanoList{}
 	err = client.List(context.TODO(), &vzA1)
 	if err != nil && !meta.IsNoMatchError(err) {
 		return err
 	}
-
-	// Loop through the existing v1alpha1 Verrazzano and convert them to v1beta1
-	// Add them to the vz list so that the bug report is not skipped
 	if len(vzA1.Items) != 0 {
 		for _, vzA1Item := range vzA1.Items {
 			convertedVZ := v1beta1.Verrazzano{}
