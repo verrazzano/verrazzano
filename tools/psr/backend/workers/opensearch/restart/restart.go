@@ -78,6 +78,25 @@ func NewRestartWorker() (spi.Worker, error) {
 		},
 	}
 
+	// add the worker config
+	if err = config.PsrEnv.LoadFromEnv(w.GetEnvDescList()); err != nil {
+		return w, err
+	}
+
+	tier, err := psropensearch.ValidateOpenSeachTier(openSearchTier)
+	if err != nil {
+		return w, err
+	}
+
+	metricsLabels := map[string]string{openSearchTierMetricName: tier}
+	w.restartCount.ConstLabels = metricsLabels
+	w.restartTime.ConstLabels = metricsLabels
+
+	w.metricDescList = []prometheus.Desc{
+		*w.restartCount.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.restartTime.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+	}
+
 	return w, nil
 
 }

@@ -39,17 +39,17 @@ func StartWorkerRunners(log vzlog.VerrazzanoLogger) error {
 		log.Error(err)
 		return err
 	}
-	// add the worker config
-	if err = config.PsrEnv.LoadFromEnv(worker.GetEnvDescList()); err != nil {
-		log.Error(err)
-		return err
-	}
+	//// add the worker config
+	//if err = config.PsrEnv.LoadFromEnv(worker.GetEnvDescList()); err != nil {
+	//	log.Error(err)
+	//	return err
+	//}
 
-	// set the metrics descriptions
-	if err = worker.SetMetricsDesc(); err != nil {
-		log.Error(err)
-		return err
-	}
+	//// set the metrics descriptions
+	//if err = worker.SetMetricsDesc(); err != nil {
+	//	log.Error(err)
+	//	return err
+	//}
 
 	// init the workerRunner with the worker that it will call repeatedly to DoWork
 	log.Infof("Initializing worker %s", wt)
