@@ -67,10 +67,10 @@ func NewRunner(worker spi.Worker, conf config.CommonConfig, log vzlog.Verrazzano
 	}}
 
 	r.metricDescList = []prometheus.Desc{
-		*r.loopCount.BuildMetricDesc(r.GetWorkerDesc().MetricsName),
-		*r.workerThreadCount.BuildMetricDesc(r.GetWorkerDesc().MetricsName),
-		*r.workerLoopNanoSeconds.BuildMetricDesc(r.GetWorkerDesc().MetricsName),
-		*r.workerDurationTotalSeconds.BuildMetricDesc(r.GetWorkerDesc().MetricsName),
+		*r.loopCount.BuildMetricDesc(r.GetWorkerDesc().MetricsPrefix),
+		*r.workerThreadCount.BuildMetricDesc(r.GetWorkerDesc().MetricsPrefix),
+		*r.workerLoopNanoSeconds.BuildMetricDesc(r.GetWorkerDesc().MetricsPrefix),
+		*r.workerDurationTotalSeconds.BuildMetricDesc(r.GetWorkerDesc().MetricsPrefix),
 	}
 
 	return r, nil

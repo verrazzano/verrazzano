@@ -24,6 +24,9 @@ import (
 )
 
 const (
+	// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
+	metricsPrefix = "opensearch_scaling"
+
 	openSearchTier           = "OPENSEARCH_TIER"
 	minReplicaCount          = "MIN_REPLICA_COUNT"
 	maxReplicaCount          = "MAX_REPLICA_COUNT"
@@ -66,22 +69,22 @@ func NewScaleWorker() (spi.Worker, error) {
 		state:     &state{},
 		workerMetrics: &workerMetrics{
 			scaleOutCountTotal: metrics.MetricItem{
-				Name: "opensearch_scale_out_count_total",
+				Name: "scale_out_count_total",
 				Help: "The total number of times OpenSearch scaled out",
 				Type: prometheus.CounterValue,
 			},
 			scaleInCountTotal: metrics.MetricItem{
-				Name: "opensearch_scale_in_count_total",
+				Name: "scale_in_count_total",
 				Help: "The total number of times OpenSearch scaled in",
 				Type: prometheus.CounterValue,
 			},
 			scaleOutSeconds: metrics.MetricItem{
-				Name: "opensearch_scale_out_seconds",
+				Name: "scale_out_seconds",
 				Help: "The number of seconds elapsed to scale out OpenSearch",
 				Type: prometheus.GaugeValue,
 			},
 			scaleInSeconds: metrics.MetricItem{
-				Name: "opensearch_scale_in_seconds",
+				Name: "scale_in_seconds",
 				Help: "The number of seconds elapsed to scale in OpenSearch",
 				Type: prometheus.GaugeValue,
 			},
@@ -107,7 +110,7 @@ func NewScaleWorker() (spi.Worker, error) {
 		&w.scaleInCountTotal,
 		&w.scaleOutSeconds,
 		&w.scaleInSeconds,
-	}, metricsLabels, w.GetWorkerDesc().MetricsName)
+	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
 
 	return w, nil
 }
@@ -115,9 +118,9 @@ func NewScaleWorker() (spi.Worker, error) {
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		WorkerType:  config.WorkerTypeScale,
-		Description: "The OpenSearch scale worker scales an OpenSearch tier in and out continuously",
-		MetricsName: "scale",
+		WorkerType:    config.WorkerTypeOpsScale,
+		Description:   "The OpenSearch scale worker scales an OpenSearch tier in and out continuously",
+		MetricsPrefix: metricsPrefix,
 	}
 }
 

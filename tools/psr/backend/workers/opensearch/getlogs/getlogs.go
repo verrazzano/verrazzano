@@ -21,9 +21,13 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 )
 
-const osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
+const (
+	// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
+	metricsPrefix = "opensearch_getlogs"
 
-const letters = "abcdefghijklmnopqrstuvwxyz"
+	osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
+	letters         = "abcdefghijklmnopqrstuvwxyz"
+)
 
 // Use an http client interface so that we can override http.Client for unit tests
 type httpClientI interface {
@@ -53,27 +57,27 @@ type workerMetrics struct {
 func NewGetLogsWorker() (spi.Worker, error) {
 	w := worker{workerMetrics: &workerMetrics{
 		openSearchGetSuccessCountTotal: metrics.MetricItem{
-			Name: "opensearch_get_success_count_total",
+			Name: "success_count_total",
 			Help: "The total number of successful OpenSearch GET requests",
 			Type: prometheus.CounterValue,
 		},
 		openSearchGetFailureCountTotal: metrics.MetricItem{
-			Name: "opensearch_get_failure_count_total",
+			Name: "failure_count_total",
 			Help: "The total number of successful OpenSearch GET requests",
 			Type: prometheus.CounterValue,
 		},
 		openSearchGetSuccessLatencyNanoSeconds: metrics.MetricItem{
-			Name: "opensearch_get_success_latency_nanoseconds",
+			Name: "success_latency_nanoseconds",
 			Help: "The latency of successful OpenSearch GET requests in nanoseconds",
 			Type: prometheus.GaugeValue,
 		},
 		openSearchGetFailureLatencyNanoSeconds: metrics.MetricItem{
-			Name: "opensearch_get_failure_latency_nanoseconds",
+			Name: "failure_latency_nanoseconds",
 			Help: "The latency of failed OpenSearch GET requests in nanoseconds",
 			Type: prometheus.GaugeValue,
 		},
 		openSearchGetDataCharsTotal: metrics.MetricItem{
-			Name: "opensearch_get_data_chars_total",
+			Name: "data_chars_total",
 			Help: "The total number of characters return from OpenSearch get request",
 			Type: prometheus.CounterValue,
 		},
@@ -93,7 +97,7 @@ func NewGetLogsWorker() (spi.Worker, error) {
 		&w.openSearchGetSuccessLatencyNanoSeconds,
 		&w.openSearchGetFailureLatencyNanoSeconds,
 		&w.openSearchGetDataCharsTotal,
-	}, metricsLabels, w.GetWorkerDesc().MetricsName)
+	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
 
 	return w, nil
 }
@@ -101,9 +105,9 @@ func NewGetLogsWorker() (spi.Worker, error) {
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		WorkerType:  config.WorkerTypeGetLogs,
-		Description: "The log getter worker performs GET requests on the OpenSearch endpoint",
-		MetricsName: "getlogs",
+		WorkerType:    config.WorkerTypeOpsGetLogs,
+		Description:   "The log getter worker performs GET requests on the OpenSearch endpoint",
+		MetricsPrefix: metricsPrefix,
 	}
 }
 

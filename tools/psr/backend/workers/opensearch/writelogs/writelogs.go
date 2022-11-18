@@ -15,6 +15,9 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 )
 
+// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
+const metricsPrefix = "opensearch_writelogs"
+
 type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetrics
@@ -53,7 +56,7 @@ func NewWriteLogsWorker() (spi.Worker, error) {
 	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
 		&w.loggedLinesCountTotal,
 		&w.loggedCharsCountTotal,
-	}, metricsLabels, w.GetWorkerDesc().MetricsName)
+	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
 
 	return w, nil
 }
@@ -61,9 +64,9 @@ func NewWriteLogsWorker() (spi.Worker, error) {
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		WorkerType:  config.WorkerTypeWriteLogs,
-		Description: "The writelogs worker writes logs to STDOUT, putting a load on OpenSearch",
-		MetricsName: "writelogs",
+		WorkerType:    config.WorkerTypeOpsWriteLogs,
+		Description:   "The writelogs worker writes logs to STDOUT, putting a load on OpenSearch",
+		MetricsPrefix: metricsPrefix,
 	}
 }
 
