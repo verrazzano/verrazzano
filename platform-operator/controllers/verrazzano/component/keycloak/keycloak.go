@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"reflect"
 	"strings"
 	"text/template"
@@ -1425,7 +1426,7 @@ func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string,
 	data := templateData{}
 
 	// Update verrazzano-pkce client redirect and web origin uris if deprecated host exists in the ingress
-	osHostExists, err := DoesIngressHostExist(ctx, constants.VerrazzanoSystemNamespace, constants.OpensearchIngress)
+	osHostExists, err := DoesDeprecatedIngressHostExist(ctx, constants.VerrazzanoSystemNamespace, constants.OpensearchIngress)
 	if err != nil {
 		return "", err
 	}
@@ -1602,12 +1603,12 @@ func addClientRoleToUser(ctx spi.ComponentContext, cfg *restclient.Config, cli k
 	return nil
 }
 
-// DoesIngressHostExist returns true if ingress host exists
-func DoesIngressHostExist(ctx spi.ComponentContext, namespace string, ingressName string) (bool, error) {
+// DoesDeprecatedIngressHostExist returns true if ingress host exists
+func DoesDeprecatedIngressHostExist(ctx spi.ComponentContext, namespace string, ingressName string) (bool, error) {
 	ingress := &networkv1.Ingress{}
 	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: namespace, Name: ingressName}, ingress)
-	if err != nil {
-		return false, nil
+	if err != nil && !k8serrors.IsNotFound(err) {
+		return false, err
 	}
 	if ingress != nil && ingress.Spec.Rules[0].Size() > 1 {
 		for _, rule := range ingress.Spec.Rules {

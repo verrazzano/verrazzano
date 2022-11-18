@@ -109,11 +109,11 @@ var _ = t.BeforeSuite(func() {
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+		t.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
 	isMinVersion150, err = pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
 	if err != nil {
-		Fail(err.Error())
+		t.Fail(err.Error())
 	}
 
 	Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
