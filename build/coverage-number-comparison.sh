@@ -6,7 +6,7 @@
 
 #Get latest line-rate from master/release for comparison
 LOCAL_BRANCH_NAME=$(git branch  --no-color  | grep -E '^\*' | sed 's/\*[^a-z]*//g')
-OBJECT_URL=https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/"$LOCAL_BRANCH_NAME"/unit-test-coverage-number.txt
+OBJECT_URL=https://objectstorage.us-phoenix-1.oraclecloud.com/n/stevengreenberginc/b/verrazzano-builds/o/$LOCAL_BRANCH_NAME/unit-test-coverage-number.txt
 COV_TXT=unit-test-coverage-number.txt
 COV_XML=coverage.xml
 
