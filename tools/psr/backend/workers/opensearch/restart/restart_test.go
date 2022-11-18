@@ -50,9 +50,9 @@ func TestGetters(t *testing.T) {
 	assert.NoError(t, err)
 
 	wd := w.GetWorkerDesc()
-	assert.Equal(t, config.WorkerTypeRestart, wd.WorkerType)
+	assert.Equal(t, config.WorkerTypeOpsRestart, wd.WorkerType)
 	assert.Equal(t, "Worker to restart pods in the specified OpenSearch tier", wd.Description)
-	assert.Equal(t, config.WorkerTypeRestart, wd.MetricsName)
+	assert.Equal(t, metricsPrefix, wd.MetricsPrefix)
 
 	logged := w.WantLoopInfoLogged()
 	assert.False(t, logged)
@@ -113,8 +113,8 @@ func TestGetMetricDescList(t *testing.T) {
 		fqName string
 		help   string
 	}{
-		{name: "1", fqName: "opensearch_pod_restart_count", help: "The total number of OpenSearch pod restarts"},
-		{name: "2", fqName: "opensearch_pod_restart_time_nanoseconds", help: "The number of nanoseconds elapsed to restart the OpenSearch pod"},
+		{name: "1", fqName: metricsPrefix + "_pod_restart_count", help: "The total number of OpenSearch pod restarts"},
+		{name: "2", fqName: metricsPrefix + "_pod_restart_time_nanoseconds", help: "The number of nanoseconds elapsed to restart the OpenSearch pod"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -150,8 +150,8 @@ func TestGetMetricList(t *testing.T) {
 		fqName string
 		help   string
 	}{
-		{name: "1", fqName: "opensearch_pod_restart_count", help: "The total number of OpenSearch pod restarts"},
-		{name: "2", fqName: "opensearch_pod_restart_time_nanoseconds", help: "The number of nanoseconds elapsed to restart the OpenSearch pod"},
+		{name: "1", fqName: metricsPrefix + "_pod_restart_count", help: "The total number of OpenSearch pod restarts"},
+		{name: "2", fqName: metricsPrefix + "_pod_restart_time_nanoseconds", help: "The number of nanoseconds elapsed to restart the OpenSearch pod"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

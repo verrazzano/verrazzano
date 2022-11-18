@@ -3,5 +3,5 @@
 
 global:
   envVars:
-    PSR_WORKER_TYPE: restart
+    PSR_WORKER_TYPE: ops-restart
     OPENSEARCH_TIER: master

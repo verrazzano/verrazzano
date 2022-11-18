@@ -103,15 +103,15 @@ func getWorker(wt string) (spi.Worker, error) {
 		return example.NewExampleWorker()
 	case config.WorkerTypeHTTPGet:
 		return http.NewHTTPGetWorker()
-	case config.WorkerTypeWriteLogs:
+	case config.WorkerTypeOpsWriteLogs:
 		return writelogs.NewWriteLogsWorker()
-	case config.WorkerTypeGetLogs:
+	case config.WorkerTypeOpsGetLogs:
 		return getlogs.NewGetLogsWorker()
-	case config.WorkerTypePostLogs:
+	case config.WorkerTypeOpsPostLogs:
 		return postlogs.NewPostLogsWorker()
-	case config.WorkerTypeScale:
+	case config.WorkerTypeOpsScale:
 		return scale.NewScaleWorker()
-	case config.WorkerTypeRestart:
+	case config.WorkerTypeOpsRestart:
 		return restart.NewRestartWorker()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
