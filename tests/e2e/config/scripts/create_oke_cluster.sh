@@ -13,7 +13,7 @@ set_private_access() {
   echo "Cluster access set to private."
   export TF_VAR_cluster_access=private
   export TF_VAR_bastion_enabled=true
-  export TF_VAR_operator_enabled=true
+  export TF_VAR_operator_enabled=false
 }
 
 check_for_resources() {
