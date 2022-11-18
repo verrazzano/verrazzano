@@ -27,7 +27,12 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 )
 
-const openSearchTier = "OPENSEARCH_TIER"
+const (
+	// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
+	metricsPrefix = "opensearch_restart"
+
+	openSearchTier = "OPENSEARCH_TIER"
+)
 
 var funcNewPsrClient = k8sclient.NewPsrClient
 
@@ -63,12 +68,12 @@ func NewRestartWorker() (spi.Worker, error) {
 		restartData: &restartData{},
 		workerMetrics: &workerMetrics{
 			restartCount: metrics.MetricItem{
-				Name: "opensearch_pod_restart_count",
+				Name: "pod_restart_count",
 				Help: "The total number of OpenSearch pod restarts",
 				Type: prometheus.CounterValue,
 			},
 			restartTime: metrics.MetricItem{
-				Name: "opensearch_pod_restart_time_nanoseconds",
+				Name: "pod_restart_time_nanoseconds",
 				Help: "The number of nanoseconds elapsed to restart the OpenSearch pod",
 				Type: prometheus.GaugeValue,
 			},
@@ -76,8 +81,8 @@ func NewRestartWorker() (spi.Worker, error) {
 	}
 
 	w.metricDescList = []prometheus.Desc{
-		*w.restartCount.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.restartTime.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.restartCount.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
+		*w.restartTime.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
 	}
 
 	return w, nil
@@ -87,9 +92,9 @@ func NewRestartWorker() (spi.Worker, error) {
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		WorkerType:  config.WorkerTypeRestart,
-		Description: "Worker to restart pods in the specified OpenSearch tier",
-		MetricsName: "restart",
+		WorkerType:    config.WorkerTypeOpsRestart,
+		Description:   "Worker to restart pods in the specified OpenSearch tier",
+		MetricsPrefix: metricsPrefix,
 	}
 }
 

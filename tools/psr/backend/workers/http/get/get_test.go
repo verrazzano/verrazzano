@@ -35,7 +35,7 @@ func TestGetters(t *testing.T) {
 	wd := w.GetWorkerDesc()
 	assert.Equal(t, config.WorkerTypeHTTPGet, wd.WorkerType)
 	assert.Equal(t, "The get worker makes GET request on the given endpoint", wd.Description)
-	assert.Equal(t, config.WorkerTypeHTTPGet, wd.MetricsName)
+	assert.Equal(t, metricsPrefix, wd.MetricsPrefix)
 
 	logged := w.WantLoopInfoLogged()
 	assert.False(t, logged)
@@ -47,9 +47,9 @@ func TestGetMetricDescList(t *testing.T) {
 		fqName string
 		help   string
 	}{
-		{name: "1", fqName: "psr_httpget_get_request_count_total", help: "The total number of GET requests"},
-		{name: "2", fqName: "get_request_succeeded_count_total", help: "The total number of successful GET requests"},
-		{name: "3", fqName: "get_request_failed_count_total", help: "The total number of failed GET requests"},
+		{name: "1", fqName: "http_get_request_count_total", help: "The total number of GET requests"},
+		{name: "2", fqName: "http_get_request_succeeded_count_total", help: "The total number of successful GET requests"},
+		{name: "3", fqName: "http_get_request_failed_count_total", help: "The total number of failed GET requests"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -75,9 +75,9 @@ func TestGetMetricList(t *testing.T) {
 		fqName string
 		help   string
 	}{
-		{name: "1", fqName: "psr_httpget_get_request_count_total", help: "The total number of GET requests"},
-		{name: "2", fqName: "get_request_succeeded_count_total", help: "The total number of successful GET requests"},
-		{name: "3", fqName: "get_request_failed_count_total", help: "The total number of failed GET requests"},
+		{name: "1", fqName: "http_get_request_count_total", help: "The total number of GET requests"},
+		{name: "2", fqName: "http_get_request_succeeded_count_total", help: "The total number of successful GET requests"},
+		{name: "3", fqName: "http_get_request_failed_count_total", help: "The total number of failed GET requests"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

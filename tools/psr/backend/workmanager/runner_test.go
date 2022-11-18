@@ -108,9 +108,9 @@ func TestRunWorker(t *testing.T) {
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w fakeWorker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		WorkerType:  config.WorkerTypeExample,
-		Description: "Example worker that demonstrates executing a fake use case",
-		MetricsName: "example",
+		WorkerType:    config.WorkerTypeExample,
+		Description:   "Example worker that demonstrates executing a fake use case",
+		MetricsPrefix: "example",
 	}
 }
 
