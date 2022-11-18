@@ -44,6 +44,17 @@ func TestGetters(t *testing.T) {
 		funcNewPsrClient = origFunc
 	}()
 
+	envMap := map[string]string{
+		openSearchTier:       opensearchpsr.MasterTier,
+		config.PsrWorkerType: config.WorkerTypeRestart,
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
+	}()
+
 	w, err := NewScaleWorker()
 	assert.NoError(t, err)
 
@@ -65,6 +76,17 @@ func TestGetEnvDescList(t *testing.T) {
 	origFunc := overridePsrClient()
 	defer func() {
 		funcNewPsrClient = origFunc
+	}()
+
+	envMap := map[string]string{
+		openSearchTier:       opensearchpsr.MasterTier,
+		config.PsrWorkerType: config.WorkerTypeRestart,
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
 	}()
 
 	tests := []struct {
@@ -116,6 +138,17 @@ func TestGetMetricDescList(t *testing.T) {
 		funcNewPsrClient = origFunc
 	}()
 
+	envMap := map[string]string{
+		openSearchTier:       opensearchpsr.MasterTier,
+		config.PsrWorkerType: config.WorkerTypeRestart,
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
+	}()
+
 	tests := []struct {
 		name   string
 		fqName string
@@ -153,6 +186,17 @@ func TestGetMetricList(t *testing.T) {
 	origFunc := overridePsrClient()
 	defer func() {
 		funcNewPsrClient = origFunc
+	}()
+
+	envMap := map[string]string{
+		openSearchTier:       opensearchpsr.MasterTier,
+		config.PsrWorkerType: config.WorkerTypeRestart,
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
 	}()
 
 	tests := []struct {
@@ -252,9 +296,10 @@ func TestDoWork(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			envMap := map[string]string{
-				openSearchTier:  test.tier,
-				minReplicaCount: test.minReplicas,
-				maxReplicaCount: test.maxReplicas,
+				openSearchTier:       test.tier,
+				minReplicaCount:      test.minReplicas,
+				maxReplicaCount:      test.maxReplicas,
+				config.PsrWorkerType: config.WorkerTypeScale,
 			}
 			f := fakeEnv{data: envMap}
 			saveEnv := osenv.GetEnvFunc
