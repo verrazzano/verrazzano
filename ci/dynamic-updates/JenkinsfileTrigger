@@ -117,7 +117,9 @@ pipeline {
                     steps {
                         retry (count: JOB_PROMOTION_RETRIES) {
                             script {
-                                startBuildJob([booleanParam(name: 'RUN_POST_UPDATE_AND_NGINX', value: true)])
+                                startBuildJob([booleanParam(name: 'RUN_POST_UPDATE1', value: true),
+                                               booleanParam(name: 'RUN_POST_UPDATE2', value: true),
+                                               booleanParam(name: 'RUN_NGINX_ISTIO', value: true)])
                             }
                         }
                     }

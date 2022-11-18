@@ -64,11 +64,13 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
-        booleanParam (description: 'Whether to run Post-Update1, Post-Update2, and Nginx/Istio Update Tests', name: 'RUN_POST_UPDATE_AND_NGINX', defaultValue: false)
+        booleanParam (description: 'Whether to Post-Update1 Verify, Infra, and Acceptance Tests', name: 'RUN_POST_UPDATE1', defaultValue: false)
+        booleanParam (description: 'Whether to Post-Update2 Verify, Infra, and Acceptance Tests', name: 'RUN_POST_UPDATE2', defaultValue: false)
         booleanParam (description: 'Whether to run Availability Status Updates', name: 'RUN_AVAILABILITY_STATUS', defaultValue: false)
         booleanParam (description: 'Whether to run API Conversion Update Tests', name: 'RUN_API_CONVERSION', defaultValue: false)
         booleanParam (description: 'Whether to run AuthProxy Update Tests', name: 'RUN_AUTHPROXY', defaultValue: false)
         booleanParam (description: 'Whether to run EnvironmentName/DNS/CertManager Update Tests', name: 'RUN_CERT_MANAGER', defaultValue: false)
+        booleanParam (description: 'Whether to run Nginx/Istio Update Tests', name: 'RUN_NGINX_ISTIO', defaultValue: false)
         booleanParam (description: 'Whether to run Fluentd Update Tests', name: 'RUN_FLUENTD', defaultValue: false)
         booleanParam (description: 'Whether to run Opensearch Update Tests', name: 'RUN_OPENSEARCH', defaultValue: false)
         booleanParam (description: 'Whether to run Jaeger Update Tests', name: 'RUN_JAEGER', defaultValue: false)
@@ -332,7 +334,7 @@ pipeline {
                 }
 
                 stage('Post-Update1 Verify Tests') {
-                    when { expression {params.RUN_POST_UPDATE_AND_NGINX} }
+                    when { expression {params.RUN_POST_UPDATE1} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-verify-infra"
                     }
@@ -348,7 +350,7 @@ pipeline {
                 }
 
                 stage('Post-Update1 Infra Tests') {
-                    when { expression {params.RUN_POST_UPDATE_AND_NGINX} }
+                    when { expression {params.RUN_POST_UPDATE1} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-infra-tests"
                     }
@@ -366,7 +368,7 @@ pipeline {
                 }
 
                 stage('Post-Update1 Acceptance Tests') {
-                    when { expression {params.RUN_POST_UPDATE_AND_NGINX} }
+                    when { expression {params.RUN_POST_UPDATE1} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-infra-tests"
                     }
@@ -405,7 +407,7 @@ pipeline {
                 }
 
                 stage('WLS/COH Post-Update2 Acceptance Tests') {
-                    when { expression {params.RUN_POST_UPDATE_AND_NGINX} }
+                    when { expression {params.RUN_POST_UPDATE2} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-update"
                     }
@@ -492,7 +494,7 @@ pipeline {
                 }
 
                 stage('Nginx/Istio Update Tests') {
-                    when { expression {params.RUN_POST_UPDATE_AND_NGINX} }
+                    when { expression {params.RUN_NGINX_ISTIO} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/nginx-istio-update"
@@ -578,7 +580,7 @@ pipeline {
                 }
 
                 stage('Post-update2 Verify Tests') {
-                    when { expression {params.RUN_POST_UPDATE_AND_NGINX} }
+                    when { expression {params.RUN_POST_UPDATE2} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-verify-install"
                     }
@@ -594,7 +596,7 @@ pipeline {
                 }
 
                 stage('Post-Update2 Infra Tests') {
-                    when { expression {params.RUN_POST_UPDATE_AND_NGINX} }
+                    when { expression {params.RUN_POST_UPDATE2} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-infra-tests"
                     }
@@ -612,7 +614,7 @@ pipeline {
                 }
 
                 stage('Post-update2 Acceptance Tests') {
-                    when { expression {params.RUN_POST_UPDATE_AND_NGINX} }
+                    when { expression {params.RUN_POST_UPDATE2} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-update"
                     }
