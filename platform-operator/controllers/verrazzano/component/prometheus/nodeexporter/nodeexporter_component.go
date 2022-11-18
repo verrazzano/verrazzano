@@ -5,8 +5,12 @@ package nodeexporter
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -14,7 +18,6 @@ import (
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 )
 
 // ComponentName is the name of the component
@@ -50,6 +53,14 @@ func NewComponent() spi.Component {
 			Dependencies:              []string{promoperator.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DaemonsetNames: []types.NamespacedName{
+					{
+						Name:      daemonsetName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -57,23 +68,15 @@ func NewComponent() spi.Component {
 // IsEnabled returns true if the Prometheus Node-Exporter is explicitly enabled in the Verrazzano CR, otherwise
 // it returns true if the Prometheus component is enabled.
 func (c prometheusNodeExporterComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsNodeExporterEnabled(effectiveCR)
+	return vzcr.IsNodeExporterEnabled(effectiveCR)
 }
 
 // IsReady checks if the Prometheus Node-Exporter deployment is ready
 func (c prometheusNodeExporterComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isPrometheusNodeExporterReady(ctx)
+		return c.isPrometheusNodeExporterReady(ctx)
 	}
 	return false
-}
-
-func (c prometheusNodeExporterComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = c.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", c.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // PreInstall updates resources necessary for the Prometheus Node-Exporter Component installation
@@ -85,7 +88,7 @@ func (c prometheusNodeExporterComponent) PreInstall(ctx spi.ComponentContext) er
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Only enable the node exporter's ServiceMonitor if Prometheus Operator is enabled in this install
 	ctx.Log().Debug("Appending service monitor override for the Prometheus Node Exporter component")
-	if vzconfig.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) {
 		kvs = append(kvs, bom.KeyValue{
 			Key: "prometheus.monitor.enabled", Value: "true",
 		})

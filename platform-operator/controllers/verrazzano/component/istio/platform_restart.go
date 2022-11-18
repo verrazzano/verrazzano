@@ -187,6 +187,35 @@ func DoesPodContainOldIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodLi
 	return false
 }
 
+// DoesPodContainOldIstioSidecarSkewGreaterThanTwoMinorVersion returns true if weblogic domain pods contain old istio sidecar where skew is more than 2 minor versions/skew is 1 major version
+func DoesPodContainOldIstioSidecarSkewGreaterThanTwoMinorVersion(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string, istioProxyImageName string) bool {
+	istoiProxyImageSplitArray := strings.SplitN(istioProxyImageName, ":", 2)
+	istioProxyImageVersionArray := strings.Split(istoiProxyImageSplitArray[1], ".")
+
+	for _, pod := range podList.Items {
+		for _, container := range pod.Spec.Containers {
+			if strings.Contains(container.Image, "proxyv2") {
+				// Container contains the proxy2 image (Envoy Proxy).
+
+				containerImageSplit := strings.SplitN(container.Image, ":", 2)
+				containerImageVersionArray := strings.Split(containerImageSplit[1], ".")
+				istioMinorVersion, _ := strconv.Atoi(istioProxyImageVersionArray[1])
+				containerImageMinorVersion, _ := strconv.Atoi(containerImageVersionArray[1])
+				minorVersionDiff := istioMinorVersion - containerImageMinorVersion
+
+				if strings.Compare(istioProxyImageVersionArray[0], containerImageVersionArray[0]) == 1 {
+					log.Oncef("%s %s has a pod with an Istio proxy with a major version change%s", workloadType, workloadName, container.Image)
+					return true
+				} else if minorVersionDiff > 2 {
+					log.Oncef("%s %s has a pod with an old Istio proxy where skew is more than 2 minor versions%s", workloadType, workloadName, container.Image)
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 // DoesPodContainNoIstioSidecar returns true if any pods don't have an Istio proxy sidecar
 func DoesPodContainNoIstioSidecar(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string, _ string) bool {
 	for _, pod := range podList.Items {

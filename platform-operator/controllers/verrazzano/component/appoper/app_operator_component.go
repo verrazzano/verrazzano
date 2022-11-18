@@ -6,12 +6,14 @@ package appoper
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -53,6 +55,14 @@ func NewComponent() spi.Component {
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
 			Dependencies:              []string{networkpolicies.ComponentName, oam.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -60,17 +70,9 @@ func NewComponent() spi.Component {
 // IsReady component check
 func (c applicationOperatorComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
-		return isApplicationOperatorReady(context)
+		return c.isApplicationOperatorReady(context)
 	}
 	return false
-}
-
-func (c applicationOperatorComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = c.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", c.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // PreUpgrade processing for the application-operator
@@ -123,7 +125,7 @@ func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) erro
 
 // IsEnabled applicationOperator-specific enabled check for installation
 func (c applicationOperatorComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsApplicationOperatorEnabled(effectiveCR)
+	return vzcr.IsApplicationOperatorEnabled(effectiveCR)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated

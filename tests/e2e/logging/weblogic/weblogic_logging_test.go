@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
@@ -72,17 +73,29 @@ var _ = t.BeforeSuite(func() {
 
 	t.Logs.Info("Create persistent volume claim")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/pvc.yaml", namespace)
+		file, err := pkg.FindTestDataFile("testdata/logging/weblogic/pvc.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create component resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/weblogic-logging-comp.yaml", namespace)
+		file, err := pkg.FindTestDataFile("testdata/logging/weblogic/weblogic-logging-comp.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create application resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/weblogic-logging-app.yaml", namespace)
+		file, err := pkg.FindTestDataFile("testdata/logging/weblogic/weblogic-logging-app.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for image pulls")
@@ -112,12 +125,20 @@ var _ = t.AfterSuite(func() {
 
 	t.Logs.Info("Delete component resources")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/weblogic-logging-app.yaml", namespace)
+		file, err := pkg.FindTestDataFile("testdata/logging/weblogic/weblogic-logging-app.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete application resources")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/weblogic-logging-comp.yaml", namespace)
+		file, err := pkg.FindTestDataFile("testdata/logging/weblogic/weblogic-logging-comp.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for application pods to terminate")
@@ -128,7 +149,11 @@ var _ = t.AfterSuite(func() {
 
 	t.Logs.Info("Delete persistent volume claim")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace("testdata/logging/weblogic/pvc.yaml", namespace)
+		file, err := pkg.FindTestDataFile("testdata/logging/weblogic/pvc.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete namespace")
@@ -161,19 +186,24 @@ var _ = t.Describe("WebLogic logging test", Label("f:app-lcm.oam", "f:app-lcm.we
 	})
 
 	t.Context("Logging.", Label("f:observability.logging.es"), func() {
-		indexName, err := pkg.GetOpenSearchAppIndex(namespace)
-		Expect(err).To(BeNil())
+		var indexName string
+		var err error
+		Eventually(func() error {
+			indexName, err = pkg.GetOpenSearchAppIndex(namespace)
+			return err
+		}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Expected to get OpenSearch App Index")
+
 		// GIVEN a WebLogic application with logging enabled
-		// WHEN the Elasticsearch index is retrieved
+		// WHEN the Opensearch index is retrieved
 		// THEN verify that it is found
-		t.It("Verify Elasticsearch index exists", func() {
+		t.It("Verify Opensearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index")
 		})
 
 		// GIVEN a WebLogic application with logging enabled
-		// WHEN the log records are retrieved from the Elasticsearch index
+		// WHEN the log records are retrieved from the Opensearch index
 		// THEN verify that at least one recent log record is found
 		const k8sContainerNameKeyword = "kubernetes.container_name.keyword"
 		const fluentdStdoutSidecarName = "fluentd-stdout-sidecar"

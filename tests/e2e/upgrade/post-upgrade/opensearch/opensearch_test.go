@@ -116,7 +116,7 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 				if err := json.Unmarshal(data, &dataMap); err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("OpenSearch: Error unmarshalling test document: %v", err))
 				}
-				query := pkg.ElasticQuery{
+				query := pkg.OpensearchQuery{
 					Filters: []pkg.Match{
 						{Key: "type", Value: dataMap["type"].(string)}},
 					MustNot: []pkg.Match{},
@@ -175,6 +175,14 @@ var _ = t.Describe("Post upgrade OpenSearch", Label("f:observability.logging.es"
 			}
 			Expect(oldLogsFound).To(Equal(false))
 		}
+	})
+
+	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Expect(err).To(BeNil(), fmt.Sprintf(pkg.KubeConfigErrorFmt, err))
+	}
+	t.ItMinimumVersion("Verify OpenSearch plugins have been installed", "1.3.0", kubeConfigPath, func() {
+		pkg.TestOpenSearchPlugins(pollingInterval, waitTimeout)
 	})
 
 })

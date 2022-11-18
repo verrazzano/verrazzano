@@ -6,6 +6,10 @@ package rancherbackup
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -14,12 +18,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"path/filepath"
 )
 
 const (
@@ -64,6 +66,9 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 			Dependencies:              []string{networkpolicies.ComponentName, rancher.ComponentName},
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: deployments,
+			},
 		},
 	}
 }
@@ -71,7 +76,7 @@ func NewComponent() spi.Component {
 // IsEnabled returns true only if Rancher Backup component is explicitly enabled
 // in the Verrazzano CR.
 func (rb rancherBackupHelmComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsRancherBackupEnabled(effectiveCR)
+	return vzcr.IsRancherBackupEnabled(effectiveCR)
 }
 
 // IsInstalled returns true only if Rancher Backup is installed on the system
@@ -117,14 +122,6 @@ func (rb rancherBackupHelmComponent) PreInstall(ctx spi.ComponentContext) error 
 // IsReady checks if the RancherBackup objects are ready
 func (rb rancherBackupHelmComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isRancherBackupOperatorReady(ctx)
-}
-
-func (rb rancherBackupHelmComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = rb.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", rb.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", rb.Name()), false
 }
 
 func (rb rancherBackupHelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {

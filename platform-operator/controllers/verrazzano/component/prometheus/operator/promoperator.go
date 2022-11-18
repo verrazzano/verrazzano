@@ -9,11 +9,13 @@ import (
 	"path"
 	"strconv"
 
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
+	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -24,7 +26,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	securityv1beta1 "istio.io/api/security/v1beta1"
 	istiov1beta1 "istio.io/api/type/v1beta1"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -56,22 +57,30 @@ const (
 	defaultPrometheusStorage = "50Gi"
 )
 
-// isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
-func isPrometheusOperatorReady(ctx spi.ComponentContext) bool {
-	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+func prometheusOperatorListOptions() (*client.ListOptions, error) {
 	selector, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			constants.VerrazzanoComponentLabelKey: ComponentName,
 		},
 	})
 	if err != nil {
+		return nil, err
+	}
+	return &client.ListOptions{
+		Namespace:     ComponentNamespace,
+		LabelSelector: selector,
+	}, nil
+}
+
+// isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
+func isPrometheusOperatorReady(ctx spi.ComponentContext) bool {
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	listOptions, err := prometheusOperatorListOptions()
+	if err != nil {
 		ctx.Log().Errorf("Failed to create selector for %s: %v", ComponentName, err)
 		return false
 	}
-	return ready.DeploymentsReadyBySelectors(ctx.Log(), ctx.Client(), 1, prefix, &client.ListOptions{
-		Namespace:     ComponentNamespace,
-		LabelSelector: selector,
-	})
+	return ready.DeploymentsReadyBySelectors(ctx.Log(), ctx.Client(), 1, prefix, listOptions)
 }
 
 // preInstallUpgrade handles pre-install and pre-upgrade processing for the Prometheus Operator Component
@@ -94,6 +103,11 @@ func preInstallUpgrade(ctx spi.ComponentContext) error {
 
 	// Create an empty secret for the additional scrape configs - this secret gets populated with scrape jobs for managed clusters
 	if err := ensureAdditionalScrapeConfigsSecret(ctx); err != nil {
+		return err
+	}
+
+	err := common.ApplyCRDYaml(ctx, config.GetHelmPromOpChartsDir())
+	if err != nil {
 		return err
 	}
 
@@ -128,6 +142,9 @@ func postInstallUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	if err := createOrUpdateNetworkPolicies(ctx); err != nil {
+		return err
+	}
+	if err := createOrUpdateServiceMonitors(ctx); err != nil {
 		return err
 	}
 	if err := common.UpdatePrometheusAnnotations(ctx, ComponentNamespace, ComponentName); err != nil {
@@ -290,10 +307,10 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	// will use the kube-webhook-certgen image
 	kvs = append(kvs, bom.KeyValue{
 		Key:   "prometheusOperator.admissionWebhooks.certManager.enabled",
-		Value: strconv.FormatBool(vzconfig.IsCertManagerEnabled(ctx.EffectiveCR())),
+		Value: strconv.FormatBool(vzcr.IsCertManagerEnabled(ctx.EffectiveCR())),
 	})
 
-	if vzconfig.IsPrometheusEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsPrometheusEnabled(ctx.EffectiveCR()) {
 		// If storage overrides are specified, set helm overrides
 		resourceRequest, err := common.FindStorageOverride(ctx.EffectiveCR())
 		if err != nil {
@@ -320,13 +337,6 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		if err != nil {
 			return kvs, ctx.Log().ErrorfNewErr("Failed applying the Istio Overrides for Prometheus")
 		}
-
-		// Disable HTTP2 to allow mTLS communication with the application Istio sidecars
-		kvs = append(kvs, []bom.KeyValue{
-			{Key: "prometheus.prometheusSpec.containers[0].name", Value: prometheusName},
-			{Key: "prometheus.prometheusSpec.containers[0].env[0].name", Value: "PROMETHEUS_COMMON_DISABLE_HTTP2"},
-			{Key: "prometheus.prometheusSpec.containers[0].env[0].value", Value: `"1"`},
-		}...)
 
 		kvs, err = appendAdditionalVolumeOverrides(ctx,
 			"prometheus.prometheusSpec.volumeMounts",
@@ -420,10 +430,10 @@ func appendDefaultImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue, s
 // validatePrometheusOperator checks scenarios in which the Verrazzano CR violates install verification due to Prometheus Operator specifications
 func (c prometheusComponent) validatePrometheusOperator(vz *installv1beta1.Verrazzano) error {
 	// Validate if Prometheus is enabled, Prometheus Operator should be enabled
-	if !c.IsEnabled(vz) && vzconfig.IsPrometheusEnabled(vz) {
+	if !c.IsEnabled(vz) && vzcr.IsPrometheusEnabled(vz) {
 		return fmt.Errorf("Prometheus cannot be enabled if the Prometheus Operator is disabled. Also disable the Prometheus component in order to disable Prometheus Operator")
 	}
-	//Validate install overrides for v1beta1.Verrazzano
+	// Validate install overrides for v1beta1.Verrazzano
 	if vz.Spec.Components.PrometheusOperator != nil {
 		if err := vzapi.ValidateInstallOverridesV1Beta1(vz.Spec.Components.PrometheusOperator.ValueOverrides); err != nil {
 			return err
@@ -651,6 +661,47 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed creating/updating Prometheus auth policy: %v", err)
 	}
 	return err
+}
+
+// createOrUpdateServiceMonitors creates or updates service monitors to meet operator requirements
+func createOrUpdateServiceMonitors(ctx spi.ComponentContext) error {
+	smList := &promoperapi.ServiceMonitorList{}
+	enableHTTP2 := false
+	err := ctx.Client().List(context.TODO(), smList)
+	if err != nil {
+		return err
+	}
+	for _, sm := range smList.Items {
+		var endPoints []promoperapi.Endpoint
+		for _, ep := range sm.Spec.Endpoints {
+			if ep.Scheme == "https" {
+				ep.EnableHttp2 = &enableHTTP2
+			}
+			endPoints = append(endPoints, ep)
+		}
+		sm.Spec.Endpoints = endPoints
+		smSpec := sm.Spec.DeepCopy()
+		_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), sm, func() error {
+			sm.Spec = promoperapi.ServiceMonitorSpec{
+				JobLabel:              smSpec.JobLabel,
+				TargetLabels:          smSpec.TargetLabels,
+				PodTargetLabels:       smSpec.PodTargetLabels,
+				Endpoints:             smSpec.Endpoints,
+				Selector:              smSpec.Selector,
+				NamespaceSelector:     smSpec.NamespaceSelector,
+				SampleLimit:           smSpec.SampleLimit,
+				TargetLimit:           smSpec.TargetLimit,
+				LabelLimit:            smSpec.LabelLimit,
+				LabelNameLengthLimit:  smSpec.LabelNameLengthLimit,
+				LabelValueLengthLimit: smSpec.LabelValueLengthLimit,
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // createOrUpdateNetworkPolicies creates or updates network policies for this component

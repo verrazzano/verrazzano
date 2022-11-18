@@ -5,6 +5,7 @@ package framework
 
 import (
 	"fmt"
+	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	"go.uber.org/zap"
@@ -28,6 +29,10 @@ func NewTestFramework(pkg string) *TestFramework {
 	t.Logs, _ = metrics.NewLogger(pkg, metrics.TestLogIndex, "stdout")
 	t.initDumpDirectoryIfNecessary()
 	return t
+}
+
+func (t *TestFramework) RegisterFailHandler() {
+	gomega.RegisterFailHandler(t.Fail)
 }
 
 // initDumpDirectoryIfNecessary - sets the DUMP_DIRECTORY env variable to a default if not set externally
@@ -192,6 +197,13 @@ func (t *TestFramework) Entry(description interface{}, args ...interface{}) gink
 
 // Fail - wrapper function for Ginkgo Fail
 func (t *TestFramework) Fail(message string, callerSkip ...int) {
+	// Recover only to emit a fail, then re-panic
+	defer func() {
+		if p := recover(); p != nil {
+			metrics.EmitFail(t.Metrics)
+			panic(p)
+		}
+	}()
 	ginkgo.Fail(message, callerSkip...)
 }
 

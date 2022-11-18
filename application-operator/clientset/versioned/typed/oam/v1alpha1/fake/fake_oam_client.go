@@ -15,8 +15,28 @@ type FakeOamV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeOamV1alpha1) IngressTraits(namespace string) v1alpha1.IngressTraitInterface {
+	return &FakeIngressTraits{c, namespace}
+}
+
+func (c *FakeOamV1alpha1) LoggingTraits(namespace string) v1alpha1.LoggingTraitInterface {
+	return &FakeLoggingTraits{c, namespace}
+}
+
+func (c *FakeOamV1alpha1) MetricsTraits(namespace string) v1alpha1.MetricsTraitInterface {
+	return &FakeMetricsTraits{c, namespace}
+}
+
+func (c *FakeOamV1alpha1) VerrazzanoCoherenceWorkloads(namespace string) v1alpha1.VerrazzanoCoherenceWorkloadInterface {
+	return &FakeVerrazzanoCoherenceWorkloads{c, namespace}
+}
+
 func (c *FakeOamV1alpha1) VerrazzanoHelidonWorkloads(namespace string) v1alpha1.VerrazzanoHelidonWorkloadInterface {
 	return &FakeVerrazzanoHelidonWorkloads{c, namespace}
+}
+
+func (c *FakeOamV1alpha1) VerrazzanoWebLogicWorkloads(namespace string) v1alpha1.VerrazzanoWebLogicWorkloadInterface {
+	return &FakeVerrazzanoWebLogicWorkloads{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

@@ -4,8 +4,12 @@
 package velero
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"reflect"
 	"testing"
+
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -145,6 +149,61 @@ func TestIsVeleroOperatorReady(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.client, &vzapi.Verrazzano{}, nil, false)
 			assert.Equal(t, tt.expectTrue, isVeleroOperatorReady(ctx))
+		})
+	}
+}
+
+// TestGetOverrides tests GetOverrides to fetch all the Velero Overrides
+func TestGetOverrides(t *testing.T) {
+	tests := []struct {
+		name   string
+		object runtime.Object
+		want   interface{}
+	}{
+		// GIVEN nil
+		// WHEN GetOverrides is called
+		// THEN empty list of Overrides are returned
+		{
+			"TestGetOverridesWithInvalidOverrides",
+			nil,
+			[]vzapi.Overrides{},
+		},
+		// GIVEN v1alpha1 VZ CR with no Velero component
+		// WHEN GetOverrides is called
+		// THEN empty list of Overrides is returned
+		{
+			"TestGetOverridesWithNoVelero",
+			&vzapi.Verrazzano{},
+			[]vzapi.Overrides{},
+		},
+		// GIVEN v1beta1 VZ CR with no Velero component
+		// WHEN GetOverrides is called
+		// THEN empty list of Overrides is returned
+		{
+			"TestGetOverridesWithV1Beta CR with no Velero",
+			&installv1beta1.Verrazzano{},
+			[]installv1beta1.Overrides{},
+		},
+		// GIVEN VZ CR with Velero Overrides
+		// WHEN GetOverrides is called
+		// THEN list of Velero Overrides is returned
+		{
+			"TestGetOverridesWithVeleroOverrides",
+			getSingleOverrideCR(),
+			[]vzapi.Overrides{
+				{
+					Values: &apiextensionsv1.JSON{
+						Raw: []byte(validOverrideJSON),
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := GetOverrides(tt.object); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("GetOverrides() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }

@@ -171,7 +171,7 @@ func JaegerSpanRecordFoundInOpenSearch(kubeconfigPath string, after time.Time, s
 	fields := map[string]string{
 		"process.serviceName": serviceName,
 	}
-	searchResult := querySystemElasticSearch(indexName, fields, kubeconfigPath)
+	searchResult := querySystemOpenSearch(indexName, fields, kubeconfigPath)
 	if len(searchResult) == 0 {
 		Log(Info, fmt.Sprintf("Expected to find log record matching fields %v", fields))
 		return false
@@ -186,7 +186,7 @@ func JaegerSpanRecordFoundInOpenSearch(kubeconfigPath string, after time.Time, s
 // GetJaegerSpanIndexName returns the index name used in OpenSearch used for storage
 func GetJaegerSpanIndexName(kubeconfigPath string) (string, error) {
 	var jaegerIndices []string
-	for _, indexName := range listSystemElasticSearchIndices(kubeconfigPath) {
+	for _, indexName := range listSystemOpenSearchIndices(kubeconfigPath) {
 		if strings.HasPrefix(indexName, jaegerSpanIndexPrefix) {
 			jaegerIndices = append(jaegerIndices, indexName)
 			break

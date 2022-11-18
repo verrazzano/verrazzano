@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestJaegerInstallMultiCluster(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Default Jaeger install multi-cluster Suite")
+func TestJaegerInstallMultiCluster(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Default Jaeger install multi-cluster Suite")
 }

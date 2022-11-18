@@ -10,13 +10,12 @@ import (
 	"strings"
 	"time"
 
-	certmanagerv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	. "github.com/onsi/gomega"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 )
 
 const (
@@ -87,8 +86,8 @@ var _ = t.AfterSuite(func() {
 var _ = t.Describe("Test updates to environment name, dns domain and cert-manager CA certificates", func() {
 	t.It("Verify the current environment name", func() {
 		cr := update.GetCR()
-		currentEnvironmentName = cr.Spec.EnvironmentName
-		currentDNSDomain = cr.Spec.Components.DNS.Wildcard.Domain
+		currentEnvironmentName = pkg.GetEnvironmentName(cr)
+		currentDNSDomain = pkg.GetDNS(cr)
 		validateIngressList(currentEnvironmentName, currentDNSDomain)
 		validateVirtualServiceList(currentDNSDomain)
 	})

@@ -5,13 +5,14 @@ package apiconversion
 
 import (
 	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
-	"time"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 )
 
 const (
@@ -39,7 +40,7 @@ func (u IngressNGINXDefaultModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazza
 	cr.Spec.Components.IngressNGINX = &v1beta1.IngressNginxComponent{}
 }
 
-var t = framework.NewTestFramework("update ingressNginx")
+var t = framework.NewTestFramework("apiconversion")
 
 var nodeCount uint32
 

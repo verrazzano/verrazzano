@@ -119,6 +119,7 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		AuthProxy:              authProxyComponent,
 		OAM:                    convertOAMToV1Beta1(src.OAM),
 		Console:                convertConsoleToV1Beta1(src.Console),
+		ClusterOperator:        convertClusterOperatorToV1Beta1(src.ClusterOperator),
 		DNS:                    convertDNSToV1Beta1(src.DNS),
 		OpenSearch:             opensearchComponent,
 		Fluentd:                convertFluentdToV1Beta1(src.Fluentd),
@@ -421,11 +422,16 @@ func convertInstallArgsToOSNodes(args []InstallArgs) (map[string]v1beta1.OpenSea
 		}
 	}
 
-	return map[string]v1beta1.OpenSearchNode{
-		masterNodeName: *masterNode,
-		dataNodeName:   *dataNode,
-		ingestNodeName: *ingestNode,
-	}, nil
+	nodes := map[string]v1beta1.OpenSearchNode{}
+	addNode := func(node *v1beta1.OpenSearchNode) {
+		if node.Replicas > 0 {
+			nodes[node.Name] = *node
+		}
+	}
+	addNode(masterNode)
+	addNode(dataNode)
+	addNode(ingestNode)
+	return nodes, nil
 }
 
 func convertFluentdToV1Beta1(src *FluentdComponent) *v1beta1.FluentdComponent {
@@ -731,6 +737,16 @@ func convertVerrazzanoToV1Beta1(src *VerrazzanoComponent) (*v1beta1.VerrazzanoCo
 	}, nil
 }
 
+func convertClusterOperatorToV1Beta1(src *ClusterOperatorComponent) *v1beta1.ClusterOperatorComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.ClusterOperatorComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
+	}
+}
+
 func convertConditionsTo(conditions []Condition) []v1beta1.Condition {
 	var out []v1beta1.Condition
 	for _, condition := range conditions {
@@ -755,7 +771,7 @@ func convertComponentStatusMapTo(components ComponentStatusMap) v1beta1.Componen
 				Name:                     detail.Name,
 				Conditions:               convertConditionsTo(detail.Conditions),
 				State:                    v1beta1.CompStateType(detail.State),
-				Available:                detail.Available,
+				Available:                convertAvailabilityTo(detail.Available),
 				Version:                  detail.Version,
 				LastReconciledGeneration: detail.LastReconciledGeneration,
 				ReconcilingGeneration:    detail.ReconcilingGeneration,
@@ -763,6 +779,14 @@ func convertComponentStatusMapTo(components ComponentStatusMap) v1beta1.Componen
 		}
 	}
 	return componentStatusMap
+}
+
+func convertAvailabilityTo(availability *ComponentAvailability) *v1beta1.ComponentAvailability {
+	if availability == nil {
+		return nil
+	}
+	newAvailability := v1beta1.ComponentAvailability(*availability)
+	return &newAvailability
 }
 
 func convertVerrazzanoInstanceTo(instance *InstanceInfo) *v1beta1.InstanceInfo {

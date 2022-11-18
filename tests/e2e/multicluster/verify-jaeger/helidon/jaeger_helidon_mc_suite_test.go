@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestJaegerHelidonMCTracing(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Jaeger Hello Helidon multi cluster app Tracing Suite")
+func TestJaegerHelidonMCTracing(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Jaeger Hello Helidon multi cluster app Tracing Suite")
 }

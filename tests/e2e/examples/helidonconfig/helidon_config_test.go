@@ -5,16 +5,17 @@ package helidonconfig
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -42,11 +43,19 @@ var _ = t.BeforeSuite(func() {
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/helidon-config/helidon-config-comp.yaml", namespace)
+			file, err := pkg.FindTestDataFile("examples/helidon-config/helidon-config-comp.yaml")
+			if err != nil {
+				return err
+			}
+			return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-			return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace("examples/helidon-config/helidon-config-app.yaml", namespace)
+			file, err := pkg.FindTestDataFile("examples/helidon-config/helidon-config-app.yaml")
+			if err != nil {
+				return err
+			}
+			return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval, "Failed to create helidon-config application resource").ShouldNot(HaveOccurred())
 		beforeSuitePassed = true
 		metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
@@ -80,12 +89,20 @@ var _ = t.AfterSuite(func() {
 		// undeploy the application here
 		pkg.Log(pkg.Info, "Delete application")
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/helidon-config/helidon-config-app.yaml", namespace)
+			file, err := pkg.FindTestDataFile("examples/helidon-config/helidon-config-app.yaml")
+			if err != nil {
+				return err
+			}
+			return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		pkg.Log(pkg.Info, "Delete components")
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFileInGeneratedNamespace("examples/helidon-config/helidon-config-comp.yaml", namespace)
+			file, err := pkg.FindTestDataFile("examples/helidon-config/helidon-config-comp.yaml")
+			if err != nil {
+				return err
+			}
+			return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 		pkg.Log(pkg.Info, "Wait for application pods to terminate")
@@ -172,21 +189,25 @@ var _ = t.Describe("Helidon Config OAM App test", Label("f:app-lcm.oam",
 	})
 
 	t.Context("Logging.", Label("f:observability.logging.es"), func() {
-		indexName, err := pkg.GetOpenSearchAppIndex(namespace)
-		Expect(err).To(BeNil())
+		var indexName string
+		Eventually(func() error {
+			indexName, err = pkg.GetOpenSearchAppIndex(namespace)
+			return err
+		}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Expected to get OpenSearch App Index")
+
 		// GIVEN an application with logging enabled
-		// WHEN the Elasticsearch index is retrieved
+		// WHEN the Opensearch index is retrieved
 		// THEN verify that it is found
-		t.It("Verify Elasticsearch index exists", func() {
+		t.It("Verify Opensearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find log index for helidon config")
 		})
 
 		// GIVEN an application with logging enabled
-		// WHEN the log records are retrieved from the Elasticsearch index
+		// WHEN the log records are retrieved from the Opensearch index
 		// THEN verify that at least one recent log record is found
-		t.It("Verify recent Elasticsearch log record exists", func() {
+		t.It("Verify recent Opensearch log record exists", func() {
 			Eventually(func() bool {
 				return pkg.LogRecordFound(indexName, time.Now().Add(-24*time.Hour), map[string]string{
 					"kubernetes.labels.app_oam_dev\\/component": "helidon-config-component",

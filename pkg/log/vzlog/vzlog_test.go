@@ -137,6 +137,40 @@ func TestErrorfThrottledNewErr(t *testing.T) {
 	DeleteLogContext(rKey)
 }
 
+// TestErrorfNewErr tests the error msg
+// GIVEN a ProgressLogger with a frequency of 30 seconds
+func TestErrorfNewErr(t *testing.T) {
+	const messageTemplate = "Mymessage %s"
+	const messageParameter = "test2"
+	msg := fmt.Sprintf(messageTemplate, messageParameter)
+	logger := fakeLogger{expectedMsg: msg}
+	const rKey = "testns/errorsNew"
+	rl := EnsureContext(rKey)
+	l := rl.EnsureLogger("comp1", &logger, zap.S()).SetFrequency(30)
+
+	assert.Error(t, l.ErrorfNewErr(messageTemplate, messageParameter))
+	assert.Equal(t, 1, logger.count)
+	assert.Equal(t, msg, logger.actualMsg)
+	DeleteLogContext(rKey)
+}
+
+// TestErrorNewErr tests the error msg
+// GIVEN a ProgressLogger with a frequency of 30 seconds
+func TestErrorNewErr(t *testing.T) {
+	const messageTemplate = "Mymessage "
+	const messageParameter = "test2"
+	msg := messageTemplate + messageParameter
+	logger := fakeLogger{expectedMsg: msg}
+	const rKey = "testns/errorsNew"
+	rl := EnsureContext(rKey)
+	l := rl.EnsureLogger("comp1", &logger, zap.S()).SetFrequency(30)
+
+	assert.Error(t, l.ErrorNewErr(messageTemplate, messageParameter))
+	assert.Equal(t, 1, logger.count)
+	assert.Equal(t, msg, logger.actualMsg)
+	DeleteLogContext(rKey)
+}
+
 // TestHistory tests the ProgressLogger function ignore previous progrsss messages
 // GIVEN a ProgressLogger with a frequency of 2 seconds
 // WHEN log is called 5 times with 2 message using repeats, and no sleep
@@ -262,6 +296,79 @@ func TestZap(t *testing.T) {
 	l := EnsureContext(rKey).EnsureLogger("test", zap.S(), zap.S())
 	l.Progress("testmsg")
 	DeleteLogContext(rKey)
+}
+
+// TestEnsureResourceLogger tests the EnsureResourceLogger
+// GIVEN a zap SugaredLogger
+// WHEN zaplogger is called
+// THEN ensure that the ProgressMessage can be called
+func TestEnsureResourceLogger(t *testing.T) {
+	config := ResourceConfig{}
+	l, _ := EnsureResourceLogger(&config)
+	l.Progress("testmsg")
+}
+
+// TestOncef is testing the call for oncef and it's not null
+func TestOncef(t *testing.T) {
+	logger := fakeLogger{}
+	rl := DefaultLogger()
+	rl.Oncef("comp1", &logger, zap.S())
+	assert.NotNil(t, rl)
+}
+
+// TestSetZapLogger is testing the call for SetZapLogger and it's not null
+func TestSetZapLogger(t *testing.T) {
+	rl := DefaultLogger()
+	rl.SetZapLogger(zap.S())
+	assert.NotNil(t, rl)
+}
+
+// TestDebug is testing the call for all Debug , it's not null
+func TestDebug(t *testing.T) {
+	rl := DefaultLogger()
+	rl.Debug("comp1", zap.S())
+	rl.Debugf("comp1", zap.S())
+	rl.Debugw("comp1", zap.S())
+	assert.NotNil(t, rl)
+}
+
+// TestInfo is testing the call for all Info , it's not null
+func TestInfo(t *testing.T) {
+	rl := DefaultLogger()
+	rl.Info("comp1", zap.S())
+	rl.Infof("comp1", zap.S())
+	rl.Infow("comp1", zap.S())
+	assert.NotNil(t, rl)
+}
+
+// TestError is testing the call for all Error , it's not null
+func TestError(t *testing.T) {
+	rl := DefaultLogger()
+	rl.Error("comp1", zap.S())
+	rl.Errorf("comp1", zap.S())
+	rl.Errorw("comp1", zap.S())
+	assert.NotNil(t, rl)
+}
+
+// TestGetZapLogger is testing the call for GetZapLogger, it's not null
+func TestGetZapper(t *testing.T) {
+	rl := DefaultLogger()
+	l := rl.GetZapLogger()
+	assert.NotNil(t, l)
+}
+
+// TestGetRootZapLogger is testing the call for GetRootZapLogger ,it's not null
+func TestGetRootZapLogger(t *testing.T) {
+	rl := DefaultLogger()
+	l := rl.GetRootZapLogger()
+	assert.NotNil(t, l)
+}
+
+// TestGetContext is testing the call for GetContext ,it's not null
+func TestGetContext(t *testing.T) {
+	rl := DefaultLogger()
+	l := rl.GetContext()
+	assert.NotNil(t, l)
 }
 
 // SetZapLogger gets the zap logger

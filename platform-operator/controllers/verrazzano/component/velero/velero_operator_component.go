@@ -6,9 +6,12 @@ package velero
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	prometheusOperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
-	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -17,7 +20,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -75,6 +77,10 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 			Dependencies:              []string{networkpolicies.ComponentName, prometheusOperator.ComponentName},
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DaemonsetNames:  daemonSets,
+				DeploymentNames: deployments,
+			},
 		},
 	}
 }
@@ -82,7 +88,7 @@ func NewComponent() spi.Component {
 // IsEnabled returns true only if Velero is explicitly enabled
 // in the Verrazzano CR.
 func (v veleroHelmComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsVeleroEnabled(effectiveCR)
+	return vzcr.IsVeleroEnabled(effectiveCR)
 }
 
 // IsInstalled returns true only if Velero is installed on the system
@@ -128,14 +134,6 @@ func (v veleroHelmComponent) PreInstall(ctx spi.ComponentContext) error {
 // IsReady checks if the Velero objects are ready
 func (v veleroHelmComponent) IsReady(ctx spi.ComponentContext) bool {
 	return isVeleroOperatorReady(ctx)
-}
-
-func (v veleroHelmComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = v.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", v.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", v.Name()), false
 }
 
 func (v veleroHelmComponent) ValidateInstall(vz *vzapi.Verrazzano) error {

@@ -5,11 +5,11 @@ package dashboards
 
 import (
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+
 	"testing"
 )
 
-func TestOpenSearchDashboardPreUpgrade(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Upgrade OpenSearch Dashboards Setup Suite")
+func TestOpenSearchDashboardPreUpgrade(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Upgrade OpenSearch Dashboards Setup Suite")
 }

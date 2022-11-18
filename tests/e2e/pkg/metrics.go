@@ -131,6 +131,8 @@ func findMetric(metrics []interface{}, keyMap map[string]string) bool {
 			return true
 		}
 	}
+	// if metric is not found, list unhealthy scrape targets if any for debugging
+	ListUnhealthyScrapeTargets()
 	return false
 }
 
@@ -147,6 +149,20 @@ func MetricsExist(metricsName, key, value string) bool {
 	m[key] = value
 
 	return MetricsExistInCluster(metricsName, m, kubeconfigPath)
+}
+
+// ListUnhealthyScrapeTargets lists all the scrape targets that are unhealthy
+func ListUnhealthyScrapeTargets() {
+	targets, err := ScrapeTargets()
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting scrape targets: %v", err))
+		return
+	}
+	for _, target := range targets {
+		if Jq(target, "health") != "up" {
+			Log(Info, fmt.Sprintf("target: %s is not ready", Jq(target, "scrapeUrl")))
+		}
+	}
 }
 
 // ScrapeTargets queries Prometheus API /api/v1/targets to list scrape targets

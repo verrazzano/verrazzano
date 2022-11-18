@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 var namespace string
@@ -20,7 +19,7 @@ func init() {
 }
 
 // TestWebLogicLoggingTrait tests an ingress trait setup for console access.
-func TestWebLogicLoggingTrait(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "WebLogic Logging Trait Test Suite")
+func TestWebLogicLoggingTrait(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "WebLogic Logging Trait Test Suite")
 }

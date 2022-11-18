@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -13,70 +13,80 @@ import (
 const VerrazzanoProjectKind = "VerrazzanoProject"
 const VerrazzanoProjectResource = "verrazzanoprojects"
 
-// NamespaceTemplate has the metadata and spec of the underlying namespace
+// NamespaceTemplate contains the metadata and specification of a Kubernetes namespace.
 type NamespaceTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Metadata metav1.ObjectMeta    `json:"metadata"`
-	Spec     corev1.NamespaceSpec `json:"spec,omitempty"`
+	// +optional
+	Metadata metav1.ObjectMeta `json:"metadata"`
+	// The specification of a namespace.
+	Spec corev1.NamespaceSpec `json:"spec,omitempty"`
 }
 
-// NetworkPolicyTemplate has the metadata and spec of the underlying NetworkPolicy
+// NetworkPolicyTemplate contains the metadata and specification of a Kubernetes NetworkPolicy.
+// <div class="alert alert-warning" role="alert">
+// <h4 class="alert-heading">NOTE</h4>
+// To add an application NetworkPolicy, see <a href="../../../../docs/networking/security/net-security/#networkpolicies-for-applications">NetworkPolicies for applications</a>.
+// </div>
 type NetworkPolicyTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
+	// +optional
 	Metadata metav1.ObjectMeta `json:"metadata"`
-
-	// NetworkPolicySpec specifies the NetworkPolicy for a specific namespace / pod combination.
+	// The specification of a network policy.
 	Spec netv1.NetworkPolicySpec `json:"spec,omitempty"`
 }
 
-// SecuritySpec defines the security configuration for a project
+// SecuritySpec defines the security configuration for a Verrazzano Project.
 type SecuritySpec struct {
-	// ProjectAdminSubjects specifies the list of subjects that should be bound to the verrazzano-project-admin role
+	// The subjects to bind to the `verrazzano-project-admin` role.
 	// +optional
 	ProjectAdminSubjects []rbacv1.Subject `json:"projectAdminSubjects,omitempty"`
-	// ProjectMonitorBinding specifies the subject that should be bound to the verrazzano-project-monitor role
+	// The subjects to bind to the `verrazzano-project-monitoring` role.
 	// +optional
 	ProjectMonitorSubjects []rbacv1.Subject `json:"projectMonitorSubjects,omitempty"`
 }
 
-// ProjectTemplate contains the resources for a project
+// ProjectTemplate contains the list of namespaces to create and the optional security configuration for each namespace.
 type ProjectTemplate struct {
+	// The list of application namespaces to create for this project.
 	Namespaces []NamespaceTemplate `json:"namespaces"`
 
-	// Security specifies the project security configuration
-	// +optional
-	Security SecuritySpec `json:"security,omitempty"`
-
-	// Network policies applied to namespaces in the project
+	// Network policies applied to namespaces in the project.
 	// +optional
 	NetworkPolicies []NetworkPolicyTemplate `json:"networkPolicies,omitempty"`
+
+	// The project security configuration.
+	// +optional
+	Security SecuritySpec `json:"security,omitempty"`
 }
 
-// VerrazzanoProjectSpec defines the desired state of VerrazzanoProject
+// VerrazzanoProjectSpec defines the desired state of a Verrazzano Project.
 type VerrazzanoProjectSpec struct {
-	Template ProjectTemplate `json:"template"`
-
-	// Clusters in which the namespaces in this project are to be placed
+	// Clusters on which the namespaces are to be created.
 	Placement Placement `json:"placement"`
+
+	// The project template.
+	Template ProjectTemplate `json:"template"`
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=vp;vps
 // +kubebuilder:subresource:status
-// +genclient
 
-// VerrazzanoProject is the Schema for the verrazzanoprojects API
+// VerrazzanoProject specifies the Verrazzano Projects API.
 type VerrazzanoProject struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   VerrazzanoProjectSpec      `json:"spec"`
+	// The desired state of a Verrazzano Project resource.
+	Spec VerrazzanoProjectSpec `json:"spec"`
+	// The observed state of a Verrazzano Project resource.
 	Status MultiClusterResourceStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// VerrazzanoProjectList contains a list of VerrazzanoProject
+// VerrazzanoProjectList contains a list of Verrazzano Project resources.
 type VerrazzanoProjectList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -87,12 +97,12 @@ func init() {
 	SchemeBuilder.Register(&VerrazzanoProject{}, &VerrazzanoProjectList{})
 }
 
-// GetStatus returns the MultiClusterResourceStatus of this resource
+// GetStatus returns the MultiClusterResourceStatus of this resource.
 func (in *VerrazzanoProject) GetStatus() MultiClusterResourceStatus {
 	return in.Status
 }
 
-// GetPlacement returns the Placement of this resource
+// GetPlacement returns the Placement of this resource.
 func (in *VerrazzanoProject) GetPlacement() Placement {
 	return in.Spec.Placement
 }

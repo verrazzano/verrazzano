@@ -4,9 +4,12 @@
 package pushgateway
 
 import (
-	"fmt"
-	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -15,7 +18,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 )
 
 // ComponentName is the name of the component
@@ -49,6 +51,14 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       AppendOverrides,
 			Dependencies:              []string{promoperator.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      deploymentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
@@ -56,23 +66,15 @@ func NewComponent() spi.Component {
 // IsEnabled returns true if the Prometheus PrometheusPushgateway is enabled or if the component is not specified
 // in the Verrazzano CR.
 func (c prometheusPushgatewayComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsPrometheusPushgatewayEnabled(effectiveCR)
+	return vzcr.IsPrometheusPushgatewayEnabled(effectiveCR)
 }
 
 // IsReady checks if the Prometheus PrometheusPushgateway deployment is ready
 func (c prometheusPushgatewayComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isPushgatewayReady(ctx)
+		return c.isPushgatewayReady(ctx)
 	}
 	return false
-}
-
-func (c prometheusPushgatewayComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = c.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", c.Name()), true
-	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", c.Name()), false
 }
 
 // PreInstall updates resources necessary for the Prometheus PrometheusPushgateway Component installation
@@ -95,7 +97,7 @@ func (c prometheusPushgatewayComponent) MonitorOverrides(ctx spi.ComponentContex
 func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	// Only enable the ServiceMonitor if Prometheus Operator is enabled in this install
 	ctx.Log().Debug("Appending service monitor override for the Prometheus PrometheusPushgateway component")
-	if vzconfig.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) {
+	if vzcr.IsPrometheusOperatorEnabled(ctx.EffectiveCR()) {
 		kvs = append(kvs, bom.KeyValue{
 			Key: "serviceMonitor.enabled", Value: "true",
 		})

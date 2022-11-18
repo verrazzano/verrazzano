@@ -15,7 +15,12 @@ import (
 
 type OamV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	IngressTraitsGetter
+	LoggingTraitsGetter
+	MetricsTraitsGetter
+	VerrazzanoCoherenceWorkloadsGetter
 	VerrazzanoHelidonWorkloadsGetter
+	VerrazzanoWebLogicWorkloadsGetter
 }
 
 // OamV1alpha1Client is used to interact with features provided by the oam.verrazzano.io group.
@@ -23,8 +28,28 @@ type OamV1alpha1Client struct {
 	restClient rest.Interface
 }
 
+func (c *OamV1alpha1Client) IngressTraits(namespace string) IngressTraitInterface {
+	return newIngressTraits(c, namespace)
+}
+
+func (c *OamV1alpha1Client) LoggingTraits(namespace string) LoggingTraitInterface {
+	return newLoggingTraits(c, namespace)
+}
+
+func (c *OamV1alpha1Client) MetricsTraits(namespace string) MetricsTraitInterface {
+	return newMetricsTraits(c, namespace)
+}
+
+func (c *OamV1alpha1Client) VerrazzanoCoherenceWorkloads(namespace string) VerrazzanoCoherenceWorkloadInterface {
+	return newVerrazzanoCoherenceWorkloads(c, namespace)
+}
+
 func (c *OamV1alpha1Client) VerrazzanoHelidonWorkloads(namespace string) VerrazzanoHelidonWorkloadInterface {
 	return newVerrazzanoHelidonWorkloads(c, namespace)
+}
+
+func (c *OamV1alpha1Client) VerrazzanoWebLogicWorkloads(namespace string) VerrazzanoWebLogicWorkloadInterface {
+	return newVerrazzanoWebLogicWorkloads(c, namespace)
 }
 
 // NewForConfig creates a new OamV1alpha1Client for the given config.

@@ -31,7 +31,7 @@ func MergeProfiles(actualCR *v1alpha1.Verrazzano, profileFiles ...string) (*v1al
 	cr := actualCR.DeepCopy()
 	AppendComponentOverrides(cr, profileVerrazzano)
 
-	// Now merge the the profiles on top of the Verrazzano CR
+	// Now merge the profiles on top of the Verrazzano CR
 	crYAML, err := yaml.Marshal(cr)
 	if err != nil {
 		return nil, err
@@ -50,6 +50,7 @@ func MergeProfiles(actualCR *v1alpha1.Verrazzano, profileFiles ...string) (*v1al
 		return nil, err
 	}
 
+	mergeOSNodesV1alpha1(actualCR, &newCR)
 	return &newCR, nil
 }
 
@@ -73,7 +74,7 @@ func MergeProfilesForV1beta1(actualCR *v1beta1.Verrazzano, profileFiles ...strin
 	cr := actualCR.DeepCopy()
 	AppendComponentOverridesV1beta1(cr, profileVerrazzano)
 
-	// Now merge the the profiles on top of the Verrazzano CR
+	// Now merge the profiles on top of the Verrazzano CR
 	crYAML, err := yaml.Marshal(cr)
 	if err != nil {
 		return nil, err
@@ -91,6 +92,7 @@ func MergeProfilesForV1beta1(actualCR *v1beta1.Verrazzano, profileFiles ...strin
 	if err != nil {
 		return nil, err
 	}
+	mergeOSNodesV1beta1(actualCR, &newCR)
 	return &newCR, nil
 }
 
@@ -287,6 +289,36 @@ func AppendComponentOverrides(actual, profile *v1alpha1.Verrazzano) {
 	profileVelero := profile.Spec.Components.Velero
 	if actualVelero != nil && profileVelero != nil {
 		actualVelero.ValueOverrides = mergeOverrides(actualVelero.ValueOverrides, profileVelero.ValueOverrides)
+	}
+}
+
+// mergeOSNodesV1alpha1 works around omitempty replicas for default node groups
+func mergeOSNodesV1alpha1(actual, merged *v1alpha1.Verrazzano) {
+	actualOpensearch := actual.Spec.Components.Elasticsearch
+	profileOpensearch := merged.Spec.Components.Elasticsearch
+	if actualOpensearch != nil && profileOpensearch != nil {
+		for i := range actualOpensearch.Nodes {
+			for j := range profileOpensearch.Nodes {
+				if actualOpensearch.Nodes[i].Name == profileOpensearch.Nodes[j].Name {
+					profileOpensearch.Nodes[j].Replicas = actualOpensearch.Nodes[i].Replicas
+				}
+			}
+		}
+	}
+}
+
+// mergeOSNodesV1beta1 works around omitempty replicas for default node groups
+func mergeOSNodesV1beta1(actual, merged *v1beta1.Verrazzano) {
+	actualOpensearch := actual.Spec.Components.OpenSearch
+	profileOpensearch := merged.Spec.Components.OpenSearch
+	if actualOpensearch != nil && profileOpensearch != nil {
+		for i := range actualOpensearch.Nodes {
+			for j := range profileOpensearch.Nodes {
+				if actualOpensearch.Nodes[i].Name == profileOpensearch.Nodes[j].Name {
+					profileOpensearch.Nodes[j].Replicas = actualOpensearch.Nodes[i].Replicas
+				}
+			}
+		}
 	}
 }
 

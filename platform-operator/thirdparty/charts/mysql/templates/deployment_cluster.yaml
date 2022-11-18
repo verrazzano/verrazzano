@@ -56,6 +56,8 @@ spec:
 {{ end }}
 {{ if (.Values).configurationFiles }}
     containers:
+      - name: sidecar
+        image: {{ (.Values).mysqlOperator.image  }}
       - name: mysql
         volumeMounts:
 {{- range $key, $val := .Values.configurationFiles }}
@@ -66,6 +68,10 @@ spec:
 {{ end }}
 {{ if(.Values).initdbScripts }}
     initContainers:
+    - name: fixdatadir
+      image: {{ (.Values).mysqlOperator.image  }}
+    - name: initconf
+      image: {{ (.Values).mysqlOperator.image  }}
     - name: initmysql
 {{ if ((.Values).initDB) }}
       env:

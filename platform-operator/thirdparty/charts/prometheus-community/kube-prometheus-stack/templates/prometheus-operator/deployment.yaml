@@ -9,6 +9,13 @@ metadata:
   labels:
     app: {{ template "kube-prometheus-stack.name" . }}-operator
 {{ include "kube-prometheus-stack.labels" . | indent 4 }}
+{{- if .Values.prometheusOperator.labels }}
+{{ toYaml .Values.prometheusOperator.labels | indent 4 }}
+{{- end }}
+{{- if .Values.prometheusOperator.annotations }}
+  annotations:
+{{ toYaml .Values.prometheusOperator.annotations | indent 4 }}
+{{- end }}
 spec:
   replicas: 1
   selector:
@@ -50,14 +57,19 @@ spec:
             - --log-level={{ .Values.prometheusOperator.logLevel }}
             {{- end }}
             {{- if .Values.prometheusOperator.denyNamespaces }}
-            - --deny-namespaces={{ .Values.prometheusOperator.denyNamespaces | join "," }}
+            - --deny-namespaces={{ tpl (.Values.prometheusOperator.denyNamespaces | join ",") $ }}
             {{- end }}
             {{- with $.Values.prometheusOperator.namespaces }}
-            {{ $ns := default (list nil) .additional }}
+            {{- $namespaces := list }}
             {{- if .releaseNamespace }}
-            {{- $ns = append $ns $namespace }}
+            {{- $namespaces = append $namespaces $namespace }}
             {{- end }}
-            - --namespaces={{ $ns | join "," }}
+            {{- if .additional }}
+            {{- range $ns := .additional }}
+            {{- $namespaces = append $namespaces (tpl $ns $) }}
+            {{- end }}
+            {{- end }}
+            - --namespaces={{ $namespaces | mustUniq | join "," }}
             {{- end }}
             - --localhost=127.0.0.1
             {{- if .Values.prometheusOperator.prometheusDefaultBaseImage }}
@@ -77,6 +89,9 @@ spec:
             - --config-reloader-memory-limit={{ .Values.prometheusOperator.prometheusConfigReloader.resources.limits.memory }}
             {{- if .Values.prometheusOperator.alertmanagerInstanceNamespaces }}
             - --alertmanager-instance-namespaces={{ .Values.prometheusOperator.alertmanagerInstanceNamespaces | join "," }}
+            {{- end }}
+            {{- if .Values.prometheusOperator.alertmanagerConfigNamespaces }}
+            - --alertmanager-config-namespaces={{ .Values.prometheusOperator.alertmanagerConfigNamespaces | join "," }}
             {{- end }}
             {{- if .Values.prometheusOperator.prometheusInstanceNamespaces }}
             - --prometheus-instance-namespaces={{ .Values.prometheusOperator.prometheusInstanceNamespaces | join "," }}

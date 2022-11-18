@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestAdminClusterDNSUpdate(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Update Admin-Cluster DNS Suite")
+func TestAdminClusterDNSUpdate(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Update Admin-Cluster DNS Suite")
 }

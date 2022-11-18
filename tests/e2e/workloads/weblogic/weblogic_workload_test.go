@@ -5,15 +5,16 @@ package weblogic
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	"net/http"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
@@ -120,12 +121,20 @@ func deployWebLogicApp(namespace string) {
 	// Note: creating the app config first to verify that default metrics traits are created properly if the app config exists before the components
 	t.Logs.Info("Create application resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(appConfiguration, namespace)
+		file, err := pkg.FindTestDataFile(appConfiguration)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create component resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(compConfiguration, namespace)
+		file, err := pkg.FindTestDataFile(compConfiguration)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval, "Failed to create component resources for WebLogic application").ShouldNot(HaveOccurred())
 }
 
@@ -134,12 +143,20 @@ func undeployWebLogicApp() {
 	t.Logs.Info("Delete application")
 	start := time.Now()
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(appConfiguration, namespace)
+		file, err := pkg.FindTestDataFile(appConfiguration)
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete component")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFileInGeneratedNamespace(compConfiguration, namespace)
+		file, err := pkg.FindTestDataFile(compConfiguration)
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Wait for pod to terminate")
@@ -230,19 +247,24 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 	})
 
 	t.Context("WebLogic logging", Label("f:observability.logging.es"), func() {
-		indexName, err := pkg.GetOpenSearchAppIndex(namespace)
-		Expect(err).To(BeNil())
+		var indexName string
+		var err error
+		Eventually(func() error {
+			indexName, err = pkg.GetOpenSearchAppIndex(namespace)
+			return err
+		}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Expected to get OpenSearch App Index")
+
 		// GIVEN a WebLogic application with logging enabled
-		// WHEN the Elasticsearch index is retrieved
+		// WHEN the Opensearch index is retrieved
 		// THEN verify that it is found
-		t.It("Verify Elasticsearch index exists", func() {
+		t.It("Verify Opensearch index exists", func() {
 			Eventually(func() bool {
 				return pkg.LogIndexFound(indexName)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find log index "+indexName)
 		})
 		pkg.Concurrently(
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent log record of hellodomain-adminserver stdout is found
 			func() {
 				t.It("Verify recent hellodomain-adminserver log record exists", func() {
@@ -258,7 +280,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 			},
 
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent log record of hellodomain-adminserver log file is found
 			func() {
 				t.It("Verify recent hellodomain-adminserver log record exists", func() {
@@ -273,7 +295,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent pattern-matched log record of hellodomain-adminserver stdout is found
 			func() {
 				t.It("Verify recent pattern-matched AdminServer log record exists", func() {
@@ -290,7 +312,7 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 				})
 			},
 			// GIVEN a WebLogic application with logging enabled
-			// WHEN the log records are retrieved from the Elasticsearch index
+			// WHEN the log records are retrieved from the Opensearch index
 			// THEN verify that a recent pattern-matched log record of hellodomain-adminserver stdout is found
 			func() {
 				t.It("Verify recent pattern-matched AdminServer log record exists", func() {

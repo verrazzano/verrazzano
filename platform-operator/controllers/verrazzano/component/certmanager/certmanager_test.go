@@ -6,10 +6,11 @@ package certmanager
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"testing"
 
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -269,7 +270,8 @@ func TestIsCertManagerReady(t *testing.T) {
 		newPod(webhookDeploymentName, map[string]string{"app": "webhook"}),
 		newReplicaSet(webhookDeploymentName),
 	).Build()
-	assert.True(t, isCertManagerReady(spi.NewFakeContext(client, nil, nil, false)))
+	certManager := NewComponent().(certManagerComponent)
+	assert.True(t, certManager.isCertManagerReady(spi.NewFakeContext(client, nil, nil, false)))
 }
 
 // TestIsCertManagerNotReady tests the isCertManagerReady function
@@ -282,7 +284,8 @@ func TestIsCertManagerNotReady(t *testing.T) {
 		newDeployment(cainjectorDeploymentName, map[string]string{"app": "cainjector"}, false),
 		newDeployment(webhookDeploymentName, map[string]string{"app": "webhook"}, false),
 	).Build()
-	assert.False(t, isCertManagerReady(spi.NewFakeContext(client, nil, nil, false)))
+	certManager := NewComponent().(certManagerComponent)
+	assert.False(t, certManager.isCertManagerReady(spi.NewFakeContext(client, nil, nil, false)))
 }
 
 // TestIsCANilWithProfile tests the isCA function

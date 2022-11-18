@@ -1,112 +1,288 @@
 # PSR Testing Tool
 
-The PSR testing tool is used to test Verrazzano performance, scalability, and reliability.  The tool works by doing some
-work on the Verrazzano cluster, then collecting and analyzing results.  The type of work that is done depends on the goal of the test,
-and it can be done at any layer.  For example, you could test OpenSearch REST API while doing a Verrazzano upgrade, or even
+The PSR testing tool is used to test Verrazzano performance, scalability, and
+reliability. The tool works by doing some
+work on the Verrazzano cluster, then collecting and analyzing results. The type
+of work that is done depends on the goal of the test,
+and it can be done at any layer. For example, you could test OpenSearch REST API
+while doing a Verrazzano upgrade, or even
 a Kubernetes upgrade.
 
 ## Concepts
+
 ### Backend
-The tool consists of backend pods that are deployed using Helm charts.  The backend consists of a single image
-that has all the worker code.  When a pod is started, the worker config, is passed in as a set of Env vars.
-The main.go code in the pod gets the worker type, creates an instance of the worker, then invokes it
-to run.  The pod only runs a single worker, which executes until the pod terminates, by default.
+
+The tool consists of backend pods that are deployed using Helm charts. The
+backend consists of a single image
+that has all the worker code. When a pod is started, the worker config, is
+passed in as a set of Env vars.
+The main.go code in the pod gets the worker type, creates an instance of the
+worker, then invokes it
+to run. The pod only runs a single worker, which executes until the pod
+terminates, by default.
 
 ### Use Cases
-The term `use case` just describes what the worker does.  Each backend pod runs exactly one `use case` at a time, 
-in the context of a worker. Each use case is a focused task, like log generation, making HTTP GET requests against 
+
+The term `use case` just describes what the worker does. Each backend pod runs
+exactly one `use case` at a time,
+in the context of a worker. Each use case is a focused task, like log
+generation, making HTTP GET requests against
 some endpoint, or repeatedly scaling a component.
 
-To run a use case, just do a Helm install or upgrade.  Each use case has a set of Env vars stored in override files
-that define the configuration. For example, to deploy a use case to 
+To run a use case, just do a Helm install or upgrade. Each use case has a set of
+Env vars stored in override files
+that define the configuration. For example, to deploy a use case to
 generate logs using 10 replicas, you would run the following command:
+
 ```
-helm install psr-log-gen manifests/charts/k8s -f manifests/usecases/loggen.yaml --set replicas=10
+helm install psr-writelogs manifests/charts/worker -f manifests/usecases/opensearch/writelogs.yaml --set replicas=10
 ```
-**NOTE** The worker code for a use case expects all dependencies to exist at the time of execution.  This is the job of the scenario, 
-described next.  Workers should not know about other workers, or explicitly depend on them (in the worker code itself).  With that said,
-a worker could be written to gracefully wait until some required dependency was ready before doing the work, but it would never create or
+
+**NOTE** The worker code for a use case expects all dependencies to exist at the
+time of execution. This is the job of the scenario,
+described next. Workers should not know about other workers, or explicitly
+depend on them (in the worker code itself). With that said,
+a worker could be written to gracefully wait until some required dependency was
+ready before doing the work, but it would never create or
 provision a dependency.
 
 ### Scenarios
-Scenarios are a combination of one or more use cases running concurrently.
-Consider the scenario where one use case generates logs and another that scales OpenSearch out and in, repeatedly.  
 
-To run a scenario, you install two Helm releases as follows (note some use cases might not exist yet): 
+Scenarios are a combination of one or more use cases running concurrently.
+Consider the scenario where one use case generates logs and another that scales
+OpenSearch out and in, repeatedly.
+
+To run a scenario, you install two Helm releases as follows (note some use cases
+might not exist yet):
 ```
-helm install psr-log-gen manifests/charts/k8s -f manifests/usecases/opensearch/loggen.yaml --set replicas=5
-helm install psr-log-gen manifests/charts/k8s -f manifests/usecases/opensearch/scale-out-in.yaml --set replicas=1
+helm install psr-writelogs manifests/charts/worker -f manifests/usecases/opensearch/writelogs.yaml --set replicas=5
+helm install psr-scale manifests/charts/worker -f manifests/usecases/opensearch/scale.yaml --set replicas=1
 ```
+
 The override file for the scale use case might look like this:
 ```
-envVars:
-  PSR_WORKER_TYPE: WT_OPENSEARCH_SCALE_OUT_IN
-  PSR_OS_TIER: master
-  PSR_MAX_PODS: 5
-  PSR_MIN_PODS: 3  
-  PSR_INTERATION_DELAY: 5s
-  PSR_DURATION : 1h
+global:
+  envVars:
+    PSR_WORKER_TYPE: scale
+    OPEN_SEARCH_TIER: master
+    SCALE_DELAY_PER_TIER: 5s
+    MIN_REPLICA_COUNT: 3
+    MAX_REPLICA_COUNT: 5
 ```
-The OpenSearch worker code would read those Env vars at run time and behave accordingly.
+
+The OpenSearch worker code would read those Env vars at run time and behave
+accordingly.
 
 ### Metrics
-The workers themselves will generator metrics so that we know what kind of load they are putting on the system,
-and to also have insight to their progress to be sure that they working as expected.
+
+The workers themselves will generate metrics so that we know what kind of load
+they are putting on the system,
+and to also have insight to their progress to be sure that they are working as
+expected.
 
 ### Remote Execution
-There is nothing preventing a worker accessing a cluster different than the one it is running in.  You
-would just need to put the KUBECONFIG in a secret and pass the secret info to as an Env var.  However,
-the default mode and intention is that these workers run in the Verrazzano cluster that is being measure.
 
-## Usage
-Use the Makefile to build the backend image or execute other targets.  If you just want to try 
-the example use case on a local Kind cluster, then run the following which builds the code, builds the docker image, 
-loads the docker image into the Kind cluster, and deploys the example use case.
-```
-make run-example-k8s
-```
-After you run the make command, run `helm list` to see the `psr` release.  The get the logs for backend pods in the default namespace 
-to see that they are just logging then sleeping in a loop.
-
-The other Make targets are:
-* go-build - build the code
-* docker-build - go-build, then build the image
-* docker-push - docker-build, then push the image to ghcr.io. 
-* kind-load-image - docker-build, then load to local Kind cluster
-* run-example-k8s - kind-load-image, then deploy the example use case using Helm k8s chart
-
-### Example Helm Installs
-
-Install the example worker as a Kubernetes deployment with 10 replicas:
-```
-helm install  psr manifests/charts/k8s --set imageName=ghcr.io/verrazzano/psr-backend:local-582bfcfcf --replicas=10
-```
-
-Install the logging generator worker as an OAM application using the default image in the helm chart:
-```
-helm install  psr2 manifests/charts/oam -f manifests/helm/workers/opensearch.yaml
-```
-
-Install the example worker as a Kubernetes deployment using the default image in the helm chart, providing an imagePullSecret
-```
-helm install  psr-3  manifests/charts/k8s/ --set imagePullSecrets[0].name=verrazzano-container-registry
-```
+There is nothing preventing a worker accessing a cluster different from the one
+it is running in. You
+would just need to put the KUBECONFIG in a secret and pass the secret info to as
+an Env var. However,
+the default mode and intention is that these workers run in the Verrazzano
+cluster that is being measure.
 
 ### The Backend Image
-The backend image is a private image that should never be made public in ghcr.io.  The image is
+
+The backend image is a private image that should never be made public in
+ghcr.io. The image is
 built using scratch.
 
 ## Source Code
+
 The `backend` directory has the go code which consists of a few packages:
+
 * config - configuration code
 * metrics - metrics server for metrics generated by the workers
 * spi - the worker interface
 * workers - the various workers
 
-The `manifests/charts` directory has the Helm charts.  There is a chart for using plain Kubernetes
-resources to deploy the backend, and there is a chart to deploy the backend as an oam app. Any use case 
-can be deployed with either chart.
+The `manifests/charts` directory has the Helm charts. There is a single chart for using
+either OAM or plain Kubernetes resources to deploy the backend.  The default is OAM, use
+deploy without OAM, use `--set appType=k8s`
 
-The `manifests/usecases` directory has the Helm override files for every use case. These files must
-contain the configuration, as key:value pairs, required by the worker.
+The `manifests/usecases` directory has the Helm override files for every use
+case. These files must contain the configuration, as key:value pairs, required by the worker.
 
+## Usage
+
+Use the Makefile to build the backend image or execute other targets. If you
+just want to try the example use case on a local Kind cluster, then run the following which
+builds the code, builds the docker image, loads the docker image into the Kind cluster, and deploys the example use case.
+```
+make run-example-k8s
+```
+
+After you run the make command, run `helm list` to see the `psr` release. The
+get the logs for backend pods in the default namespace to see that they are just logging then sleeping in a loop.
+
+**NOTE:** Any Kubernetes platform can be used (OKE, OCI), Kind is just one
+example.
+
+The other Make targets include:  
+* go-build - build the code
+* go-build-cli - build the psrctl CLI
+* docker-clean - remove artifacts from a previous build
+* docker-build - calls go-build, then build the image
+* docker-push - calls docker-build, then push the image to ghcr.io.
+* kind-load-image - calls docker-build, then load the image to a local Kind cluster
+* run-example-oam - calls kind-load-image, then deploy the example worker as an OAM app
+* run-example-k8s - calls kind-load-image, then deploy the example worker as a Kubernetes deployment
+* install-cli - build and install the psrctl CLI to your go path
+
+### Example Helm Installs
+
+Install the example worker as an OAM application with 10 replicas:
+```
+helm install psr-example manifests/charts/worker --set imageName=ghcr.io/verrazzano/psr-backend:local-582bfcfcf --replicas=10
+```
+
+Install the example worker as an OAM application using the default image in the helm chart, providing an imagePullSecret
+```
+helm install psr-example manifests/charts/worker --set imagePullSecrets[0].name=verrazzano-container-registry
+```
+
+Install the WriteLogs worker as a Kubernetes deployment using the default image in the helm chart.  Note the appType must be supplied:
+```
+helm install psr-writelogs manifests/charts/worker --set appType=k8s -f manifests/usecases/opensearch/writelogs.yaml
+```
+
+Install the WriteLogs worker as an OAM application with 5 worker threads and the default 1 replica.
+```
+helm install psr-writelogs manifests/charts/worker --set global.envVars.PSR_WORKER_THREAD_COUNT=5 -f manifests/usecases/opensearch/writelogs.yaml
+```
+
+## Workers
+All of the workers are deployed using the same worker Helm chart. Worker configs are stored in global.envVars. Every worker, except the example, has the following requirements: 
+* must emit metrics
+* must not log while doing work, unless that is the purpose of the worker
+
+### Common Configuration
+```
+global:
+  envVars:
+    PSR_WORKER_TYPE - type of worker
+    default: example
+    
+    PSR_LOOP_SLEEP - duration to sleep between work iterations
+    default: 1s
+
+    PSR_NUM_LOOPS - number of iterations per worker thread
+    default: -1 (run forever)
+    
+    PSR_WORKER_THREAD_COUNT - threads per worker
+    default: 1
+```
+
+### Example
+#### Description
+The example worker periodically logs messages, it doesn't provide metrics.
+   
+#### Configuration
+no configuration overrides
+   
+#### Run
+```
+helm install psr-example manifests/charts/worker 
+```
+
+### WriteLogs
+#### Description
+The WriteLogs worker periodically logs messages.  The goal is to put a load on OpenSearch since fluentd collects the container logs and
+sends them to OpenSearch.
+
+#### Configuration
+no configuration overrides
+
+#### Run
+```
+helm install psr-writelogs manifests/charts/worker -f manifests/usecases/opensearch/writelogs.yaml
+```
+
+### GetLogs
+#### Description
+The GetLogs worker periodically gets messages from OpenSearch, in-cluster.  This worker must run in the mesh.
+
+#### Configuration
+no configuration overrides
+
+#### Run
+```
+helm install psr-getlogs manifests/charts/worker -f manifests/usecases/opensearch/getlogs.yaml
+```
+
+### PostLogs
+#### Description
+The PostLogs worker makes batch http post requests to OpenSearch, in-cluster. This worker must run in the mesh.
+
+#### Configuration
+```
+global:
+  envVars:
+    LOG_ENTRIES - number of log messages per post request
+    default: 1
+    
+    LOG_LENGTH - number of characters per log message
+    default: 1
+```
+
+#### Run
+```
+helm install psr-postlogs manifests/charts/worker -f manifests/usecases/opensearch/postlogs.yaml
+```
+
+### Scale
+#### Description
+The Scale worker continuously scales one tier of OpenSearch out and in. This worker must run in the mesh.
+
+#### Configuration
+```
+global:
+  envVars:
+    OPEN_SEARCH_TIER - OpenSearch tier
+    default: master
+    
+    MIN_REPLICA_COUNT - number of replicas to scale in to
+    default: 3
+    
+    MAX_REPLICA_COUNT - number of replicas to scale out to
+    default: 5
+```
+
+#### Run
+```
+helm install psr-scale manifests/charts/worker -f manifests/usecases/opensearch/scale.yaml
+```
+
+### HTTPGet
+#### Description
+The HTTPGet worker makes http requests to the endpoint for a specified service. This worker must run in the mesh.
+
+#### Configuration
+```
+global:
+  envVars:
+    SERVICE_NAME - service name
+    default: ""
+    
+    SERVICE_NAMESPACE - service namespace
+    default: ""
+    
+    SERVICE_PORT - service port
+    default: ""
+    
+    PATH - service path 
+    default: ""
+```
+
+#### Run
+```
+helm install psr-httpget manifests/charts/worker -f manifests/usecases/http/get.yaml
+```

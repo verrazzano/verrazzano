@@ -4,18 +4,21 @@
 package certificate
 
 import (
-	"bytes"
 	"context"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	adminv1 "k8s.io/api/admissionregistration/v1"
+	"go.uber.org/zap"
+	v1 "k8s.io/api/core/v1"
+	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
+	fakecorev1 "k8s.io/client-go/kubernetes/typed/core/v1/fake"
+	testing2 "k8s.io/client-go/testing"
 )
 
 // TestCreateWebhookCertificates tests that the certificates needed for webhooks are created
@@ -24,147 +27,144 @@ import (
 //	WHEN I call CreateWebhookCertificates
 //	THEN all the needed certificate artifacts are created
 func TestCreateWebhookCertificates(t *testing.T) {
-	assert := assert.New(t)
+	asserts := assert.New(t)
+	client := fake.NewSimpleClientset()
 
-	dir, err := os.MkdirTemp("", "certs")
-	if err != nil {
-		assert.Nil(err, "error should not be returned creating temporary directory")
-	}
-	defer os.RemoveAll(dir)
-	caBundle, err := CreateWebhookCertificates(dir)
-	assert.Nil(err, "error should not be returned setting up certificates")
-	assert.NotNil(caBundle, "CA bundle should be returned")
-
-	crtFile := fmt.Sprintf("%s/%s", dir, "tls.crt")
-	keyFile := fmt.Sprintf("%s/%s", dir, "tls.key")
-	assert.FileExists(crtFile, dir, "tls.crt", "expected tls.crt file not found")
-	assert.FileExists(keyFile, dir, "tls.key", "expected tls.key file not found")
-
-	crtBytes, err := os.ReadFile(crtFile)
-	if assert.NoError(err) {
-		block, _ := pem.Decode(crtBytes)
-		assert.NotEmptyf(block, "failed to decode PEM block containing public key")
-		assert.Equal("CERTIFICATE", block.Type)
-		cert, err := x509.ParseCertificate(block.Bytes)
-		if assert.NoError(err) {
-			assert.NotEmpty(cert.DNSNames, "Certificate DNSNames SAN field should not be empty")
-			assert.Equal("verrazzano-platform-operator-webhook.verrazzano-install.svc", cert.DNSNames[0])
+	// create temp dir for certs
+	tempDir, err := os.MkdirTemp("", "certs")
+	t.Logf("Using temp dir %s", tempDir)
+	defer func() {
+		err := os.RemoveAll(tempDir)
+		if err != nil {
+			t.Logf("Error removing tempdir %s", tempDir)
 		}
-	}
+	}()
+	asserts.Nil(err)
+
+	err = CreateWebhookCertificates(zap.S(), client, tempDir)
+	asserts.Nil(err)
+
+	// Verify generated certs
+	cert1 := validateFile(asserts, tempDir+"/tls.crt", "-----BEGIN CERTIFICATE-----")
+	key1 := validateFile(asserts, tempDir+"/tls.key", "-----BEGIN RSA PRIVATE KEY-----")
+
+	// Verify generated secrets
+	var secret *v1.Secret
+	secret, err = client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+	_, err2 := client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
+	asserts.Nil(err, "error should not be returned setting up certificates")
+	asserts.Nil(err2, "error should not be returned setting up certificates")
+	asserts.NotEmpty(string(secret.Data[CertKey]))
+
+	// create temp dir for certs
+	tempDir2, err := os.MkdirTemp("", "certs")
+	t.Logf("Using temp dir %s", tempDir2)
+	defer func() {
+		err := os.RemoveAll(tempDir2)
+		if err != nil {
+			t.Logf("Error removing tempdir %s", tempDir2)
+		}
+	}()
+	asserts.Nil(err)
+
+	// Call it again, should create new certs in location with identical contents
+	err = CreateWebhookCertificates(zap.S(), client, tempDir2)
+	asserts.Nil(err)
+	asserts.Nil(err)
+
+	// Verify generated certs
+	cert2 := validateFile(asserts, tempDir+"/tls.crt", "-----BEGIN CERTIFICATE-----")
+	key2 := validateFile(asserts, tempDir+"/tls.key", "-----BEGIN RSA PRIVATE KEY-----")
+
+	asserts.Equalf(cert1, cert2, "Certs did not match")
+	asserts.Equalf(key1, key2, "Keys did not match")
 }
 
-// TestCreateWebhookCertificatesFail tests that the certificates needed for webhooks are not created
-// GIVEN an invalid output directory for certificates
+// TestCreateWebhookCertificatesRaceCondition the handling of the race condition for the CA and TLS
+// certificates creation
+// GIVEN a call to CreateWebhookCertificates
 //
-//	WHEN I call CreateWebhookCertificates
-//	THEN all the needed certificate artifacts are not created
-func TestCreateWebhookCertificatesFail(t *testing.T) {
-	assert := assert.New(t)
+//	WHEN the secrets initially do not exist at the beginning of the method invocation, but later do on the Create call
+//	THEN the previously stored secret data is used for the generated certificate/key files
+func TestCreateWebhookCertificatesRaceCondition(t *testing.T) {
+	asserts := assert.New(t)
+	client := fake.NewSimpleClientset()
 
-	_, err := CreateWebhookCertificates("/bad-dir")
-	assert.Error(err, "error should be returned setting up certificates")
+	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)
+
+	log := zap.S()
+
+	// Call the internal routines to create the cert data and secrets within the fake client;
+	// later we will simulate the race condition using reactors with the fake
+
+	// Create the CA cert and key, and verify the secret is tracked in the fake client
+	ca, caKey, err := createCACert(log, client, commonName)
+	asserts.Nil(err)
+	_, err = client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+	asserts.Nil(err)
+
+	// Create the TLS cert and key, and verify the secret is tracked in the fake client
+	serverPEM, serverKeyPEM, err := createTLSCert(log, client, commonName, ca, caKey)
+	asserts.Nil(err)
+	_, err = client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
+	asserts.Nil(err)
+
+	// create temp dir for certs
+	tempDir, err := os.MkdirTemp("", "certs")
+	t.Logf("Using temp dir %s", tempDir)
+	defer func() {
+		err := os.RemoveAll(tempDir)
+		if err != nil {
+			t.Logf("Error removing tempdir %s", tempDir)
+		}
+	}()
+	asserts.Nil(err)
+
+	// Simulate the race condition where the secrets do not exist when CreateWebhookCertificates is called
+	// but do exist when it attempts to create them later in the routine.
+	//
+	// We do this by having the initial secret Get() operations return a NotExists error,
+	// but later the Create() calls return an Already exists error (the code before this causes the
+	// secrets to exist in the fake client).
+
+	getCAInvokes := 0
+	getTLSInvokes := 0
+	client.CoreV1().(*fakecorev1.FakeCoreV1).
+		PrependReactor("get", "secrets",
+			func(action testing2.Action) (handled bool, obj runtime.Object, err error) {
+				getActionImpl := action.(testing2.GetActionImpl)
+				resName := getActionImpl.GetName()
+				if resName == OperatorCA {
+					getCAInvokes++
+					if getCAInvokes > 1 {
+						// Return not handled so the test secret is returned
+						return false, nil, nil
+					}
+				} else if resName == OperatorTLS {
+					getTLSInvokes++
+					if getTLSInvokes > 1 {
+						// Return not handled so the test secret is returned
+						return false, nil, nil
+					}
+				}
+				// Return not found on the initial Get call for each secret
+				return true, nil, errors2.NewNotFound(action.GetResource().GroupResource(), getActionImpl.GetName())
+			})
+
+	err = CreateWebhookCertificates(log, client, tempDir)
+	asserts.Nil(err)
+
+	// Verify generated certs
+	cert1 := validateFile(asserts, tempDir+"/tls.crt", "-----BEGIN CERTIFICATE-----")
+	key1 := validateFile(asserts, tempDir+"/tls.key", "-----BEGIN RSA PRIVATE KEY-----")
+
+	asserts.Equalf(serverPEM, cert1, "Certs did not match")
+	asserts.Equalf(serverKeyPEM, key1, "Keys did not match")
 }
 
-// TestUpdateValidatingnWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-platform-operator
-// validatingWebhookConfiguration resource.
-// GIVEN a validatingWebhookConfiguration resource with the CA Bundle set
-//
-//	WHEN I call UpdateValidatingnWebhookConfiguration
-//	THEN the validatingWebhookConfiguration resource set the CA Bundle as expected
-func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
-	assert := assert.New(t)
-
-	kubeClient := fake.NewSimpleClientset()
-
-	var caCert bytes.Buffer
-	caCert.WriteString("Fake CABundle")
-	pathInstall := "/validate-install-verrazzano-io-v1alpha1-verrazzano"
-	serviceInstall := adminv1.ServiceReference{
-		Name:      OperatorName,
-		Namespace: OperatorNamespace,
-		Path:      &pathInstall,
-	}
-	pathClusters := "/validate-clusters-verrazzano-io-v1alpha1-verrazzanomanagedcluster"
-	serviceClusters := adminv1.ServiceReference{
-		Name:      OperatorName,
-		Namespace: OperatorNamespace,
-		Path:      &pathClusters,
-	}
-
-	webhook := adminv1.ValidatingWebhookConfiguration{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: OperatorName,
-		},
-		Webhooks: []adminv1.ValidatingWebhook{
-			{
-				Name: "install.verrazzano.io",
-				ClientConfig: adminv1.WebhookClientConfig{
-					Service: &serviceInstall,
-				},
-			},
-			{
-				Name: "clusters.verrazzano.io",
-				ClientConfig: adminv1.WebhookClientConfig{
-					Service: &serviceClusters,
-				},
-			},
-			{
-				Name: "install.verrazzano.io.v1beta",
-				ClientConfig: adminv1.WebhookClientConfig{
-					Service: &serviceInstall,
-				},
-			},
-		},
-	}
-
-	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
-	assert.Nil(err, "error should not be returned creating validation webhook configuration")
-
-	err = UpdateValidatingnWebhookConfiguration(kubeClient, &caCert, OperatorName)
-	assert.Nil(err, "error should not be returned updating validation webhook configuration")
-
-	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), "verrazzano-platform-operator-webhook", metav1.GetOptions{})
-	assert.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
-}
-
-// TestUpdateValidatingnWebhookConfigurationFail tests that the CA Bundle is not updated in the
-// verrazzano-platform-operator validatingWebhookConfiguration resource.
-// GIVEN an invalid validatingWebhookConfiguration resource with the CA Bundle set
-//
-//	WHEN I call UpdateValidatingnWebhookConfiguration
-//	THEN the validatingWebhookConfiguration resource will fail to be updated
-func TestUpdateValidatingnWebhookConfigurationFail(t *testing.T) {
-	assert := assert.New(t)
-
-	kubeClient := fake.NewSimpleClientset()
-
-	var caCert bytes.Buffer
-	caCert.WriteString("Fake CABundle")
-	path := "/validate-install-verrazzano-io-v1alpha1-verrazzano"
-	service := adminv1.ServiceReference{
-		Name:      OperatorName,
-		Namespace: OperatorNamespace,
-		Path:      &path,
-	}
-	webhook := adminv1.ValidatingWebhookConfiguration{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "InvalidName",
-		},
-		Webhooks: []adminv1.ValidatingWebhook{
-			{
-				Name: "install.verrazzano.io",
-				ClientConfig: adminv1.WebhookClientConfig{
-					Service: &service,
-				},
-			},
-		},
-	}
-
-	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Create(context.TODO(), &webhook, metav1.CreateOptions{})
-	assert.Nil(err, "error should not be returned creating validation webhook configuration")
-
-	err = UpdateValidatingnWebhookConfiguration(kubeClient, &caCert, OperatorName)
-	assert.Error(err, "error should be returned updating validation webhook configuration")
+func validateFile(asserts *assert.Assertions, certFile string, certPrefix string) []byte {
+	file, err := os.ReadFile(certFile)
+	asserts.Nilf(err, "Error reading file", certFile)
+	asserts.True(strings.Contains(string(file), certPrefix))
+	return file
 }

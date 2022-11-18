@@ -107,6 +107,8 @@ type HelmComponent struct {
 
 	// Certificates associated with the component
 	Certificates []types.NamespacedName
+
+	AvailabilityObjects *ready.AvailabilityObjects
 }
 
 // Verify that HelmComponent implements Component
@@ -220,12 +222,11 @@ func (h HelmComponent) IsInstalled(context spi.ComponentContext) (bool, error) {
 // IsAvailable Indicates whether a component is available for end users
 // Components should implement comprehensive availability checks, supplying an appropriate reason
 // if the check fails.
-func (h HelmComponent) IsAvailable(context spi.ComponentContext) (reason string, available bool) {
-	available = h.IsReady(context)
-	if available {
-		return fmt.Sprintf("%s is available", h.Name()), true
+func (h HelmComponent) IsAvailable(context spi.ComponentContext) (string, v1alpha1.ComponentAvailability) {
+	if h.AvailabilityObjects != nil {
+		return h.AvailabilityObjects.IsAvailable(context.Log(), context.Client())
 	}
-	return fmt.Sprintf("%s is unavailable: failed readiness checks", h.Name()), false
+	return "", v1alpha1.ComponentAvailable
 }
 
 // IsReady Indicates whether a component is available and ready

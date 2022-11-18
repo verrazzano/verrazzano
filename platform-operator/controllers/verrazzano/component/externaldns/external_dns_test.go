@@ -116,7 +116,8 @@ func TestIsExternalDNSReady(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		newDeployment(ComponentName, true), newPod(ComponentName), newReplicaSet(ComponentName),
 	).Build()
-	assert.True(t, isExternalDNSReady(spi.NewFakeContext(client, nil, nil, false)))
+	externalDNS := NewComponent().(externalDNSComponent)
+	assert.True(t, externalDNS.isExternalDNSReady(spi.NewFakeContext(client, nil, nil, false)))
 }
 
 // TestIsExternalDNSNotReady tests the isExternalDNSReady fn
@@ -127,7 +128,8 @@ func TestIsExternalDNSNotReady(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		newDeployment(ComponentName, false),
 	).Build()
-	assert.False(t, isExternalDNSReady(spi.NewFakeContext(client, nil, nil, false)))
+	externalDNS := NewComponent().(externalDNSComponent)
+	assert.False(t, externalDNS.isExternalDNSReady(spi.NewFakeContext(client, nil, nil, false)))
 }
 
 // TestAppendExternalDNSOverrides tests the AppendOverrides fn

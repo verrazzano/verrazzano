@@ -8,19 +8,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/google/uuid"
-	certmanagerv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/onsi/gomega"
 	vaoClient "github.com/verrazzano/verrazzano/application-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	istionetv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -468,6 +468,15 @@ func GetVerrazzanoManagedClusterClientset() (*vpoClient.Clientset, error) {
 // GetVerrazzanoClientset returns the Kubernetes clientset for the Verrazzano CRD
 func GetVerrazzanoClientset() (*vpoClient.Clientset, error) {
 	config, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		return nil, err
+	}
+	return vpoClient.NewForConfig(config)
+}
+
+// GetVerrazzanoClientsetInCluster returns the Kubernetes clientset for platform operator given a kubeconfig location
+func GetVerrazzanoClientsetInCluster(kubeconfigPath string) (*vpoClient.Clientset, error) {
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}

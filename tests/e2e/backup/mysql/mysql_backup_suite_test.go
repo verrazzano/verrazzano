@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestMySQLBackup(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "MySQL Backup Suite")
+func TestMySQLOperatorBackup(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "MySQL Operator Backup Suite")
 }

@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestManagedClusterCertManagerUpdate(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Update Managed-Cluster Cert-Manager Suite")
+func TestManagedClusterCertManagerUpdate(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Update Managed-Cluster Cert-Manager Suite")
 }

@@ -71,7 +71,8 @@ func TestIsOAMOperatorReady(t *testing.T) {
 			},
 		},
 	).Build()
-	assert.True(t, isOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
+	oam := NewComponent().(oamComponent)
+	assert.True(t, oam.isOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsOAMOperatorNotReady tests the isOAMReady function
@@ -92,7 +93,8 @@ func TestIsOAMOperatorNotReady(t *testing.T) {
 			UpdatedReplicas:   0,
 		},
 	}).Build()
-	assert.False(t, isOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
+	oam := NewComponent().(oamComponent)
+	assert.False(t, oam.isOAMReady(spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false)))
 }
 
 // TestIsEnabledNilOAM tests the IsEnabled function
