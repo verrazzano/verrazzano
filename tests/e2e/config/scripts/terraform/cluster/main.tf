@@ -34,7 +34,7 @@ module "oke" {
   create_operator = var.operator_enabled
   operator_shape = { shape="VM.Standard.E3.Flex", ocpus=1, memory=4, boot_volume_size=50 }
   operator_notification_endpoint = ""
-  enable_operator_instance_principal = false
+  enable_operator_instance_principal = var.operator_enabled
   enable_operator_notification = false
   operator_timezone = "UTC"
 
