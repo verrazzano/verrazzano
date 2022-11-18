@@ -765,6 +765,18 @@
               "helmTagKey": "image.tag"
             }
           ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "redis",
+          "images": [
+            {
+              "image": "redis",
+              "tag": "6.2.7",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
         }
       ]
     }
