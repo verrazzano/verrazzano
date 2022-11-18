@@ -30,6 +30,7 @@ const (
 	profilesRelativePath = "../../../../manifests/profiles"
 	masterAppName        = "system-kibana"
 	DeploymentName       = "vmi-system-kibana"
+	InstallArgsName      = "nodes.data.requests.storage"
 )
 
 var dnsComponents = vzapi.ComponentSpec{
@@ -142,7 +143,7 @@ func TestGetOverrides(t *testing.T) {
 // GIVEN an OpenSearchDashboard component and a context
 //
 //	WHEN I call MonitorOverrides with defaults
-//	THEN an true is returned
+//	THEN a true value is returned
 func TestMonitorOverrides(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
@@ -154,7 +155,7 @@ func TestMonitorOverrides(t *testing.T) {
 // GIVEN an OpenSearchDashboard component
 //
 //	WHEN I call IsOperatorInstallSupported with defaults
-//	THEN an true is returned
+//	THEN a true value is returned
 func TestIsOperatorInstallSupported(t *testing.T) {
 	val := NewComponent().IsOperatorInstallSupported()
 	assert.Equal(t, val, true)
@@ -216,7 +217,7 @@ func TestPreUninstall(t *testing.T) {
 // GIVEN an OpenSearchDashboard component and a context
 //
 //	WHEN I call Uninstall with defaults
-//	THEN a nil error is returned
+//	THEN a nil value is returned
 func TestUninstall(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
@@ -228,7 +229,7 @@ func TestUninstall(t *testing.T) {
 // GIVEN an OpenSearchDashboard component and a context
 //
 //	WHEN I call PostUninstall with defaults
-//	THEN a nil error is returned
+//	THEN a nil value is returned
 func TestPostUninstall(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
@@ -240,7 +241,7 @@ func TestPostUninstall(t *testing.T) {
 // GIVEN an OpenSearchDashboard component and a context
 //
 //	WHEN I call Reconcile with defaults
-//	THEN a nil error is returned
+//	THEN a nil value is returned
 func TestReconcile(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
@@ -283,11 +284,11 @@ func TestIsReadyForComponent(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      kibanaDeployment,
-				Labels:    map[string]string{"app": "system-kibana"},
+				Labels:    map[string]string{"app": masterAppName},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"app": "system-kibana"},
+					MatchLabels: map[string]string{"app": masterAppName},
 				},
 			},
 			Status: appsv1.DeploymentStatus{
@@ -302,7 +303,7 @@ func TestIsReadyForComponent(t *testing.T) {
 				Name:      kibanaDeployment,
 				Labels: map[string]string{
 					"pod-template-hash": "95d8c5d96",
-					"app":               "system-kibana",
+					"app":               masterAppName,
 				},
 			},
 		},
@@ -337,7 +338,7 @@ func TestValidateInstall(t *testing.T) {
 }
 
 // TestValidateInstallV1Beta1 tests the ValidateInstallV1Beta1 call
-// GIVEN an OpenSearchDashboard component and a installv1beta1
+// GIVEN an OpenSearchDashboard component and an installv1beta1
 //
 //	WHEN I call ValidateInstallV1Beta1 with defaults
 //	THEN a nil value is returned
@@ -491,7 +492,7 @@ func TestValidateUpdateV1Beta1(t *testing.T) {
 						Elasticsearch: &vzapi.ElasticsearchComponent{
 							ESInstallArgs: []vzapi.InstallArgs{
 								{
-									Name:  "nodes.data.requests.storage",
+									Name:  InstallArgsName,
 									Value: "1Gi",
 								},
 							},
@@ -505,7 +506,7 @@ func TestValidateUpdateV1Beta1(t *testing.T) {
 						Elasticsearch: &vzapi.ElasticsearchComponent{
 							ESInstallArgs: []vzapi.InstallArgs{
 								{
-									Name:  "nodes.data.requests.storage",
+									Name:  InstallArgsName,
 									Value: "2Gi",
 								},
 							},
@@ -530,7 +531,6 @@ func TestValidateUpdateV1Beta1(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			// Change to OS installargs allowed, persistence changes are supported
 			name: "change-os-installargs",
 			old:  &vzapi.Verrazzano{},
 			new: &vzapi.Verrazzano{
@@ -549,14 +549,47 @@ func TestValidateUpdateV1Beta1(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			v1beta1Old := &installv1beta1.Verrazzano{}
 			v1beta1New := &installv1beta1.Verrazzano{}
-			_ = (tt.old).ConvertTo(v1beta1Old)
-			_ = (tt.new).ConvertTo(v1beta1New)
-			err := NewComponent().ValidateUpdateV1Beta1(v1beta1Old, v1beta1New)
+			err := (tt.old).ConvertTo(v1beta1Old)
+			assert.NoError(t, err)
+			err = (tt.new).ConvertTo(v1beta1New)
+			assert.NoError(t, err)
+			err = NewComponent().ValidateUpdateV1Beta1(v1beta1Old, v1beta1New)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
+}
+
+// TestIsAvailable tests the IsAvailable call
+// GIVEN an OpenSearchDashboards component and a context
+//
+//	WHEN I call IsAvailable with defaults
+//	THEN a value showing availability of opensearchdashboards and reason for its unavailability, if any, are returned
+func TestIsAvailable(t *testing.T) {
+	tests := []struct {
+		name              string
+		component         opensearchDashboardsComponent
+		args              spi.ComponentContext
+		expectedReason    string
+		expectedAvailable vzapi.ComponentAvailability
+	}{
+		{
+			"TestIsAvailable",
+			opensearchDashboardsComponent{},
+			spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false),
+			"waiting for deployment verrazzano-system/vmi-system-kibana to exist",
+			vzapi.ComponentUnavailable,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reason, available := tt.component.IsAvailable(tt.args)
+			assert.Equal(t, reason, tt.expectedReason)
+			assert.Equal(t, available, tt.expectedAvailable)
+		})
+	}
+
 }
 
 // TestPreUpgrade tests the OpenSearch-Dashboards PreUpgrade call
@@ -980,7 +1013,7 @@ func Test_opensearchdashboardComponent_ValidateUpdate(t *testing.T) {
 						Elasticsearch: &vzapi.ElasticsearchComponent{
 							ESInstallArgs: []vzapi.InstallArgs{
 								{
-									Name:  "nodes.data.requests.storage",
+									Name:  InstallArgsName,
 									Value: "1Gi",
 								},
 							},
@@ -994,7 +1027,7 @@ func Test_opensearchdashboardComponent_ValidateUpdate(t *testing.T) {
 						Elasticsearch: &vzapi.ElasticsearchComponent{
 							ESInstallArgs: []vzapi.InstallArgs{
 								{
-									Name:  "nodes.data.requests.storage",
+									Name:  InstallArgsName,
 									Value: "2Gi",
 								},
 							},
