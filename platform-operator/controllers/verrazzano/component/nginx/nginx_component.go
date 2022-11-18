@@ -5,10 +5,14 @@ package nginx
 
 import (
 	"fmt"
+	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
-	"path/filepath"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -62,19 +66,31 @@ func NewComponent() spi.Component {
 			PostInstallFunc:           PostInstall,
 			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ControllerName,
+						Namespace: ComponentNamespace,
+					},
+					{
+						Name:      backendName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
 
 // IsEnabled nginx-specific enabled check for installation
 func (c nginxComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsNGINXEnabled(effectiveCR)
+	return vzcr.IsNGINXEnabled(effectiveCR)
 }
 
 // IsReady component check
 func (c nginxComponent) IsReady(ctx spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(ctx) {
-		return isNginxReady(ctx)
+		return c.isNginxReady(ctx)
 	}
 	return false
 }

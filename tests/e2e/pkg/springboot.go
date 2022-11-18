@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+
 	"github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -37,12 +39,20 @@ func DeploySpringBootApplication(namespace string, istioInjection string) {
 
 	Log(Info, "Create Spring Boot component resource")
 	gomega.Eventually(func() error {
-		return CreateOrUpdateResourceFromFileInGeneratedNamespace(springbootComponentYaml, namespace)
+		file, err := FindTestDataFile(springbootComponentYaml)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 	Log(Info, "Create Spring Boot application resource")
 	gomega.Eventually(func() error {
-		return CreateOrUpdateResourceFromFileInGeneratedNamespace(springbootAppYaml, namespace)
+		file, err := FindTestDataFile(springbootAppYaml)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 }
 
@@ -52,12 +62,20 @@ func UndeploySpringBootApplication(namespace string) {
 	if exists, _ := DoesNamespaceExist(namespace); exists {
 		Log(Info, "Delete Spring Boot application")
 		gomega.Eventually(func() error {
-			return DeleteResourceFromFileInGeneratedNamespace(springbootAppYaml, namespace)
+			file, err := FindTestDataFile(springbootAppYaml)
+			if err != nil {
+				return err
+			}
+			return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 		}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 		Log(Info, "Delete Spring Boot components")
 		gomega.Eventually(func() error {
-			return DeleteResourceFromFileInGeneratedNamespace(springbootComponentYaml, namespace)
+			file, err := FindTestDataFile(springbootComponentYaml)
+			if err != nil {
+				return err
+			}
+			return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 		}, springbootWaitTimeout, springbootPollingInterval).ShouldNot(gomega.HaveOccurred())
 
 		Log(Info, "Wait for application pods to terminate")

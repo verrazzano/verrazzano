@@ -1,0 +1,29 @@
+# Copyright (C) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: verrazzano-cluster-operator
+rules:
+  - apiGroups:
+      - management.cattle.io
+    resources:
+      - clusters
+    verbs:
+      - update
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - clusters.verrazzano.io
+    resources:
+      - verrazzanomanagedclusters
+      - verrazzanomanagedclusters/status
+    verbs:
+      - create
+      - update
+      - delete
+      - get
+      - list
+      - patch
+      - watch

@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -67,22 +69,38 @@ func deployFooApplication() {
 
 	t.Logs.Info("Create AuthPolicy App resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/istio-securitytest-app.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/foo/istio-securitytest-app.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create Sleep Component")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/sleep-comp.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/foo/sleep-comp.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create Backend Component")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/springboot-backend.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/foo/springboot-backend.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create Frontend Component")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/foo/springboot-frontend.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/foo/springboot-frontend.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 }
@@ -97,22 +115,38 @@ func deployBarApplication() {
 
 	t.Logs.Info("Create AuthPolicy App resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/istio-securitytest-app.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/bar/istio-securitytest-app.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create Sleep Component")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/sleep-comp.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/bar/sleep-comp.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create Backend Component")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/springboot-backend.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/bar/springboot-backend.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create Frontend Component")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/bar/springboot-frontend.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/bar/springboot-frontend.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 }
@@ -127,22 +161,38 @@ func deployNoIstioApplication() {
 
 	t.Logs.Info("Create AuthPolicy App resources")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/istio-securitytest-app.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/noistio/istio-securitytest-app.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create Sleep Component")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/sleep-comp.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/noistio/sleep-comp.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create Backend Component")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/springboot-backend.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/noistio/springboot-backend.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Create Frontend Component")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFile("testdata/istio/authz/noistio/springboot-frontend.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/noistio/springboot-frontend.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 }
@@ -152,20 +202,36 @@ func undeployFooApplication() {
 
 	t.Logs.Info("Delete application")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/istio-securitytest-app.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/foo/istio-securitytest-app.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/sleep-comp.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/foo/sleep-comp.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/springboot-backend.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/foo/springboot-backend.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/istio/authz/foo/springboot-frontend.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/foo/springboot-frontend.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() (bool, error) {
@@ -188,20 +254,36 @@ func undeployBarApplication() {
 
 	t.Logs.Info("Delete application")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/istio-securitytest-app.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/bar/istio-securitytest-app.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/sleep-comp.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/bar/sleep-comp.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/springboot-backend.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/bar/springboot-backend.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/istio/authz/bar/springboot-frontend.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/bar/springboot-frontend.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() (bool, error) {
@@ -224,20 +306,36 @@ func undeployNoIstioApplication() {
 
 	t.Logs.Info("Delete application")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/istio-securitytest-app.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/noistio/istio-securitytest-app.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	t.Logs.Info("Delete components")
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/sleep-comp.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/noistio/sleep-comp.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/springboot-backend.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/noistio/springboot-backend.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() error {
-		return pkg.DeleteResourceFromFile("testdata/istio/authz/noistio/springboot-frontend.yaml")
+		file, err := pkg.FindTestDataFile("testdata/istio/authz/noistio/springboot-frontend.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.DeleteResourceFromFile(file, t.Logs)
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() (bool, error) {

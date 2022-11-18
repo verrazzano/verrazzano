@@ -5,9 +5,12 @@ package vmo
 
 import (
 	"context"
+	"path/filepath"
+
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
-	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -16,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -53,19 +55,27 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       appendVMOOverrides,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
 			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName},
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      ComponentName,
+						Namespace: ComponentNamespace,
+					},
+				},
+			},
 		},
 	}
 }
 
 // IsEnabled VMO enabled check for installation
 func (c vmoComponent) IsEnabled(effectiveCR runtime.Object) bool {
-	return vzconfig.IsVMOEnabled(effectiveCR)
+	return vzcr.IsVMOEnabled(effectiveCR)
 }
 
 // IsReady calls VMO isVmoReady function
 func (c vmoComponent) IsReady(context spi.ComponentContext) bool {
 	if c.HelmComponent.IsReady(context) {
-		return isVMOReady(context)
+		return c.isVMOReady(context)
 	}
 	return false
 }

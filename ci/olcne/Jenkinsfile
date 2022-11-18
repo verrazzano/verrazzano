@@ -11,7 +11,7 @@
 // -> Cleanup resources
 
 def testEnvironments=["OCNE"]
-def agentLabel=env.JOB_NAME.contains('-ocne') ? "" : env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel=env.JOB_NAME.contains('-ocne') ? "" : env.JOB_NAME.contains('master') ? "phx-large" : "large"
 // pulling "ap-*" from the test regions given discovery of image pull issues
 def availableRegions=["us-ashburn-1"]
 def availableDomains=["hXgQ:US-ASHBURN-AD-1", "hXgQ:US-ASHBURN-AD-2", "hXgQ:US-ASHBURN-AD-3"]
@@ -574,7 +574,7 @@ def generateSecurityTests(dumpRoot) {
         "istio authorization policy": {
             runGinkgo('istio/authz', "${dumpRoot}/istio-authz-policy")
         },
-        "security role based access": {
+        "security rbac": {
             runGinkgo('security/rbac', "${dumpRoot}/sec-role-based-access")
         },
         "security network policies": {
@@ -589,13 +589,13 @@ def generateSecurityTests(dumpRoot) {
 
 def generateNonWLSTests(dumpRoot, skipDeploy='false', skipUndeploy='false') {
     return [
-        "k8s deployment workload metrics": {
+        "deployment metrics": {
             runGinkgo('metrics/deploymetrics', "${dumpRoot}/k8sdeploy-workload-metrics")
         },
         "examples logging helidon": {
             runGinkgo('logging/helidon', "${dumpRoot}/examples-logging-helidon")
         },
-        "examples spring": {
+        "examples springboot": {
             runGinkgoAppTest('examples/springboot', "springboot", "${dumpRoot}/examples-spring", skipDeploy, skipUndeploy)
         },
         "examples helidon": {
@@ -944,7 +944,7 @@ def updateStorageClass() {
     echo CONTROL_PLANE_IP
     sh """
         # Add annotation to the storageclass created by OCNE oci-ccm module
-        kubectl annotate storageclass oci-bv "storageclass.kubernetes.io/is-default-class"="true"
+        kubectl annotate storageclass oci-bv "storageclass.kubernetes.io/is-default-class"="true" --overwrite=true
         # Create a CSI Driver
         cat << EOF | kubectl apply -f -
             apiVersion: storage.k8s.io/v1

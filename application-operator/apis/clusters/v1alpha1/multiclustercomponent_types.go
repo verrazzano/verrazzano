@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -11,39 +11,43 @@ import (
 const MultiClusterComponentKind = "MultiClusterComponent"
 const MultiClusterComponentResource = "multiclustercomponents"
 
-// MultiClusterComponentSpec defines the desired state of MultiClusterComponent
+// MultiClusterComponentSpec defines the desired state of a MultiCluster Component.
 type MultiClusterComponentSpec struct {
-	// The embedded OAM Component
-	Template ComponentTemplate `json:"template"`
-
-	// Clusters in which the secret is to be placed
+	// Clusters in which the component is to be created.
 	Placement Placement `json:"placement"`
+
+	// Template containing the metadata and spec for an OAM component.
+	Template ComponentTemplate `json:"template"`
 }
 
-// ComponentTemplate has the metadata and spec of the underlying OAM component
+// ComponentTemplate has the metadata and embedded spec of the OAM component.
 type ComponentTemplate struct {
-	// +optional
-	Metadata EmbeddedObjectMeta     `json:"metadata,omitempty"`
-	Spec     v1alpha2.ComponentSpec `json:"spec,omitempty"`
+	// Metadata describing the component.
+	Metadata EmbeddedObjectMeta `json:"metadata,omitempty"`
+
+	// The embedded OAM component specification.
+	Spec v1alpha2.ComponentSpec `json:"spec,omitempty"`
 }
 
+// +genclient
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:shortName=mccomp;mccomps
 // +kubebuilder:subresource:status
 
-// MultiClusterComponent is the Schema for the multiclustercomponents API, which will be used
-// in the management cluster, to create an OAM Component targeted at one or more managed clusters
+// MultiClusterComponent specifies the MultiCluster Component API.
 type MultiClusterComponent struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MultiClusterComponentSpec  `json:"spec,omitempty"`
+	// The desired state of a MultiCluster Component resource.
+	Spec MultiClusterComponentSpec `json:"spec,omitempty"`
+	// The observed state of a MultiCluster Component resource.
 	Status MultiClusterResourceStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// MultiClusterComponentList contains a list of MultiClusterComponent
+// MultiClusterComponentList contains a list of MultiClusterComponent resources.
 type MultiClusterComponentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -54,12 +58,12 @@ func init() {
 	SchemeBuilder.Register(&MultiClusterComponent{}, &MultiClusterComponentList{})
 }
 
-// GetStatus returns the MultiClusterResourceStatus of this resource
+// GetStatus returns the MultiClusterResourceStatus of this resource.
 func (in *MultiClusterComponent) GetStatus() MultiClusterResourceStatus {
 	return in.Status
 }
 
-// GetPlacement returns the Placement of this resource
+// GetPlacement returns the Placement of this resource.
 func (in *MultiClusterComponent) GetPlacement() Placement {
 	return in.Spec.Placement
 }

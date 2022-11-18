@@ -5,40 +5,18 @@ package argocd
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-)
-
-// Helm Chart setter keys
-const (
-	ingressTLSSourceKey     = "ingress.tls.source"
-	additionalTrustedCAsKey = "additionalTrustedCAs"
-	privateCAKey            = "privateCA"
-
-	// LE Keys
-	letsEncryptIngressClassKey = "letsEncrypt.ingress.class"
-	letsEncryptEmailKey        = "letsEncrypt.email"
-	letsEncryptEnvironmentKey  = "letsEncrypt.environment"
-)
-
-const (
-	letsEncryptTLSSource = "letsEncrypt"
-	caTLSSource          = "secret"
-	caCertsPem           = "cacerts.pem"
-	caCert               = "ca.crt"
-	privateCAValue       = "true"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // Constants for Kubernetes resource names
 const (
 	defaultSecretNamespace = "cert-manager"
-	namespaceLabelKey      = "verrazzano.io/namespace"
-	argoCDTLSSecretName    = "tls-ca"
 	defaultVerrazzanoName  = "verrazzano-ca-certificate-secret"
 )
 
@@ -59,19 +37,30 @@ func GetOverrides(object runtime.Object) interface{} {
 	return []vzapi.Overrides{}
 }
 
-func useAdditionalCAs(acme vzapi.Acme) bool {
-	return acme.Environment != "production"
-}
-
-func getArgoCDHostname(c client.Client, vz *vzapi.Verrazzano) (string, error) {
-	dnsSuffix, err := vzconfig.GetDNSSuffix(c, vz)
-	if err != nil {
-		return "", err
+// isArgoCDReady checks the state of the expected argocd deployments and returns true if they are in a ready state
+func isArgoCDReady(ctx spi.ComponentContext) bool {
+	deployments := []types.NamespacedName{
+		{
+			Name:      common.ArgoCDApplicationSetController,
+			Namespace: ComponentNamespace,
+		},
+		{
+			Name:      common.ArgoCDNotificationController,
+			Namespace: ComponentNamespace,
+		},
+		{
+			Name:      common.ArgoCDRedis,
+			Namespace: ComponentNamespace,
+		},
+		{
+			Name:      common.ArgoCDRepoServer,
+			Namespace: ComponentNamespace,
+		},
+		{
+			Name:      common.ArgoCDServer,
+			Namespace: ComponentNamespace,
+		},
 	}
-	env := vz.Spec.EnvironmentName
-	if len(env) == 0 {
-		env = constants.DefaultEnvironmentName
-	}
-	argoCDHostname := fmt.Sprintf("%s.%s.%s", common.ArgoCDName, env, dnsSuffix)
-	return argoCDHostname, nil
+	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
+	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, prefix)
 }

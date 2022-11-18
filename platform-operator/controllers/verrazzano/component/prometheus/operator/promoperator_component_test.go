@@ -4,11 +4,13 @@
 package operator
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"testing"
 
-	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+
+	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -102,6 +104,29 @@ func TestValidateUpdate(t *testing.T) {
 		},
 	}
 	assert.Error(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ))
+}
+
+// TestValidateUpdate tests when new vzapi is true the Prometheus Operator ValidateUpdate function
+func TestValidateUpdateNew(t *testing.T) {
+	oldVZ := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				PrometheusOperator: &vzapi.PrometheusOperatorComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	newVZ := vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				PrometheusOperator: &vzapi.PrometheusOperatorComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	assert.Nil(t, NewComponent().ValidateUpdate(&oldVZ, &newVZ))
 }
 
 // TestPostInstall tests the component PostInstall function
@@ -208,4 +233,116 @@ func TestValidateInstall(t *testing.T) {
 		},
 	}
 	common.RunValidateInstallTest(t, NewComponent, tests...)
+}
+
+// Test isReady when it's called with component context
+func TestIsReady(t *testing.T) {
+	c := fake.NewClientBuilder().Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false, profilesRelativePath)
+	assert.False(t, NewComponent().IsReady(ctx))
+}
+
+// test Monitoroverrides method
+func TestMonitorOverride(t *testing.T) {
+	falseValue := false
+	trueValue := true
+	tests := []struct {
+		name       string
+		actualCR   vzapi.Verrazzano
+		expectTrue bool
+	}{
+		{
+			// GIVEN a default Verrazzano custom resource
+			// WHEN we call MonitorOverride on the Prometheus Adapter component
+			// THEN the call returns false
+			name:       "Test MonitorOverride when using default Verrazzano CR",
+			actualCR:   vzapi.Verrazzano{},
+			expectTrue: true,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Prometheus Adapter enabled
+			// WHEN we call MonitorOverride on the Prometheus Adapter component
+			// THEN the call returns true
+			name: "Test MonitorOverride when Prometheus Adapter component set to enabled",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{
+							Enabled:          &trueValue,
+							InstallOverrides: vzapi.InstallOverrides{MonitorChanges: &trueValue},
+						},
+					},
+				},
+			},
+			expectTrue: true,
+		},
+		{
+			// GIVEN a Verrazzano custom resource with the Prometheus Adapter disabled
+			// WHEN we call MonitorOverride on the Prometheus Adapter component
+			// THEN the call returns true
+			name: "Test MonitorOverride when Prometheus Adapter component set to disabled",
+			actualCR: vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						PrometheusOperator: &vzapi.PrometheusOperatorComponent{
+							Enabled: &falseValue,
+						},
+					},
+				},
+			},
+			expectTrue: true,
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := spi.NewFakeContext(nil, &tests[i].actualCR, nil, false, profilesRelativePath)
+			assert.Equal(t, tt.expectTrue, NewComponent().MonitorOverrides(ctx))
+		})
+	}
+}
+
+// test preinstall for component class
+func TestPreInstallcomponent(t *testing.T) {
+	c := fake.NewClientBuilder().Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, true)
+	assert.Nil(t, NewComponent().PreInstall(ctx))
+}
+
+// test PreUpgrade for component class
+func TestPreUpgradecomponent(t *testing.T) {
+	c := fake.NewClientBuilder().Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, true)
+	assert.Nil(t, NewComponent().PreUpgrade(ctx))
+}
+
+// Test isAvailable for not nil when it's called with component context
+func TestIsAvailable(t *testing.T) {
+	c := fake.NewClientBuilder().Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false, profilesRelativePath)
+	str, _ := NewComponent().IsAvailable(ctx)
+	assert.NotNil(t, str)
+}
+
+// TestValidateUpdateV1Beta1 tests the Prometheus Operator ValidateUpdate function
+func TestValidateUpdateV1Beta1(t *testing.T) {
+	oldVZ := v1beta1.Verrazzano{
+		Spec: v1beta1.VerrazzanoSpec{
+			Components: v1beta1.ComponentSpec{
+				PrometheusOperator: &v1beta1.PrometheusOperatorComponent{
+					Enabled: &trueValue,
+				},
+			},
+		},
+	}
+	newVZ := v1beta1.Verrazzano{
+		Spec: v1beta1.VerrazzanoSpec{
+			Components: v1beta1.ComponentSpec{
+				PrometheusOperator: &v1beta1.PrometheusOperatorComponent{
+					Enabled: &falseValue,
+				},
+			},
+		},
+	}
+	assert.Error(t, NewComponent().ValidateUpdateV1Beta1(&oldVZ, &newVZ))
 }

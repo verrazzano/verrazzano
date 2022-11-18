@@ -4,8 +4,8 @@
 package controllers
 
 import (
-	"context"
 	"fmt"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -48,25 +48,28 @@ func componentContainsResource(Overrides []installv1alpha1.Overrides, objectName
 
 // UpdateVerrazzanoForInstallOverrides mutates the status subresource of Verrazzano Custom Resource specific
 // to a component to cause a reconcile
-func UpdateVerrazzanoForInstallOverrides(c client.Client, componentCtx spi.ComponentContext, componentName string) error {
+func UpdateVerrazzanoForInstallOverrides(statusUpdater vzstatus.Updater, componentCtx spi.ComponentContext, componentName string) error {
 	cr := componentCtx.ActualCR()
 	// Return an error to requeue if Verrazzano Component Status hasn't been initialized
 	if cr.Status.Components == nil {
 		return fmt.Errorf("Components not initialized")
 	}
 	// Set ReconcilingGeneration to 1 to re-enter install flow
-	cr.Status.Components[componentName].ReconcilingGeneration = 1
-	err := c.Status().Update(context.TODO(), cr)
-	if err == nil {
-		return nil
+	details := cr.Status.Components[componentName].DeepCopy()
+	details.ReconcilingGeneration = 1
+	componentsToUpdate := map[string]*installv1alpha1.ComponentStatusDetails{
+		componentName: details,
 	}
-	return err
+	statusUpdater.Update(&vzstatus.UpdateEvent{
+		Verrazzano: cr,
+		Components: componentsToUpdate,
+	})
+	return nil
 }
 
 // ProcDeletedOverride checks Verrazzano CR for an override resource that has now been deleted,
 // and updates the CR if the resource is found listed as an override
-func ProcDeletedOverride(c client.Client, vz *installv1alpha1.Verrazzano, objectName string, objectKind string) error {
-
+func ProcDeletedOverride(statusUpdater vzstatus.Updater, c client.Client, vz *installv1alpha1.Verrazzano, objectName string, objectKind string) error {
 	// DefaultLogger is used since we only need to create a component context and any actual logging isn't being performed
 	log := vzlog.DefaultLogger()
 	ctx, err := spi.NewContext(log, c, vz, nil, false)
@@ -79,7 +82,7 @@ func ProcDeletedOverride(c client.Client, vz *installv1alpha1.Verrazzano, object
 		return nil
 	}
 
-	if err := UpdateVerrazzanoForInstallOverrides(c, ctx, compName); err != nil {
+	if err := UpdateVerrazzanoForInstallOverrides(statusUpdater, ctx, compName); err != nil {
 		return err
 	}
 	return nil

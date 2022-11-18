@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 )
 
 var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {

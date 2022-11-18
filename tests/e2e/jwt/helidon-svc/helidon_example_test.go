@@ -11,16 +11,15 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (
@@ -166,13 +165,16 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	})
 
 	t.Context("Logging.", Label("f:observability.logging.es"), FlakeAttempts(5), func() {
+		var indexName string
+		Eventually(func() error {
+			indexName, err = pkg.GetOpenSearchAppIndex(namespace)
+			return err
+		}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "Expected to get OpenSearch App Index")
 
-		indexName, err := pkg.GetOpenSearchAppIndex(namespace)
-		Expect(err).To(BeNil())
 		// GIVEN an application with logging enabled
-		// WHEN the Elasticsearch index is retrieved
+		// WHEN the Opensearch index is retrieved
 		// THEN verify that it is found
-		t.It("Verify Elasticsearch index exists", func() {
+		t.It("Verify Opensearch index exists", func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}
@@ -182,9 +184,9 @@ var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 		})
 
 		// GIVEN an application with logging enabled
-		// WHEN the log records are retrieved from the Elasticsearch index
+		// WHEN the log records are retrieved from the Opensearch index
 		// THEN verify that at least one recent log record is found
-		t.It("Verify recent Elasticsearch log record exists", func() {
+		t.It("Verify recent Opensearch log record exists", func() {
 			if skipVerify {
 				Skip(skipVerifications)
 			}
@@ -227,12 +229,20 @@ func deployHelloHelidonApplication(namespace string, ociLogID string, istioInjec
 
 	pkg.Log(pkg.Info, "Create Hello Helidon component resource")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
+		file, err := pkg.FindTestDataFile(helidonComponentYaml)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon component resource")
 
 	pkg.Log(pkg.Info, "Create Hello Helidon application resource")
 	Eventually(func() error {
-		return pkg.CreateOrUpdateResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
+		file, err := pkg.FindTestDataFile(helidonAppYaml)
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, namespace)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
 }
 
@@ -242,12 +252,20 @@ func undeployHelloHelidonApplication(namespace string) {
 	if exists, _ := pkg.DoesNamespaceExist(namespace); exists {
 		pkg.Log(pkg.Info, "Delete Hello Helidon application")
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFileInGeneratedNamespace(helidonAppYaml, namespace)
+			file, err := pkg.FindTestDataFile(helidonAppYaml)
+			if err != nil {
+				return err
+			}
+			return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon application resource")
 
 		pkg.Log(pkg.Info, "Delete Hello Helidon components")
 		Eventually(func() error {
-			return pkg.DeleteResourceFromFileInGeneratedNamespace(helidonComponentYaml, namespace)
+			file, err := pkg.FindTestDataFile(helidonComponentYaml)
+			if err != nil {
+				return err
+			}
+			return resource.DeleteResourceFromFileInGeneratedNamespace(file, namespace)
 		}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Failed to create hello-helidon component resource")
 
 		pkg.Log(pkg.Info, "Wait for application pods to terminate")

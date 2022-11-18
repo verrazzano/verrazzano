@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -19,6 +20,7 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -52,7 +54,8 @@ const (
 	deploymentFoundStage  = "deployment-found"
 	databaseDumpedStage   = "database-dumped"
 	pvcDeletedStage       = "pvc-deleted"
-	initdbScriptsFile     = "initdbScripts.create-db\\.sql"
+	pvcRecreatedStage     = "pvc-recreated"
+	initdbScriptsFile     = "initdbScripts.create-db\\.sh"
 	backupHookScriptsFile = "configurationFiles.mysql-hook\\.sh"
 	dbMigrationSecret     = "db-migration"
 	mySQLHookFile         = "platform-operator/scripts/hooks/mysql-hook.sh"
@@ -60,11 +63,20 @@ const (
 	bomSubComponentName   = "mysql-upgrade"
 	mysqlServerImageName  = "mysql-server"
 	imageRepositoryKey    = "image.repository"
-	initDbScript          = `CREATE USER IF NOT EXISTS keycloak IDENTIFIED BY '%s';
+	initDbScript          = `#!/bin/sh
+
+if [[ $HOSTNAME == *-0 ]]; then
+   IsRestore="${DB_RESTORE:-false}"
+   rootPassword="${MYSQL_ROOT_PASSWORD}"
+   mysql -u root -p${rootPassword} << EOF
+CREATE USER IF NOT EXISTS keycloak IDENTIFIED BY '%s';
 CREATE DATABASE IF NOT EXISTS keycloak DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
-USE keycloak;
 GRANT CREATE, ALTER, DROP, INDEX, REFERENCES, SELECT, INSERT, UPDATE, DELETE ON keycloak.* TO '%s'@'%%';
 FLUSH PRIVILEGES;
+EOF
+   if [[ $IsRestore == false ]]; then
+      mysql -u root -p${rootPassword} << EOF
+USE keycloak;
 CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
   ID varchar(255) NOT NULL,
   AUTHOR varchar(255) NOT NULL,
@@ -81,7 +93,11 @@ CREATE TABLE IF NOT EXISTS DATABASECHANGELOG (
   LABELS varchar(255) DEFAULT NULL,
   DEPLOYMENT_ID varchar(10) DEFAULT NULL,
   PRIMARY KEY (ID,AUTHOR,FILENAME)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;`
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+EOF
+   fi
+fi
+`
 	mySQLRootCommand = `/usr/bin/mysql -uroot -p%s <<EOF
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost'; flush privileges;
 EOF
@@ -113,6 +129,8 @@ util.dumpInstance("/var/lib/mysql/dump", {ocimds: true, compatibility: ["strip_d
 EOF
 `
 	innoDBClusterStatusOnline = "ONLINE"
+	mySQLComponentLabel       = "component"
+	mySQLDComponentName       = "mysqld"
 )
 
 var (
@@ -138,13 +156,7 @@ var (
 )
 
 // isMySQLReady checks to see if the MySQL component is in ready state
-func isMySQLReady(ctx spi.ComponentContext) bool {
-	statefulset := []types.NamespacedName{
-		{
-			Name:      ComponentName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c mysqlComponent) isMySQLReady(ctx spi.ComponentContext) bool {
 	deployment := []types.NamespacedName{
 		{
 			Name:      fmt.Sprintf("%s-router", ComponentName),
@@ -174,7 +186,15 @@ func isMySQLReady(ctx spi.ComponentContext) bool {
 			routerReplicas = int(value.(float64))
 		}
 	}
-	ready := k8sready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulset, int32(serverReplicas), prefix)
+	ready := k8sready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.StatefulsetNames, int32(serverReplicas), prefix)
+
+	// Temporary work around for issue where MySQL pod readiness gates not all met
+	if !ready {
+		if err = c.repairMySQLPodsWaitingReadinessGates(ctx); err != nil {
+			return false
+		}
+	}
+
 	if ready && routerReplicas > 0 {
 		ready = k8sready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployment, int32(routerReplicas), prefix)
 	}
@@ -182,9 +202,91 @@ func isMySQLReady(ctx spi.ComponentContext) bool {
 	return ready && checkDbMigrationJobCompletion(ctx) && isInnoDBClusterOnline(ctx)
 }
 
+// repairMySQLPodsWaitingReadinessGates - temporary workaround to repair issue were a MySQL pod
+// can be stuck waiting for its readiness gates to be met.
+func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentContext) error {
+	podsWaiting, err := c.mySQLPodsWaitingForReadinessGates(ctx)
+	if err != nil {
+		return err
+	}
+	if podsWaiting {
+		// Restart the mysql-operator to see if it will finish setting the readiness gates
+		ctx.Log().Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck waiting for readiness gates")
+
+		operPod, err := getMySQLOperatorPod(ctx.Log(), ctx.Client())
+		if err != nil {
+			return fmt.Errorf("Failed restarting the mysql-operator to repair stuck MySQL pods: %v", err)
+		}
+
+		if err = ctx.Client().Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
+			return err
+		}
+
+		// Clear the timer
+		*c.LastTimeReadinessGateRepairStarted = time.Time{}
+	}
+	return nil
+}
+
+// mySQLPodsWaitingForReadinessGates - detect if there are MySQL pods stuck waiting for
+// their readiness gates to be true.
+func (c mysqlComponent) mySQLPodsWaitingForReadinessGates(ctx spi.ComponentContext) (bool, error) {
+	if c.LastTimeReadinessGateRepairStarted.IsZero() {
+		*c.LastTimeReadinessGateRepairStarted = time.Now()
+		return false, nil
+	}
+
+	// Initiate repair only if time to wait period has been exceeded
+	expiredTime := c.LastTimeReadinessGateRepairStarted.Add(5 * time.Minute)
+	if time.Now().After(expiredTime) {
+		// Check if the current not ready state is due to readiness gates not met
+		ctx.Log().Debug("Checking if MySQL not ready due to pods waiting for readiness gates")
+
+		selector := metav1.LabelSelectorRequirement{Key: mySQLComponentLabel, Operator: metav1.LabelSelectorOpIn, Values: []string{mySQLDComponentName}}
+		podList := k8sready.GetPodsList(ctx.Log(), ctx.Client(), types.NamespacedName{Namespace: ComponentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
+		if podList == nil || len(podList.Items) == 0 {
+			return false, fmt.Errorf("Failed checking MySQL readiness gates, no pods found matching selector %s", selector.String())
+		}
+
+		for i := range podList.Items {
+			pod := podList.Items[i]
+			// Check if the readiness conditions have been met
+			conditions := pod.Status.Conditions
+			if len(conditions) == 0 {
+				return false, fmt.Errorf("Failed checking MySQL readiness gates, no status conditions found for pod %s/%s", pod.Namespace, pod.Name)
+			}
+			readyCount := 0
+			for _, condition := range conditions {
+				for _, gate := range pod.Spec.ReadinessGates {
+					if condition.Type == gate.ConditionType && condition.Status == v1.ConditionTrue {
+						readyCount++
+						continue
+					}
+				}
+			}
+
+			// All readiness gates must be true
+			if len(pod.Spec.ReadinessGates) != readyCount {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
+}
+
+// getMySQLOperatorPod - return the mysql-operator pod
+func getMySQLOperatorPod(log vzlog.VerrazzanoLogger, client clipkg.Client) (*v1.Pod, error) {
+	operSelector := metav1.LabelSelectorRequirement{Key: "name", Operator: metav1.LabelSelectorOpIn, Values: []string{mysqloperator.ComponentName}}
+	operPodList := k8sready.GetPodsList(log, client, types.NamespacedName{Namespace: mysqloperator.ComponentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{operSelector}})
+	if operPodList == nil || len(operPodList.Items) != 1 {
+		return nil, fmt.Errorf("no pods found matching selector %s", operSelector.String())
+	}
+	return &operPodList.Items[0], nil
+}
+
 // isInnoDBClusterOnline returns true if the InnoDBCluster resource cluster status is online
 func isInnoDBClusterOnline(ctx spi.ComponentContext) bool {
-	ctx.Log().Progress("Waiting for InnoDBCluster to be online")
+	ctx.Log().Debug("Checking if the InnoDBCluster is online")
 
 	innoDBCluster := unstructured.Unstructured{}
 	innoDBCluster.SetGroupVersionKind(innoDBClusterGVK)
@@ -203,9 +305,10 @@ func isInnoDBClusterOnline(ctx spi.ComponentContext) bool {
 	}
 	if exists {
 		if clusterStatus == innoDBClusterStatusOnline {
+			ctx.Log().Debugf("InnoDBCluster %v is online", nsn)
 			return true
 		}
-		ctx.Log().Debugf("InnoDBCluster %v clusterStatus is: %s", nsn, clusterStatus)
+		ctx.Log().Progressf("Waiting for InnoDBCluster %v to be online, cluster status is: %s", nsn, clusterStatus)
 		return false
 	}
 
@@ -232,12 +335,7 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 			if err != nil {
 				return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 			}
-			if isLegacyPersistentDatabase(compContext) {
-				kvs, err = appendLegacyUpgradePersistenceValues(&bomFile, kvs)
-				if err != nil {
-					return []bom.KeyValue{}, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
-				}
-			} else {
+			if !isLegacyPersistentDatabase(compContext) {
 				// we are in the process of upgrading from a MySQL deployment using ephemeral storage, so we need to
 				// provide the sql initialization file
 				kvs, err = appendDatabaseInitializationValues(compContext, userPwd, kvs)
@@ -276,6 +374,12 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		return kvs, err
 	}
 	kvs = append(kvs, mySQLVersion)
+
+	// Apply overrides for which mysql-operator image to use in containers
+	kvs, err = generateMySQLOperatorOverrides(&bomFile, kvs)
+	if err != nil {
+		return kvs, err
+	}
 
 	repositorySetting, err := getRegistrySettings(&bomFile)
 	if err != nil {
@@ -316,6 +420,18 @@ func getMySQLVersion(bomFile *bom.Bom) (bom.KeyValue, error) {
 		return bom.KeyValue{}, err
 	}
 	return bom.KeyValue{Key: serverVersionKey, Value: version}, nil
+}
+
+func generateMySQLOperatorOverrides(bomFile *bom.Bom, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
+	_, images, err := bomFile.BuildImageStrings(mysqloperator.ComponentName)
+	if err != nil {
+		return kvs, err
+	}
+	if len(images) != 1 {
+		return kvs, fmt.Errorf("expected one image for %s, found %d", mysqloperator.ComponentName, len(images))
+	}
+	kvs = append(kvs, bom.KeyValue{Key: "mysqlOperator.image", Value: images[0]})
+	return kvs, nil
 }
 
 // preInstall creates and label the MySQL namespace
@@ -566,7 +682,7 @@ func convertOldInstallArgs(kvs []bom.KeyValue) []bom.KeyValue {
 // createMySQLInitFile creates the .sql file that gets passed to helm as an override
 // this initializes the MySQL DB
 func createMySQLInitFile(ctx spi.ComponentContext, userPwd []byte) (string, error) {
-	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.sql", mySQLInitFilePrefix))
+	file, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s*.sh", mySQLInitFilePrefix))
 	if err != nil {
 		return "", err
 	}

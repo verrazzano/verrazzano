@@ -8,6 +8,16 @@ package common
 const (
 	// ArgoCDName is the name of the component
 	ArgoCDName          = "argocd"
-	ArgoCDIngressCAName = "tls-argo-ingress"
+	ArgoCDIngressCAName = "tls-argocd-ingress"
 	ArgoCDCACert        = "ca.crt"
+	ArgoCDService       = "argocd-server"
+)
+
+// ArgoCD deployments
+const (
+	ArgoCDApplicationSetController = "argocd-applicationset-controller"
+	ArgoCDNotificationController   = "argocd-notifications-controller"
+	ArgoCDRedis                    = "argocd-redis"
+	ArgoCDRepoServer               = "argocd-repo-server"
+	ArgoCDServer                   = "argocd-server"
 )

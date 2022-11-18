@@ -82,10 +82,10 @@ const LabelIstioInjection = "istio-injection"
 // LabelVerrazzanoNamespace - constant for a Kubernetes label that is used by network policies
 const LabelVerrazzanoNamespace = "verrazzano.io/namespace"
 
-// LegacyElasticsearchSecretName legacy secret name for Elasticsearch credentials
-const LegacyElasticsearchSecretName = "verrazzano"
+// LegacyOpensearchSecretName legacy secret name for Opensearch credentials
+const LegacyOpensearchSecretName = "verrazzano"
 
-// VerrazzanoESInternal is the name of the Verrazzano internal Elasticsearch secret in the Verrazzano system namespace
+// VerrazzanoESInternal is the name of the Verrazzano internal Opensearch secret in the Verrazzano system namespace
 const VerrazzanoESInternal = "verrazzano-es-internal"
 
 // VerrazzanoPromInternal is the name of the Verrazzano internal Prometheus secret in the Verrazzano system namespace
@@ -160,6 +160,12 @@ const MetricsTemplateAPIVersion = "app.verrazzano.io/v1alpha1"
 
 // SecretKind is the kind for a secret
 const SecretKind = "Secret"
+
+// MysqlBackupMutatingWebhookName specifies the name of mysql webhook.
+const MysqlBackupMutatingWebhookName = "verrazzano-mysql-backup"
+
+// MysqlBackupMutatingWebhookPath specifies the path of mysql webhook.
+const MysqlBackupMutatingWebhookPath = "/mysql-backup-job-annotate"
 
 // Components Names
 const (

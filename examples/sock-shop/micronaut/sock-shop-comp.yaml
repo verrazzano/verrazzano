@@ -20,7 +20,7 @@ spec:
           cluster: SockShopCarts
           role: Carts
           replicas: 1
-          image: ghcr.io/oracle/coherence-micronaut-sockshop-carts:1.2.1
+          image: ghcr.io/oracle/coherence-micronaut-sockshop-carts:1.3.0
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.micronaut.carts.Application
@@ -63,7 +63,7 @@ spec:
           cluster: SockShopCatalog
           role: Catalog
           replicas: 1
-          image: ghcr.io/oracle/coherence-micronaut-sockshop-catalog:1.2.1
+          image: ghcr.io/oracle/coherence-micronaut-sockshop-catalog:1.3.0
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.micronaut.catalog.Application
@@ -106,7 +106,7 @@ spec:
           cluster: SockShopOrders
           role: Orders
           replicas: 1
-          image: ghcr.io/oracle/coherence-micronaut-sockshop-orders:1.2.1
+          image: ghcr.io/oracle/coherence-micronaut-sockshop-orders:1.3.0
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.micronaut.orders.Application
@@ -149,7 +149,7 @@ spec:
           cluster: SockShopPayment
           role: Payment
           replicas: 1
-          image: ghcr.io/oracle/coherence-micronaut-sockshop-payment:1.2.1
+          image: ghcr.io/oracle/coherence-micronaut-sockshop-payment:1.3.0
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.micronaut.payment.Application
@@ -196,7 +196,7 @@ spec:
           cluster: SockShopShipping
           role: Shipping
           replicas: 1
-          image: ghcr.io/oracle/coherence-micronaut-sockshop-shipping:1.2.1
+          image: ghcr.io/oracle/coherence-micronaut-sockshop-shipping:1.3.0
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.micronaut.shipping.Application
@@ -243,7 +243,7 @@ spec:
           cluster: SockShopUsers
           role: Users
           replicas: 1
-          image: ghcr.io/oracle/coherence-micronaut-sockshop-users:1.2.1
+          image: ghcr.io/oracle/coherence-micronaut-sockshop-users:1.3.0
           imagePullPolicy: IfNotPresent
           application:
             main: com.oracle.coherence.examples.sockshop.micronaut.users.Application

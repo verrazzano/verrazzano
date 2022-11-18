@@ -11,10 +11,10 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -64,6 +64,8 @@ var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "coherence-operator"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "kibana"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "kiali"},
+	{Namespace: constants.VeleroNameSpace, Name: "allow-same-namespace"},
+	{Namespace: constants.VeleroNameSpace, Name: "velero"},
 }
 
 var (
@@ -71,9 +73,9 @@ var (
 	writeFileFunc = os.WriteFile
 )
 
-//func resetWriteFileFunc() {
+// func resetWriteFileFunc() {
 //	writeFileFunc = os.WriteFile
-//}
+// }
 
 // appendOverrides appends the overrides for this component
 func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
@@ -118,16 +120,17 @@ func generateOverridesFile(ctx spi.ComponentContext, overrides *chartValues) (st
 func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) error {
 	effectiveCR := ctx.EffectiveCR()
 
-	overrides.ElasticSearch = &elasticsearchValues{Enabled: vzconfig.IsOpenSearchEnabled(effectiveCR)}
-	overrides.Externaldns = &externalDNSValues{Enabled: vzconfig.IsExternalDNSEnabled(effectiveCR)}
-	overrides.Grafana = &grafanaValues{Enabled: vzconfig.IsGrafanaEnabled(effectiveCR)}
-	overrides.Istio = &istioValues{Enabled: vzconfig.IsIstioEnabled(effectiveCR)}
-	overrides.JaegerOperator = &jaegerOperatorValues{Enabled: vzconfig.IsJaegerOperatorEnabled(effectiveCR)}
-	overrides.Keycloak = &keycloakValues{Enabled: vzconfig.IsKeycloakEnabled(effectiveCR)}
+	overrides.ElasticSearch = &elasticsearchValues{Enabled: vzcr.IsOpenSearchEnabled(effectiveCR)}
+	overrides.Externaldns = &externalDNSValues{Enabled: vzcr.IsExternalDNSEnabled(effectiveCR)}
+	overrides.Grafana = &grafanaValues{Enabled: vzcr.IsGrafanaEnabled(effectiveCR)}
+	overrides.Istio = &istioValues{Enabled: vzcr.IsIstioEnabled(effectiveCR)}
+	overrides.JaegerOperator = &jaegerOperatorValues{Enabled: vzcr.IsJaegerOperatorEnabled(effectiveCR)}
+	overrides.Keycloak = &keycloakValues{Enabled: vzcr.IsKeycloakEnabled(effectiveCR)}
 
-	promEnable := vzconfig.IsPrometheusEnabled(effectiveCR) || vzconfig.IsPrometheusOperatorEnabled(effectiveCR)
+	promEnable := vzcr.IsPrometheusEnabled(effectiveCR) || vzcr.IsPrometheusOperatorEnabled(effectiveCR)
 	overrides.Prometheus = &prometheusValues{Enabled: promEnable}
-	overrides.Rancher = &rancherValues{Enabled: vzconfig.IsRancherEnabled(effectiveCR)}
+	overrides.Rancher = &rancherValues{Enabled: vzcr.IsRancherEnabled(effectiveCR)}
+	overrides.Velero = &veleroValues{Enabled: vzcr.IsVeleroEnabled(effectiveCR)}
 	return nil
 }
 

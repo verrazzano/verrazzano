@@ -6,6 +6,9 @@ package upgrade
 import (
 	"bytes"
 	"context"
+	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	cmdHelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
@@ -16,9 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 // TestUpgradeCmdDefaultNoWait
@@ -94,9 +95,8 @@ func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
 
 	// Run upgrade command
-	cmdHelpers.SetVpoWaitRetries(1) // override for unit testing
+	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
 	err := cmd.Execute()
-	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
 	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
@@ -123,9 +123,8 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	defer cmdHelpers.SetDefaultDeleteFunc()
 
 	// Run upgrade command
-	cmdHelpers.SetVpoWaitRetries(1) // override for unit testing
+	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
 	err := cmd.Execute()
-	cmdHelpers.ResetVpoWaitRetries()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
 	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")

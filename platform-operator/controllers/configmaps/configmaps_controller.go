@@ -5,6 +5,7 @@ package configmaps
 
 import (
 	"context"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	"time"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -30,8 +31,9 @@ import (
 // This controller manages install override sources from the Verrazzano CR
 type VerrazzanoConfigMapsReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	log    vzlog.VerrazzanoLogger
+	Scheme        *runtime.Scheme
+	log           vzlog.VerrazzanoLogger
+	StatusUpdater vzstatus.Updater
 }
 
 // SetupWithManager creates a new controller and adds it to the manager
@@ -81,7 +83,7 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileInstallOverrideConfigMap(ctx c
 		if err := r.Get(ctx, req.NamespacedName, configMap); err != nil {
 			// Do not reconcile if the ConfigMap was deleted
 			if errors.IsNotFound(err) {
-				if err := controllers.ProcDeletedOverride(r.Client, vz, req.Name, constants.ConfigMapKind); err != nil {
+				if err := controllers.ProcDeletedOverride(r.StatusUpdater, r.Client, vz, req.Name, constants.ConfigMapKind); err != nil {
 					// Do not return an error as it's most likely due to timing
 					return newRequeueWithDelay(), nil
 				}
@@ -128,7 +130,7 @@ func (r *VerrazzanoConfigMapsReconciler) reconcileInstallOverrideConfigMap(ctx c
 				}
 			}
 
-			err := controllers.UpdateVerrazzanoForInstallOverrides(r.Client, componentCtx, componentName)
+			err := controllers.UpdateVerrazzanoForInstallOverrides(r.StatusUpdater, componentCtx, componentName)
 			if err != nil {
 				r.log.ErrorfThrottled("Failed to reconcile ConfigMap: %v", err)
 				return newRequeueWithDelay(), err

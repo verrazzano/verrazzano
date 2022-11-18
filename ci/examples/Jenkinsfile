@@ -2,7 +2,7 @@
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
-def agentLabel = env.JOB_NAME.contains('master') ? "phxlarge" : "VM.Standard2.8"
+def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 pipeline {
@@ -303,7 +303,7 @@ pipeline {
                                 runSocksVariant('spring')
                             }
                         }
-                        stage('examples spring') {
+                        stage('examples springboot') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-spring"
                             }
@@ -335,7 +335,7 @@ pipeline {
                                 runGinkgo('examples/helidonconfig')
                             }
                         }
-                        stage('examples bobs') {
+                        stage('examples bobs books') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
                             }

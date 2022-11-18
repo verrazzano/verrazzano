@@ -11,20 +11,22 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io"
-	"k8s.io/apimachinery/pkg/runtime"
 	"net/mail"
 	"os"
 	"path/filepath"
 	"strings"
 	"text/template"
 
-	cmutil "github.com/jetstack/cert-manager/pkg/api/util"
-	certv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
-	certmetav1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
-	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
-	certv1client "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	"k8s.io/apimachinery/pkg/runtime"
+
+	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	certmetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	cmclient "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
+	certv1client "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -57,6 +59,9 @@ const (
 	caCertCommonName            = "verrazzano-root-ca"
 	verrazzanoClusterIssuerName = "verrazzano-cluster-issuer"
 	clusterResourceNamespaceKey = "clusterResourceNamespace"
+
+	longestSystemURLPrefix = "elasticsearch.vmi.system"
+	preOccupiedspace       = len(longestSystemURLPrefix) + 2
 
 	crdDirectory  = "/cert-manager/"
 	crdInputFile  = "cert-manager.crds.yaml"
@@ -391,23 +396,9 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 }
 
 // isCertManagerReady checks the state of the expected cert-manager deployments and returns true if they are in a ready state
-func isCertManagerReady(context spi.ComponentContext) bool {
-	deployments := []types.NamespacedName{
-		{
-			Name:      certManagerDeploymentName,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      cainjectorDeploymentName,
-			Namespace: ComponentNamespace,
-		},
-		{
-			Name:      webhookDeploymentName,
-			Namespace: ComponentNamespace,
-		},
-	}
+func (c certManagerComponent) isCertManagerReady(context spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
-	return ready.DeploymentsAreReady(context.Log(), context.Client(), deployments, 1, prefix)
+	return ready.DeploymentsAreReady(context.Log(), context.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
 }
 
 // writeCRD writes out CertManager CRD manifests with OCI DNS specifications added
@@ -945,4 +936,58 @@ func GetOverrides(object runtime.Object) interface{} {
 		return effectiveCR.Spec.Components.CertManager.ValueOverrides
 	}
 	return []v1beta1.Overrides{}
+}
+
+// validateLongestHostName validates that the longest possible host name for a system endpoint
+// is not greater than 64 characters
+func validateLongestHostName(effectiveCR runtime.Object) error {
+	envName := getEnvironmentName(effectiveCR)
+	dnsSuffix, wildcard := getDNSSuffix(effectiveCR)
+	spaceOccupied := preOccupiedspace
+	longestHostName := fmt.Sprintf("%s.%s.%s", longestSystemURLPrefix, envName, dnsSuffix)
+	if len(longestHostName) > 64 {
+		if wildcard {
+			spaceOccupied = spaceOccupied + len(dnsSuffix)
+			return fmt.Errorf("spec.environmentName %s is too long. For the given configuration it must have at most %v characters", envName, 64-spaceOccupied)
+		}
+
+		return fmt.Errorf("spec.environmentName %s and DNS suffix %s are too long. For the given configuration they must have at most %v characters in combination", envName, dnsSuffix, 64-spaceOccupied)
+	}
+	return nil
+}
+
+func getEnvironmentName(effectiveCR runtime.Object) string {
+	if cr, ok := effectiveCR.(*vzapi.Verrazzano); ok {
+		return cr.Spec.EnvironmentName
+	}
+	cr := effectiveCR.(*v1beta1.Verrazzano)
+	return cr.Spec.EnvironmentName
+}
+
+func getDNSSuffix(effectiveCR runtime.Object) (string, bool) {
+	dnsSuffix, wildcard := "0.0.0.0", true
+	if cr, ok := effectiveCR.(*vzapi.Verrazzano); ok {
+		if cr.Spec.Components.DNS == nil || cr.Spec.Components.DNS.Wildcard != nil {
+			return fmt.Sprintf("%s.%s", dnsSuffix, vzconfig.GetWildcardDomain(cr.Spec.Components.DNS)), wildcard
+		} else if cr.Spec.Components.DNS.OCI != nil {
+			wildcard = false
+			dnsSuffix = cr.Spec.Components.DNS.OCI.DNSZoneName
+		} else if cr.Spec.Components.DNS.External != nil {
+			wildcard = false
+			dnsSuffix = cr.Spec.Components.DNS.External.Suffix
+		}
+		return dnsSuffix, wildcard
+	}
+
+	cr := effectiveCR.(*v1beta1.Verrazzano)
+	if cr.Spec.Components.DNS == nil || cr.Spec.Components.DNS.Wildcard != nil {
+		return fmt.Sprintf("%s.%s", dnsSuffix, vzconfig.GetWildcardDomain(cr.Spec.Components.DNS)), wildcard
+	} else if cr.Spec.Components.DNS.OCI != nil {
+		wildcard = false
+		dnsSuffix = cr.Spec.Components.DNS.OCI.DNSZoneName
+	} else if cr.Spec.Components.DNS.External != nil {
+		wildcard = false
+		dnsSuffix = cr.Spec.Components.DNS.External.Suffix
+	}
+	return dnsSuffix, wildcard
 }

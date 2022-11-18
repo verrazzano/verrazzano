@@ -7,13 +7,12 @@ import (
 	"flag"
 	"os"
 
+	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
-	certapiv1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	wls "github.com/verrazzano/verrazzano/application-operator/apis/weblogic/v8"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
@@ -36,7 +35,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/mcagent"
 	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
-	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clients/clusters/clientset/versioned/scheme"
+	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/scheme"
 	"go.uber.org/zap"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	clisecurity "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -67,7 +66,6 @@ func init() {
 	_ = vzapi.AddToScheme(scheme)
 	_ = vzapp.AddToScheme(scheme)
 	_ = istioclinet.AddToScheme(scheme)
-	_ = wls.AddToScheme(scheme)
 	_ = clisecurity.AddToScheme(scheme)
 
 	_ = clustersv1alpha1.AddToScheme(scheme)
@@ -296,7 +294,7 @@ func main() {
 			&webhook.Admission{Handler: &webhooks.MultiClusterSecretValidator{}})
 	}
 
-	logger, err := vzlog.BuildZapLogger(0)
+	logger, err := vzlog.BuildZapInfoLogger(0)
 	if err != nil {
 		log.Errorf("Failed to create ApplicationConfiguration logger: %v", err)
 		os.Exit(1)

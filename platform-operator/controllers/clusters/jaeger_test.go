@@ -100,7 +100,7 @@ const (
 		"spec": {
 			"strategy": "production",
 			"storage": {
-				"type": "elasticsearch",
+				"type": "opensearch",
 				"options": {
 					"es": {
 						"server-urls": "` + externalOSURL + `",
@@ -122,7 +122,7 @@ const (
 		"spec": {
 			"strategy": "production",
 			"storage": {
-				"type": "elasticsearch",
+				"type": "opensearch",
 				"options": {
 					"es": {
 						"server-urls": "` + externalOSURL + `",

@@ -10,16 +10,17 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"strings"
 	"time"
 
+	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	pcons "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"github.com/verrazzano/verrazzano/tests/e2e/update"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,32 +50,36 @@ func (u *FluentdModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Fluentd = &u.Component
 }
 
-func ValidateUpdate(m update.CRModifier, expectedError string) bool {
-	err := update.UpdateCR(m)
-	if err != nil {
-		pkg.Log(pkg.Info, fmt.Sprintf("Update error: %v", err))
-	}
-	if expectedError == "" {
-		return err == nil
-	}
-	if err == nil {
-		return false
-	}
-	return strings.Contains(err.Error(), expectedError)
+func ValidateUpdate(m update.CRModifier, expectedError string) {
+	gomega.Eventually(func() bool {
+		err := update.UpdateCR(m)
+		if err != nil {
+			pkg.Log(pkg.Info, fmt.Sprintf("Update error: %v", err))
+		}
+		if expectedError == "" {
+			return err == nil
+		}
+		if err == nil {
+			return false
+		}
+		return strings.Contains(err.Error(), expectedError)
+	}).WithPolling(pollingInterval).WithTimeout(longWait).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError))
 }
 
-func ValidateUpdateV1beta1(m update.CRModifierV1beta1, expectedError string) bool {
-	err := update.UpdateCRV1beta1(m)
-	if err != nil {
-		pkg.Log(pkg.Info, fmt.Sprintf("v1beta1 - Update error: %v", err))
-	}
-	if expectedError == "" {
-		return err == nil
-	}
-	if err == nil {
-		return false
-	}
-	return strings.Contains(err.Error(), expectedError)
+func ValidateUpdateV1beta1(m update.CRModifierV1beta1, expectedError string) {
+	gomega.Eventually(func() bool {
+		err := update.UpdateCRV1beta1(m)
+		if err != nil {
+			pkg.Log(pkg.Info, fmt.Sprintf("v1beta1 - Update error: %v", err))
+		}
+		if expectedError == "" {
+			return err == nil
+		}
+		if err == nil {
+			return false
+		}
+		return strings.Contains(err.Error(), expectedError)
+	}).WithPolling(pollingInterval).WithTimeout(longWait).Should(gomega.BeTrue(), fmt.Sprintf("expected error %v", expectedError))
 }
 
 func ValidateDaemonset(osURL, osSec, apiSec string, extra ...vzapi.VolumeMount) bool {
