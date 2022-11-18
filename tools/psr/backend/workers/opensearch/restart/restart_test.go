@@ -142,9 +142,10 @@ func TestGetMetricDescList(t *testing.T) {
 		name   string
 		fqName string
 		help   string
+		label  string
 	}{
-		{name: "1", fqName: metricsPrefix + "_pod_restart_count", help: "The total number of OpenSearch pod restarts"},
-		{name: "2", fqName: metricsPrefix + "_pod_restart_time_nanoseconds", help: "The number of nanoseconds elapsed to restart the OpenSearch pod"},
+		{name: "1", fqName: metricsPrefix + "_pod_restart_count", help: "The total number of OpenSearch pod restarts", label: `opensearch_tier="master"`},
+		{name: "2", fqName: metricsPrefix + "_pod_restart_time_nanoseconds", help: "The number of nanoseconds elapsed to restart the OpenSearch pod", label: `opensearch_tier="master"`},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

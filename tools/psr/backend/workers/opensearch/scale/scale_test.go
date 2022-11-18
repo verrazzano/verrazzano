@@ -150,11 +150,12 @@ func TestGetMetricDescList(t *testing.T) {
 		name   string
 		fqName string
 		help   string
+		label  string
 	}{
-		{name: "1", fqName: metricsPrefix + "_scale_out_count_total", help: "The total number of times OpenSearch scaled out"},
-		{name: "2", fqName: metricsPrefix + "_scale_in_count_total", help: "The total number of times OpenSearch scaled in"},
-		{name: "3", fqName: metricsPrefix + "_scale_out_seconds", help: "The number of seconds elapsed to scale out OpenSearch"},
-		{name: "4", fqName: metricsPrefix + "_scale_in_seconds", help: "The number of seconds elapsed to scale in OpenSearch"},
+		{name: "1", fqName: metricsPrefix + "_scale_out_count_total", help: "The total number of times OpenSearch scaled out", label: `opensearch_tier="master"`},
+		{name: "2", fqName: metricsPrefix + "_scale_in_count_total", help: "The total number of times OpenSearch scaled in", label: `opensearch_tier="master"`},
+		{name: "3", fqName: metricsPrefix + "_scale_out_seconds", help: "The number of seconds elapsed to scale out OpenSearch", label: `opensearch_tier="master"`},
+		{name: "4", fqName: metricsPrefix + "_scale_in_seconds", help: "The number of seconds elapsed to scale in OpenSearch", label: `opensearch_tier="master"`},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
