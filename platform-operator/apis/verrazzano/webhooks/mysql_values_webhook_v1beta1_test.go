@@ -262,3 +262,18 @@ func TestNoValidationWarningWithoutServerPodSpecV1beta1(t *testing.T) {
 	asrt.True(res.Allowed, allowedFailureMessage)
 	asrt.Len(res.Warnings, 0, noWarningsFailureMessage)
 }
+
+// TestNoValidationWarningWithEmptyVZ object tests not presenting a user warning
+// GIVEN a call to validate a Verrazzano resource
+// WHEN the override values do not specify a server podSpec
+// THEN the admission request should be allowed with ""
+
+func TestNoValidationWarningWithEmptyVZ(t *testing.T) {
+	asrt := assert.New(t)
+	m := newMysqlValuesValidatorV1beta1()
+	newVz := v1beta1.Verrazzano{}
+	req := newAdmissionRequest(admissionv1.Create, newVz, &v1beta1.Verrazzano{})
+	res := m.Handle(context.TODO(), req)
+	asrt.True(res.Allowed, allowedFailureMessage)
+	asrt.Len(res.Warnings, 0, noWarningsFailureMessage)
+}

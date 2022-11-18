@@ -73,12 +73,6 @@ func TestValidationWarningForServerPodSpecV1alpha1(t *testing.T) {
 			newVz:      &v1alpha1.Verrazzano{Spec: v1alpha1.VerrazzanoSpec{}},
 			oldVz:      &v1alpha1.Verrazzano{Status: v1alpha1.VerrazzanoStatus{Version: MinVersion}},
 		},
-		{
-			name:       "New version set below min version",
-			shouldWarn: false,
-			newVz:      &v1alpha1.Verrazzano{Spec: v1alpha1.VerrazzanoSpec{Version: "v1.4.1"}},
-			oldVz:      &v1alpha1.Verrazzano{},
-		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
