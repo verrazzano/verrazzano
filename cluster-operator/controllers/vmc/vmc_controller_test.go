@@ -1934,7 +1934,8 @@ func expectSyncManifest(t *testing.T, mock *mocks.MockClient, mockStatus *mocks.
 		DoAndReturn(func(ctx context.Context, vmc *v1alpha1.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			asserts.Equal(v1alpha1.RegistrationCompleted, vmc.Status.RancherRegistration.Status)
 			asserts.Equal(unitTestRancherClusterID, vmc.Status.RancherRegistration.ClusterID)
-			asserts.Equal("Registration of managed cluster completed successfully", vmc.Status.RancherRegistration.Message)
+			asserts.Equal(fmt.Sprintf("Registration of managed cluster completed successfully for cluster test with ID %s", unitTestRancherClusterID),
+				vmc.Status.RancherRegistration.Message)
 			return nil
 		})
 
