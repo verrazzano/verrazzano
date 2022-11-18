@@ -172,7 +172,7 @@ pipeline {
                     }
                     // derive the USE_V8O_DOC_STAGE for the docs
                     sh "chmod +x ${WORKSPACE}/ci/scripts/derive_v8o_doc_stage.sh"
-                    USE_V8O_DOC_STAGE = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_v8o_doc_stage.sh ${VERRAZZANO_DEV_VERSION}").trim()
+                    USE_V8O_DOC_STAGE = sh(returnStdout: true, script: "${WORKSPACE}/ci/scripts/derive_v8o_doc_stage.sh").trim()
                 }
             }
         }
