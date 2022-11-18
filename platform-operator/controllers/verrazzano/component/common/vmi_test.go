@@ -166,6 +166,7 @@ func Test_Vmi(t *testing.T) {
 			fakeContext := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), &test.actualCR, nil, false, profileDir)
 			fakeContext.EffectiveCR().Spec.Components.DNS = &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "verrazzano"}}
 			fakeContext.EffectiveCR().Spec.Components.Grafana = &vzapi.GrafanaComponent{Database: &vzapi.DatabaseInfo{Name: "name", Host: "host"}}
+			fakeContext.EffectiveCR().Spec.Components.DNS.OCI = &vzapi.OCI{DNSZoneName: "ind"}
 			a.NotNil(NewVMI())
 			cli := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects().Build()
 			a.NoError(EnsureBackupSecret(cli))
