@@ -55,7 +55,7 @@ func Test_Vmi(t *testing.T) {
 			description: "Test prod profile with empty dir storage override",
 			actualCR: vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{Istio: &vzapi.IstioComponent{Enabled: &b, InjectionEnabled: &b}, DNS: &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: APIGroupRancherManagement}, InstallOverrides: vzapi.InstallOverrides{MonitorChanges: &b}}},
+					Components:          vzapi.ComponentSpec{Istio: &vzapi.IstioComponent{Enabled: &b, InjectionEnabled: &b}, DNS: &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: APIGroupRancherManagement}, InstallOverrides: vzapi.InstallOverrides{MonitorChanges: &b}}},
 					DefaultVolumeSource: &corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
 				},
 			},
@@ -199,7 +199,6 @@ func Test_Vmi(t *testing.T) {
 		})
 	}
 }
-
 
 func Test_StorageOverrideBeta1(t *testing.T) {
 	tests := []struct {
@@ -349,7 +348,6 @@ func Test_StorageOverrideBeta1(t *testing.T) {
 		})
 	}
 }
-
 
 // TestReassociateResources tests the VMO reassociateResources function
 // GIVEN a VMO component
