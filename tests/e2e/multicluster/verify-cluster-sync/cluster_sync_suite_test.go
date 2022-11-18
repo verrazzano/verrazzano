@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestClusterSync(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Default Rancher Cluster Sync Suite")
+func TestClusterSync(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Default Rancher Cluster Sync Suite")
 }

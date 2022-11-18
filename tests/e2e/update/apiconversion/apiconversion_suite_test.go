@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestApiconversion(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Apiconversion Suite")
+func TestApiconversion(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Apiconversion Suite")
 }

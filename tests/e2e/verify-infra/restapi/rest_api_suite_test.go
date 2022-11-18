@@ -7,13 +7,12 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
 var t = framework.NewTestFramework("restapi_test")
 
-func TestRestApi(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "REST API Suite")
+func TestRestApi(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "REST API Suite")
 }
