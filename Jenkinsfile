@@ -154,6 +154,7 @@ pipeline {
                 script {
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    env.VERRAZZANO_DEV_VERSION = "${VERRAZZANO_DEV_VERSION}"
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "echo $env.GIT_COMMIT | head -c 8")
                     env.VERRAZZANO_VERSION = "${VERRAZZANO_DEV_VERSION}"
