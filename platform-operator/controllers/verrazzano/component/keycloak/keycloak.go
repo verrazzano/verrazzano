@@ -1427,7 +1427,7 @@ func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string,
 	// Update verrazzano-pkce client redirect and web origin uris if deprecated host exists in the ingress
 	osHostExists, err := DoesDeprecatedIngressHostExist(ctx, constants.VerrazzanoSystemNamespace)
 	if err != nil {
-		return "", err
+		ctx.Log().Errorf("Error retrieving the ingressList : %v", err)
 	}
 	// Set bool value if deprecated host exists
 	data.OSHostExists = osHostExists
