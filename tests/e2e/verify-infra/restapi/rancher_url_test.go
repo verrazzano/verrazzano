@@ -292,6 +292,7 @@ func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dyna
 		// Strip out any extra carriage returns
 		stdout = strings.ReplaceAll(stdout, "\r\r", "\r")
 		if stdout != logoSVG {
+			t.Logs.Errorf("Setting %s unstructured %v", logoPath, clusterData.UnstructuredContent())
 			t.Logs.Errorf("Got %s for Rancher UI logo path, expected %s", stdout, logoSVG)
 			return false, nil
 		}
