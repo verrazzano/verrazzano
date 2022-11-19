@@ -57,13 +57,18 @@ func NewComponent() spi.Component {
 	}
 }
 
+// PreInstall processing for the cluster-operator
+func (c clusterOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
+	return applyCRDs(ctx)
+}
+
 // PreUpgrade processing for the cluster-operator
 func (c clusterOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	err := common.ApplyCRDYaml(ctx, config.GetHelmClusterOpChartsDir())
-	if err != nil {
-		return err
-	}
-	return nil
+	return applyCRDs(ctx)
+}
+
+func applyCRDs(ctx spi.ComponentContext) error {
+	return common.ApplyCRDYaml(ctx, config.GetHelmClusterOpChartsDir())
 }
 
 // IsReady component check
