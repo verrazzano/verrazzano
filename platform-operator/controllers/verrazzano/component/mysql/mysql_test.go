@@ -2009,7 +2009,7 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
 	*mysqlComp.LastTimeReadinessGateRepairStarted = time.Now().Truncate(2 * time.Hour)
 	err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
-	assert.NoError(t, err)
+	assert.NoError(t, err, fmt.Sprintf("unexpected error: %v", err))
 	assert.True(t, mysqlComp.LastTimeReadinessGateRepairStarted.IsZero())
 
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
