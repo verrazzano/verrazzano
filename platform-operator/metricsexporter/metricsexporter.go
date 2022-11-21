@@ -106,16 +106,18 @@ type ComponentHealth struct {
 }
 
 // This member function returns the simpleGaugeMetric that holds the upgrade time for a component
-func (c *ComponentHealth) SetComponentHealth(name string, availability bool) (prometheus.Gauge, error) {
+func (c *ComponentHealth) SetComponentHealth(name string, availability bool, isEnabled bool) (prometheus.Gauge, error) {
 	setting := 0
-	if availability {
-		setting = 1
+	if isEnabled {
+		if availability {
+			setting = 1
+		}
+		setting = -1
 	}
 	metric, err := c.available.GetMetricWithLabelValues(name)
 	if err != nil {
 		return nil, err
 	}
 	metric.Set(float64(setting))
-
 	return metric, nil
 }
