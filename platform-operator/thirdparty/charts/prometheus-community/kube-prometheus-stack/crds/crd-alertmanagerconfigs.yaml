@@ -11,7 +11,7 @@ spec:
   group: monitoring.coreos.com
   names:
     categories:
-    - prometheus-operator
+    - prometheus-wls
     kind: AlertmanagerConfig
     listKind: AlertmanagerConfigList
     plural: alertmanagerconfigs
@@ -60,7 +60,7 @@ spec:
                       type: array
                     sourceMatch:
                       description: Matchers for which one or more alerts have to exist
-                        for the inhibition to take effect. The operator enforces that
+                        for the inhibition to take effect. The wls enforces that
                         the alert matches the resource’s namespace.
                       items:
                         description: Matcher defines how to match on alert's labels.
@@ -93,7 +93,7 @@ spec:
                       type: array
                     targetMatch:
                       description: Matchers that have to be fulfilled in the alerts
-                        to be muted. The operator enforces that the alert matches
+                        to be muted. The wls enforces that the alert matches
                         the resource’s namespace.
                       items:
                         description: Matcher defines how to match on alert's labels.
@@ -4387,7 +4387,7 @@ spec:
                   continue:
                     description: Boolean indicating whether an alert should continue
                       matching subsequent sibling nodes. It will always be overridden
-                      to true for the first-level route by the Prometheus operator.
+                      to true for the first-level route by the Prometheus wls.
                     type: boolean
                   groupBy:
                     description: List of labels to group by. Labels must not be repeated
@@ -4408,7 +4408,7 @@ spec:
                     type: string
                   matchers:
                     description: 'List of matchers that the alert’s labels should
-                      match. For the first level route, the operator removes any existing
+                      match. For the first level route, the wls removes any existing
                       equality and regexp matcher on the `namespace` label and adds
                       a `namespace: <object namespace>` matcher.'
                     items:

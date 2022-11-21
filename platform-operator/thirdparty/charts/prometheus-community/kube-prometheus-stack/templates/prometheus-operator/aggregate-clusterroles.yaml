@@ -1,4 +1,4 @@
-{{/* This file is based on https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/rbac-crd.md */}}
+{{/* This file is based on https://github.com/prometheus-wls/prometheus-wls/blob/main/Documentation/rbac-crd.md */}}
 {{- if and .Values.global.rbac.create .Values.global.rbac.createAggregateClusterRoles }}
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
@@ -8,7 +8,7 @@ metadata:
     rbac.authorization.k8s.io/aggregate-to-admin: "true"
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
     rbac.authorization.k8s.io/aggregate-to-view: "true"
-    app: {{ template "kube-prometheus-stack.name" . }}-operator
+    app: {{ template "kube-prometheus-stack.name" . }}-wls
     {{- include "kube-prometheus-stack.labels" . | nindent 4 }}
 rules:
 - apiGroups: ["monitoring.coreos.com"]
@@ -22,7 +22,7 @@ metadata:
   labels:
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
     rbac.authorization.k8s.io/aggregate-to-admin: "true"
-    app: {{ template "kube-prometheus-stack.name" . }}-operator
+    app: {{ template "kube-prometheus-stack.name" . }}-wls
     {{- include "kube-prometheus-stack.labels" . | nindent 4 }}
 rules:
 - apiGroups: ["monitoring.coreos.com"]

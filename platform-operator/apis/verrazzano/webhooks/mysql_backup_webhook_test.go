@@ -22,7 +22,7 @@ import (
 )
 
 var mySQLJobAnnotation = map[string]string{
-	"app.kubernetes.io/created-by": "mysql-operator",
+	"app.kubernetes.io/created-by": "mysql-wls",
 }
 
 const (
@@ -93,7 +93,7 @@ func TestHandleIstioDisabledMysqlBackupJob(t *testing.T) {
 
 // TestHandleSkipAnnotateMysqlBackupJob tests handling an admission.Request
 // GIVEN a MysqlBackupJobWebhook and an admission.Request
-// WHEN Handle is called with an admission.Request containing job not created by mysql-operator
+// WHEN Handle is called with an admission.Request containing job not created by mysql-wls
 // THEN Handle should return an Allowed response with no action required
 func TestHandleSkipAnnotateMysqlBackupJob(t *testing.T) {
 
@@ -125,12 +125,12 @@ func TestHandleSkipAnnotateMysqlBackupJob(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledJob}
 	res := defaulter.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
-	assert.Equal(t, metav1.StatusReason("No action required, job not labelled with app.kubernetes.io/created-by: mysql-operator"), res.Result.Reason)
+	assert.Equal(t, metav1.StatusReason("No action required, job not labelled with app.kubernetes.io/created-by: mysql-wls"), res.Result.Reason)
 }
 
 // TestHandleAnnotateMysqlBackupJob tests handling an admission.Request
 // GIVEN a MysqlBackupJobWebhook and an admission.Request
-// WHEN Handle is called with an admission.Request containing job created by mysql-operator
+// WHEN Handle is called with an admission.Request containing job created by mysql-wls
 // THEN Handle should return an Allowed response with no action required
 func TestHandleAnnotateMysqlBackupJob(t *testing.T) {
 
@@ -179,7 +179,7 @@ func TestConvertAPIVersionToGroupAndVersion(t *testing.T) {
 
 // TestIsCronJobCreatedByMysqlOperator tests handling an admission.Request
 // GIVEN a MysqlBackupJobWebhook and an admission.Request
-// WHEN Handle is called with an admission.Request containing cronjob created by mysql-operator
+// WHEN Handle is called with an admission.Request containing cronjob created by mysql-wls
 // THEN Handle should return an Allowed response with no action required
 func TestIsCronJobCreatedByMysqlOperator(t *testing.T) {
 	var err error
@@ -225,7 +225,7 @@ func TestIsCronJobCreatedByMysqlOperator(t *testing.T) {
 
 // TestIsCronJobCreatedByMysqlOperator2 tests handling an admission.Request
 // GIVEN a MysqlBackupJobWebhook and an admission.Request
-// WHEN Handle is called with an admission.Request containing cronjob created by mysql-operator
+// WHEN Handle is called with an admission.Request containing cronjob created by mysql-wls
 // and cronjob didn't exist
 // THEN Handle should not allow response with no action required
 

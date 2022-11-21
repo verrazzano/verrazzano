@@ -22,21 +22,21 @@ BASE_OBJ_PATH="daily-scan/${CLEAN_BRANCH_NAME}"
 SCAN_DATETIME="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 JOB_OBJ_PATH="${BASE_OBJ_PATH}/${SCAN_DATETIME}-${BUILD_NUMBER}"
 
-# Hack to get the generated BOM from a release by pulling down the operator.yaml from the release artifacts
-# and copying the BOM from the platform operator image
+# Hack to get the generated BOM from a release by pulling down the wls.yaml from the release artifacts
+# and copying the BOM from the platform wls image
 function get_bom_from_release() {
     local releaseTag=$1
     local outputFile=$2
     local tmpDir=$(mktemp -d)
 
-    # Download the operator.yaml for the release and get the platform-operator image and tag
+    # Download the wls.yaml for the release and get the platform-wls image and tag
     local operator_yaml=$(derive_platform_operator "$releaseTag")
     gh release download ${releaseTag} -p '${operator_yaml}' -D ${tmpDir}
     local image=$(grep "verrazzano-platform-operator:" ${tmpDir}/${operator_yaml} | grep "image:" -m 1 | xargs | cut -d' ' -f 2)
 
     # Create a container from the image and copy the BOM from the container
     local containerId=$(docker create ${image})
-    docker cp ${containerId}:/verrazzano/platform-operator/verrazzano-bom.json ${outputFile}
+    docker cp ${containerId}:/verrazzano/platform-wls/verrazzano-bom.json ${outputFile}
     docker rm ${containerId}
 
     rm -fr ${tmpDir}
@@ -72,9 +72,9 @@ function derive_platform_operator() {
   # Remove prefix v from version
   local version_num=${release_tag:1}
 
-  # Verrazzano distribution from 1.4.0 release replaces operator.yaml with verrazzano-platform-operator.yaml in release assets
+  # Verrazzano distribution from 1.4.0 release replaces wls.yaml with verrazzano-platform-wls.yaml in release assets
   local version_14=1.4.0
-  local operator_yaml=$(echo ${VERSION_NUM} ${VERSION_14} | awk '{if ($1 < $2) print "operator.yaml"; else print "verrazzano-platform-operator.yaml"}')
+  local operator_yaml=$(echo ${VERSION_NUM} ${VERSION_14} | awk '{if ($1 < $2) print "wls.yaml"; else print "verrazzano-platform-wls.yaml"}')
   echo $operator_yaml
   return 0
 }

@@ -49,8 +49,8 @@ spec:
       rewriteAppHTTPProbe: true
       neverInjectSelector:
         - matchExpressions:
-            - { key: app, operator: In, values: [ verrazzano-application-operator, verrazzano-cluster-operator, kube-prometheus-stack-operator ] }
+            - { key: app, operator: In, values: [ verrazzano-application-wls, verrazzano-cluster-wls, kube-prometheus-stack-wls ] }
         - matchExpressions:
             - { key: control-plane, operator: In, values: [ coherence ] }
         - matchExpressions:
-            - { key: app.kubernetes.io/name, operator: In, values: [ oam-kubernetes-runtime, prometheus-adapter, jaeger-operator ] }
+            - { key: app.kubernetes.io/name, operator: In, values: [ oam-kubernetes-runtime, prometheus-adapter, jaeger-wls ] }

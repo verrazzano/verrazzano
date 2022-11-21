@@ -56,7 +56,7 @@ var _ = t.AfterSuite(func() {
 var _ = t.Describe("Multi Cluster Jaeger Validation", Label("f:platform-lcm.install"), func() {
 
 	// GIVEN a multicluster setup with an admin and a manged cluster,
-	// WHEN Jaeger operator is enabled in the admin cluster and the managed cluster is registered to it,
+	// WHEN Jaeger wls is enabled in the admin cluster and the managed cluster is registered to it,
 	// THEN system traces can be queried from the Jaeger UI in the admin cluster
 	t.It("traces from verrazzano system components of managed cluster should be available when queried from Jaeger", func() {
 		validatorFn := pkg.ValidateSystemTracesFuncInCluster(adminKubeConfigPath, start, getClusterName())
@@ -64,17 +64,17 @@ var _ = t.Describe("Multi Cluster Jaeger Validation", Label("f:platform-lcm.inst
 	})
 
 	// GIVEN a multicluster setup with an admin and a manged cluster,
-	// WHEN Jaeger operator is enabled in the admin cluster and the managed cluster is registered to it,
-	// THEN we are able to query the metrics of Jaeger operator running in managed cluster
+	// WHEN Jaeger wls is enabled in the admin cluster and the managed cluster is registered to it,
+	// THEN we are able to query the metrics of Jaeger wls running in managed cluster
 	//      from the prometheus service running admin cluster.
-	t.It("metrics of jaeger operator running in managed cluster are available in prometheus of admin cluster", func() {
+	t.It("metrics of jaeger wls running in managed cluster are available in prometheus of admin cluster", func() {
 		Eventually(func() bool {
 			return pkg.IsJaegerMetricFound(adminKubeConfigPath, jaegerOperatorSampleMetric, getClusterName(), nil)
 		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 
 	// GIVEN a multicluster setup with an admin and a manged cluster,
-	// WHEN Jaeger operator is enabled in the admin cluster and the managed cluster is registered to it,
+	// WHEN Jaeger wls is enabled in the admin cluster and the managed cluster is registered to it,
 	// THEN we are able to query the metrics of Jaeger collector running in managed cluster
 	//      from the prometheus service running admin cluster.
 	t.It("metrics of jaeger collector running in managed cluster are available in prometheus of admin cluster", func() {

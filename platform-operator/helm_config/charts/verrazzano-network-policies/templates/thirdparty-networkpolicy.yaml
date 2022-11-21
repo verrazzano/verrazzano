@@ -1,19 +1,19 @@
 # Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ---
-# Network policy for WebLogic operator
+# Network policy for WebLogic wls
 # Ingress: allow from istio-system
 #          allow connect from Prometheus to scrape Envoy stats on port 15090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: weblogic-operator
+  name: weblogic-wls
   namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
-      app: weblogic-operator
+      app: weblogic-wls
   policyTypes:
     - Ingress
   ingress:
@@ -38,7 +38,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: coherence-operator
+  name: coherence-wls
   namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
@@ -241,7 +241,7 @@ spec:
     - from:
       - namespaceSelector:
           matchLabels:
-            verrazzano.io/namespace: mysql-operator
+            verrazzano.io/namespace: mysql-wls
       ports:
         - protocol: TCP
           port: 3306
@@ -567,7 +567,7 @@ spec:
               verrazzano.io/namespace: {{ .Release.Namespace }}
           podSelector:
             matchLabels:
-              k8s-app: verrazzano-monitoring-operator
+              k8s-app: verrazzano-monitoring-wls
     - ports:
         - port: 15012
           protocol: TCP
@@ -581,7 +581,7 @@ spec:
               verrazzano.io/namespace: {{ .Release.Namespace }}
           podSelector:
             matchExpressions:
-              - {key: app, operator: In, values: [fluentd, verrazzano-authproxy, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana, weblogic-operator, kiali]}
+              - {key: app, operator: In, values: [fluentd, verrazzano-authproxy, verrazzano-console, system-es-master, system-es-ingest, system-es-data, system-grafana, system-kibana, weblogic-wls, kiali]}
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: keycloak
@@ -602,10 +602,10 @@ spec:
               job-name: load-dump
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: mysql-operator
+              verrazzano.io/namespace: mysql-wls
           podSelector:
             matchLabels:
-              name: mysql-operator
+              name: mysql-wls
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: ingress-nginx
@@ -626,10 +626,10 @@ spec:
               app: jaeger
         - namespaceSelector:
             matchLabels:
-              verrazzano.io/namespace: mysql-operator
+              verrazzano.io/namespace: mysql-wls
           podSelector:
             matchLabels:
-              name: mysql-operator
+              name: mysql-wls
         - namespaceSelector:
             matchLabels:
               verrazzano.io/namespace: verrazzano-backup

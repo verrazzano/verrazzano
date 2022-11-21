@@ -24,7 +24,7 @@ var (
 )
 
 const (
-	profileDirSuffix = "/platform-operator/manifests/profiles"
+	profileDirSuffix = "/platform-wls/manifests/profiles"
 	baseProfile      = "base"
 	VzRootDir        = "VERRAZZANO_ROOT"
 )
@@ -124,7 +124,7 @@ func generateProfile(profileType string, verrazzanoDir string) (*CRWrapper, erro
 	profileFiles = append(profileFiles, profileFilePath(verrazzanoDir, cr, baseProfile))
 	profileFiles = append(profileFiles, profileFilePath(verrazzanoDir, cr, profileType))
 	// The profile type validation is handled here. All the profile template files are
-	// present at one location inside the platform-operator dir. If the given profile
+	// present at one location inside the platform-wls dir. If the given profile
 	// type is not valid, then an error is returned because of the absence of a YAML file
 	// for the given profile.
 	mergedCR, err := profiles.MergeProfilesForV1beta1(cr, profileFiles...)

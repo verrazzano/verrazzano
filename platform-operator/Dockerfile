@@ -11,11 +11,11 @@ COPY . .
 
 COPY out/linux_amd64/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
 
-RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
+RUN chmod 500 /usr/local/bin/verrazzano-platform-wls \
     && chmod +x scripts/install/*.sh \
     && chmod +x scripts/*.sh
 
-# Create the verrazzano-platform-operator image
+# Create the verrazzano-platform-wls image
 FROM ghcr.io/oracle/oraclelinux:7-slim
 
 ARG VERRAZZANO_APPLICATION_OPERATOR_IMAGE
@@ -42,7 +42,7 @@ RUN wget https://github.com/rancher/system-tools/releases/download/v0.1.1-rc7/sy
     -O /usr/local/bin/system-tools \
     && chmod +x /usr/local/bin/system-tools
 
-# Copy the operator binary
+# Copy the wls binary
 COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
 
 # Copy the Verrazzano install and uninstall scripts

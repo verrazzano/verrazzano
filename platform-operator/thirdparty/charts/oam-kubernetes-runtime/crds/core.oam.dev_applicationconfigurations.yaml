@@ -105,7 +105,7 @@ spec:
                                     workload/trait object
                                   type: string
                                 op:
-                                  description: ConditionOperator specifies the operator
+                                  description: ConditionOperator specifies the wls
                                     to match a value.
                                   type: string
                                 value:
@@ -251,7 +251,7 @@ spec:
                                         type: string
                                       op:
                                         description: ConditionOperator specifies the
-                                          operator to match a value.
+                                          wls to match a value.
                                         type: string
                                       value:
                                         description: Value specifies an expected value

@@ -77,7 +77,7 @@ func GetVersion(cmd *cobra.Command, vzHelper helpers.VZHelper) (string, error) {
 	return version, nil
 }
 
-// GetOperatorFile returns the value for the operator-file option
+// GetOperatorFile returns the value for the wls-file option
 func GetOperatorFile(cmd *cobra.Command) (string, error) {
 	// Get the value from the command line
 	operatorFile, err := cmd.PersistentFlags().GetString(constants.OperatorFileFlag)

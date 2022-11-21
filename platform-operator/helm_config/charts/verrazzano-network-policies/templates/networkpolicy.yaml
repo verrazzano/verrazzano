@@ -101,18 +101,18 @@ spec:
           protocol: TCP
 {{- end }}
 ---
-# Network policy for Verrazzano application operator
+# Network policy for Verrazzano application wls
 # Ingress: allow access from Kubernetes API server for webhook port 9443
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: verrazzano-application-operator
+  name: verrazzano-application-wls
   namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
-      app: verrazzano-application-operator
+      app: verrazzano-application-wls
   policyTypes:
     - Ingress
   ingress:
@@ -130,7 +130,7 @@ spec:
         - port: 9100
           protocol: TCP
 ---
-# Network policy for OAM Kubernetes Runtime operator
+# Network policy for OAM Kubernetes Runtime wls
 # Ingress: deny all
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
@@ -161,7 +161,7 @@ spec:
     matchLabels:
       app: jaeger
       app.kubernetes.io/component: collector
-      app.kubernetes.io/managed-by: jaeger-operator
+      app.kubernetes.io/managed-by: jaeger-wls
   policyTypes:
     - Ingress
   ingress:
@@ -198,7 +198,7 @@ spec:
     matchLabels:
       app: jaeger
       app.kubernetes.io/component: query
-      app.kubernetes.io/managed-by: jaeger-operator
+      app.kubernetes.io/managed-by: jaeger-wls
   policyTypes:
     - Ingress
   ingress:
@@ -228,18 +228,18 @@ spec:
           protocol: TCP
 {{- end }}
 ---
-# Network policy for Verrazzano cluster operator
+# Network policy for Verrazzano cluster wls
 # Ingress: allow access from Prometheus to scrape metrics on port 8080
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: verrazzano-cluster-operator
+  name: verrazzano-cluster-wls
   namespace: {{ .Release.Namespace }}
 spec:
   podSelector:
     matchLabels:
-      app: verrazzano-cluster-operator
+      app: verrazzano-cluster-wls
   policyTypes:
     - Ingress
   ingress:

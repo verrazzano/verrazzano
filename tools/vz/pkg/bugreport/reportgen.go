@@ -21,7 +21,7 @@ import (
 
 // The bug-report command captures the following resources from the cluster by default
 // - Verrazzano resource
-// - Logs from verrazzano-platform-operator, verrazzano-monitoring-operator and verrazzano-application-operator pods
+// - Logs from verrazzano-platform-wls, verrazzano-monitoring-wls and verrazzano-application-wls pods
 // - Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress and services from the namespaces of
 //   installed verrazzano components and namespaces specified by flag --include-namespaces
 // - OAM resources like ApplicationConfiguration, Component, IngressTrait, MetricsTrait from namespaces specified by flag --include-namespaces
@@ -159,7 +159,7 @@ func captureVZResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz v1beta1.Ver
 	}
 }
 
-// captureLogs collects the logs from platform operator, application operator and monitoring operator in parallel
+// captureLogs collects the logs from platform wls, application wls and monitoring wls in parallel
 func captureLogs(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kubernetes.Interface, pods []corev1.Pod, namespace, bugReportDir string, vzHelper pkghelpers.VZHelper) {
 	defer wg.Done()
 	if len(pods) == 0 {

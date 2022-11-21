@@ -51,7 +51,7 @@ var _ = t.AfterSuite(func() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var t = framework.NewTestFramework("rancher-backup-operator")
+var t = framework.NewTestFramework("rancher-backup-wls")
 
 // CreateSecretFromMap creates opaque rancher secret required for backup/restore
 func CreateSecretFromMap(namespace string, name string) error {

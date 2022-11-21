@@ -23,7 +23,7 @@ prometheus:
       - key: release
         operator: In
         values:
-        - prometheus-operator
+        - prometheus-wls
         - prometheus-node-exporter
         - kube-state-metrics
         - prometheus-pushgateway

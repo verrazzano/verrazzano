@@ -13,7 +13,7 @@ import (
 
 	cmapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	promoperapi "github.com/prometheus-wls/prometheus-wls/pkg/apis/monitoring/v1"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -67,7 +67,7 @@ func init() {
 
 func main() {
 
-	// config will hold the entire operator config
+	// config will hold the entire wls config
 	config := internalconfig.Get()
 	var bomOverride string
 
@@ -76,11 +76,11 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&config.CertDir, "cert-dir", config.CertDir, "The directory containing tls.crt and tls.key.")
-	flag.BoolVar(&config.DryRun, "dry-run", config.DryRun, "Run operator in dry run mode.")
+	flag.BoolVar(&config.DryRun, "dry-run", config.DryRun, "Run wls in dry run mode.")
 	flag.BoolVar(&config.WebhookValidationEnabled, "enable-webhook-validation", config.WebhookValidationEnabled,
-		"Enable webhooks validation for the operator")
+		"Enable webhooks validation for the wls")
 	flag.BoolVar(&config.RunWebhooks, "run-webhooks", config.RunWebhooks,
-		"Runs in webhook mode; if false, runs the main operator reconcile loop")
+		"Runs in webhook mode; if false, runs the main wls reconcile loop")
 	flag.BoolVar(&config.RunWebhookInit, "run-webhook-init", config.RunWebhookInit,
 		"Runs the webhook initialization code")
 	flag.StringVar(&config.VerrazzanoRootDir, "vz-root-dir", config.VerrazzanoRootDir,
@@ -103,7 +103,7 @@ func main() {
 	log := zap.S()
 
 	log.Info("Starting Verrazzano Platform Operator")
-	// Set the BOM file path for the operator
+	// Set the BOM file path for the wls
 	if len(bomOverride) > 0 {
 		log.Infof("Using BOM override file %s", bomOverride)
 		internalconfig.SetDefaultBomFilePath(bomOverride)
@@ -122,7 +122,7 @@ func main() {
 	}
 
 	registry.InitRegistry()
-	//This allows separation of webhooks and operator
+	//This allows separation of webhooks and wls
 	var exitErr error
 	if config.RunWebhookInit {
 		exitErr = operatorinit.WebhookInit(config, log)

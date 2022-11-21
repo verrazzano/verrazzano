@@ -11,7 +11,7 @@ spec:
   group: monitoring.coreos.com
   names:
     categories:
-    - prometheus-operator
+    - prometheus-wls
     kind: Prometheus
     listKind: PrometheusList
     plural: prometheuses
@@ -117,7 +117,7 @@ spec:
                   yet. The arguments are passed as-is to the Prometheus container
                   which may cause issues if they are invalid or not supporeted by
                   the given Prometheus version. In case of an argument conflict (e.g.
-                  an argument which is already set by the operator itself) or when
+                  an argument which is already set by the wls itself) or when
                   providing an invalid argument the reconciliation will fail and an
                   error will be logged.
                 items:
@@ -198,7 +198,7 @@ spec:
                                   items:
                                     description: A node selector requirement is a
                                       selector that contains values, a key, and an
-                                      operator that relates the key and values.
+                                      wls that relates the key and values.
                                     properties:
                                       key:
                                         description: The label key that the selector
@@ -212,10 +212,10 @@ spec:
                                         type: string
                                       values:
                                         description: An array of string values. If
-                                          the operator is In or NotIn, the values
-                                          array must be non-empty. If the operator
+                                          the wls is In or NotIn, the values
+                                          array must be non-empty. If the wls
                                           is Exists or DoesNotExist, the values array
-                                          must be empty. If the operator is Gt or
+                                          must be empty. If the wls is Gt or
                                           Lt, the values array must have a single
                                           element, which will be interpreted as an
                                           integer. This array is replaced during a
@@ -225,7 +225,7 @@ spec:
                                         type: array
                                     required:
                                     - key
-                                    - operator
+                                    - wls
                                     type: object
                                   type: array
                                 matchFields:
@@ -234,7 +234,7 @@ spec:
                                   items:
                                     description: A node selector requirement is a
                                       selector that contains values, a key, and an
-                                      operator that relates the key and values.
+                                      wls that relates the key and values.
                                     properties:
                                       key:
                                         description: The label key that the selector
@@ -248,10 +248,10 @@ spec:
                                         type: string
                                       values:
                                         description: An array of string values. If
-                                          the operator is In or NotIn, the values
-                                          array must be non-empty. If the operator
+                                          the wls is In or NotIn, the values
+                                          array must be non-empty. If the wls
                                           is Exists or DoesNotExist, the values array
-                                          must be empty. If the operator is Gt or
+                                          must be empty. If the wls is Gt or
                                           Lt, the values array must have a single
                                           element, which will be interpreted as an
                                           integer. This array is replaced during a
@@ -261,7 +261,7 @@ spec:
                                         type: array
                                     required:
                                     - key
-                                    - operator
+                                    - wls
                                     type: object
                                   type: array
                               type: object
@@ -299,7 +299,7 @@ spec:
                                   items:
                                     description: A node selector requirement is a
                                       selector that contains values, a key, and an
-                                      operator that relates the key and values.
+                                      wls that relates the key and values.
                                     properties:
                                       key:
                                         description: The label key that the selector
@@ -313,10 +313,10 @@ spec:
                                         type: string
                                       values:
                                         description: An array of string values. If
-                                          the operator is In or NotIn, the values
-                                          array must be non-empty. If the operator
+                                          the wls is In or NotIn, the values
+                                          array must be non-empty. If the wls
                                           is Exists or DoesNotExist, the values array
-                                          must be empty. If the operator is Gt or
+                                          must be empty. If the wls is Gt or
                                           Lt, the values array must have a single
                                           element, which will be interpreted as an
                                           integer. This array is replaced during a
@@ -326,7 +326,7 @@ spec:
                                         type: array
                                     required:
                                     - key
-                                    - operator
+                                    - wls
                                     type: object
                                   type: array
                                 matchFields:
@@ -335,7 +335,7 @@ spec:
                                   items:
                                     description: A node selector requirement is a
                                       selector that contains values, a key, and an
-                                      operator that relates the key and values.
+                                      wls that relates the key and values.
                                     properties:
                                       key:
                                         description: The label key that the selector
@@ -349,10 +349,10 @@ spec:
                                         type: string
                                       values:
                                         description: An array of string values. If
-                                          the operator is In or NotIn, the values
-                                          array must be non-empty. If the operator
+                                          the wls is In or NotIn, the values
+                                          array must be non-empty. If the wls
                                           is Exists or DoesNotExist, the values array
-                                          must be empty. If the operator is Gt or
+                                          must be empty. If the wls is Gt or
                                           Lt, the values array must have a single
                                           element, which will be interpreted as an
                                           integer. This array is replaced during a
@@ -362,7 +362,7 @@ spec:
                                         type: array
                                     required:
                                     - key
-                                    - operator
+                                    - wls
                                     type: object
                                   type: array
                               type: object
@@ -408,7 +408,7 @@ spec:
                                       items:
                                         description: A label selector requirement
                                           is a selector that contains values, a key,
-                                          and an operator that relates the key and
+                                          and an wls that relates the key and
                                           values.
                                         properties:
                                           key:
@@ -416,16 +416,16 @@ spec:
                                               the selector applies to.
                                             type: string
                                           operator:
-                                            description: operator represents a key's
+                                            description: wls represents a key's
                                               relationship to a set of values. Valid
                                               operators are In, NotIn, Exists and
                                               DoesNotExist.
                                             type: string
                                           values:
                                             description: values is an array of string
-                                              values. If the operator is In or NotIn,
+                                              values. If the wls is In or NotIn,
                                               the values array must be non-empty.
-                                              If the operator is Exists or DoesNotExist,
+                                              If the wls is Exists or DoesNotExist,
                                               the values array must be empty. This
                                               array is replaced during a strategic
                                               merge patch.
@@ -434,7 +434,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -443,7 +443,7 @@ spec:
                                       description: matchLabels is a map of {key,value}
                                         pairs. A single {key,value} in the matchLabels
                                         map is equivalent to an element of matchExpressions,
-                                        whose key field is "key", the operator is
+                                        whose key field is "key", the wls is
                                         "In", and the values array contains only "value".
                                         The requirements are ANDed.
                                       type: object
@@ -465,7 +465,7 @@ spec:
                                       items:
                                         description: A label selector requirement
                                           is a selector that contains values, a key,
-                                          and an operator that relates the key and
+                                          and an wls that relates the key and
                                           values.
                                         properties:
                                           key:
@@ -473,16 +473,16 @@ spec:
                                               the selector applies to.
                                             type: string
                                           operator:
-                                            description: operator represents a key's
+                                            description: wls represents a key's
                                               relationship to a set of values. Valid
                                               operators are In, NotIn, Exists and
                                               DoesNotExist.
                                             type: string
                                           values:
                                             description: values is an array of string
-                                              values. If the operator is In or NotIn,
+                                              values. If the wls is In or NotIn,
                                               the values array must be non-empty.
-                                              If the operator is Exists or DoesNotExist,
+                                              If the wls is Exists or DoesNotExist,
                                               the values array must be empty. This
                                               array is replaced during a strategic
                                               merge patch.
@@ -491,7 +491,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -500,7 +500,7 @@ spec:
                                       description: matchLabels is a map of {key,value}
                                         pairs. A single {key,value} in the matchLabels
                                         map is equivalent to an element of matchExpressions,
-                                        whose key field is "key", the operator is
+                                        whose key field is "key", the wls is
                                         "In", and the values array contains only "value".
                                         The requirements are ANDed.
                                       type: object
@@ -567,22 +567,22 @@ spec:
                                   items:
                                     description: A label selector requirement is a
                                       selector that contains values, a key, and an
-                                      operator that relates the key and values.
+                                      wls that relates the key and values.
                                     properties:
                                       key:
                                         description: key is the label key that the
                                           selector applies to.
                                         type: string
                                       operator:
-                                        description: operator represents a key's relationship
+                                        description: wls represents a key's relationship
                                           to a set of values. Valid operators are
                                           In, NotIn, Exists and DoesNotExist.
                                         type: string
                                       values:
                                         description: values is an array of string
-                                          values. If the operator is In or NotIn,
+                                          values. If the wls is In or NotIn,
                                           the values array must be non-empty. If the
-                                          operator is Exists or DoesNotExist, the
+                                          wls is Exists or DoesNotExist, the
                                           values array must be empty. This array is
                                           replaced during a strategic merge patch.
                                         items:
@@ -590,7 +590,7 @@ spec:
                                         type: array
                                     required:
                                     - key
-                                    - operator
+                                    - wls
                                     type: object
                                   type: array
                                 matchLabels:
@@ -599,7 +599,7 @@ spec:
                                   description: matchLabels is a map of {key,value}
                                     pairs. A single {key,value} in the matchLabels
                                     map is equivalent to an element of matchExpressions,
-                                    whose key field is "key", the operator is "In",
+                                    whose key field is "key", the wls is "In",
                                     and the values array contains only "value". The
                                     requirements are ANDed.
                                   type: object
@@ -619,22 +619,22 @@ spec:
                                   items:
                                     description: A label selector requirement is a
                                       selector that contains values, a key, and an
-                                      operator that relates the key and values.
+                                      wls that relates the key and values.
                                     properties:
                                       key:
                                         description: key is the label key that the
                                           selector applies to.
                                         type: string
                                       operator:
-                                        description: operator represents a key's relationship
+                                        description: wls represents a key's relationship
                                           to a set of values. Valid operators are
                                           In, NotIn, Exists and DoesNotExist.
                                         type: string
                                       values:
                                         description: values is an array of string
-                                          values. If the operator is In or NotIn,
+                                          values. If the wls is In or NotIn,
                                           the values array must be non-empty. If the
-                                          operator is Exists or DoesNotExist, the
+                                          wls is Exists or DoesNotExist, the
                                           values array must be empty. This array is
                                           replaced during a strategic merge patch.
                                         items:
@@ -642,7 +642,7 @@ spec:
                                         type: array
                                     required:
                                     - key
-                                    - operator
+                                    - wls
                                     type: object
                                   type: array
                                 matchLabels:
@@ -651,7 +651,7 @@ spec:
                                   description: matchLabels is a map of {key,value}
                                     pairs. A single {key,value} in the matchLabels
                                     map is equivalent to an element of matchExpressions,
-                                    whose key field is "key", the operator is "In",
+                                    whose key field is "key", the wls is "In",
                                     and the values array contains only "value". The
                                     requirements are ANDed.
                                   type: object
@@ -717,7 +717,7 @@ spec:
                                       items:
                                         description: A label selector requirement
                                           is a selector that contains values, a key,
-                                          and an operator that relates the key and
+                                          and an wls that relates the key and
                                           values.
                                         properties:
                                           key:
@@ -725,16 +725,16 @@ spec:
                                               the selector applies to.
                                             type: string
                                           operator:
-                                            description: operator represents a key's
+                                            description: wls represents a key's
                                               relationship to a set of values. Valid
                                               operators are In, NotIn, Exists and
                                               DoesNotExist.
                                             type: string
                                           values:
                                             description: values is an array of string
-                                              values. If the operator is In or NotIn,
+                                              values. If the wls is In or NotIn,
                                               the values array must be non-empty.
-                                              If the operator is Exists or DoesNotExist,
+                                              If the wls is Exists or DoesNotExist,
                                               the values array must be empty. This
                                               array is replaced during a strategic
                                               merge patch.
@@ -743,7 +743,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -752,7 +752,7 @@ spec:
                                       description: matchLabels is a map of {key,value}
                                         pairs. A single {key,value} in the matchLabels
                                         map is equivalent to an element of matchExpressions,
-                                        whose key field is "key", the operator is
+                                        whose key field is "key", the wls is
                                         "In", and the values array contains only "value".
                                         The requirements are ANDed.
                                       type: object
@@ -774,7 +774,7 @@ spec:
                                       items:
                                         description: A label selector requirement
                                           is a selector that contains values, a key,
-                                          and an operator that relates the key and
+                                          and an wls that relates the key and
                                           values.
                                         properties:
                                           key:
@@ -782,16 +782,16 @@ spec:
                                               the selector applies to.
                                             type: string
                                           operator:
-                                            description: operator represents a key's
+                                            description: wls represents a key's
                                               relationship to a set of values. Valid
                                               operators are In, NotIn, Exists and
                                               DoesNotExist.
                                             type: string
                                           values:
                                             description: values is an array of string
-                                              values. If the operator is In or NotIn,
+                                              values. If the wls is In or NotIn,
                                               the values array must be non-empty.
-                                              If the operator is Exists or DoesNotExist,
+                                              If the wls is Exists or DoesNotExist,
                                               the values array must be empty. This
                                               array is replaced during a strategic
                                               merge patch.
@@ -800,7 +800,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -809,7 +809,7 @@ spec:
                                       description: matchLabels is a map of {key,value}
                                         pairs. A single {key,value} in the matchLabels
                                         map is equivalent to an element of matchExpressions,
-                                        whose key field is "key", the operator is
+                                        whose key field is "key", the wls is
                                         "In", and the values array contains only "value".
                                         The requirements are ANDed.
                                       type: object
@@ -876,22 +876,22 @@ spec:
                                   items:
                                     description: A label selector requirement is a
                                       selector that contains values, a key, and an
-                                      operator that relates the key and values.
+                                      wls that relates the key and values.
                                     properties:
                                       key:
                                         description: key is the label key that the
                                           selector applies to.
                                         type: string
                                       operator:
-                                        description: operator represents a key's relationship
+                                        description: wls represents a key's relationship
                                           to a set of values. Valid operators are
                                           In, NotIn, Exists and DoesNotExist.
                                         type: string
                                       values:
                                         description: values is an array of string
-                                          values. If the operator is In or NotIn,
+                                          values. If the wls is In or NotIn,
                                           the values array must be non-empty. If the
-                                          operator is Exists or DoesNotExist, the
+                                          wls is Exists or DoesNotExist, the
                                           values array must be empty. This array is
                                           replaced during a strategic merge patch.
                                         items:
@@ -899,7 +899,7 @@ spec:
                                         type: array
                                     required:
                                     - key
-                                    - operator
+                                    - wls
                                     type: object
                                   type: array
                                 matchLabels:
@@ -908,7 +908,7 @@ spec:
                                   description: matchLabels is a map of {key,value}
                                     pairs. A single {key,value} in the matchLabels
                                     map is equivalent to an element of matchExpressions,
-                                    whose key field is "key", the operator is "In",
+                                    whose key field is "key", the wls is "In",
                                     and the values array contains only "value". The
                                     requirements are ANDed.
                                   type: object
@@ -928,22 +928,22 @@ spec:
                                   items:
                                     description: A label selector requirement is a
                                       selector that contains values, a key, and an
-                                      operator that relates the key and values.
+                                      wls that relates the key and values.
                                     properties:
                                       key:
                                         description: key is the label key that the
                                           selector applies to.
                                         type: string
                                       operator:
-                                        description: operator represents a key's relationship
+                                        description: wls represents a key's relationship
                                           to a set of values. Valid operators are
                                           In, NotIn, Exists and DoesNotExist.
                                         type: string
                                       values:
                                         description: values is an array of string
-                                          values. If the operator is In or NotIn,
+                                          values. If the wls is In or NotIn,
                                           the values array must be non-empty. If the
-                                          operator is Exists or DoesNotExist, the
+                                          wls is Exists or DoesNotExist, the
                                           values array must be empty. This array is
                                           replaced during a strategic merge patch.
                                         items:
@@ -951,7 +951,7 @@ spec:
                                         type: array
                                     required:
                                     - key
-                                    - operator
+                                    - wls
                                     type: object
                                   type: array
                                 matchLabels:
@@ -960,7 +960,7 @@ spec:
                                   description: matchLabels is a map of {key,value}
                                     pairs. A single {key,value} in the matchLabels
                                     map is equivalent to an element of matchExpressions,
-                                    whose key field is "key", the operator is "In",
+                                    whose key field is "key", the wls is "In",
                                     and the values array contains only "value". The
                                     requirements are ANDed.
                                   type: object
@@ -1466,10 +1466,10 @@ spec:
                 type: array
               containers:
                 description: 'Containers allows injecting additional containers or
-                  modifying operator generated containers. This can be used to allow
+                  modifying wls generated containers. This can be used to allow
                   adding an authentication proxy to a Prometheus pod or to change
-                  the behavior of an operator generated container. Containers described
-                  here modify an operator generated container if they share the same
+                  the behavior of an wls generated container. Containers described
+                  here modify an wls generated container if they share the same
                   name and modifications are done via a strategic merge patch. The
                   current container names are: `prometheus`, `config-reloader`, and
                   `thanos-sidecar`. Overriding containers is entirely outside the
@@ -2905,7 +2905,7 @@ spec:
                   into the Prometheus configuration from external sources. Any errors
                   during the execution of an initContainer will lead to a restart
                   of the Pod. More info: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
-                  InitContainers described here modify an operator generated init
+                  InitContainers described here modify an wls generated init
                   containers if they share the same name and modifications are done
                   via a strategic merge patch. The current init container name is:
                   `init-config-reloader`. Overriding init containers is entirely outside
@@ -4217,7 +4217,7 @@ spec:
                       The requirements are ANDed.
                     items:
                       description: A label selector requirement is a selector that
-                        contains values, a key, and an operator that relates the key
+                        contains values, a key, and an wls that relates the key
                         and values.
                       properties:
                         key:
@@ -4225,14 +4225,14 @@ spec:
                             to.
                           type: string
                         operator:
-                          description: operator represents a key's relationship to
+                          description: wls represents a key's relationship to
                             a set of values. Valid operators are In, NotIn, Exists
                             and DoesNotExist.
                           type: string
                         values:
                           description: values is an array of string values. If the
-                            operator is In or NotIn, the values array must be non-empty.
-                            If the operator is Exists or DoesNotExist, the values
+                            wls is In or NotIn, the values array must be non-empty.
+                            If the wls is Exists or DoesNotExist, the values
                             array must be empty. This array is replaced during a strategic
                             merge patch.
                           items:
@@ -4240,7 +4240,7 @@ spec:
                           type: array
                       required:
                       - key
-                      - operator
+                      - wls
                       type: object
                     type: array
                   matchLabels:
@@ -4248,7 +4248,7 @@ spec:
                       type: string
                     description: matchLabels is a map of {key,value} pairs. A single
                       {key,value} in the matchLabels map is equivalent to an element
-                      of matchExpressions, whose key field is "key", the operator
+                      of matchExpressions, whose key field is "key", the wls
                       is "In", and the values array contains only "value". The requirements
                       are ANDed.
                     type: object
@@ -4264,7 +4264,7 @@ spec:
                       The requirements are ANDed.
                     items:
                       description: A label selector requirement is a selector that
-                        contains values, a key, and an operator that relates the key
+                        contains values, a key, and an wls that relates the key
                         and values.
                       properties:
                         key:
@@ -4272,14 +4272,14 @@ spec:
                             to.
                           type: string
                         operator:
-                          description: operator represents a key's relationship to
+                          description: wls represents a key's relationship to
                             a set of values. Valid operators are In, NotIn, Exists
                             and DoesNotExist.
                           type: string
                         values:
                           description: values is an array of string values. If the
-                            operator is In or NotIn, the values array must be non-empty.
-                            If the operator is Exists or DoesNotExist, the values
+                            wls is In or NotIn, the values array must be non-empty.
+                            If the wls is Exists or DoesNotExist, the values
                             array must be empty. This array is replaced during a strategic
                             merge patch.
                           items:
@@ -4287,7 +4287,7 @@ spec:
                           type: array
                       required:
                       - key
-                      - operator
+                      - wls
                       type: object
                     type: array
                   matchLabels:
@@ -4295,7 +4295,7 @@ spec:
                       type: string
                     description: matchLabels is a map of {key,value} pairs. A single
                       {key,value} in the matchLabels map is equivalent to an element
-                      of matchExpressions, whose key field is "key", the operator
+                      of matchExpressions, whose key field is "key", the wls
                       is "In", and the values array contains only "value". The requirements
                       are ANDed.
                     type: object
@@ -4317,7 +4317,7 @@ spec:
                       The requirements are ANDed.
                     items:
                       description: A label selector requirement is a selector that
-                        contains values, a key, and an operator that relates the key
+                        contains values, a key, and an wls that relates the key
                         and values.
                       properties:
                         key:
@@ -4325,14 +4325,14 @@ spec:
                             to.
                           type: string
                         operator:
-                          description: operator represents a key's relationship to
+                          description: wls represents a key's relationship to
                             a set of values. Valid operators are In, NotIn, Exists
                             and DoesNotExist.
                           type: string
                         values:
                           description: values is an array of string values. If the
-                            operator is In or NotIn, the values array must be non-empty.
-                            If the operator is Exists or DoesNotExist, the values
+                            wls is In or NotIn, the values array must be non-empty.
+                            If the wls is Exists or DoesNotExist, the values
                             array must be empty. This array is replaced during a strategic
                             merge patch.
                           items:
@@ -4340,7 +4340,7 @@ spec:
                           type: array
                       required:
                       - key
-                      - operator
+                      - wls
                       type: object
                     type: array
                   matchLabels:
@@ -4348,7 +4348,7 @@ spec:
                       type: string
                     description: matchLabels is a map of {key,value} pairs. A single
                       {key,value} in the matchLabels map is equivalent to an element
-                      of matchExpressions, whose key field is "key", the operator
+                      of matchExpressions, whose key field is "key", the wls
                       is "In", and the values array contains only "value". The requirements
                       are ANDed.
                     type: object
@@ -4362,7 +4362,7 @@ spec:
                       The requirements are ANDed.
                     items:
                       description: A label selector requirement is a selector that
-                        contains values, a key, and an operator that relates the key
+                        contains values, a key, and an wls that relates the key
                         and values.
                       properties:
                         key:
@@ -4370,14 +4370,14 @@ spec:
                             to.
                           type: string
                         operator:
-                          description: operator represents a key's relationship to
+                          description: wls represents a key's relationship to
                             a set of values. Valid operators are In, NotIn, Exists
                             and DoesNotExist.
                           type: string
                         values:
                           description: values is an array of string values. If the
-                            operator is In or NotIn, the values array must be non-empty.
-                            If the operator is Exists or DoesNotExist, the values
+                            wls is In or NotIn, the values array must be non-empty.
+                            If the wls is Exists or DoesNotExist, the values
                             array must be empty. This array is replaced during a strategic
                             merge patch.
                           items:
@@ -4385,7 +4385,7 @@ spec:
                           type: array
                       required:
                       - key
-                      - operator
+                      - wls
                       type: object
                     type: array
                   matchLabels:
@@ -4393,7 +4393,7 @@ spec:
                       type: string
                     description: matchLabels is a map of {key,value} pairs. A single
                       {key,value} in the matchLabels map is equivalent to an element
-                      of matchExpressions, whose key field is "key", the operator
+                      of matchExpressions, whose key field is "key", the wls
                       is "In", and the values array contains only "value". The requirements
                       are ANDed.
                     type: object
@@ -4453,7 +4453,7 @@ spec:
               queryLogFile:
                 description: QueryLogFile specifies the file to which PromQL queries
                   are logged. If the filename has an empty path, e.g. 'query.log',
-                  prometheus-operator will mount the file into an emptyDir volume
+                  prometheus-wls will mount the file into an emptyDir volume
                   at `/var/log/prometheus`. If a full path is provided, e.g. /var/log/prometheus/query.log,
                   you must mount a volume in the specified directory and it must be
                   writable. This is because the prometheus container runs with a read-only
@@ -5394,7 +5394,7 @@ spec:
                       The requirements are ANDed.
                     items:
                       description: A label selector requirement is a selector that
-                        contains values, a key, and an operator that relates the key
+                        contains values, a key, and an wls that relates the key
                         and values.
                       properties:
                         key:
@@ -5402,14 +5402,14 @@ spec:
                             to.
                           type: string
                         operator:
-                          description: operator represents a key's relationship to
+                          description: wls represents a key's relationship to
                             a set of values. Valid operators are In, NotIn, Exists
                             and DoesNotExist.
                           type: string
                         values:
                           description: values is an array of string values. If the
-                            operator is In or NotIn, the values array must be non-empty.
-                            If the operator is Exists or DoesNotExist, the values
+                            wls is In or NotIn, the values array must be non-empty.
+                            If the wls is Exists or DoesNotExist, the values
                             array must be empty. This array is replaced during a strategic
                             merge patch.
                           items:
@@ -5417,7 +5417,7 @@ spec:
                           type: array
                       required:
                       - key
-                      - operator
+                      - wls
                       type: object
                     type: array
                   matchLabels:
@@ -5425,7 +5425,7 @@ spec:
                       type: string
                     description: matchLabels is a map of {key,value} pairs. A single
                       {key,value} in the matchLabels map is equivalent to an element
-                      of matchExpressions, whose key field is "key", the operator
+                      of matchExpressions, whose key field is "key", the wls
                       is "In", and the values array contains only "value". The requirements
                       are ANDed.
                     type: object
@@ -5444,7 +5444,7 @@ spec:
                       The requirements are ANDed.
                     items:
                       description: A label selector requirement is a selector that
-                        contains values, a key, and an operator that relates the key
+                        contains values, a key, and an wls that relates the key
                         and values.
                       properties:
                         key:
@@ -5452,14 +5452,14 @@ spec:
                             to.
                           type: string
                         operator:
-                          description: operator represents a key's relationship to
+                          description: wls represents a key's relationship to
                             a set of values. Valid operators are In, NotIn, Exists
                             and DoesNotExist.
                           type: string
                         values:
                           description: values is an array of string values. If the
-                            operator is In or NotIn, the values array must be non-empty.
-                            If the operator is Exists or DoesNotExist, the values
+                            wls is In or NotIn, the values array must be non-empty.
+                            If the wls is Exists or DoesNotExist, the values
                             array must be empty. This array is replaced during a strategic
                             merge patch.
                           items:
@@ -5467,7 +5467,7 @@ spec:
                           type: array
                       required:
                       - key
-                      - operator
+                      - wls
                       type: object
                     type: array
                   matchLabels:
@@ -5475,7 +5475,7 @@ spec:
                       type: string
                     description: matchLabels is a map of {key,value} pairs. A single
                       {key,value} in the matchLabels map is equivalent to an element
-                      of matchExpressions, whose key field is "key", the operator
+                      of matchExpressions, whose key field is "key", the wls
                       is "In", and the values array contains only "value". The requirements
                       are ANDed.
                     type: object
@@ -5696,7 +5696,7 @@ spec:
                       The requirements are ANDed.
                     items:
                       description: A label selector requirement is a selector that
-                        contains values, a key, and an operator that relates the key
+                        contains values, a key, and an wls that relates the key
                         and values.
                       properties:
                         key:
@@ -5704,14 +5704,14 @@ spec:
                             to.
                           type: string
                         operator:
-                          description: operator represents a key's relationship to
+                          description: wls represents a key's relationship to
                             a set of values. Valid operators are In, NotIn, Exists
                             and DoesNotExist.
                           type: string
                         values:
                           description: values is an array of string values. If the
-                            operator is In or NotIn, the values array must be non-empty.
-                            If the operator is Exists or DoesNotExist, the values
+                            wls is In or NotIn, the values array must be non-empty.
+                            If the wls is Exists or DoesNotExist, the values
                             array must be empty. This array is replaced during a strategic
                             merge patch.
                           items:
@@ -5719,7 +5719,7 @@ spec:
                           type: array
                       required:
                       - key
-                      - operator
+                      - wls
                       type: object
                     type: array
                   matchLabels:
@@ -5727,7 +5727,7 @@ spec:
                       type: string
                     description: matchLabels is a map of {key,value} pairs. A single
                       {key,value} in the matchLabels map is equivalent to an element
-                      of matchExpressions, whose key field is "key", the operator
+                      of matchExpressions, whose key field is "key", the wls
                       is "In", and the values array contains only "value". The requirements
                       are ANDed.
                     type: object
@@ -5743,7 +5743,7 @@ spec:
                       The requirements are ANDed.
                     items:
                       description: A label selector requirement is a selector that
-                        contains values, a key, and an operator that relates the key
+                        contains values, a key, and an wls that relates the key
                         and values.
                       properties:
                         key:
@@ -5751,14 +5751,14 @@ spec:
                             to.
                           type: string
                         operator:
-                          description: operator represents a key's relationship to
+                          description: wls represents a key's relationship to
                             a set of values. Valid operators are In, NotIn, Exists
                             and DoesNotExist.
                           type: string
                         values:
                           description: values is an array of string values. If the
-                            operator is In or NotIn, the values array must be non-empty.
-                            If the operator is Exists or DoesNotExist, the values
+                            wls is In or NotIn, the values array must be non-empty.
+                            If the wls is Exists or DoesNotExist, the values
                             array must be empty. This array is replaced during a strategic
                             merge patch.
                           items:
@@ -5766,7 +5766,7 @@ spec:
                           type: array
                       required:
                       - key
-                      - operator
+                      - wls
                       type: object
                     type: array
                   matchLabels:
@@ -5774,7 +5774,7 @@ spec:
                       type: string
                     description: matchLabels is a map of {key,value} pairs. A single
                       {key,value} in the matchLabels map is equivalent to an element
-                      of matchExpressions, whose key field is "key", the operator
+                      of matchExpressions, whose key field is "key", the wls
                       is "In", and the values array contains only "value". The requirements
                       are ANDed.
                     type: object
@@ -5994,22 +5994,22 @@ spec:
                                     items:
                                       description: A label selector requirement is
                                         a selector that contains values, a key, and
-                                        an operator that relates the key and values.
+                                        an wls that relates the key and values.
                                       properties:
                                         key:
                                           description: key is the label key that the
                                             selector applies to.
                                           type: string
                                         operator:
-                                          description: operator represents a key's
+                                          description: wls represents a key's
                                             relationship to a set of values. Valid
                                             operators are In, NotIn, Exists and DoesNotExist.
                                           type: string
                                         values:
                                           description: values is an array of string
-                                            values. If the operator is In or NotIn,
+                                            values. If the wls is In or NotIn,
                                             the values array must be non-empty. If
-                                            the operator is Exists or DoesNotExist,
+                                            the wls is Exists or DoesNotExist,
                                             the values array must be empty. This array
                                             is replaced during a strategic merge patch.
                                           items:
@@ -6017,7 +6017,7 @@ spec:
                                           type: array
                                       required:
                                       - key
-                                      - operator
+                                      - wls
                                       type: object
                                     type: array
                                   matchLabels:
@@ -6026,7 +6026,7 @@ spec:
                                     description: matchLabels is a map of {key,value}
                                       pairs. A single {key,value} in the matchLabels
                                       map is equivalent to an element of matchExpressions,
-                                      whose key field is "key", the operator is "In",
+                                      whose key field is "key", the wls is "In",
                                       and the values array contains only "value".
                                       The requirements are ANDed.
                                     type: object
@@ -6213,7 +6213,7 @@ spec:
                                   requirements. The requirements are ANDed.
                                 items:
                                   description: A label selector requirement is a selector
-                                    that contains values, a key, and an operator that
+                                    that contains values, a key, and an wls that
                                     relates the key and values.
                                   properties:
                                     key:
@@ -6221,14 +6221,14 @@ spec:
                                         applies to.
                                       type: string
                                     operator:
-                                      description: operator represents a key's relationship
+                                      description: wls represents a key's relationship
                                         to a set of values. Valid operators are In,
                                         NotIn, Exists and DoesNotExist.
                                       type: string
                                     values:
                                       description: values is an array of string values.
-                                        If the operator is In or NotIn, the values
-                                        array must be non-empty. If the operator is
+                                        If the wls is In or NotIn, the values
+                                        array must be non-empty. If the wls is
                                         Exists or DoesNotExist, the values array must
                                         be empty. This array is replaced during a
                                         strategic merge patch.
@@ -6237,7 +6237,7 @@ spec:
                                       type: array
                                   required:
                                   - key
-                                  - operator
+                                  - wls
                                   type: object
                                 type: array
                               matchLabels:
@@ -6246,7 +6246,7 @@ spec:
                                 description: matchLabels is a map of {key,value} pairs.
                                   A single {key,value} in the matchLabels map is equivalent
                                   to an element of matchExpressions, whose key field
-                                  is "key", the operator is "In", and the values array
+                                  is "key", the wls is "In", and the values array
                                   contains only "value". The requirements are ANDed.
                                 type: object
                             type: object
@@ -6377,7 +6377,7 @@ spec:
                       for the Thanos container. The arguments are passed as-is to
                       the Thanos container which may cause issues if they are invalid
                       or not supporeted the given Thanos version. In case of an argument
-                      conflict (e.g. an argument which is already set by the operator
+                      conflict (e.g. an argument which is already set by the wls
                       itself) or when providing an invalid argument the reconciliation
                       will fail and an error will be logged.
                     items:
@@ -6716,7 +6716,7 @@ spec:
                 items:
                   description: The pod this Toleration is attached to tolerates any
                     taint that matches the triple <key,value,effect> using the matching
-                    operator <operator>.
+                    wls <wls>.
                   properties:
                     effect:
                       description: Effect indicates the taint effect to match. Empty
@@ -6726,7 +6726,7 @@ spec:
                     key:
                       description: Key is the taint key that the toleration applies
                         to. Empty means match all taint keys. If the key is empty,
-                        operator must be Exists; this combination means to match all
+                        wls must be Exists; this combination means to match all
                         values and all keys.
                       type: string
                     operator:
@@ -6746,7 +6746,7 @@ spec:
                       type: integer
                     value:
                       description: Value is the taint value the toleration matches
-                        to. If the operator is Exists, the value should be empty,
+                        to. If the wls is Exists, the value should be empty,
                         otherwise just a regular string.
                       type: string
                   type: object
@@ -6767,7 +6767,7 @@ spec:
                             requirements. The requirements are ANDed.
                           items:
                             description: A label selector requirement is a selector
-                              that contains values, a key, and an operator that relates
+                              that contains values, a key, and an wls that relates
                               the key and values.
                             properties:
                               key:
@@ -6775,14 +6775,14 @@ spec:
                                   applies to.
                                 type: string
                               operator:
-                                description: operator represents a key's relationship
+                                description: wls represents a key's relationship
                                   to a set of values. Valid operators are In, NotIn,
                                   Exists and DoesNotExist.
                                 type: string
                               values:
                                 description: values is an array of string values.
-                                  If the operator is In or NotIn, the values array
-                                  must be non-empty. If the operator is Exists or
+                                  If the wls is In or NotIn, the values array
+                                  must be non-empty. If the wls is Exists or
                                   DoesNotExist, the values array must be empty. This
                                   array is replaced during a strategic merge patch.
                                 items:
@@ -6790,7 +6790,7 @@ spec:
                                 type: array
                             required:
                             - key
-                            - operator
+                            - wls
                             type: object
                           type: array
                         matchLabels:
@@ -6799,7 +6799,7 @@ spec:
                           description: matchLabels is a map of {key,value} pairs.
                             A single {key,value} in the matchLabels map is equivalent
                             to an element of matchExpressions, whose key field is
-                            "key", the operator is "In", and the values array contains
+                            "key", the wls is "In", and the values array contains
                             only "value". The requirements are ANDed.
                           type: object
                       type: object
@@ -7535,7 +7535,7 @@ spec:
                                       items:
                                         description: A label selector requirement
                                           is a selector that contains values, a key,
-                                          and an operator that relates the key and
+                                          and an wls that relates the key and
                                           values.
                                         properties:
                                           key:
@@ -7543,16 +7543,16 @@ spec:
                                               the selector applies to.
                                             type: string
                                           operator:
-                                            description: operator represents a key's
+                                            description: wls represents a key's
                                               relationship to a set of values. Valid
                                               operators are In, NotIn, Exists and
                                               DoesNotExist.
                                             type: string
                                           values:
                                             description: values is an array of string
-                                              values. If the operator is In or NotIn,
+                                              values. If the wls is In or NotIn,
                                               the values array must be non-empty.
-                                              If the operator is Exists or DoesNotExist,
+                                              If the wls is Exists or DoesNotExist,
                                               the values array must be empty. This
                                               array is replaced during a strategic
                                               merge patch.
@@ -7561,7 +7561,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -7570,7 +7570,7 @@ spec:
                                       description: matchLabels is a map of {key,value}
                                         pairs. A single {key,value} in the matchLabels
                                         map is equivalent to an element of matchExpressions,
-                                        whose key field is "key", the operator is
+                                        whose key field is "key", the wls is
                                         "In", and the values array contains only "value".
                                         The requirements are ANDed.
                                       type: object

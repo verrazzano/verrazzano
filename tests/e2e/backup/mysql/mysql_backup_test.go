@@ -34,7 +34,7 @@ const (
 	mysqlPvcPrefix         = "datadir-mysql"
 	mysqlChartName         = "mysql"
 	mysqlInnoDBClusterName = "mysql"
-	vzMySQLChartPath       = "../../../../platform-operator/thirdparty/charts/mysql"
+	vzMySQLChartPath       = "../../../../platform-wls/thirdparty/charts/mysql"
 )
 
 var keycloakNamespacePods = []string{"keycloak", "mysql"}
@@ -63,7 +63,7 @@ var _ = t.AfterSuite(func() {
 
 var t = framework.NewTestFramework("mysql-backup")
 
-// func CreateInnoDBBackupObject() error  creates mysql operator backup CR starting the backup process
+// func CreateInnoDBBackupObject() error  creates mysql wls backup CR starting the backup process
 func CreateInnoDBBackupObjectWithS3() error {
 	var b bytes.Buffer
 	template, _ := template.New("mysql-backup").Parse(common.InnoDBBackupS3)
@@ -343,7 +343,7 @@ func WhenMySQLOpInstalledIt(description string, f func()) {
 	if supported {
 		t.It(description, f)
 	} else {
-		t.Logs.Infof("Skipping check '%v', the MySQL operator not enabled or minimum version detection failed", description)
+		t.Logs.Infof("Skipping check '%v', the MySQL wls not enabled or minimum version detection failed", description)
 	}
 }
 
@@ -409,7 +409,7 @@ func cleanUpVelero() {
 
 var _ = t.Describe("MySQL Backup and Restore,", Label("f:platform-verrazzano.mysql-backup"), Serial, func() {
 
-	t.Context("MySQL backup operator", func() {
+	t.Context("MySQL backup wls", func() {
 		WhenMySQLOpInstalledIt("MySQL backup triggered", func() {
 			Eventually(func() error {
 				return CreateInnoDBBackupObjectWithOci()

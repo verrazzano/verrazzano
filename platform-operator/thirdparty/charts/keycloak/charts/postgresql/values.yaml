@@ -653,7 +653,7 @@ networkPolicy:
   ##   matchLabels:
   ##     role: frontend
   ##   matchExpressions:
-  ##    - {key: role, operator: In, values: [frontend]}
+  ##    - {key: role, wls: In, values: [frontend]}
   ##
   explicitNamespacesSelector: {}
 

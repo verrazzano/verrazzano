@@ -34,7 +34,7 @@ const (
 	jaegerAgentSampleMetric     = "jaeger_agent_collector_proxy_total"
 	jaegerQuerySampleMetric     = "jaeger_query_requests_total"
 	jaegerCollectorSampleMetric = "jaeger_collector_queue_capacity"
-	jaegerESIndexCleanerJob     = "jaeger-operator-jaeger-es-index-cleaner"
+	jaegerESIndexCleanerJob     = "jaeger-wls-jaeger-es-index-cleaner"
 	componentLabelKey           = "app.kubernetes.io/component"
 	instanceLabelKey            = "app.kubernetes.io/instance"
 )
@@ -53,7 +53,7 @@ var (
 
 	// services that are common plus the ones unique to admin cluster
 	adminClusterSystemServiceNames = append(managedClusterSystemServiceNames,
-		"jaeger-operator-jaeger.verrazzano-monitoring",
+		"jaeger-wls-jaeger.verrazzano-monitoring",
 		"system-es-master.verrazzano-system")
 )
 
@@ -371,7 +371,7 @@ func GetJaegerSystemServicesInAdminCluster() []string {
 	return adminClusterSystemServiceNames
 }
 
-// ValidateJaegerOperatorMetricFunc returns a function that validates if metrics of Jaeger operator is scraped by prometheus.
+// ValidateJaegerOperatorMetricFunc returns a function that validates if metrics of Jaeger wls is scraped by prometheus.
 func ValidateJaegerOperatorMetricFunc() func() bool {
 	return func() bool {
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()

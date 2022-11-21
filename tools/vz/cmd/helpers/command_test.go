@@ -123,26 +123,26 @@ func TestGetVersion(t *testing.T) {
 	assert.NotNil(t, version)
 }
 
-// TestGetOperatorFile tests the functionality to return the right operator file.
+// TestGetOperatorFile tests the functionality to return the right wls file.
 func TestGetOperatorFile(t *testing.T) {
-	// GIVEN a command with no value provided for the operator file flag,
-	// WHEN we get the operator file,
-	// THEN the default value of operator file is returned.
+	// GIVEN a command with no value provided for the wls file flag,
+	// WHEN we get the wls file,
+	// THEN the default value of wls file is returned.
 	operatorFile, err := GetOperatorFile(getCommandWithoutFlags())
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), fmt.Sprintf(flagNotDefinedErrFmt, constants.OperatorFileFlag))
 	assert.NotNil(t, operatorFile)
 	assert.Equal(t, "", operatorFile)
 
-	// GIVEN a command with no value provided for the operator file flag,
-	// WHEN we get the operator file,
-	// THEN the default value of operator file is returned.
+	// GIVEN a command with no value provided for the wls file flag,
+	// WHEN we get the wls file,
+	// THEN the default value of wls file is returned.
 	cmdWithOperatorFile := getCommandWithoutFlags()
-	cmdWithOperatorFile.PersistentFlags().String(constants.OperatorFileFlag, "/tmp/operator.yaml", "")
+	cmdWithOperatorFile.PersistentFlags().String(constants.OperatorFileFlag, "/tmp/wls.yaml", "")
 	operatorFile, err = GetOperatorFile(cmdWithOperatorFile)
 	assert.NoError(t, err)
 	assert.NotNil(t, operatorFile)
-	assert.Equal(t, "/tmp/operator.yaml", operatorFile)
+	assert.Equal(t, "/tmp/wls.yaml", operatorFile)
 
 }
 

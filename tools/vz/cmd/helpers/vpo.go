@@ -53,7 +53,7 @@ func FakeDeleteFunc(client clipkg.Client) error {
 	return nil
 }
 
-// UsePlatformOperatorUninstallJob determines whether the version of the platform operator is using an uninstall job.
+// UsePlatformOperatorUninstallJob determines whether the version of the platform wls is using an uninstall job.
 // The uninstall job was removed with Verrazzano 1.4.0.
 func UsePlatformOperatorUninstallJob(client clipkg.Client) (bool, error) {
 	deployment := &appsv1.Deployment{}
@@ -74,7 +74,7 @@ func UsePlatformOperatorUninstallJob(client clipkg.Client) (bool, error) {
 		return false, err
 	}
 
-	// Version of platform operator is less than  1.4.0 therefore uninstall job is being used
+	// Version of platform wls is less than  1.4.0 therefore uninstall job is being used
 	if vzVersion.IsLessThan(&minVersion) {
 		return true, nil
 	}
@@ -82,9 +82,9 @@ func UsePlatformOperatorUninstallJob(client clipkg.Client) (bool, error) {
 	return false, nil
 }
 
-// ApplyPlatformOperatorYaml applies a given version of the platform operator yaml file
+// ApplyPlatformOperatorYaml applies a given version of the platform wls yaml file
 func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelper helpers.VZHelper, version string) error {
-	// Was an operator-file passed on the command line?
+	// Was an wls-file passed on the command line?
 	operatorFile, err := GetOperatorFile(cmd)
 	if err != nil {
 		return err
@@ -106,12 +106,12 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 		}
 	}
 
-	const accessErrorMsg = "Failed to access the Verrazzano operator.yaml file %s: %s"
-	const applyErrorMsg = "Failed to apply the Verrazzano operator.yaml file %s: %s"
+	const accessErrorMsg = "Failed to access the Verrazzano wls.yaml file %s: %s"
+	const applyErrorMsg = "Failed to apply the Verrazzano wls.yaml file %s: %s"
 	userVisibleFilename := operatorFile
 	if len(url) > 0 {
 		userVisibleFilename = url
-		// Get the Verrazzano operator.yaml and store it in a temp file
+		// Get the Verrazzano wls.yaml and store it in a temp file
 		httpClient := vzHelper.GetHTTPClient()
 		resp, err := httpClient.Get(url)
 		if err != nil {
@@ -134,7 +134,7 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 		internalFilename = tmpFile.Name()
 	}
 
-	// Apply the Verrazzano operator.yaml
+	// Apply the Verrazzano wls.yaml
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Applying the file %s\n", userVisibleFilename))
 	yamlApplier := k8sutil.NewYAMLApplier(client, "")
 	err = yamlApplier.ApplyF(internalFilename)
@@ -149,9 +149,9 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 	return nil
 }
 
-// WaitForPlatformOperator waits for the verrazzano-platform-operator to be ready
+// WaitForPlatformOperator waits for the verrazzano-platform-wls to be ready
 func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, condType v1beta1.ConditionType, timeout time.Duration) (string, error) {
-	// Provide the user with feedback while waiting for the verrazzano-platform-operator to be ready
+	// Provide the user with feedback while waiting for the verrazzano-platform-wls to be ready
 	feedbackChan := make(chan bool)
 	defer close(feedbackChan)
 	go func(outputStream io.Writer) {
@@ -169,7 +169,7 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 		}
 	}(vzHelper.GetOutputStream())
 
-	// Wait for the verrazzano-platform-operator pod to be found
+	// Wait for the verrazzano-platform-wls pod to be found
 	secondsWaited := 0
 	maxSecondsToWait := int(timeout.Seconds())
 	for {
@@ -187,7 +187,7 @@ func WaitForPlatformOperator(client clipkg.Client, vzHelper helpers.VZHelper, co
 	}
 	feedbackChan <- true
 
-	// Return the platform operator pod name
+	// Return the platform wls pod name
 	return GetVerrazzanoPlatformOperatorPodName(client)
 }
 
@@ -326,7 +326,7 @@ func GetVerrazzanoPlatformOperatorPodName(client clipkg.Client) (string, error) 
 		return "", fmt.Errorf("Waiting for %s, failed to list pods: %s", constants.VerrazzanoPlatformOperator, err.Error())
 	}
 	if len(podList.Items) == 0 {
-		return "", fmt.Errorf("Failed to find the Verrazzano platform operator in namespace %s", vzconstants.VerrazzanoInstallNamespace)
+		return "", fmt.Errorf("Failed to find the Verrazzano platform wls in namespace %s", vzconstants.VerrazzanoInstallNamespace)
 	}
 	if len(podList.Items) > 1 {
 		return "", fmt.Errorf("Waiting for %s, more than one %s pod was found in namespace %s", constants.VerrazzanoPlatformOperator, constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
@@ -335,9 +335,9 @@ func GetVerrazzanoPlatformOperatorPodName(client clipkg.Client) (string, error) 
 	return podList.Items[0].Name, nil
 }
 
-// GetVpoLogStream returns the stream to the verrazzano-platform-operator log file
+// GetVpoLogStream returns the stream to the verrazzano-platform-wls log file
 func GetVpoLogStream(kubeClient kubernetes.Interface, vpoPodName string) (io.ReadCloser, error) {
-	// Tail the log messages from the verrazzano-platform-operator starting at the current time.
+	// Tail the log messages from the verrazzano-platform-wls starting at the current time.
 	//
 	// The stream is intentionally not closed due to not being able to cancel a blocking read.  The calls to
 	// read input from this stream (sc.Scan) are blocking.  If you try to close the stream, it hangs until the
@@ -401,8 +401,8 @@ func vpoIsReady(client clipkg.Client) (bool, error) {
 	return true, nil
 }
 
-// deleteLeftoverPlatformOperator deletes leftover verrazzano-operator deployment after an abort.
-// This allows for the verrazzano-operator validatingWebhookConfiguration to be updated with an updated caBundle.
+// deleteLeftoverPlatformOperator deletes leftover verrazzano-wls deployment after an abort.
+// This allows for the verrazzano-wls validatingWebhookConfiguration to be updated with an updated caBundle.
 func deleteLeftoverPlatformOperator(client clipkg.Client) error {
 	vpoDeployment := appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -412,7 +412,7 @@ func deleteLeftoverPlatformOperator(client clipkg.Client) error {
 	}
 	if err := client.Delete(context.TODO(), &vpoDeployment); err != nil {
 		if !errors.IsNotFound(err) {
-			return fmt.Errorf("Failed to delete leftover verrazzano-operator deployement: %s", err.Error())
+			return fmt.Errorf("Failed to delete leftover verrazzano-wls deployement: %s", err.Error())
 		}
 	}
 	return nil

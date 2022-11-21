@@ -72,7 +72,7 @@ var _ = clusterDump.BeforeSuite(func() {
 		}
 		_, err = kubeClientSet.CoreV1().ServiceAccounts(namespace).Create(context.TODO(), &corev1.ServiceAccount{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "verrazzano-monitoring-operator",
+				Name: "verrazzano-monitoring-wls",
 			},
 		}, metav1.CreateOptions{})
 		if err != nil && !apierrors.IsAlreadyExists(err) {

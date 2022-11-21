@@ -63,9 +63,9 @@ cd ${GO_REPO_PATH}/verrazzano
 ./tests/e2e/config/scripts/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
 
 echo "Install Platform Operator"
-VPO_IMAGE=$(cat ${BOM_FILE} | jq -r '.components[].subcomponents[] | select(.name == "verrazzano-platform-operator") | "\(.repository)/\(.images[].image):\(.images[].tag)"')
+VPO_IMAGE=$(cat ${BOM_FILE} | jq -r '.components[].subcomponents[] | select(.name == "verrazzano-platform-wls") | "\(.repository)/\(.images[].image):\(.images[].tag)"')
 
-helm upgrade --install myv8o ${CHART_LOCATION}/verrazzano-platform-operator \
+helm upgrade --install myv8o ${CHART_LOCATION}/verrazzano-platform-wls \
     --set global.imagePullSecrets[0]=${IMAGE_PULL_SECRET} \
     --set image=${REGISTRY}/${PRIVATE_REPO}/${VPO_IMAGE} --set global.registry=${REGISTRY} \
     --set global.repository=${PRIVATE_REPO}
@@ -73,7 +73,7 @@ helm upgrade --install myv8o ${CHART_LOCATION}/verrazzano-platform-operator \
 # make sure ns exists
 ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
 
-# Create docker secret for platform operator image
+# Create docker secret for platform wls image
 ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${REGISTRY}" "${PRIVATE_REGISTRY_USR}" "${PRIVATE_REGISTRY_PSW}" verrazzano-install
 
 # optionally create a cluster dump snapshot for verifying uninstalls
@@ -94,7 +94,7 @@ yq eval -i '.spec.components.jaegerOperator.enabled = true' ${INSTALL_CONFIG_FIL
 
 echo "Wait for Operator to be ready"
 cd ${GO_REPO_PATH}/verrazzano
-kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-wls
 if [ $? -ne 0 ]; then
   echo "Operator is not ready"
   exit 1

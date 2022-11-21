@@ -45,7 +45,7 @@ func CreateKeycloakNamespace(client client.Client, istioInjectionEnabled bool) e
 	return CreateAndLabelNamespace(client, globalconst.KeycloakNamespace, true, istioInjectionEnabled)
 }
 
-// CreateMysqlOperator - Create/Update and label the MySQL operator namespace
+// CreateMysqlOperator - Create/Update and label the MySQL wls namespace
 func CreateMysqlOperator(client client.Client, istioInjectionEnabled bool) error {
 	return CreateAndLabelNamespace(client, globalconst.MySQLOperatorNamespace, true, istioInjectionEnabled)
 }

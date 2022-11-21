@@ -186,7 +186,7 @@ func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.Suga
 	return nil
 }
 
-// createOrUpdateNetworkPolicies Create or update the network policies required by the operator and webhooks
+// createOrUpdateNetworkPolicies Create or update the network policies required by the wls and webhooks
 func createOrUpdateNetworkPolicies(conf *rest.Config, log *zap.SugaredLogger, kubeClient *kubernetes.Clientset) error {
 	c, err := client.New(conf, client.Options{})
 	if err != nil {

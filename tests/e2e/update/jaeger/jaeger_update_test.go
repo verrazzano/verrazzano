@@ -24,7 +24,7 @@ const (
 
 var (
 	// Initialize the Test Framework
-	t     = framework.NewTestFramework("update jaeger operator")
+	t     = framework.NewTestFramework("update jaeger wls")
 	start = time.Now()
 )
 
@@ -36,8 +36,8 @@ var _ = t.BeforeSuite(func() {
 var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 
 	// GIVEN a VZ custom resource in dev profile,
-	// WHEN Jaeger operator is enabled,
-	// THEN Jaeger operator and pods for jaeger-collector and jaeger-query components gets created.
+	// WHEN Jaeger wls is enabled,
+	// THEN Jaeger wls and pods for jaeger-collector and jaeger-query components gets created.
 	t.It("Jaeger enable post install", func() {
 		update.ValidatePods(jaegerOperatorLabelValue, jaegerComponentLabel, constants.VerrazzanoMonitoringNamespace, 1, false)
 		update.ValidatePods(jaegerCollectorLabelValue, jaegerComponentLabel, constants.VerrazzanoMonitoringNamespace, 1, false)
@@ -45,7 +45,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
-	// WHEN Jaeger operator is enabled,
+	// WHEN Jaeger wls is enabled,
 	// THEN Jaeger OpenSearch Index Cleaner cron job exists
 	t.It("should have a Jaeger OpenSearch Index Cleaner cron job", func() {
 		validatorFn := pkg.ValidateEsIndexCleanerCronJobFunc()
@@ -53,7 +53,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
-	// WHEN Jaeger operator is enabled,
+	// WHEN Jaeger wls is enabled,
 	// THEN we are able to get the traces
 	t.It("traces from verrazzano system components should be available when queried from Jaeger", func() {
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -65,7 +65,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
-	// WHEN Jaeger operator is enabled,
+	// WHEN Jaeger wls is enabled,
 	// THEN we are able to get the traces
 	t.It("traces from verrazzano system components should be available in the OS backend storage.", func() {
 		validatorFn := pkg.ValidateSystemTracesInOSFunc(start)
@@ -73,15 +73,15 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
-	// WHEN Jaeger operator is enabled,
-	// THEN we see that the metrics of Jaeger operator are present in prometheus
-	t.It("metrics of jaeger operator are available in prometheus", func() {
+	// WHEN Jaeger wls is enabled,
+	// THEN we see that the metrics of Jaeger wls are present in prometheus
+	t.It("metrics of jaeger wls are available in prometheus", func() {
 		validatorFn := pkg.ValidateJaegerOperatorMetricFunc()
 		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
-	// WHEN Jaeger operator is enabled,
+	// WHEN Jaeger wls is enabled,
 	// THEN we see that the metrics of Jaeger collector are present in prometheus
 	t.It("metrics of jaeger collector are available in prometheus", func() {
 		validatorFn := pkg.ValidateJaegerCollectorMetricFunc()
@@ -89,7 +89,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
-	// WHEN Jaeger operator is enabled,
+	// WHEN Jaeger wls is enabled,
 	// THEN we see that the metrics of Jaeger query are present in prometheus
 	t.It("metrics of jaeger query are available in prometheus", func() {
 		validatorFn := pkg.ValidateJaegerQueryMetricFunc()
@@ -97,17 +97,17 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
-	// WHEN Jaeger operator is enabled,
+	// WHEN Jaeger wls is enabled,
 	// THEN we see that the metrics of Jaeger agent are present in prometheus
 	t.It("metrics of jaeger agent are available in prometheus", func() {
 		validatorFn := pkg.ValidateJaegerAgentMetricFunc()
 		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
 
-	// GIVEN a VZ custom resource in dev profile with Jaeger operator enabled,
+	// GIVEN a VZ custom resource in dev profile with Jaeger wls enabled,
 	// WHEN user tries to disable it,
 	// THEN the operation should be denied with an error
-	t.It("disabling previously enabled Jaeger operator should be disallowed", func() {
+	t.It("disabling previously enabled Jaeger wls should be disallowed", func() {
 		m := JaegerOperatorCleanupModifier{}
 		Eventually(func() bool {
 			err := update.UpdateCR(m)

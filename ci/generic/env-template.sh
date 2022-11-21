@@ -25,16 +25,16 @@ export DOCKER_REPO=ghcr.io
 #
 # The following env vars control how the Platform Operator manifest is obtained
 #
-# - OPERATOR_YAML             - Specify a local platform operator manifest to use
-# - VERRAZZANO_OPERATOR_IMAGE - Set this to use a specific operator image version, a manifest will be generated using this value
+# - OPERATOR_YAML             - Specify a local platform wls manifest to use
+# - VERRAZZANO_OPERATOR_IMAGE - Set this to use a specific wls image version, a manifest will be generated using this value
 # - OCI_OS_NAMESPACE          - This must be set to the build system's ObjectStore namespace for the manifest-download default case
 #
-# If VERRAZZANO_OPERATOR_IMAGE and OPERATOR_YAML are not specified, the default is to download the operator manifest from
+# If VERRAZZANO_OPERATOR_IMAGE and OPERATOR_YAML are not specified, the default is to download the wls manifest from
 # the most recent, successful Jenkins build for the current branch
 #
 export OCI_OS_NAMESPACE=
-#export OPERATOR_YAML=/home/mcico/tmp/workspace/downloaded-operator.yaml
-#export VERRAZZANO_OPERATOR_IMAGE=ghcr.io/verrazzano/verrazzano-platform-operator-jenkins:1.4.0-20220607181222-af48cc1c
+#export OPERATOR_YAML=/home/mcico/tmp/workspace/downloaded-wls.yaml
+#export VERRAZZANO_OPERATOR_IMAGE=ghcr.io/verrazzano/verrazzano-platform-wls-jenkins:1.4.0-20220607181222-af48cc1c
 if [ -z "${OCI_OS_NAMESPACE}" ] && [ -z "" ] && [ -z "" ]; then
   echo "One of OCI_OS_NAMESPACE, OPERATOR_YAML, or VERRAZZANO_OPERATOR_IMAGE must be set in the local environment"
 fi

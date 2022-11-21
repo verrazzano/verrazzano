@@ -17,10 +17,10 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: observability/jaeger-operator-serving-cert
+    cert-manager.io/inject-ca-from: observability/jaeger-wls-serving-cert
     controller-gen.kubebuilder.io/version: v0.6.1
   labels:
-    name: jaeger-operator
+    name: jaeger-wls
   name: jaegers.jaegertracing.io
 spec:
   group: jaegertracing.io
@@ -85,7 +85,7 @@ spec:
                                         type: array
                                     required:
                                     - key
-                                    - operator
+                                    - wls
                                     type: object
                                   type: array
                                 matchFields:
@@ -101,7 +101,7 @@ spec:
                                         type: array
                                     required:
                                     - key
-                                    - operator
+                                    - wls
                                     type: object
                                   type: array
                               type: object
@@ -131,7 +131,7 @@ spec:
                                         type: array
                                     required:
                                     - key
-                                    - operator
+                                    - wls
                                     type: object
                                   type: array
                                 matchFields:
@@ -147,7 +147,7 @@ spec:
                                         type: array
                                     required:
                                     - key
-                                    - operator
+                                    - wls
                                     type: object
                                   type: array
                               type: object
@@ -178,7 +178,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -201,7 +201,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -244,7 +244,7 @@ spec:
                                         type: array
                                     required:
                                     - key
-                                    - operator
+                                    - wls
                                     type: object
                                   type: array
                                 matchLabels:
@@ -267,7 +267,7 @@ spec:
                                         type: array
                                     required:
                                     - key
-                                    - operator
+                                    - wls
                                     type: object
                                   type: array
                                 matchLabels:
@@ -308,7 +308,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -331,7 +331,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -374,7 +374,7 @@ spec:
                                         type: array
                                     required:
                                     - key
-                                    - operator
+                                    - wls
                                     type: object
                                   type: array
                                 matchLabels:
@@ -397,7 +397,7 @@ spec:
                                         type: array
                                     required:
                                     - key
-                                    - operator
+                                    - wls
                                     type: object
                                   type: array
                                 matchLabels:
@@ -442,7 +442,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchFields:
@@ -458,7 +458,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                   type: object
@@ -488,7 +488,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchFields:
@@ -504,7 +504,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                   type: object
@@ -535,7 +535,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -558,7 +558,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -601,7 +601,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -624,7 +624,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -665,7 +665,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -688,7 +688,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -731,7 +731,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -754,7 +754,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -1248,7 +1248,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -1701,7 +1701,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchFields:
@@ -1717,7 +1717,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                   type: object
@@ -1747,7 +1747,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchFields:
@@ -1763,7 +1763,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                   type: object
@@ -1794,7 +1794,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -1817,7 +1817,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -1860,7 +1860,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -1883,7 +1883,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -1924,7 +1924,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -1947,7 +1947,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -1990,7 +1990,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -2013,7 +2013,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -2465,7 +2465,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -2923,7 +2923,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchFields:
@@ -2939,7 +2939,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                   type: object
@@ -2969,7 +2969,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchFields:
@@ -2985,7 +2985,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                   type: object
@@ -3016,7 +3016,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -3039,7 +3039,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -3082,7 +3082,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -3105,7 +3105,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -3146,7 +3146,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -3169,7 +3169,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -3212,7 +3212,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -3235,7 +3235,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -3695,7 +3695,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -4158,7 +4158,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchFields:
@@ -4174,7 +4174,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                   type: object
@@ -4204,7 +4204,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchFields:
@@ -4220,7 +4220,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                   type: object
@@ -4251,7 +4251,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -4274,7 +4274,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -4317,7 +4317,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -4340,7 +4340,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -4381,7 +4381,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -4404,7 +4404,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -4447,7 +4447,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -4470,7 +4470,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -4926,7 +4926,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -5379,7 +5379,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchFields:
@@ -5395,7 +5395,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                   type: object
@@ -5425,7 +5425,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchFields:
@@ -5441,7 +5441,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                   type: object
@@ -5472,7 +5472,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -5495,7 +5495,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -5538,7 +5538,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -5561,7 +5561,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -5602,7 +5602,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -5625,7 +5625,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -5668,7 +5668,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -5691,7 +5691,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -6150,7 +6150,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -6607,7 +6607,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchFields:
@@ -6623,7 +6623,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                   type: object
@@ -6653,7 +6653,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchFields:
@@ -6669,7 +6669,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                   type: object
@@ -6700,7 +6700,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -6723,7 +6723,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -6766,7 +6766,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -6789,7 +6789,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -6830,7 +6830,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -6853,7 +6853,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -6896,7 +6896,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -6919,7 +6919,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -7381,7 +7381,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -7926,7 +7926,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchFields:
@@ -7942,7 +7942,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                       type: object
@@ -7972,7 +7972,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchFields:
@@ -7988,7 +7988,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                       type: object
@@ -8019,7 +8019,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -8042,7 +8042,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -8085,7 +8085,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -8108,7 +8108,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -8149,7 +8149,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -8172,7 +8172,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -8215,7 +8215,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -8238,7 +8238,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -8298,7 +8298,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchFields:
@@ -8314,7 +8314,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                       type: object
@@ -8344,7 +8344,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchFields:
@@ -8360,7 +8360,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                       type: object
@@ -8391,7 +8391,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -8414,7 +8414,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -8457,7 +8457,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -8480,7 +8480,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -8521,7 +8521,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -8544,7 +8544,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -8587,7 +8587,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -8610,7 +8610,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -9056,7 +9056,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -9579,7 +9579,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchFields:
@@ -9595,7 +9595,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                       type: object
@@ -9625,7 +9625,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchFields:
@@ -9641,7 +9641,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                       type: object
@@ -9672,7 +9672,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -9695,7 +9695,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -9738,7 +9738,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -9761,7 +9761,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -9802,7 +9802,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -9825,7 +9825,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -9868,7 +9868,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -9891,7 +9891,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -10327,7 +10327,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -10780,7 +10780,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchFields:
@@ -10796,7 +10796,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                       type: object
@@ -10826,7 +10826,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchFields:
@@ -10842,7 +10842,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                       type: object
@@ -10873,7 +10873,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -10896,7 +10896,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -10939,7 +10939,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -10962,7 +10962,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -11003,7 +11003,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -11026,7 +11026,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -11069,7 +11069,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -11092,7 +11092,7 @@ spec:
                                                 type: array
                                             required:
                                             - key
-                                            - operator
+                                            - wls
                                             type: object
                                           type: array
                                         matchLabels:
@@ -11528,7 +11528,7 @@ spec:
                                                     type: array
                                                 required:
                                                 - key
-                                                - operator
+                                                - wls
                                                 type: object
                                               type: array
                                             matchLabels:
@@ -12274,7 +12274,7 @@ spec:
                                             type: array
                                         required:
                                         - key
-                                        - operator
+                                        - wls
                                         type: object
                                       type: array
                                     matchLabels:
@@ -12729,15 +12729,15 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   labels:
-    name: jaeger-operator
-  name: jaeger-operator
+    name: jaeger-wls
+  name: jaeger-wls
   namespace: verrazzano-monitoring
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   labels:
-    name: jaeger-operator
+    name: jaeger-wls
   name: leader-election-role
   namespace: verrazzano-monitoring
 rules:
@@ -12780,7 +12780,7 @@ metadata:
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
   labels:
-    name: jaeger-operator
+    name: jaeger-wls
   name: prometheus
   namespace: verrazzano-monitoring
 rules:
@@ -12799,8 +12799,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
-    name: jaeger-operator
-  name: jaeger-operator-metrics-reader
+    name: jaeger-wls
+  name: jaeger-wls-metrics-reader
 rules:
 - nonResourceURLs:
   - /metrics
@@ -12812,7 +12812,7 @@ kind: ClusterRole
 metadata:
   creationTimestamp: null
   labels:
-    name: jaeger-operator
+    name: jaeger-wls
   name: manager-role
 rules:
 - apiGroups:
@@ -13070,7 +13070,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
-    name: jaeger-operator
+    name: jaeger-wls
   name: proxy-role
 rules:
 - apiGroups:
@@ -13090,7 +13090,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   labels:
-    name: jaeger-operator
+    name: jaeger-wls
   name: leader-election-rolebinding
   namespace: verrazzano-monitoring
 roleRef:
@@ -13099,7 +13099,7 @@ roleRef:
   name: leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: jaeger-operator
+  name: jaeger-wls
   namespace: verrazzano-monitoring
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -13109,7 +13109,7 @@ metadata:
     include.release.openshift.io/self-managed-high-availability: "true"
     include.release.openshift.io/single-node-developer: "true"
   labels:
-    name: jaeger-operator
+    name: jaeger-wls
   name: prometheus
   namespace: verrazzano-monitoring
 roleRef:
@@ -13125,22 +13125,22 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   labels:
-    name: jaeger-operator
-  name: jaeger-operator-proxy-rolebinding
+    name: jaeger-wls
+  name: jaeger-wls-proxy-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: proxy-role
 subjects:
 - kind: ServiceAccount
-  name: jaeger-operator
+  name: jaeger-wls
   namespace: verrazzano-monitoring
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   labels:
-    name: jaeger-operator
+    name: jaeger-wls
   name: manager-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -13148,16 +13148,16 @@ roleRef:
   name: manager-role
 subjects:
 - kind: ServiceAccount
-  name: jaeger-operator
+  name: jaeger-wls
   namespace: verrazzano-monitoring
 ---
 apiVersion: v1
 kind: Service
 metadata:
   labels:
-    control-plane: jaeger-operator
-    name: jaeger-operator
-  name: jaeger-operator-metrics
+    control-plane: jaeger-wls
+    name: jaeger-wls
+  name: jaeger-wls-metrics
   namespace: verrazzano-monitoring
 spec:
   ports:
@@ -13166,14 +13166,14 @@ spec:
     protocol: TCP
     targetPort: https
   selector:
-    name: jaeger-operator
+    name: jaeger-wls
 ---
 apiVersion: v1
 kind: Service
 metadata:
   labels:
-    name: jaeger-operator
-  name: jaeger-operator-webhook-service
+    name: jaeger-wls
+  name: jaeger-wls-webhook-service
   namespace: verrazzano-monitoring
 spec:
   ports:
@@ -13181,25 +13181,25 @@ spec:
     protocol: TCP
     targetPort: 9443
   selector:
-    name: jaeger-operator
+    name: jaeger-wls
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    name: jaeger-operator
-  name: jaeger-operator
+    name: jaeger-wls
+  name: jaeger-wls
   namespace: verrazzano-monitoring
 spec:
   replicas: 1
   selector:
     matchLabels:
-      name: jaeger-operator
+      name: jaeger-wls
   strategy: {}
   template:
     metadata:
       labels:
-        name: jaeger-operator
+        name: jaeger-wls
     spec:
       containers:
       - args:
@@ -13207,7 +13207,7 @@ spec:
         - --health-probe-bind-address=:8081
         - --leader-elect
         command:
-        - /jaeger-operator
+        - /jaeger-wls
         env:
         - name: WATCH_NAMESPACE
           valueFrom:
@@ -13218,7 +13218,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: OPERATOR_NAME
-          value: jaeger-operator
+          value: jaeger-wls
         - name: JAEGER-INGESTER-IMAGE
           value: {{.jaegeringester}}
         - name: JAEGER-AGENT-IMAGE
@@ -13234,7 +13234,7 @@ spec:
             port: 8081
           initialDelaySeconds: 15
           periodSeconds: 20
-        name: jaeger-operator
+        name: jaeger-wls
         ports:
         - containerPort: 9443
           name: webhook-server
@@ -13260,39 +13260,39 @@ spec:
           readOnly: true
       securityContext:
         runAsNonRoot: true
-      serviceAccountName: jaeger-operator
+      serviceAccountName: jaeger-wls
       terminationGracePeriodSeconds: 10
       volumes:
       - name: cert
         secret:
           defaultMode: 420
-          secretName: jaeger-operator-service-cert
+          secretName: jaeger-wls-service-cert
 ---
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   labels:
-    name: jaeger-operator
-  name: jaeger-operator-serving-cert
+    name: jaeger-wls
+  name: jaeger-wls-serving-cert
   namespace: verrazzano-monitoring
 spec:
   dnsNames:
-  - jaeger-operator-webhook-service.verrazzano-monitoring.svc
-  - jaeger-operator-webhook-service.verrazzano-monitoring.svc.cluster.local
+  - jaeger-wls-webhook-service.verrazzano-monitoring.svc
+  - jaeger-wls-webhook-service.verrazzano-monitoring.svc.cluster.local
   issuerRef:
     kind: Issuer
-    name: jaeger-operator-selfsigned-issuer
-  secretName: jaeger-operator-service-cert
+    name: jaeger-wls-selfsigned-issuer
+  secretName: jaeger-wls-service-cert
   subject:
     organizationalUnits:
-    - jaeger-operator
+    - jaeger-wls
 ---
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   labels:
-    name: jaeger-operator
-  name: jaeger-operator-selfsigned-issuer
+    name: jaeger-wls
+  name: jaeger-wls-selfsigned-issuer
   namespace: verrazzano-monitoring
 spec:
   selfSigned: {}
@@ -13301,17 +13301,17 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: verrazzano-monitoring/jaeger-operator-serving-cert
+    cert-manager.io/inject-ca-from: verrazzano-monitoring/jaeger-wls-serving-cert
   labels:
-    name: jaeger-operator
-  name: jaeger-operator-mutating-webhook-configuration
+    name: jaeger-wls
+  name: jaeger-wls-mutating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
   - v1
   - v1beta1
   clientConfig:
     service:
-      name: jaeger-operator-webhook-service
+      name: jaeger-wls-webhook-service
       namespace: verrazzano-monitoring
       path: /mutate-jaegertracing-io-v1-jaeger
   failurePolicy: Fail
@@ -13332,17 +13332,17 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: verrazzano-monitoring/jaeger-operator-serving-cert
+    cert-manager.io/inject-ca-from: verrazzano-monitoring/jaeger-wls-serving-cert
   labels:
-    name: jaeger-operator
-  name: jaeger-operator-validating-webhook-configuration
+    name: jaeger-wls
+  name: jaeger-wls-validating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
   - v1
   - v1beta1
   clientConfig:
     service:
-      name: jaeger-operator-webhook-service
+      name: jaeger-wls-webhook-service
       namespace: verrazzano-monitoring
       path: /validate-jaegertracing-io-v1-jaeger
   failurePolicy: Fail

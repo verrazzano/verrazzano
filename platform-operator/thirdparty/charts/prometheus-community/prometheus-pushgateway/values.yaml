@@ -128,7 +128,7 @@ ingress:
 
 tolerations: {}
   # - effect: NoSchedule
-  #   operator: Exists
+  #   wls: Exists
 
 ## Node labels for pushgateway pod assignment
 ## Ref: https://kubernetes.io/docs/user-guide/node-selection/

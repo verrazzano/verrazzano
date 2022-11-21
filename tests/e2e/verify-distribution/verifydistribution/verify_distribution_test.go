@@ -40,7 +40,7 @@ var opensourcefileslistbydir = map[string][]string{
 	"top":       {"LICENSE", "README.md", "bin", "manifests"},
 	"bin":       {"bom_utils.sh", "vz", "vz-registry-image-helper.sh"},
 	"manifests": {"charts", "k8s", "profiles", "verrazzano-bom.json"},
-	"k8s":       {"verrazzano-platform-operator.yaml"},
+	"k8s":       {"verrazzano-platform-wls.yaml"},
 	"profiles":  {"dev.yaml", "managed-cluster.yaml", "prod.yaml"},
 }
 
@@ -49,7 +49,7 @@ var fullBundleFileslistbydir = map[string][]string{
 	"bin":       {"bom_utils.sh", "darwin-amd64", "darwin-arm64", "linux-amd64", "linux-arm64", "vz-registry-image-helper.sh"},
 	"vz":        {"vz"},
 	"manifests": {"charts", "k8s", "profiles", "verrazzano-bom.json"},
-	"k8s":       {"verrazzano-platform-operator.yaml"},
+	"k8s":       {"verrazzano-platform-wls.yaml"},
 	"profiles":  {"dev.yaml", "managed-cluster.yaml", "prod.yaml"},
 }
 
@@ -68,7 +68,7 @@ var _ = t.Describe("Verify VZ distribution", func() {
 			vzDevVersion = os.Getenv("VERRAZZANO_DEV_VERSION")
 			vzPrefix := verrazzanoPrefix + vzDevVersion
 			var liteBundleZipContents = []string{
-				"verrazzano-platform-operator.yaml", "verrazzano-platform-operator.yaml.sha256", vzPrefix,
+				"verrazzano-platform-wls.yaml", "verrazzano-platform-wls.yaml.sha256", vzPrefix,
 				vzPrefix + "-darwin-amd64.tar.gz", vzPrefix + "-darwin-amd64.tar.gz.sha256",
 				vzPrefix + "-darwin-arm64.tar.gz", vzPrefix + "-darwin-arm64.tar.gz.sha256",
 				vzPrefix + "-linux-amd64.tar.gz", vzPrefix + "-linux-amd64.tar.gz.sha256",
@@ -157,15 +157,15 @@ var _ = t.Describe("Verify VZ distribution", func() {
 
 	t.Describe("Verify charts for common", func() {
 		t.It("Verify charts for both Lite and Full bundle", func() {
-			var re1 = regexp.MustCompile(".*/verrazzano-platform-operator/")
-			sourcesLocation := repoPath + "/verrazzano/platform-operator/helm_config/charts/verrazzano-platform-operator/"
+			var re1 = regexp.MustCompile(".*/verrazzano-platform-wls/")
+			sourcesLocation := repoPath + "/verrazzano/platform-wls/helm_config/charts/verrazzano-platform-wls/"
 			sourcesFilesList, _ := GetMatchingFiles(sourcesLocation, regexp.MustCompile(".*"))
 			sourcesFilesFilteredList := []string{}
 			for _, each := range sourcesFilesList {
 				eachName := re1.ReplaceAllString(each, "")
 				sourcesFilesFilteredList = append(sourcesFilesFilteredList, eachName)
 			}
-			chartsLocationZip := generatedPath + "/manifests/charts/verrazzano-platform-operator/"
+			chartsLocationZip := generatedPath + "/manifests/charts/verrazzano-platform-wls/"
 			chartsFilesList, _ := GetMatchingFiles(chartsLocationZip, regexp.MustCompile(".*"))
 			chartsFilesListFiltered := []string{}
 			for _, each := range chartsFilesList {

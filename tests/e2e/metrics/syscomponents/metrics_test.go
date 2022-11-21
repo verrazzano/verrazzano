@@ -50,7 +50,7 @@ const (
 	nodeExporter        = "node-exporter"
 	istiod              = "istiod"
 	pilot               = "pilot"
-	prometheus          = "prometheus-operator-kube-p-prometheus"
+	prometheus          = "prometheus-wls-kube-p-prometheus"
 	oldPrometheus       = "prometheus"
 	controllerNamespace = "controller_namespace"
 	ingressController   = "ingress-controller"
@@ -84,12 +84,12 @@ var envoyStatsNamespaces = []string{
 
 // List of pods to be excluded from verrazzano-system namespace for envoy-stats as they do not have envoy
 var excludePodsVS = []string{
-	"coherence-operator",
+	"coherence-wls",
 	"oam-kubernetes-runtime",
-	"verrazzano-application-operator",
-	"verrazzano-monitoring-operator",
-	"verrazzano-cluster-operator",
-	"verrazzano-operator",
+	"verrazzano-application-wls",
+	"verrazzano-monitoring-wls",
+	"verrazzano-cluster-wls",
+	"verrazzano-wls",
 }
 
 // List of pods to be excluded from istio-system namespace for envoy-stats as they do not have envoy

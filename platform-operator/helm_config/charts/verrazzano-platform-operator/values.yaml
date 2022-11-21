@@ -1,6 +1,6 @@
 # Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-name: verrazzano-platform-operator
+name: verrazzano-platform-wls
 namespace: verrazzano-install
 namespaceLabelKey: verrazzano.io/namespace
 
@@ -8,11 +8,11 @@ global:
   imagePullSecrets: []
 
 # NOTE: The image value gets set in the bill of materials file (verrazzano-bom.json) during the
-# platform operator docker build.
+# platform wls docker build.
 image:
 imagePullPolicy: IfNotPresent
 
-# Default operator affinity rules
+# Default wls affinity rules
 affinity:
   podAntiAffinity:
     preferredDuringSchedulingIgnoredDuringExecution:
@@ -22,7 +22,7 @@ affinity:
               - key: app
                 operator: In
                 values:
-                  - verrazzano-platform-operator
+                  - verrazzano-platform-wls
           topologyKey: kubernetes.io/hostname
         weight: 100
 
@@ -36,6 +36,6 @@ webhookAffinity:
               - key: app
                 operator: In
                 values:
-                  - verrazzano-platform-operator-webhook
+                  - verrazzano-platform-wls-webhook
           topologyKey: kubernetes.io/hostname
         weight: 100

@@ -190,7 +190,7 @@ prometheus:
 #        nodeSelectorTerms:
 #        - matchExpressions:
 #          - key: foo.bar.com/role
-#            operator: In
+#            wls: In
 #            values:
 #            - master
 affinity: {}
@@ -199,7 +199,7 @@ affinity: {}
 # for example:
 #   tolerations:
 #   - key: foo.bar.com/role
-#     operator: Equal
+#     wls: Equal
 #     value: master
 #     effect: NoSchedule
 tolerations: []

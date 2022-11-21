@@ -79,7 +79,7 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an uninstall.")
 	_ = cmd.PersistentFlags().MarkHidden(constants.DryRunFlag)
 
-	// Hide the flag for overriding the default wait timeout for the platform-operator
+	// Hide the flag for overriding the default wait timeout for the platform-wls
 	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
 
 	return cmd

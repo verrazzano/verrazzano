@@ -222,7 +222,7 @@ controller:
   ##
   tolerations: []
   #  - key: "key"
-  #    operator: "Equal|Exists"
+  #    wls: "Equal|Exists"
   #    value: "value"
   #    effect: "NoSchedule|PreferNoSchedule|NoExecute(1.6 only)"
 
@@ -238,15 +238,15 @@ controller:
     #       labelSelector:
     #         matchExpressions:
     #         - key: app.kubernetes.io/name
-    #           operator: In
+    #           wls: In
     #           values:
     #           - ingress-nginx
     #         - key: app.kubernetes.io/instance
-    #           operator: In
+    #           wls: In
     #           values:
     #           - ingress-nginx
     #         - key: app.kubernetes.io/component
-    #           operator: In
+    #           wls: In
     #           values:
     #           - controller
     #       topologyKey: kubernetes.io/hostname
@@ -257,15 +257,15 @@ controller:
     #   - labelSelector:
     #       matchExpressions:
     #       - key: app.kubernetes.io/name
-    #         operator: In
+    #         wls: In
     #         values:
     #         - ingress-nginx
     #       - key: app.kubernetes.io/instance
-    #         operator: In
+    #         wls: In
     #         values:
     #         - ingress-nginx
     #       - key: app.kubernetes.io/component
-    #         operator: In
+    #         wls: In
     #         values:
     #         - controller
     #     topologyKey: "kubernetes.io/hostname"
@@ -819,7 +819,7 @@ defaultBackend:
   ##
   tolerations: []
   #  - key: "key"
-  #    operator: "Equal|Exists"
+  #    wls: "Equal|Exists"
   #    value: "value"
   #    effect: "NoSchedule|PreferNoSchedule|NoExecute(1.6 only)"
 

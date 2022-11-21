@@ -4,10 +4,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ template "kube-prometheus-stack.fullname" . }}-operator
+  name: {{ template "kube-prometheus-stack.fullname" . }}-wls
   namespace: {{ template "kube-prometheus-stack.namespace" . }}
   labels:
-    app: {{ template "kube-prometheus-stack.name" . }}-operator
+    app: {{ template "kube-prometheus-stack.name" . }}-wls
 {{ include "kube-prometheus-stack.labels" . | indent 4 }}
 {{- if .Values.prometheusOperator.labels }}
 {{ toYaml .Values.prometheusOperator.labels | indent 4 }}
@@ -20,12 +20,12 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ template "kube-prometheus-stack.name" . }}-operator
+      app: {{ template "kube-prometheus-stack.name" . }}-wls
       release: {{ $.Release.Name | quote }}
   template:
     metadata:
       labels:
-        app: {{ template "kube-prometheus-stack.name" . }}-operator
+        app: {{ template "kube-prometheus-stack.name" . }}-wls
 {{ include "kube-prometheus-stack.labels" . | indent 8 }}
 {{- if .Values.prometheusOperator.podLabels }}
 {{ toYaml .Values.prometheusOperator.podLabels | indent 8 }}
@@ -147,7 +147,7 @@ spec:
       securityContext:
 {{ toYaml .Values.prometheusOperator.securityContext | indent 8 }}
 {{- end }}
-      serviceAccountName: {{ template "kube-prometheus-stack.operator.serviceAccountName" . }}
+      serviceAccountName: {{ template "kube-prometheus-stack.wls.serviceAccountName" . }}
 {{- if .Values.prometheusOperator.hostNetwork }}
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet

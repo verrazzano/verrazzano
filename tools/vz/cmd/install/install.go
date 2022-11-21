@@ -72,7 +72,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 	cmd.PersistentFlags().StringArrayP(constants.SetFlag, constants.SetFlagShorthand, []string{}, constants.SetFlagHelp)
 
-	// Initially the operator-file flag may be for internal use, hide from help until
+	// Initially the wls-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.
 	cmd.PersistentFlags().String(constants.OperatorFileFlag, "", constants.OperatorFileFlagHelp)
 	cmd.PersistentFlags().MarkHidden(constants.OperatorFileFlag)
@@ -81,7 +81,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an install.")
 	cmd.PersistentFlags().MarkHidden(constants.DryRunFlag)
 
-	// Hide the flag for overriding the default wait timeout for the platform-operator
+	// Hide the flag for overriding the default wait timeout for the platform-wls
 	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
 
 	return cmd
@@ -118,7 +118,7 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 		return err
 	}
 
-	// When --operator-file is not used, get the version from the command line
+	// When --wls-file is not used, get the version from the command line
 	var version string
 	if !cmd.PersistentFlags().Changed(constants.OperatorFileFlag) {
 		version, err = cmdhelpers.GetVersion(cmd, vzHelper)
@@ -172,20 +172,20 @@ func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper)
 			return err
 		}
 
-		// Delete leftover verrazzano-operator deployment after an abort.
-		// This allows for the verrazzano-operator validatingWebhookConfiguration to be updated with the correct caBundle.
+		// Delete leftover verrazzano-wls deployment after an abort.
+		// This allows for the verrazzano-wls validatingWebhookConfiguration to be updated with the correct caBundle.
 		err = cmdhelpers.DeleteFunc(client)
 		if err != nil {
 			return err
 		}
 
-		// Apply the Verrazzano operator.yaml.
+		// Apply the Verrazzano wls.yaml.
 		err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
 		if err != nil {
 			return err
 		}
 
-		// Wait for the platform operator to be ready before we create the Verrazzano resource.
+		// Wait for the platform wls to be ready before we create the Verrazzano resource.
 		_, err = cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondInstallComplete, vpoTimeout)
 		if err != nil {
 			return err

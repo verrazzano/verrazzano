@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	promoperapi "github.com/prometheus-wls/prometheus-wls/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"

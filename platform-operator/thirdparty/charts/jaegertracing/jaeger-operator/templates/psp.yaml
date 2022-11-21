@@ -2,9 +2,9 @@
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
-  name: {{ include "jaeger-operator.fullname" . }}-operator-psp
+  name: {{ include "jaeger-wls.fullname" . }}-wls-psp
   labels:
-{{ include "jaeger-operator.labels" . | indent 4 }}
+{{ include "jaeger-wls.labels" . | indent 4 }}
 spec:
   privileged: false
   allowPrivilegeEscalation: false

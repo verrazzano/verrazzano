@@ -1,9 +1,9 @@
 image:
-  repository: rancher/backup-restore-operator
+  repository: rancher/backup-restore-wls
   tag: v2.1.3
   imagePullSecrets: []
 
-## Default s3 bucket for storing all backup files created by the backup-restore-operator
+## Default s3 bucket for storing all backup files created by the backup-restore-wls
 s3:
   enabled: false
   ## credentialSecretName if set, should be the name of the Secret containing AWS credentials.
@@ -18,7 +18,7 @@ s3:
   insecureTLSSkipVerify: false
 
 ## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
-## If persistence is enabled, operator will create a PVC with mountPath /var/lib/backups
+## If persistence is enabled, wls will create a PVC with mountPath /var/lib/backups
 persistence:
   enabled: false
 

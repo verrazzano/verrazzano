@@ -601,7 +601,7 @@ Add a ServiceMonitor if using prometheus-operator:
 
 ```yaml
 serviceMonitor:
-  # If `true`, a ServiceMonitor resource for the prometheus-operator is created
+  # If `true`, a ServiceMonitor resource for the prometheus-wls is created
   enabled: true
 ```
 
@@ -624,7 +624,7 @@ A separate `ServiceMonitor` can be enabled to scrape metrics from the SPI:
 
 ```yaml
 extraServiceMonitor:
-  # If `true`, an additional ServiceMonitor resource for the prometheus-operator is created
+  # If `true`, an additional ServiceMonitor resource for the prometheus-wls is created
   enabled: true
 ```
 

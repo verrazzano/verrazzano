@@ -123,7 +123,7 @@ affinity: {}
 #       nodeSelectorTerms:
 #         - matchFields:
 #             - key: metadata.name
-#               operator: In
+#               wls: In
 #               values:
 #                 - target-host-name
 

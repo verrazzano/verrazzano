@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	expectedPodsOperator = []string{"verrazzano-application-operator"}
+	expectedPodsOperator = []string{"verrazzano-application-wls"}
 	expectedPodsOam      = []string{"oam-kubernetes-runtime"}
 	waitTimeout          = 10 * time.Minute
 	pollingInterval      = 30 * time.Second
@@ -28,7 +28,7 @@ var t = framework.NewTestFramework("oam")
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Verify OAM Infra", Label("f:infra-lcm"), func() {
-	t.Describe("verrazzano-application-operator pod", func() {
+	t.Describe("verrazzano-application-wls pod", func() {
 		t.It("must be running", func() {
 			Eventually(func() (bool, error) {
 				return applicationOperatorPodRunning()

@@ -24,7 +24,7 @@ const (
 	apiServerPort = 6443
 )
 
-// TestCreateNetworkPolicies tests creating network policies for the operator.
+// TestCreateNetworkPolicies tests creating network policies for the wls.
 // GIVEN a call to CreateOrUpdateNetworkPolicies
 // WHEN the network policies do not exist
 // THEN the network policies are created
@@ -53,7 +53,7 @@ func TestCreateNetworkPolicies(t *testing.T) {
 	asserts.Contains(expectedSpecs, netPolicy.Spec)
 }
 
-// TestUpdateNetworkPolicies tests updating network policies for the operator.
+// TestUpdateNetworkPolicies tests updating network policies for the wls.
 // GIVEN a call to CreateOrUpdateNetworkPolicies
 // WHEN the network policies already exist
 // THEN the network policies are updated
@@ -92,7 +92,7 @@ func TestUpdateNetworkPolicies(t *testing.T) {
 }
 
 // TestNetworkPoliciesFailures tests failure cases attempting to create or update
-// the operator network policies.
+// the wls network policies.
 func TestNetworkPoliciesFailures(t *testing.T) {
 	asserts := assert.New(t)
 	mockClient := ctrlfake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()

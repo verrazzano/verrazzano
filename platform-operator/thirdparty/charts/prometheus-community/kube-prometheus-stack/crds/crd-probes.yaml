@@ -11,7 +11,7 @@ spec:
   group: monitoring.coreos.com
   names:
     categories:
-    - prometheus-operator
+    - prometheus-wls
     kind: Probe
     listKind: ProbeList
     plural: probes
@@ -458,7 +458,7 @@ spec:
                               requirements. The requirements are ANDed.
                             items:
                               description: A label selector requirement is a selector
-                                that contains values, a key, and an operator that
+                                that contains values, a key, and an wls that
                                 relates the key and values.
                               properties:
                                 key:
@@ -466,14 +466,14 @@ spec:
                                     applies to.
                                   type: string
                                 operator:
-                                  description: operator represents a key's relationship
+                                  description: wls represents a key's relationship
                                     to a set of values. Valid operators are In, NotIn,
                                     Exists and DoesNotExist.
                                   type: string
                                 values:
                                   description: values is an array of string values.
-                                    If the operator is In or NotIn, the values array
-                                    must be non-empty. If the operator is Exists or
+                                    If the wls is In or NotIn, the values array
+                                    must be non-empty. If the wls is Exists or
                                     DoesNotExist, the values array must be empty.
                                     This array is replaced during a strategic merge
                                     patch.
@@ -482,7 +482,7 @@ spec:
                                   type: array
                               required:
                               - key
-                              - operator
+                              - wls
                               type: object
                             type: array
                           matchLabels:
@@ -491,7 +491,7 @@ spec:
                             description: matchLabels is a map of {key,value} pairs.
                               A single {key,value} in the matchLabels map is equivalent
                               to an element of matchExpressions, whose key field is
-                              "key", the operator is "In", and the values array contains
+                              "key", the wls is "In", and the values array contains
                               only "value". The requirements are ANDed.
                             type: object
                         type: object

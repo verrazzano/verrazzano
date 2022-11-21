@@ -26,7 +26,7 @@ type testSubComponent struct {
 // This list of subcomponents is in the verrazzano-bom.json file and it must stay in sync with that file
 // Keep this map in the same order as that JSON for review purposes.
 var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
-	"verrazzano-platform-operator": {
+	"verrazzano-platform-wls": {
 		kvs: map[string]string{
 			"image": "ghcr.io/verrazzano/VERRAZZANO_PLATFORM_OPERATOR_IMAGE:VERRAZZANO_PLATFORM_OPERATOR_TAG",
 		},
@@ -94,7 +94,7 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 
 	"verrazzano": {
 		kvs: map[string]string{
-			"monitoringOperator.imageName":       "ghcr.io/verrazzano/verrazzano-monitoring-operator",
+			"monitoringOperator.imageName":       "ghcr.io/verrazzano/verrazzano-monitoring-wls",
 			"monitoringOperator.imageVersion":    "0.15.0-20210521020822-9b87485",
 			"monitoringOperator.istioProxyImage": "ghcr.io/verrazzano/proxyv2:1.7.3",
 			"monitoringOperator.grafanaImage":    "ghcr.io/verrazzano/grafana:v6.4.4",
@@ -122,20 +122,20 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 			"image.tag":        "v0.3.0-20210222205541-9e8d4fb",
 		},
 	},
-	"verrazzano-application-operator": {
+	"verrazzano-application-wls": {
 		kvs: map[string]string{
 			"image":        "ghcr.io/verrazzano/VERRAZZANO_APPLICATION_OPERATOR_IMAGE:VERRAZZANO_APPLICATION_OPERATOR_TAG",
 			"fluentdImage": "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20210517195222-f345ec2",
 		},
 	},
-	"weblogic-operator": {
+	"weblogic-wls": {
 		kvs: map[string]string{
-			"image": "ghcr.io/oracle/weblogic-kubernetes-operator:3.2.2",
+			"image": "ghcr.io/oracle/weblogic-kubernetes-wls:3.2.2",
 		},
 	},
-	"coherence-operator": {
+	"coherence-wls": {
 		kvs: map[string]string{
-			"image": "ghcr.io/oracle/coherence-operator:3.1.3",
+			"image": "ghcr.io/oracle/coherence-wls:3.1.3",
 		},
 	},
 	"mysql": {
@@ -246,7 +246,7 @@ func TestBomSubcomponentOverrides(t *testing.T) {
 	assert.Equal("myreg.io", bom.ResolveRegistry(nginxSubcomponent, BomImage{}), "NGINX subcomponent registry not correct")
 	assert.Equal("myrepoprefix/testnginx", bom.ResolveRepo(nginxSubcomponent, BomImage{}), "NGINX subcomponent repo not correct")
 
-	vpoSubcomponent, err := bom.GetSubcomponent("verrazzano-platform-operator")
+	vpoSubcomponent, err := bom.GetSubcomponent("verrazzano-platform-wls")
 	assert.NotNil(t, vpoSubcomponent)
 	assert.NoError(err)
 
@@ -262,7 +262,7 @@ func TestBomImageOverrides(t *testing.T) {
 	bom, err := NewBom(testBomImageOverridesPath)
 	assert.NoError(t, err)
 	assert.Equal(t, "ghcr.io", bom.GetRegistry())
-	sc, err := bom.GetSubcomponent("verrazzano-platform-operator")
+	sc, err := bom.GetSubcomponent("verrazzano-platform-wls")
 	assert.NoError(t, err)
 	img := sc.Images[0]
 	assert.Equal(t, "testRegistry", bom.ResolveRegistry(sc, img))

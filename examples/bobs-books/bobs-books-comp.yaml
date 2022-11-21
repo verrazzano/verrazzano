@@ -37,7 +37,7 @@ spec:
             memory:
               heapSize: 1g
             args:
-              - "-Dcoherence.k8s.operator.health.wait.dcs=false"
+              - "-Dcoherence.k8s.wls.health.wait.dcs=false"
           coherence:
             metrics:
               enabled: true
@@ -114,7 +114,7 @@ spec:
             memory:
               heapSize: 1g
             args:
-              - "-Dcoherence.k8s.operator.health.wait.dcs=false"
+              - "-Dcoherence.k8s.wls.health.wait.dcs=false"
           coherence:
             metrics:
               enabled: true

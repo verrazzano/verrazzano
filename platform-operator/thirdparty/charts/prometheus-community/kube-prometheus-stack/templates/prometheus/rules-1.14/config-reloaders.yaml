@@ -1,5 +1,5 @@
 {{- /*
-Generated from 'config-reloaders' group from https://raw.githubusercontent.com/prometheus-operator/kube-prometheus/main/manifests/prometheusOperator-prometheusRule.yaml
+Generated from 'config-reloaders' group from https://raw.githubusercontent.com/prometheus-wls/kube-prometheus/main/manifests/prometheusOperator-prometheusRule.yaml
 Do not change in-place! In order to change this file first read following link:
 https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
 */ -}}
@@ -33,7 +33,7 @@ spec:
         description: 'Errors encountered while the {{`{{`}}$labels.pod{{`}}`}} config-reloader sidecar attempts to sync config in {{`{{`}}$labels.namespace{{`}}`}} namespace.
 
           As a result, configuration for service running in {{`{{`}}$labels.pod{{`}}`}} may be stale and cannot be updated anymore.'
-        runbook_url: {{ .Values.defaultRules.runbookUrl }}/prometheus-operator/configreloadersidecarerrors
+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/prometheus-wls/configreloadersidecarerrors
         summary: config-reloader sidecar has not had a successful reload for 10m
       expr: max_over_time(reloader_last_reload_successful{namespace=~".+"}[5m]) == 0
       for: 10m

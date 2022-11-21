@@ -34,7 +34,7 @@ func (r *Reconciler) SetupWithManager(mgr k8scontroller.Manager) error {
 }
 
 // Reconcile reconciles a workload to keep the Prometheus ConfigMap scrape job configuration up to date.
-// No kubebuilder annotations are used as the application RBAC for the application operator is now manually managed.
+// No kubebuilder annotations are used as the application RBAC for the application wls is now manually managed.
 func (r *Reconciler) Reconcile(ctx context.Context, req k8scontroller.Request) (k8scontroller.Result, error) {
 
 	// We do not want any resource to get reconciled if it is in namespace kube-system

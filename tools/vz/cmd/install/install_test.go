@@ -84,8 +84,8 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
-	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
+	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-wls pod in namespace verrazzano-install")
+	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-wls pod in namespace verrazzano-install")
 }
 
 // TestInstallCmdDefaultMultipleVPO
@@ -103,8 +103,8 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
-	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
+	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-wls, more than one verrazzano-platform-wls pod was found in namespace verrazzano-install")
+	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-wls, more than one verrazzano-platform-wls pod was found in namespace verrazzano-install")
 }
 
 // TestInstallCmdJsonLogFormat
@@ -294,14 +294,14 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 }
 
 // TestInstallCmdOperatorFile
-// GIVEN a CLI install command with defaults and --wait=false and --operator-file specified
+// GIVEN a CLI install command with defaults and --wait=false and --wls-file specified
 //
 //	WHEN I call cmd.Execute for install
 //	THEN the CLI install command is successful
 func TestInstallCmdOperatorFile(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
 	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
-	cmd.PersistentFlags().Set(constants.OperatorFileFlag, "../../test/testdata/operator-file-fake.yaml")
+	cmd.PersistentFlags().Set(constants.OperatorFileFlag, "../../test/testdata/wls-file-fake.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
@@ -310,11 +310,11 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 	err := cmd.Execute()
 	assert.NoError(t, err)
 	assert.Equal(t, "", errBuf.String())
-	assert.Contains(t, buf.String(), "Applying the file ../../test/testdata/operator-file-fake.yaml\nnamespace/verrazzano-install created\nserviceaccount/verrazzano-platform-operator created\nservice/verrazzano-platform-operator created\n")
+	assert.Contains(t, buf.String(), "Applying the file ../../test/testdata/wls-file-fake.yaml\nnamespace/verrazzano-install created\nserviceaccount/verrazzano-platform-wls created\nservice/verrazzano-platform-wls created\n")
 
-	// Verify the objects in the operator-file got added
+	// Verify the objects in the wls-file got added
 	sa := corev1.ServiceAccount{}
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &sa)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-wls"}, &sa)
 	assert.NoError(t, err)
 
 	ns := corev1.Namespace{}
@@ -322,7 +322,7 @@ func TestInstallCmdOperatorFile(t *testing.T) {
 	assert.NoError(t, err)
 
 	svc := corev1.Service{}
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-operator"}, &svc)
+	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "verrazzano-install", Name: "verrazzano-platform-wls"}, &svc)
 	assert.NoError(t, err)
 
 	// Verify the vz resource is as expected

@@ -3,7 +3,7 @@
 # Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
-# Downloads the verrazzano-platform-operator.yaml, the Verrazzano distributions for AMD64 and ARM64 architectures.
+# Downloads the verrazzano-platform-wls.yaml, the Verrazzano distributions for AMD64 and ARM64 architectures.
 
 set -e
 

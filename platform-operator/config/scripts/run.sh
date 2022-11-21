@@ -28,5 +28,5 @@ if [ -n "${VERRAZZANO_KUBECONFIG}" ]; then
   create-kubeconfig
 fi
 
-# Run the operator
+# Run the wls
 /usr/local/bin/verrazzano-platform-operator $*

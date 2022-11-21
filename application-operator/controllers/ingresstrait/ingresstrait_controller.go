@@ -79,7 +79,7 @@ const (
 	finalizerName             = "ingresstrait.finalizers.verrazzano.io"
 )
 
-// The port names used by WebLogic operator that do not have http prefix.
+// The port names used by WebLogic wls that do not have http prefix.
 // Reference: https://github.com/oracle/weblogic-kubernetes-operator/blob/main/operator/src/main/resources/scripts/model_wdt_mii_filter.py
 var (
 	weblogicPortNames = []string{"tcp-cbt", "tcp-ldap", "tcp-iiop", "tcp-snmp", "tcp-default", "tls-ldaps",
@@ -1017,7 +1017,7 @@ func createDestinationFromService(services []*corev1.Service) (*istionet.HTTPRou
 //   - If there are multiple services, select the service with HTTP or WebLogic port. If there is no such service or
 //     multiple such services, return an error. A port is evaluated as an HTTP port if the service has a port named
 //     with the prefix "http" and as a WebLogic port if the port name is from the known WebLogic non-http prefixed
-//     port names used by the WebLogic operator.
+//     port names used by the WebLogic wls.
 func selectServiceForDestination(services []*corev1.Service) (*corev1.Service, error) {
 	var clusterIPServices []*corev1.Service
 	var allowedServices []*corev1.Service
@@ -1126,7 +1126,7 @@ func getHTTPPorts(service *corev1.Service) []corev1.ServicePort {
 }
 
 // getWebLogicPorts returns WebLogic ports if any present for the service. A port is evaluated as a WebLogic port if
-// the port name is from the known WebLogic non-http prefixed port names used by the WebLogic operator.
+// the port name is from the known WebLogic non-http prefixed port names used by the WebLogic wls.
 func getWebLogicPorts(service *corev1.Service) []corev1.ServicePort {
 	var webLogicPorts []corev1.ServicePort
 	selectorMap := service.Spec.Selector

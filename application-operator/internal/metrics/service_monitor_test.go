@@ -6,7 +6,7 @@ package metrics
 import (
 	"testing"
 
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	promoperapi "github.com/prometheus-wls/prometheus-wls/pkg/apis/monitoring/v1"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	corev1 "k8s.io/api/core/v1"

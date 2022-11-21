@@ -56,7 +56,7 @@ func (j jaegerIllegalUpdater) ModifyCR(cr *v1alpha1.Verrazzano) {
 var _ update.CRModifier = jaegerIllegalUpdater{}
 var _ update.CRModifierV1beta1 = jaegerIllegalUpdater{}
 
-// runValidatorTestV1Beta1 Attempt to use an illegal overrides value on the Jaeger operator configuration using the v1beta1 API
+// runValidatorTestV1Beta1 Attempt to use an illegal overrides value on the Jaeger wls configuration using the v1beta1 API
 func runValidatorTestV1Beta1() {
 	Eventually(func() bool {
 		err := update.UpdateCRV1beta1(jaegerIllegalUpdater{})
@@ -69,7 +69,7 @@ func runValidatorTestV1Beta1() {
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 }
 
-// runValidatorTestV1Alpha1 Attempt to use an illegal overrides value on the Jaeger operator configuration using the v1alpha1 API
+// runValidatorTestV1Alpha1 Attempt to use an illegal overrides value on the Jaeger wls configuration using the v1alpha1 API
 func runValidatorTestV1Alpha1() {
 	Eventually(func() bool {
 		err := update.UpdateCR(jaegerIllegalUpdater{})

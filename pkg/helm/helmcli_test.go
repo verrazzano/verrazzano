@@ -156,7 +156,7 @@ func TestUninstall(t *testing.T) {
 		err:    nil,
 	})
 	defer SetDefaultRunner()
-	_, _, err := Uninstall(vzlog.DefaultLogger(), "weblogic-operator", "verrazzano-system", false)
+	_, _, err := Uninstall(vzlog.DefaultLogger(), "weblogic-wls", "verrazzano-system", false)
 	assert.NoError(t, err)
 }
 
@@ -175,7 +175,7 @@ func TestUninstallError(t *testing.T) {
 		err:    fmt.Errorf("Unexpected uninstall error"),
 	})
 	defer SetDefaultRunner()
-	_, _, err := Uninstall(vzlog.DefaultLogger(), "weblogic-operator", "verrazzano-system", false)
+	_, _, err := Uninstall(vzlog.DefaultLogger(), "weblogic-wls", "verrazzano-system", false)
 	assert.Error(t, err)
 }
 
@@ -339,12 +339,12 @@ func Test_getReleaseStateDeployed(t *testing.T) {
 	jsonOut := []byte(`
 [
   {
-    "name": "weblogic-operator",
+    "name": "weblogic-wls",
     "namespace": "verrazzano-system",
     "revision": "1",
     "updated": "2021-09-08 17:15:01.516374225 +0000 UTC",
     "status": "deployed",
-    "chart": "weblogic-operator-3.3.0",
+    "chart": "weblogic-wls-3.3.0",
     "app_version": "3.3.0"
   }
 ]
@@ -356,7 +356,7 @@ func Test_getReleaseStateDeployed(t *testing.T) {
 		err:    nil,
 	})
 	defer SetDefaultRunner()
-	state, err := getReleaseState("weblogic-operator", "verrazzano-system")
+	state, err := getReleaseState("weblogic-wls", "verrazzano-system")
 	assert.NoError(t, err)
 	assert.Equalf(t, ChartStatusDeployed, state, "unpexected state: %s", state)
 }
@@ -370,12 +370,12 @@ func Test_getReleaseStatePendingInstall(t *testing.T) {
 	jsonOut := []byte(`
 [
   {
-    "name": "weblogic-operator",
+    "name": "weblogic-wls",
     "namespace": "verrazzano-system",
     "revision": "1",
     "updated": "2021-09-08 17:15:01.516374225 +0000 UTC",
     "status": "pending-install",
-    "chart": "weblogic-operator-3.3.0",
+    "chart": "weblogic-wls-3.3.0",
     "app_version": "3.3.0"
   }
 ]
@@ -387,7 +387,7 @@ func Test_getReleaseStatePendingInstall(t *testing.T) {
 		err:    nil,
 	})
 	defer SetDefaultRunner()
-	state, err := getReleaseState("weblogic-operator", "verrazzano-system")
+	state, err := getReleaseState("weblogic-wls", "verrazzano-system")
 	assert.NoError(t, err)
 	assert.Equalf(t, ChartStatusPendingInstall, state, "unpexected state: %s", state)
 }
@@ -406,7 +406,7 @@ func Test_getReleaseStateChartNotFound(t *testing.T) {
 		err:    nil,
 	})
 	defer SetDefaultRunner()
-	state, err := getReleaseState("weblogic-operator", "verrazzano-system")
+	state, err := getReleaseState("weblogic-wls", "verrazzano-system")
 	assert.NoError(t, err)
 	assert.Equalf(t, "", state, "unpexected state: %s", state)
 }
@@ -419,7 +419,7 @@ func Test_getReleaseStateChartNotFound(t *testing.T) {
 func Test_getChartStatusDeployed(t *testing.T) {
 	jsonOut := []byte(`
 {
-  "name": "weblogic-operator",
+  "name": "weblogic-wls",
   "info": {
     "first_deployed": "2021-09-08T17:15:01.516374225Z",
     "last_deployed": "2021-09-08T17:15:01.516374225Z",
@@ -434,13 +434,13 @@ func Test_getChartStatusDeployed(t *testing.T) {
     "domainNamespaceLabelSelector": "verrazzano-managed",
     "domainNamespaceSelectionStrategy": "LabelSelector",
     "enableClusterRoleBinding": true,
-    "image": "ghcr.io/oracle/weblogic-kubernetes-operator:3.3.0",
+    "image": "ghcr.io/oracle/weblogic-kubernetes-wls:3.3.0",
     "imagePullSecrets": [
       {
         "name": "verrazzano-container-registry"
       }
     ],
-    "serviceAccount": "weblogic-operator-sa"
+    "serviceAccount": "weblogic-wls-sa"
   },
   "manifest": "manifest-text",
   "version": 1,
@@ -454,7 +454,7 @@ func Test_getChartStatusDeployed(t *testing.T) {
 		err:    nil,
 	})
 	defer SetDefaultRunner()
-	state, err := getChartStatus("weblogic-operator", "verrazzano-system")
+	state, err := getChartStatus("weblogic-wls", "verrazzano-system")
 	assert.NoError(t, err)
 	assert.Equalf(t, ChartStatusDeployed, state, "unpexected state: %s", state)
 }
@@ -467,7 +467,7 @@ func Test_getChartStatusDeployed(t *testing.T) {
 func Test_getChartStatusNotFound(t *testing.T) {
 	jsonOut := []byte(`
 {
-  "name": "weblogic-operator",
+  "name": "weblogic-wls",
   "info": {
     "first_deployed": "2021-09-08T17:15:01.516374225Z",
     "last_deployed": "2021-09-08T17:15:01.516374225Z",
@@ -481,13 +481,13 @@ func Test_getChartStatusNotFound(t *testing.T) {
     "domainNamespaceLabelSelector": "verrazzano-managed",
     "domainNamespaceSelectionStrategy": "LabelSelector",
     "enableClusterRoleBinding": true,
-    "image": "ghcr.io/oracle/weblogic-kubernetes-operator:3.3.0",
+    "image": "ghcr.io/oracle/weblogic-kubernetes-wls:3.3.0",
     "imagePullSecrets": [
       {
         "name": "verrazzano-container-registry"
       }
     ],
-    "serviceAccount": "weblogic-operator-sa"
+    "serviceAccount": "weblogic-wls-sa"
   },
   "manifest": "manifest-text",
   "version": 1,
@@ -501,7 +501,7 @@ func Test_getChartStatusNotFound(t *testing.T) {
 		err:    nil,
 	})
 	defer SetDefaultRunner()
-	state, err := getChartStatus("weblogic-operator", "verrazzano-system")
+	state, err := getChartStatus("weblogic-wls", "verrazzano-system")
 	assert.Error(t, err)
 	assert.Empty(t, state)
 }
@@ -521,7 +521,7 @@ func Test_getChartStatusChartNotFound(t *testing.T) {
 		err:    fmt.Errorf("Error running status command"),
 	})
 	defer SetDefaultRunner()
-	state, err := getChartStatus("weblogic-operator", "verrazzano-system")
+	state, err := getChartStatus("weblogic-wls", "verrazzano-system")
 	assert.NoError(t, err)
 	assert.Equalf(t, ChartNotFound, state, "unpexected state: %s", state)
 }
@@ -541,7 +541,7 @@ func Test_getChartStatusUnexpectedHelmError(t *testing.T) {
 		err:    fmt.Errorf("Unexpected error running status command"),
 	})
 	defer SetDefaultRunner()
-	state, err := getChartStatus("weblogic-operator", "verrazzano-system")
+	state, err := getChartStatus("weblogic-wls", "verrazzano-system")
 	assert.Error(t, err)
 	assert.Equalf(t, "", state, "unpexected state: %s", state)
 }
@@ -554,7 +554,7 @@ func Test_getChartStatusUnexpectedHelmError(t *testing.T) {
 func Test_getChartInfoNotFound(t *testing.T) {
 	jsonOut := []byte(`
 {
-  "name": "weblogic-operator",
+  "name": "weblogic-wls",
   "config": {
     "annotations": {
       "traffic.sidecar.istio.io/excludeOutboundPorts": "443"
@@ -562,13 +562,13 @@ func Test_getChartInfoNotFound(t *testing.T) {
     "domainNamespaceLabelSelector": "verrazzano-managed",
     "domainNamespaceSelectionStrategy": "LabelSelector",
     "enableClusterRoleBinding": true,
-    "image": "ghcr.io/oracle/weblogic-kubernetes-operator:3.3.0",
+    "image": "ghcr.io/oracle/weblogic-kubernetes-wls:3.3.0",
     "imagePullSecrets": [
       {
         "name": "verrazzano-container-registry"
       }
     ],
-    "serviceAccount": "weblogic-operator-sa"
+    "serviceAccount": "weblogic-wls-sa"
   },
   "manifest": "manifest-text",
   "version": 1,
@@ -582,7 +582,7 @@ func Test_getChartInfoNotFound(t *testing.T) {
 		err:    nil,
 	})
 	defer SetDefaultRunner()
-	state, err := getChartStatus("weblogic-operator", "verrazzano-system")
+	state, err := getChartStatus("weblogic-wls", "verrazzano-system")
 	assert.Error(t, err)
 	assert.Empty(t, state)
 }
@@ -713,12 +713,12 @@ func Test_maskSensitiveData(t *testing.T) {
 	// GIVEN a string with sensitive data
 	// WHEN the maskSensitiveData function is called
 	// THEN the returned string has sensitive values masked
-	str := `Running command: /usr/bin/helm upgrade mysql /verrazzano/platform-operator/thirdparty/charts/mysql
-		--wait --namespace keycloak --install -f /verrazzano/platform-operator/helm_config/overrides/mysql-values.yaml
+	str := `Running command: /usr/bin/helm upgrade mysql /verrazzano/platform-wls/thirdparty/charts/mysql
+		--wait --namespace keycloak --install -f /verrazzano/platform-wls/helm_config/overrides/mysql-values.yaml
 		-f /tmp/values-145495151.yaml
 		--set imageTag=8.0.26,image=ghcr.io/verrazzano/mysql,mysqlPassword=BgD2SBNaGm,mysqlRootPassword=ydqtBpasQ4`
-	expected := `Running command: /usr/bin/helm upgrade mysql /verrazzano/platform-operator/thirdparty/charts/mysql
-		--wait --namespace keycloak --install -f /verrazzano/platform-operator/helm_config/overrides/mysql-values.yaml
+	expected := `Running command: /usr/bin/helm upgrade mysql /verrazzano/platform-wls/thirdparty/charts/mysql
+		--wait --namespace keycloak --install -f /verrazzano/platform-wls/helm_config/overrides/mysql-values.yaml
 		-f /tmp/values-145495151.yaml
 		--set imageTag=8.0.26,image=ghcr.io/verrazzano/mysql,mysqlPassword=*****,mysqlRootPassword=*****`
 	maskedStr := maskSensitiveData(str)
@@ -727,8 +727,8 @@ func Test_maskSensitiveData(t *testing.T) {
 	// GIVEN a string without sensitive data
 	// WHEN the maskSensitiveData function is called
 	// THEN the returned string is unaltered
-	str = `Running command: /usr/bin/helm upgrade ingress-controller /verrazzano/platform-operator/thirdparty/charts/ingress-nginx
-		--wait --namespace ingress-nginx --install -f /verrazzano/platform-operator/helm_config/overrides/ingress-nginx-values.yaml
+	str = `Running command: /usr/bin/helm upgrade ingress-controller /verrazzano/platform-wls/thirdparty/charts/ingress-nginx
+		--wait --namespace ingress-nginx --install -f /verrazzano/platform-wls/helm_config/overrides/ingress-nginx-values.yaml
 		-f /tmp/values-037653479.yaml --set controller.image.tag=0.46.0-20211005200943-bd017fde2,
 		controller.image.repository=ghcr.io/verrazzano/nginx-ingress-controller,
 		defaultBackend.image.tag=0.46.0-20211005200943-bd017fde2,

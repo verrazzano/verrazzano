@@ -38,14 +38,14 @@ rules:
       - watch
       - create
       - patch
-  # Following rule required to allow operator to grant API "create" verb on "pods/exec"
+  # Following rule required to allow wls to grant API "create" verb on "pods/exec"
   - apiGroups:
       - ""
     resources:
       - pods/exec
     verbs:
       - create
-  # Following rule required to allow operator to grant API "get" verb on "pods/log"
+  # Following rule required to allow wls to grant API "get" verb on "pods/log"
   - apiGroups:
       - ""
     resources:

@@ -3,16 +3,16 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: {{ default .Release.Namespace .Values.certs.certificate.namespace }}/{{ default "jaeger-operator-service-cert" .Values.certs.certificate.secretName }}
+    cert-manager.io/inject-ca-from: {{ default .Release.Namespace .Values.certs.certificate.namespace }}/{{ default "jaeger-wls-service-cert" .Values.certs.certificate.secretName }}
   labels:
-{{ include "jaeger-operator.labels" . | indent 4 }}
-  name: jaeger-operator-mutating-webhook-configuration
+{{ include "jaeger-wls.labels" . | indent 4 }}
+  name: jaeger-wls-mutating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
     service:
-      name: {{ default "jaeger-operator-webhook-service" .Values.webhooks.service.name }}
+      name: {{ default "jaeger-wls-webhook-service" .Values.webhooks.service.name }}
       namespace: {{ .Release.Namespace }}
       path: /mutate-v1-deployment
   failurePolicy: Ignore
@@ -22,7 +22,7 @@ webhooks:
     - key: app.kubernetes.io/name
       operator: NotIn
       values:
-      - {{ include "jaeger-operator.name" . }}
+      - {{ include "jaeger-wls.name" . }}
   rules:
   - apiGroups:
     - apps
@@ -38,7 +38,7 @@ webhooks:
   - v1
   clientConfig:
     service:
-      name: {{ default "jaeger-operator-webhook-service" .Values.webhooks.service.name }}
+      name: {{ default "jaeger-wls-webhook-service" .Values.webhooks.service.name }}
       namespace: {{ .Release.Namespace }}
       path: /mutate-jaegertracing-io-v1-jaeger
   failurePolicy: Fail

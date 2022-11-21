@@ -19,7 +19,7 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
-// StartPlatformOperator Platform operator execution entry point
+// StartPlatformOperator Platform wls execution entry point
 func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger, scheme *runtime.Scheme) error {
 	mgr, err := controllerruntime.NewManager(controllerruntime.GetConfigOrDie(), controllerruntime.Options{
 		Scheme:             scheme,

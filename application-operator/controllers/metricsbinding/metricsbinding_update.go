@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	promoperapi "github.com/prometheus-wls/prometheus-wls/pkg/apis/monitoring/v1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
@@ -298,7 +298,7 @@ func (r *Reconciler) updateMetricsBinding(metricsBinding *vzapi.MetricsBinding, 
 	// If the config map specified is the legacy VMI prometheus config map, modify it to use
 	// the additionalScrapeConfigs config map for the Prometheus Operator
 	if isLegacyVmiPrometheusConfigMapName(metricsBinding.Spec.PrometheusConfigMap) {
-		log.Infof("Metrics Binding %s/%s uses legacy VMI prometheus config map - updating to use the Prometheus operator secret %s/%s",
+		log.Infof("Metrics Binding %s/%s uses legacy VMI prometheus config map - updating to use the Prometheus wls secret %s/%s",
 			metricsBinding.Namespace, metricsBinding.Name, vzconst.PrometheusOperatorNamespace, vzconst.PromAdditionalScrapeConfigsSecretName)
 		metricsBinding.Spec.PrometheusConfigMap = vzapi.NamespaceName{}
 		metricsBinding.Spec.PrometheusConfigSecret = vzapi.SecretKey{

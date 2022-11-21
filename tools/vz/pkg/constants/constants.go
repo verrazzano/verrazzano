@@ -23,7 +23,7 @@ const (
 	TimeoutFlag     = "timeout"
 	TimeoutFlagHelp = "Limits the amount of time a command will wait to complete"
 
-	VPOTimeoutFlag     = "platform-operator-timeout"
+	VPOTimeoutFlag     = "platform-wls-timeout"
 	VPOTimeoutFlagHelp = "Limits the amount of time a command will wait for the Verrazzano Platform Operator to be ready"
 
 	VersionFlag            = "version"
@@ -37,8 +37,8 @@ const (
 	SetFlagShorthand = "s"
 	SetFlagHelp      = "Override a Verrazzano resource value (e.g. --set profile=dev).  This flag can be specified multiple times."
 
-	OperatorFileFlag     = "operator-file"
-	OperatorFileFlagHelp = "The path to the file for installing the Verrazzano platform operator. The default is derived from the version string."
+	OperatorFileFlag     = "wls-file"
+	OperatorFileFlagHelp = "The path to the file for installing the Verrazzano platform wls. The default is derived from the version string."
 
 	LogFormatFlag = "log-format"
 	LogFormatHelp = "The format of the log output. Valid output formats are \"simple\" and \"json\"."
@@ -56,21 +56,21 @@ const (
 // VerrazzanoReleaseList - API for getting the list of Verrazzano releases
 const VerrazzanoReleaseList = "https://api.github.com/repos/verrazzano/verrazzano/releases"
 
-// VerrazzanoOperatorURL - URL for downloading Verrazzano operator.yaml
+// VerrazzanoOperatorURL - URL for downloading Verrazzano wls.yaml
 const VerrazzanoOperatorURL = "https://github.com/verrazzano/verrazzano/releases/download/%s/operator.yaml"
 
-// VerrazzanoPlatformOperatorURL - URL for downloading verrazzano-platform-operator.yaml
+// VerrazzanoPlatformOperatorURL - URL for downloading verrazzano-platform-wls.yaml
 const VerrazzanoPlatformOperatorURL = "https://github.com/verrazzano/verrazzano/releases/download/%s/verrazzano-platform-operator.yaml"
 
-const VerrazzanoPlatformOperator = "verrazzano-platform-operator"
+const VerrazzanoPlatformOperator = "verrazzano-platform-wls"
 
-const VerrazzanoPlatformOperatorWebhook = "verrazzano-platform-operator-webhook"
+const VerrazzanoPlatformOperatorWebhook = "verrazzano-platform-wls-webhook"
 
 const VerrazzanoMysqlInstallValuesWebhook = "verrazzano-platform-mysqlinstalloverrides"
 
-const VerrazzanoApplicationOperator = "verrazzano-application-operator"
+const VerrazzanoApplicationOperator = "verrazzano-application-wls"
 
-const VerrazzanoMonitoringOperator = "verrazzano-monitoring-operator"
+const VerrazzanoMonitoringOperator = "verrazzano-monitoring-wls"
 
 const VerrazzanoUninstall = "verrazzano-uninstall"
 

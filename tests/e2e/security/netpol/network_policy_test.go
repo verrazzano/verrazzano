@@ -45,7 +45,7 @@ const (
 	vzConsole           = "verrazzano-console"
 	grafanaSys          = "system-grafana"
 	kibanaSys           = "system-kibana"
-	weblogicOperator    = "weblogic-operator"
+	weblogicOperator    = "weblogic-wls"
 )
 
 // accessCheckConfig is the configuration used for the NetworkPolicy access check
@@ -208,29 +208,29 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				}
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{label: "mysql"}}, "keycloak", envoyStatsMetricsPort, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test mysql ingress rules failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"name": "mysql-operator"}}, vzconst.MySQLOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{label: "mysql"}}, "keycloak", mysqlPort, false, true)
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"name": "mysql-wls"}}, vzconst.MySQLOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{label: "mysql"}}, "keycloak", mysqlPort, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test mysql ingress rules failed: reason = %s", err))
 			},
 			func() {
-				t.Logs.Info("Test verrazzano-platform-operator-webhook ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": nodeExporter}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-platform-operator-webhook"}}, "verrazzano-install", 9443, false, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test verrazzano-platform-operator ingress rules failed: reason = %s", err))
+				t.Logs.Info("Test verrazzano-platform-wls-webhook ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": nodeExporter}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-platform-wls-webhook"}}, "verrazzano-install", 9443, false, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test verrazzano-platform-wls ingress rules failed: reason = %s", err))
 			},
 			func() {
-				t.Logs.Info("Test coherence-operator ingress rules")
-				// Allowing pods to be optional because some contexts in which this test is run disables the Coherence operator.
+				t.Logs.Info("Test coherence-wls ingress rules")
+				// Allowing pods to be optional because some contexts in which this test is run disables the Coherence wls.
 				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"control-plane": "coherence"}}, vzconst.VerrazzanoSystemNamespace, 9443, false, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test coherence-operator ingress rules failed: reason = %s", err))
-				// Allowing pods to be optional because some contexts in which this test is run disables the Coherence operator.
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test coherence-wls ingress rules failed: reason = %s", err))
+				// Allowing pods to be optional because some contexts in which this test is run disables the Coherence wls.
 				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"control-plane": "coherence"}}, vzconst.VerrazzanoSystemNamespace, 8000, false, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test coherence-operator ingress rules failed: reason = %s", err))
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test coherence-wls ingress rules failed: reason = %s", err))
 			},
 			func() {
-				t.Logs.Info("Test verrazzano-application-operator ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-application-operator"}}, vzconst.VerrazzanoSystemNamespace, 9443, false, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test verrazzano-application-operator ingress rules failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": nodeExporter}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-application-operator"}}, vzconst.VerrazzanoSystemNamespace, 9443, false, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test verrazzano-application-operator ingress rules failed: reason = %s", err))
+				t.Logs.Info("Test verrazzano-application-wls ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-application-wls"}}, vzconst.VerrazzanoSystemNamespace, 9443, false, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test verrazzano-application-wls ingress rules failed: reason = %s", err))
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": nodeExporter}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-application-wls"}}, vzconst.VerrazzanoSystemNamespace, 9443, false, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test verrazzano-application-wls ingress rules failed: reason = %s", err))
 			},
 			func() {
 				t.Logs.Info("Test verrazzano-authproxy ingress rules")
@@ -334,19 +334,19 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test prometheus-node-exporter ingress rules failed: reason = %s", err))
 			},
 			func() {
-				t.Logs.Info("Test weblogic-operator ingress rules")
-				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic operator.
+				t.Logs.Info("Test weblogic-wls ingress rules")
+				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic wls.
 				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": istio.IstioIngressgatewayDeployment}}, vzconst.IstioSystemNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": weblogicOperator}}, vzconst.VerrazzanoSystemNamespace, envoyStatsMetricsPort, false, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-operator ingress rules failed: reason = %s", err))
-				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic operator.
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-wls ingress rules failed: reason = %s", err))
+				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic wls.
 				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": istio.IstioEgressgatewayDeployment}}, vzconst.IstioSystemNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": weblogicOperator}}, vzconst.VerrazzanoSystemNamespace, envoyStatsMetricsPort, false, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-operator ingress rules failed: reason = %s", err))
-				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic operator.
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-wls ingress rules failed: reason = %s", err))
+				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic wls.
 				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "istiod"}}, vzconst.IstioSystemNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": weblogicOperator}}, vzconst.VerrazzanoSystemNamespace, envoyStatsMetricsPort, false, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-operator ingress rules failed: reason = %s", err))
-				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic operator.
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-wls ingress rules failed: reason = %s", err))
+				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic wls.
 				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": weblogicOperator}}, vzconst.VerrazzanoSystemNamespace, envoyStatsMetricsPort, false, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-operator ingress rules failed: reason = %s", err))
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test weblogic-wls ingress rules failed: reason = %s", err))
 			},
 			func() {
 				t.Logs.Info("Test kiali ingress rules")
@@ -419,9 +419,9 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test verrazzano-console ingress rules failed: reason = %s", err))
 			},
 			func() {
-				t.Logs.Info("Negative test verrazzano-monitoring-operator ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"k8s-app": "verrazzano-monitoring-operator"}}, vzconst.VerrazzanoSystemNamespace, 8000, false, false)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test verrazzano-monitoring-operator ingress rules failed: reason = %s", err))
+				t.Logs.Info("Negative test verrazzano-monitoring-wls ingress rules")
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"k8s-app": "verrazzano-monitoring-wls"}}, vzconst.VerrazzanoSystemNamespace, 8000, false, false)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test verrazzano-monitoring-wls ingress rules failed: reason = %s", err))
 			},
 			func() {
 				t.Logs.Info("Negative test vmi-system-es-master ingress rules")
@@ -458,10 +458,10 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test prometheus ingress rules failed: reason = %s", err))
 			},
 			func() {
-				t.Logs.Info("Negative test weblogic-operator ingress rules")
-				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic operator.
+				t.Logs.Info("Negative test weblogic-wls ingress rules")
+				// Allowing pods to be optional because some contexts in which this test is run disables the WebLogic wls.
 				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": weblogicOperator}}, vzconst.VerrazzanoSystemNamespace, 8000, false, false)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test weblogic-operator ingress rules failed: reason = %s", err))
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test weblogic-wls ingress rules failed: reason = %s", err))
 			},
 			func() {
 				t.Logs.Info("Negative test kiali ingress rules")

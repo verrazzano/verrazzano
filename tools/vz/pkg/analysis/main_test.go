@@ -133,7 +133,7 @@ func TestProblemPodsNotReportedInstall(t *testing.T) {
 // GIVEN a call to analyze a cluster-snapshot
 // WHEN the cluster-snapshot shows pods with problems that are not known issues
 // THEN a report is generated with problem pod issues identified
-// Note: With the latest changes to platform operator and analysis tool, the issue is reported differently.
+// Note: With the latest changes to platform wls and analysis tool, the issue is reported differently.
 // Commenting the test for now, and added a new test TestLBIpNotFound
 //func TestLBIpNotSet(t *testing.T) {
 //	logger := log.GetDebugEnabledLogger()

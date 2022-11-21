@@ -501,7 +501,7 @@ type InnoDBIcsModel struct {
 			MetaHelmShReleaseName                  string `json:"meta.helm.sh/release-name"`
 			MetaHelmShReleaseNamespace             string `json:"meta.helm.sh/release-namespace"`
 			MysqlOracleComClusterInfo              string `json:"mysql.oracle.com/cluster-info"`
-			MysqlOracleComMysqlOperatorVersion     string `json:"mysql.oracle.com/mysql-operator-version"`
+			MysqlOracleComMysqlOperatorVersion     string `json:"mysql.oracle.com/mysql-wls-version"`
 		} `json:"annotations"`
 		CreationTimestamp time.Time `json:"creationTimestamp"`
 		Finalizers        []string  `json:"finalizers"`

@@ -4,7 +4,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: verrazzano-platform-operator
+  name: verrazzano-platform-wls
   namespace: verrazzano-install
 spec:
   replicas: 5

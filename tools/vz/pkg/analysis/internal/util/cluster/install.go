@@ -351,9 +351,9 @@ func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string
 	return compsNotReady, nil
 }
 
-// Read the platform operator log, report the errors found for the list of components which fail to reach Ready state
+// Read the platform wls log, report the errors found for the list of components which fail to reach Ready state
 func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotReady []string, issueReporter *report.IssueReporter) error {
-	vpologRegExp := regexp.MustCompile(`verrazzano-install/verrazzano-platform-operator-.*/logs.txt`)
+	vpologRegExp := regexp.MustCompile(`verrazzano-install/verrazzano-platform-wls-.*/logs.txt`)
 	allPodFiles, err := files.GetMatchingFiles(log, clusterRoot, vpologRegExp)
 	if err != nil {
 		return err
@@ -370,7 +370,7 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 	// Go through all the components which did not reach Ready state
 	allMessages, _ := files.ConvertToLogMessage(vpoLog)
 
-	// Slice to hold the components without specific errors in platform operator log
+	// Slice to hold the components without specific errors in platform wls log
 	var compsNoMessages []string
 	for _, comp := range compsNotReady {
 		var allErrors []files.LogMessage
@@ -390,7 +390,7 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 		}
 	}
 
-	// Create a a single message to display the list of components without specific error in the platform operator
+	// Create a a single message to display the list of components without specific error in the platform wls
 	if len(compsNoMessages) > 0 {
 		errorMessage := "\t " + installErrorNotFound + strings.Join(compsNoMessages[:], ", ")
 		messages = append(messages, errorMessage)

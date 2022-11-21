@@ -51,9 +51,9 @@ var _ = t.Describe("Verrazzano System traces with Jaeger", Label("f:jaeger.syste
 		})
 
 		// GIVEN the Jaeger Operator component is enabled,
-		// WHEN we query for metrics related to Jaeger operator
+		// WHEN we query for metrics related to Jaeger wls
 		// THEN we see that the metrics are present in prometheus
-		jaeger.WhenJaegerOperatorEnabledIt(t, "metrics of jaeger operator are available in prometheus", func() {
+		jaeger.WhenJaegerOperatorEnabledIt(t, "metrics of jaeger wls are available in prometheus", func() {
 			validatorFn := pkg.ValidateJaegerOperatorMetricFunc()
 			Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 		})

@@ -254,7 +254,7 @@ func TestHandleAppConfigOnwerReference1(t *testing.T) {
 	assert.Contains(t, authPolicy.Spec.Selector.MatchLabels, IstioAppLabel)
 	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 4)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
-	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-appconfig")
 }
 
@@ -342,7 +342,7 @@ func TestHandleAppConfigOnwerReference2(t *testing.T) {
 	assert.Contains(t, authPolicy.Spec.Selector.MatchLabels, IstioAppLabel)
 	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 4)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
-	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-sa")
 }
 
@@ -430,7 +430,7 @@ func TestHandleAppConfigOnwerReference3(t *testing.T) {
 	assert.Contains(t, authPolicy.Spec.Selector.MatchLabels, IstioAppLabel)
 	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 4)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
-	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-sa")
 
 	// Create a non-default service account, different than first one we created
@@ -485,7 +485,7 @@ func TestHandleAppConfigOnwerReference3(t *testing.T) {
 	assert.Contains(t, authPolicy.Spec.Selector.MatchLabels, IstioAppLabel)
 	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 5)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
-	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-sa")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-sa2")
 }
@@ -574,7 +574,7 @@ func TestHandleAppConfigOnwerReference4(t *testing.T) {
 	assert.Contains(t, authPolicy.Spec.Selector.MatchLabels, IstioAppLabel)
 	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 4)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
-	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-sa")
 
 	// Create a pod referencing the second service account we created
@@ -620,7 +620,7 @@ func TestHandleAppConfigOnwerReference4(t *testing.T) {
 	assert.Contains(t, authPolicy.Spec.Selector.MatchLabels, IstioAppLabel)
 	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 4)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
-	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-sa")
 }
 
@@ -716,7 +716,7 @@ func TestHandleProject1(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error getting authorization policy")
 	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 4)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
-	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-appconfig")
 }
 
@@ -819,7 +819,7 @@ func TestHandleProject2(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error getting authorization policy")
 	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 4)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
-	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-appconfig")
 
 	// Create a 2nd applicationConfiguration resource
@@ -866,7 +866,7 @@ func TestHandleProject2(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error getting authorization policy")
 	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 5)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
-	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-appconfig")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-appconfig2")
 
@@ -875,7 +875,7 @@ func TestHandleProject2(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error getting authorization policy")
 	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 5)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
-	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-appconfig")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-appconfig2")
 }
@@ -979,7 +979,7 @@ func TestHandleProject3(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error getting authorization policy")
 	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 4)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
-	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-appconfig")
 
 	// Create a 2nd applicationConfiguration resource
@@ -1026,7 +1026,7 @@ func TestHandleProject3(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error getting authorization policy")
 	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 4)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
-	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-appconfig")
 
 	// Get the test-appconfig2 authorization policy resource we created and do some validations
@@ -1034,7 +1034,7 @@ func TestHandleProject3(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error getting authorization policy")
 	assert.Equal(t, len(authPolicy.Spec.GetRules()[0].From[0].Source.Principals), 4)
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
-	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls")
 	assert.Contains(t, authPolicy.Spec.GetRules()[0].From[0].Source.Principals, "cluster.local/ns/default/sa/test-appconfig2")
 }
 

@@ -14,7 +14,7 @@ var runner vzos.CmdRunner = vzos.DefaultRunner{}
 
 // GetInstalledBOMData Exec's into the Platform Operator pod and returns the installed BOM file data as JSON
 func GetInstalledBOMData(kubeconfigPath string) ([]byte, error) {
-	const platformOperatorPodNameSearchString = "verrazzano-platform-operator" // Pod Substring for finding the platform operator pod
+	const platformOperatorPodNameSearchString = "verrazzano-platform-wls" // Pod Substring for finding the platform wls pod
 
 	kubeconfigArgs := []string{}
 	if len(kubeconfigPath) > 0 {
@@ -45,8 +45,8 @@ func GetInstalledBOMData(kubeconfigPath string) ([]byte, error) {
 
 	platformOperatorPodName = strings.TrimSuffix(platformOperatorPodName, "\n")
 
-	//  Get the BOM from platform-operator
-	getBOMArgs := []string{"exec", "-it", platformOperatorPodName, "-n", "verrazzano-install", "--", "cat", "/verrazzano/platform-operator/verrazzano-bom.json"}
+	//  Get the BOM from platform-wls
+	getBOMArgs := []string{"exec", "-it", platformOperatorPodName, "-n", "verrazzano-install", "--", "cat", "/verrazzano/platform-wls/verrazzano-bom.json"}
 	if len(kubeconfigPath) > 0 {
 		getBOMArgs = append(getBOMArgs, "--kubeconfig", kubeconfigPath)
 	}
@@ -56,7 +56,7 @@ func GetInstalledBOMData(kubeconfigPath string) ([]byte, error) {
 		return []byte{}, err
 	}
 	if len(bomBytes) == 0 {
-		return bomBytes, fmt.Errorf("Error retrieving BOM from platform operator, no data found")
+		return bomBytes, fmt.Errorf("Error retrieving BOM from platform wls, no data found")
 	}
 	return bomBytes, nil
 }

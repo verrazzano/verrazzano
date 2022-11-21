@@ -348,7 +348,7 @@ func Test_verifyPlatformOperatorSingleton(t *testing.T) {
 	vz := &Verrazzano{}
 
 	labels := map[string]string{
-		"app": "verrazzano-platform-operator",
+		"app": "verrazzano-platform-wls",
 	}
 	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
 		return fake.NewClientBuilder().WithScheme(newScheme()).WithLists(&v1.PodList{
@@ -395,7 +395,7 @@ func Test_verifyPlatformOperatorSingletonSuccess(t *testing.T) {
 	vz := &Verrazzano{}
 
 	labels := map[string]string{
-		"app": "verrazzano-platform-operator",
+		"app": "verrazzano-platform-wls",
 	}
 	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
 		return fake.NewClientBuilder().WithScheme(newScheme()).WithLists(&v1.PodList{

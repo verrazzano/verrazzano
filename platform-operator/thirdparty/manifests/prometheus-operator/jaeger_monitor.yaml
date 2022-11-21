@@ -7,7 +7,7 @@ metadata:
   name: jaeger
   namespace: {{ .monitoringNamespace }}
   labels:
-    release: prometheus-operator
+    release: prometheus-wls
 spec:
   namespaceSelector:
     matchNames:
@@ -31,7 +31,7 @@ spec:
       replacement: local
       targetLabel: verrazzano_cluster
     - action: keep
-      regex: true;jaeger-(operator-jaeger|verrazzano-managed-cluster)-(query|collector);admin-http
+      regex: true;jaeger-(wls-jaeger|verrazzano-managed-cluster)-(query|collector);admin-http
       sourceLabels:
       - __meta_kubernetes_pod_annotation_prometheus_io_scrape
       - __meta_kubernetes_service_name

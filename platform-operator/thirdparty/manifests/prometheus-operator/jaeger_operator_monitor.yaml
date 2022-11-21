@@ -4,10 +4,10 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: jaeger-operator
+  name: jaeger-wls
   namespace: {{ .monitoringNamespace }}
   labels:
-    release: prometheus-operator
+    release: prometheus-wls
 spec:
   namespaceSelector:
     matchNames:
@@ -22,7 +22,7 @@ spec:
       replacement: local
       targetLabel: verrazzano_cluster
     - action: keep
-      regex: jaeger-operator-metrics;metrics
+      regex: jaeger-wls-metrics;metrics
       sourceLabels:
       - __meta_kubernetes_service_name
       - __meta_kubernetes_pod_container_port_name

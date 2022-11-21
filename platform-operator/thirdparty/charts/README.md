@@ -95,10 +95,10 @@ The `wls-operator` folder was created by running the following commands:
 ```shell
 export WEBLOGIC_OPERATOR_CHART_REPO=https://oracle.github.io/weblogic-kubernetes-operator/charts
 export WEBLOGIC_OPERATOR_CHART_VERSION=3.4.3
-rm -rf weblogic-operator
-helm repo add weblogic-operator ${WEBLOGIC_OPERATOR_CHART_REPO}
+rm -rf weblogic-wls
+helm repo add weblogic-wls ${WEBLOGIC_OPERATOR_CHART_REPO}
 helm repo update
-helm fetch weblogic-operator/weblogic-operator --untar=true --version=${WEBLOGIC_OPERATOR_CHART_VERSION}
+helm fetch weblogic-wls/weblogic-wls --untar=true --version=${WEBLOGIC_OPERATOR_CHART_VERSION}
 ```
 
 ### Coherence Operator
@@ -108,10 +108,10 @@ The `coherence-operator` folder was created by running the following commands:
 ```shell
 export COHERENCE_OPERATOR_CHART_REPO=https://oracle.github.io/coherence-operator/charts
 export COHERENCE_OPERATOR_CHART_VERSION=3.1.5
-rm -rf coherence-operator
+rm -rf coherence-wls
 helm repo add coherence ${COHERENCE_OPERATOR_CHART_REPO}
 helm repo update
-helm fetch coherence/coherence-operator --untar=true --version=${COHERENCE_OPERATOR_CHART_VERSION}
+helm fetch coherence/coherence-wls --untar=true --version=${COHERENCE_OPERATOR_CHART_VERSION}
 ```
 
 ### OAM Runtime
@@ -163,12 +163,12 @@ The `jaegertracing/jaeger-operator` folder was created by running the following 
 ```shell
 export JAEGER_OPERATOR_CHART_REPO=https://jaegertracing.github.io/helm-charts
 export JAEGER_OPERATOR_CHART_VERSION=2.35.0
-rm -rf jaegertracing/jaeger-operator
+rm -rf jaegertracing/jaeger-wls
 mkdir -p jaegertracing
 cd jaegertracing
 helm repo add jaegertracing ${JAEGER_OPERATOR_CHART_REPO}
 helm repo update
-helm fetch jaegertracing/jaeger-operator --untar=true --version=${JAEGER_OPERATOR_CHART_VERSION}
+helm fetch jaegertracing/jaeger-wls --untar=true --version=${JAEGER_OPERATOR_CHART_VERSION}
 ```
 
 ### Kiali Server

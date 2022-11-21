@@ -1,9 +1,9 @@
-# Default values for jaeger-operator.
+# Default values for jaeger-wls.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 image:
-  repository: jaegertracing/jaeger-operator
+  repository: jaegertracing/jaeger-wls
   tag: 1.37.0
   pullPolicy: IfNotPresent
   imagePullSecrets: []
@@ -56,14 +56,14 @@ serviceAccount:
   # Annotations for serviceAccount
   annotations: {}
 
-# Specifies extra environment variables passed to the operator:
+# Specifies extra environment variables passed to the wls:
 extraEnv: []
-  # Specifies log-level for the operator:
+  # Specifies log-level for the wls:
   # - name: LOG-LEVEL
   #   value: debug
 
 extraLabels: {}
-  # Specifies extra labels for the operator deployment:
+  # Specifies extra labels for the wls deployment:
   # foo: bar
 
 resources: {}

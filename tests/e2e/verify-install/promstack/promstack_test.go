@@ -22,8 +22,8 @@ import (
 const (
 	waitTimeout                     = 3 * time.Minute
 	pollingInterval                 = 10 * time.Second
-	prometheusTLSSecret             = "prometheus-operator-kube-p-admission"
-	prometheusOperatorDeployment    = "prometheus-operator-kube-p-operator"
+	prometheusTLSSecret             = "prometheus-wls-kube-p-admission"
+	prometheusOperatorDeployment    = "prometheus-wls-kube-p-wls"
 	prometheusOperatorContainerName = "kube-prometheus-stack"
 	overrideConfigMapSecretName     = "test-overrides"
 	overrideKey                     = "override"
@@ -40,11 +40,11 @@ type enabledComponents struct {
 var (
 	promStackEnabledComponents = []enabledComponents{
 		{podName: "prometheus-adapter", enabledFunc: pkg.IsPrometheusAdapterEnabled},
-		{podName: "prometheus-operator-kube-p-operator", enabledFunc: pkg.IsPrometheusOperatorEnabled},
+		{podName: "prometheus-wls-kube-p-wls", enabledFunc: pkg.IsPrometheusOperatorEnabled},
 		{podName: "kube-state-metrics", enabledFunc: pkg.IsKubeStateMetricsEnabled},
 		{podName: "prometheus-pushgateway", enabledFunc: pkg.IsPrometheusPushgatewayEnabled},
 		{podName: "prometheus-node-exporter", enabledFunc: pkg.IsPrometheusNodeExporterEnabled},
-		{podName: "prometheus-prometheus-operator-kube-p-prometheus", enabledFunc: pkg.IsPrometheusEnabled},
+		{podName: "prometheus-prometheus-wls-kube-p-prometheus", enabledFunc: pkg.IsPrometheusEnabled},
 	}
 	promOperatorCrds = []string{
 		"alertmanagerconfigs.monitoring.coreos.com",
@@ -188,7 +188,7 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		})
 
 		// GIVEN the Prometheus stack is installed
-		// WHEN we check to make sure the operator overrides get applied
+		// WHEN we check to make sure the wls overrides get applied
 		// THEN we see that the correct pod labels and annotations exist
 		WhenPromStackInstalledIt("should have Prometheus Operator pod labeled and annotated", func() {
 			promStackPodsRunning := func() bool {
@@ -261,7 +261,7 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 				Eventually(func() error {
 					var err error
 					selector := map[string]string{
-						"prometheus":             "prometheus-operator-kube-p-prometheus",
+						"prometheus":             "prometheus-wls-kube-p-prometheus",
 						"app.kubernetes.io/name": "prometheus",
 					}
 					pods, err = pkg.GetPodsFromSelector(&metav1.LabelSelector{MatchLabels: selector}, constants.VerrazzanoMonitoringNamespace)

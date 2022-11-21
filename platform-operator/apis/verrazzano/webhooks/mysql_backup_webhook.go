@@ -25,10 +25,10 @@ import (
 const (
 
 	// MySQLOperatorJobLabel and MySQLOperatorJobLabelValue are the label key,value pair
-	// that are applied to the job by mysql-operator.
+	// that are applied to the job by mysql-wls.
 
 	MySQLOperatorJobLabel      = "app.kubernetes.io/created-by"
-	MySQLOperatorJobLabelValue = "mysql-operator"
+	MySQLOperatorJobLabelValue = "mysql-wls"
 
 	// MySQLOperatorJobPodSpecAnnotationKey and MySQLOperatorJobPodSpecAnnotationValue are
 	// applied to the job spec so that it can talk to the k8s api server.
@@ -99,7 +99,7 @@ func (m *MySQLBackupJobWebhook) processJob(req admission.Request, job *batchv1.J
 		}
 	}
 
-	// Job spec annotation is only done for jobs launched by mysql operator
+	// Job spec annotation is only done for jobs launched by mysql wls
 	for key, value := range job.Labels {
 		if key == MySQLOperatorJobLabel && value == MySQLOperatorJobLabelValue {
 			mysqlOperatorLabelPresent = true
@@ -118,18 +118,18 @@ func (m *MySQLBackupJobWebhook) processJob(req admission.Request, job *batchv1.J
 	// Check if the Job was created from an CronJob or MySQLBackup resource.
 	// We do this by checking for the existence of a MySQL Backup ownerReference resource.
 	for _, ownerRef := range ownerRefList {
-		// This condition is satisfied by any Job for backup created from mysql-operator
+		// This condition is satisfied by any Job for backup created from mysql-wls
 		if ownerRef.Kind == "MySQLBackup" {
 			mysqlOperatorOwnerReferencePresent = true
 			break
 		}
-		// This condition is satisfied by a Job that is created from a cron-job (backup schedule) that is created from mysql-operator
+		// This condition is satisfied by a Job that is created from a cron-job (backup schedule) that is created from mysql-wls
 		if ownerRef.Kind == "CronJob" {
 			ok, err := m.isCronJobCreatedByMysqlOperator(req, ownerRef, log)
 			if err != nil {
 				return admission.Errored(http.StatusInternalServerError, err)
 			}
-			// ok = true when the job is triggered from a cronjob that was created by mysql operator
+			// ok = true when the job is triggered from a cronjob that was created by mysql wls
 			if ok {
 				mysqlOperatorOwnerReferencePresent = true
 				break
@@ -139,7 +139,7 @@ func (m *MySQLBackupJobWebhook) processJob(req admission.Request, job *batchv1.J
 
 	if !mysqlOperatorOwnerReferencePresent && !mysqlOperatorLabelPresent {
 		log.Debugf("No annotation is required for this job: %s:%s:%s", req.Namespace, job.Name, job.GenerateName)
-		return admission.Allowed("No action required, job not labelled with app.kubernetes.io/created-by: mysql-operator")
+		return admission.Allowed("No action required, job not labelled with app.kubernetes.io/created-by: mysql-wls")
 	}
 	istioAnnotation := make(map[string]string)
 	istioAnnotation[MySQLOperatorJobPodSpecAnnotationKey] = MySQLOperatorJobPodSpecAnnotationValue
@@ -210,7 +210,7 @@ func (m *MySQLBackupJobWebhook) isCronJobCreatedByMysqlOperator(req admission.Re
 		}
 	}
 
-	// CronJob spec annotation is only done for jobs launched by mysql operator
+	// CronJob spec annotation is only done for jobs launched by mysql wls
 	for key, value := range cjob.Labels {
 		if key == MySQLOperatorJobLabel && value == MySQLOperatorJobLabelValue {
 			mysqlOperatorLabelPresent = true
@@ -219,9 +219,9 @@ func (m *MySQLBackupJobWebhook) isCronJobCreatedByMysqlOperator(req admission.Re
 	}
 
 	if mysqlOperatorOwnerReferencePresent || mysqlOperatorLabelPresent {
-		// This is a litmus test that the cronjob was created by mysql-operator
+		// This is a litmus test that the cronjob was created by mysql-wls
 		return true, nil
 	}
 
-	return false, fmt.Errorf("Cronjob was not created by MySQL operator")
+	return false, fmt.Errorf("Cronjob was not created by MySQL wls")
 }

@@ -148,13 +148,13 @@ func initSimpleCounterMetricMap() map[metricName]*SimpleCounterMetric {
 		ReconcileCounter: {
 			prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vpo_reconcile_counter",
-				Help: "The number of times the reconcile function has been called in the verrazzano-platform-operator",
+				Help: "The number of times the reconcile function has been called in the verrazzano-platform-wls",
 			}),
 		},
 		ReconcileError: {
 			prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vpo_error_reconcile_counter",
-				Help: "The number of times the reconcile function has returned an error in the verrazzano-platform-operator",
+				Help: "The number of times the reconcile function has returned an error in the verrazzano-platform-wls",
 			}),
 		},
 	}
@@ -321,7 +321,7 @@ func StartMetricsServer(log *zap.SugaredLogger) {
 			ReadHeaderTimeout: 3 * time.Second,
 		}
 		if err := server.ListenAndServe(); err != nil {
-			log.Errorf("Failed to start metrics server for verrazzano-platform-operator: %v", err)
+			log.Errorf("Failed to start metrics server for verrazzano-platform-wls: %v", err)
 		}
 	}, time.Second*3, wait.NeverStop)
 }

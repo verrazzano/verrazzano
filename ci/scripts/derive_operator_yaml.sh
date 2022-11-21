@@ -13,11 +13,11 @@ VERSION=$1
 # Remove prefix v from version
 VERSION_NUM=${VERSION:1}
 
-# Verrazzano distribution from 1.4.0 release replaces operator.yaml with verrazzano-platform-operator.yaml in release assets
+# Verrazzano distribution from 1.4.0 release replaces wls.yaml with verrazzano-platform-wls.yaml in release assets
 VERSION_14=1.4.0
 
 # Derive the file name
-OPERATOR_YAML=$(echo ${VERSION_NUM} ${VERSION_14} | awk '{if ($1 < $2) print "operator.yaml"; else print "verrazzano-platform-operator.yaml"}')
+OPERATOR_YAML=$(echo ${VERSION_NUM} ${VERSION_14} | awk '{if ($1 < $2) print "wls.yaml"; else print "verrazzano-platform-wls.yaml"}')
 
 # Derive yaml file
 OPERATOR_YAML_FILE="https://github.com/verrazzano/verrazzano/releases/download/${VERSION}/${OPERATOR_YAML}"

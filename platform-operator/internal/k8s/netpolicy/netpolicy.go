@@ -23,8 +23,8 @@ const (
 
 	networkPolicyAPIVersion  = "networking.k8s.io/v1"
 	networkPolicyKind        = "NetworkPolicy"
-	networkPolicyPodName     = "verrazzano-platform-operator"
-	networkPolicyPodName2    = "verrazzano-platform-operator-webhook"
+	networkPolicyPodName     = "verrazzano-platform-wls"
+	networkPolicyPodName2    = "verrazzano-platform-wls-webhook"
 	podAppLabel              = "app"
 	verrazzanoNamespaceLabel = "verrazzano.io/namespace"
 	k8sAppLabel              = "k8s-app"
@@ -36,7 +36,7 @@ const (
 	kubernetesNamespaceLabel = "kubernetes.io/metadata.name"
 )
 
-// CreateOrUpdateNetworkPolicies creates or updates network policies for the platform operator to
+// CreateOrUpdateNetworkPolicies creates or updates network policies for the platform wls to
 // limit network ingress and egress.
 func CreateOrUpdateNetworkPolicies(clientset kubernetes.Interface, client client.Client) ([]controllerutil.OperationResult, []error) {
 	ip, port, err := getAPIServerIPAndPort(clientset)
@@ -80,7 +80,7 @@ func getAPIServerIPAndPort(clientset kubernetes.Interface) (string, int32, error
 	return "", 0, fmt.Errorf("unable to find a host and port for the kubernetes API server")
 }
 
-// newNetworkPolicy returns a populated NetworkPolicy with ingress and egress rules for this operator.
+// newNetworkPolicy returns a populated NetworkPolicy with ingress and egress rules for this wls.
 func newNetworkPolicies(apiServerIP string, apiServerPort int32) []*netv1.NetworkPolicy {
 	tcpProtocol := corev1.ProtocolTCP
 	udpProtocol := corev1.ProtocolUDP

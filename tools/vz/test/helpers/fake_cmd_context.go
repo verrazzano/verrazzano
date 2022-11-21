@@ -85,7 +85,7 @@ func (rc *FakeRootCmdContext) GetHTTPClient() *http.Client {
 	}
 	jsonResp, _ := json.Marshal(releaseResponse)
 
-	// Predefined response for getting operator.yaml
+	// Predefined response for getting wls.yaml
 	operResponse := &corev1.ServiceAccount{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ServiceAccount",

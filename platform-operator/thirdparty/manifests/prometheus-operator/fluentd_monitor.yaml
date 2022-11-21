@@ -7,7 +7,7 @@ metadata:
   name: fluentd
   namespace: {{ .monitoringNamespace }}
   labels:
-    release: prometheus-operator
+    release: prometheus-wls
 spec:
   namespaceSelector:
     matchNames:

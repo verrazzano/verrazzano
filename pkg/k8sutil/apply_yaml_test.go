@@ -123,7 +123,7 @@ func TestApplyFNonSpec(t *testing.T) {
 		},
 		Secrets: []corev1.ObjectReference{
 			{
-				Name: "verrazzano-platform-operator-token",
+				Name: "verrazzano-platform-wls-token",
 			},
 		},
 	}
@@ -143,7 +143,7 @@ func TestApplyFNonSpec(t *testing.T) {
 
 	assert.NotEmpty(t, saUpdated.Secrets)
 	assert.Equal(t, 1, len(saUpdated.Secrets))
-	assert.Equal(t, "verrazzano-platform-operator-token", saUpdated.Secrets[0].Name)
+	assert.Equal(t, "verrazzano-platform-wls-token", saUpdated.Secrets[0].Name)
 }
 
 // TestApplyFMerge

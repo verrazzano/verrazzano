@@ -7,7 +7,7 @@ metadata:
   name: nginx-ingress-controller
   namespace: {{ .monitoringNamespace }}
   labels:
-    release: prometheus-operator
+    release: prometheus-wls
 spec:
   namespaceSelector:
     matchNames:

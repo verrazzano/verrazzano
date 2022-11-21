@@ -40,7 +40,7 @@ status:
           status: "True"
           type: InstallComplete
       lastReconciledGeneration: 2
-      name: coherence-operator
+      name: coherence-wls
       state: Ready
     external-dns:
       lastReconciledGeneration: 2
@@ -116,7 +116,7 @@ status:
       state: Ready
     jaeger-operator:
       lastReconciledGeneration: 2
-      name: jaeger-operator
+      name: jaeger-wls
       state: Disabled
     keycloak:
       conditions:
@@ -188,7 +188,7 @@ status:
           status: "True"
           type: InstallComplete
       lastReconciledGeneration: 2
-      name: mysql-operator
+      name: mysql-wls
       state: Ready
     oam-kubernetes-runtime:
       conditions:
@@ -277,7 +277,7 @@ status:
           status: "True"
           type: InstallComplete
       lastReconciledGeneration: 2
-      name: prometheus-operator
+      name: prometheus-wls
       state: Ready
     prometheus-pushgateway:
       lastReconciledGeneration: 2
@@ -340,7 +340,7 @@ status:
           status: "True"
           type: InstallComplete
       lastReconciledGeneration: 2
-      name: verrazzano-application-operator
+      name: verrazzano-application-wls
       state: Ready
     verrazzano-authproxy:
       conditions:
@@ -391,7 +391,7 @@ status:
           status: "True"
           type: InstallComplete
       lastReconciledGeneration: 2
-      name: verrazzano-monitoring-operator
+      name: verrazzano-monitoring-wls
       state: Ready
     weblogic-operator:
       conditions:
@@ -408,7 +408,7 @@ status:
           status: "True"
           type: InstallComplete
       lastReconciledGeneration: 2
-      name: weblogic-operator
+      name: weblogic-wls
       state: Ready
   conditions:
     - lastTransitionTime: "2022-08-05T15:11:22Z"

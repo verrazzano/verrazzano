@@ -56,7 +56,7 @@ var _ = t.AfterSuite(func() {
 var _ = t.Describe("Multi Cluster Jaeger Installation Validation", Label("f:platform-lcm.install"), func() {
 
 	// GIVEN a multicluster setup with an admin and a manged cluster,
-	// WHEN Jaeger operator is enabled in the admin cluster and the managed cluster is registered to it,
+	// WHEN Jaeger wls is enabled in the admin cluster and the managed cluster is registered to it,
 	// THEN only the Jaeger collector pods are created in the managed cluster.
 	t.It("Jaeger Collector pods must be running in managed cluster", func() {
 		skipIfAdminCluster()
@@ -77,7 +77,7 @@ var _ = t.Describe("Multi Cluster Jaeger Installation Validation", Label("f:plat
 	})
 
 	// GIVEN a multicluster setup with an admin and a manged cluster,
-	// WHEN Jaeger operator is enabled in the admin cluster and the managed cluster is registered to it,
+	// WHEN Jaeger wls is enabled in the admin cluster and the managed cluster is registered to it,
 	// THEN only one Jaeger collector deployment is created in the managed cluster.
 	t.It("Atmost only one Jaeger Collector pods must be running in managed cluster", func() {
 		skipIfAdminCluster()
@@ -96,7 +96,7 @@ var _ = t.Describe("Multi Cluster Jaeger Installation Validation", Label("f:plat
 	})
 
 	// GIVEN a multicluster setup with an admin and a manged cluster
-	// WHEN Jaeger operator is enabled in the admin cluster and the managed cluster is registered to it,
+	// WHEN Jaeger wls is enabled in the admin cluster and the managed cluster is registered to it,
 	// THEN pods for the Jaeger query component do NOT get created in the managed cluster.
 	t.It("Jaeger Query pods must NOT be running in managed cluster", func() {
 		skipIfAdminCluster()
@@ -116,7 +116,7 @@ var _ = t.Describe("Multi Cluster Jaeger Installation Validation", Label("f:plat
 	})
 
 	// GIVEN a multicluster setup with an admin and a manged cluster,
-	// WHEN Jaeger operator is enabled in the admin cluster and the managed cluster is registered to it,
+	// WHEN Jaeger wls is enabled in the admin cluster and the managed cluster is registered to it,
 	// THEN cronjob for ES index cleaner is NOT created in the managed cluster.
 	t.It("Jaeger ES index cleaner cronjob must NOT be created in managed cluster", func() {
 		skipIfAdminCluster()

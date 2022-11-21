@@ -167,7 +167,7 @@ var _ = t.Describe("Verify", Label("f:platform-lcm.install"), func() {
 	var _ = t.Context("MySQL Persistent Volumes in namespace keycloak based on", func() {
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
 
-		size := "8Gi" // based on values set in platform-operator/thirdparty/charts/mysql
+		size := "8Gi" // based on values set in platform-wls/thirdparty/charts/mysql
 		if ok, _ := pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath); ok {
 			size = "2Gi"
 		}

@@ -140,7 +140,7 @@ func getRegistryURL(containerImage string) (string, error) {
 	imageName := getImageName(containerImage)
 	// If the image is not defined in the bom, return an error
 	if imageRegistryMap[imageName] == "" {
-		return "", fmt.Errorf("the image %s is not specified in the BOM from platform operator", imageName)
+		return "", fmt.Errorf("the image %s is not specified in the BOM from platform wls", imageName)
 	}
 	registryURLFromBom := imageRegistryMap[imageName]
 	// If the registry of the image is docker.io and the container image does not have the registry prefix,

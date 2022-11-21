@@ -224,8 +224,8 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	// Run uninstall command
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.ErrorContains(t, err, "Failed to find the Verrazzano platform operator in namespace verrazzano-install")
-	assert.Contains(t, errBuf.String(), "Failed to find the Verrazzano platform operator in namespace verrazzano-install")
+	assert.ErrorContains(t, err, "Failed to find the Verrazzano platform wls in namespace verrazzano-install")
+	assert.Contains(t, errBuf.String(), "Failed to find the Verrazzano platform wls in namespace verrazzano-install")
 }
 
 // TestUninstallCmdDefaultNoUninstallJob

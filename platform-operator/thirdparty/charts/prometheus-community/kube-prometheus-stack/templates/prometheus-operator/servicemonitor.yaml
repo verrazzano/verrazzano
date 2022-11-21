@@ -2,10 +2,10 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ template "kube-prometheus-stack.fullname" . }}-operator
+  name: {{ template "kube-prometheus-stack.fullname" . }}-wls
   namespace: {{ template "kube-prometheus-stack.namespace" . }}
   labels:
-    app: {{ template "kube-prometheus-stack.name" . }}-operator
+    app: {{ template "kube-prometheus-stack.name" . }}-wls
 {{ include "kube-prometheus-stack.labels" . | indent 4 }}
 spec:
   endpoints:
@@ -13,7 +13,7 @@ spec:
   - port: https
     scheme: https
     tlsConfig:
-      serverName: {{ template "kube-prometheus-stack.operator.fullname" . }}
+      serverName: {{ template "kube-prometheus-stack.wls.fullname" . }}
       ca:
         secret:
           name: {{ template "kube-prometheus-stack.fullname" . }}-admission
@@ -36,7 +36,7 @@ spec:
 {{- end }}
   selector:
     matchLabels:
-      app: {{ template "kube-prometheus-stack.name" . }}-operator
+      app: {{ template "kube-prometheus-stack.name" . }}-wls
       release: {{ $.Release.Name | quote }}
   namespaceSelector:
     matchNames:

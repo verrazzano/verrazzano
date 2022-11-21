@@ -1,11 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mysql-operator
+  name: mysql-wls
   namespace: {{ if and (.Release.IsInstall) (eq .Release.Namespace "default") }}{{ fail "Please provide a namespace with -n/--namespace" }}{{ else }}{{  .Release.Namespace }}{{ end }}
   labels:
     version: "{{ default .Chart.AppVersion }}"
-    app.kubernetes.io/name: mysql-operator
+    app.kubernetes.io/name: mysql-wls
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/version: "{{ default .Chart.AppVersion }}"
     app.kubernetes.io/component: controller
@@ -15,19 +15,19 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      name: mysql-operator
+      name: mysql-wls
   template:
     metadata:
       labels:
-        name: mysql-operator
+        name: mysql-wls
       annotations:
         traffic.sidecar.istio.io/excludeOutboundPorts: "443"
     spec:
       containers:
-        - name: mysql-operator
+        - name: mysql-wls
           image: {{ if .Values.image.registry }}{{ .Values.image.registry }}/{{- end }}{{- if .Values.image.repository }}{{ .Values.image.repository }}/{{ end }}{{ .Values.image.name }}:{{ .Values.image.tag | default .Chart.AppVersion }}
           imagePullPolicy: {{ required "image.pullPolicy is required" .Values.image.pullPolicy }}
-          args: ["mysqlsh", "--log-level=@INFO", "--pym", "mysqloperator", "operator"]
+          args: ["mysqlsh", "--log-level=@INFO", "--pym", "mysqloperator", "wls"]
           env:
           - name: MYSQLSH_USER_CONFIG_HOME
             value: /mysqlsh
@@ -52,4 +52,4 @@ spec:
       volumes:
         - name: mysqlsh-home
           emptyDir: {}
-      serviceAccountName: mysql-operator-sa
+      serviceAccountName: mysql-wls-sa

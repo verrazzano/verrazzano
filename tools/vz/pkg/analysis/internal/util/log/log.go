@@ -41,7 +41,7 @@ func InitLogs(opts kzap.Options) {
 	//
 	// The logger instantiated here can be changed to any logger
 	// implementing the logr.Logger interface. This logger will
-	// be propagated through the whole operator, generating
+	// be propagated through the whole wls, generating
 	// uniform and structured logs.
 	encoder := zapcore.NewJSONEncoder(config.EncoderConfig)
 	logf.SetLogger(kzap.New(kzap.UseFlagOptions(&opts), kzap.Encoder(encoder)))

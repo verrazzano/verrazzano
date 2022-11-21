@@ -292,8 +292,8 @@ func repairMySQLPodsWaitingReadinessGates(client *kubernetes.Clientset) {
 			}
 			// Both readiness gates must be true
 			if !(rgReadyStatus && rgConfiguredStatus) {
-				// Restart the mysql-operator to see if it will finish setting the readiness gates
-				t.Logs.Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck waiting for readiness gates")
+				// Restart the mysql-wls to see if it will finish setting the readiness gates
+				t.Logs.Info("Restarting the mysql-wls to see if it will repair MySQL pods stuck waiting for readiness gates")
 
 				operList, err := getMySQLOperatorPod(client)
 				if err != nil {
@@ -310,7 +310,7 @@ func repairMySQLPodsWaitingReadinessGates(client *kubernetes.Clientset) {
 		return nil
 	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
 
-	// If the mysql-operator was restarted, wait for it to be ready
+	// If the mysql-wls was restarted, wait for it to be ready
 	if operatorRestarted {
 		Eventually(func() error {
 			operList, err := getMySQLOperatorPod(client)
@@ -318,7 +318,7 @@ func repairMySQLPodsWaitingReadinessGates(client *kubernetes.Clientset) {
 				return err
 			}
 			if !hacommon.IsPodReadyOrCompleted(operList.Items[0]) {
-				return fmt.Errorf("mysql-operator pod not ready yet")
+				return fmt.Errorf("mysql-wls pod not ready yet")
 			}
 			return nil
 		}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
@@ -364,7 +364,7 @@ func repairMySQLRouterPodsCrashLoopBackoff(client *kubernetes.Clientset) {
 	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
 }
 
-// getMySQLOperatorPod - return the mysql-operator pod
+// getMySQLOperatorPod - return the mysql-wls pod
 func getMySQLOperatorPod(client *kubernetes.Clientset) (*corev1.PodList, error) {
 	operReq, err := labels.NewRequirement("name", selection.Equals, []string{mysqloperator.ComponentName})
 	if err != nil {

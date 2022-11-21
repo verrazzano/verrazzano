@@ -99,7 +99,7 @@ var specAnnotationsFields = []string{specField, "annotations"}
 var additionalJvmArgs = []interface{}{
 	"-Dcoherence.log=jdk",
 	"-Dcoherence.log.logger=com.oracle.coherence",
-	"-Djava.util.logging.config.file=/coherence-operator/utils/logging/logging.properties",
+	"-Djava.util.logging.config.file=/coherence-wls/utils/logging/logging.properties",
 }
 
 // this struct allows us to extract information from the unstructured Coherence spec

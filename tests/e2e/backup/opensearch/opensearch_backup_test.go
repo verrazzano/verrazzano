@@ -29,7 +29,7 @@ const (
 	shortPollingInterval = 10 * time.Second
 	waitTimeout          = 15 * time.Minute
 	pollingInterval      = 30 * time.Second
-	vmoDeploymentName    = "verrazzano-monitoring-operator"
+	vmoDeploymentName    = "verrazzano-monitoring-wls"
 	osStsName            = "vmi-system-es-master"
 	osStsPvcPrefix       = "elasticsearch-master-vmi-system-es-master"
 	osDataDepPrefix      = "vmi-system-es-data"
@@ -40,7 +40,7 @@ const (
 )
 
 var esPods = []string{"vmi-system-es-master", "vmi-system-es-ingest", "vmi-system-es-data"}
-var esPodsUp = []string{"vmi-system-es-master", "vmi-system-es-ingest", "vmi-system-es-data", "verrazzano-monitoring-operator", "vmi-system-kibana"}
+var esPodsUp = []string{"vmi-system-es-master", "vmi-system-es-ingest", "vmi-system-es-data", "verrazzano-monitoring-wls", "vmi-system-kibana"}
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()

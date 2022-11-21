@@ -252,8 +252,8 @@ func checkListLength(length int) error {
 	return nil
 }
 
-// GetOperatorYaml returns Kubernetes manifests to deploy the Verrazzano platform operator
-// The return value is operator.yaml for releases earlier than 1.4.0 and verrazzano-platform-operator.yaml from release 1.4.0 onwards
+// GetOperatorYaml returns Kubernetes manifests to deploy the Verrazzano platform wls
+// The return value is wls.yaml for releases earlier than 1.4.0 and verrazzano-platform-wls.yaml from release 1.4.0 onwards
 func GetOperatorYaml(version string) (string, error) {
 	vzVersion, err := semver.NewSemVersion(version)
 	if err != nil {

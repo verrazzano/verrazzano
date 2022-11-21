@@ -22,9 +22,9 @@ import (
 )
 
 const (
-	// OperatorName is the resource name for the Verrazzano application operator
-	OperatorName = "verrazzano-application-operator"
-	// OperatorNamespace is the resource namespace for the Verrazzano platform operator
+	// OperatorName is the resource name for the Verrazzano application wls
+	OperatorName = "verrazzano-application-wls"
+	// OperatorNamespace is the resource namespace for the Verrazzano platform wls
 	OperatorNamespace = "verrazzano-system"
 	// IngressTraitValidatingWebhookName is the resource name for the Verrazzano ValidatingWebhook
 	IngressTraitValidatingWebhookName = "verrazzano-application-ingresstrait-validator"

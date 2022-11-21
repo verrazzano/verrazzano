@@ -11,7 +11,7 @@ spec:
   group: monitoring.coreos.com
   names:
     categories:
-    - prometheus-operator
+    - prometheus-wls
     kind: PrometheusRule
     listKind: PrometheusRuleList
     plural: prometheusrules

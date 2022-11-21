@@ -107,7 +107,7 @@ global:
   rbac:
     create: true
 
-    ## Create ClusterRoles that extend the existing view, edit and admin ClusterRoles to interact with prometheus-operator CRDs
+    ## Create ClusterRoles that extend the existing view, edit and admin ClusterRoles to interact with prometheus-wls CRDs
     ## Ref: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles
     createAggregateClusterRoles: false
     pspEnabled: false
@@ -488,7 +488,7 @@ alertmanager:
     # alertmanagerConfigSelector:
     #   matchExpressions:
     #     - key: alertconfig
-    #       operator: In
+    #       wls: In
     #       values:
     #         - example-config
     #         - example-config-2
@@ -506,7 +506,7 @@ alertmanager:
     # alertmanagerConfigNamespaceSelector:
     #   matchExpressions:
     #     - key: alertmanagerconfig
-    #       operator: In
+    #       wls: In
     #       values:
     #         - example-namespace
     #         - example-namespace-2
@@ -600,7 +600,7 @@ alertmanager:
     #     nodeSelectorTerms:
     #     - matchExpressions:
     #       - key: kubernetes.io/e2e-az-name
-    #         operator: In
+    #         wls: In
     #         values:
     #         - e2e-az1
     #         - e2e-az2
@@ -610,7 +610,7 @@ alertmanager:
     ##
     tolerations: []
     # - key: "key"
-    #   operator: "Equal"
+    #   wls: "Equal"
     #   value: "value"
     #   effect: "NoSchedule"
 
@@ -724,7 +724,7 @@ grafana:
   ##
   defaultDashboardsTimezone: utc
 
-  adminPassword: prom-operator
+  adminPassword: prom-wls
 
   rbac:
     ## If true, Grafana PSPs will be created
@@ -848,7 +848,7 @@ grafana:
     portName: http-web
 
   serviceMonitor:
-    # If true, a ServiceMonitor CRD is created for a prometheus operator
+    # If true, a ServiceMonitor CRD is created for a prometheus wls
     # https://github.com/coreos/prometheus-operator
     #
     enabled: true
@@ -1668,7 +1668,7 @@ prometheusOperator:
   ##
   denyNamespaces: []
 
-  ## Filter namespaces to look for prometheus-operator custom resources
+  ## Filter namespaces to look for prometheus-wls custom resources
   ##
   alertmanagerInstanceNamespaces: []
   alertmanagerConfigNamespaces: []
@@ -1688,7 +1688,7 @@ prometheusOperator:
     create: true
     name: ""
 
-  ## Configuration for Prometheus operator service
+  ## Configuration for Prometheus wls service
   ##
   service:
     annotations: {}
@@ -1727,19 +1727,19 @@ prometheusOperator:
     ##
     externalIPs: []
 
-  # ## Labels to add to the operator deployment
+  # ## Labels to add to the wls deployment
   # ##
   labels: {}
 
-  ## Annotations to add to the operator deployment
+  ## Annotations to add to the wls deployment
   ##
   annotations: {}
 
-  ## Labels to add to the operator pod
+  ## Labels to add to the wls pod
   ##
   podLabels: {}
 
-  ## Annotations to add to the operator pod
+  ## Annotations to add to the wls pod
   ##
   podAnnotations: {}
 
@@ -1753,7 +1753,7 @@ prometheusOperator:
   ## Decrease log verbosity to errors only
   # logLevel: error
 
-  ## If true, the operator will create and maintain a service for scraping kubelets
+  ## If true, the wls will create and maintain a service for scraping kubelets
   ## ref: https://github.com/prometheus-operator/prometheus-operator/blob/main/helm/prometheus-operator/README.md
   ##
   kubeletService:
@@ -1762,7 +1762,7 @@ prometheusOperator:
     ## Use '{{ template "kube-prometheus-stack.fullname" . }}-kubelet' by default
     name: ""
 
-  ## Create a servicemonitor for the operator
+  ## Create a servicemonitor for the wls
   ##
   serviceMonitor:
     ## Scrape interval. If not set, the Prometheus default scrape interval is used.
@@ -1814,11 +1814,11 @@ prometheusOperator:
   ##
   tolerations: []
   # - key: "key"
-  #   operator: "Equal"
+  #   wls: "Equal"
   #   value: "value"
   #   effect: "NoSchedule"
 
-  ## Assign custom affinity rules to the prometheus operator
+  ## Assign custom affinity rules to the prometheus wls
   ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
   ##
   affinity: {}
@@ -1827,7 +1827,7 @@ prometheusOperator:
     #     nodeSelectorTerms:
     #     - matchExpressions:
     #       - key: kubernetes.io/e2e-az-name
-    #         operator: In
+    #         wls: In
     #         values:
     #         - e2e-az1
     #         - e2e-az2
@@ -1854,19 +1854,19 @@ prometheusOperator:
     allowPrivilegeEscalation: false
     readOnlyRootFilesystem: true
 
-  ## Prometheus-operator image
+  ## Prometheus-wls image
   ##
   image:
-    repository: quay.io/prometheus-operator/prometheus-operator
+    repository: quay.io/prometheus-wls/prometheus-wls
     tag: v0.59.1
     sha: ""
     pullPolicy: IfNotPresent
 
-  ## Prometheus image to use for prometheuses managed by the operator
+  ## Prometheus image to use for prometheuses managed by the wls
   ##
   # prometheusDefaultBaseImage: quay.io/prometheus/prometheus
 
-  ## Alertmanager image to use for alertmanagers managed by the operator
+  ## Alertmanager image to use for alertmanagers managed by the wls
   ##
   # alertmanagerDefaultBaseImage: quay.io/prometheus/alertmanager
 
@@ -1874,7 +1874,7 @@ prometheusOperator:
   ##
   prometheusConfigReloader:
     image:
-      repository: quay.io/prometheus-operator/prometheus-config-reloader
+      repository: quay.io/prometheus-wls/prometheus-config-reloader
       tag: v0.59.1
       sha: ""
 
@@ -2332,7 +2332,7 @@ prometheus:
     ##
     tolerations: []
     #  - key: "key"
-    #    operator: "Equal"
+    #    wls: "Equal"
     #    value: "value"
     #    effect: "NoSchedule"
 
@@ -2433,7 +2433,7 @@ prometheus:
     # ruleSelector:
     #   matchExpressions:
     #     - key: prometheus
-    #       operator: In
+    #       wls: In
     #       values:
     #         - example-rules
     #         - example-rules-2
@@ -2577,7 +2577,7 @@ prometheus:
     #     nodeSelectorTerms:
     #     - matchExpressions:
     #       - key: kubernetes.io/e2e-az-name
-    #         operator: In
+    #         wls: In
     #         values:
     #         - e2e-az1
     #         - e2e-az2
@@ -3183,7 +3183,7 @@ thanosRuler:
     # ruleSelector:
     #   matchExpressions:
     #     - key: prometheus
-    #       operator: In
+    #       wls: In
     #       values:
     #         - example-rules
     #         - example-rules-2
@@ -3303,7 +3303,7 @@ thanosRuler:
     #     nodeSelectorTerms:
     #     - matchExpressions:
     #       - key: kubernetes.io/e2e-az-name
-    #         operator: In
+    #         wls: In
     #         values:
     #         - e2e-az1
     #         - e2e-az2
@@ -3313,7 +3313,7 @@ thanosRuler:
     ##
     tolerations: []
     # - key: "key"
-    #   operator: "Equal"
+    #   wls: "Equal"
     #   value: "value"
     #   effect: "NoSchedule"
 

@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "jaeger-operator.fullname" . }}
+  name: {{ include "jaeger-wls.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-{{ include "jaeger-operator.labels" . | indent 4 }}
+{{ include "jaeger-wls.labels" . | indent 4 }}
 {{- with .Values.extraLabels }}
 {{ . | toYaml | indent 4 }}
 {{- end }}
@@ -12,18 +12,18 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-{{ include "jaeger-operator.labels" . | indent 6 }}
+{{ include "jaeger-wls.labels" . | indent 6 }}
   template:
     metadata:
-      name: {{ include "jaeger-operator.fullname" . }}
+      name: {{ include "jaeger-wls.fullname" . }}
       labels:
-{{ include "jaeger-operator.labels" . | indent 8 }}
+{{ include "jaeger-wls.labels" . | indent 8 }}
 {{- with .Values.extraLabels }}
 {{ . | toYaml | indent 8 }}
 {{- end }}
     spec:
       {{- if .Values.serviceAccount.create }}
-      serviceAccountName: {{ include "jaeger-operator.serviceAccountName" . }}
+      serviceAccountName: {{ include "jaeger-wls.serviceAccountName" . }}
       {{- end }}
       {{- with .Values.securityContext }}
       securityContext:
@@ -39,7 +39,7 @@ spec:
       {{- end }}
       {{- end }}
       containers:
-        - name: {{ include "jaeger-operator.fullname" . }}
+        - name: {{ include "jaeger-wls.fullname" . }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
@@ -71,7 +71,7 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
             - name: OPERATOR_NAME
-              value: {{ include "jaeger-operator.fullname" . | quote }}
+              value: {{ include "jaeger-wls.fullname" . | quote }}
             {{- if .Values.extraEnv }}
               {{- toYaml .Values.extraEnv | nindent 12 }}
             {{- end }}
@@ -81,7 +81,7 @@ spec:
       - name: cert
         secret:
           defaultMode: 420
-          secretName: {{ default "jaeger-operator-service-cert" .Values.certs.certificate.secretName }}
+          secretName: {{ default "jaeger-wls-service-cert" .Values.certs.certificate.secretName }}
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}

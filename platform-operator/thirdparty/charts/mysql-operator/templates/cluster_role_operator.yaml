@@ -1,8 +1,8 @@
-# The main role for the operator
+# The main role for the wls
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: mysql-operator
+  name: mysql-wls
 rules:
   - apiGroups: [""]
     resources: ["pods"]
@@ -11,7 +11,7 @@ rules:
     resources: ["pods/status"]
     verbs: ["get", "patch", "update", "watch"]
     # Kopf needs patch on secrets or the sidecar will throw
-    # The operator needs this verb to be able to pass it to the sidecar
+    # The wls needs this verb to be able to pass it to the sidecar
   - apiGroups: [""]
     resources: ["secrets"]
     verbs: ["get", "create", "list", "watch", "patch"]

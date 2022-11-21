@@ -8,7 +8,7 @@ import "time"
 // VerrazzanoSystemNamespace is the system namespace for verrazzano
 const VerrazzanoSystemNamespace = "verrazzano-system"
 
-// VerrazzanoInstallNamespace is the namespace that the platform operator lives in
+// VerrazzanoInstallNamespace is the namespace that the platform wls lives in
 const VerrazzanoInstallNamespace = "verrazzano-install"
 
 // VerrazzanoMonitoringNamespace is the namespace for monitoring components

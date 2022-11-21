@@ -31,7 +31,7 @@ var verrazzanoiocrds = map[string]bool{
 	"verrazzanoweblogicworkloads.oam.verrazzano.io":                false,
 }
 
-// These CRDs are not deleted when using vz uninstall but are deleted when deleting the platform-operator.yaml.
+// These CRDs are not deleted when using vz uninstall but are deleted when deleting the platform-wls.yaml.
 // Therefore, they may or may not be present after an uninstall.
 var optionalverrazzanoiocrds = []string{
 	"verrazzanomanagedclusters.clusters.verrazzano.io",

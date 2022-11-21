@@ -119,7 +119,7 @@ var _ = t.Describe("Opensearch system component data", Label("f:observability.lo
 		}, shortWaitTimeout, shortPollingInterval).Should(BeTrue(), "Expected to find Opensearch index verrazzano-install")
 
 		// GIVEN Log message in Opensearch in the verrazzano-namespace-verrazzano-install index
-		// With field kubernetes.labels.app.keyword==verrazzano-platform-operator
+		// With field kubernetes.labels.app.keyword==verrazzano-platform-wls
 		// WHEN Log messages are retrieved from Opensearch
 		// THEN Verify there are valid log records
 		valid := true
@@ -142,8 +142,8 @@ var _ = t.Describe("Opensearch system component data", Label("f:observability.lo
 
 		// GIVEN Log message in Opensearch in the verrazzano-namespace-verrazzano-system index
 		// With field
-		//  kubernetes.labels.app.keyword==verrazzano-application-operator,
-		//  kubernetes.labels.app.keyword==verrazzano-monitoring-operator,
+		//  kubernetes.labels.app.keyword==verrazzano-application-wls,
+		//  kubernetes.labels.app.keyword==verrazzano-monitoring-wls,
 		// WHEN Log messages are retrieved from Opensearch
 		// THEN Verify there are valid log records
 		if !validateVAOLogs() {
@@ -314,7 +314,7 @@ func validateCoherenceLogs() bool {
 		allOpensearchRecordValidator,
 		func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 		"kubernetes.labels.app_kubernetes_io/name.keyword",
-		"coherence-operator",
+		"coherence-wls",
 		searchTimeWindow,
 		noExceptions)
 }
@@ -355,7 +355,7 @@ func validateVPOLogs() bool {
 		allOpensearchRecordValidator,
 		func() (string, error) { return pkg.GetOpenSearchSystemIndex(installNamespace) },
 		"kubernetes.labels.app.keyword",
-		"verrazzano-platform-operator",
+		"verrazzano-platform-wls",
 		searchTimeWindow,
 		noExceptions)
 }
@@ -365,7 +365,7 @@ func validateVAOLogs() bool {
 		allOpensearchRecordValidator,
 		func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 		"kubernetes.labels.app.keyword",
-		"verrazzano-application-operator",
+		"verrazzano-application-wls",
 		searchTimeWindow,
 		noExceptions)
 }
@@ -375,7 +375,7 @@ func validateVMOLogs() bool {
 		allOpensearchRecordValidator,
 		func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 		"kubernetes.labels.app.keyword",
-		"verrazzano-monitoring-operator",
+		"verrazzano-monitoring-wls",
 		searchTimeWindow,
 		noExceptions)
 }
@@ -450,7 +450,7 @@ func validateWeblogicOperatorLogs() bool {
 		allOpensearchRecordValidator,
 		func() (string, error) { return pkg.GetOpenSearchSystemIndex(systemNamespace) },
 		"kubernetes.labels.app.keyword",
-		"weblogic-operator",
+		"weblogic-wls",
 		searchTimeWindow,
 		noExceptions)
 }

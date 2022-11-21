@@ -36,7 +36,7 @@ metadata:
 spec:
   containers:
     - command:
-        - /weblogic-operator/scripts/startServer.sh
+        - /weblogic-wls/scripts/startServer.sh
       env:
         - name: JAVA_OPTIONS
           value: -Dweblogic.StdoutDebugEnabled=false
@@ -87,11 +87,11 @@ spec:
         preStop:
           exec:
             command:
-              - /weblogic-operator/scripts/stopServer.sh
+              - /weblogic-wls/scripts/stopServer.sh
       livenessProbe:
         exec:
           command:
-            - /weblogic-operator/scripts/livenessProbe.sh
+            - /weblogic-wls/scripts/livenessProbe.sh
         failureThreshold: 1
         initialDelaySeconds: 30
         periodSeconds: 45
@@ -117,15 +117,15 @@ spec:
       terminationMessagePath: /dev/termination-log
       terminationMessagePolicy: File
       volumeMounts:
-        - mountPath: /weblogic-operator/scripts
+        - mountPath: /weblogic-wls/scripts
           name: weblogic-scripts-cm-volume
           readOnly: true
-        - mountPath: /weblogic-operator/debug
+        - mountPath: /weblogic-wls/debug
           name: weblogic-domain-debug-cm-volume
           readOnly: true
-        - mountPath: /weblogic-operator/introspector
+        - mountPath: /weblogic-wls/introspector
           name: weblogic-domain-introspect-cm-volume
-        - mountPath: /weblogic-operator/model-runtime-secret
+        - mountPath: /weblogic-wls/model-runtime-secret
           name: weblogic-domain-runtime-encryption-volume
           readOnly: true
         - mountPath: /var/run/secrets/kubernetes.io/serviceaccount

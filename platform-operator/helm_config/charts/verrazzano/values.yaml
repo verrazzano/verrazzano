@@ -22,7 +22,7 @@ prometheus:
     memory: 128Mi
     storage: 50Gi
   namespace: verrazzano-monitoring
-  serviceAccount: prometheus-operator-kube-p-prometheus
+  serviceAccount: prometheus-wls-kube-p-prometheus
 
 grafana:
   enabled: true
@@ -39,7 +39,7 @@ kiali:
   name: vmi-system-kiali
 
 monitoringOperator:
-  name: verrazzano-monitoring-operator
+  name: verrazzano-monitoring-wls
 
 logging:
   name: fluentd
@@ -98,4 +98,4 @@ istio:
 jaegerOperator:
   enabled: false
   namespace: verrazzano-monitoring
-  jaegerServiceAccount: jaeger-operator-jaeger
+  jaegerServiceAccount: jaeger-wls-jaeger

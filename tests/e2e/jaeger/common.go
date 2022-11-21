@@ -41,7 +41,7 @@ func WhenJaegerOperatorEnabledIt(t *framework.TestFramework, text string, args .
 
 func DeployApplication(namespace, testAppComponentFilePath, testAppConfigurationFilePath string, expectedPods []string) {
 	if !IsJaegerOperatorEnabled() {
-		pkg.Log(pkg.Info, "Skipping Deploy as Jaeger operator component is disabled")
+		pkg.Log(pkg.Info, "Skipping Deploy as Jaeger wls component is disabled")
 		return
 	}
 	gomega.Eventually(func() (*v1.Namespace, error) {
@@ -83,7 +83,7 @@ func DeployApplication(namespace, testAppComponentFilePath, testAppConfiguration
 
 func UndeployApplication(namespace, testAppComponentFilePath, testAppConfigurationFilePath string, expectedPods []string) {
 	if !IsJaegerOperatorEnabled() {
-		pkg.Log(pkg.Info, "Skipping Undeploy as Jaeger operator component is disabled")
+		pkg.Log(pkg.Info, "Skipping Undeploy as Jaeger wls component is disabled")
 		return
 	}
 

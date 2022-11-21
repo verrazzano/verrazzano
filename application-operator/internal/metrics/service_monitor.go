@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strconv"
 
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	promoperapi "github.com/prometheus-wls/prometheus-wls/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	corev1 "k8s.io/api/core/v1"
@@ -43,7 +43,7 @@ func PopulateServiceMonitor(info ScrapeInfo, serviceMonitor *promoperapi.Service
 	if serviceMonitor.ObjectMeta.Labels == nil {
 		serviceMonitor.ObjectMeta.Labels = make(map[string]string)
 	}
-	serviceMonitor.Labels["release"] = "prometheus-operator"
+	serviceMonitor.Labels["release"] = "prometheus-wls"
 	serviceMonitor.Spec.NamespaceSelector = promoperapi.NamespaceSelector{
 		MatchNames: []string{serviceMonitor.Namespace},
 	}

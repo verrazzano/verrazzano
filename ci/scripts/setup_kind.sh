@@ -123,18 +123,18 @@ fi
 
 echo "Install Platform Operator"
 if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
-  # Derive the name of the operator.yaml file, copy or generate the file, then install
+  # Derive the name of the wls.yaml file, copy or generate the file, then install
   if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
       echo "Using operator.yaml from object storage location ${OCI_OS_LOCATION}"
-      curl -s -L https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_COMMIT_BUCKET}/o/${OCI_OS_LOCATION}/operator.yaml > ${WORKSPACE}/downloaded-operator.yaml
-      cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
+      curl -s -L https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_COMMIT_BUCKET}/o/${OCI_OS_LOCATION}/wls.yaml > ${WORKSPACE}/downloaded-wls.yaml
+      cp ${WORKSPACE}/downloaded-wls.yaml ${WORKSPACE}/acceptance-test-wls.yaml
   else
       echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
-      env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ${VZ_ROOT}/tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
+      env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ${VZ_ROOT}/tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-wls.yaml
   fi
-  kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
+  kubectl apply -f ${WORKSPACE}/acceptance-test-wls.yaml
 else
-  # The operator.yaml filename was provided, install using that file.
+  # The wls.yaml filename was provided, install using that file.
   echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
   kubectl apply -f ${OPERATOR_YAML}
 fi
@@ -146,7 +146,7 @@ ${TEST_SCRIPTS_DIR}/check_verrazzano_ns_exists.sh verrazzano-install
 ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
 echo "Wait for Operator to be ready"
-kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
+kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-wls
 if [ $? -ne 0 ]; then
   echo "Operator is not ready"
   exit 1

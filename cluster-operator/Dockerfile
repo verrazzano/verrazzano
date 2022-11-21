@@ -3,22 +3,22 @@
 
 FROM ghcr.io/oracle/oraclelinux:7-slim AS build_base
 
-# Need to use specific WORKDIR to match verrazzano-cluster-operator's source packages
+# Need to use specific WORKDIR to match verrazzano-cluster-wls's source packages
 WORKDIR /root/go/src/github.com/verrazzano/cluster-operator
 COPY . .
 
 COPY out/linux_amd64/verrazzano-cluster-operator /usr/local/bin/verrazzano-cluster-operator
 
-RUN chmod 500 /usr/local/bin/verrazzano-cluster-operator
+RUN chmod 500 /usr/local/bin/verrazzano-cluster-wls
 
-# Create the verrazzano-cluster-operator image
+# Create the verrazzano-cluster-wls image
 FROM ghcr.io/oracle/oraclelinux:7-slim
 
 RUN yum update -y \
     && yum clean all \
     && rm -rf /var/cache/yum
 
-# Copy the operator binary
+# Copy the wls binary
 WORKDIR /
 
 RUN groupadd -r verrazzano && useradd --no-log-init -r -g verrazzano -u 1000 verrazzano \

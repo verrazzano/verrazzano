@@ -39,7 +39,7 @@ spec:
             description: The desired state of a Verrazzano WebLogic workload.
             properties:
               template:
-                description: The metadata and spec for the underlying <a href="https://github.com/oracle/weblogic-kubernetes-operator/blob/main/documentation/domains/Domain.md">Domain</a>
+                description: The metadata and spec for the underlying <a href="https://github.com/oracle/weblogic-kubernetes-wls/blob/main/documentation/domains/Domain.md">Domain</a>
                   resource.
                 type: object
                 x-kubernetes-preserve-unknown-fields: true

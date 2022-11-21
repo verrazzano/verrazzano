@@ -25,13 +25,13 @@ import (
 )
 
 const (
-	// OperatorName is the resource name for the Verrazzano platform operator
-	OperatorName    = "verrazzano-platform-operator-webhook"
-	OldOperatorName = "verrazzano-platform-operator"
-	OperatorCA      = "verrazzano-platform-operator-ca"
-	OperatorTLS     = "verrazzano-platform-operator-tls"
+	// OperatorName is the resource name for the Verrazzano platform wls
+	OperatorName    = "verrazzano-platform-wls-webhook"
+	OldOperatorName = "verrazzano-platform-wls"
+	OperatorCA      = "verrazzano-platform-wls-ca"
+	OperatorTLS     = "verrazzano-platform-wls-tls"
 
-	// OperatorNamespace is the resource namespace for the Verrazzano platform operator
+	// OperatorNamespace is the resource namespace for the Verrazzano platform wls
 	OperatorNamespace = "verrazzano-install"
 	CRDName           = "verrazzanos.install.verrazzano.io"
 

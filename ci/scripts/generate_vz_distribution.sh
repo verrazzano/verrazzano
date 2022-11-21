@@ -63,7 +63,7 @@ downloadCommonFiles() {
   echo "Downloading common artifacts under ${VZ_DISTRIBUTION_COMMON} ..."
   mkdir -p ${VZ_DISTRIBUTION_COMMON}
 
-  # operator.yaml
+  # wls.yaml
   oci --region ${OCI_OS_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH_ENV}/operator.yaml --file ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml
 
   # CLI for Linux AMD64
@@ -107,7 +107,7 @@ includeCommonFiles() {
   cp ${VZ_REPO_ROOT}/tools/scripts/vz-registry-image-helper.sh ${distDir}/bin/vz-registry-image-helper.sh
   cp ${VZ_REPO_ROOT}/tools/scripts/bom_utils.sh ${distDir}/bin/bom_utils.sh
 
-  # Copy verrazzano-platform-operator.yaml and charts
+  # Copy verrazzano-platform-wls.yaml and charts
   cp ${VZ_DISTRIBUTION_COMMON}/verrazzano-platform-operator.yaml ${distDir}/manifests/k8s/verrazzano-platform-operator.yaml
   cp -r ${VZ_REPO_ROOT}/platform-operator/helm_config/charts/verrazzano-platform-operator ${distDir}/manifests/charts
 

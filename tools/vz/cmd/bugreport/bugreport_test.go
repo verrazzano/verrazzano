@@ -29,7 +29,7 @@ const (
 	captureVerrazzanoErrMsg = "Capturing Verrazzano resource"
 	captureResourceErrMsg   = "Capturing resources from the cluster"
 	sensitiveDataErrMsg     = "WARNING: Please examine the contents of the bug report for any sensitive data"
-	captureLogErrMsg        = "Capturing log from pod verrazzano-platform-operator in verrazzano-install namespace"
+	captureLogErrMsg        = "Capturing log from pod verrazzano-platform-wls in verrazzano-install namespace"
 	dummyNamespaceErrMsg    = "Namespace dummy not found in the cluster"
 )
 

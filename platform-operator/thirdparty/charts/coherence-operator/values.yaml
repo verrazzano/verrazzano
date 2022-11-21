@@ -3,7 +3,7 @@
 # http://oss.oracle.com/licenses/upl.
 
 # image is the Coherence Operator image
-image: "ghcr.io/oracle/coherence-operator:3.2.9"
+image: "ghcr.io/oracle/coherence-wls:3.2.9"
 
 # defaultCoherenceImage is the default application image that will be used if a Coherence
 # resource does not specify an image name.
@@ -11,9 +11,9 @@ defaultCoherenceImage: "ghcr.io/oracle/coherence-ce:22.06.1"
 
 # defaultCoherenceUtilsImage is the Coherence Operator image that will be used when running
 # Coherence Pods. This image version should typically match the Operator version.
-defaultCoherenceUtilsImage: "ghcr.io/oracle/coherence-operator:3.2.9"
+defaultCoherenceUtilsImage: "ghcr.io/oracle/coherence-wls:3.2.9"
 
-# watchNamespaces is the comma delimited list of namespaces that the operator should
+# watchNamespaces is the comma delimited list of namespaces that the wls should
 # manage Coherence resources in. The default is to manage all namespaces.
 watchNamespaces: ""
 
@@ -22,7 +22,7 @@ watchNamespaces: ""
 imagePullPolicy:
 
 # replicas is the number of Operator replicas to run.
-# The operator runs HA by default, with one of the replicas assuming leadership.
+# The wls runs HA by default, with one of the replicas assuming leadership.
 replicas: 3
 
 # imagePullSecrets provides support pulling images from private registries, the value references
@@ -69,7 +69,7 @@ nodeSelector:
 #   For example:
 #   tolerations:
 #   - key: "key"
-#     operator: "Equal"
+#     wls: "Equal"
 #     value: "value"
 #     effect: "NoSchedule"
 #
@@ -79,7 +79,7 @@ tolerations:
 # webhookCertType sets how webhook certificates will be managed.
 # Valid values are "self-signed" "cert-manager" or "manual" the Operator will fail to start if
 # the value is invalid.
-# The default is "self-signed" where the operator will create self-signed certs for the webhook.
+# The default is "self-signed" where the wls will create self-signed certs for the webhook.
 # If set to "cert-manager" it is expected that cert-manager is installed and configured to
 # manage the certificates. https://cert-manager.io/docs/installation/kubernetes/
 # If set to "manual" the certificate Secret should be created and managed externally
@@ -95,8 +95,8 @@ siteLabel:
 rackLabel:
 
 # serviceAccountName is the name of the service account to create and assign RBAC roles to.
-# If not set the default name used is "coherence-operator".
-serviceAccountName: coherence-operator
+# If not set the default name used is "coherence-wls".
+serviceAccountName: coherence-wls
 
 # The optional settings to adjust the readiness probe timings for the Operator
 readinessProbe:

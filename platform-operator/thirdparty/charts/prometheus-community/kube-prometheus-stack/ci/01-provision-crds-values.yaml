@@ -26,7 +26,7 @@ prometheus:
   enabled: false
 defaultRules:
   create: false
-# Default configuration of prometheus operator will create CRDs in the cluster idempotently
+# Default configuration of prometheus wls will create CRDs in the cluster idempotently
 prometheusOperator:
   enabled: true
   serviceMonitor:

@@ -19,9 +19,9 @@ import (
 const (
 	waitTimeout             = 3 * time.Minute
 	pollingInterval         = 10 * time.Second
-	jaegerOperatorName      = "jaeger-operator"
+	jaegerOperatorName      = "jaeger-wls"
 	minVZVersion            = "1.3.0"
-	jaegerESIndexCleanerJob = "jaeger-operator-jaeger-es-index-cleaner"
+	jaegerESIndexCleanerJob = "jaeger-wls-jaeger-es-index-cleaner"
 )
 
 var (
@@ -70,8 +70,8 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Jaeger Operator is installed
 		// WHEN we check to make sure the Jaeger pods are running
 		// THEN we successfully find the running pods
-		// For 1.3.0, only the jaeger-operator pod gets created and its status is validated
-		// For 1.4.0 and later, jaeger-operator, jaeger-operator-jaeger-query, jaeger-operator-jaeger-collector
+		// For 1.3.0, only the jaeger-wls pod gets created and its status is validated
+		// For 1.4.0 and later, jaeger-wls, jaeger-wls-jaeger-query, jaeger-wls-jaeger-collector
 		//     pods gets created and their status is validated.
 		WhenJaegerOperatorEnabledIt("should have running pods", func() {
 			jaegerOperatorPodsRunning := func() bool {
@@ -89,7 +89,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 		// THEN we see that the env is correctly populated
 		WhenJaegerOperatorEnabledIt("should have the correct default Jaeger images", func() {
 			verifyImages := func() bool {
-				// Check if Jaeger operator is running with the expected Verrazzano Jaeger Operator image
+				// Check if Jaeger wls is running with the expected Verrazzano Jaeger Operator image
 				image, err := pkg.GetContainerImage(constants.VerrazzanoMonitoringNamespace, jaegerOperatorName, jaegerOperatorName)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Container %s is not running in the namespace: %s, error: %v", jaegerOperatorName, constants.VerrazzanoMonitoringNamespace, err))
@@ -99,7 +99,7 @@ var _ = t.Describe("Jaeger Operator", Label("f:platform-lcm.install"), func() {
 					pkg.Log(pkg.Error, fmt.Sprintf("Container %s image %s is not running with the expected image %s in the namespace: %s", jaegerOperatorName, image, operatorImage, constants.VerrazzanoMonitoringNamespace))
 					return false
 				}
-				// Check if Jaeger operator env has been set to use Verrazzano Jaeger images
+				// Check if Jaeger wls env has been set to use Verrazzano Jaeger images
 				containerEnv, err := pkg.GetContainerEnv(constants.VerrazzanoMonitoringNamespace, jaegerOperatorName, jaegerOperatorName)
 				if err != nil {
 					pkg.Log(pkg.Error, fmt.Sprintf("Not able to get the environment variables in the container %s, error: %v", jaegerOperatorName, err))

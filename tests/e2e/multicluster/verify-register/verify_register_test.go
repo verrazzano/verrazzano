@@ -197,7 +197,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 					Eventually(func() bool {
 						return pkg.FindLog(verrazzanoIndex,
 							[]pkg.Match{
-								{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
+								{Key: "kubernetes.container_name", Value: "verrazzano-application-wls"},
 								{Key: "cluster_name.keyword", Value: constants.DefaultClusterName}},
 							[]pkg.Match{
 								{Key: "cluster_name", Value: managedClusterName}})
@@ -218,7 +218,7 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 					Eventually(func() bool {
 						return pkg.FindLog(verrazzanoIndex,
 							[]pkg.Match{
-								{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
+								{Key: "kubernetes.container_name", Value: "verrazzano-application-wls"},
 								{Key: "cluster_name.keyword", Value: managedClusterName}},
 							[]pkg.Match{
 								{Key: "cluster_name.keyword", Value: constants.DefaultClusterName}})

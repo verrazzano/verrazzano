@@ -46,7 +46,7 @@ func InitLogs(opts kzap.Options) {
 	//
 	// The logger instantiated here can be changed to any logger
 	// implementing the logr.Logger interface. This logger will
-	// be propagated through the whole operator, generating
+	// be propagated through the whole wls, generating
 	// uniform and structured logs.
 	//
 	// Add the caller field as an option otherwise the controller runtime logger

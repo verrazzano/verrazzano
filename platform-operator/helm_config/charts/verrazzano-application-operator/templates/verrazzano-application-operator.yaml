@@ -16,7 +16,7 @@ imagePullSecrets:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: verrazzano-application-operator
+  name: verrazzano-application-wls
 rules:
   - apiGroups:
       - ""
@@ -337,7 +337,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: verrazzano-application-operator
+  name: verrazzano-application-wls
 subjects:
   - kind: ServiceAccount
     name: {{ .Values.name }}

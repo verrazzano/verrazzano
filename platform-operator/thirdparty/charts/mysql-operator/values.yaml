@@ -1,7 +1,7 @@
 image:
   registry:
   repository: mysql
-  name: mysql-operator
+  name: mysql-wls
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""

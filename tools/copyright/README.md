@@ -22,8 +22,8 @@ For example, to check all files in the Verrazzano repo, you can run it as follow
 ```shell
 $ cd ${VERRAZZANO_ROOT}
 $ go run copyright.go .
-Files to ignore: [platform-operator/scripts/install/config/cert-manager.crds.patch platform-operator/helm_config/charts/verrazzano/NOTES.txt platform-operator/helm_config/charts/verrazzano-application-operator/NOTES.txt LICENSES-OLCNE.pdf application-operator/deploy/application-operator.txt tests/e2e/config/scripts/terraform/cluster/required-env-vars tests/e2e/config/scripts/looping-test/types.txt .DS_Store]
-Directories to ignore: [platform-operator/thirdparty .idea]
+Files to ignore: [platform-wls/scripts/install/config/cert-manager.crds.patch platform-wls/helm_config/charts/verrazzano/NOTES.txt platform-wls/helm_config/charts/verrazzano-application-wls/NOTES.txt LICENSES-OLCNE.pdf application-wls/deploy/application-wls.txt tests/e2e/config/scripts/terraform/cluster/required-env-vars tests/e2e/config/scripts/looping-test/types.txt .DS_Store]
+Directories to ignore: [platform-wls/thirdparty .idea]
 
 Copyright scanning target .
 
@@ -37,45 +37,45 @@ Results of scan:
 Adding `--verbose` will spit out more details.  For example:
 
 ```shell
-$ go run tools/copyright/copyright.go --verbose platform-operator/scripts 
-Files to ignore: [platform-operator/scripts/install/config/cert-manager.crds.patch platform-operator/helm_config/charts/verrazzano/NOTES.txt platform-operator/helm_config/charts/verrazzano-application-operator/NOTES.txt LICENSES-OLCNE.pdf application-operator/deploy/application-operator.txt tests/e2e/config/scripts/terraform/cluster/required-env-vars tests/e2e/config/scripts/looping-test/types.txt]
-Directories to ignore: [platform-operator/thirdparty]
+$ go run tools/copyright/copyright.go --verbose platform-wls/scripts 
+Files to ignore: [platform-wls/scripts/install/config/cert-manager.crds.patch platform-wls/helm_config/charts/verrazzano/NOTES.txt platform-wls/helm_config/charts/verrazzano-application-wls/NOTES.txt LICENSES-OLCNE.pdf application-wls/deploy/application-wls.txt tests/e2e/config/scripts/terraform/cluster/required-env-vars tests/e2e/config/scripts/looping-test/types.txt]
+Directories to ignore: [platform-wls/thirdparty]
 
-Copyright scanning target platform-operator/scripts
-Scanning platform-operator/scripts/install/1-install-istio.sh
-Scanning platform-operator/scripts/install/2-install-system-components.sh
-Scanning platform-operator/scripts/install/3-install-verrazzano.sh
-Scanning platform-operator/scripts/install/4-install-keycloak.sh
-Scanning platform-operator/scripts/install/common.sh
-Skipping file platform-operator/scripts/install/config/cert-manager.crds.patch
-Skipping file platform-operator/scripts/install/config/config_defaults.json
-Skipping file platform-operator/scripts/install/config/config_kind.json
-Skipping file platform-operator/scripts/install/config/config_oci.json
-Skipping file platform-operator/scripts/install/config/config_olcne.json
-Scanning platform-operator/scripts/install/config/coredns-template.yaml
-Scanning platform-operator/scripts/install/config/istio_intermediate_ca_config.txt
-Scanning platform-operator/scripts/install/config/istio_root_ca_config.txt
-Skipping file platform-operator/scripts/install/config/keycloak.json
-Scanning platform-operator/scripts/install/config/verrazzano_admission_controller_ca_config.txt
-Scanning platform-operator/scripts/install/config/verrazzano_admission_controller_cert_config.txt
-Scanning platform-operator/scripts/install/config.sh
-Scanning platform-operator/scripts/install/create_oci_config_secret.sh
-Scanning platform-operator/scripts/install/install-oke.sh
-Scanning platform-operator/scripts/install/k8s-dump-objects.sh
-Scanning platform-operator/scripts/install/logging.sh
-Skipping file platform-operator/scripts/uninstall/README.md
-Skipping file platform-operator/scripts/uninstall/build/logs/uninstall-verrazzano.sh.log
-Scanning platform-operator/scripts/uninstall/uninstall-steps/0-uninstall-applications.sh
-Scanning platform-operator/scripts/uninstall/uninstall-steps/1-uninstall-istio.sh
-Scanning platform-operator/scripts/uninstall/uninstall-steps/2-uninstall-system-components.sh
-Scanning platform-operator/scripts/uninstall/uninstall-steps/3-uninstall-verrazzano.sh
-Scanning platform-operator/scripts/uninstall/uninstall-steps/4-uninstall-keycloak.sh
-Skipping file platform-operator/scripts/uninstall/uninstall-steps/build/logs/1-uninstall-istio.sh.log
-Skipping file platform-operator/scripts/uninstall/uninstall-steps/build/logs/2-uninstall-system-components.sh.log
-Skipping file platform-operator/scripts/uninstall/uninstall-steps/build/logs/3-uninstall-verrazzano.sh.log
-Skipping file platform-operator/scripts/uninstall/uninstall-steps/build/logs/4-uninstall-keycloak.sh.log
-Scanning platform-operator/scripts/uninstall/uninstall-utils.sh
-Scanning platform-operator/scripts/uninstall/uninstall-verrazzano.sh
+Copyright scanning target platform-wls/scripts
+Scanning platform-wls/scripts/install/1-install-istio.sh
+Scanning platform-wls/scripts/install/2-install-system-components.sh
+Scanning platform-wls/scripts/install/3-install-verrazzano.sh
+Scanning platform-wls/scripts/install/4-install-keycloak.sh
+Scanning platform-wls/scripts/install/common.sh
+Skipping file platform-wls/scripts/install/config/cert-manager.crds.patch
+Skipping file platform-wls/scripts/install/config/config_defaults.json
+Skipping file platform-wls/scripts/install/config/config_kind.json
+Skipping file platform-wls/scripts/install/config/config_oci.json
+Skipping file platform-wls/scripts/install/config/config_olcne.json
+Scanning platform-wls/scripts/install/config/coredns-template.yaml
+Scanning platform-wls/scripts/install/config/istio_intermediate_ca_config.txt
+Scanning platform-wls/scripts/install/config/istio_root_ca_config.txt
+Skipping file platform-wls/scripts/install/config/keycloak.json
+Scanning platform-wls/scripts/install/config/verrazzano_admission_controller_ca_config.txt
+Scanning platform-wls/scripts/install/config/verrazzano_admission_controller_cert_config.txt
+Scanning platform-wls/scripts/install/config.sh
+Scanning platform-wls/scripts/install/create_oci_config_secret.sh
+Scanning platform-wls/scripts/install/install-oke.sh
+Scanning platform-wls/scripts/install/k8s-dump-objects.sh
+Scanning platform-wls/scripts/install/logging.sh
+Skipping file platform-wls/scripts/uninstall/README.md
+Skipping file platform-wls/scripts/uninstall/build/logs/uninstall-verrazzano.sh.log
+Scanning platform-wls/scripts/uninstall/uninstall-steps/0-uninstall-applications.sh
+Scanning platform-wls/scripts/uninstall/uninstall-steps/1-uninstall-istio.sh
+Scanning platform-wls/scripts/uninstall/uninstall-steps/2-uninstall-system-components.sh
+Scanning platform-wls/scripts/uninstall/uninstall-steps/3-uninstall-verrazzano.sh
+Scanning platform-wls/scripts/uninstall/uninstall-steps/4-uninstall-keycloak.sh
+Skipping file platform-wls/scripts/uninstall/uninstall-steps/build/logs/1-uninstall-istio.sh.log
+Skipping file platform-wls/scripts/uninstall/uninstall-steps/build/logs/2-uninstall-system-components.sh.log
+Skipping file platform-wls/scripts/uninstall/uninstall-steps/build/logs/3-uninstall-verrazzano.sh.log
+Skipping file platform-wls/scripts/uninstall/uninstall-steps/build/logs/4-uninstall-keycloak.sh.log
+Scanning platform-wls/scripts/uninstall/uninstall-utils.sh
+Scanning platform-wls/scripts/uninstall/uninstall-verrazzano.sh
 
 Results of scan:
 	Files analyzed: 22
@@ -97,13 +97,13 @@ copyright/licsense information:
 ```shell
 $ go run tools/copyright/copyright.go --verbose --enforce-current  $(git status --short | cut -c 4-)
 Enforcing current year in copyright string
-Files to ignore: [platform-operator/scripts/install/config/cert-manager.crds.patch platform-operator/helm_config/charts/verrazzano/NOTES.txt platform-operator/helm_config/charts/verrazzano-application-operator/NOTES.txt LICENSES-OLCNE.pdf application-operator/deploy/application-operator.txt tests/e2e/config/scripts/terraform/cluster/required-env-vars tests/e2e/config/scripts/looping-test/types.txt .DS_Store]
-Directories to ignore: [platform-operator/thirdparty .idea]
+Files to ignore: [platform-wls/scripts/install/config/cert-manager.crds.patch platform-wls/helm_config/charts/verrazzano/NOTES.txt platform-wls/helm_config/charts/verrazzano-application-wls/NOTES.txt LICENSES-OLCNE.pdf application-wls/deploy/application-wls.txt tests/e2e/config/scripts/terraform/cluster/required-env-vars tests/e2e/config/scripts/looping-test/types.txt .DS_Store]
+Directories to ignore: [platform-wls/thirdparty .idea]
 
 Copyright scanning target ignore_copyright_check.txt
 Copyright scanning target tools/copyright/README.md
 Copyright scanning target .DS_Store
-Copyright scanning target platform-operator/run-vpo.sh
+Copyright scanning target platform-wls/run-vpo.sh
 
 Results of scan:
 	Files analyzed: 2
@@ -122,8 +122,8 @@ to the scanner, and also checks for the current year in the copyright:
 ```shell
 $ go run tools/copyright/copyright.go --enforce-current $(git diff --name-only origin/master) 
 Enforcing current year in copyright string
-Files to ignore: [platform-operator/scripts/install/config/cert-manager.crds.patch platform-operator/helm_config/charts/verrazzano/NOTES.txt platform-operator/helm_config/charts/verrazzano-application-operator/NOTES.txt LICENSES-OLCNE.pdf application-operator/deploy/application-operator.txt tests/e2e/config/scripts/terraform/cluster/required-env-vars tests/e2e/config/scripts/looping-test/types.txt .DS_Store]
-Directories to ignore: [platform-operator/thirdparty .idea]
+Files to ignore: [platform-wls/scripts/install/config/cert-manager.crds.patch platform-wls/helm_config/charts/verrazzano/NOTES.txt platform-wls/helm_config/charts/verrazzano-application-wls/NOTES.txt LICENSES-OLCNE.pdf application-wls/deploy/application-wls.txt tests/e2e/config/scripts/terraform/cluster/required-env-vars tests/e2e/config/scripts/looping-test/types.txt .DS_Store]
+Directories to ignore: [platform-wls/thirdparty .idea]
 
 Copyright scanning target Jenkinsfile
 Copyright scanning target Makefile

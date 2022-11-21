@@ -138,7 +138,7 @@ func ValidateNewVersion(currStatusVerString string, currSpecVerString string, ne
 	}
 
 	// Make sure this isn't a rollback attempt from the currently installed version, which is currently unsupported
-	// - use case is, user rolls back to an earlier version of the platform operator and requests the older BOM version
+	// - use case is, user rolls back to an earlier version of the platform wls and requests the older BOM version
 	currentStatusVersion, err := semver.NewSemVersion(strings.TrimSpace(currStatusVerString))
 	if err != nil {
 		// for this path we should always have a status version
@@ -399,7 +399,7 @@ func IsKubernetesVersionSupported() bool {
 	return false
 }
 
-// getKubernetesVersion returns the version of Kubernetes cluster in which operator is deployed
+// getKubernetesVersion returns the version of Kubernetes cluster in which wls is deployed
 func getKubernetesVersion() (string, error) {
 	config, err := ctrl.GetConfig()
 	if err != nil {
@@ -419,7 +419,7 @@ func getKubernetesVersion() (string, error) {
 	return versionInfo.String(), nil
 }
 
-// getSupportedKubernetesVersions returns the Kubernetes versions supported by operator
+// getSupportedKubernetesVersions returns the Kubernetes versions supported by wls
 func getSupportedKubernetesVersions() ([]string, error) {
 	bom, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {

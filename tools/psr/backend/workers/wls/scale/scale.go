@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package scaledomain
+package scale
 
 import (
 	"fmt"
@@ -36,16 +36,16 @@ const (
 	// MaxReplicaCount specifies the maximum replicas to scale on the domain
 	// By default, MaxReplicaCount is set to 4
 	MaxReplicaCount = "MAX_REPLICA_COUNT"
-	specField       = "spec"
+
+	metricsPrefix = "weblogic_scaling"
 )
 
-type scaleDomain struct {
-	spi.Worker
+type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetrics
 }
 
-var _ spi.Worker = scaleDomain{}
+var _ spi.Worker = worker{}
 
 // workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
 type workerMetrics struct {
@@ -54,8 +54,8 @@ type workerMetrics struct {
 	scaleDomainFailedCountTotal    metrics.MetricItem
 }
 
-func NewScaleDomainWorker() (spi.Worker, error) {
-	w := scaleDomain{workerMetrics: &workerMetrics{
+func NewScaleWorker() (spi.Worker, error) {
+	w := worker{workerMetrics: &workerMetrics{
 		scaleDomainCountTotal: metrics.MetricItem{
 			Name: "scale_domain_count_total",
 			Help: "The total number of scale domain requests",
@@ -74,23 +74,38 @@ func NewScaleDomainWorker() (spi.Worker, error) {
 	}}
 
 	w.metricDescList = []prometheus.Desc{
-		*w.scaleDomainCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.scaleDomainSucceededCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.scaleDomainFailedCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+		*w.scaleDomainCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
+		*w.scaleDomainSucceededCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
+		*w.scaleDomainFailedCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
 	}
+
+	if err := config.PsrEnv.LoadFromEnv(w.GetEnvDescList()); err != nil {
+		return w, err
+	}
+
+	metricsLabels := map[string]string{
+		config.PsrWorkerTypeMetricsName: config.PsrEnv.GetEnv(config.PsrWorkerType),
+	}
+
+	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
+		&w.scaleDomainCountTotal,
+		&w.scaleDomainSucceededCountTotal,
+		&w.scaleDomainFailedCountTotal,
+	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
+
 	return w, nil
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
-func (w scaleDomain) GetWorkerDesc() spi.WorkerDesc {
+func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		WorkerType:  config.WorkerTypeWlsScale,
-		Description: "The scale domain worker scales up and scales down the domain",
-		MetricsName: "scaleDomain",
+		WorkerType:    config.WorkerTypeWlsScale,
+		Description:   "The scale domain worker scales up and scales down the domain",
+		MetricsPrefix: metricsPrefix,
 	}
 }
 
-func (w scaleDomain) GetEnvDescList() []osenv.EnvVarDesc {
+func (w worker) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{
 		{Key: DomainUID, DefaultVal: "", Required: true},
 		{Key: DomainNamespace, DefaultVal: "", Required: true},
@@ -99,11 +114,11 @@ func (w scaleDomain) GetEnvDescList() []osenv.EnvVarDesc {
 	}
 }
 
-func (w scaleDomain) GetMetricDescList() []prometheus.Desc {
+func (w worker) GetMetricDescList() []prometheus.Desc {
 	return w.metricDescList
 }
 
-func (w scaleDomain) GetMetricList() []prometheus.Metric {
+func (w worker) GetMetricList() []prometheus.Metric {
 	return []prometheus.Metric{
 		w.scaleDomainCountTotal.BuildMetric(),
 		w.scaleDomainSucceededCountTotal.BuildMetric(),
@@ -111,15 +126,15 @@ func (w scaleDomain) GetMetricList() []prometheus.Metric {
 	}
 }
 
-func (w scaleDomain) WantLoopInfoLogged() bool {
+func (w worker) WantLoopInfoLogged() bool {
 	return false
 }
 
-func (w scaleDomain) PreconditionsMet() (bool, error) {
+func (w worker) PreconditionsMet() (bool, error) {
 	return true, nil
 }
 
-func (w scaleDomain) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 
 	//increment scaleDomainCountTotal
 	atomic.AddInt64(&w.workerMetrics.scaleDomainCountTotal.Val, 1)
@@ -134,17 +149,18 @@ func (w scaleDomain) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger
 	}
 	domainNamespace := config.PsrEnv.GetEnv(DomainNamespace)
 	domainUID := config.PsrEnv.GetEnv(DomainUID)
+
 	client, err := w.createClient()
 	if err != nil {
 		return err
 	}
+
 	// get current replicas at /spec/replicas
 	currentReplicas, err := weblogic.GetCurrentReplicas(client, domainNamespace, domainUID)
 	if err != nil {
 		atomic.AddInt64(&w.workerMetrics.scaleDomainFailedCountTotal.Val, 1)
 		return err
 	}
-	log.Infof("current replicas %v", currentReplicas)
 
 	// set replicas to scale based on current replicas
 	if currentReplicas > min {
@@ -152,30 +168,25 @@ func (w scaleDomain) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger
 	} else {
 		replicas = max
 	}
-	log.Infof("replicas to scale %v", replicas)
 	err = weblogic.PatchReplicas(client, domainNamespace, domainUID, replicas)
 	if err != nil {
-		log.Infof("patchReplicas failed")
 		atomic.AddInt64(&w.workerMetrics.scaleDomainFailedCountTotal.Val, 1)
 		return err
 	}
 	success, err := w.waitForReadyReplicas(client, domainNamespace, domainUID, replicas)
 	if err != nil {
-		log.Infof("wait for readyReplicas failed")
 		atomic.AddInt64(&w.workerMetrics.scaleDomainFailedCountTotal.Val, 1)
 		return err
 	}
 	if success {
-		log.Infof("readyReplicas success")
 		atomic.AddInt64(&w.workerMetrics.scaleDomainSucceededCountTotal.Val, 1)
 	} else {
-		log.Infof("readyReplicas failed")
 		atomic.AddInt64(&w.workerMetrics.scaleDomainFailedCountTotal.Val, 1)
 	}
 	return nil
 }
 
-func (w scaleDomain) createClient() (dynamic.Interface, error) {
+func (w worker) createClient() (dynamic.Interface, error) {
 	cfg, err := controllerruntime.GetConfig()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get controller-runtime config %v", err)
@@ -183,7 +194,7 @@ func (w scaleDomain) createClient() (dynamic.Interface, error) {
 	return dynamic.NewForConfig(cfg)
 }
 
-func (w scaleDomain) waitForReadyReplicas(client dynamic.Interface, namespace string, name string, readyReplicas int64) (bool, error) {
+func (w worker) waitForReadyReplicas(client dynamic.Interface, namespace string, name string, readyReplicas int64) (bool, error) {
 	for {
 		rr, err := weblogic.GetReadyReplicas(client, namespace, name)
 		if err != nil {

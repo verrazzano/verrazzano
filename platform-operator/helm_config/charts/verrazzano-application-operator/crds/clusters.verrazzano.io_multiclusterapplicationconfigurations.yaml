@@ -158,7 +158,7 @@ spec:
                                           type: string
                                         op:
                                           description: ConditionOperator specifies
-                                            the operator to match a value.
+                                            the wls to match a value.
                                           type: string
                                         value:
                                           description: Value specifies an expected
@@ -310,7 +310,7 @@ spec:
                                                 type: string
                                               op:
                                                 description: ConditionOperator specifies
-                                                  the operator to match a value.
+                                                  the wls to match a value.
                                                 type: string
                                               value:
                                                 description: Value specifies an expected

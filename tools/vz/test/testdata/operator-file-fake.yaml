@@ -1,7 +1,7 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-# A real operator.yaml file would contain more information that this.  For testing purposes
+# A real wls.yaml file would contain more information that this.  For testing purposes
 # we are making sure the file gets applied and any objects within it are added to the cluster.
 
 apiVersion: v1
@@ -12,21 +12,21 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: verrazzano-platform-operator
+  name: verrazzano-platform-wls
   namespace: verrazzano-install
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: verrazzano-platform-operator
+  name: verrazzano-platform-wls
   namespace: verrazzano-install
   labels:
-    app: verrazzano-platform-operator
+    app: verrazzano-platform-wls
 spec:
   ports:
     - name: webhook
       port: 443
       targetPort: 9443
   selector:
-    app: verrazzano-platform-operator
+    app: verrazzano-platform-wls
 

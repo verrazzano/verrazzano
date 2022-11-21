@@ -192,16 +192,16 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 					return deployment.Status.ReadyReplicas > 0
 				}, mediumWait, pollingInterval).Should(BeTrue(), fmt.Sprintf("Deployment %s for component %s is not ready", deploymentName, componentName))
 			},
-			t.Entry("Checking Deployment coherence-operator", constants.VerrazzanoSystemNamespace, coherence.ComponentName, "coherence-operator"),
+			t.Entry("Checking Deployment coherence-wls", constants.VerrazzanoSystemNamespace, coherence.ComponentName, "coherence-wls"),
 			t.Entry("Checking Deployment oam-kubernetes-runtime", constants.VerrazzanoSystemNamespace, oam.ComponentName, "oam-kubernetes-runtime"),
-			t.Entry("Checking Deployment verrazzano-application-operator", constants.VerrazzanoSystemNamespace, appoper.ComponentName, "verrazzano-application-operator"),
+			t.Entry("Checking Deployment verrazzano-application-wls", constants.VerrazzanoSystemNamespace, appoper.ComponentName, "verrazzano-application-wls"),
 			t.Entry("Checking Deployment verrazzano-authproxy", constants.VerrazzanoSystemNamespace, authproxy.ComponentName, "verrazzano-authproxy"),
 			t.Entry("Checking Deployment verrazzano-console", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "verrazzano-console"),
-			t.Entry("Checking Deployment verrazzano-monitoring-operator", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "verrazzano-monitoring-operator"),
+			t.Entry("Checking Deployment verrazzano-monitoring-wls", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "verrazzano-monitoring-wls"),
 			t.Entry("Checking Deployment vmi-system-grafana", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-grafana"),
 			t.Entry("Checking Deployment vmi-system-kibana", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-kibana"),
-			t.Entry("Checking Deployment prometheus-operator-kube-p-operator", vzconst.PrometheusOperatorNamespace, promoperator.ComponentName, "prometheus-operator-kube-p-operator"),
-			t.Entry("Checking Deployment weblogic-operator", constants.VerrazzanoSystemNamespace, weblogic.ComponentName, "weblogic-operator"),
+			t.Entry("Checking Deployment prometheus-wls-kube-p-wls", vzconst.PrometheusOperatorNamespace, promoperator.ComponentName, "prometheus-wls-kube-p-wls"),
+			t.Entry("Checking Deployment weblogic-wls", constants.VerrazzanoSystemNamespace, weblogic.ComponentName, "weblogic-wls"),
 
 			t.Entry("Checking Deployment cert-manager", certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager"),
 			t.Entry("Checking Deployment cert-manager-cainjector", certmanager.ComponentNamespace, certmanager.ComponentName, "cert-manager-cainjector"),
@@ -342,7 +342,7 @@ func isDisabled(componentName string) bool {
 	return true
 }
 
-// getEnvoyProxyImageRef gets the envoy proxy image and its tag from bom in verrazzano-platform-operator pod running in cluster
+// getEnvoyProxyImageRef gets the envoy proxy image and its tag from bom in verrazzano-platform-wls pod running in cluster
 func getEnvoyProxyImageRef() (string, error) {
 	bom, err := pkg.GetBOMDoc()
 	if err != nil {

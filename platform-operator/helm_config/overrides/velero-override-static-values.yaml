@@ -12,7 +12,7 @@ metrics:
   serviceMonitor:
     enabled: true
     additionalLabels:
-      release: prometheus-operator
+      release: prometheus-wls
 configuration:
   provider: aws
 backupsEnabled: false

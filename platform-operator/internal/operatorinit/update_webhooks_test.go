@@ -25,7 +25,7 @@ import (
 	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
-// TestUpdateValidatingnWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-platform-operator
+// TestUpdateValidatingnWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-platform-wls
 // validatingWebhookConfiguration resource.
 // GIVEN a validatingWebhookConfiguration resource with the CA Bundle set
 //
@@ -46,12 +46,12 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 	err = updateValidatingWebhookConfiguration(kubeClient, certificate.OperatorName)
 	asserts.Nilf(err, "error should not be returned updating validation webhook configuration: %v", err)
 
-	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), "verrazzano-platform-operator-webhook", metav1.GetOptions{})
+	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), "verrazzano-platform-wls-webhook", metav1.GetOptions{})
 	asserts.Equal(caCert.Bytes(), updatedWebhook.Webhooks[0].ClientConfig.CABundle, "Expected CA bundle name did not match")
 }
 
 // TestUpdateValidatingnWebhookConfigurationFail tests that the CA Bundle is not updated in the
-// verrazzano-platform-operator validatingWebhookConfiguration resource.
+// verrazzano-platform-wls validatingWebhookConfiguration resource.
 // GIVEN an invalid validatingWebhookConfiguration resource with the CA Bundle set
 //
 //	WHEN I call updateValidatingWebhookConfiguration
@@ -71,7 +71,7 @@ func TestUpdateValidatingnWebhookConfigurationFail(t *testing.T) {
 	asserts.Error(err, "error should be returned updating validation webhook configuration")
 }
 
-// TestUpdateConversionWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-platform-operator
+// TestUpdateConversionWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-platform-wls
 // ConversionWebhookConfiguration resource.
 // GIVEN a call to updateConversionWebhookConfiguration
 //

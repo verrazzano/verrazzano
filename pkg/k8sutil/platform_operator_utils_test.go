@@ -37,7 +37,7 @@ func TestGetInstalledBOMData(t *testing.T) {
 	wd, err := os.Getwd()
 	asserts.NoError(err)
 	err = os.Setenv(k8sutil.EnvVarKubeConfig, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
-	stdout := []byte("verrazzano-platform-operator")
+	stdout := []byte("verrazzano-platform-wls")
 	stdErr := []byte{}
 
 	k8sutil.SetCmdRunner(genericTestRunner{
@@ -66,7 +66,7 @@ func TestGetInstalledBOMDataFailure(t *testing.T) {
 	wd, err := os.Getwd()
 	asserts.NoError(err)
 	err = os.Setenv(k8sutil.EnvVarKubeConfig, fmt.Sprintf("%s/%s", wd, dummyKubeConfig))
-	stdout := []byte("verrazzano-platform-operator")
+	stdout := []byte("verrazzano-platform-wls")
 	stdErr := []byte{}
 
 	k8sutil.SetCmdRunner(genericTestRunner{

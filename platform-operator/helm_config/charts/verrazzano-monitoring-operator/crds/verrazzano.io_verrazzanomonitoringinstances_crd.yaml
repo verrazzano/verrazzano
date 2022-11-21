@@ -576,7 +576,7 @@ spec:
                   format: date-time
                   type: string
                 envName:
-                  description: The name of the operator environment in which this VerrazzanoMonitoringInstance
+                  description: The name of the wls environment in which this VerrazzanoMonitoringInstance
                     instance lives
                   type: string
                 hash:

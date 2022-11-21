@@ -12,19 +12,19 @@ import (
 
 const (
 	rootDir                      = "/verrazzano"
-	platformDirSuffix            = "/platform-operator"
-	profilesDirSuffix            = "/platform-operator/manifests/profiles"
-	installDirSuffix             = "/platform-operator/scripts/install"
-	thirdPartyDirSuffix          = "/platform-operator/thirdparty/charts"
-	thirdPartyManifestsDirSuffix = "/platform-operator/thirdparty/manifests"
-	helmConfigDirSuffix          = "/platform-operator/helm_config"
-	helmChartsDirSuffix          = "/platform-operator/helm_config/charts"
-	helmVMOChartsDirSuffix       = "/platform-operator/helm_config/charts/verrazzano-monitoring-operator"
-	helmAppOpChartsDirSuffix     = "/platform-operator/helm_config/charts/verrazzano-application-operator"
-	helmKialiChartsDirSuffix     = "/platform-operator/thirdparty/charts/kiali-server"
-	helmPromOpChartsDirSuffix    = "/platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack"
-	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
-	helmOverridesDirSuffix       = "/platform-operator/helm_config/overrides"
+	platformDirSuffix            = "/platform-wls"
+	profilesDirSuffix            = "/platform-wls/manifests/profiles"
+	installDirSuffix             = "/platform-wls/scripts/install"
+	thirdPartyDirSuffix          = "/platform-wls/thirdparty/charts"
+	thirdPartyManifestsDirSuffix = "/platform-wls/thirdparty/manifests"
+	helmConfigDirSuffix          = "/platform-wls/helm_config"
+	helmChartsDirSuffix          = "/platform-wls/helm_config/charts"
+	helmVMOChartsDirSuffix       = "/platform-wls/helm_config/charts/verrazzano-monitoring-wls"
+	helmAppOpChartsDirSuffix     = "/platform-wls/helm_config/charts/verrazzano-application-wls"
+	helmKialiChartsDirSuffix     = "/platform-wls/thirdparty/charts/kiali-server"
+	helmPromOpChartsDirSuffix    = "/platform-wls/thirdparty/charts/prometheus-community/kube-prometheus-stack"
+	helmOamChartsDirSuffix       = "/platform-wls/thirdparty/charts/oam-kubernetes-runtime"
+	helmOverridesDirSuffix       = "/platform-wls/helm_config/overrides"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
@@ -53,10 +53,10 @@ type OperatorConfig struct {
 	// VersionCheckEnabled enables/disables version checking for upgrade.
 	VersionCheckEnabled bool
 
-	// RunWebhooks Runs the webhooks instead of the operator instead of the operator reconciler
+	// RunWebhooks Runs the webhooks instead of the wls instead of the wls reconciler
 	RunWebhooks bool
 
-	// RunWebhookInit Runs the webhook init path instead of the operator reconciler
+	// RunWebhookInit Runs the webhook init path instead of the wls reconciler
 	RunWebhookInit bool
 
 	// WebhookValidationEnabled enables/disables webhook validation without removing the webhook itself
@@ -72,7 +72,7 @@ type OperatorConfig struct {
 	DryRun bool
 }
 
-// The singleton instance of the operator config
+// The singleton instance of the wls config
 var instance = OperatorConfig{
 	CertDir:                  "/etc/webhook/certs",
 	MetricsAddr:              ":8080",
@@ -85,12 +85,12 @@ var instance = OperatorConfig{
 	HealthCheckPeriodSeconds: 60,
 }
 
-// Set saves the operator config.  This should only be called at operator startup and during unit tests
+// Set saves the wls config.  This should only be called at wls startup and during unit tests
 func Set(config OperatorConfig) {
 	instance = config
 }
 
-// Get returns the singleton instance of the operator config
+// Get returns the singleton instance of the wls config
 func Get() OperatorConfig {
 	return instance
 }
@@ -111,10 +111,10 @@ func GetHelmChartsDir() string {
 	return filepath.Join(instance.VerrazzanoRootDir, helmChartsDirSuffix)
 }
 
-// GetHelmVMOChartsDir returns the verrazzano-monitoring-operator helm charts dir
+// GetHelmVMOChartsDir returns the verrazzano-monitoring-wls helm charts dir
 func GetHelmVMOChartsDir() string {
 	if TestHelmConfigDir != "" {
-		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano-monitoring-operator")
+		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano-monitoring-wls")
 	}
 	return filepath.Join(instance.VerrazzanoRootDir, helmVMOChartsDirSuffix)
 }
@@ -122,7 +122,7 @@ func GetHelmVMOChartsDir() string {
 // GetHelmAppOpChartsDir returns the Verrazzano Application Operator helm charts dir
 func GetHelmAppOpChartsDir() string {
 	if TestHelmConfigDir != "" {
-		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano-application-operator")
+		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano-application-wls")
 	}
 	return filepath.Join(instance.VerrazzanoRootDir, helmAppOpChartsDirSuffix)
 }
@@ -196,7 +196,7 @@ func SetDefaultBomFilePath(p string) {
 	bomFilePathOverride = p
 }
 
-// GetDefaultBOMFilePath returns BOM file path for the platform operator
+// GetDefaultBOMFilePath returns BOM file path for the platform wls
 func GetDefaultBOMFilePath() string {
 	if bomFilePathOverride != "" {
 		return bomFilePathOverride
@@ -209,5 +209,5 @@ func GetInjectedSystemNamespaces() []string {
 }
 
 func GetNoInjectionComponents() []string {
-	return []string{"coherence-operator", "oam-kubernetes-runtime", "verrazzano-application-operator"}
+	return []string{"coherence-wls", "oam-kubernetes-runtime", "verrazzano-application-wls"}
 }

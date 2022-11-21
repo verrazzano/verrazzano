@@ -7,7 +7,7 @@ metadata:
   name: opensearch
   namespace: {{ .monitoringNamespace }}
   labels:
-    release: prometheus-operator
+    release: prometheus-wls
 spec:
   namespaceSelector:
     matchNames:

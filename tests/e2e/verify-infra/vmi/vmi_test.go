@@ -203,19 +203,19 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 						Eventually(func() bool {
 							return pkg.FindLog(indexName,
 								[]pkg.Match{
-									{Key: "kubernetes.container_name", Value: "verrazzano-monitoring-operator"},
+									{Key: "kubernetes.container_name", Value: "verrazzano-monitoring-wls"},
 									{Key: "cluster_name", Value: constants.MCLocalCluster}},
 								[]pkg.Match{})
-						}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-monitoring-operator log record")
+						}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-monitoring-wls log record")
 					},
 					func() {
 						Eventually(func() bool {
 							return pkg.FindLog(indexName,
 								[]pkg.Match{
-									{Key: "kubernetes.container_name", Value: "verrazzano-application-operator"},
+									{Key: "kubernetes.container_name", Value: "verrazzano-application-wls"},
 									{Key: "cluster_name", Value: constants.MCLocalCluster}},
 								[]pkg.Match{})
-						}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-application-operator log record")
+						}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find a verrazzano-application-wls log record")
 					},
 				)
 			})
@@ -254,7 +254,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		})
 
 		t.It("Prometheus helm override for replicas is in effect", Label("f:observability.monitoring.prom"), func() {
-			const stsName = "prometheus-prometheus-operator-kube-p-prometheus"
+			const stsName = "prometheus-prometheus-wls-kube-p-prometheus"
 
 			expectedReplicas, err := getExpectedPrometheusReplicaCount(kubeconfig)
 			Expect(err).ToNot(HaveOccurred())

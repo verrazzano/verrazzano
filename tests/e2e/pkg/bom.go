@@ -13,11 +13,11 @@ import (
 )
 
 const (
-	// Pod Substring for finding the platform operator pod
-	platformOperatorPodNameSearchString = "verrazzano-platform-operator"
+	// Pod Substring for finding the platform wls pod
+	platformOperatorPodNameSearchString = "verrazzano-platform-wls"
 )
 
-// Get the BOM from the platform operator in the cluster and build the BOM structure from it
+// Get the BOM from the platform wls in the cluster and build the BOM structure from it
 func GetBOMDoc() (*bom.BomDoc, error) {
 	var platformOperatorPodName = ""
 
@@ -34,20 +34,20 @@ func GetBOMDoc() (*bom.BomDoc, error) {
 		}
 	}
 	if platformOperatorPodName == "" {
-		return nil, fmt.Errorf("platform operator pod name not found in verrazzano-install namespace")
+		return nil, fmt.Errorf("platform wls pod name not found in verrazzano-install namespace")
 	}
 
 	platformOperatorPodName = strings.TrimSuffix(platformOperatorPodName, "\n")
-	fmt.Printf("Getting the registry details in BOM from the platform operator %s\n", platformOperatorPodName)
+	fmt.Printf("Getting the registry details in BOM from the platform wls %s\n", platformOperatorPodName)
 
-	// Get the BOM from platform-operator
+	// Get the BOM from platform-wls
 	out, err = exec.Command("kubectl", "exec", "-it", platformOperatorPodName, "-n", "verrazzano-install", "--",
-		"cat", "/verrazzano/platform-operator/verrazzano-bom.json").Output()
+		"cat", "/verrazzano/platform-wls/verrazzano-bom.json").Output()
 	if err != nil {
 		return nil, err
 	}
 	if len(string(out)) == 0 {
-		return nil, fmt.Errorf("error retrieving BOM from platform operator, zero length")
+		return nil, fmt.Errorf("error retrieving BOM from platform wls, zero length")
 	}
 	var bomDoc bom.BomDoc
 	err = json.Unmarshal(out, &bomDoc)

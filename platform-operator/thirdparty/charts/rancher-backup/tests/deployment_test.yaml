@@ -115,7 +115,7 @@ tests:
   asserts:
   - matchRegex:
       path: spec.template.spec.containers[0].image
-      pattern: ^my.registry.local:3000/rancher/backup-restore-operator:.*$
+      pattern: ^my.registry.local:3000/rancher/backup-restore-wls:.*$
 - it: should set nodeselector
   template: deployment.yaml
   asserts:

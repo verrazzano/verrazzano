@@ -8,7 +8,7 @@ image:
   pullPolicy: IfNotPresent
 
 monitoringOperator:
-  name: verrazzano-monitoring-operator
+  name: verrazzano-monitoring-wls
   metricsPort: 8090
   exporterPort: 9100
   defaultSimpleCompReplicas: 1

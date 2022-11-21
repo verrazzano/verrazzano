@@ -13,7 +13,7 @@ istio_namespace: istio-system
 
 deployment:
   version_label: v1.57.1
-  # The platform operator will manage the Kiali ingress
+  # The platform wls will manage the Kiali ingress
   ingress:
     enabled: false
   instance_name: vmi-system-kiali

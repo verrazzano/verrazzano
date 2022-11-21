@@ -125,7 +125,7 @@ func findURLs(gitRoot string, files []string) map[string]*scanResult {
 
 	var absoluteFiles []string
 	for _, file := range files {
-		if strings.HasPrefix(file, "ci/") || strings.HasPrefix(file, "tests/e2e/") || strings.HasPrefix(file, "platform-operator/thirdparty/") || strings.Contains(file, "/testdata/") ||
+		if strings.HasPrefix(file, "ci/") || strings.HasPrefix(file, "tests/e2e/") || strings.HasPrefix(file, "platform-wls/thirdparty/") || strings.Contains(file, "/testdata/") ||
 			strings.Contains(file, "/test/") || strings.HasSuffix(file, "_test.go") {
 			continue
 		}

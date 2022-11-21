@@ -129,7 +129,7 @@ func runMySQLPodspecEditWarningTestV1Beta1() {
 	checkExpectations(update.UpdateCRV1beta1(updater), updater)
 }
 
-// runValidatorTestV1Alpha1 Attempt to use an illegal overrides value on the Jaeger operator configuration using the v1alpha1 API
+// runValidatorTestV1Alpha1 Attempt to use an illegal overrides value on the Jaeger wls configuration using the v1alpha1 API
 func runMySQLPodspecEditWarningTestV1Alpha1() {
 	updater := &mysqlPodSpecUpdater{}
 	checkExpectations(update.UpdateCR(updater), updater)

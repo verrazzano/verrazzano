@@ -189,7 +189,7 @@ spec:
       to:
         - operation:
             ports: ["5601"]
-    # vmi-system-kibana:15090 <- verrazzano-monitoring-operator
+    # vmi-system-kibana:15090 <- verrazzano-monitoring-wls
     - from:
         - source:
             namespaces: [ "{{ .Release.Namespace }}" ]
@@ -255,7 +255,7 @@ spec:
     matchLabels:
       app: jaeger
       app.kubernetes.io/component: collector
-      app.kubernetes.io/managed-by: jaeger-operator
+      app.kubernetes.io/managed-by: jaeger-wls
   action: ALLOW
   rules:
     # jaeger-collector-service:9411, 14250 <- <any>
@@ -285,7 +285,7 @@ spec:
     matchLabels:
       app: jaeger
       app.kubernetes.io/component: query
-      app.kubernetes.io/managed-by: jaeger-operator
+      app.kubernetes.io/managed-by: jaeger-wls
   action: ALLOW
   rules:
     # jaeger-collector-service:16686 <- verrazzano-authproxy

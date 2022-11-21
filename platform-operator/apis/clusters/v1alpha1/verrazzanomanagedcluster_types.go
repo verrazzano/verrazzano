@@ -24,12 +24,12 @@ type VerrazzanoManagedClusterSpec struct {
 	Description string `json:"description,omitempty"`
 
 	// The name of the Secret containing the generated YAML manifest file to be applied by the user to the managed cluster.
-	// This field is managed by a Verrazzano Kubernetes operator.
+	// This field is managed by a Verrazzano Kubernetes wls.
 	// +optional
 	ManagedClusterManifestSecret string `json:"managedClusterManifestSecret,omitempty"`
 
 	// The name of the ServiceAccount that was generated for the managed cluster. This field is managed by a
-	// Verrazzano Kubernetes operator.
+	// Verrazzano Kubernetes wls.
 	// +optional
 	ServiceAccount string `json:"serviceAccount,omitempty"`
 }

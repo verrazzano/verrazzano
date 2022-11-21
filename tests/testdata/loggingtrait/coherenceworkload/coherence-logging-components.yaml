@@ -23,7 +23,7 @@ spec:
             type: helidon
           jvm:
             args:
-              - "-Dcoherence.k8s.operator.health.wait.dcs=false"
+              - "-Dcoherence.k8s.wls.health.wait.dcs=false"
               - "-Dcoherence.metrics.legacy.names=false"
             memory:
               heapSize: 2g

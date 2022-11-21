@@ -800,8 +800,8 @@ func validateVerrazzanoSystemServicePorts() {
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 	exceptions := []string{
-		"coherence-operator-webhook",
-		"internal-weblogic-operator-svc",
+		"coherence-wls-webhook",
+		"internal-weblogic-wls-svc",
 		mysqloperator.ComponentName,
 	}
 	for _, service := range services.Items {

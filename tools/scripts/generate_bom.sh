@@ -50,9 +50,9 @@ fi
 
 cp ${BOM_FILE} ${GENERATED_BOM_FILE}
 
-# Update the BOM file for the application operator and platform operator images.
-# The application operator image can be supplied as the image or image:tag, if it is image only the same tag will be used for both operators
-# The platform operator image and tag are supplied separately
+# Update the BOM file for the application wls and platform wls images.
+# The application wls image can be supplied as the image or image:tag, if it is image only the same tag will be used for both operators
+# The platform wls image and tag are supplied separately
 regex=".*:.*"
 if [[ ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} =~ $regex ]] ; then
   sed -i"" -e "s|VERRAZZANO_APPLICATION_OPERATOR_IMAGE|$(echo ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} | rev | cut -d / -f 1 | rev | cut -d : -f 1)|g" ${GENERATED_BOM_FILE}

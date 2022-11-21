@@ -13,9 +13,9 @@ const (
 	waitTimeout               = 20 * time.Minute
 	pollingInterval           = 10 * time.Second
 	jaegerComponentLabel      = "app.kubernetes.io/name"
-	jaegerOperatorLabelValue  = "jaeger-operator"
-	jaegerCollectorLabelValue = "jaeger-operator-jaeger-collector"
-	jaegerQueryLabelValue     = "jaeger-operator-jaeger-query"
+	jaegerOperatorLabelValue  = "jaeger-wls"
+	jaegerCollectorLabelValue = "jaeger-wls-jaeger-collector"
+	jaegerQueryLabelValue     = "jaeger-wls-jaeger-query"
 )
 
 var trueValue = true

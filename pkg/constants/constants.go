@@ -45,7 +45,7 @@ const StatefulSetWorkloadKind = "StatefulSet"
 // DaemonSetWorkloadKind - the DaemonSet workload resource kind
 const DaemonSetWorkloadKind = "DaemonSet"
 
-// VerrazzanoInstallNamespace is the namespace for installing the verrazzano-platform-operator
+// VerrazzanoInstallNamespace is the namespace for installing the verrazzano-platform-wls
 const VerrazzanoInstallNamespace = "verrazzano-install"
 
 // VerrazzanoSystemNamespace is the system namespace for Verrazzano
@@ -61,7 +61,7 @@ const CertManagerNamespace = "cert-manager"
 const KeycloakNamespace = "keycloak"
 
 // MySQLOperatorNamespace indicates the namespace to be used for the MySQLOperator installation
-const MySQLOperatorNamespace = "mysql-operator"
+const MySQLOperatorNamespace = "mysql-wls"
 
 // RancherSystemNamespace - the Rancher cattle-system namespace
 const RancherSystemNamespace = "cattle-system"
@@ -135,7 +135,7 @@ const DefaultJaegerOSURL = "http://verrazzano-authproxy-elasticsearch.verrazzano
 const DefaultJaegerSecretName = "verrazzano-jaeger-secret"
 
 // JaegerInstanceName is the name of the default Jaeger instance
-const JaegerInstanceName = "jaeger-operator-jaeger"
+const JaegerInstanceName = "jaeger-wls-jaeger"
 
 // JaegerQueryComponentName is the name of the collector component
 const JaegerCollectorComponentName = "collector"
@@ -171,12 +171,12 @@ const MysqlBackupMutatingWebhookPath = "/mysql-backup-job-annotate"
 const (
 	OamKubernetesRuntime          = "oam-kubernetes-runtime"
 	KialiServer                   = "kiali-server"
-	WeblogicOperator              = "weblogic-operator"
+	WeblogicOperator              = "weblogic-wls"
 	VerrazzanoAuthproxy           = "verrazzano-authproxy"
 	Istio                         = "istio"
 	ExternalDNS                   = "external-dns"
-	VerrazzanoApplicationOperator = "verrazzano-application-operator"
-	CoherenceOperator             = "coherence-operator"
+	VerrazzanoApplicationOperator = "verrazzano-application-wls"
+	CoherenceOperator             = "coherence-wls"
 	IngressController             = "ingress-controller"
 	IngressDefaultBackend         = "ingress-controller-ingress-nginx-defaultbackend"
 	MySQL                         = "mysql"
@@ -186,11 +186,11 @@ const (
 	PrometheusAdapter             = "prometheus-adapter"
 	KubeStateMetrics              = "kube-state-metrics"
 	PrometheusNodeExporter        = "prometheus-node-exporter"
-	PrometheusOperator            = "prometheus-operator"
+	PrometheusOperator            = "prometheus-wls"
 	Keycloak                      = "keycloak"
-	VerrazzanoMonitoringOperator  = "verrazzano-monitoring-operator"
+	VerrazzanoMonitoringOperator  = "verrazzano-monitoring-wls"
 	Grafana                       = "grafana"
-	JaegerOperator                = "jaeger-operator"
+	JaegerOperator                = "jaeger-wls"
 	OpensearchDashboards          = "opensearch-dashboards"
 	Opensearch                    = "opensearch"
 	Velero                        = "velero"
@@ -198,7 +198,7 @@ const (
 	Verrazzano                    = "verrazzano"
 	Fluentd                       = "fluentd"
 	RancherBackup                 = "rancher-backup"
-	MySQLOperator                 = "mysql-operator"
+	MySQLOperator                 = "mysql-wls"
 )
 
 const (

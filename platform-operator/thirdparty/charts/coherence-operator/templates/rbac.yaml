@@ -4,7 +4,7 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ default "coherence-operator" .Values.serviceAccountName }}
+  name: {{ default "coherence-wls" .Values.serviceAccountName }}
   namespace: {{ .Release.Namespace }}
   labels:
     control-plane: coherence
@@ -17,7 +17,7 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: coherence-operator-crd-webhook-install
+  name: coherence-wls-crd-webhook-install
   namespace: {{ .Release.Namespace }}
   labels:
     control-plane: coherence
@@ -50,17 +50,17 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: coherence-operator-crd-webhook-install
+  name: coherence-wls-crd-webhook-install
   namespace: {{ .Release.Namespace }}
   labels:
     control-plane: coherence
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: coherence-operator-crd-webhook-install
+  name: coherence-wls-crd-webhook-install
 subjects:
 - kind: ServiceAccount
-  name: {{ default "coherence-operator" .Values.serviceAccountName }}
+  name: {{ default "coherence-wls" .Values.serviceAccountName }}
   namespace: {{ .Release.Namespace }}
 ---
 {{- end }}
@@ -68,13 +68,13 @@ subjects:
 # -------------------------------------------------------------
 # This is the Cluster Roles required by the Coherence Operator
 # to obtain Node information.
-# Specifically the operator looks up Node labels to work out
+# Specifically the wls looks up Node labels to work out
 # the topology information used by Coherence for site safety.
 # -------------------------------------------------------------
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: coherence-operator-node-viewer
+  name: coherence-wls-node-viewer
   namespace: {{ .Release.Namespace }}
   labels:
     control-plane: coherence
@@ -89,23 +89,23 @@ rules:
 # ---------------------------------------------------------------------
 # This is the Cluster Roles binding required by the Coherence Operator
 # to obtain Node information.
-# Specifically the operator looks up Node labels to work out
+# Specifically the wls looks up Node labels to work out
 # the topology information used by Coherence for site safety.
 # ---------------------------------------------------------------------
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: coherence-operator-node-viewer
+  name: coherence-wls-node-viewer
   namespace: {{ .Release.Namespace }}
   labels:
     control-plane: coherence
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: coherence-operator-node-viewer
+  name: coherence-wls-node-viewer
 subjects:
 - kind: ServiceAccount
-  name: {{ default "coherence-operator" .Values.serviceAccountName }}
+  name: {{ default "coherence-wls" .Values.serviceAccountName }}
   namespace: {{ .Release.Namespace }}
 ---
 {{- end }}
@@ -120,7 +120,7 @@ kind: ClusterRole
 kind: Role
 {{- end }}
 metadata:
-  name: coherence-operator
+  name: coherence-wls
   namespace: {{ .Release.Namespace }}
   labels:
     control-plane: coherence
@@ -218,7 +218,7 @@ kind: ClusterRoleBinding
 kind: RoleBinding
 {{- end }}
 metadata:
-  name: coherence-operator
+  name: coherence-wls
   namespace: {{ .Release.Namespace }}
   labels:
     control-plane: coherence
@@ -229,10 +229,10 @@ roleRef:
 {{- else }}
   kind: Role
 {{- end }}
-  name: coherence-operator
+  name: coherence-wls
 subjects:
 - kind: ServiceAccount
-  name: {{ default "coherence-operator" .Values.serviceAccountName }}
+  name: {{ default "coherence-wls" .Values.serviceAccountName }}
   namespace: {{ .Release.Namespace }}
 ---
 # ---------------------------------------------------------------------
@@ -290,5 +290,5 @@ roleRef:
   name: leader-election-role
 subjects:
   - kind: ServiceAccount
-    name: {{ default "coherence-operator" .Values.serviceAccountName }}
+    name: {{ default "coherence-wls" .Values.serviceAccountName }}
     namespace: {{ .Release.Namespace }}

@@ -4,10 +4,10 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: verrazzano-platform-operator
+  name: verrazzano-platform-wls
   namespace: {{ .monitoringNamespace }} 
   labels:
-    release: prometheus-operator 
+    release: prometheus-wls
 spec:
   namespaceSelector:
     matchNames:
@@ -18,7 +18,7 @@ spec:
       - sourceLabels:
           - __meta_kubernetes_service_name
           - __meta_kubernetes_endpoint_port_name
-        regex: verrazzano-platform-operator;http-metric
+        regex: verrazzano-platform-wls;http-metric
         action: keep
       - sourceLabels:
           - __meta_kubernetes_service_label_app

@@ -47,7 +47,7 @@ func TestSetupCertificates(t *testing.T) {
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if a.NoError(err) {
 			a.NotEmpty(cert.DNSNames, "Certificate DNSNames SAN field should not be empty")
-			a.Equal("verrazzano-application-operator.verrazzano-system.svc", cert.DNSNames[0])
+			a.Equal("verrazzano-application-wls.verrazzano-system.svc", cert.DNSNames[0])
 		}
 	}
 }
@@ -64,7 +64,7 @@ func TestSetupCertificatesFail(t *testing.T) {
 	a.Error(err, "error should be returned setting up certificates")
 }
 
-// TestUpdateValidatingWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-platform-operator
+// TestUpdateValidatingWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-platform-wls
 // validatingWebhookConfiguration resource.
 // GIVEN a validatingWebhookConfiguration resource with the CA Bundle set
 //
@@ -109,7 +109,7 @@ func TestUpdateValidatingWebhookConfiguration(t *testing.T) {
 }
 
 // TestUpdateValidatingWebhookConfigurationFail tests that the CA Bundle is not updated in the
-// verrazzano-platform-operator validatingWebhookConfiguration resource.
+// verrazzano-platform-wls validatingWebhookConfiguration resource.
 // GIVEN an invalid validatingWebhookConfiguration resource with the CA Bundle set
 //
 //	WHEN I call UpdateValidatingnWebhookConfiguration
@@ -149,7 +149,7 @@ func TestUpdateValidatingWebhookConfigurationFail(t *testing.T) {
 	a.Error(err, "error should be returned updating validation webhook configuration")
 }
 
-// TestUpdateAppConfigMutatingWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-application-operator
+// TestUpdateAppConfigMutatingWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-application-wls
 // mutatingWebhookConfiguration resource.
 // GIVEN a mutatingWebhookConfiguration resource with the CA Bundle set
 //
@@ -194,7 +194,7 @@ func TestUpdateAppConfigMutatingWebhookConfiguration(t *testing.T) {
 }
 
 // TestUpdateAppConfigMutatingWebhookConfigurationFail tests that the CA Bundle is not updated in the
-// verrazzano-application-operator mutatingWebhookConfiguration resource.
+// verrazzano-application-wls mutatingWebhookConfiguration resource.
 // GIVEN an invalid mutatingWebhookConfiguration resource with the CA Bundle set
 //
 //	WHEN I call UpdateAppConfigMutatingWebhookConfiguration
@@ -234,7 +234,7 @@ func TestUpdateAppConfigMutatingWebhookConfigurationFail(t *testing.T) {
 	a.Error(err, "error should be returned updating validation webhook configuration")
 }
 
-// TestUpdateIstioMutatingWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-application-operator
+// TestUpdateIstioMutatingWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-application-wls
 // mutatingWebhookConfiguration resource.
 // GIVEN a mutatingWebhookConfiguration resource with the CA Bundle set
 //
@@ -279,7 +279,7 @@ func TestUpdateIstioMutatingWebhookConfiguration(t *testing.T) {
 }
 
 // TestUpdateIstioMutatingWebhookConfigurationFail tests that the CA Bundle is not updated in the
-// verrazzano-application-operator mutatingWebhookConfiguration resource.
+// verrazzano-application-wls mutatingWebhookConfiguration resource.
 // GIVEN an invalid mutatingWebhookConfiguration resource with the CA Bundle set
 //
 //	WHEN I call UpdateIstioMutatingWebhookConfiguration

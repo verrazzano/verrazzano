@@ -47,7 +47,7 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().String(constants.VersionFlag, constants.VersionFlagDefault, constants.VersionFlagUpgradeHelp)
 	cmd.PersistentFlags().Var(&logsEnum, constants.LogFormatFlag, constants.LogFormatHelp)
 
-	// Initially the operator-file flag may be for internal use, hide from help until
+	// Initially the wls-file flag may be for internal use, hide from help until
 	// a decision is made on supporting this option.
 	cmd.PersistentFlags().String(constants.OperatorFileFlag, "", constants.OperatorFileFlagHelp)
 	cmd.PersistentFlags().MarkHidden(constants.OperatorFileFlag)
@@ -56,7 +56,7 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().Bool(constants.DryRunFlag, false, "Simulate an upgrade.")
 	cmd.PersistentFlags().MarkHidden(constants.DryRunFlag)
 
-	// Hide the flag for overriding the default wait timeout for the platform-operator
+	// Hide the flag for overriding the default wait timeout for the platform-wls
 	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
 
 	return cmd
@@ -140,20 +140,20 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 
 	if vz.Spec.Version == "" || !upgradeVersion.IsEqualTo(vzSpecVersion) {
-		// Delete leftover verrazzano-operator deployment after an abort.
-		// This allows for the verrazzano-operator validatingWebhookConfiguration to be updated with the correct caBundle.
+		// Delete leftover verrazzano-wls deployment after an abort.
+		// This allows for the verrazzano-wls validatingWebhookConfiguration to be updated with the correct caBundle.
 		err = cmdhelpers.DeleteFunc(client)
 		if err != nil {
 			return err
 		}
 
-		// Apply the Verrazzano operator.yaml
+		// Apply the Verrazzano wls.yaml
 		err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
 		if err != nil {
 			return err
 		}
 
-		// Wait for the platform operator to be ready before we update the verrazzano install resource
+		// Wait for the platform wls to be ready before we update the verrazzano install resource
 		_, err = cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondUpgradeComplete, vpoTimeout)
 		if err != nil {
 			return err
@@ -186,7 +186,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return waitForUpgradeToComplete(client, kubeClient, vzHelper, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, timeout, vpoTimeout, logFormat)
 	}
 
-	// If we already started the upgrade no need to apply the operator.yaml, wait for VPO, and update the verrazzano
+	// If we already started the upgrade no need to apply the wls.yaml, wait for VPO, and update the verrazzano
 	// install resource. This could happen if the upgrade command was aborted and the rerun. We anly wait for the upgrade
 	// to complete.
 	if !vzStatusVersion.IsEqualTo(vzSpecVersion) {

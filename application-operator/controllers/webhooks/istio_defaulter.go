@@ -154,9 +154,9 @@ func (a *IstioWebhook) InjectDecoder(d *admission.Decoder) error {
 func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, serviceAccountName string, ownerRef metav1.OwnerReference, labels map[string]string, log *zap.SugaredLogger) error {
 	podPrincipal := fmt.Sprintf("cluster.local/ns/%s/sa/%s", namespace, serviceAccountName)
 	gwPrincipal := "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"
-	promPrincipal := "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator"
-	weblogicOperPrincipal := "cluster.local/ns/verrazzano-system/sa/weblogic-operator-sa"
-	promOperatorPrincipal := "cluster.local/ns/verrazzano-monitoring/sa/prometheus-operator-kube-p-prometheus"
+	promPrincipal := "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls"
+	weblogicOperPrincipal := "cluster.local/ns/verrazzano-system/sa/weblogic-wls-sa"
+	promOperatorPrincipal := "cluster.local/ns/verrazzano-monitoring/sa/prometheus-wls-kube-p-prometheus"
 
 	principals := []string{
 		podPrincipal,
@@ -164,7 +164,7 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 		promPrincipal,
 		promOperatorPrincipal,
 	}
-	// If the pod is WebLogic then add the WebLogic operator principle so that the operator can
+	// If the pod is WebLogic then add the WebLogic wls principle so that the wls can
 	// communicate with the WebLogic servers
 	workloadType, found := labels[constants.LabelWorkloadType]
 	weblogicFound := found && workloadType == constants.WorkloadTypeWeblogic
@@ -224,7 +224,7 @@ func (a *IstioWebhook) createUpdateAuthorizationPolicy(namespace string, service
 		return err
 	}
 
-	// If the pod and/or WebLogic operator principals are missing then update the principal list
+	// If the pod and/or WebLogic wls principals are missing then update the principal list
 	principalSet := vzstring.SliceToSet(authPolicy.Spec.GetRules()[0].From[0].Source.Principals)
 	var update bool
 	if _, ok := principalSet[podPrincipal]; !ok {

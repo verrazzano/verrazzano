@@ -67,7 +67,7 @@ for namespace in ${namespaces}; do
     done
   done
 
-  # delete the helm operator pods
+  # delete the helm wls pods
   for pod in $(kubectl get pods -n "${namespace}" -o name); do
     if [[ ${pod} =~ ^pod\/helm-operation-* ]]; then
       echo "--- Deleting the pod [${pod}] in the namespace [${namespace}]"

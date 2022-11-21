@@ -92,7 +92,7 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 		// so until there is an explicit need to separate those, not doing that here (we could though)
 	}
 
-	// TODO: Inspect the verrazzano-install namespace platform operator logs. We should be able to glean state from the
+	// TODO: Inspect the verrazzano-install namespace platform wls logs. We should be able to glean state from the
 	//       the logs here, and what the name of the install job resource to look for is.
 	// TODO: Inspect the default namespace for a Verrazzano install job pod logs. Inspecting the logs should here should
 	//       tell us whether an install/uninstall was done and what state it thinks it is in. NOTE, a user can name this

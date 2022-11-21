@@ -30,7 +30,7 @@ const (
 	podTemplateHashLabel         = "pod-template-hash"
 	deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
 	defaultTimeout               = time.Duration(1) * time.Second
-	vpoPodName                   = "verrazzano-platform-operator-95d8c5d96-m6mbr"
+	vpoPodName                   = "verrazzano-platform-wls-95d8c5d96-m6mbr"
 )
 
 var (
@@ -46,7 +46,7 @@ func TestGetVpoLogStream(t *testing.T) {
 	// WHEN get log stream is called,
 	// THEN no error is returned and a default no op log stream is returned.
 	fakeClient := fakek8s.NewSimpleClientset()
-	reader, err := GetVpoLogStream(fakeClient, "verrazzano-platform-operator-xyz")
+	reader, err := GetVpoLogStream(fakeClient, "verrazzano-platform-wls-xyz")
 	assert.NoError(t, err)
 	assert.NotNil(t, reader)
 
@@ -120,7 +120,7 @@ func TestWaitForOperationToComplete(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestApplyPlatformOperatorYaml tests the functionality to apply VPO operator yaml
+// TestApplyPlatformOperatorYaml tests the functionality to apply VPO wls yaml
 func TestApplyPlatformOperatorYaml(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 	buf := new(bytes.Buffer)
@@ -137,7 +137,7 @@ func TestApplyPlatformOperatorYaml(t *testing.T) {
 	// WHEN ApplyPlatformOperatorYaml is invoked,
 	// THEN an error is returned as the VZ resource is not in InstallComplete state.
 	cmdWithOperatorYaml := getCommandWithoutFlags()
-	cmdWithOperatorYaml.PersistentFlags().String(constants.OperatorFileFlag, "operator.yaml", "")
+	cmdWithOperatorYaml.PersistentFlags().String(constants.OperatorFileFlag, "wls.yaml", "")
 	err = ApplyPlatformOperatorYaml(cmdWithOperatorYaml, fakeClient, rc, "1.5.0")
 	assert.Error(t, err)
 }

@@ -511,7 +511,7 @@ func Test_cleanTempFiles(t *testing.T) {
 }
 
 // TestIsKubernetesVersionSupported tests IsKubernetesVersionSupported()
-// GIVEN a request for the validating that the Kubernetes version of cluster is supported by the operator
+// GIVEN a request for the validating that the Kubernetes version of cluster is supported by the wls
 // WHEN the Kubernetes version and Supported versions can be determined without error
 // AND the Kubernetes version is either equal to one of the supported versions or is a patch version of a supported version
 // THEN only true is returned

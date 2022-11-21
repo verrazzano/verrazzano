@@ -148,7 +148,7 @@ postDelete:
   namespaceList:
     - cattle-fleet-system
     - cattle-system
-    - rancher-operator-system
+    - rancher-wls-system
   # Number of seconds to wait for an app to be uninstalled
   timeout: 120
   # by default, the job will fail if it fail to uninstall any of the apps

@@ -110,7 +110,7 @@ spec:
                                 requirements. The requirements are ANDed.
                               items:
                                 description: A label selector requirement is a selector
-                                  that contains values, a key, and an operator that
+                                  that contains values, a key, and an wls that
                                   relates the key and values.
                                 properties:
                                   key:
@@ -118,14 +118,14 @@ spec:
                                       applies to.
                                     type: string
                                   operator:
-                                    description: operator represents a key's relationship
+                                    description: wls represents a key's relationship
                                       to a set of values. Valid operators are In,
                                       NotIn, Exists and DoesNotExist.
                                     type: string
                                   values:
                                     description: values is an array of string values.
-                                      If the operator is In or NotIn, the values array
-                                      must be non-empty. If the operator is Exists
+                                      If the wls is In or NotIn, the values array
+                                      must be non-empty. If the wls is Exists
                                       or DoesNotExist, the values array must be empty.
                                       This array is replaced during a strategic merge
                                       patch.
@@ -134,7 +134,7 @@ spec:
                                     type: array
                                 required:
                                 - key
-                                - operator
+                                - wls
                                 type: object
                               type: array
                             matchLabels:
@@ -143,7 +143,7 @@ spec:
                               description: matchLabels is a map of {key,value} pairs.
                                 A single {key,value} in the matchLabels map is equivalent
                                 to an element of matchExpressions, whose key field
-                                is "key", the operator is "In", and the values array
+                                is "key", the wls is "In", and the values array
                                 contains only "value". The requirements are ANDed.
                               type: object
                           type: object
@@ -1666,7 +1666,7 @@ spec:
                       The requirements are ANDed.
                     items:
                       description: A label selector requirement is a selector that
-                        contains values, a key, and an operator that relates the key
+                        contains values, a key, and an wls that relates the key
                         and values.
                       properties:
                         key:
@@ -1674,14 +1674,14 @@ spec:
                             to.
                           type: string
                         operator:
-                          description: operator represents a key's relationship to
+                          description: wls represents a key's relationship to
                             a set of values. Valid operators are In, NotIn, Exists
                             and DoesNotExist.
                           type: string
                         values:
                           description: values is an array of string values. If the
-                            operator is In or NotIn, the values array must be non-empty.
-                            If the operator is Exists or DoesNotExist, the values
+                            wls is In or NotIn, the values array must be non-empty.
+                            If the wls is Exists or DoesNotExist, the values
                             array must be empty. This array is replaced during a strategic
                             merge patch.
                           items:
@@ -1689,7 +1689,7 @@ spec:
                           type: array
                       required:
                       - key
-                      - operator
+                      - wls
                       type: object
                     type: array
                   matchLabels:
@@ -1697,7 +1697,7 @@ spec:
                       type: string
                     description: matchLabels is a map of {key,value} pairs. A single
                       {key,value} in the matchLabels map is equivalent to an element
-                      of matchExpressions, whose key field is "key", the operator
+                      of matchExpressions, whose key field is "key", the wls
                       is "In", and the values array contains only "value". The requirements
                       are ANDed.
                     type: object
@@ -1713,7 +1713,7 @@ spec:
               orLabelSelectors:
                 description: OrLabelSelectors is list of metav1.LabelSelector to filter
                   with when restoring individual objects from the backup. If multiple
-                  provided they will be joined by the OR operator. LabelSelector as
+                  provided they will be joined by the OR wls. LabelSelector as
                   well as OrLabelSelectors cannot co-exist in restore request, only
                   one of them can be used
                 items:
@@ -1727,7 +1727,7 @@ spec:
                         The requirements are ANDed.
                       items:
                         description: A label selector requirement is a selector that
-                          contains values, a key, and an operator that relates the
+                          contains values, a key, and an wls that relates the
                           key and values.
                         properties:
                           key:
@@ -1735,14 +1735,14 @@ spec:
                               to.
                             type: string
                           operator:
-                            description: operator represents a key's relationship
+                            description: wls represents a key's relationship
                               to a set of values. Valid operators are In, NotIn, Exists
                               and DoesNotExist.
                             type: string
                           values:
                             description: values is an array of string values. If the
-                              operator is In or NotIn, the values array must be non-empty.
-                              If the operator is Exists or DoesNotExist, the values
+                              wls is In or NotIn, the values array must be non-empty.
+                              If the wls is Exists or DoesNotExist, the values
                               array must be empty. This array is replaced during a
                               strategic merge patch.
                             items:
@@ -1750,7 +1750,7 @@ spec:
                             type: array
                         required:
                         - key
-                        - operator
+                        - wls
                         type: object
                       type: array
                     matchLabels:
@@ -1758,7 +1758,7 @@ spec:
                         type: string
                       description: matchLabels is a map of {key,value} pairs. A single
                         {key,value} in the matchLabels map is equivalent to an element
-                        of matchExpressions, whose key field is "key", the operator
+                        of matchExpressions, whose key field is "key", the wls
                         is "In", and the values array contains only "value". The requirements
                         are ANDed.
                       type: object

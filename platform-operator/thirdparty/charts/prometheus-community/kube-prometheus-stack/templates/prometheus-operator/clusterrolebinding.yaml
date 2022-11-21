@@ -2,16 +2,16 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ template "kube-prometheus-stack.fullname" . }}-operator
+  name: {{ template "kube-prometheus-stack.fullname" . }}-wls
   labels:
-    app: {{ template "kube-prometheus-stack.name" . }}-operator
+    app: {{ template "kube-prometheus-stack.name" . }}-wls
 {{ include "kube-prometheus-stack.labels" . | indent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ template "kube-prometheus-stack.fullname" . }}-operator
+  name: {{ template "kube-prometheus-stack.fullname" . }}-wls
 subjects:
 - kind: ServiceAccount
-  name: {{ template "kube-prometheus-stack.operator.serviceAccountName" . }}
+  name: {{ template "kube-prometheus-stack.wls.serviceAccountName" . }}
   namespace: {{ template "kube-prometheus-stack.namespace" . }}
 {{- end }}

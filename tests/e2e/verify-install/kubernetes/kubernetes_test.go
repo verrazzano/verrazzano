@@ -37,7 +37,7 @@ var expectedPodsIngressNginx = []string{
 	"ingress-controller-ingress-nginx-defaultbackend"}
 
 var expectedNonVMIPodsVerrazzanoSystem = []string{
-	"verrazzano-monitoring-operator",
+	"verrazzano-monitoring-wls",
 }
 
 // comment out while debugging so it does not break master
@@ -96,10 +96,10 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("does not include verrazzano-web", "verrazzano-web", false),
 			t.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 			t.Entry("does not include verrazzano-ldap", "verrazzano-ldap", false),
-			t.Entry("includes verrazzano-cluster-operator", "verrazzano-cluster-operator", true),
-			t.Entry("includes verrazzano-monitoring-operator", "verrazzano-monitoring-operator", true),
-			t.Entry("Check weblogic-operator deployment", "weblogic-operator", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
-			t.Entry("Check coherence-operator deployment", "coherence-operator", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
+			t.Entry("includes verrazzano-cluster-wls", "verrazzano-cluster-wls", true),
+			t.Entry("includes verrazzano-monitoring-wls", "verrazzano-monitoring-wls", true),
+			t.Entry("Check weblogic-wls deployment", "weblogic-wls", pkg.IsWebLogicOperatorEnabled(kubeconfigPath)),
+			t.Entry("Check coherence-wls deployment", "coherence-wls", pkg.IsCoherenceOperatorEnabled(kubeconfigPath)),
 		}
 
 		t.DescribeTable("Verrazzano components are deployed,",
@@ -174,8 +174,8 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 					return vzComponentPresent(name, "verrazzano-monitoring")
 				}, waitTimeout, pollingInterval).Should(Equal(true))
 			},
-			t.Entry("includes prometheus-operator-kube-p-operator", "prometheus-operator-kube-p-operator"),
-			t.Entry("includes prometheus-prometheus-operator-kube-p-prometheus", "prometheus-prometheus-operator-kube-p-prometheus"),
+			t.Entry("includes prometheus-wls-kube-p-wls", "prometheus-wls-kube-p-wls"),
+			t.Entry("includes prometheus-prometheus-wls-kube-p-prometheus", "prometheus-prometheus-wls-kube-p-prometheus"),
 		)
 
 		// Test components that may not exist for older versions

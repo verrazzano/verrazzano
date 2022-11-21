@@ -47,7 +47,7 @@ func validateTargetClustersExist(c client.Client, p clusters.Placement) error {
 		// If the target cluster name is local then assume it is valid.
 		if targetClusterName != constants.DefaultClusterName {
 			key := client.ObjectKey{Name: targetClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
-			// Need to use unstructured here to avoid a dependency on the platform operator
+			// Need to use unstructured here to avoid a dependency on the platform wls
 			vmc := unstructured.Unstructured{}
 			vmc.SetGroupVersionKind(schema.GroupVersionKind{
 				Group:   "clusters.verrazzano.io",

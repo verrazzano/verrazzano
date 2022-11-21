@@ -5,7 +5,7 @@
 # for production scenarios, using OCI DNS for name resolution of Verrazzano endpoints.
 #
 # Note that before you install verrazzano you need to run the create_oci_config_secret.sh in the
-# verrazzano/platform-operator/scripts/install directory to set up the ociConfigSecret below.
+# verrazzano/platform-wls/scripts/install directory to set up the ociConfigSecret below.
 #
 apiVersion: install.verrazzano.io/v1alpha1
 kind: Verrazzano

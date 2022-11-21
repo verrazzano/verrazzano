@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	platformOperatorPodNameSearchString = "verrazzano-platform-operator"                          // Pod Substring for finding the platform operator pod
+	platformOperatorPodNameSearchString = "verrazzano-platform-wls"                          // Pod Substring for finding the platform wls pod
 	rancherWarningMessage               = "Rancher shell image version may be old due to upgrade" // For known Rancher component upgrade behavior during VZ upgrade
 )
 
@@ -82,7 +82,7 @@ var allowedNamespaces = []string{
 	"^verrazzano-*",
 }
 
-var vBom verrazzanoBom                                  // BOM from platform operator in struct form
+var vBom verrazzanoBom                                  // BOM from platform wls in struct form
 var clusterImageArray []string                          // List of cluster installed images
 var bomImages = make(map[string][]string)               // Map of images mentioned into the BOM with associated set of tags
 var clusterImageTagErrors = make(map[string]imageError) // Map of cluster image tags doesn't match with BOM, hence a Failure Condition
@@ -119,7 +119,7 @@ func validateKubeConfig() bool {
 	return false
 }
 
-// Get the BOM from the platform operator in the cluster and build the BOM structure from it
+// Get the BOM from the platform wls in the cluster and build the BOM structure from it
 func getBOM() {
 	var platformOperatorPodName = ""
 	pods, err := pkg.ListPods("verrazzano-install", metav1.ListOptions{})
@@ -137,15 +137,15 @@ func getBOM() {
 	}
 
 	platformOperatorPodName = strings.TrimSuffix(platformOperatorPodName, "\n")
-	fmt.Printf("The platform operator pod name is %s\n", platformOperatorPodName)
-	//  Get the BOM from platform-operator
-	var command = []string{"cat", "/verrazzano/platform-operator/verrazzano-bom.json"}
+	fmt.Printf("The platform wls pod name is %s\n", platformOperatorPodName)
+	//  Get the BOM from platform-wls
+	var command = []string{"cat", "/verrazzano/platform-wls/verrazzano-bom.json"}
 	out, _, err := pkg.Execute(platformOperatorPodName, "", "verrazzano-install", command)
 	if err != nil {
 		log.Fatal(err)
 	}
 	if len(out) == 0 {
-		log.Fatal("Error retrieving BOM from platform operator, zero length\n")
+		log.Fatal("Error retrieving BOM from platform wls, zero length\n")
 	}
 	json.Unmarshal([]byte(out), &vBom)
 }

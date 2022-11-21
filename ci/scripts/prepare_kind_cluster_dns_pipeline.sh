@@ -70,17 +70,17 @@ cd ${GO_REPO_PATH}/verrazzano
 
 TARGET_OPERATOR_FILE=${TARGET_OPERATOR_FILE:-"${WORKSPACE}/acceptance-test-operator.yaml"}
 if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
-  # Derive the name of the operator.yaml file, copy or generate the file, then install
+  # Derive the name of the wls.yaml file, copy or generate the file, then install
   if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
       echo "Using operator.yaml from object storage"
-      oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${OCI_OS_LOCATION}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-      cp -v ${WORKSPACE}/downloaded-operator.yaml ${TARGET_OPERATOR_FILE}
+      oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${OCI_OS_LOCATION}/wls.yaml --file ${WORKSPACE}/downloaded-wls.yaml
+      cp -v ${WORKSPACE}/downloaded-wls.yaml ${TARGET_OPERATOR_FILE}
   else
       echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
       env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${TARGET_OPERATOR_FILE}
   fi
 else
-  # The operator.yaml filename was provided, install using that file.
+  # The wls.yaml filename was provided, install using that file.
   echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
   TARGET_OPERATOR_FILE=${OPERATOR_YAML}
 fi
@@ -112,10 +112,10 @@ cd ${TEST_SCRIPTS_DIR}
 echo "Installing Verrazzano on Kind"
 if [ -f "$WORKSPACE/vz" ]; then
   cd $WORKSPACE
-  ./vz install --filename $INSTALL_CONFIG_FILE_OCIDNS --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
+  ./vz install --filename $INSTALL_CONFIG_FILE_OCIDNS --wls-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
 else
   cd ${GO_REPO_PATH}/verrazzano/tools/vz
-  GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename $INSTALL_CONFIG_FILE_OCIDNS --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
+  GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename $INSTALL_CONFIG_FILE_OCIDNS --wls-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
 fi
 result=$?
 if [[ $result -ne 0 ]]; then

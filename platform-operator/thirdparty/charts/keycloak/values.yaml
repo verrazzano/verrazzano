@@ -386,7 +386,7 @@ mysql:
   dbHost: "mysql"
 
 serviceMonitor:
-  # If `true`, a ServiceMonitor resource for the prometheus-operator is created
+  # If `true`, a ServiceMonitor resource for the prometheus-wls is created
   enabled: false
   # Optionally sets a target namespace in which to deploy the ServiceMonitor resource
   namespace: ""
@@ -406,7 +406,7 @@ serviceMonitor:
   port: http-management
 
 extraServiceMonitor:
-  # If `true`, a ServiceMonitor resource for the prometheus-operator is created
+  # If `true`, a ServiceMonitor resource for the prometheus-wls is created
   enabled: false
   # Optionally sets a target namespace in which to deploy the ServiceMonitor resource
   namespace: ""
@@ -426,7 +426,7 @@ extraServiceMonitor:
   port: http
 
 prometheusRule:
-  # If `true`, a PrometheusRule resource for the prometheus-operator is created
+  # If `true`, a PrometheusRule resource for the prometheus-wls is created
   enabled: false
   # Annotations for the PrometheusRule
   annotations: {}

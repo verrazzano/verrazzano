@@ -75,7 +75,7 @@ func (u AuthProxyPodPerNodeAffintyModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.V
                     labelSelector:
                       matchExpressions:
                       - key: %v
-                        operator: In
+                        wls: In
                         values:
                         - %v
                     topologyKey: kubernetes.io/hostname

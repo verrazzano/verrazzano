@@ -67,7 +67,7 @@ spec:
               weight: 1
       containers:
         - command:
-            - /coherence-operator/utils/runner
+            - /coherence-wls/utils/runner
             - server
           env:
             - name: COH_MACHINE_NAME
@@ -95,14 +95,14 @@ spec:
               valueFrom:
                 secretKeyRef:
                   key: operatorhost
-                  name: coherence-operator-config
+                  name: coherence-wls-config
                   optional: true
             - name: COH_SITE_INFO_LOCATION
               value: http://$(OPERATOR_HOST)/site/$(COH_MACHINE_NAME)
             - name: COH_RACK_INFO_LOCATION
               value: http://$(OPERATOR_HOST)/rack/$(COH_MACHINE_NAME)
             - name: COH_UTIL_DIR
-              value: /coherence-operator/utils
+              value: /coherence-wls/utils
             - name: OPERATOR_REQUEST_TIMEOUT
               value: "120"
             - name: COH_HEALTH_PORT
@@ -166,9 +166,9 @@ spec:
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
           volumeMounts:
-            - mountPath: /coherence-operator/utils
+            - mountPath: /coherence-wls/utils
               name: coh-utils
-            - mountPath: /coherence-operator/jvm
+            - mountPath: /coherence-wls/jvm
               name: jvm
       dnsPolicy: ClusterFirst
       imagePullSecrets:
@@ -179,19 +179,19 @@ spec:
             - init
           env:
             - name: COH_UTIL_DIR
-              value: /coherence-operator/utils
+              value: /coherence-wls/utils
             - name: COH_CLUSTER_NAME
               value: example-cluster
-          image: ghcr.io/oracle/coherence-operator:3.1.5-utils
+          image: ghcr.io/oracle/coherence-wls:3.1.5-utils
           imagePullPolicy: IfNotPresent
           name: coherence-k8s-utils
           resources: {}
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
           volumeMounts:
-            - mountPath: /coherence-operator/utils
+            - mountPath: /coherence-wls/utils
               name: coh-utils
-            - mountPath: /coherence-operator/jvm
+            - mountPath: /coherence-wls/jvm
               name: jvm
       restartPolicy: Always
       schedulerName: default-scheduler

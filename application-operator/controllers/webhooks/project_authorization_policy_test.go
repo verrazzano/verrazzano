@@ -191,7 +191,7 @@ func TestDeleteTwoPoliciesOneNamespace(t *testing.T) {
 									"cluster.local/ns/appconfig-namespace/sa/appconfig-name1",
 									"cluster.local/ns/appconfig-namespace/sa/appconfig-name2",
 									"cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account",
-									"cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator",
+									"cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls",
 								},
 							},
 						},
@@ -256,7 +256,7 @@ func TestDeleteTwoPoliciesOneNamespace(t *testing.T) {
 								Principals: []string{
 									"cluster.local/ns/appconfig-namespace/sa/appconfig-name1",
 									"cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account",
-									"cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator",
+									"cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls",
 									"cluster.local/ns/appconfig-namespace/sa/appconfig-name2",
 								},
 							},
@@ -278,7 +278,7 @@ func TestDeleteTwoPoliciesOneNamespace(t *testing.T) {
 	assert.Equal(t, len(updatedPolicy.Spec.Rules[0].From[0].Source.Principals), 3)
 	assert.Contains(t, updatedPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
 	assert.Contains(t, updatedPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/appconfig-namespace/sa/appconfig-name2")
-	assert.Contains(t, updatedPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(t, updatedPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls")
 }
 
 // TestDeleteThreePoliciesTwoNamespace tests when an authorization policy is cleaned up
@@ -382,7 +382,7 @@ func TestDeleteThreePoliciesTwoNamespace(t *testing.T) {
 									"cluster.local/ns/appconfig-namespace2/sa/appconfig-name3",
 									"cluster.local/ns/appconfig-namespace2/sa/random-sa",
 									"cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account",
-									"cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator",
+									"cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls",
 								},
 							},
 						},
@@ -446,7 +446,7 @@ func TestDeleteThreePoliciesTwoNamespace(t *testing.T) {
 							Source: &securityv1beta1.Source{
 								Principals: []string{
 									"cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account",
-									"cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator",
+									"cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls",
 									"cluster.local/ns/appconfig-namespace1/sa/appconfig-name1",
 									"cluster.local/ns/appconfig-namespace1/sa/appconfig-name2",
 									"cluster.local/ns/appconfig-namespace2/sa/appconfig-name3",
@@ -515,7 +515,7 @@ func TestDeleteThreePoliciesTwoNamespace(t *testing.T) {
 								Principals: []string{
 									"cluster.local/ns/appconfig-namespace1/sa/appconfig-name1",
 									"cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account",
-									"cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator",
+									"cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls",
 									"cluster.local/ns/appconfig-namespace1/sa/appconfig-name2",
 									"cluster.local/ns/appconfig-namespace2/sa/appconfig-name3",
 									"cluster.local/ns/appconfig-namespace2/sa/random-sa",
@@ -539,7 +539,7 @@ func TestDeleteThreePoliciesTwoNamespace(t *testing.T) {
 	assert.Equal(t, len(updatedPolicy.Spec.Rules[0].From[0].Source.Principals), 5)
 	assert.Contains(t, updatedPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
 	assert.Contains(t, updatedPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/appconfig-namespace1/sa/appconfig-name2")
-	assert.Contains(t, updatedPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(t, updatedPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls")
 	assert.Contains(t, updatedPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/appconfig-namespace2/sa/appconfig-name3")
 	assert.Contains(t, updatedPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/appconfig-namespace2/sa/random-sa")
 
@@ -548,7 +548,7 @@ func TestDeleteThreePoliciesTwoNamespace(t *testing.T) {
 	assert.Equal(t, len(updatedPolicy.Spec.Rules[0].From[0].Source.Principals), 5)
 	assert.Contains(t, updatedPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
 	assert.Contains(t, updatedPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/appconfig-namespace1/sa/appconfig-name2")
-	assert.Contains(t, updatedPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assert.Contains(t, updatedPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls")
 	assert.Contains(t, updatedPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/appconfig-namespace2/sa/appconfig-name3")
 	assert.Contains(t, updatedPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/appconfig-namespace2/sa/random-sa")
 }

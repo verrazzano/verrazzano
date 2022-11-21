@@ -471,7 +471,7 @@ func TrackOperationProgress(operator, operation, objectName, namespace string, l
 		}
 
 	default:
-		log.Errorf("Invalid operator specified = %s'", operator)
+		log.Errorf("Invalid wls specified = %s'", operator)
 		response = "NAN"
 
 	}
