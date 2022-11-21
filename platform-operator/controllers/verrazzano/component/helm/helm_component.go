@@ -325,9 +325,8 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
-	if err := h.PreInstallUpgrade(context); err != nil {
-		return err
-	}
+	// Ignore the error if the Helm chart is not located to continue with the installation
+	_ = h.PreInstallUpgrade(context)
 	if h.PreInstallFunc != nil {
 		context.Log().Infof("Running Pre-Install for %s", h.ReleaseName)
 		return h.PreInstallFunc(context, h.ReleaseName, h.resolveNamespace(context), h.ChartDir)
@@ -457,6 +456,11 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		return nil
 	}
 
+	if h.PreUpgradeFunc != nil && UpgradePrehooksEnabled {
+		context.Log().Infof("Running Pre-Upgrade for %s", h.ReleaseName)
+		return h.PreUpgradeFunc(context.Log(), context.Client(), h.ReleaseName, resolvedNamespace, h.ChartDir)
+	}
+
 	// check for global image pull secret
 	var kvs []bom.KeyValue
 	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
@@ -489,14 +493,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreUpgrade(context spi.ComponentContext) error {
-	if err := h.PreInstallUpgrade(context); err != nil {
-		return err
-	}
-	if h.PreUpgradeFunc != nil && UpgradePrehooksEnabled {
-		context.Log().Infof("Running Pre-Upgrade for %s", h.ReleaseName)
-		return h.PreUpgradeFunc(context.Log(), context.Client(), h.ReleaseName, h.resolveNamespace(context), h.ChartDir)
-	}
-	return nil
+	return h.PreInstallUpgrade(context)
 }
 
 func (h HelmComponent) PostUpgrade(_ spi.ComponentContext) error {

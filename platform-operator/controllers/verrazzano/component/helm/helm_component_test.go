@@ -1152,7 +1152,7 @@ func TestPreInstall(t *testing.T) {
 		},
 		// GIVEN Helm component
 		// WHEN PreInstall is called
-		// THEN an error is returned if there is an error fetching release status
+		// THEN no error is returned if there is an error fetching release status
 		{
 			name: "TestPreInstall when  error getting release status",
 			helmComponent: HelmComponent{
@@ -1167,7 +1167,7 @@ func TestPreInstall(t *testing.T) {
 				return "", fmt.Errorf(unexpectedError)
 			},
 			ctx:           fakeContextWithSecret,
-			expectSuccess: false,
+			expectSuccess: true,
 		},
 		// GIVEN Helm component
 		// WHEN PreInstall is called
