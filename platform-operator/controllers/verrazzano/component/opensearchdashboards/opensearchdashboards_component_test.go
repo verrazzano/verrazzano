@@ -28,7 +28,7 @@ import (
 
 const (
 	profilesRelativePath = "../../../../manifests/profiles"
-	masterAppName        = "system-kibana"
+	masterAppName        = "system-osd"
 	DeploymentName       = "vmi-system-osd"
 	InstallArgsName      = "nodes.data.requests.storage"
 )
