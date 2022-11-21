@@ -36,6 +36,6 @@ spec:
               enabled: true
               clusterSelector:
                 matchExpressions:
-                  - key: vmc-sync
+                  - key: rancher-sync
                     operator: In
                     values: [ enabled ]

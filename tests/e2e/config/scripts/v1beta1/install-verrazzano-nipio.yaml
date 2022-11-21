@@ -28,6 +28,6 @@ spec:
               enabled: true
               clusterSelector:
                 matchExpressions:
-                  - key: ranhcher-sync
+                  - key: rancher-sync
                     operator: In
                     values: [ enabled ]
