@@ -311,6 +311,46 @@ func runUpdateCallbackChangedProfileTest() error {
 	return err
 }
 
+// TestDefaultProfileWithProd tests the update callback with the default profile of prod
+// GIVEN a ValidateUpdate() request
+// WHEN the profile is set to prod
+// THEN no error is returned
+func TestDefaultProfileWithProd(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	oldSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{},
+	}
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "prod",
+		},
+	}
+	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
+}
+
+// TestProfileWithProd tests the update callback with the default profile of prod
+// GIVEN a ValidateUpdate() request
+// WHEN the profile is set to default
+// THEN no error is returned
+func TestDefaultWithProd(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	oldSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{
+			Profile: "prod",
+		},
+	}
+	newSpec := &Verrazzano{
+		Spec: VerrazzanoSpec{},
+	}
+	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
+}
+
 // TestDeleteCallbackSuccess Tests the create callback with valid spec version
 // GIVEN a ValidateDelete() request
 // WHEN
