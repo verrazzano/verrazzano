@@ -18,6 +18,11 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// Last time the MySQL StatefulSet was ready
+var lastTimeStatefulSetReady time.Time
+
+var initialTimeICUninstallChecked time.Time
+
 // repairMySQLPodsWaitingReadinessGates - temporary workaround to repair issue were a MySQL pod
 // can be stuck waiting for its readiness gates to be met.
 func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentContext) error {
