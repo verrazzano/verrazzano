@@ -363,7 +363,9 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
                             }
                             steps {
-                                sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
+                                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                    sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
+                                }
                             }
                             post {
                                 failure {

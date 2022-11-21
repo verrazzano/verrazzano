@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/onsi/gomega"
 	vaoClient "github.com/verrazzano/verrazzano/application-operator/clientset/versioned"
+	vcoClient "github.com/verrazzano/verrazzano/cluster-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -456,13 +457,14 @@ func createClientset(config *restclient.Config) (*kubernetes.Clientset, error) {
 	return kubernetes.NewForConfig(config)
 }
 
-// GetVerrazzanoManagedClusterClientset returns the Kubernetes clientset for the VerrazzanoManagedCluster
-func GetVerrazzanoManagedClusterClientset() (*vpoClient.Clientset, error) {
-	config, err := k8sutil.GetKubeConfig()
+// GetClusterOperatorClientset returns the Kubernetes clientset for the Verrazzano Cluster Operator
+// for a given kubeconfig
+func GetClusterOperatorClientset(kubeconfigPath string) (*vcoClient.Clientset, error) {
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return nil, err
 	}
-	return vpoClient.NewForConfig(config)
+	return vcoClient.NewForConfig(config)
 }
 
 // GetVerrazzanoClientset returns the Kubernetes clientset for the Verrazzano CRD
@@ -476,6 +478,15 @@ func GetVerrazzanoClientset() (*vpoClient.Clientset, error) {
 
 // GetVerrazzanoClientsetInCluster returns the Kubernetes clientset for platform operator given a kubeconfig location
 func GetVerrazzanoClientsetInCluster(kubeconfigPath string) (*vpoClient.Clientset, error) {
+	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return vpoClient.NewForConfig(config)
+}
+
+// GetClusterOpClientsetInCluster returns the Kubernetes clientset for cluster operator given a kubeconfig location
+func GetClusterOpClientsetInCluster(kubeconfigPath string) (*vpoClient.Clientset, error) {
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
 	if err != nil {
 		return nil, err
