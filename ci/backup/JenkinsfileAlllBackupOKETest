@@ -300,13 +300,7 @@ pipeline {
 
                     # create secret in verrazzano-install ns
                     ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
-
-                    #${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/pre-install-resources
-
                     ./tests/e2e/config/scripts/process_nipio_install_yaml.sh ${INSTALL_CONFIG_FILE}
-                    #yq -i eval '.spec.components.prometheusAdapter.enabled = true'  ${INSTALL_CONFIG_FILE}
-                    #yq -i eval '.spec.components.kubeStateMetrics.enabled = true'  ${INSTALL_CONFIG_FILE}
-                    #yq -i eval '.spec.components.prometheusPushgateway.enabled = true'  ${INSTALL_CONFIG_FILE}
 
                     echo "Waiting for Operator to be ready"
                     cd ${GO_REPO_PATH}/verrazzano
@@ -317,12 +311,6 @@ pipeline {
 
                     # wait for Verrazzano install to complete
                     ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-
-                    #${TEST_SCRIPTS_DIR}/common-test-setup-script.sh "${GO_REPO_PATH}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "default" "${env.OCR_REPO}"
-                    #${TEST_SCRIPTS_DIR}/get_ingress_ip.sh ${TEST_CONFIG_FILE}
-                    #echo "----------Test config file:-------------"
-                    #cat ${TEST_CONFIG_FILE}
-                    #echo "----------------------------------------"
                 """
             }
             post {
