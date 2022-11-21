@@ -19,6 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/postlogs"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/scale"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/writelogs"
+	wlsscale "github.com/verrazzano/verrazzano/tools/psr/backend/workers/wls/scale"
 )
 
 var startMetricsFunc = metrics2.StartMetricsServerOrDie
@@ -108,6 +109,8 @@ func getWorker(wt string) (spi.Worker, error) {
 		return scale.NewScaleWorker()
 	case config.WorkerTypeOpsRestart:
 		return restart.NewRestartWorker()
+	case config.WorkerTypeWlsScale:
+		return wlsscale.NewScaleWorker()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}

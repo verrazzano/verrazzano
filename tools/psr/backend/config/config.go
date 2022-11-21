@@ -51,6 +51,7 @@ const (
 	WorkerTypeOpsScale     = "ops-scale"
 	WorkerTypeOpsRestart   = "ops-restart"
 	WorkerTypeHTTPGet      = "http_get"
+	WorkerTypeWlsScale     = "wls-scale"
 )
 
 const (

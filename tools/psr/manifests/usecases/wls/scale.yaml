@@ -1,0 +1,12 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+
+global:
+  envVars:
+    PSR_WORKER_TYPE: wls-scale
+    # DOMAIN_UID, DOMAIN_NAMESPACE, MIN_REPLICA_COUNT and MAX_REPLICA_COUNT are required environment variables.
+    DOMAIN_UID:
+    DOMAIN_NAMESPACE:
+    MIN_REPLICA_COUNT: 2
+    MAX_REPLICA_COUNT: 4
