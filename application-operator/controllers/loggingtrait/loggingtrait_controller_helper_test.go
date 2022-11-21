@@ -176,99 +176,61 @@ func Test_appendSliceOfInterface(t *testing.T) {
 	}
 }
 
+var (
+	wantHalfContainers = []string{"spec", "containers"}
+	wantFullContainers = []string{"spec", "template", "spec", "containers"}
+	wantHalfVolumes    = []string{"spec", "volumes"}
+	wantFullVolumes    = []string{"spec", "template", "spec", "volumes"}
+)
+
 func Test_locateContainersField(t *testing.T) {
-	type args struct {
-		res *unstructured.Unstructured
-	}
-
-	// Create Deployment resource
-	deploymentResource := unstructured.Unstructured{}
-	deploymentResource.SetAPIVersion("apps/v1")
-	deploymentResource.SetKind("Deployment")
-
-	// Create Pod resource
-	podResource := unstructured.Unstructured{}
-	podResource.SetAPIVersion("v1")
-	podResource.SetKind("Pod")
-
-	// Create ContainerizedWorkload resource
-	containerizedWorkloadResource := unstructured.Unstructured{}
-	containerizedWorkloadResource.SetAPIVersion("v1")
-	containerizedWorkloadResource.SetKind("ContainerizedWorkload")
-
-	// Create StatefuleSet resource
-	statefuleSetResource := unstructured.Unstructured{}
-	statefuleSetResource.SetAPIVersion("apps/v1")
-	statefuleSetResource.SetKind("StatefuleSet")
-
-	// Create DaemonSet resource
-	daemonSetResource := unstructured.Unstructured{}
-	daemonSetResource.SetAPIVersion("apps/v1")
-	daemonSetResource.SetKind("DaemonSet")
-
-	// Create Secret resource
-	secretResource := unstructured.Unstructured{}
-	secretResource.SetAPIVersion("v1")
-	secretResource.SetKind("Secret")
 
 	tests := []struct {
 		name  string
-		args  args
+		res   *unstructured.Unstructured
 		want  bool
 		want1 []string
 	}{
 		{
-			name: "deployment_test",
-			args: args{
-				res: &deploymentResource,
-			},
+			name:  "deployment_test",
+			res:   getResource("Deployment"),
 			want:  true,
-			want1: []string{"spec", "template", "spec", "containers"},
+			want1: wantFullContainers,
 		},
 		{
-			name: "pod_test",
-			args: args{
-				res: &podResource,
-			},
+			name:  "pod_test",
+			res:   getResource("Pod"),
 			want:  true,
-			want1: []string{"spec", "containers"},
+			want1: wantHalfContainers,
 		},
 		{
-			name: "containerizedWorkload",
-			args: args{
-				res: &containerizedWorkloadResource,
-			},
+			name:  "containerizedWorkload_test",
+			res:   getResource("ContainerizedWorkload"),
 			want:  true,
-			want1: []string{"spec", "containers"},
+			want1: wantHalfContainers,
 		},
 		{
-			name: "statefuleSet_test",
-			args: args{
-				res: &statefuleSetResource,
-			},
+			name:  "statefulSet_test",
+			res:   getResource("StatefulState"),
 			want:  true,
-			want1: []string{"spec", "template", "spec", "containers"},
+			want1: wantFullContainers,
 		},
 		{
-			name: "daemonSet_test",
-			args: args{
-				res: &daemonSetResource,
-			},
+			name:  "daemonSet_test",
+			res:   getResource("DaemonSet"),
 			want:  true,
-			want1: []string{"spec", "template", "spec", "containers"},
+			want1: wantFullContainers,
 		},
 		{
-			name: "secret_test",
-			args: args{
-				res: &secretResource,
-			},
+			name:  "secret_test",
+			res:   getResource("Secret"),
 			want:  false,
 			want1: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := locateContainersField(tt.args.res)
+			got, got1 := locateContainersField(tt.res)
 			if got != tt.want {
 				t.Errorf("locateContainersField() got = %v, want %v", got, tt.want)
 			}
@@ -280,98 +242,52 @@ func Test_locateContainersField(t *testing.T) {
 }
 
 func Test_locateVolumesField(t *testing.T) {
-	type args struct {
-		res *unstructured.Unstructured
-	}
-
-	// Create Deployment resource
-	deploymentResource := unstructured.Unstructured{}
-	deploymentResource.SetAPIVersion("apps/v1")
-	deploymentResource.SetKind("Deployment")
-
-	// Create Pod resource
-	podResource := unstructured.Unstructured{}
-	podResource.SetAPIVersion("v1")
-	podResource.SetKind("Pod")
-
-	// Create ContainerizedWorkload resource
-	containerizedWorkloadResource := unstructured.Unstructured{}
-	containerizedWorkloadResource.SetAPIVersion("v1")
-	containerizedWorkloadResource.SetKind("ContainerizedWorkload")
-
-	// Create StatefuleSet resource
-	statefuleSetResource := unstructured.Unstructured{}
-	statefuleSetResource.SetAPIVersion("apps/v1")
-	statefuleSetResource.SetKind("StatefuleSet")
-
-	// Create DaemonSet resource
-	daemonSetResource := unstructured.Unstructured{}
-	daemonSetResource.SetAPIVersion("apps/v1")
-	daemonSetResource.SetKind("DaemonSet")
-
-	// Create Secret resource
-	secretResource := unstructured.Unstructured{}
-	secretResource.SetAPIVersion("v1")
-	secretResource.SetKind("Secret")
-
 	tests := []struct {
 		name  string
-		args  args
+		res   *unstructured.Unstructured
 		want  bool
 		want1 []string
 	}{
 		{
-			name: "deployment_test",
-			args: args{
-				res: &deploymentResource,
-			},
+			name:  "deployment_test",
+			res:   getResource("Deployment"),
 			want:  true,
-			want1: []string{"spec", "template", "spec", "volumes"},
+			want1: wantFullVolumes,
 		},
 		{
-			name: "pod_test",
-			args: args{
-				res: &podResource,
-			},
+			name:  "pod_test",
+			res:   getResource("Pod"),
 			want:  true,
-			want1: []string{"spec", "volumes"},
+			want1: wantHalfVolumes,
 		},
 		{
-			name: "containerizedWorkload",
-			args: args{
-				res: &containerizedWorkloadResource,
-			},
+			name:  "containerizedWorkload_test",
+			res:   getResource("ContainerizedWorkload"),
 			want:  true,
-			want1: []string{"spec", "volumes"},
+			want1: wantHalfVolumes,
 		},
 		{
-			name: "statefuleSet_test",
-			args: args{
-				res: &statefuleSetResource,
-			},
+			name:  "statefulSet_test",
+			res:   getResource("StatefulState"),
 			want:  true,
-			want1: []string{"spec", "template", "spec", "volumes"},
+			want1: wantFullVolumes,
 		},
 		{
-			name: "daemonSet_test",
-			args: args{
-				res: &daemonSetResource,
-			},
+			name:  "daemonSet_test",
+			res:   getResource("DaemonSet"),
 			want:  true,
-			want1: []string{"spec", "template", "spec", "volumes"},
+			want1: wantFullVolumes,
 		},
 		{
-			name: "secret_test",
-			args: args{
-				res: &secretResource,
-			},
+			name:  "secret_test",
+			res:   getResource("Secret"),
 			want:  false,
 			want1: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := locateVolumesField(tt.args.res)
+			got, got1 := locateVolumesField(tt.res)
 			if got != tt.want {
 				t.Errorf("locateVolumesField() got = %v, want %v", got, tt.want)
 			}
@@ -380,4 +296,31 @@ func Test_locateVolumesField(t *testing.T) {
 			}
 		})
 	}
+}
+
+func getResource(resource string) *unstructured.Unstructured {
+	res := unstructured.Unstructured{}
+
+	switch resource {
+	case "Deployment":
+		res.SetAPIVersion("apps/v1")
+		res.SetKind("Deployment")
+	case "Pod":
+		res.SetAPIVersion("v1")
+		res.SetKind("Pod")
+	case "ContainerizedWorkload":
+		res.SetAPIVersion("v1")
+		res.SetKind("ContainerizedWorkload")
+	case "StatefulState":
+		res.SetAPIVersion("apps/v1")
+		res.SetKind("StatefulSet")
+	case "DaemonSet":
+		res.SetAPIVersion("apps/v1")
+		res.SetKind("DaemonSet")
+	case "Secret":
+		res.SetAPIVersion("v1")
+		res.SetKind("Secret")
+	}
+
+	return &res
 }
