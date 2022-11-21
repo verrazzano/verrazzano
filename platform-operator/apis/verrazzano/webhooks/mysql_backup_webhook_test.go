@@ -21,6 +21,14 @@ import (
 	"testing"
 )
 
+var mySqlJobAnnotation = map[string]string{
+	"app.kubernetes.io/created-by": "mysql-operator",
+}
+
+const (
+	jobApiVerison = "batch/v1"
+)
+
 func decoder() *admission.Decoder {
 	scheme := runtime.NewScheme()
 	_ = core.AddToScheme(scheme)
@@ -135,9 +143,7 @@ func TestHandleAnnotateMysqlBackupJob(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "backup-job",
 			Namespace: "default",
-			Labels: map[string]string{
-				"app.kubernetes.io/created-by": "mysql-operator",
-			},
+			Labels:    mySqlJobAnnotation,
 		},
 	}
 
@@ -158,6 +164,7 @@ func TestHandleAnnotateMysqlBackupJob(t *testing.T) {
 
 // TestConvertAPIVersionToGroupAndVersion validates whether  given apiVersion
 // will be successfully segregated into group and version
+
 func TestConvertAPIVersionToGroupAndVersion(t *testing.T) {
 	apiVersion1 := "networking.k8s.io/v1"
 	apiVersion2 := "v1alpha1"
@@ -180,7 +187,7 @@ func TestIsCronJobCreatedByMysqlOperator(t *testing.T) {
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 	}
-	u := newUnstructured("batch/v1", "CronJob", "MySqlCronJob")
+	u := newUnstructured(jobApiVerison, "CronJob", "MySqlCronJob")
 	resource := schema.GroupVersionResource{
 		Group:    "batch",
 		Version:  "v1",
@@ -191,15 +198,14 @@ func TestIsCronJobCreatedByMysqlOperator(t *testing.T) {
 	cronjob := &batchv1.CronJob{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "MySqlCronJob",
-			OwnerReferences: []metav1.OwnerReference{{
-				Kind:       "CronJob",
-				APIVersion: "batch/v1",
-				Name:       "MySqlCronJob",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					Kind:       "CronJob",
+					APIVersion: jobApiVerison,
+					Name:       "MySqlCronJob",
+				},
 			},
-			},
-			Labels: map[string]string{
-				"app.kubernetes.io/created-by": "mysql-operator",
-			},
+			Labels: mySqlJobAnnotation,
 		},
 	}
 	job, err := defaulter.KubeClient.BatchV1().CronJobs("default").Create(context.TODO(), cronjob, metav1.CreateOptions{})
@@ -222,13 +228,14 @@ func TestIsCronJobCreatedByMysqlOperator(t *testing.T) {
 // WHEN Handle is called with an admission.Request containing cronjob created by mysql-operator
 // and cronjob didn't exist
 // THEN Handle should not allow response with no action required
+
 func TestIsCronJobCreatedByMysqlOperator2(t *testing.T) {
 	var err error
 	defaulter := &MySQLBackupJobWebhook{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 	}
-	u := newUnstructured("batch/v1", "CronJob", "MySqlCronJob1")
+	u := newUnstructured(jobApiVerison, "CronJob", "MySqlCronJob1")
 	resource := schema.GroupVersionResource{
 		Group:    "batch",
 		Version:  "v1",
@@ -239,15 +246,14 @@ func TestIsCronJobCreatedByMysqlOperator2(t *testing.T) {
 	cronjob := &batchv1.CronJob{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "MySqlCronJob1",
-			OwnerReferences: []metav1.OwnerReference{{
-				Kind:       "CronJob",
-				APIVersion: "batch/v1",
-				Name:       "MySqlCronJob1",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					Kind:       "CronJob",
+					APIVersion: jobApiVerison,
+					Name:       "MySqlCronJob1",
+				},
 			},
-			},
-			Labels: map[string]string{
-				"app.kubernetes.io/created-by": "mysql-operator",
-			},
+			Labels: mySqlJobAnnotation,
 		},
 	}
 	job, err := defaulter.KubeClient.BatchV1().CronJobs("default").Create(context.TODO(), cronjob, metav1.CreateOptions{})
