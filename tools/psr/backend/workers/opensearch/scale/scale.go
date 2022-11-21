@@ -27,9 +27,10 @@ const (
 	// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
 	metricsPrefix = "opensearch_scaling"
 
-	openSearchTier  = "OPENSEARCH_TIER"
-	minReplicaCount = "MIN_REPLICA_COUNT"
-	maxReplicaCount = "MAX_REPLICA_COUNT"
+	openSearchTier           = "OPENSEARCH_TIER"
+	minReplicaCount          = "MIN_REPLICA_COUNT"
+	maxReplicaCount          = "MAX_REPLICA_COUNT"
+	openSearchTierMetricName = "opensearch_tier"
 )
 
 var funcNewPsrClient = k8sclient.NewPsrClient
@@ -90,12 +91,26 @@ func NewScaleWorker() (spi.Worker, error) {
 		},
 	}
 
-	w.metricDescList = []prometheus.Desc{
-		*w.scaleOutCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
-		*w.scaleInCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
-		*w.scaleOutSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
-		*w.scaleInSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
+	if err = config.PsrEnv.LoadFromEnv(w.GetEnvDescList()); err != nil {
+		return w, err
 	}
+
+	tier, err := psropensearch.ValidateOpenSeachTier(openSearchTier)
+	if err != nil {
+		return w, err
+	}
+
+	metricsLabels := map[string]string{
+		openSearchTierMetricName:        tier,
+		config.PsrWorkerTypeMetricsName: config.PsrEnv.GetEnv(config.PsrWorkerType),
+	}
+
+	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
+		&w.scaleOutCountTotal,
+		&w.scaleInCountTotal,
+		&w.scaleOutSeconds,
+		&w.scaleInSeconds,
+	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
 
 	return w, nil
 }

@@ -72,11 +72,19 @@ func NewHTTPGetWorker() (spi.Worker, error) {
 		},
 	}}
 
-	w.metricDescList = []prometheus.Desc{
-		*w.getRequestsCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
-		*w.getRequestsSucceededCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
-		*w.getRequestsFailedCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
+	if err := config.PsrEnv.LoadFromEnv(w.GetEnvDescList()); err != nil {
+		return w, err
 	}
+
+	metricsLabels := map[string]string{
+		config.PsrWorkerTypeMetricsName: config.PsrEnv.GetEnv(config.PsrWorkerType),
+	}
+
+	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
+		&w.getRequestsCountTotal,
+		&w.getRequestsSucceededCountTotal,
+		&w.getRequestsFailedCountTotal,
+	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
 	return w, nil
 }
 
