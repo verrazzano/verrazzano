@@ -95,12 +95,7 @@ func (w worker) GetWorkerDesc() spi.WorkerDesc {
 }
 
 func (w worker) GetEnvDescList() []osenv.EnvVarDesc {
-	return []osenv.EnvVarDesc{
-		{Key: ServiceName, DefaultVal: "", Required: true},
-		{Key: ServiceNamespace, DefaultVal: "", Required: true},
-		{Key: ServicePort, DefaultVal: "", Required: true},
-		{Key: Path, DefaultVal: "", Required: true},
-	}
+	return []osenv.EnvVarDesc{}
 }
 
 func (w worker) GetMetricDescList() []prometheus.Desc {
