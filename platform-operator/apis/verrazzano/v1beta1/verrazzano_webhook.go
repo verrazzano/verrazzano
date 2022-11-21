@@ -113,14 +113,13 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 	log.Debugf("oldResource: %v", oldResource)
 	log.Debugf("v: %v", v)
 
-	// Only enable updates are not allowed when an install or an upgrade is in in progress
+	// Only enable updates are not allowed when an installation or an upgrade is in progress
 	if err := ValidateInProgress(oldResource); err != nil {
 		return err
 	}
 
-	// The profile field is immutable
-	if oldResource.Spec.Profile != v.Spec.Profile {
-		return fmt.Errorf("Profile change is not allowed oldResource %s to %s", oldResource.Spec.Profile, v.Spec.Profile)
+	if err := v.validateProfile(oldResource); err != nil {
+		return err
 	}
 
 	// Check to see if the update is an upgrade request, and if it is valid and allowable
@@ -148,6 +147,24 @@ func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
 		if errs := componentValidator.ValidateUpdateV1Beta1(oldResource, v); len(errs) > 0 {
 			return validators.CombineErrors(errs)
 		}
+	}
+
+	return nil
+}
+
+// validateProfile checks that the immutable Profile field has not changed.
+func (v *Verrazzano) validateProfile(oldResource *Verrazzano) error {
+	// The profile field is immutable - default is Prod
+	oldProfile := oldResource.Spec.Profile
+	if oldProfile == "" {
+		oldProfile = Prod
+	}
+	newProfile := v.Spec.Profile
+	if newProfile == "" {
+		newProfile = Prod
+	}
+	if oldProfile != newProfile {
+		return fmt.Errorf("Profile change is not allowed oldResource %s to %s", oldProfile, newProfile)
 	}
 
 	return nil
