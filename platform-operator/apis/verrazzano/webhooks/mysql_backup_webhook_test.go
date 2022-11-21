@@ -21,12 +21,12 @@ import (
 	"testing"
 )
 
-var mySqlJobAnnotation = map[string]string{
+var mySQLJobAnnotation = map[string]string{
 	"app.kubernetes.io/created-by": "mysql-operator",
 }
 
 const (
-	jobApiVerison = "batch/v1"
+	jobAPIVerison = "batch/v1"
 )
 
 func decoder() *admission.Decoder {
@@ -143,7 +143,7 @@ func TestHandleAnnotateMysqlBackupJob(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "backup-job",
 			Namespace: "default",
-			Labels:    mySqlJobAnnotation,
+			Labels:    mySQLJobAnnotation,
 		},
 	}
 
@@ -187,7 +187,7 @@ func TestIsCronJobCreatedByMysqlOperator(t *testing.T) {
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 	}
-	u := newUnstructured(jobApiVerison, "CronJob", "MySqlCronJob")
+	u := newUnstructured(jobAPIVerison, "CronJob", "MySqlCronJob")
 	resource := schema.GroupVersionResource{
 		Group:    "batch",
 		Version:  "v1",
@@ -201,11 +201,11 @@ func TestIsCronJobCreatedByMysqlOperator(t *testing.T) {
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					Kind:       "CronJob",
-					APIVersion: jobApiVerison,
+					APIVersion: jobAPIVerison,
 					Name:       "MySqlCronJob",
 				},
 			},
-			Labels: mySqlJobAnnotation,
+			Labels: mySQLJobAnnotation,
 		},
 	}
 	job, err := defaulter.KubeClient.BatchV1().CronJobs("default").Create(context.TODO(), cronjob, metav1.CreateOptions{})
@@ -235,7 +235,7 @@ func TestIsCronJobCreatedByMysqlOperator2(t *testing.T) {
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 	}
-	u := newUnstructured(jobApiVerison, "CronJob", "MySqlCronJob1")
+	u := newUnstructured(jobAPIVerison, "CronJob", "MySqlCronJob1")
 	resource := schema.GroupVersionResource{
 		Group:    "batch",
 		Version:  "v1",
@@ -249,11 +249,11 @@ func TestIsCronJobCreatedByMysqlOperator2(t *testing.T) {
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					Kind:       "CronJob",
-					APIVersion: jobApiVerison,
+					APIVersion: jobAPIVerison,
 					Name:       "MySqlCronJob1",
 				},
 			},
-			Labels: mySqlJobAnnotation,
+			Labels: mySQLJobAnnotation,
 		},
 	}
 	job, err := defaulter.KubeClient.BatchV1().CronJobs("default").Create(context.TODO(), cronjob, metav1.CreateOptions{})
