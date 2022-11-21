@@ -6,28 +6,30 @@ package loggingtrait
 import (
 	"context"
 	"encoding/json"
-	"github.com/go-logr/logr"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"fmt"
 	"testing"
 	"time"
 
+	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+
+	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	"github.com/go-logr/logr"
+	"github.com/golang/mock/gomock"
+	asserts "github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	k8sapps "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	k8smeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
-	"github.com/golang/mock/gomock"
-	asserts "github.com/stretchr/testify/assert"
-	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/mocks"
-	"k8s.io/apimachinery/pkg/runtime"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -239,6 +241,109 @@ func TestDeleteLoggingTraitFromContainerizedWorkload(t *testing.T) {
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Equal(time.Duration(0), result.RequeueAfter)
+}
+
+// Test_fetchTrait tests the fetchTrait function of the LoggingTraitReconciler
+// GIVEN a call to fetchTrait method of the LoggingTrait Reconciler
+// WHEN there is some error during retrieving the trait
+// THEN expect the reconciler to requeue and return no error
+func Test_fetchTrait(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	namespaceName := "test-namespace"
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: namespaceName, Name: "test-trait-name"}}
+
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespaceName, Name: "test-trait-name"}), gomock.Not(gomock.Nil())).
+		Return(
+			fmt.Errorf("server error"),
+		)
+
+	reconciler := newLoggingTraitReconciler(mock, t)
+	result, err := reconciler.Reconcile(context.TODO(), request)
+	assert.Nil(err)
+	assert.NotNil(result)
+	assert.True(result.Requeue)
+
+	mock = mocks.NewMockClient(mocker)
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespaceName, Name: "test-trait-name"}), gomock.Not(gomock.Nil())).
+		Return(
+			&errors.StatusError{ErrStatus: k8smeta.Status{Code: 404}},
+		)
+
+	reconciler = newLoggingTraitReconciler(mock, t)
+	result, err = reconciler.Reconcile(context.TODO(), request)
+	assert.Nil(err)
+	assert.NotNil(result)
+	assert.True(result.Requeue)
+}
+
+// TestCreateOrUpdateLoggingTraitNoWorkloadChild tests the creation/update/deletion of LoggingTrait when
+// no child resources for workload exists
+// GIVEN a LoggingTrait with workload reference
+// WHEN there is no child resource of the workload
+// THEN fall back to the original workload and complete the reconciliation
+func TestReconcileTraitNoWorkloadChild(t *testing.T) {
+	assert := asserts.New(t)
+	mocker := gomock.NewController(t)
+	mock := mocks.NewMockClient(mocker)
+
+	traitName := "test-trait-name"
+	namespaceName := "test-namespace"
+	workloadName := "test-workload-name"
+	workloadUID := "test-workload-uid"
+
+	trait := &vzapi.LoggingTrait{
+		TypeMeta: k8smeta.TypeMeta{
+			Kind: vzapi.LoggingTraitKind,
+		},
+		ObjectMeta: k8smeta.ObjectMeta{
+			Name:      traitName,
+			Namespace: namespaceName,
+		},
+		Spec: vzapi.LoggingTraitSpec{
+			WorkloadReference: oamrt.TypedReference{
+				APIVersion: oamcore.SchemeGroupVersion.Identifier(),
+				Kind:       oamcore.ContainerizedWorkloadKind,
+				Name:       workloadName,
+				UID:        types.UID(workloadUID),
+			}},
+	}
+
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: "test-workload-name"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
+			return nil
+		})
+
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}), gomock.Not(gomock.Nil())).
+		Return(fmt.Errorf("server error"))
+
+	reconciler := newLoggingTraitReconciler(mock, t)
+	result, supported, err := reconciler.reconcileTraitCreateOrUpdate(context.TODO(), vzlog.DefaultLogger(), trait)
+	assert.NoError(err)
+	assert.NotNil(result)
+	assert.True(supported)
+
+	mock = mocks.NewMockClient(mocker)
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: "test-workload-name"}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
+			return nil
+		})
+
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}), gomock.Not(gomock.Nil())).
+		Return(fmt.Errorf("server error"))
+
+	reconciler = newLoggingTraitReconciler(mock, t)
+	result, err = reconciler.reconcileTraitDelete(context.TODO(), vzlog.DefaultLogger(), trait)
+	assert.NoError(err)
+	assert.NotNil(result)
 }
 
 // convertToUnstructured converts an object to an Unstructured version
