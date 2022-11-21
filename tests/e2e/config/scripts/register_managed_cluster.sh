@@ -89,6 +89,8 @@ if [ $((MAJOR_VERSION)) -eq 1 ] && [ $((MINOR_VERSION)) -lt 4 ] ; then
   metadata:
     name: ${MANAGED_CLUSTER_NAME}
     namespace: verrazzano-mc
+    labels:
+      rancher-sync: enabled
   spec:
     description: "VerrazzanoManagedCluster object for ${MANAGED_CLUSTER_NAME}"
     caSecret: ca-secret-${MANAGED_CLUSTER_NAME}
@@ -109,6 +111,8 @@ else
   metadata:
     name: ${MANAGED_CLUSTER_NAME}
     namespace: verrazzano-mc
+    labels:
+      rancher-sync: enabled
   spec:
     description: "VerrazzanoManagedCluster object for ${MANAGED_CLUSTER_NAME}"
 EOF

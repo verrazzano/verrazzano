@@ -21,3 +21,13 @@ spec:
       enabled: true
     prometheusNodeExporter:
       enabled: true
+    clusterOperator:
+      overrides:
+        - values:
+            syncRancherClusters:
+              enabled: true
+              clusterSelector:
+                matchExpressions:
+                  - key: ranhcher-sync
+                    operator: In
+                    values: [ enabled ]
