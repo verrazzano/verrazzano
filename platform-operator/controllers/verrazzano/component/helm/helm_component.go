@@ -326,7 +326,7 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 
 func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
 	// Ignore the error if the Helm chart is not located to continue with the installation
-	_ = h.PreInstallUpgrade(context)
+	_ = h.preInstallUpgrade(context)
 	if h.PreInstallFunc != nil {
 		context.Log().Infof("Running Pre-Install for %s", h.ReleaseName)
 		return h.PreInstallFunc(context, h.ReleaseName, h.resolveNamespace(context), h.ChartDir)
@@ -496,7 +496,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreUpgrade(context spi.ComponentContext) error {
-	return h.PreInstallUpgrade(context)
+	return h.preInstallUpgrade(context)
 }
 
 func (h HelmComponent) PostUpgrade(_ spi.ComponentContext) error {
@@ -654,8 +654,8 @@ func (h HelmComponent) resolveNamespace(ctx spi.ComponentContext) string {
 	return namespace
 }
 
-// PreInstallUpgrade handles the helm release status and secret cleanup for the helm upgrade or install to avoid conflicts
-func (h HelmComponent) PreInstallUpgrade(ctx spi.ComponentContext) error {
+// preInstallUpgrade handles the helm release status and secret cleanup for the helm upgrade or install to avoid conflicts
+func (h HelmComponent) preInstallUpgrade(ctx spi.ComponentContext) error {
 	releaseStatus, err := helm.GetReleaseStatus(ctx.Log(), h.ReleaseName, h.ChartNamespace)
 	if err != nil {
 		return ctx.Log().ErrorfThrottledNewErr("Error getting release status for %s", h.ReleaseName)
