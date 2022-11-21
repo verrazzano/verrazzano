@@ -75,7 +75,7 @@ func TestShouldSyncRancherClusters(t *testing.T) {
 			&metav1.LabelSelector{
 				MatchLabels: map[string]string{"foo": "bar"},
 				MatchExpressions: []metav1.LabelSelectorRequirement{
-					metav1.LabelSelectorRequirement{
+					{
 						Key:      "clustertype",
 						Operator: metav1.LabelSelectorOpIn,
 						Values:   []string{"special", "reallyspecial"},
