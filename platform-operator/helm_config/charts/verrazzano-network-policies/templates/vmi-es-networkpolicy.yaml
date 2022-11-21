@@ -107,7 +107,7 @@ spec:
     - from:
         - podSelector:
             matchLabels:
-              app: system-kibana
+              app: system-osd
       ports:
         - protocol: TCP
           port: 9200
@@ -168,7 +168,7 @@ spec:
     - from:
         - podSelector:
             matchLabels:
-              app: system-kibana
+              app: system-osd
       ports:
         - protocol: TCP
           port: 9200
@@ -227,7 +227,7 @@ spec:
     - from:
         - podSelector:
             matchLabels:
-              app: system-kibana
+              app: system-osd
       ports:
         - protocol: TCP
           port: 9200
@@ -268,7 +268,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: system-kibana
+      app: system-osd
   policyTypes:
     - Ingress
   ingress:
