@@ -111,8 +111,9 @@ func (c *ComponentHealth) SetComponentHealth(name string, availability bool, isE
 	if isEnabled {
 		if availability {
 			setting = 1
+		} else {
+			setting = -1
 		}
-		setting = -1
 	}
 	metric, err := c.available.GetMetricWithLabelValues(name)
 	if err != nil {
