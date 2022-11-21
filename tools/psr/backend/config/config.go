@@ -51,7 +51,7 @@ const (
 	WorkerTypeOpsScale      = "ops-scale"
 	WorkerTypeOpsRestart    = "ops-restart"
 	WorkerTypeHTTPGet       = "http_get"
-	WorkerTypeReceiveAlerts = "receiveAlerts"
+	WorkerTypeReceiveAlerts = "http_alerts"
 )
 
 const (
