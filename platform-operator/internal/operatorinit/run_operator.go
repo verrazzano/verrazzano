@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
@@ -50,14 +49,6 @@ func StartPlatformOperator(config config.OperatorConfig, log *zap.SugaredLogger,
 	}
 	if config.HealthCheckPeriodSeconds > 0 {
 		healthCheck.Start()
-	}
-
-	// Set up the reconciler for VerrazzanoManagedCluster objects
-	if err = (&clusters.VerrazzanoManagedClusterReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		return errors.Wrap(err, "Failed to setup controller VerrazzanoManagedCluster")
 	}
 
 	// Setup secrets reconciler

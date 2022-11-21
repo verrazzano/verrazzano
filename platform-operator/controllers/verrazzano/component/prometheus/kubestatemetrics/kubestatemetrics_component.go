@@ -78,7 +78,10 @@ func (c kubeStateMetricsComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // PreInstall updates resources necessary for kube-state-metrics Component installation
 func (c kubeStateMetricsComponent) PreInstall(ctx spi.ComponentContext) error {
-	return preInstall(ctx)
+	if err := preInstall(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

@@ -7,6 +7,7 @@ import (
 	goerrors "errors"
 	"fmt"
 
+	v1alpha12 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 
@@ -22,7 +23,6 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	vmcv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -119,7 +119,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 		t.It("vmc status updates", func() {
 			Eventually(func() bool {
 				// Verify we have the expected status update
-				vmc := vmcv1alpha1.VerrazzanoManagedCluster{}
+				vmc := v1alpha12.VerrazzanoManagedCluster{}
 				err := getMultiClusterResource("verrazzano-mc", managedClusterName, &vmc)
 				return err == nil && vmc.Status.LastAgentConnectTime.After(time.Now().Add(-30*time.Minute))
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to find VerrazzanoManagedCluster")
@@ -324,7 +324,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 
 		// VZ-2336: NOT be able to update or delete any VerrazzanoManagedCluster resources
 		t.It("cannot modify vmc on admin", func() {
-			cluster := vmcv1alpha1.VerrazzanoManagedCluster{}
+			cluster := v1alpha12.VerrazzanoManagedCluster{}
 			Eventually(func() error {
 				return getMultiClusterResource("verrazzano-mc", managedClusterName, &cluster)
 			}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
@@ -722,7 +722,7 @@ func getClustersClient() (client.Client, error) {
 
 	scheme := runtime.NewScheme()
 	_ = clustersv1alpha1.AddToScheme(scheme)
-	_ = vmcv1alpha1.AddToScheme(scheme)
+	_ = v1alpha12.AddToScheme(scheme)
 	_ = v1alpha1.AddToScheme(scheme)
 	_ = v1.AddToScheme(scheme)
 	_ = oamv1alpha2.SchemeBuilder.AddToScheme(scheme)

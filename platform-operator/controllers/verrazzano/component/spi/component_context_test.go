@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -131,7 +130,6 @@ func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)
 
 	_ = v1alpha1.AddToScheme(testScheme)
-	_ = clustersv1alpha1.AddToScheme(testScheme)
 
 	_ = istioclinet.AddToScheme(testScheme)
 	_ = istioclisec.AddToScheme(testScheme)
@@ -168,14 +166,14 @@ func TestContextProfilesMerge(t *testing.T) {
 			}
 
 			a.NotNil(context, "Context was nil")
-			//Tests ActualCR method
+			// Tests ActualCR method
 			a.NotNil(context.ActualCR(), "Actual CR was nil")
 			a.Equal(test.actualCR, *context.ActualCR(), "Actual CR unexpectedly modified")
-			//Tests EffectiveCR method
+			// Tests EffectiveCR method
 			a.NotNil(context.EffectiveCR(), "Effective CR was nil")
 			a.Equal(v1alpha1.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
 			a.True(equality.Semantic.DeepEqual(expectedVZ, context.EffectiveCR()), "Effective CR did not match expected results")
-			//Tests Log method
+			// Tests Log method
 			a.Equal(log, context.Log(), "The log in the context doesn't match the original one")
 		})
 	}
@@ -216,9 +214,9 @@ func TestNewFakeContext(t *testing.T) {
 			a.NotNil(context.EffectiveCR(), "Effective CR was nil")
 			a.Equal(v1alpha1.VerrazzanoStatus{}, context.EffectiveCR().Status, "Effective CR status not empty")
 			a.True(equality.Semantic.DeepEqual(expectedVZ, context.EffectiveCR()), "Effective CR did not match expected results")
-			//Tests GetClient method
+			// Tests GetClient method
 			a.Equal(client, context.Client(), "The client name doesn't match")
-			//Tests IsDryRun method
+			// Tests IsDryRun method
 			a.Equal(context.IsDryRun(), false, "The dryRun value doesn't match")
 		})
 	}
