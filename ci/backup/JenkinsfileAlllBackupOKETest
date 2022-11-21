@@ -317,17 +317,6 @@ pipeline {
 
                 always {
                     archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                    /*
-                    dumpVerrazzanoSystemPods('install')
-                    dumpCattleSystemPods('install')
-                    dumpNginxIngressControllerLogs('install')
-                    dumpVerrazzanoPlatformOperatorLogs('install')
-                    dumpVerrazzanoApplicationOperatorLogs('install')
-                    dumpOamKubernetesRuntimeLogs('install')
-                    dumpVerrazzanoApiLogs('install')
-                    listNamepacesAndPods('after Verrazzano install')
-                    listHelmReleases('after Verrazzano install')
-                    */
                 }
                 success {
                     script {
