@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	cmdHelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	installcmd "github.com/verrazzano/verrazzano/tools/vz/cmd/install"
@@ -30,8 +31,9 @@ import (
 
 // TestBugReportHelp
 // GIVEN a CLI bug-report command
-//  WHEN I call cmd.Help for bug-report
-//  THEN expect the help for the command in the standard output
+//
+//	WHEN I call cmd.Help for bug-report
+//	THEN expect the help for the command in the standard output
 func TestBugReportHelp(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -47,8 +49,9 @@ func TestBugReportHelp(t *testing.T) {
 
 // TestBugReportExistingReportFile
 // GIVEN a CLI bug-report command using an existing file for flag --report-file
-//  WHEN I call cmd.Execute for bug-report
-//  THEN expect an error
+//
+//	WHEN I call cmd.Execute for bug-report
+//	THEN expect an error
 func TestBugReportExistingReportFile(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -75,8 +78,9 @@ func TestBugReportExistingReportFile(t *testing.T) {
 
 // TestBugReportExistingDir
 // GIVEN a CLI bug-report command with flag --report-file pointing to an existing directory
-//  WHEN I call cmd.Execute for bug-report
-//  THEN expect an error
+//
+//	WHEN I call cmd.Execute for bug-report
+//	THEN expect an error
 func TestBugReportExistingDir(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -100,8 +104,9 @@ func TestBugReportExistingDir(t *testing.T) {
 
 // TestBugReportNonExistingFileDir
 // GIVEN a CLI bug-report command with flag --report-file pointing to a file, where the directory doesn't exist
-//  WHEN I call cmd.Execute for bug-report
-//  THEN expect an error
+//
+//	WHEN I call cmd.Execute for bug-report
+//	THEN expect an error
 func TestBugReportNonExistingFileDir(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -123,8 +128,9 @@ func TestBugReportNonExistingFileDir(t *testing.T) {
 
 // TestBugReportFileNoPermission
 // GIVEN a CLI bug-report command with flag --report-file pointing to a file, where there is no write permission
-//  WHEN I call cmd.Execute for bug-report
-//  THEN expect an error
+//
+//	WHEN I call cmd.Execute for bug-report
+//	THEN expect an error
 func TestBugReportFileNoPermission(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
@@ -149,8 +155,9 @@ func TestBugReportFileNoPermission(t *testing.T) {
 
 // TestBugReportSuccess
 // GIVEN a CLI bug-report command
-//  WHEN I call cmd.Execute
-//  THEN expect the command to show the resources captured in the standard output and create the bug report file
+//
+//	WHEN I call cmd.Execute
+//	THEN expect the command to show the resources captured in the standard output and create the bug report file
 func TestBugReportSuccess(t *testing.T) {
 	c := getClientWithWatch()
 	installVZ(t, c)
@@ -210,8 +217,9 @@ func TestBugReportSuccess(t *testing.T) {
 
 // TestBugReportDefaultReportFile
 // GIVEN a CLI bug-report command
-//  WHEN I call cmd.Execute, without specifying --report-file
-//  THEN expect the command to create the report bug-report.tar.gz under the current directory
+//
+//	WHEN I call cmd.Execute, without specifying --report-file
+//	THEN expect the command to create the report bug-report.tar.gz under the current directory
 func TestBugReportDefaultReportFile(t *testing.T) {
 	c := getClientWithWatch()
 	installVZ(t, c)
@@ -247,10 +255,37 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	os.Remove(defaultBugReport)
 }
 
+// TestBugReportV1Alpha1Verrazzano
+// GIVEN a CLI bug-report command
+// WHEN I call cmd.Execute with a v1alpha1 Verrazzano installed
+// THEN expect the command to resolve the v1alpha1 to a v1beta1 and return no error
+func TestBugReportV1Alpha1Verrazzano(t *testing.T) {
+	c := getClientWithV1Alpha1VZWatch()
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc.SetClient(c)
+	cmd := NewCmdBugReport(rc)
+	assert.NotNil(t, cmd)
+
+	tmpDir, _ := os.MkdirTemp("", "bug-report")
+
+	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report-v1alpha1.tgz"
+	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
+	assert.NoError(t, err)
+	err = cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install")
+	assert.NoError(t, err)
+	err = cmd.Execute()
+	assert.NoError(t, err)
+	assert.FileExists(t, bugRepFile)
+	os.Remove(bugRepFile)
+}
+
 // TestBugReportNoVerrazzano
 // GIVEN a CLI bug-report command
-//  WHEN I call cmd.Execute without Verrazzano installed
-//  THEN expect the command to display a message indicating Verrazzano is not installed
+//
+//	WHEN I call cmd.Execute without Verrazzano installed
+//	THEN expect the command to display a message indicating Verrazzano is not installed
 func TestBugReportNoVerrazzano(t *testing.T) {
 	c := getClientWithWatch()
 	buf := new(bytes.Buffer)
@@ -275,8 +310,9 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 
 // TestBugReportFailureUsingInvalidClient
 // GIVEN a CLI bug-report command
-//  WHEN I call cmd.Execute without Verrazzano installed and using an invalid client
-//  THEN expect the command to fail with a message indicating Verrazzano is not installed and no resource captured
+//
+//	WHEN I call cmd.Execute without Verrazzano installed and using an invalid client
+//	THEN expect the command to fail with a message indicating Verrazzano is not installed and no resource captured
 func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 	c := getInvalidClient()
 	buf := new(bytes.Buffer)
@@ -303,42 +339,69 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 
 // getClientWithWatch returns a client for installing Verrazzano
 func getClientWithWatch() client.WithWatch {
-	vpo := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      constants.VerrazzanoPlatformOperator,
-			Labels: map[string]string{
-				"app":               constants.VerrazzanoPlatformOperator,
-				"pod-template-hash": "45f78ffddd",
+	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()[1:]...).Build()
+}
+
+// getClientWithV1Alpha1VZWatch returns a client containing all VPO objects and the v1alpha1 Verrazzano CR
+func getClientWithV1Alpha1VZWatch() client.WithWatch {
+	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()[1:]...).
+		WithObjects(&v1alpha1.Verrazzano{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "verrazzano",
+			},
+			Spec: v1alpha1.VerrazzanoSpec{
+				Profile: v1alpha1.Dev,
+			},
+		}).Build()
+}
+
+func getVpoObjects() []client.Object {
+	return []client.Object{
+		&v1beta1.Verrazzano{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "verrazzano",
+			},
+			Spec: v1beta1.VerrazzanoSpec{
+				Profile: v1beta1.Dev,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.VerrazzanoInstallNamespace,
+				Name:      constants.VerrazzanoPlatformOperator,
+				Labels: map[string]string{
+					"app":               constants.VerrazzanoPlatformOperator,
+					"pod-template-hash": "45f78ffddd",
+				},
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.VerrazzanoInstallNamespace,
+				Name:      constants.VerrazzanoPlatformOperator,
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.VerrazzanoInstallNamespace,
+				Name:      fmt.Sprintf("%s-45f78ffddd", constants.VerrazzanoPlatformOperator),
+				Annotations: map[string]string{
+					"deployment.kubernetes.io/revision": "1",
+				},
 			},
 		},
 	}
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      constants.VerrazzanoPlatformOperator,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
-			},
-		},
-		Status: appsv1.DeploymentStatus{
-			AvailableReplicas: 1,
-			UpdatedReplicas:   1,
-		},
-	}
-	replicaset := &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vzconstants.VerrazzanoInstallNamespace,
-			Name:      fmt.Sprintf("%s-45f78ffddd", constants.VerrazzanoPlatformOperator),
-			Annotations: map[string]string{
-				"deployment.kubernetes.io/revision": "1",
-			},
-		},
-	}
-	c := fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(vpo, deployment, replicaset).Build()
-	return c
 }
 
 // getInvalidClient returns an invalid client
