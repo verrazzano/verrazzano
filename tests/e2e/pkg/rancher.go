@@ -12,10 +12,10 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"go.uber.org/zap"
@@ -233,7 +233,7 @@ func EventuallyGetRancherHost(log *zap.SugaredLogger, api *APIEndpoint) (string,
 	return rancherHost, nil
 }
 
-func CreateNewRancherConfig(log *zap.SugaredLogger, kubeconfigPath string) (*clusters.RancherConfig, error) {
+func CreateNewRancherConfig(log *zap.SugaredLogger, kubeconfigPath string) (*vmc.RancherConfig, error) {
 	apiEndpoint := EventuallyGetAPIEndpoint(kubeconfigPath)
 	rancherHost, err := EventuallyGetRancherHost(log, apiEndpoint)
 	if err != nil {
@@ -253,7 +253,7 @@ func CreateNewRancherConfig(log *zap.SugaredLogger, kubeconfigPath string) (*clu
 		return nil, err
 	}
 	adminToken := GetRancherAdminToken(log, httpClient, rancherURL)
-	rc := clusters.RancherConfig{
+	rc := vmc.RancherConfig{
 		// populate Rancher config from the functions available in this file,adding as necessary
 		BaseURL:                  rancherURL,
 		Host:                     rancherHost,

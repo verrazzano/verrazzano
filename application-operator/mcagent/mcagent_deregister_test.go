@@ -10,7 +10,7 @@ import (
 
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,14 +28,14 @@ import (
 func TestSyncDeregistration(t *testing.T) {
 	a := asserts.New(t)
 
-	vmcDeleted := v1alpha1.VerrazzanoManagedCluster{
+	vmcDeleted := clustersv1alpha1.VerrazzanoManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:         constants.VerrazzanoMultiClusterNamespace,
 			Name:              testClusterName,
 			DeletionTimestamp: &metav1.Time{Time: time.Now()},
 		},
 	}
-	vmcNotDeleted := v1alpha1.VerrazzanoManagedCluster{
+	vmcNotDeleted := clustersv1alpha1.VerrazzanoManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 			Name:      testClusterName,
@@ -57,7 +57,7 @@ func TestSyncDeregistration(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		vmc     *v1alpha1.VerrazzanoManagedCluster
+		vmc     *clustersv1alpha1.VerrazzanoManagedCluster
 		objects []client.Object
 	}{
 		{
@@ -100,7 +100,7 @@ func TestSyncDeregistration(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			scheme := k8scheme.Scheme
-			err := v1alpha1.AddToScheme(scheme)
+			err := clustersv1alpha1.AddToScheme(scheme)
 			a.NoError(err)
 			adminFake := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.vmc).Build()
 			managedFake := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objects...).Build()
