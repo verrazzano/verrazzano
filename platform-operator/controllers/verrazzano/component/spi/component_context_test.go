@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -131,7 +130,6 @@ func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)
 
 	_ = v1alpha1.AddToScheme(testScheme)
-	_ = clustersv1alpha1.AddToScheme(testScheme)
 
 	_ = istioclinet.AddToScheme(testScheme)
 	_ = istioclisec.AddToScheme(testScheme)
