@@ -1943,7 +1943,7 @@ func TestDumpDatabaseWithExecErrors(t *testing.T) {
 // pods getting stuck during install waiting for all readiness gates to be true.
 // GIVEN a MySQL Pod with readiness gates defined
 // WHEN they are not all ready after a given time period
-// THEN recycle the mysql-operator
+// THEN recycle the mysql-wls
 func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	mySQLOperatorPod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1985,7 +1985,7 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, mysqlComp.LastTimeReadinessGateRepairStarted.IsZero())
 
-	// Second time calling, expect no error and mysql-operator pod to still exist
+	// Second time calling, expect no error and mysql-wls pod to still exist
 	err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
 	assert.NoError(t, err)
 
@@ -1994,7 +1994,7 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Third time calling, set the timer to exceed the expiration time which will force a check of the readiness gates.
-	// The readiness gates will be set to true going into the call, so the mysql-operator should not get recycled.
+	// The readiness gates will be set to true going into the call, so the mysql-wls should not get recycled.
 	*mysqlComp.LastTimeReadinessGateRepairStarted = time.Now().Add(-time.Hour * 2)
 	err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
 	assert.NoError(t, err)
@@ -2002,7 +2002,7 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
 	assert.NoError(t, err)
 
-	// Fourth time calling, set one of the readiness gates to false.  This should force deletion of the mysql-operator pod.
+	// Fourth time calling, set one of the readiness gates to false.  This should force deletion of the mysql-wls pod.
 	// The timer should also get reset.
 	mySQLPod.Status.Conditions = []v1.PodCondition{{Type: "gate1", Status: v1.ConditionTrue}, {Type: "gate2", Status: v1.ConditionFalse}}
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod, mySQLOperatorPod).Build()

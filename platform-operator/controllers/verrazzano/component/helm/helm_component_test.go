@@ -751,7 +751,7 @@ func TestFilesFromVerrazzanoHelm(t *testing.T) {
 			name:        "test image overrides",
 			expectError: false,
 			component: &HelmComponent{
-				ReleaseName: "prometheus-operator",
+				ReleaseName: "prometheus-wls",
 			},
 			additionalValues: []bom.KeyValue{},
 			kvsLen:           1,
@@ -814,7 +814,7 @@ func TestFilesFromVerrazzanoHelm(t *testing.T) {
 					kvs = append(kvs, bom.KeyValue{Key: "key2", Value: "string2", SetString: true})
 					return kvs, nil
 				},
-				ReleaseName: "prometheus-operator",
+				ReleaseName: "prometheus-wls",
 			},
 			additionalValues: []bom.KeyValue{
 				{Value: "file3", IsFile: true},

@@ -275,8 +275,8 @@ func (r *Reconciler) checkComponentReadyState(vzctx vzcontext.VerrazzanoContext)
 }
 
 // initializeComponentStatus Initialize the component status field with the known set that indicate they support the
-// operator-based install.  This is so that we know ahead of time exactly how many components we expect to install
-// via the operator, and when we're done installing.
+// wls-based install.  This is so that we know ahead of time exactly how many components we expect to install
+// via the wls, and when we're done installing.
 func (r *Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, cr *installv1alpha1.Verrazzano) (ctrl.Result, error) {
 	if cr.Status.Components == nil {
 		cr.Status.Components = make(map[string]*installv1alpha1.ComponentStatusDetails)

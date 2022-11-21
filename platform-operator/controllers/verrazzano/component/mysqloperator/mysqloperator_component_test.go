@@ -227,7 +227,7 @@ func TestPreInstall(t *testing.T) {
 		{
 			name: "PreInstallServerError",
 			ctx:  spi.NewFakeContext(erroringClient, &vzapi.Verrazzano{}, nil, false),
-			err:  fmt.Errorf("Failed to create or update the mysql-operator namespace: %s", serverErr),
+			err:  fmt.Errorf("Failed to create or update the mysql-wls namespace: %s", serverErr),
 		},
 	}
 
@@ -252,13 +252,13 @@ func TestPreUpgrade(t *testing.T) {
 		err  error
 	}{
 		{
-			// If the mysql-operator deployment is found, update and return no error
+			// If the mysql-wls deployment is found, update and return no error
 			name: "PreUpgradeNoError",
 			ctx:  spi.NewFakeContext(fakeClient, &vzapi.Verrazzano{}, nil, false),
 			err:  nil,
 		},
 		{
-			// If the mysql-operator deployment is not found for any reason, return a retryable error
+			// If the mysql-wls deployment is not found for any reason, return a retryable error
 			name: "PreUpgradeServerError",
 			ctx:  spi.NewFakeContext(erroringClient, &vzapi.Verrazzano{}, nil, false),
 			err:  ctrlerrors.RetryableError{Source: ComponentName, Cause: fmt.Errorf(serverErr)},
@@ -482,7 +482,7 @@ func TestValidateUpdateV1Beta1(t *testing.T) {
 	}
 }
 
-// getVZWithMySQLOperatorComp return a v1alpha1 vz resource with mysql-operator enabled, disabled or nil
+// getVZWithMySQLOperatorComp return a v1alpha1 vz resource with mysql-wls enabled, disabled or nil
 func getVZWithMySQLOperatorComp(enabled *bool) *vzapi.Verrazzano {
 	if enabled == nil {
 		return &vzapi.Verrazzano{
@@ -500,7 +500,7 @@ func getVZWithMySQLOperatorComp(enabled *bool) *vzapi.Verrazzano {
 			}}}
 }
 
-// getv1beta1VZWithMySQLOperatorComp return a v1beta1 vz resource with mysql-operator enabled or disabled
+// getv1beta1VZWithMySQLOperatorComp return a v1beta1 vz resource with mysql-wls enabled or disabled
 func getv1beta1VZWithMySQLOperatorComp(enabled *bool) *installv1beta1.Verrazzano {
 	return &installv1beta1.Verrazzano{
 		Spec: installv1beta1.VerrazzanoSpec{

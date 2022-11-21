@@ -58,7 +58,7 @@ var _ spi.Component = mysqlComponent{}
 func NewComponent() spi.Component {
 
 	// Cannot include mysqloperatorcomponent because of import cycle
-	const MySQLOperatorComponentName = "mysql-operator"
+	const MySQLOperatorComponentName = "mysql-wls"
 
 	return mysqlComponent{
 		&lastTimeStatefulSetReady,

@@ -25,13 +25,13 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = "verrazzano-monitoring-operator"
+const ComponentName = "verrazzano-monitoring-wls"
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.VerrazzanoSystemNamespace
 
-// ComponentJSONName is the json name of the verrazzano-monitoring-operator component
-const ComponentJSONName = "verrazzano-monitoring-operator"
+// ComponentJSONName is the json name of the verrazzano-monitoring-wls component
+const ComponentJSONName = "verrazzano-monitoring-wls"
 
 // vmoComponent represents a VMO component
 type vmoComponent struct {

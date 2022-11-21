@@ -27,7 +27,7 @@ const (
 	aggregateToControllerLabel = "rbac.oam.dev/aggregate-to-controller"
 )
 
-// isOAMReady checks if the OAM operator deployment is ready
+// isOAMReady checks if the OAM wls deployment is ready
 func (c oamComponent) isOAMReady(context spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", context.GetComponent())
 	return ready.DeploymentsAreReady(context.Log(), context.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)
@@ -35,7 +35,7 @@ func (c oamComponent) isOAMReady(context spi.ComponentContext) bool {
 
 // ensureClusterRoles creates or updates additional OAM cluster roles during install and upgrade
 func ensureClusterRoles(ctx spi.ComponentContext) error {
-	// add a cluster role that allows the OAM operator to manage persistent volume claim workloads
+	// add a cluster role that allows the OAM wls to manage persistent volume claim workloads
 	pvcClusterRole := rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: pvcClusterRoleName}}
 
 	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &pvcClusterRole, func() error {
@@ -65,7 +65,7 @@ func ensureClusterRoles(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// add a cluster role that allows the OAM operator to manage istio resources
+	// add a cluster role that allows the OAM wls to manage istio resources
 	istioClusterRole := rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: istioClusterRoleName}}
 
 	_, err = controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &istioClusterRole, func() error {
@@ -96,7 +96,7 @@ func ensureClusterRoles(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// add a cluster role that allows the OAM operator to manage secret resources
+	// add a cluster role that allows the OAM wls to manage secret resources
 	certClusterRole := rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: certClusterRoleName}}
 
 	_, err = controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &certClusterRole, func() error {

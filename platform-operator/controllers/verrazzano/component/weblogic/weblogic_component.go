@@ -29,7 +29,7 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = "weblogic-operator"
+const ComponentName = "weblogic-wls"
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
@@ -114,7 +114,7 @@ func (c weblogicComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 func (c weblogicComponent) PostUninstall(context spi.ComponentContext) error {
 	err := resource.Resource{
 		Namespace: constants.VerrazzanoSystemNamespace,
-		Name:      "weblogic-operator-sa",
+		Name:      "weblogic-wls-sa",
 		Client:    context.Client(),
 		Object:    &corev1.ServiceAccount{},
 		Log:       context.Log(),

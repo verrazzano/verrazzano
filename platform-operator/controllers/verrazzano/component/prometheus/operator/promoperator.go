@@ -15,7 +15,7 @@ import (
 
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	promoperapi "github.com/prometheus-wls/prometheus-wls/pkg/apis/monitoring/v1"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -41,9 +41,9 @@ import (
 )
 
 const (
-	deploymentName  = "prometheus-operator-kube-p-operator"
+	deploymentName  = "prometheus-wls-kube-p-wls"
 	istioVolumeName = "istio-certs-dir"
-	serviceAccount  = "cluster.local/ns/verrazzano-monitoring/sa/prometheus-operator-kube-p-prometheus"
+	serviceAccount  = "cluster.local/ns/verrazzano-monitoring/sa/prometheus-wls-kube-p-prometheus"
 
 	prometheusAuthPolicyName = "vmi-system-prometheus-authzpol"
 	networkPolicyName        = "vmi-system-prometheus"
@@ -53,7 +53,7 @@ const (
 	alertmanagerName   = "alertmanager"
 	configReloaderName = "prometheus-config-reloader"
 
-	pvcName                  = "prometheus-prometheus-operator-kube-p-prometheus-db-prometheus-prometheus-operator-kube-p-prometheus-0"
+	pvcName                  = "prometheus-prometheus-wls-kube-p-prometheus-db-prometheus-prometheus-wls-kube-p-prometheus-0"
 	defaultPrometheusStorage = "50Gi"
 )
 
@@ -72,7 +72,7 @@ func prometheusOperatorListOptions() (*client.ListOptions, error) {
 	}, nil
 }
 
-// isPrometheusOperatorReady checks if the Prometheus operator deployment is ready
+// isPrometheusOperatorReady checks if the Prometheus wls deployment is ready
 func isPrometheusOperatorReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	listOptions, err := prometheusOperatorListOptions()
@@ -528,7 +528,7 @@ func applySystemMonitors(ctx spi.ComponentContext) error {
 	args["isIstioEnabled"] = enabled
 
 	// substitute template values to all files in the directory and apply the resulting YAML
-	dir := path.Join(config.GetThirdPartyManifestsDir(), "prometheus-operator")
+	dir := path.Join(config.GetThirdPartyManifestsDir(), "prometheus-wls")
 	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
 	err := yamlApplier.ApplyDT(dir, args)
 	if err != nil {
@@ -545,7 +545,7 @@ func updateApplicationAuthorizationPolicies(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to list namespaces with the label %s=true: %v", vzconst.VerrazzanoManagedLabelKey, err)
 	}
 
-	// For each namespace, if an authorization policy exists, add the prometheus operator service account as a principal
+	// For each namespace, if an authorization policy exists, add the prometheus wls service account as a principal
 	for _, ns := range nsList.Items {
 		authPolicyList := istioclisec.AuthorizationPolicyList{}
 		err = ctx.Client().List(context.TODO(), &authPolicyList, &client.ListOptions{Namespace: ns.Name})
@@ -611,7 +611,7 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 						Source: &securityv1beta1.Source{
 							Principals: []string{
 								fmt.Sprintf("cluster.local/ns/%s/sa/verrazzano-authproxy", constants.VerrazzanoSystemNamespace),
-								fmt.Sprintf("cluster.local/ns/%s/sa/verrazzano-monitoring-operator", constants.VerrazzanoSystemNamespace), // Grafana uses VMO SA
+								fmt.Sprintf("cluster.local/ns/%s/sa/verrazzano-monitoring-wls", constants.VerrazzanoSystemNamespace), // Grafana uses VMO SA
 								fmt.Sprintf("cluster.local/ns/%s/sa/vmi-system-kiali", constants.VerrazzanoSystemNamespace),
 							},
 							Namespaces: []string{constants.VerrazzanoSystemNamespace},
@@ -642,7 +642,7 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 					From: []*securityv1beta1.Rule_From{{
 						Source: &securityv1beta1.Source{
 							Principals: []string{
-								fmt.Sprintf("cluster.local/ns/%s/sa/jaeger-operator-jaeger", constants.VerrazzanoMonitoringNamespace),
+								fmt.Sprintf("cluster.local/ns/%s/sa/jaeger-wls-jaeger", constants.VerrazzanoMonitoringNamespace),
 							},
 							Namespaces: []string{constants.VerrazzanoMonitoringNamespace},
 						},
@@ -663,7 +663,7 @@ func createOrUpdatePrometheusAuthPolicy(ctx spi.ComponentContext) error {
 	return err
 }
 
-// createOrUpdateServiceMonitors creates or updates service monitors to meet operator requirements
+// createOrUpdateServiceMonitors creates or updates service monitors to meet wls requirements
 func createOrUpdateServiceMonitors(ctx spi.ComponentContext) error {
 	smList := &promoperapi.ServiceMonitorList{}
 	enableHTTP2 := false

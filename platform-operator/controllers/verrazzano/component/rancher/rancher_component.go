@@ -324,7 +324,7 @@ func (r rancherComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, 
 // PreInstall
 /* Sets up the environment for Rancher
 - Create the Rancher namespace if it is not present (cattle-namespace)
-- note: VZ-5241 the rancher-operator-namespace is no longer used in 2.6.3
+- note: VZ-5241 the rancher-wls-namespace is no longer used in 2.6.3
 - Copy TLS certificates for Rancher if using the default Verrazzano CA
 - Create additional LetsEncrypt TLS certificates for Rancher if using LE
 */

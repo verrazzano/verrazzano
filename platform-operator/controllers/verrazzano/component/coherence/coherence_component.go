@@ -25,7 +25,7 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = "coherence-operator"
+const ComponentName = "coherence-wls"
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
@@ -106,10 +106,10 @@ func (c coherenceComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 }
 
 func (c coherenceComponent) PostUninstall(context spi.ComponentContext) error {
-	if err := webhook.DeleteValidatingWebhookConfiguration(context.Log(), context.Client(), "coherence-operator-validating-webhook-configuration"); err != nil {
+	if err := webhook.DeleteValidatingWebhookConfiguration(context.Log(), context.Client(), "coherence-wls-validating-webhook-configuration"); err != nil {
 		return err
 	}
-	if err := webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), "coherence-operator-mutating-webhook-configuration"); err != nil {
+	if err := webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), "coherence-wls-mutating-webhook-configuration"); err != nil {
 		return err
 	}
 	return nil

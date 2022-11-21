@@ -106,7 +106,7 @@ func TestAppendOverrides(t *testing.T) {
 			// GIVEN a Verrazzano custom resource with the Prometheus Node-Exporter enabled, but not Prometheus Operator
 			// WHEN we call AppendOverrides on the Prometheus Node-Exporter component
 			// THEN prometheus.monitor.enabled is NOT set
-			name: "Test AppendOverrides when Prometheus operator is not also enabled",
+			name: "Test AppendOverrides when Prometheus wls is not also enabled",
 			actualCR: vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
@@ -125,7 +125,7 @@ func TestAppendOverrides(t *testing.T) {
 			// GIVEN a Verrazzano custom resource with the Prometheus Node-Exporter AND Prometheus Operator enabled
 			// WHEN we call AppendOverrides on the Prometheus Node-Exporter component
 			// THEN prometheus.monitor.enabled is set to true
-			name: "Test AppendOverrides when Prometheus operator is also enabled",
+			name: "Test AppendOverrides when Prometheus wls is also enabled",
 			actualCR: vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{

@@ -121,7 +121,7 @@ func TestShouldInstallBeforeUpgrade(t *testing.T) {
 // WHEN we call GetDependencies on the Grafana component
 // THEN the call returns a string array listing all the dependencies of the component
 func TestGetDependencies(t *testing.T) {
-	assert.Equal(t, []string{"verrazzano-network-policies", "verrazzano-monitoring-operator"}, NewComponent().GetDependencies())
+	assert.Equal(t, []string{"verrazzano-network-policies", "verrazzano-monitoring-wls"}, NewComponent().GetDependencies())
 }
 
 // TestGetJSONName tests the GetJSONName function for the Grafana component

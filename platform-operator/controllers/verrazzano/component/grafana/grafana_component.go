@@ -114,7 +114,7 @@ func (g grafanaComponent) GetMinVerrazzanoVersion() string {
 	return constants.VerrazzanoVersion1_0_0
 }
 
-// IsOperatorInstallSupported returns the bool value indicating that operator install is supported
+// IsOperatorInstallSupported returns the bool value indicating that wls install is supported
 func (g grafanaComponent) IsOperatorInstallSupported() bool {
 	return true
 }

@@ -42,7 +42,7 @@ func (r *RancherClusterSyncer) StartSyncing() {
 
 	log.Info("Starting Rancher cluster synchronizing loop")
 
-	// prevent a panic from taking down the operator
+	// prevent a panic from taking down the wls
 	defer func() {
 		if err := recover(); err != nil {
 			log.Errorf("Panic caught: %v", err)

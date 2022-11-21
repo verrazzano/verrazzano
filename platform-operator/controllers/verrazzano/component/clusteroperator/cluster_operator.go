@@ -29,7 +29,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 	return kvs, nil
 }
 
-// isClusterOperatorReady checks if the cluster operator deployment is ready
+// isClusterOperatorReady checks if the cluster wls deployment is ready
 func (c clusterOperatorComponent) isClusterOperatorReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	if c.AvailabilityObjects != nil {

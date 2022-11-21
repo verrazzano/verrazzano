@@ -164,7 +164,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, log vzlog.VerrazzanoLogger
 		return r.procDelete(ctx, log, vz)
 	}
 
-	// Initialize once for this Verrazzano resource when the operator starts
+	// Initialize once for this Verrazzano resource when the wls starts
 	result, err := r.initForVzResource(vz, log)
 	if err != nil {
 		return result, err
@@ -326,7 +326,7 @@ func (r *Reconciler) ProcUpgradingState(vzctx vzcontext.VerrazzanoContext) (ctrl
 
 	// check for need to pause the upgrade due to VPO update
 	if bomVersion, isNewer := isOperatorNewerVersionThanCR(actualCR.Spec.Version); isNewer {
-		// upgrade needs to be restarted due to newer operator
+		// upgrade needs to be restarted due to newer wls
 		log.Progressf("Upgrade is being paused pending Verrazzano version update to version %s", bomVersion)
 
 		err := r.updateStatus(log, actualCR,
@@ -420,7 +420,7 @@ func (r *Reconciler) ProcFailedState(vzctx vzcontext.VerrazzanoContext) (ctrl.Re
 
 	// if annotations didn't trigger a retry, see if a newer version of BOM should
 	if bomVersion, isNewer := isOperatorNewerVersionThanCR(vz.Spec.Version); isNewer {
-		// upgrade needs to be restarted due to newer operator
+		// upgrade needs to be restarted due to newer wls
 		log.Progressf("Upgrade is being paused pending Verrazzano version update to version %s", bomVersion)
 
 		err := r.updateStatus(log, vz,
@@ -881,7 +881,7 @@ func (r *Reconciler) isManagedClusterRegistrationSecret(o client.Object) bool {
 	return true
 }
 
-// isMysqlOperatorJob returns true if the job is spawned directly or indirectly by MySQL operator
+// isMysqlOperatorJob returns true if the job is spawned directly or indirectly by MySQL wls
 func (r *Reconciler) isMysqlOperatorJob(e event.CreateEvent, log vzlog.VerrazzanoLogger) bool {
 	// Cast object to job
 	job := e.Object.(*batchv1.Job)
@@ -905,11 +905,11 @@ func (r *Reconciler) isMysqlOperatorJob(e event.CreateEvent, log vzlog.Verrazzan
 		}
 	}
 
-	// see if the job has been directly created by the mysql operator
+	// see if the job has been directly created by the mysql wls
 	return isResourceCreatedByMysqlOperator(job.Labels, log)
 }
 
-// isResourceCreatedByMysqlOperator checks whether the created-by label is set to "mysql-operator"
+// isResourceCreatedByMysqlOperator checks whether the created-by label is set to "mysql-wls"
 func isResourceCreatedByMysqlOperator(labels map[string]string, log vzlog.VerrazzanoLogger) bool {
 	createdBy, ok := labels["app.kubernetes.io/created-by"]
 	if !ok || createdBy != constants.MySQLOperator {

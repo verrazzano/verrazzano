@@ -1434,7 +1434,7 @@ func TestMysqlBackupJobCleanup(t *testing.T) {
 			Status: corev1.PodStatus{
 				ContainerStatuses: []corev1.ContainerStatus{
 					{
-						Name: "operator-backup-job",
+						Name: "wls-backup-job",
 						State: corev1.ContainerState{
 							Terminated: &corev1.ContainerStateTerminated{
 								ExitCode: 0,
@@ -1489,7 +1489,7 @@ func TestMysqlScheduledBackupJobCleanup(t *testing.T) {
 			Status: corev1.PodStatus{
 				ContainerStatuses: []corev1.ContainerStatus{
 					{
-						Name: "operator-backup-job",
+						Name: "wls-backup-job",
 						State: corev1.ContainerState{
 							Terminated: &corev1.ContainerStateTerminated{
 								ExitCode: 0,
@@ -1534,7 +1534,7 @@ func TestInProgressMysqlBackupJobCleanup(t *testing.T) {
 			Status: corev1.PodStatus{
 				ContainerStatuses: []corev1.ContainerStatus{
 					{
-						Name: "operator-backup-job",
+						Name: "wls-backup-job",
 						State: corev1.ContainerState{
 							Running: &corev1.ContainerStateRunning{},
 						},
@@ -1574,7 +1574,7 @@ func TestFailedMysqlBackupJobCleanup(t *testing.T) {
 			Status: corev1.PodStatus{
 				ContainerStatuses: []corev1.ContainerStatus{
 					{
-						Name: "operator-backup-job",
+						Name: "wls-backup-job",
 						State: corev1.ContainerState{
 							Terminated: &corev1.ContainerStateTerminated{
 								ExitCode: 1,
@@ -1617,7 +1617,7 @@ func TestNoMysqlBackupJobsFound(t *testing.T) {
 	asserts.Nil(err)
 }
 
-// TestMysqlOperatorJobPredicateWrongNamespace tests the MySQL operator job predicate
+// TestMysqlOperatorJobPredicateWrongNamespace tests the MySQL wls job predicate
 // GIVEN a create event for a job in a namespace other than 'keycloak'
 // WHEN the function is called
 // THEN the result is false
@@ -1637,8 +1637,8 @@ func TestMysqlOperatorJobPredicateWrongNamespace(t *testing.T) {
 	asserts.False(isMysqlJob)
 }
 
-// TestMysqlOperatorJobPredicateOwnedByOperatorCronJob tests the MySQL operator job predicate
-// GIVEN a create event for a job owned by a cron job created by the operator
+// TestMysqlOperatorJobPredicateOwnedByOperatorCronJob tests the MySQL wls job predicate
+// GIVEN a create event for a job owned by a cron job created by the wls
 // WHEN the function is called
 // THEN the result is true
 func TestMysqlOperatorJobPredicateOwnedByOperatorCronJob(t *testing.T) {
@@ -1671,8 +1671,8 @@ func TestMysqlOperatorJobPredicateOwnedByOperatorCronJob(t *testing.T) {
 	asserts.True(isMysqlJob)
 }
 
-// TestMysqlOperatorJobPredicateValidBackupJob tests the MySQL operator job predicate
-// GIVEN a create event for a job directly created by the operator
+// TestMysqlOperatorJobPredicateValidBackupJob tests the MySQL wls job predicate
+// GIVEN a create event for a job directly created by the wls
 // WHEN the function is called
 // THEN the result is true
 func TestMysqlOperatorJobPredicateValidBackupJob(t *testing.T) {

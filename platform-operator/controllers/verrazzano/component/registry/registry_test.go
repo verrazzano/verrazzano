@@ -163,7 +163,7 @@ func TestComponentDependenciesMet(t *testing.T) {
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: vzconst.VerrazzanoSystemNamespace,
-				Name:      "coherence-operator",
+				Name:      "coherence-wls",
 				Labels:    map[string]string{"control-plane": "coherence"},
 			},
 			Spec: appsv1.DeploymentSpec{
@@ -180,7 +180,7 @@ func TestComponentDependenciesMet(t *testing.T) {
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: vzconst.VerrazzanoSystemNamespace,
-				Name:      "coherence-operator" + "-95d8c5d96-m6mbr",
+				Name:      "coherence-wls" + "-95d8c5d96-m6mbr",
 				Labels: map[string]string{
 					"pod-template-hash": "95d8c5d96",
 					"control-plane":     "coherence",
@@ -190,7 +190,7 @@ func TestComponentDependenciesMet(t *testing.T) {
 		&appsv1.ReplicaSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace:   vzconst.VerrazzanoSystemNamespace,
-				Name:        "coherence-operator" + "-95d8c5d96",
+				Name:        "coherence-wls" + "-95d8c5d96",
 				Annotations: map[string]string{"deployment.kubernetes.io/revision": "1"},
 			},
 		},

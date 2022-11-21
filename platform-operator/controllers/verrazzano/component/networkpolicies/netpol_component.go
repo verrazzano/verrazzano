@@ -8,7 +8,7 @@
 // upgrade.
 //
 // Most of the network policies were in verrazzano chart previous to the existence of this code, but not all of them.
-// Some policies are specified in other charts, like verrazzano-monitoring-operator.  This is ideally what
+// Some policies are specified in other charts, like verrazzano-monitoring-wls.  This is ideally what
 // should happen, but for now, putting the network policies into a dedicated chart is a improvement.
 //
 // This code changes the ownership of the existing network policies from the verrazzano chart to the

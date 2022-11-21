@@ -80,10 +80,10 @@ func TestGetOverrides(t *testing.T) {
 }
 
 // GIVEN a call to AppendOverrides
-// WHEN  the env var for the cluster operator image is set
+// WHEN  the env var for the cluster wls image is set
 // THEN  the returned key/value pairs contains the image override
 func TestAppendOverrides(t *testing.T) {
-	customImage := "myreg.io/myrepo/v8o/verrazzano-cluster-operator-dev:local-20210707002801-b7449154"
+	customImage := "myreg.io/myrepo/v8o/verrazzano-cluster-wls-dev:local-20210707002801-b7449154"
 	os.Setenv(constants.VerrazzanoClusterOperatorImageEnvVar, customImage)
 	defer func() { os.Unsetenv(constants.VerrazzanoClusterOperatorImageEnvVar) }()
 

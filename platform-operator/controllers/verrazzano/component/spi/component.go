@@ -72,8 +72,8 @@ type ComponentInfo interface {
 
 // ComponentInstaller interface defines installs operations for components that support it
 type ComponentInstaller interface {
-	// IsOperatorInstallSupported Returns true if the component supports install directly via the platform operator
-	// - scaffolding while we move components from the scripts to the operator
+	// IsOperatorInstallSupported Returns true if the component supports install directly via the platform wls
+	// - scaffolding while we move components from the scripts to the wls
 	IsOperatorInstallSupported() bool
 	// IsInstalled Indicates whether or not the component is installed
 	IsInstalled(context ComponentContext) (bool, error)
@@ -87,8 +87,8 @@ type ComponentInstaller interface {
 
 // ComponentUninstaller interface defines uninstall operations
 type ComponentUninstaller interface {
-	// IsOperatorUninstallSupported Returns true if the component supports uninstall directly via the platform operator
-	// - scaffolding while we move components from the scripts to the operator
+	// IsOperatorUninstallSupported Returns true if the component supports uninstall directly via the platform wls
+	// - scaffolding while we move components from the scripts to the wls
 	IsOperatorUninstallSupported() bool
 	// PreUninstall allows components to perform any pre-processing required prior to upgrading
 	PreUninstall(context ComponentContext) error
@@ -121,7 +121,7 @@ type ComponentValidator interface {
 }
 
 // Generate mocs for the spi.Component interface for use in tests.
-//go:generate mockgen -destination=../../../../mocks/component_mock.go -package=mocks -copyright_file=../../../../hack/boilerplate.go.txt github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi Component
+//go:generate mockgen -destination=../../../../mocks/component_mock.go -package=mocks -copyright_file=../../../../hack/boilerplate.go.txt github.com/verrazzano/verrazzano/platform-wls/controllers/verrazzano/component/spi Component
 
 // Component interface defines the methods implemented by components
 type Component interface {

@@ -13,7 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 )
 
-// IsCoherenceOperatorReady checks if the COH operator deployment is ready
+// IsCoherenceOperatorReady checks if the COH wls deployment is ready
 func (c coherenceComponent) isCoherenceOperatorReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)

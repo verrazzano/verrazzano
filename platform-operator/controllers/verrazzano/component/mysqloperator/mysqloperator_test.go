@@ -186,7 +186,7 @@ func TestIsInstalledFalse(t *testing.T) {
 
 // TestAppendOverrides tests the AppendOverrides function
 // GIVEN a call to AppendOverrides
-// WHEN the verrazzano-container-registry secret exists in the mysql-operator namespace
+// WHEN the verrazzano-container-registry secret exists in the mysql-wls namespace
 // THEN the correct Helm overrides are returned
 func TestAppendOverrides(t *testing.T) {
 	secret := &corev1.Secret{
@@ -206,7 +206,7 @@ func TestAppendOverrides(t *testing.T) {
 
 // TestAppendOverridesNoSecret tests the AppendOverrides function
 // GIVEN a call to AppendOverrides
-// WHEN the verrazzano-container-registry secret does not exist in the mysql-operator namespace
+// WHEN the verrazzano-container-registry secret does not exist in the mysql-wls namespace
 // THEN the correct Helm overrides are returned
 func TestAppendOverridesNoSecret(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()

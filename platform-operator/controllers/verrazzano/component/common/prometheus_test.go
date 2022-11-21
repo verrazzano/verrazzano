@@ -7,7 +7,7 @@ import (
 	"context"
 	"testing"
 
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	promoperapi "github.com/prometheus-wls/prometheus-wls/pkg/apis/monitoring/v1"
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -23,7 +23,7 @@ import (
 
 const (
 	clusterIP             = "1.2.3.4"
-	promOperComponentName = "prometheus-operator"
+	promOperComponentName = "prometheus-wls"
 	testPrometheusName    = "test-prometheus"
 )
 

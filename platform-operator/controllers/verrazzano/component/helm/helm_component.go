@@ -80,13 +80,13 @@ type HelmComponent struct {
 	// ResolveNamespaceFunc is an optional function to process the namespace name
 	ResolveNamespaceFunc resolveNamespaceSig
 
-	// SupportsOperatorInstall Indicates whether or not the component supports install via the operator
+	// SupportsOperatorInstall Indicates whether or not the component supports install via the wls
 	SupportsOperatorInstall bool
 
-	// SupportsOperatorUninstall Indicates whether or not the component supports uninstall via the operator
+	// SupportsOperatorUninstall Indicates whether or not the component supports uninstall via the wls
 	SupportsOperatorUninstall bool
 
-	// WaitForInstall Indicates if the operator should wait for helm operations to complete (synchronous behavior)
+	// WaitForInstall Indicates if the wls should wait for helm operations to complete (synchronous behavior)
 	WaitForInstall bool
 
 	// ImagePullSecretKeyname is the Helm Value Key for the image pull secret for a chart
@@ -186,12 +186,12 @@ func (h HelmComponent) GetDependencies() []string {
 	return h.Dependencies
 }
 
-// IsOperatorInstallSupported Returns true if the component supports direct install via the operator
+// IsOperatorInstallSupported Returns true if the component supports direct install via the wls
 func (h HelmComponent) IsOperatorInstallSupported() bool {
 	return h.SupportsOperatorInstall
 }
 
-// IsOperatorUninstallSupported Returns true if the component supports direct uninstall via the operator
+// IsOperatorUninstallSupported Returns true if the component supports direct uninstall via the wls
 func (h HelmComponent) IsOperatorUninstallSupported() bool {
 	return h.SupportsOperatorUninstall
 }
@@ -442,7 +442,7 @@ func (h HelmComponent) PostUninstall(context spi.ComponentContext) error {
 }
 
 // Upgrade is done by using the helm chart upgrade command.  This command will apply the latest chart
-// that is included in the operator image, while retaining any helm Value overrides that were applied during
+// that is included in the wls image, while retaining any helm Value overrides that were applied during
 // install. Along with the override files in helm_config, we need to generate image overrides using the
 // BOM json file.  Each component also has the ability to add additional override parameters.
 func (h HelmComponent) Upgrade(context spi.ComponentContext) error {

@@ -24,7 +24,7 @@ func AppendWeblogicOperatorOverrides(_ spi.ComponentContext, _ string, _ string,
 	keyValueOverrides := []bom.KeyValue{
 		{
 			Key:   "serviceAccount",
-			Value: "weblogic-operator-sa",
+			Value: "weblogic-wls-sa",
 		},
 		{
 			Key:   "domainNamespaceSelectionStrategy",
@@ -51,7 +51,7 @@ func AppendWeblogicOperatorOverrides(_ spi.ComponentContext, _ string, _ string,
 
 func WeblogicOperatorPreInstall(ctx spi.ComponentContext, _ string, namespace string, _ string) error {
 	var serviceAccount corev1.ServiceAccount
-	const accountName = "weblogic-operator-sa"
+	const accountName = "weblogic-wls-sa"
 	c := ctx.Client()
 	if err := c.Get(context.TODO(), types.NamespacedName{Name: accountName, Namespace: namespace}, &serviceAccount); err != nil {
 		if !errors.IsNotFound(err) {

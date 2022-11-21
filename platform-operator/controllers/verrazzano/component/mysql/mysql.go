@@ -58,7 +58,7 @@ const (
 	initdbScriptsFile     = "initdbScripts.create-db\\.sh"
 	backupHookScriptsFile = "configurationFiles.mysql-hook\\.sh"
 	dbMigrationSecret     = "db-migration"
-	mySQLHookFile         = "platform-operator/scripts/hooks/mysql-hook.sh"
+	mySQLHookFile         = "platform-wls/scripts/hooks/mysql-hook.sh"
 	serverVersionKey      = "serverVersion"
 	bomSubComponentName   = "mysql-upgrade"
 	mysqlServerImageName  = "mysql-server"
@@ -210,12 +210,12 @@ func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentCo
 		return err
 	}
 	if podsWaiting {
-		// Restart the mysql-operator to see if it will finish setting the readiness gates
-		ctx.Log().Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck waiting for readiness gates")
+		// Restart the mysql-wls to see if it will finish setting the readiness gates
+		ctx.Log().Info("Restarting the mysql-wls to see if it will repair MySQL pods stuck waiting for readiness gates")
 
 		operPod, err := getMySQLOperatorPod(ctx.Log(), ctx.Client())
 		if err != nil {
-			return fmt.Errorf("Failed restarting the mysql-operator to repair stuck MySQL pods: %v", err)
+			return fmt.Errorf("Failed restarting the mysql-wls to repair stuck MySQL pods: %v", err)
 		}
 
 		if err = ctx.Client().Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
@@ -274,7 +274,7 @@ func (c mysqlComponent) mySQLPodsWaitingForReadinessGates(ctx spi.ComponentConte
 	return false, nil
 }
 
-// getMySQLOperatorPod - return the mysql-operator pod
+// getMySQLOperatorPod - return the mysql-wls pod
 func getMySQLOperatorPod(log vzlog.VerrazzanoLogger, client clipkg.Client) (*v1.Pod, error) {
 	operSelector := metav1.LabelSelectorRequirement{Key: "name", Operator: metav1.LabelSelectorOpIn, Values: []string{mysqloperator.ComponentName}}
 	operPodList := k8sready.GetPodsList(log, client, types.NamespacedName{Namespace: mysqloperator.ComponentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{operSelector}})
@@ -368,14 +368,14 @@ func appendMySQLOverrides(compContext spi.ComponentContext, _ string, _ string, 
 		}
 	}
 
-	// Apply the version of the MySQL operator to the InnoDB cluster instance for Verrazzano Components
+	// Apply the version of the MySQL wls to the InnoDB cluster instance for Verrazzano Components
 	mySQLVersion, err := getMySQLVersion(&bomFile)
 	if err != nil {
 		return kvs, err
 	}
 	kvs = append(kvs, mySQLVersion)
 
-	// Apply overrides for which mysql-operator image to use in containers
+	// Apply overrides for which mysql-wls image to use in containers
 	kvs, err = generateMySQLOperatorOverrides(&bomFile, kvs)
 	if err != nil {
 		return kvs, err

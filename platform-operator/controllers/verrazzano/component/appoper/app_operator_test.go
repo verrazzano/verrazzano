@@ -26,7 +26,7 @@ import (
 const testBomFilePath = "../../testdata/test_bom.json"
 
 // TestAppendAppOperatorOverrides tests the Keycloak override for the theme images
-// GIVEN an env override for the app operator image
+// GIVEN an env override for the app wls image
 //
 //	WHEN I call AppendApplicationOperatorOverrides
 //	THEN the "image" Key is set with the image override.
@@ -49,7 +49,7 @@ func TestAppendAppOperatorOverrides(t *testing.T) {
 	a.Equalf("weblogicMonitoringExporterImage", kvs[2].Key, "Did not get expected weblogicMonitoringExporterImage Key")
 	a.Equalf(expectedWeblogicMonitoringExporterImage, kvs[2].Value, "Did not get expected weblogicMonitoringExporterImage Value")
 
-	customImage := "myreg.io/myrepo/v8o/verrazzano-application-operator-dev:local-20210707002801-b7449154"
+	customImage := "myreg.io/myrepo/v8o/verrazzano-application-wls-dev:local-20210707002801-b7449154"
 	_ = os.Setenv(constants.VerrazzanoAppOperatorImageEnvVar, customImage)
 	defer func() { _ = os.Unsetenv(constants.RegistryOverrideEnvVar) }()
 
@@ -123,7 +123,7 @@ func TestIsApplicationOperatorNotReady(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      "verrazzano-application-operator",
+			Name:      "verrazzano-application-wls",
 		},
 		Status: appsv1.DeploymentStatus{
 			AvailableReplicas: 1,

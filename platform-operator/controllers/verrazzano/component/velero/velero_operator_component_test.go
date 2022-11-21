@@ -107,7 +107,7 @@ func TestIsEnabled(t *testing.T) {
 }
 
 // TestIsInstalled verifies component IsInstalled checks presence of the
-// Velero operator deployment
+// Velero wls deployment
 func TestIsInstalled(t *testing.T) {
 	var tests = []struct {
 		name        string

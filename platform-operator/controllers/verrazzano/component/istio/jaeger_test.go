@@ -64,7 +64,7 @@ spec:
         tlsSettings:
           mode: "ISTIO_MUTUAL"
         zipkin:
-          address: "jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411"
+          address: "jaeger-wls-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411"
 `
 
 var jaegerTracingJSONTemplate = `{
@@ -126,7 +126,7 @@ func TestConfigureJaeger(t *testing.T) {
 		numArgs int
 	}{
 		{
-			"2 args (tls mode and zipkin address) returned when Jaeger operator is disabled",
+			"2 args (tls mode and zipkin address) returned when Jaeger wls is disabled",
 			spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false),
 			2,
 		},
@@ -176,7 +176,7 @@ func TestBuildJaegerTracingYaml(t *testing.T) {
 			v1beta1.IstioComponent{},
 			getJaegerTracingConfigAsYAML(JaegerTracingConfig{
 				TLSMode:          "ISTIO_MUTUAL",
-				CollectorAddress: "jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411",
+				CollectorAddress: "jaeger-wls-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411",
 			}),
 		},
 		{
@@ -206,7 +206,7 @@ func TestBuildJaegerTracingYaml(t *testing.T) {
 			*convertedIstioComponent,
 			getJaegerTracingConfigAsYAML(JaegerTracingConfig{
 				TLSMode:          "ISTIO_MUTUAL",
-				CollectorAddress: "jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411",
+				CollectorAddress: "jaeger-wls-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411",
 			}),
 		},
 	}

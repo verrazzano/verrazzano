@@ -103,7 +103,7 @@ func TestIsEnabled(t *testing.T) {
 }
 
 // TestIsInstalled verifies component IsInstalled checks presence of the
-// Rancher Backup operator deployment
+// Rancher Backup wls deployment
 func TestIsInstalled(t *testing.T) {
 	var tests = []struct {
 		name        string
@@ -180,7 +180,7 @@ func TestValidateUpdateMethods(t *testing.T) {
 }
 
 // TestIsReady verifies component IsReady checks presence of the
-// Rancher Backup operator deployment
+// Rancher Backup wls deployment
 func TestIsReady(t *testing.T) {
 	fakeReadyClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&appsv1.Deployment{

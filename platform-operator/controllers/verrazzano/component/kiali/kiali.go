@@ -170,7 +170,7 @@ func createOrUpdateAuthPolicy(ctx spi.ComponentContext) error {
 				{
 					From: []*securityv1beta1.Rule_From{{
 						Source: &securityv1beta1.Source{
-							Principals: []string{fmt.Sprintf("cluster.local/ns/%s/sa/verrazzano-monitoring-operator", constants.VerrazzanoSystemNamespace)},
+							Principals: []string{fmt.Sprintf("cluster.local/ns/%s/sa/verrazzano-monitoring-wls", constants.VerrazzanoSystemNamespace)},
 							Namespaces: []string{constants.VerrazzanoSystemNamespace},
 						},
 					}},

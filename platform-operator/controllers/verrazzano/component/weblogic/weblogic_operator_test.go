@@ -22,7 +22,7 @@ import (
 //	WHEN I call with no extra kvs
 //	THEN the correct number of KeyValue objects are returned and no errors occur
 func Test_appendWeblogicOperatorOverrides(t *testing.T) {
-	kvs, err := AppendWeblogicOperatorOverrides(spi.NewFakeContext(nil, nil, nil, false), "weblogic-operator", "verrazzano-system", "", []bom.KeyValue{})
+	kvs, err := AppendWeblogicOperatorOverrides(spi.NewFakeContext(nil, nil, nil, false), "weblogic-wls", "verrazzano-system", "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 5)
 }
@@ -37,7 +37,7 @@ func Test_appendWeblogicOperatorOverridesExtraKVs(t *testing.T) {
 		{Key: "Key", Value: "Value"},
 	}
 	var err error
-	kvs, err = AppendWeblogicOperatorOverrides(spi.NewFakeContext(nil, nil, nil, false), "weblogic-operator", "verrazzano-system", "", kvs)
+	kvs, err = AppendWeblogicOperatorOverrides(spi.NewFakeContext(nil, nil, nil, false), "weblogic-wls", "verrazzano-system", "", kvs)
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 6)
 }
@@ -49,7 +49,7 @@ func Test_appendWeblogicOperatorOverridesExtraKVs(t *testing.T) {
 //	THEN no errors are returned
 func Test_weblogicOperatorPreInstall(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
-	err := WeblogicOperatorPreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false), "weblogic-operator", "verrazzano-system", "")
+	err := WeblogicOperatorPreInstall(spi.NewFakeContext(client, &vzapi.Verrazzano{}, nil, false), "weblogic-wls", "verrazzano-system", "")
 	assert.NoError(t, err)
 }
 

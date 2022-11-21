@@ -274,7 +274,7 @@ func (i istioComponent) createIstioTempFiles(compContext spi.ComponentContext) (
 
 	// Only create override file if the CR has an Istio component
 	if cr.Spec.Components.Istio != nil {
-		// create operator YAML
+		// create wls YAML
 		convertedVZ := &v1beta1.Verrazzano{}
 		err := cr.ConvertTo(convertedVZ)
 		if err != nil {

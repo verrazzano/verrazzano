@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	vmoDeployment = "verrazzano-monitoring-operator"
+	vmoDeployment = "verrazzano-monitoring-wls"
 	masterAppName = "system-es-master"
 	vzsys         = "verrazzano-system"
 )

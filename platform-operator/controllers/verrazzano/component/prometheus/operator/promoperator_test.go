@@ -11,7 +11,7 @@ import (
 
 	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	promoperapi "github.com/prometheus-wls/prometheus-wls/pkg/apis/monitoring/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -497,7 +497,7 @@ func TestUpdateApplicationAuthorizationPolicies(t *testing.T) {
 
 	testNsName := "test-ns"
 	testAuthPolicyName := "test-authpolicy"
-	principal := "cluster.local/ns/verrazzano-monitoring/sa/prometheus-operator-kube-p-prometheus"
+	principal := "cluster.local/ns/verrazzano-monitoring/sa/prometheus-wls-kube-p-prometheus"
 	namespace := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   testNsName,
@@ -783,10 +783,10 @@ func TestCreateOrUpdatePrometheusAuthPolicy(t *testing.T) {
 
 	assertions.Len(authPolicy.Spec.Rules, 3)
 	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-authproxy")
-	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-operator")
+	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/verrazzano-monitoring-wls")
 	assertions.Contains(authPolicy.Spec.Rules[0].From[0].Source.Principals, "cluster.local/ns/verrazzano-system/sa/vmi-system-kiali")
 	assertions.Contains(authPolicy.Spec.Rules[1].From[0].Source.Principals, serviceAccount)
-	assertions.Contains(authPolicy.Spec.Rules[2].From[0].Source.Principals, "cluster.local/ns/verrazzano-monitoring/sa/jaeger-operator-jaeger")
+	assertions.Contains(authPolicy.Spec.Rules[2].From[0].Source.Principals, "cluster.local/ns/verrazzano-monitoring/sa/jaeger-wls-jaeger")
 
 	// GIVEN Prometheus Operator is being installed or upgraded
 	// AND   Istio is disabled

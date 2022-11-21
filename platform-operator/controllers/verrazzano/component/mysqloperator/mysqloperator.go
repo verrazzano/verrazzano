@@ -37,7 +37,7 @@ func getOverrides(object runtime.Object) interface{} {
 	return []vzapi.Overrides{}
 }
 
-// AppendOverrides Build the set of MySQL operator overrides for the helm install
+// AppendOverrides Build the set of MySQL wls overrides for the helm install
 func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 
 	var secret corev1.Secret

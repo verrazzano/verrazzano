@@ -503,7 +503,7 @@ func deleteIstioCoreDNS(context spi.ComponentContext) error {
 }
 
 // removeIstioHelmSecrets deletes the release metadata that helm uses to access to access and control the releases
-// this is sufficient to prevent helm from trying to operator on deployments it doesn't control anymore
+// this is sufficient to prevent helm from trying to wls on deployments it doesn't control anymore
 // however it does not delete the underlying resources
 func removeIstioHelmSecrets(compContext spi.ComponentContext) error {
 	client := compContext.Client()

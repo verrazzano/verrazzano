@@ -29,7 +29,7 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = "verrazzano-application-operator"
+const ComponentName = "verrazzano-application-wls"
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
@@ -75,7 +75,7 @@ func (c applicationOperatorComponent) IsReady(context spi.ComponentContext) bool
 	return false
 }
 
-// PreUpgrade processing for the application-operator
+// PreUpgrade processing for the application-wls
 func (c applicationOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	err := common.ApplyCRDYaml(ctx, config.GetHelmAppOpChartsDir())
 	if err != nil {
@@ -88,9 +88,9 @@ func (c applicationOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error
 	return labelAnnotateWorkloadDefinitions(ctx.Client())
 }
 
-// PostUpgrade processing for the application-operator
+// PostUpgrade processing for the application-wls
 func (c applicationOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
-	ctx.Log().Debugf("application-operator post-upgrade")
+	ctx.Log().Debugf("application-wls post-upgrade")
 
 	var clientCtx = context.TODO()
 

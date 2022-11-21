@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	vmoDeployment = "verrazzano-monitoring-operator"
+	vmoDeployment = "verrazzano-monitoring-wls"
 )
 
 var (

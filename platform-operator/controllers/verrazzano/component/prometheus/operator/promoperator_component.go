@@ -29,7 +29,7 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = "prometheus-operator"
+const ComponentName = "prometheus-wls"
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoMonitoringNamespace
@@ -62,7 +62,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0].name",
-			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "prometheus-operator-values.yaml"),
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "prometheus-wls-values.yaml"),
 			// the dependency on the VMO is to ensure that a persistent volume is retained and the claim is released
 			// so that persistent storage can be migrated to the new Prometheus
 			Dependencies:            []string{networkpolicies.ComponentName, nginx.ComponentName, certmanager.ComponentName, vmo.ComponentName},

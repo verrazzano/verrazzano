@@ -49,8 +49,8 @@ var getDynamicClientFunc getDynamicClientFuncSig = getDynamicClient
 // Constants for Kubernetes resource names
 const (
 	// note: VZ-5241 In Rancher 2.6.3 the agent was moved from cattle-fleet-system ns
-	// to a new cattle-fleet-local-system ns, the rancher-operator-system ns was
-	// removed, and the rancher-operator is no longer deployed
+	// to a new cattle-fleet-local-system ns, the rancher-wls-system ns was
+	// removed, and the rancher-wls is no longer deployed
 	FleetSystemNamespace      = "cattle-fleet-system"
 	FleetLocalSystemNamespace = "cattle-fleet-local-system"
 	defaultSecretNamespace    = "cert-manager"

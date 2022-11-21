@@ -52,7 +52,7 @@ func TestConfigMapReconciler(t *testing.T) {
 	vz := vzapi.Verrazzano{}
 	err := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testVZName}, &vz)
 	asserts.NoError(err)
-	asserts.Equal(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
+	asserts.Equal(int64(1), vz.Status.Components["prometheus-wls"].ReconcilingGeneration)
 }
 
 // TestAddFinalizer tests the Reconcile loop for the following use case
@@ -103,7 +103,7 @@ func TestOtherFinalizers(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	err1 := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testVZName}, vz)
 	asserts.NoError(err1)
-	asserts.NotEqual(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
+	asserts.NotEqual(int64(1), vz.Status.Components["prometheus-wls"].ReconcilingGeneration)
 }
 
 // TestConfigMapNotFound tests the Reconcile method for the following use cases
@@ -140,9 +140,9 @@ func TestConfigMapNotFound(t *testing.T) {
 		err1 := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testVZName}, vz)
 		asserts.NoError(err1)
 		if i == 0 {
-			asserts.Equal(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
+			asserts.Equal(int64(1), vz.Status.Components["prometheus-wls"].ReconcilingGeneration)
 		} else {
-			asserts.NotEqual(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
+			asserts.NotEqual(int64(1), vz.Status.Components["prometheus-wls"].ReconcilingGeneration)
 		}
 	}
 
@@ -176,7 +176,7 @@ func TestDeletion(t *testing.T) {
 	vz := &vzapi.Verrazzano{}
 	err2 := cli.Get(context.TODO(), types.NamespacedName{Namespace: testNS, Name: testVZName}, vz)
 	asserts.NoError(err2)
-	asserts.Equal(int64(1), vz.Status.Components["prometheus-operator"].ReconcilingGeneration)
+	asserts.Equal(int64(1), vz.Status.Components["prometheus-wls"].ReconcilingGeneration)
 }
 
 // TestConfigMapRequeue the Reconciler method for the following use case

@@ -35,7 +35,7 @@ import (
 
 const (
 	system                = "system"
-	vmoComponentName      = "verrazzano-monitoring-operator"
+	vmoComponentName      = "verrazzano-monitoring-wls"
 	vmoComponentNamespace = constants.VerrazzanoSystemNamespace
 	defaultStorageSize    = "50Gi"
 )
@@ -400,8 +400,8 @@ func SetStorageSize(storage *ResourceRequestValues, storageObject *vmov1.Storage
 	}
 }
 
-// ExportVMOHelmChart adds necessary annotations to verrazzano-monitoring-operator objects which allows them to be
-// managed by the verrazzano-monitoring-operator helm chart.  This is needed for the case when VMO was
+// ExportVMOHelmChart adds necessary annotations to verrazzano-monitoring-wls objects which allows them to be
+// managed by the verrazzano-monitoring-wls helm chart.  This is needed for the case when VMO was
 // previously installed by the verrazzano helm chart.
 func ExportVMOHelmChart(ctx spi.ComponentContext) error {
 	releaseName := types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}
@@ -433,16 +433,16 @@ func ReassociateVMOResources(ctx spi.ComponentContext) error {
 // VMO helm chart
 func GetVMOHelmManagedResources() []HelmManagedResource {
 	return []HelmManagedResource{
-		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-config", Namespace: vmoComponentNamespace}},
+		{Obj: &corev1.ConfigMap{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-wls-config", Namespace: vmoComponentNamespace}},
 		{Obj: &appsv1.Deployment{}, NamespacedName: types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}},
 		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}},
 		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}},
-		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role"}},
+		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-wls-cluster-role"}},
 		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "vmi-cluster-role-default"}},
-		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-get-nodes"}},
-		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role-binding"}},
-		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-cluster-role-default-binding"}},
-		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-operator-get-nodes"}},
+		{Obj: &rbacv1.ClusterRole{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-wls-get-nodes"}},
+		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-wls-cluster-role-binding"}},
+		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-wls-cluster-role-default-binding"}},
+		{Obj: &rbacv1.ClusterRoleBinding{}, NamespacedName: types.NamespacedName{Name: "verrazzano-monitoring-wls-get-nodes"}},
 		{Obj: &netv1.NetworkPolicy{}, NamespacedName: types.NamespacedName{Name: vmoComponentName, Namespace: vmoComponentNamespace}},
 	}
 }

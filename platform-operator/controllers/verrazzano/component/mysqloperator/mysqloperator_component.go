@@ -38,7 +38,7 @@ import (
 
 const (
 	// ComponentName is the name of the component
-	ComponentName = "mysql-operator"
+	ComponentName = "mysql-wls"
 
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace = constants.MySQLOperatorNamespace
@@ -47,7 +47,7 @@ const (
 	ComponentJSONName = "mySQLOperator"
 
 	// BackupContainerName is the name of the executable container in a backup job pod
-	BackupContainerName = "operator-backup-job"
+	BackupContainerName = "wls-backup-job"
 )
 
 type mysqlOperatorComponent struct {
@@ -66,7 +66,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    "image.pullSecrets.secretName",
 			MinVerrazzanoVersion:      vpocons.VerrazzanoVersion1_4_0,
-			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-operator-values.yaml"),
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-wls-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName},
 			GetInstallOverridesFunc:   getOverrides,
@@ -120,10 +120,10 @@ func (c mysqlOperatorComponent) PreInstall(compContext spi.ComponentContext) err
 	return nil
 }
 
-// PreUpgrade recycles the MySql operator pods to make sure the latest Istio sidecar exists.
-// This needs to be done since MySQL operator is installed before upgrade
+// PreUpgrade recycles the MySql wls pods to make sure the latest Istio sidecar exists.
+// This needs to be done since MySQL wls is installed before upgrade
 func (c mysqlOperatorComponent) PreUpgrade(compContext spi.ComponentContext) error {
-	compContext.Log().Oncef("Restarting MySQL operator so that it picks up Istio proxy sidecar")
+	compContext.Log().Oncef("Restarting MySQL wls so that it picks up Istio proxy sidecar")
 	// Annotate the deployment to cause the restart
 	var deployment appsv1.Deployment
 	deployment.Namespace = ComponentNamespace
@@ -143,7 +143,7 @@ func (c mysqlOperatorComponent) PreUpgrade(compContext spi.ComponentContext) err
 }
 
 // PreUninstall waits until MySQL pods in the Keycloak namespace are gone. This is needed since the pods have finalizers
-// that are processed by the MySQL operator
+// that are processed by the MySQL wls
 func (c mysqlOperatorComponent) PreUninstall(compContext spi.ComponentContext) error {
 	const (
 		labelKey   = "mysql.oracle.com/cluster"
@@ -161,11 +161,11 @@ func (c mysqlOperatorComponent) PreUninstall(compContext spi.ComponentContext) e
 		return err
 	}
 	if len(podList.Items) > 0 {
-		compContext.Log().Progressf("MySQL operator uninstall is waiting for MySQL to be uninstalled")
+		compContext.Log().Progressf("MySQL wls uninstall is waiting for MySQL to be uninstalled")
 		return ctrlerrors.RetryableError{Source: ComponentName}
 	}
 
-	// MySQL is not installed, safe to uninstall MySQL operator
+	// MySQL is not installed, safe to uninstall MySQL wls
 	return nil
 }
 

@@ -148,7 +148,7 @@ func TestIsInstalled(t *testing.T) {
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
-			//       and Jaeger operator pod is not available
+			//       and Jaeger wls pod is not available
 			// WHEN we call IsInstalled on the Jaeger Operator component
 			// THEN the call returns false
 			name:       "Test IsInstalled when Jaeger Operator component set to enabled",
@@ -207,23 +207,23 @@ func TestPreUpgrade(t *testing.T) {
 			).Build(),
 			actualCR:     vzapi.Verrazzano{},
 			expectError:  true,
-			expectErrMsg: "Conflicting Jaeger instance verrazzano-monitoring/jaeger-operator-jaeger exists!",
+			expectErrMsg: "Conflicting Jaeger instance verrazzano-monitoring/jaeger-wls-jaeger exists!",
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
-			//      with no pre-existing Jaeger operator objects,
+			//      with no pre-existing Jaeger wls objects,
 			// WHEN we call PreUpgrade on the Jaeger Operator component,
 			// THEN the call returns the expected error that conveys that the required
-			//      jaeger-operator deployment is missing.
-			name:         "Test PreUpgrade when Jaeger operator deployment is missing",
+			//      jaeger-wls deployment is missing.
+			name:         "Test PreUpgrade when Jaeger wls deployment is missing",
 			client:       fake.NewClientBuilder().WithScheme(testScheme).Build(),
 			actualCR:     *jaegerEnabledCR,
 			expectError:  true,
-			expectErrMsg: "Failed to get deployment verrazzano-monitoring/jaeger-operator",
+			expectErrMsg: "Failed to get deployment verrazzano-monitoring/jaeger-wls",
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
-			//       with all Jaeger operator objects and the ES secret does not have any data,
+			//       with all Jaeger wls objects and the ES secret does not have any data,
 			// WHEN we call PreUpgrade on the Jaeger Operator component,
 			// THEN the call returns no error.
 			name: "Test PreUpgrade when all Jaeger Operator objects are available with no data in ES secret",
@@ -237,7 +237,7 @@ func TestPreUpgrade(t *testing.T) {
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
-			//       and Jaeger operator objects available and data filled in Jaeger ES secret,
+			//       and Jaeger wls objects available and data filled in Jaeger ES secret,
 			// WHEN we call PreUpgrade on the Jaeger Operator component,
 			// THEN the call returns no error
 			name: "Test PreUpgrade when Jaeger Operator objects are available with no data in ES secret",
@@ -251,7 +251,7 @@ func TestPreUpgrade(t *testing.T) {
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
-			//       and Jaeger operator objects are available
+			//       and Jaeger wls objects are available
 			// WHEN we call PreUpgrade on the Jaeger Operator component
 			// THEN the call returns no error
 			name: "Test PreUpgrade when Jaeger Operator objects are available and Jaeger instance create disabled",
@@ -265,7 +265,7 @@ func TestPreUpgrade(t *testing.T) {
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
-			//       and Jaeger operator objects are available with OpenSearch secret missing,
+			//       and Jaeger wls objects are available with OpenSearch secret missing,
 			// WHEN we call PreUpgrade on the Jaeger Operator component,
 			// THEN the call returns the expected error that conveys that the required secret containing the credentials
 			//      for connecting to OpenSearch is missing.
@@ -280,7 +280,7 @@ func TestPreUpgrade(t *testing.T) {
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled and custom Jaeger secret
-			//       and other Jaeger operator objects are available
+			//       and other Jaeger wls objects are available
 			// WHEN we call PreUpgrade on the Jaeger Operator component
 			// THEN the call returns the expected error that conveys that there is no secret object for the
 			//      secret name provided by the user.
@@ -295,7 +295,7 @@ func TestPreUpgrade(t *testing.T) {
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
-			//       and Jaeger operator objects are available,
+			//       and Jaeger wls objects are available,
 			// WHEN we call IsInstalled on the Jaeger Operator component,
 			// THEN the call returns no error.
 			name: "Test PreUpgrade with existent custom Jaeger password",
@@ -309,7 +309,7 @@ func TestPreUpgrade(t *testing.T) {
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
-			//       and Jaeger operator objects are available and custom secret,
+			//       and Jaeger wls objects are available and custom secret,
 			// WHEN we call IsInstalled on the Jaeger Operator component,
 			// THEN the call returns no error.
 			name: "Test PreUpgrade with custom Jaeger password",
@@ -323,9 +323,9 @@ func TestPreUpgrade(t *testing.T) {
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
-			//       and Jaeger operator objects with missing Jaeger webhook service
+			//       and Jaeger wls objects with missing Jaeger webhook service
 			// WHEN we call IsInstalled on the Jaeger Operator component
-			// THEN the call returns the expected error that conveys that the required jaeger-operator-webhook
+			// THEN the call returns the expected error that conveys that the required jaeger-wls-webhook
 			//      service is missing.
 			name: "Test PreUpgrade when Jaeger Operator component set to enabled",
 			client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
@@ -333,7 +333,7 @@ func TestPreUpgrade(t *testing.T) {
 			).Build(),
 			actualCR:     *jaegerEnabledCR,
 			expectError:  true,
-			expectErrMsg: "Failed to get webhook service verrazzano-monitoring/jaeger-operator-webhook-service",
+			expectErrMsg: "Failed to get webhook service verrazzano-monitoring/jaeger-wls-webhook-service",
 		},
 	}
 	helmcli.SetCmdRunner(os.GenericTestRunner{
@@ -370,7 +370,7 @@ func TestReassociateResources(t *testing.T) {
 	}{
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled
-			//       and all Jaeger operator objects are available,
+			//       and all Jaeger wls objects are available,
 			// WHEN ReassociateResources is invoked on the Jaeger Operator component
 			// THEN the call returns no error
 			name: "Test ReassociateResources when Jaeger Operator component set to enabled",
@@ -482,7 +482,7 @@ func TestIsAvailable(t *testing.T) {
 		},
 		//0XX
 		{
-			// GIVEN Jaeger operator, collector and query have no available pods,
+			// GIVEN Jaeger wls, collector and query have no available pods,
 			// WHEN we call IsAvailable,
 			// THEN the call returns false.
 			name: "Test IsAvailable when Jaeger Operator, Collector and Query are not available",
@@ -494,7 +494,7 @@ func TestIsAvailable(t *testing.T) {
 			dryRun:     true,
 		},
 		{
-			// GIVEN Jaeger operator and collector have no available pods, but query has available pods,
+			// GIVEN Jaeger wls and collector have no available pods, but query has available pods,
 			// WHEN we call IsAvailable,
 			// THEN the call returns false.
 			name: "Test IsAvailable when Jaeger Operator and Collector are not available but Query is available",
@@ -506,7 +506,7 @@ func TestIsAvailable(t *testing.T) {
 			dryRun:     true,
 		},
 		{
-			// GIVEN Jaeger operator and query have no available pods, but collector has available pods
+			// GIVEN Jaeger wls and query have no available pods, but collector has available pods
 			// WHEN we call IsAvailable
 			// THEN the call returns false
 			name: "Test IsAvailable when Jaeger Operator and Query are not available but Collector is available",
@@ -518,7 +518,7 @@ func TestIsAvailable(t *testing.T) {
 			dryRun:     true,
 		},
 		{
-			// GIVEN Jaeger operator has no available pods, but collector and query have available pods
+			// GIVEN Jaeger wls has no available pods, but collector and query have available pods
 			// WHEN we call IsAvailable,
 			// THEN the call returns false.
 			name: "Test IsAvailable when Jaeger Operator is not available but Query and Collector are available",
@@ -531,7 +531,7 @@ func TestIsAvailable(t *testing.T) {
 		},
 		//1XX
 		{
-			// GIVEN Jaeger operator has available pods but collector and query have no available pods,
+			// GIVEN Jaeger wls has available pods but collector and query have no available pods,
 			// WHEN we call IsAvailable,
 			// THEN the call returns false.
 			name: "Test IsAvailable when Jaeger Operator is available but Collector and Query are not available",
@@ -543,7 +543,7 @@ func TestIsAvailable(t *testing.T) {
 			dryRun:     true,
 		},
 		{
-			// GIVEN Jaeger operator and query have available pods but collector has no available pods,
+			// GIVEN Jaeger wls and query have available pods but collector has no available pods,
 			// WHEN we call IsAvailable,
 			// THEN the call returns false.
 			name: "Test IsAvailable when Jaeger Operator and Query are available but Collector is not available",
@@ -555,7 +555,7 @@ func TestIsAvailable(t *testing.T) {
 			dryRun:     true,
 		},
 		{
-			// GIVEN Jaeger operator and collector have available pods but query has no available pods,
+			// GIVEN Jaeger wls and collector have available pods but query has no available pods,
 			// WHEN we call IsAvailable,
 			// THEN the call returns false.
 			name: "Test IsAvailable when Jaeger Operator and Collector are available but Query is not available",
@@ -567,7 +567,7 @@ func TestIsAvailable(t *testing.T) {
 			dryRun:     true,
 		},
 		{
-			// GIVEN Jaeger operator, collector and query have available pods,
+			// GIVEN Jaeger wls, collector and query have available pods,
 			// WHEN we call IsAvailable,
 			// THEN the call returns false.
 			name: "Test IsAvailable when Jaeger Operator, Collector and Query pods are available",
@@ -579,7 +579,7 @@ func TestIsAvailable(t *testing.T) {
 			dryRun:     true,
 		},
 		{
-			// GIVEN Jaeger operator has available pods and VZ managed default jaeger CR is disabled,
+			// GIVEN Jaeger wls has available pods and VZ managed default jaeger CR is disabled,
 			// WHEN we call IsAvailable,
 			// THEN the call returns true.
 			name: "Test IsAvailable when Jaeger Operator is available but default Jaeger CR is disabled",
@@ -591,7 +591,7 @@ func TestIsAvailable(t *testing.T) {
 			dryRun:     true,
 		},
 		{
-			// GIVEN Jaeger operator has available pods and VZ managed default jaeger CR is explicitly enabled without
+			// GIVEN Jaeger wls has available pods and VZ managed default jaeger CR is explicitly enabled without
 			//       deployments for collector and query components,
 			// WHEN we call IsReady,
 			// THEN the call returns false.
@@ -621,7 +621,7 @@ func TestGetMinVerrazzanoVersion(t *testing.T) {
 }
 
 // TestGetDependencies tests whether the cert-manager and opensearch components are dependencies
-// that need to be installed prior to Jaeger operator
+// that need to be installed prior to Jaeger wls
 func TestGetDependencies(t *testing.T) {
 	assert.Equal(t, []string{"verrazzano-network-policies", "cert-manager", "opensearch"}, NewComponent().GetDependencies())
 }
@@ -657,7 +657,7 @@ func TestIsReady(t *testing.T) {
 		},
 		//0XX
 		{
-			// GIVEN Jaeger operator, collector and query have no available pods,
+			// GIVEN Jaeger wls, collector and query have no available pods,
 			// WHEN we call IsReady,
 			// THEN the call returns false.
 			name: "Test IsReady when Jaeger Operator, Collector and Query are not available",
@@ -669,7 +669,7 @@ func TestIsReady(t *testing.T) {
 			dryRun:     true,
 		},
 		{
-			// GIVEN Jaeger operator and collector have no available pods, but query has available pods,
+			// GIVEN Jaeger wls and collector have no available pods, but query has available pods,
 			// WHEN we call IsReady,
 			// THEN the call returns false.
 			name: "Test IsReady when Jaeger Operator and Collector are not available but Query is available",
@@ -681,7 +681,7 @@ func TestIsReady(t *testing.T) {
 			dryRun:     true,
 		},
 		{
-			// GIVEN Jaeger operator and query have no available pods, but collector has available pods
+			// GIVEN Jaeger wls and query have no available pods, but collector has available pods
 			// WHEN we call IsReady
 			// THEN the call returns false
 			name: "Test IsReady when Jaeger Operator and Query are not available but Collector is available",
@@ -693,7 +693,7 @@ func TestIsReady(t *testing.T) {
 			dryRun:     true,
 		},
 		{
-			// GIVEN Jaeger operator has no available pods, but collector and query have available pods
+			// GIVEN Jaeger wls has no available pods, but collector and query have available pods
 			// WHEN we call IsReady,
 			// THEN the call returns false.
 			name: "Test IsReady when Jaeger Operator is not available but Query and Collector are available",
@@ -706,7 +706,7 @@ func TestIsReady(t *testing.T) {
 		},
 		//1XX
 		{
-			// GIVEN Jaeger operator has available pods but collector and query have no available pods,
+			// GIVEN Jaeger wls has available pods but collector and query have no available pods,
 			// WHEN we call IsReady,
 			// THEN the call returns false.
 			name: "Test IsReady when Jaeger Operator is available but Collector and Query are not available",
@@ -718,7 +718,7 @@ func TestIsReady(t *testing.T) {
 			dryRun:     true,
 		},
 		{
-			// GIVEN Jaeger operator and query have available pods but collector has no available pods,
+			// GIVEN Jaeger wls and query have available pods but collector has no available pods,
 			// WHEN we call IsReady,
 			// THEN the call returns false.
 			name: "Test IsReady when Jaeger Operator and Query are available but Collector is not available",
@@ -730,7 +730,7 @@ func TestIsReady(t *testing.T) {
 			dryRun:     true,
 		},
 		{
-			// GIVEN Jaeger operator and collector have available pods but query has no available pods,
+			// GIVEN Jaeger wls and collector have available pods but query has no available pods,
 			// WHEN we call IsReady,
 			// THEN the call returns false.
 			name: "Test IsReady when Jaeger Operator and Collector are available but Query is not available",
@@ -742,7 +742,7 @@ func TestIsReady(t *testing.T) {
 			dryRun:     true,
 		},
 		{
-			// GIVEN Jaeger operator, collector and query have available pods,
+			// GIVEN Jaeger wls, collector and query have available pods,
 			// WHEN we call IsReady,
 			// THEN the call returns false.
 			name: "Test IsReady when Jaeger Operator, Collector and Query pods are available",
@@ -754,7 +754,7 @@ func TestIsReady(t *testing.T) {
 			dryRun:     true,
 		},
 		{
-			// GIVEN Jaeger operator has available pods and VZ managed default jaeger CR is disabled,
+			// GIVEN Jaeger wls has available pods and VZ managed default jaeger CR is disabled,
 			// WHEN we call IsReady,
 			// THEN the call returns true.
 			name: "Test IsReady when Jaeger Operator is available but default Jaeger CR is disabled",
@@ -766,7 +766,7 @@ func TestIsReady(t *testing.T) {
 			dryRun:     true,
 		},
 		{
-			// GIVEN Jaeger operator has available pods and VZ managed default jaeger CR is explicitly enabled without
+			// GIVEN Jaeger wls has available pods and VZ managed default jaeger CR is explicitly enabled without
 			//       deployments for collector and query components,
 			// WHEN we call IsReady,
 			// THEN the call returns false.
@@ -873,7 +873,7 @@ func TestGetIngressAndCertificateNames(t *testing.T) {
 			certs:     []types.NamespacedName{},
 		},
 		{
-			// GIVEN a Verrazzano custom resource with Jaeger operator is enabled and instance is disabled
+			// GIVEN a Verrazzano custom resource with Jaeger wls is enabled and instance is disabled
 			// WHEN we call GetIngressNames and GetCertificateNames on the Jaeger Operator component
 			// THEN we do not expect to find the Jaeger ingress and certs
 			name:      "Test GetIngressNames and GetCertificateNames when Jaeger instance is disabled",
@@ -914,7 +914,7 @@ func TestValidateInstall(t *testing.T) {
 		// WHEN we call the ValidateInstall function
 		// THEN no error is returned.
 		{
-			name: "test jaeger operator enabled",
+			name: "test jaeger wls enabled",
 			vz: vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
@@ -928,7 +928,7 @@ func TestValidateInstall(t *testing.T) {
 		// WHEN we call the ValidateInstall function
 		// THEN no error is returned.
 		{
-			name: "test jaeger operator disabled",
+			name: "test jaeger wls disabled",
 			vz: vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
 					Components: vzapi.ComponentSpec{
@@ -942,7 +942,7 @@ func TestValidateInstall(t *testing.T) {
 		// WHEN we call the ValidateInstall function
 		// THEN an error is returned.
 		{
-			name:        "test jaeger operator override name",
+			name:        "test jaeger wls override name",
 			vz:          *getSingleOverrideCRAlpha(nameOverrideJSON),
 			expectError: true,
 		},
@@ -950,7 +950,7 @@ func TestValidateInstall(t *testing.T) {
 		// WHEN we call the ValidateInstall function,
 		// THEN an error is returned.
 		{
-			name:        "test jaeger operator override full name",
+			name:        "test jaeger wls override full name",
 			vz:          *getSingleOverrideCRAlpha(fullnameOverrideJSON),
 			expectError: true,
 		},
@@ -958,7 +958,7 @@ func TestValidateInstall(t *testing.T) {
 		// WHEN we call the ValidateInstall function
 		// THEN no error is returned.
 		{
-			name:        "test jaeger operator override allowed value",
+			name:        "test jaeger wls override allowed value",
 			vz:          *getSingleOverrideCRAlpha(validOverrideJSON),
 			expectError: false,
 		},
@@ -966,7 +966,7 @@ func TestValidateInstall(t *testing.T) {
 		// WHEN we call the ValidateInstall function
 		// THEN an error is returned.
 		{
-			name:        "test jaeger operator override multiple",
+			name:        "test jaeger wls override multiple",
 			vz:          *getMultipleOverrideCRAlpha(),
 			expectError: true,
 		},
@@ -1017,7 +1017,7 @@ func TestValidateUpdate(t *testing.T) {
 		// WHEN we try to update Verrazzano CR to disable Jaeger Component,
 		// THEN an error is returned.
 		{
-			name:        "test disable jaeger operator post installation",
+			name:        "test disable jaeger wls post installation",
 			oldVZ:       oldVZ,
 			newVZ:       newVZ,
 			expectError: true,
@@ -1026,7 +1026,7 @@ func TestValidateUpdate(t *testing.T) {
 		// WHEN we try to update Verrazzano CR with no changes,
 		// THEN no error is returned.
 		{
-			name:        "test jaeger operator with no changes",
+			name:        "test jaeger wls with no changes",
 			oldVZ:       oldVZ,
 			newVZ:       oldVZ,
 			expectError: false,
@@ -1035,7 +1035,7 @@ func TestValidateUpdate(t *testing.T) {
 		// WHEN we call the ValidateInstall function
 		// THEN an error is returned.
 		{
-			name:        "test jaeger operator override service account name",
+			name:        "test jaeger wls override service account name",
 			oldVZ:       oldVZ,
 			newVZ:       *getSingleOverrideCRAlpha(serviceAccountNameJSON),
 			expectError: true,
@@ -1044,7 +1044,7 @@ func TestValidateUpdate(t *testing.T) {
 		// WHEN we call the ValidateInstall function
 		// THEN an error is returned.
 		{
-			name:        "test jaeger operator override ingress setting",
+			name:        "test jaeger wls override ingress setting",
 			oldVZ:       oldVZ,
 			newVZ:       *getSingleOverrideCRAlpha(ingressJSON),
 			expectError: true,
@@ -1357,7 +1357,7 @@ func getJaegerCertIssuer() client.Object {
 	return &certv1.Issuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ComponentNamespace,
-			Name:      "jaeger-operator-selfsigned-issuer",
+			Name:      "jaeger-wls-selfsigned-issuer",
 		},
 	}
 }

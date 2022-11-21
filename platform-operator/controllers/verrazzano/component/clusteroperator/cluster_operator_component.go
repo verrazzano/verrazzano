@@ -18,7 +18,7 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = "verrazzano-cluster-operator"
+const ComponentName = "verrazzano-cluster-wls"
 
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
@@ -64,7 +64,7 @@ func (c clusterOperatorComponent) IsReady(context spi.ComponentContext) bool {
 	return false
 }
 
-// IsEnabled cluster operator enabled check for installation
+// IsEnabled cluster wls enabled check for installation
 func (c clusterOperatorComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzcr.IsClusterOperatorEnabled(effectiveCR)
 }

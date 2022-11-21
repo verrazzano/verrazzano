@@ -51,7 +51,7 @@ func TestVzContainsResource(t *testing.T) {
 
 	asserts.True(ok0)
 	asserts.NotEmpty(res0)
-	asserts.Equal(res0, "prometheus-operator")
+	asserts.Equal(res0, "prometheus-wls")
 
 	anotherCM := testConfigMap
 	anotherCM.Name = "MonfigCap"
@@ -90,7 +90,7 @@ func TestUpdateVerrazzanoForInstallOverrides(t *testing.T) {
 	defer func() { config.TestProfilesDir = "" }()
 
 	compContext := fakeComponentContext(c, &testVZ)
-	err := UpdateVerrazzanoForInstallOverrides(statusUpdater, compContext, "prometheus-operator")
+	err := UpdateVerrazzanoForInstallOverrides(statusUpdater, compContext, "prometheus-wls")
 	asserts.Nil(err)
 }
 
@@ -106,7 +106,7 @@ func TestUpdateVerrazzanoForInstallOverridesError(t *testing.T) {
 	vz := testVZ
 	vz.Status.Components = nil
 	compContext := fakeComponentContext(c, &vz)
-	err := UpdateVerrazzanoForInstallOverrides(statusUpdater, compContext, "prometheus-operator")
+	err := UpdateVerrazzanoForInstallOverrides(statusUpdater, compContext, "prometheus-wls")
 	asserts.NotNil(err)
 }
 

@@ -58,8 +58,8 @@ func resetWriteFileFunc() {
 }
 
 const (
-	deploymentName        = "jaeger-operator"
-	tmpFilePrefix         = "jaeger-operator-overrides-"
+	deploymentName        = "jaeger-wls"
+	tmpFilePrefix         = "jaeger-wls-overrides-"
 	tmpSuffix             = "yaml"
 	tmpFileCreatePattern  = tmpFilePrefix + "*." + tmpSuffix
 	jaegerCreateField     = "jaeger.create"
@@ -94,7 +94,7 @@ const extraEnvValueTemplate = `extraEnv:
 
 // A template to define Jaeger override for creating default Jaeger instance
 // As Jaeger Operator helm-chart does not use tpl in rendering Jaeger spec value, we can not use
-// jaeger-operator-values.yaml override file to define Jaeger value referencing other values.
+// jaeger-wls-values.yaml override file to define Jaeger value referencing other values.
 const jaegerCreateTemplate = `jaeger:
   create: true
   spec:
@@ -296,7 +296,7 @@ func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ str
 // validateJaegerOperator checks scenarios in which the Verrazzano CR violates install verification
 // due to Jaeger Operator specifications
 func (c jaegerOperatorComponent) validateJaegerOperator(cr *v1beta1.Verrazzano) error {
-	// if Jaeger operator component is disabled, return early
+	// if Jaeger wls component is disabled, return early
 	if !c.IsEnabled(cr) {
 		return nil
 	}
@@ -360,7 +360,7 @@ func generateOverridesFile(ctx spi.ComponentContext, contents []byte) (string, e
 	if err := writeFileFunc(overridesFileName, contents, fs.ModeAppend); err != nil {
 		return "", err
 	}
-	ctx.Log().Debugf("Verrazzano jaeger-operator install overrides file %s contents: %s", overridesFileName,
+	ctx.Log().Debugf("Verrazzano jaeger-wls install overrides file %s contents: %s", overridesFileName,
 		string(contents))
 	return overridesFileName, nil
 }
@@ -538,8 +538,8 @@ func doDefaultJaegerInstanceDeploymentsExists(ctx spi.ComponentContext) bool {
 	return ready.DoDeploymentsExist(ctx.Log(), ctx.Client(), getJaegerComponentDeployments(), 1, prefix)
 }
 
-// removeMutatingWebhookConfig removes the  jaeger-operator-mutating-webhook-configuration resource during the pre-upgrade
-// The jaeger-operator-mutating-webhook-configuration injects the old cert and fails the webhook service handshake during the upgrade.
+// removeMutatingWebhookConfig removes the  jaeger-wls-mutating-webhook-configuration resource during the pre-upgrade
+// The jaeger-wls-mutating-webhook-configuration injects the old cert and fails the webhook service handshake during the upgrade.
 // On deleting, the webhook will be created by the helm and thus injects a new cert which enables a successful handshake with the service.
 func removeMutatingWebhookConfig(ctx spi.ComponentContext) error {
 	kubeClient, err := k8sutil.GetGoClient(ctx.Log())
@@ -558,8 +558,8 @@ func removeMutatingWebhookConfig(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// removeValidatingWebhookConfig removes the  jaeger-operator-validating-webhook-configuration resource during the pre-upgrade
-// The jaeger-operator-validating-webhook-configuration injects the old cert and fails the webhook service handshake during the upgrade.
+// removeValidatingWebhookConfig removes the  jaeger-wls-validating-webhook-configuration resource during the pre-upgrade
+// The jaeger-wls-validating-webhook-configuration injects the old cert and fails the webhook service handshake during the upgrade.
 // On deleting, the webhook will be created by the helm and thus injects a new cert which enables a successful handshake with the service.
 func removeValidatingWebhookConfig(ctx spi.ComponentContext) error {
 	kubeClient, err := k8sutil.GetGoClient(ctx.Log())
@@ -579,7 +579,7 @@ func removeValidatingWebhookConfig(ctx spi.ComponentContext) error {
 }
 
 // removeDeploymentAndService removes the Jaeger deployment during pre-upgrade.
-// The match selector for jaeger operator deployment was changed in 1.34.1 from the previous jaeger version (1.32.0) that Verrazzano installed.
+// The match selector for jaeger wls deployment was changed in 1.34.1 from the previous jaeger version (1.32.0) that Verrazzano installed.
 // The match selector is an immutable field so this was a workaround to avoid a failure during jaeger upgrade.
 func removeDeploymentAndService(ctx spi.ComponentContext) error {
 	deployment := &appsv1.Deployment{}
@@ -609,7 +609,7 @@ func removeDeploymentAndService(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// removeJaegerWebhookService removes the jaeger-operator-webhook-service during the pre-upgrade
+// removeJaegerWebhookService removes the jaeger-wls-webhook-service during the pre-upgrade
 // After removing the mutating and validating webhook configs, the webhook service is removed and replaced by helm during the upgrade.
 func removeJaegerWebhookService(ctx spi.ComponentContext) error {
 	service := &corev1.Service{}
@@ -622,8 +622,8 @@ func removeJaegerWebhookService(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// Jaeger yaml based installation creates jaeger-operator-serving-cert which is different from helm based installation
-// But both create same secret jaeger-operator-service-cert, After jaeger is upgraded, jaeger webhook uses old secret which isn't valid, so had to be removed.
+// Jaeger yaml based installation creates jaeger-wls-serving-cert which is different from helm based installation
+// But both create same secret jaeger-wls-service-cert, After jaeger is upgraded, jaeger webhook uses old secret which isn't valid, so had to be removed.
 func removeOldCertAndSecret(ctx spi.ComponentContext) error {
 	cert := &certv1.Certificate{}
 	ctx.Log().Info("Removing old jaeger certificate if it exists %s/%s", ComponentNamespace, ComponentCertificateName)
@@ -681,11 +681,11 @@ func getAllComponentDeployments(ctx spi.ComponentContext) ([]types.NamespacedNam
 // jaeger helm chart
 func GetHelmManagedResources() []common.HelmManagedResource {
 	return []common.HelmManagedResource{
-		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-metrics", Namespace: ComponentNamespace}},
-		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-webhook-service", Namespace: ComponentNamespace}},
-		{Obj: &certv1.Issuer{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-selfsigned-issuer", Namespace: ComponentNamespace}},
-		{Obj: &adminv1.ValidatingWebhookConfiguration{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-validating-webhook-configuration", Namespace: ComponentNamespace}},
-		{Obj: &adminv1.MutatingWebhookConfiguration{}, NamespacedName: types.NamespacedName{Name: "jaeger-operator-mutating-webhook-configuration", Namespace: ComponentNamespace}},
+		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "jaeger-wls-metrics", Namespace: ComponentNamespace}},
+		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "jaeger-wls-webhook-service", Namespace: ComponentNamespace}},
+		{Obj: &certv1.Issuer{}, NamespacedName: types.NamespacedName{Name: "jaeger-wls-selfsigned-issuer", Namespace: ComponentNamespace}},
+		{Obj: &adminv1.ValidatingWebhookConfiguration{}, NamespacedName: types.NamespacedName{Name: "jaeger-wls-validating-webhook-configuration", Namespace: ComponentNamespace}},
+		{Obj: &adminv1.MutatingWebhookConfiguration{}, NamespacedName: types.NamespacedName{Name: "jaeger-wls-mutating-webhook-configuration", Namespace: ComponentNamespace}},
 	}
 }
 

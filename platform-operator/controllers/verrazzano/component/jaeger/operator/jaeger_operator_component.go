@@ -32,25 +32,25 @@ import (
 
 const (
 	// ComponentName is the name of the component
-	ComponentName = "jaeger-operator"
+	ComponentName = "jaeger-wls"
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace = constants.VerrazzanoMonitoringNamespace
 	// ComponentJSONName is the json name of the component in the CRD
 	ComponentJSONName = "jaegerOperator"
 	// ChartDir is the relative directory path for Jaeger Operator chart
-	ChartDir = "jaegertracing/jaeger-operator"
+	ChartDir = "jaegertracing/jaeger-wls"
 	// ComponentServiceName is the name of the service.
-	ComponentServiceName = "jaeger-operator-metrics"
+	ComponentServiceName = "jaeger-wls-metrics"
 	// ComponentWebhookServiceName is the name of the webhook service.
-	ComponentWebhookServiceName = "jaeger-operator-webhook-service"
+	ComponentWebhookServiceName = "jaeger-wls-webhook-service"
 	// ComponentMutatingWebhookConfigName is the name of the mutating webhook config.
-	ComponentMutatingWebhookConfigName = "jaeger-operator-mutating-webhook-configuration"
+	ComponentMutatingWebhookConfigName = "jaeger-wls-mutating-webhook-configuration"
 	// ComponentValidatingWebhookConfigName is the name of the mutating webhook config.
-	ComponentValidatingWebhookConfigName = "jaeger-operator-validating-webhook-configuration"
+	ComponentValidatingWebhookConfigName = "jaeger-wls-validating-webhook-configuration"
 	// ComponentCertificateName is the name of the Certificate.
-	ComponentCertificateName = "jaeger-operator-serving-cert"
+	ComponentCertificateName = "jaeger-wls-serving-cert"
 	// ComponentSecretName  is the name of the secret.
-	ComponentSecretName = "jaeger-operator-service-cert"
+	ComponentSecretName = "jaeger-wls-service-cert"
 	// JaegerCollectorDeploymentName is the name of the Jaeger instance collector deployment.
 	JaegerCollectorDeploymentName = globalconst.JaegerInstanceName + "-" + globalconst.JaegerCollectorComponentName
 	// JaegerQueryDeploymentName is the name of the Jaeger instance query deployment.
@@ -88,7 +88,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:    "image.imagePullSecrets[0]",
-			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "jaeger-operator-values.yaml"),
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "jaeger-wls-values.yaml"),
 			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName, opensearch.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
@@ -232,7 +232,7 @@ func (c jaegerOperatorComponent) Upgrade(ctx spi.ComponentContext) error {
 	return c.HelmComponent.Install(ctx)
 }
 
-// Reconcile configures the managed cluster or local cluster Jaeger instance, if Jaeger operator
+// Reconcile configures the managed cluster or local cluster Jaeger instance, if Jaeger wls
 // is installed.
 func (c jaegerOperatorComponent) Reconcile(ctx spi.ComponentContext) error {
 	installed, err := c.IsInstalled(ctx)

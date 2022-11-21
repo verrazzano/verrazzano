@@ -29,7 +29,7 @@ const (
 )
 
 // AppendApplicationOperatorOverrides Honor the APP_OPERATOR_IMAGE env var if set; this allows an explicit override
-// of the verrazzano-application-operator image when set.
+// of the verrazzano-application-wls image when set.
 func AppendApplicationOperatorOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	envImageOverride := os.Getenv(constants.VerrazzanoAppOperatorImageEnvVar)
 	if len(envImageOverride) > 0 {
@@ -81,7 +81,7 @@ func AppendApplicationOperatorOverrides(compContext spi.ComponentContext, _ stri
 
 	// get weblogicMonitoringExporter image
 	var weblogicMonitoringExporterImage string
-	images, err = bomFile.BuildImageOverrides("weblogic-operator")
+	images, err = bomFile.BuildImageOverrides("weblogic-wls")
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func AppendApplicationOperatorOverrides(compContext spi.ComponentContext, _ stri
 	return kvs, nil
 }
 
-// isApplicationOperatorReady checks if the application operator deployment is ready
+// isApplicationOperatorReady checks if the application wls deployment is ready
 func (c applicationOperatorComponent) isApplicationOperatorReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.DeploymentNames, 1, prefix)

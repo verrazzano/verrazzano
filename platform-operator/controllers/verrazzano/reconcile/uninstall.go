@@ -48,7 +48,7 @@ const (
 	vzStateUninstallEnd uninstallState = "vzStateUninstallEnd"
 )
 
-// old node-exporter constants replaced with prometheus-operator node-exporter
+// old node-exporter constants replaced with prometheus-wls node-exporter
 const (
 	monitoringNamespace = "monitoring"
 	nodeExporterName    = "node-exporter"
@@ -309,7 +309,7 @@ func (r *Reconciler) runRancherPostInstall(ctx spi.ComponentContext) error {
 }
 
 // nodeExporterCleanup cleans up any resources from the old node-exporter that was
-// replaced with the node-exporter from the prometheus-operator
+// replaced with the node-exporter from the prometheus-wls
 func (r *Reconciler) nodeExporterCleanup(log vzlog.VerrazzanoLogger) error {
 	err := resource.Resource{
 		Name:   nodeExporterName,
