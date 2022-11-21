@@ -265,68 +265,6 @@ pipeline {
                 sh "TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=uninstall-${env.BUILD_NUMBER}-${env.BRANCH_NAME}/${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
             }
         }
-        /*
-        stage("install-platform-operator") {
-            environment {
-                OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-            }
-            steps {
-                sh """
-                    set -xv
-                    echo "Install Platform Operator"
-                    if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
-                        echo "Using operator.yaml from object storage"
-                        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-                        cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-                    else
-                        echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
-                        env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
-                    fi
-                    # Install the verrazzano-platform-operator
-                    kubectl apply -f $WORKSPACE/acceptance-test-operator.yaml
-
-                    # make sure ns exists
-                    ${WORKSPACE}/tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
-                    # create secret in verrazzano-install ns
-                    ${WORKSPACE}/tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${GHCR_REPO}" "${GITHUB_PKGS_CREDS_USR}" "${GITHUB_PKGS_CREDS_PSW}" "verrazzano-install"
-                """
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                }
-            }
-        }
-
-        stage("install-verrazzano") {
-            steps {
-                sh """
-                    echo "Waiting for Operator to be ready"
-                    kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-                    echo "Installing Verrazzano on ${TEST_ENV}"
-                    kubectl apply -f ${INSTALL_CONFIG_FILE}
-
-                    # wait for Verrazzano install to complete
-                    ${WORKSPACE}/tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-                    # Create acceptance test configuration file
-                    ${WORKSPACE}/tests/e2e/config/scripts/common-test-setup-script.sh "${WORKSPACE}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "${VZ_ENVIRONMENT_NAME}"
-
-                    echo "----------Test config file:-------------"
-                    cat ${TEST_CONFIG_FILE}
-                    echo "----------------------------------------"
-                """
-            }
-            post {
-                always {
-                    script {
-                        VZ_TEST_METRIC = metricJobName('')
-                        metricTimerStart("${VZ_TEST_METRIC}")
-                    }
-                }
-            }
-        }
-        */
-
 
         stage('Install Verrazzano') {
             environment {
@@ -365,7 +303,7 @@ pipeline {
 
                     #${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/pre-install-resources
 
-                    #./tests/e2e/config/scripts/process_nipio_install_yaml.sh ${INSTALL_CONFIG_FILE}
+                    ./tests/e2e/config/scripts/process_nipio_install_yaml.sh ${INSTALL_CONFIG_FILE}
                     #yq -i eval '.spec.components.prometheusAdapter.enabled = true'  ${INSTALL_CONFIG_FILE}
                     #yq -i eval '.spec.components.kubeStateMetrics.enabled = true'  ${INSTALL_CONFIG_FILE}
                     #yq -i eval '.spec.components.prometheusPushgateway.enabled = true'  ${INSTALL_CONFIG_FILE}
@@ -380,11 +318,11 @@ pipeline {
                     # wait for Verrazzano install to complete
                     ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
 
-                    ${TEST_SCRIPTS_DIR}/common-test-setup-script.sh "${GO_REPO_PATH}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "default" "${env.OCR_REPO}"
-                    ${TEST_SCRIPTS_DIR}/get_ingress_ip.sh ${TEST_CONFIG_FILE}
-                    echo "----------Test config file:-------------"
-                    cat ${TEST_CONFIG_FILE}
-                    echo "----------------------------------------"
+                    #${TEST_SCRIPTS_DIR}/common-test-setup-script.sh "${GO_REPO_PATH}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "default" "${env.OCR_REPO}"
+                    #${TEST_SCRIPTS_DIR}/get_ingress_ip.sh ${TEST_CONFIG_FILE}
+                    #echo "----------Test config file:-------------"
+                    #cat ${TEST_CONFIG_FILE}
+                    #echo "----------------------------------------"
                 """
             }
             post {
