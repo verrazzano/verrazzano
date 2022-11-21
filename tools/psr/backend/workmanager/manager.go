@@ -5,6 +5,7 @@ package workmanager
 
 import (
 	"fmt"
+	alerts "github.com/verrazzano/verrazzano/tools/psr/backend/workers/http/receiveAlerts"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/restart"
 	"sync"
 	"time"
@@ -97,7 +98,7 @@ func getWorker(wt string) (spi.Worker, error) {
 	case config.WorkerTypeExample:
 		return example.NewExampleWorker()
 	case config.WorkerTypeHTTPGet:
-		return http.NewHTTPGetWorker()
+		return get.NewHTTPGetWorker()
 	case config.WorkerTypeOpsWriteLogs:
 		return writelogs.NewWriteLogsWorker()
 	case config.WorkerTypeOpsGetLogs:
@@ -108,6 +109,8 @@ func getWorker(wt string) (spi.Worker, error) {
 		return scale.NewScaleWorker()
 	case config.WorkerTypeOpsRestart:
 		return restart.NewRestartWorker()
+	case config.WorkerTypeReceiveAlerts:
+		return alerts.NewReceiveAlertsWorker()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}

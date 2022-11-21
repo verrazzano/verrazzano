@@ -1,19 +1,16 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package get
+package alerts
 
 import (
-	"fmt"
-	"net/http"
-	"sync/atomic"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
+	"net/http"
 )
 
 var httpGetFunc = http.Get
@@ -53,7 +50,7 @@ type workerMetrics struct {
 	getRequestsFailedCountTotal    metrics.MetricItem
 }
 
-func NewHTTPGetWorker() (spi.Worker, error) {
+func NewReceiveAlertsWorker() (spi.Worker, error) {
 	w := worker{workerMetrics: &workerMetrics{
 		getRequestsCountTotal: metrics.MetricItem{
 			Name: "request_count_total",
@@ -127,30 +124,9 @@ func (w worker) PreconditionsMet() (bool, error) {
 }
 
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-	var lc, ls, lf int64
-	//increment getRequestsCountTotal
-	lc = atomic.AddInt64(&w.workerMetrics.getRequestsCountTotal.Val, 1)
-	resp, err := httpGetFunc("http://" + config.PsrEnv.GetEnv(ServiceName) +
-		"." + config.PsrEnv.GetEnv(ServiceNamespace) +
-		".svc.cluster.local:" +
-		config.PsrEnv.GetEnv(ServicePort) +
-		"/" + config.PsrEnv.GetEnv(Path))
-	if err != nil {
-		atomic.AddInt64(&w.workerMetrics.getRequestsFailedCountTotal.Val, 1)
-		return err
-	}
-	if resp == nil {
-		atomic.AddInt64(&w.workerMetrics.getRequestsFailedCountTotal.Val, 1)
-		return fmt.Errorf("GET request to endpoint received a nil response")
-	}
-	if resp.StatusCode == 200 {
-		ls = atomic.AddInt64(&w.workerMetrics.getRequestsSucceededCountTotal.Val, 1)
-	} else {
-		lf = atomic.AddInt64(&w.workerMetrics.getRequestsFailedCountTotal.Val, 1)
-	}
-	logMsg := fmt.Sprintf("HttpGet worker total requests %v, "+
-		" total successful requests %v, total failed requests %v",
-		lc, ls, lf)
-	log.Debugf(logMsg)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		log.Infof("Received POST")
+	})
+	select {}
 	return nil
 }
