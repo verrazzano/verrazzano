@@ -90,7 +90,7 @@ func TestVerrazzanoResource(t *testing.T) {
 	assert.Nil(t, UpdateVerrazzanoResource(client, vz))
 	assert.NotEmpty(t, GetNamespacesForAllComponents(*vz))
 	_, err = findVerazzanoResourceV1Alpha1(client)
-	assert.Error(t, err)
+	assert.Error(t, failedToFindResourceError(err))
 }
 
 func TestGetOperatorYaml(t *testing.T) {
