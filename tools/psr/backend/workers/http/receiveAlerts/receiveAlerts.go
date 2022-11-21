@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/k8sclient"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 )
 
@@ -130,6 +131,9 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 			log.Errorf("error creating client: %v", err)
 		}
 		event := corev1.Event{
+			ObjectMeta: v1.ObjectMeta{
+				Namespace: config.PsrEnv.GetEnv(config.PsrWorkerNamespace),
+			},
 			Type:    "Alert",
 			Message: "Alert received",
 		}
