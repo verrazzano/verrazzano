@@ -26,27 +26,7 @@ import (
 
 var testScheme = runtime.NewScheme()
 
-func init() {
-	_ = clientgoscheme.AddToScheme(testScheme)
-
-	_ = v1alpha1.AddToScheme(testScheme)
-	_ = clustersv1alpha1.AddToScheme(testScheme)
-
-	_ = istioclinet.AddToScheme(testScheme)
-	_ = istioclisec.AddToScheme(testScheme)
-	_ = certv1.AddToScheme(testScheme)
-	// +kubebuilder:scaffold:testScheme
-}
-
-// TestContextProfilesMerge Tests the profiles context merge
-// GIVEN a Verrazzano instance with a profile
-// WHEN I call NewContext
-// THEN the correct correct context is created with the proper merge of the profile and user overrides
-func TestContextProfilesMerge(t *testing.T) {
-	config.TestProfilesDir = "../../../../manifests/profiles"
-	defer func() { config.TestProfilesDir = "" }()
-
-	tests := []struct {
+var tests = []struct{
 		name         string
 		description  string
 		expectedYAML string
@@ -144,6 +124,26 @@ func TestContextProfilesMerge(t *testing.T) {
 			expectedYAML: prodNoStorageOpenSearchOverrides,
 		},
 	}
+
+func init() {
+	_ = clientgoscheme.AddToScheme(testScheme)
+
+	_ = v1alpha1.AddToScheme(testScheme)
+	_ = clustersv1alpha1.AddToScheme(testScheme)
+
+	_ = istioclinet.AddToScheme(testScheme)
+	_ = istioclisec.AddToScheme(testScheme)
+	_ = certv1.AddToScheme(testScheme)
+	// +kubebuilder:scaffold:testScheme
+}
+
+// TestContextProfilesMerge Tests the profiles context merge
+// GIVEN a Verrazzano instance with a profile
+// WHEN I call NewContext
+// THEN the correct correct context is created with the proper merge of the profile and user overrides
+func TestContextProfilesMerge(t *testing.T) {
+	config.TestProfilesDir = "../../../../manifests/profiles"
+	defer func() { config.TestProfilesDir = "" }()
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			a := assert.New(t)
@@ -187,104 +187,6 @@ func loadExpectedMergeResult(expectedYamlFile string) (*v1alpha1.Verrazzano, err
 }
 
 func TestGetFakeContext(t *testing.T) {
-	tests := []struct {
-		name         string
-		description  string
-		expectedYAML string
-		actualCR     v1alpha1.Verrazzano
-		expectedErr  bool
-	}{
-		{
-			name:         "TestBasicDevProfileWithStatus",
-			description:  "Tests basic dev profile overrides",
-			actualCR:     basicDevWithStatus,
-			expectedYAML: basicDevMerged,
-		},
-		{
-			name:         "TestBasicProdProfileWithStatus",
-			description:  "Tests basic prod profile overrides",
-			actualCR:     basicProdWithStatus,
-			expectedYAML: basicProdMerged,
-		},
-		{
-			name:         "TestBasicManagedClusterProfileWithStatus",
-			description:  "Tests basic managed-cluster profile overrides",
-			actualCR:     basicMgdClusterWithStatus,
-			expectedYAML: basicManagedClusterMerged,
-		},
-		{
-			name:         "TestBasicDevAllDisabled",
-			description:  "Tests dev profile with all components disabled",
-			actualCR:     devAllDisabledOverride,
-			expectedYAML: devAllDisabledMerged,
-		},
-		{
-			name:         "TestDevProfileOCIDNSOverride",
-			description:  "Tests dev profile with OCI DNS overrides",
-			actualCR:     devOCIDNSOverride,
-			expectedYAML: devOCIDNSOverrideMerged,
-		},
-		{
-			name:         "TestDevProfileCertManagerNoCert",
-			description:  "Tests dev profile with Cert-Manager with no certificate",
-			actualCR:     devCertManagerNoCert,
-			expectedYAML: basicDevMerged,
-		},
-		{
-			name:         "TestDevProfileCertManagerOverride",
-			description:  "Tests dev profile with Cert-Manager overrides",
-			actualCR:     devCertManagerOverride,
-			expectedYAML: devCertManagerOverrideMerged,
-		},
-		{
-			name:         "TestDevProfileElasticsearchOverrides",
-			description:  "Tests dev profile with Elasticsearch installArg and persistence overrides",
-			actualCR:     devElasticSearchOverrides,
-			expectedYAML: devElasticSearchOveridesMerged,
-		},
-		{
-			name:         "TestDevProfileKeycloakOverrides",
-			description:  "Tests dev profile with Keycloak/MySQL installArg and persistence overrides",
-			actualCR:     devKeycloakOverrides,
-			expectedYAML: devKeycloakOveridesMerged,
-		},
-		{
-			name:         "TestProdProfileElasticsearchOverrides",
-			description:  "Tests prod profile with Elasticsearch installArg and persistence overrides",
-			actualCR:     prodElasticSearchOverrides,
-			expectedYAML: prodElasticSearchOveridesMerged,
-		},
-		{
-			name:         "TestProdProfileElasticsearchStorageArgs",
-			description:  "Tests prod profile with Elasticsearch storage installArgs",
-			actualCR:     prodElasticSearchStorageArgs,
-			expectedYAML: prodElasticSearchStorageMerged,
-		},
-		{
-			name:         "TestProdProfileIngressIstioOverrides",
-			description:  "Test prod profile with Istio and NGINX Ingress overrides",
-			actualCR:     prodIngressIstioOverrides,
-			expectedYAML: prodIngressIstioOverridesMerged,
-		},
-		{
-			name:         "TestProdProfileFluentdOverrides",
-			description:  "Test prod profile with Fluentd overrides",
-			actualCR:     prodFluentdOverrides,
-			expectedYAML: prodFluentdOverridesMerged,
-		},
-		{
-			name:         "TestManagedClusterEnableAllOverrides",
-			description:  "Test managed-cluster profile with overrides to enable everything",
-			actualCR:     managedClusterEnableAllOverride,
-			expectedYAML: managedClusterEnableAllMerged,
-		},
-		{
-			name:         "TestProdNoStorageOpenSearchOverrides",
-			description:  "Test prod profile with no storage and OpenSearch overrides",
-			actualCR:     prodNoStorageOSOverrides,
-			expectedYAML: prodNoStorageOpenSearchOverrides,
-		},
-	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			a := assert.New(t)
@@ -316,105 +218,6 @@ func TestGetFakeContext(t *testing.T) {
 func TestOperation(t *testing.T) {
 	config.TestProfilesDir = "../../../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
-
-	tests := []struct {
-		name         string
-		description  string
-		expectedYAML string
-		actualCR     v1alpha1.Verrazzano
-		expectedErr  bool
-	}{
-		{
-			name:         "TestBasicDevProfileWithStatus",
-			description:  "Tests basic dev profile overrides",
-			actualCR:     basicDevWithStatus,
-			expectedYAML: basicDevMerged,
-		},
-		{
-			name:         "TestBasicProdProfileWithStatus",
-			description:  "Tests basic prod profile overrides",
-			actualCR:     basicProdWithStatus,
-			expectedYAML: basicProdMerged,
-		},
-		{
-			name:         "TestBasicManagedClusterProfileWithStatus",
-			description:  "Tests basic managed-cluster profile overrides",
-			actualCR:     basicMgdClusterWithStatus,
-			expectedYAML: basicManagedClusterMerged,
-		},
-		{
-			name:         "TestBasicDevAllDisabled",
-			description:  "Tests dev profile with all components disabled",
-			actualCR:     devAllDisabledOverride,
-			expectedYAML: devAllDisabledMerged,
-		},
-		{
-			name:         "TestDevProfileOCIDNSOverride",
-			description:  "Tests dev profile with OCI DNS overrides",
-			actualCR:     devOCIDNSOverride,
-			expectedYAML: devOCIDNSOverrideMerged,
-		},
-		{
-			name:         "TestDevProfileCertManagerNoCert",
-			description:  "Tests dev profile with Cert-Manager with no certificate",
-			actualCR:     devCertManagerNoCert,
-			expectedYAML: basicDevMerged,
-		},
-		{
-			name:         "TestDevProfileCertManagerOverride",
-			description:  "Tests dev profile with Cert-Manager overrides",
-			actualCR:     devCertManagerOverride,
-			expectedYAML: devCertManagerOverrideMerged,
-		},
-		{
-			name:         "TestDevProfileElasticsearchOverrides",
-			description:  "Tests dev profile with Elasticsearch installArg and persistence overrides",
-			actualCR:     devElasticSearchOverrides,
-			expectedYAML: devElasticSearchOveridesMerged,
-		},
-		{
-			name:         "TestDevProfileKeycloakOverrides",
-			description:  "Tests dev profile with Keycloak/MySQL installArg and persistence overrides",
-			actualCR:     devKeycloakOverrides,
-			expectedYAML: devKeycloakOveridesMerged,
-		},
-		{
-			name:         "TestProdProfileElasticsearchOverrides",
-			description:  "Tests prod profile with Elasticsearch installArg and persistence overrides",
-			actualCR:     prodElasticSearchOverrides,
-			expectedYAML: prodElasticSearchOveridesMerged,
-		},
-		{
-			name:         "TestProdProfileElasticsearchStorageArgs",
-			description:  "Tests prod profile with Elasticsearch storage installArgs",
-			actualCR:     prodElasticSearchStorageArgs,
-			expectedYAML: prodElasticSearchStorageMerged,
-		},
-		{
-			name:         "TestProdProfileIngressIstioOverrides",
-			description:  "Test prod profile with Istio and NGINX Ingress overrides",
-			actualCR:     prodIngressIstioOverrides,
-			expectedYAML: prodIngressIstioOverridesMerged,
-		},
-		{
-			name:         "TestProdProfileFluentdOverrides",
-			description:  "Test prod profile with Fluentd overrides",
-			actualCR:     prodFluentdOverrides,
-			expectedYAML: prodFluentdOverridesMerged,
-		},
-		{
-			name:         "TestManagedClusterEnableAllOverrides",
-			description:  "Test managed-cluster profile with overrides to enable everything",
-			actualCR:     managedClusterEnableAllOverride,
-			expectedYAML: managedClusterEnableAllMerged,
-		},
-		{
-			name:         "TestProdNoStorageOpenSearchOverrides",
-			description:  "Test prod profile with no storage and OpenSearch overrides",
-			actualCR:     prodNoStorageOSOverrides,
-			expectedYAML: prodNoStorageOpenSearchOverrides,
-		},
-	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			a := assert.New(t)
@@ -446,105 +249,6 @@ func TestOperation(t *testing.T) {
 func TestInitAndCopy(t *testing.T) {
 	config.TestProfilesDir = "../../../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
-
-	tests := []struct {
-		name         string
-		description  string
-		expectedYAML string
-		actualCR     v1alpha1.Verrazzano
-		expectedErr  bool
-	}{
-		{
-			name:         "TestBasicDevProfileWithStatus",
-			description:  "Tests basic dev profile overrides",
-			actualCR:     basicDevWithStatus,
-			expectedYAML: basicDevMerged,
-		},
-		{
-			name:         "TestBasicProdProfileWithStatus",
-			description:  "Tests basic prod profile overrides",
-			actualCR:     basicProdWithStatus,
-			expectedYAML: basicProdMerged,
-		},
-		{
-			name:         "TestBasicManagedClusterProfileWithStatus",
-			description:  "Tests basic managed-cluster profile overrides",
-			actualCR:     basicMgdClusterWithStatus,
-			expectedYAML: basicManagedClusterMerged,
-		},
-		{
-			name:         "TestBasicDevAllDisabled",
-			description:  "Tests dev profile with all components disabled",
-			actualCR:     devAllDisabledOverride,
-			expectedYAML: devAllDisabledMerged,
-		},
-		{
-			name:         "TestDevProfileOCIDNSOverride",
-			description:  "Tests dev profile with OCI DNS overrides",
-			actualCR:     devOCIDNSOverride,
-			expectedYAML: devOCIDNSOverrideMerged,
-		},
-		{
-			name:         "TestDevProfileCertManagerNoCert",
-			description:  "Tests dev profile with Cert-Manager with no certificate",
-			actualCR:     devCertManagerNoCert,
-			expectedYAML: basicDevMerged,
-		},
-		{
-			name:         "TestDevProfileCertManagerOverride",
-			description:  "Tests dev profile with Cert-Manager overrides",
-			actualCR:     devCertManagerOverride,
-			expectedYAML: devCertManagerOverrideMerged,
-		},
-		{
-			name:         "TestDevProfileElasticsearchOverrides",
-			description:  "Tests dev profile with Elasticsearch installArg and persistence overrides",
-			actualCR:     devElasticSearchOverrides,
-			expectedYAML: devElasticSearchOveridesMerged,
-		},
-		{
-			name:         "TestDevProfileKeycloakOverrides",
-			description:  "Tests dev profile with Keycloak/MySQL installArg and persistence overrides",
-			actualCR:     devKeycloakOverrides,
-			expectedYAML: devKeycloakOveridesMerged,
-		},
-		{
-			name:         "TestProdProfileElasticsearchOverrides",
-			description:  "Tests prod profile with Elasticsearch installArg and persistence overrides",
-			actualCR:     prodElasticSearchOverrides,
-			expectedYAML: prodElasticSearchOveridesMerged,
-		},
-		{
-			name:         "TestProdProfileElasticsearchStorageArgs",
-			description:  "Tests prod profile with Elasticsearch storage installArgs",
-			actualCR:     prodElasticSearchStorageArgs,
-			expectedYAML: prodElasticSearchStorageMerged,
-		},
-		{
-			name:         "TestProdProfileIngressIstioOverrides",
-			description:  "Test prod profile with Istio and NGINX Ingress overrides",
-			actualCR:     prodIngressIstioOverrides,
-			expectedYAML: prodIngressIstioOverridesMerged,
-		},
-		{
-			name:         "TestProdProfileFluentdOverrides",
-			description:  "Test prod profile with Fluentd overrides",
-			actualCR:     prodFluentdOverrides,
-			expectedYAML: prodFluentdOverridesMerged,
-		},
-		{
-			name:         "TestManagedClusterEnableAllOverrides",
-			description:  "Test managed-cluster profile with overrides to enable everything",
-			actualCR:     managedClusterEnableAllOverride,
-			expectedYAML: managedClusterEnableAllMerged,
-		},
-		{
-			name:         "TestProdNoStorageOpenSearchOverrides",
-			description:  "Test prod profile with no storage and OpenSearch overrides",
-			actualCR:     prodNoStorageOSOverrides,
-			expectedYAML: prodNoStorageOpenSearchOverrides,
-		},
-	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			a := assert.New(t)
@@ -567,7 +271,6 @@ func TestInitAndCopy(t *testing.T) {
 			}
 			contextNew := context.Init("grafana")
 			a.Equal(contextNew.GetComponent(), "grafana", "The component name is incorrect")
-			//a.NotEqual(contextNew.GetComponent(),"fluentd","The component name should not have been same")
 
 			contextMod := context.Copy()
 			a.Equal(context, contextMod, "The two contexts don't match")
