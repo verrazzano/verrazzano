@@ -328,6 +328,10 @@ func TestDefaultProfileWithProd(t *testing.T) {
 			Profile: "prod",
 		},
 	}
+	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).Build(), nil
+	}
+	defer func() { getControllerRuntimeClient = validators.GetClient }()
 	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
 }
 
@@ -348,6 +352,10 @@ func TestDefaultWithProd(t *testing.T) {
 	newSpec := &Verrazzano{
 		Spec: VerrazzanoSpec{},
 	}
+	getControllerRuntimeClient = func(scheme *runtime.Scheme) (client.Client, error) {
+		return fake.NewClientBuilder().WithScheme(newScheme()).Build(), nil
+	}
+	defer func() { getControllerRuntimeClient = validators.GetClient }()
 	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
 }
 
