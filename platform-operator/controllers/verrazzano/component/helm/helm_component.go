@@ -458,7 +458,10 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 
 	if h.PreUpgradeFunc != nil && UpgradePrehooksEnabled {
 		context.Log().Infof("Running Pre-Upgrade for %s", h.ReleaseName)
-		return h.PreUpgradeFunc(context.Log(), context.Client(), h.ReleaseName, resolvedNamespace, h.ChartDir)
+		err := h.PreUpgradeFunc(context.Log(), context.Client(), h.ReleaseName, resolvedNamespace, h.ChartDir)
+		if err != nil {
+			return err
+		}
 	}
 
 	// check for global image pull secret
