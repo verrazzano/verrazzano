@@ -4,16 +4,20 @@
 package alerts
 
 import (
+	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/k8sclient"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
+	corev1 "k8s.io/api/core/v1"
 	"net/http"
 )
 
 var httpGetFunc = http.Get
+var funcNewPsrClient = k8sclient.NewPsrClient
 
 const (
 	// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
@@ -121,6 +125,17 @@ func (w worker) PreconditionsMet() (bool, error) {
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Infof("Received POST")
+		c, err := funcNewPsrClient()
+		if err != nil {
+			log.Errorf("error creating client: %v", err)
+		}
+		event := corev1.Event{
+			Type:    "Alert",
+			Message: "Alert received",
+		}
+		if err = c.CrtlRuntime.Create(context.TODO(), &event); err != nil {
+			log.Errorf("error generating event: %v", err)
+		}
 	})
 	select {}
 	return nil
