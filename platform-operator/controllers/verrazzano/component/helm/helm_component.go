@@ -325,19 +325,12 @@ func (h HelmComponent) Install(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreInstall(context spi.ComponentContext) error {
-	releaseStatus, err := helm.GetReleaseStatus(context.Log(), h.ReleaseName, h.ChartNamespace)
-	if err != nil {
-		context.Log().ErrorfThrottledNewErr("Error getting release status for %s", h.ReleaseName)
-	} else if releaseStatus != release.StatusDeployed.String() && releaseStatus != release.StatusUninstalled.String() {
-		// When Helm release status not in [deployed, uninstalled], cleanup the secret
-		cleanupLatestSecret(context, h, true)
+	if err := h.PreInstallUpgrade(context); err != nil {
+		return err
 	}
-
 	if h.PreInstallFunc != nil {
-		err := h.PreInstallFunc(context, h.ReleaseName, h.resolveNamespace(context), h.ChartDir)
-		if err != nil {
-			return err
-		}
+		context.Log().Infof("Running Pre-Install for %s", h.ReleaseName)
+		return h.PreInstallFunc(context, h.ReleaseName, h.resolveNamespace(context), h.ChartDir)
 	}
 	return nil
 }
@@ -464,15 +457,6 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 		return nil
 	}
 
-	// Do the preUpgrade if the function is defined
-	if h.PreUpgradeFunc != nil && UpgradePrehooksEnabled {
-		context.Log().Infof("Running preUpgrade function for %s", h.ReleaseName)
-		err := h.PreUpgradeFunc(context.Log(), context.Client(), h.ReleaseName, resolvedNamespace, h.ChartDir)
-		if err != nil {
-			return err
-		}
-	}
-
 	// check for global image pull secret
 	var kvs []bom.KeyValue
 	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
@@ -505,16 +489,13 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 }
 
 func (h HelmComponent) PreUpgrade(context spi.ComponentContext) error {
-	releaseStatus, err := helm.GetReleaseStatus(context.Log(), h.ReleaseName, h.ChartNamespace)
-	if err != nil {
-		context.Log().ErrorfThrottledNewErr("Error getting release status for %s", h.ReleaseName)
+	if err := h.PreInstallUpgrade(context); err != nil {
 		return err
 	}
-	if releaseStatus == release.StatusDeployed.String() || releaseStatus == release.StatusUninstalled.String() {
-		// Return when Helm release status is in [deployed,uninstalled]
-		return nil
+	if h.PreUpgradeFunc != nil && UpgradePrehooksEnabled {
+		context.Log().Infof("Running Pre-Upgrade for %s", h.ReleaseName)
+		return h.PreUpgradeFunc(context.Log(), context.Client(), h.ReleaseName, h.resolveNamespace(context), h.ChartDir)
 	}
-	cleanupLatestSecret(context, h, false)
 	return nil
 }
 
@@ -671,6 +652,18 @@ func (h HelmComponent) resolveNamespace(ctx spi.ComponentContext) string {
 		namespace = h.ChartNamespace
 	}
 	return namespace
+}
+
+func (h HelmComponent) PreInstallUpgrade(ctx spi.ComponentContext) error {
+	releaseStatus, err := helm.GetReleaseStatus(ctx.Log(), h.ReleaseName, h.ChartNamespace)
+	if err != nil {
+		return ctx.Log().ErrorfThrottledNewErr("Error getting release status for %s", h.ReleaseName)
+	}
+	if releaseStatus != release.StatusDeployed.String() && releaseStatus != release.StatusUninstalled.String() {
+		// When Helm release status not in [deployed, uninstalled], cleanup the secret
+		cleanupLatestSecret(ctx, h, true)
+	}
+	return nil
 }
 
 // Get the image overrides from the BOM
