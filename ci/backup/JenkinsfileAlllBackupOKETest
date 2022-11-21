@@ -272,6 +272,7 @@ pipeline {
             }
             steps {
                 sh """
+                    set -xv
                     echo "Install Platform Operator"
                     if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
                         echo "Using operator.yaml from object storage"
