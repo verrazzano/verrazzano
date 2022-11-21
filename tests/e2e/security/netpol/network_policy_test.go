@@ -44,7 +44,7 @@ const (
 	defaultBackend      = "default-backend"
 	vzConsole           = "verrazzano-console"
 	grafanaSys          = "system-grafana"
-	kibanaSys           = "system-kibana"
+	kibanaSys           = "system-osd"
 	weblogicOperator    = "weblogic-operator"
 )
 
