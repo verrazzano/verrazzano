@@ -257,8 +257,9 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 
 // TestBugReportV1Alpha1Verrazzano
 // GIVEN a CLI bug-report command
-// WHEN I call cmd.Execute with a v1alpha1 Verrazzano installed
-// THEN expect the command to resolve the v1alpha1 to a v1beta1 and return no error
+//
+//  WHEN I call cmd.Execute with a v1alpha1 Verrazzano installed
+//  THEN expect the command to resolve the v1alpha1 to a v1beta1 and return no error
 func TestBugReportV1Alpha1Verrazzano(t *testing.T) {
 	c := getClientWithV1Alpha1VZWatch()
 	buf := new(bytes.Buffer)
