@@ -1152,7 +1152,7 @@ func TestPreInstall(t *testing.T) {
 		},
 		// GIVEN Helm component
 		// WHEN PreInstall is called
-		// THEN no error is returned if there is an error fetching release status
+		// THEN no error is returned if there is no error fetching release status
 		{
 			name: "TestPreInstall when  error getting release status",
 			helmComponent: HelmComponent{
@@ -1509,7 +1509,7 @@ func TestPreUpgrade(t *testing.T) {
 		},
 		// GIVEN Helm component
 		// WHEN PreUpgrade is called and chart status is deployed
-		// THEN no error is returned during PreUpgrade process.
+		// THEN error is returned during PreUpgrade process.
 		{
 			name: "TestPreUpgrade when chart status is deployed",
 			helmComponent: HelmComponent{
@@ -1522,25 +1522,6 @@ func TestPreUpgrade(t *testing.T) {
 			},
 			ctx:           fakeContextWithSecret,
 			expectSuccess: true,
-		},
-		// GIVEN Helm component
-		// WHEN PreUpgrade is called and the PreUpgradeFunc fails
-		// THEN error is returned during PreUpgrade process.
-		{
-			name: "TestPreUpgrade when preUpgrade is deployed",
-			helmComponent: HelmComponent{
-				ResolveNamespaceFunc: func(ns string) string {
-					return testNs
-				},
-				PreUpgradeFunc: func(log vzlog.VerrazzanoLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error {
-					return fmt.Errorf(unexpectedError)
-				},
-			},
-			chartStatusFn: func(releaseName string, namespace string) (string, error) {
-				return helm.ChartStatusDeployed, nil
-			},
-			ctx:           fakeContextWithSecret,
-			expectSuccess: false,
 		},
 	}
 	a := assert.New(t)
@@ -1670,6 +1651,26 @@ func TestHelmComponentUpgrade(t *testing.T) {
 				})
 			},
 			false,
+		},
+		// GIVEN default Helm component
+		// WHEN Upgrade is called with failed PreUpgrade function
+		// THEN upgrade process throws error
+		{
+			"TestHelmComponentUpgrade when preUpgrade fails",
+			HelmComponent{
+				PreUpgradeFunc: func(log vzlog.VerrazzanoLogger, client clipkg.Client, releaseName string, namespace string, chartDir string) error {
+					return fmt.Errorf(unexpectedError)
+				},
+			},
+			fakeContext,
+			func() {
+				helm.SetCmdRunner(genericHelmTestRunner{
+					stdOut: []byte(""),
+					stdErr: []byte(""),
+					err:    nil,
+				})
+			},
+			true,
 		},
 		// GIVEN default Helm component with PreUpgrade function
 		// WHEN Upgrade is called
