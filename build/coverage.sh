@@ -5,7 +5,10 @@
 #
 # Code coverage generation
 TEST_PATHS=${TEST_PATHS:-"./..."}
-go test -coverprofile ./coverage.raw.cov $(go list ${TEST_PATHS} | grep -Ev "(/tests/e2e|/tools/psr)")
+# Coverage exclusions regex
+COVERAGE_EXCLUSIONS=${COVERAGE_EXCLUSIONS:-"tests/e2e"}
+
+go test -coverprofile ./coverage.raw.cov $(go list ${TEST_PATHS} | grep -Ev "${COVERAGE_EXCLUSIONS}")
 TEST_STATUS=$?
 
 # Remove specific files from coverage report
