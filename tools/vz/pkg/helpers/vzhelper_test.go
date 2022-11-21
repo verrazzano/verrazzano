@@ -6,7 +6,6 @@ package helpers
 import (
 	"bytes"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"testing"
@@ -19,8 +18,6 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
-
-var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
 // TestNewVerrazzanoForVersion
 // GIVEN a schema.GroupVersion
