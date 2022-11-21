@@ -267,7 +267,6 @@ func TestNoValidationWarningWithoutServerPodSpecV1beta1(t *testing.T) {
 // GIVEN a call to validate a Verrazzano resource
 // WHEN the override values do not specify a server podSpec
 // THEN the admission request should be allowed with ""
-
 func TestNoValidationWarningWithEmptyVZ(t *testing.T) {
 	asrt := assert.New(t)
 	m := newMysqlValuesValidatorV1beta1()

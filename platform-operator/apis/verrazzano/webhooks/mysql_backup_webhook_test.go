@@ -158,7 +158,6 @@ func TestHandleAnnotateMysqlBackupJob(t *testing.T) {
 
 // TestConvertAPIVersionToGroupAndVersion validates whether  given apiVersion
 // will be successfully segregated into group and version
-
 func TestConvertAPIVersionToGroupAndVersion(t *testing.T) {
 	apiVersion1 := "networking.k8s.io/v1"
 	apiVersion2 := "v1alpha1"
@@ -223,7 +222,6 @@ func TestIsCronJobCreatedByMysqlOperator(t *testing.T) {
 // WHEN Handle is called with an admission.Request containing cronjob created by mysql-operator
 // and cronjob didn't exist
 // THEN Handle should not allow response with no action required
-
 func TestIsCronJobCreatedByMysqlOperator2(t *testing.T) {
 	var err error
 	defaulter := &MySQLBackupJobWebhook{
