@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 var istioInjection string
@@ -18,7 +17,7 @@ func init() {
 }
 
 // TestConsoleIngress tests an ingress trait setup for console access.
-func TestConsoleIngress(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Console Ingress Test Suite")
+func TestConsoleIngress(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Console Ingress Test Suite")
 }

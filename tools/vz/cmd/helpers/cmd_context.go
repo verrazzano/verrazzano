@@ -44,7 +44,8 @@ func (rc *RootCmdContext) GetClient(cmd *cobra.Command) (client.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	// Set warning handler to output warnings to the error stream
+	config.WarningHandler = getWarningHandler(rc.GetErrorStream())
 	return client.New(config, client.Options{Scheme: helpers.NewScheme()})
 }
 

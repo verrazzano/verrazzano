@@ -6,7 +6,7 @@ module github.com/verrazzano/verrazzano
 go 1.19
 
 require (
-	github.com/Jeffail/gabs/v2 v2.2.0
+	github.com/Jeffail/gabs/v2 v2.6.1
 	github.com/cert-manager/cert-manager v1.9.1
 	github.com/crossplane/crossplane-runtime v0.10.0
 	github.com/crossplane/oam-kubernetes-runtime v0.3.3

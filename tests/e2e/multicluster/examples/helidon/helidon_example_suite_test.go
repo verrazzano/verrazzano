@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 var skipDeploy bool
@@ -21,7 +20,7 @@ func init() {
 	flag.BoolVar(&skipVerify, "skipVerify", false, "skipVerify skips the post deployment app validations")
 }
 
-func TestMultiClusterHelidonExample(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Multi-cluster Hello Helidon Suite")
+func TestMultiClusterHelidonExample(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Multi-cluster Hello Helidon Suite")
 }

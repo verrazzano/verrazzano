@@ -84,7 +84,7 @@ func NewScaleDomainWorker() (spi.Worker, error) {
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w scaleDomain) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		WorkerType:  config.WorkerTypeScaleDomain,
+		WorkerType:  config.WorkerTypeWlsScale,
 		Description: "The scale domain worker scales up and scales down the domain",
 		MetricsName: "scaleDomain",
 	}

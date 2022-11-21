@@ -20,7 +20,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const vmiIngest = "vmi-system-es-ingest"
+const vmiIngest = "vmi-system-os-ingest"
 const defaultSecretName = "verrazzano"
 
 // Create a registration secret with the managed cluster information.  This secret will

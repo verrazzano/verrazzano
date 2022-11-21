@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 var skipDeploy bool
@@ -24,7 +23,7 @@ func init() {
 }
 
 // TestToDoListExample tests the ToDoList example
-func TestToDoListExample(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "ToDo List Example Test Suite")
+func TestToDoListExample(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "ToDo List Example Test Suite")
 }
