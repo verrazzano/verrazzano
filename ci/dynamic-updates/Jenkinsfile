@@ -1027,7 +1027,7 @@ def vzUpdateComponentsV1alpha1(){
         cd ${GO_REPO_PATH}/verrazzano
         yq -i eval '.spec.components.ingress.enabled = true' ${WORKSPACE}/vz-update1.yaml
         yq -i eval '.spec.components.elasticsearch.enabled = true' ${WORKSPACE}/vz-update1.yaml
-        yq -i eval '.spec.components.kibana.enabled = true' ${WORKSPACE}/vz-update1.yaml
+        yq -i eval '.spec.components.osd.enabled = true' ${WORKSPACE}/vz-update1.yaml
         kubectl apply -f ${WORKSPACE}/vz-update1.yaml
         ${TEST_SCRIPTS_DIR}/wait-for-component-ready.sh
     """
@@ -1040,7 +1040,7 @@ def vzUpdateComponentsV1beta1(){
         cd ${GO_REPO_PATH}/verrazzano
         yq -i eval '.spec.components.ingressNGINX.enabled = true' ${WORKSPACE}/vz-update1.yaml
         yq -i eval '.spec.components.opensearch.enabled = true' ${WORKSPACE}/vz-update1.yaml
-        yq -i eval '.spec.components.kibana.enabled = true' ${WORKSPACE}/vz-update1.yaml
+        yq -i eval '.spec.components.osd.enabled = true' ${WORKSPACE}/vz-update1.yaml
         kubectl apply -f ${WORKSPACE}/vz-update1.yaml
         ${TEST_SCRIPTS_DIR}/wait-for-component-ready.sh
     """
@@ -1052,7 +1052,7 @@ def scriptForPrepareATEnvironmentV1beta1(){
         cd ${GO_REPO_PATH}/verrazzano
         yq -i eval '.spec.components.ingressNGINX.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
         yq -i eval '.spec.components.opensearch.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-        yq -i eval '.spec.components.kibana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+        yq -i eval '.spec.components.osd.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
         ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
     """
 }
@@ -1063,7 +1063,7 @@ def scriptForPrepareATEnvironmentV1alpha1(){
         cd ${GO_REPO_PATH}/verrazzano
         yq -i eval '.spec.components.ingress.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
         yq -i eval '.spec.components.elasticsearch.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
-        yq -i eval '.spec.components.kibana.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
+        yq -i eval '.spec.components.osd.enabled = true' ${INSTALL_CONFIG_FILE_KIND}
         ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_CLUSTER_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
     """
 }
