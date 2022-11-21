@@ -85,7 +85,7 @@ precommit-check: check check-tests copyright-check
 precommit-build:
 	go build ./...
 
-unit-test-coverage: export COVERAGE_EXCLUSIONS="(tests/e2e|tools/psr)"
+unit-test-coverage: export COVERAGE_EXCLUSIONS ?= tests/e2e|tools/psr
 .PHONY: unit-test-coverage
 unit-test-coverage:
 	${SCRIPT_DIR}/coverage.sh html

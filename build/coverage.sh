@@ -4,12 +4,14 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Code coverage generation
-TEST_PATHS=${TEST_PATHS:-"./..."}
+set -x
+TEST_PATHS=${TEST_PATHS:-./...}
 # Coverage exclusions regex
-COVERAGE_EXCLUSIONS=${COVERAGE_EXCLUSIONS:-"tests/e2e"}
+COVERAGE_EXCLUSIONS=${COVERAGE_EXCLUSIONS:-/tests/e2e}
 
-go test -coverprofile ./coverage.raw.cov $(go list ${TEST_PATHS} | grep -Ev "${COVERAGE_EXCLUSIONS}")
+go test -coverprofile ./coverage.raw.cov $(go list ${TEST_PATHS} | grep -Ev "(${COVERAGE_EXCLUSIONS})")
 TEST_STATUS=$?
+set +x
 
 # Remove specific files from coverage report
 cat ./coverage.raw.cov |\
