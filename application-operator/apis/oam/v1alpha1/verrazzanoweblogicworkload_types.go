@@ -8,12 +8,21 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// VerrazzanoWebLogicWorkloadSpec wraps a WebLogic domain resource.
+type VerrazzanoWebLogicWorkloadDomainTemplate struct {
+	// +kubebuilder:pruning:PreserveUnknownFields
+	APIVersion string               `json:"apiVersion,omitempty"`
+	Metadata   runtime.RawExtension `json:"metadata,omitempty"`
+
+	Spec runtime.RawExtension `json:"spec"`
+}
+
+// VerrazzanoWebLogicWorkloadSpec wraps a WebLogic resource. The WebLogic domain specified
+// in the template must contain a spec field and it may include a metadata field.
 type VerrazzanoWebLogicWorkloadSpec struct {
 	// The metadata and spec for the underlying
 	// <a href="https://github.com/oracle/weblogic-kubernetes-operator/blob/main/documentation/domains/Domain.md">Domain</a> resource.
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Template runtime.RawExtension `json:"template"`
+	Template VerrazzanoWebLogicWorkloadDomainTemplate `json:"template"`
 }
 
 // VerrazzanoWebLogicWorkloadStatus defines the observed state of a Verrazzano WebLogic workload.

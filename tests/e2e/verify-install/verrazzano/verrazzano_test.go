@@ -102,12 +102,12 @@ var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 	vzWebLogicReadRule := rbacv1.PolicyRule{
 		Verbs:     []string{"get", "list", "watch"},
 		APIGroups: []string{"weblogic.oracle"},
-		Resources: []string{"domains", "domains/status"},
+		Resources: []string{"domains", "clusters", "domains/status", "clusters/status"},
 	}
 	vzWebLogicWriteRule := rbacv1.PolicyRule{
 		Verbs:     []string{"create", "update", "patch", "delete", "deletecollection"},
 		APIGroups: []string{"weblogic.oracle"},
-		Resources: []string{"domains"},
+		Resources: []string{"domains", "clusters"},
 	}
 	vzCoherenceReadRule := rbacv1.PolicyRule{
 		Verbs:     []string{"get", "list", "watch"},
