@@ -94,7 +94,7 @@ func GetHealthOfServers(uDomain *unstructured.Unstructured) ([]string, error) {
 func getScheme() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Group:    "weblogic.oracle",
-		Version:  "v8",
+		Version:  "v9",
 		Resource: "domains",
 	}
 }

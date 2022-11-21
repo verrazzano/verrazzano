@@ -9,5 +9,9 @@ spec:
   childResourceKinds:
     - apiVersion: weblogic.oracle/v8
       kind: Domain
+    - apiVersion: weblogic.oracle/v9
+      kind: Domain
+    - apiVersion: weblogic.oracle/v1
+      kind: Cluster
   definitionRef:
     name: verrazzanoweblogicworkloads.oam.verrazzano.io

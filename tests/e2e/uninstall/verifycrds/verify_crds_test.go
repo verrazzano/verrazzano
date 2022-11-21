@@ -124,6 +124,10 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 		checkCrds(crds, map[string]bool{"domains.weblogic.oracle": false}, "domains.weblogic.oracle")
 	})
 
+	t.It("Check for expected clusters.weblogic.oracle CRD", func() {
+		checkCrds(crds, map[string]bool{"clusters.weblogic.oracle": false}, "clusters.weblogic.oracle")
+	})
+
 	t.It("Check for expected coherence.coherence.oracle.com CRD", func() {
 		checkCrds(crds, map[string]bool{"coherence.coherence.oracle.com": false}, "coherence.coherence.oracle.com")
 	})

@@ -97,8 +97,8 @@ func mergeTemplateWithContext(template string, context map[string]string) string
 // GetSupportedWorkloadType returns workload type corresponding to input API version and kind
 // that is supported by MetricsTrait.
 func GetSupportedWorkloadType(apiVerKind string) string {
-	// Match any version of Group=weblogic.oracle and Kind=Domain
-	if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.Domain$", apiVerKind); matched {
+	// Match any version of Group=weblogic.oracle and Kind=Domain or Kind=cluster
+	if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.(Domain|Cluster)$", apiVerKind); matched {
 		return constants.WorkloadTypeWeblogic
 	}
 	// Match any version of Group=coherence.oracle and Kind=Coherence
@@ -244,8 +244,8 @@ func isWLSWorkload(workload *unstructured.Unstructured) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	// Match any version of APIVersion=weblogic.oracle and Kind=Domain
-	if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.Domain$", apiVerKind); matched {
+	// Match any version of APIVersion=weblogic.oracle and Kind=Domain or Kind=Cluster
+	if matched, _ := regexp.MatchString("^weblogic.oracle/.*\\.(Domain|Cluster)$", apiVerKind); matched {
 		return true, nil
 	}
 	return false, nil

@@ -25,7 +25,7 @@ import (
 // structs of the resources that the workloads contain. This is needed because the embedded resources
 // do not have API version and kind fields.
 var workloadToContainedGVKMap = map[string]schema.GroupVersionKind{
-	"oam.verrazzano.io/v1alpha1.VerrazzanoWebLogicWorkload":  {Group: "weblogic.oracle", Version: "v8", Kind: "Domain"},
+	"oam.verrazzano.io/v1alpha1.VerrazzanoWebLogicWorkload":  {Group: "weblogic.oracle", Version: "v9", Kind: "Domain"},
 	"oam.verrazzano.io/v1alpha1.VerrazzanoCoherenceWorkload": {Group: "coherence.oracle.com", Version: "v1", Kind: "Coherence"},
 }
 

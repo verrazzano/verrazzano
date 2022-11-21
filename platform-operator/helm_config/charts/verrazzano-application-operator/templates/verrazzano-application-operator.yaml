@@ -264,6 +264,8 @@ rules:
     resources:
       - domains
       - domains/status
+      - clusters
+      - clusters/status
     verbs:
       - create
       - delete
