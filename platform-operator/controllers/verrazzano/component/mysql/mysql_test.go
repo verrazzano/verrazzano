@@ -1995,7 +1995,7 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 
 	// Third time calling, set the timer to exceed the expiration time which will force a check of the readiness gates.
 	// The readiness gates will be set to true going into the call, so the mysql-operator should not get recycled.
-	*mysqlComp.LastTimeReadinessGateRepairStarted = time.Now().Truncate(2 * time.Hour)
+	*mysqlComp.LastTimeReadinessGateRepairStarted = time.Now().Add(-time.Hour * 2)
 	err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
 	assert.NoError(t, err)
 
@@ -2007,7 +2007,7 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	mySQLPod.Status.Conditions = []v1.PodCondition{{Type: "gate1", Status: v1.ConditionTrue}, {Type: "gate2", Status: v1.ConditionFalse}}
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod, mySQLOperatorPod).Build()
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
-	*mysqlComp.LastTimeReadinessGateRepairStarted = time.Now().Truncate(2 * time.Hour)
+	*mysqlComp.LastTimeReadinessGateRepairStarted = time.Now().Add(-time.Hour * 2)
 	err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
 	assert.NoError(t, err, fmt.Sprintf("unexpected error: %v", err))
 	assert.True(t, mysqlComp.LastTimeReadinessGateRepairStarted.IsZero())
