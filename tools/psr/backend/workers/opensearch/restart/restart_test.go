@@ -46,6 +46,16 @@ func TestGetters(t *testing.T) {
 		funcNewPsrClient = origFunc
 	}()
 
+	envMap := map[string]string{
+		openSearchTier: opensearchpsr.MasterTier,
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
+	}()
+
 	w, err := NewRestartWorker()
 	assert.NoError(t, err)
 
@@ -67,6 +77,16 @@ func TestGetEnvDescList(t *testing.T) {
 	origFunc := overridePsrClient()
 	defer func() {
 		funcNewPsrClient = origFunc
+	}()
+
+	envMap := map[string]string{
+		openSearchTier: opensearchpsr.MasterTier,
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
 	}()
 
 	tests := []struct {
@@ -108,13 +128,24 @@ func TestGetMetricDescList(t *testing.T) {
 		funcNewPsrClient = origFunc
 	}()
 
+	envMap := map[string]string{
+		openSearchTier: opensearchpsr.MasterTier,
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
+	}()
+
 	tests := []struct {
 		name   string
 		fqName string
 		help   string
+		label  string
 	}{
-		{name: "1", fqName: metricsPrefix + "_pod_restart_count", help: "The total number of OpenSearch pod restarts"},
-		{name: "2", fqName: metricsPrefix + "_pod_restart_time_nanoseconds", help: "The number of nanoseconds elapsed to restart the OpenSearch pod"},
+		{name: "1", fqName: metricsPrefix + "_pod_restart_count", help: "The total number of OpenSearch pod restarts", label: `opensearch_tier="master"`},
+		{name: "2", fqName: metricsPrefix + "_pod_restart_time_nanoseconds", help: "The number of nanoseconds elapsed to restart the OpenSearch pod", label: `opensearch_tier="master"`},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -143,6 +174,16 @@ func TestGetMetricList(t *testing.T) {
 	origFunc := overridePsrClient()
 	defer func() {
 		funcNewPsrClient = origFunc
+	}()
+
+	envMap := map[string]string{
+		openSearchTier: opensearchpsr.MasterTier,
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
 	}()
 
 	tests := []struct {

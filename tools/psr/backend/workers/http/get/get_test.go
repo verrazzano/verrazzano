@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"net/http"
 	"strings"
 	"testing"
@@ -23,12 +24,29 @@ type fakeBody struct {
 	data string
 }
 
+type fakeEnv struct {
+	data map[string]string
+}
+
 // TestGetters tests the worker getters
 // GIVEN a worker
 //
 //	WHEN the getter methods are calls
 //	THEN ensure that the correct results are returned
 func TestGetters(t *testing.T) {
+	envMap := map[string]string{
+		ServiceName:      "test-service-name",
+		ServiceNamespace: "test-namespace",
+		ServicePort:      "1",
+		Path:             "test-path",
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
+	}()
+
 	w, err := NewHTTPGetWorker()
 	assert.NoError(t, err)
 
@@ -42,6 +60,19 @@ func TestGetters(t *testing.T) {
 }
 
 func TestGetMetricDescList(t *testing.T) {
+	envMap := map[string]string{
+		ServiceName:      "test-service-name",
+		ServiceNamespace: "test-namespace",
+		ServicePort:      "1",
+		Path:             "test-path",
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
+	}()
+
 	tests := []struct {
 		name   string
 		fqName string
@@ -53,6 +84,7 @@ func TestGetMetricDescList(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+
 			wi, err := NewHTTPGetWorker()
 			w := wi.(worker)
 			assert.NoError(t, err)
@@ -70,6 +102,19 @@ func TestGetMetricDescList(t *testing.T) {
 }
 
 func TestGetMetricList(t *testing.T) {
+	envMap := map[string]string{
+		ServiceName:      "test-service-name",
+		ServiceNamespace: "test-namespace",
+		ServicePort:      "1",
+		Path:             "test-path",
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
+	}()
+
 	tests := []struct {
 		name   string
 		fqName string
@@ -103,6 +148,19 @@ func TestGetMetricList(t *testing.T) {
 //	WHEN the GetEnvDescList methods is called
 //	THEN ensure that the correct results are returned
 func TestGetEnvDescList(t *testing.T) {
+	envMap := map[string]string{
+		ServiceName:      "test-service-name",
+		ServiceNamespace: "test-namespace",
+		ServicePort:      "1",
+		Path:             "test-path",
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
+	}()
+
 	tests := []struct {
 		name     string
 		key      string
@@ -152,6 +210,19 @@ func TestGetEnvDescList(t *testing.T) {
 //	WHEN the DoWork methods is called
 //	THEN ensure that the correct results are returned
 func TestDoWork(t *testing.T) {
+	envMap := map[string]string{
+		ServiceName:      "test-service-name",
+		ServiceNamespace: "test-namespace",
+		ServicePort:      "1",
+		Path:             "test-path",
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
+	}()
+
 	tests := []struct {
 		name         string
 		bodyData     string
@@ -247,4 +318,8 @@ func (f fakeBody) Read(d []byte) (n int, err error) {
 
 func (f fakeBody) Close() error {
 	return nil
+}
+
+func (f *fakeEnv) GetEnv(key string) string {
+	return f.data[key]
 }
