@@ -3,4 +3,4 @@
 
 global:
   envVars:
-    PSR_WORKER_TYPE: http_alerts
+    PSR_WORKER_TYPE: http-alerts
