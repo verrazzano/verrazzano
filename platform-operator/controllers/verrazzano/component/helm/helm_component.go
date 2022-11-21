@@ -654,6 +654,7 @@ func (h HelmComponent) resolveNamespace(ctx spi.ComponentContext) string {
 	return namespace
 }
 
+// PreInstallUpgrade handles the helm release status and secret cleanup for the helm upgrade or install to avoid conflicts
 func (h HelmComponent) PreInstallUpgrade(ctx spi.ComponentContext) error {
 	releaseStatus, err := helm.GetReleaseStatus(ctx.Log(), h.ReleaseName, h.ChartNamespace)
 	if err != nil {
