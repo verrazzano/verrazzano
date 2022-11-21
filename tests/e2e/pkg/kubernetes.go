@@ -476,24 +476,6 @@ func GetVerrazzanoClientset() (*vpoClient.Clientset, error) {
 	return vpoClient.NewForConfig(config)
 }
 
-// GetVerrazzanoClientsetInCluster returns the Kubernetes clientset for platform operator given a kubeconfig location
-func GetVerrazzanoClientsetInCluster(kubeconfigPath string) (*vpoClient.Clientset, error) {
-	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
-	if err != nil {
-		return nil, err
-	}
-	return vpoClient.NewForConfig(config)
-}
-
-// GetClusterOpClientsetInCluster returns the Kubernetes clientset for cluster operator given a kubeconfig location
-func GetClusterOpClientsetInCluster(kubeconfigPath string) (*vpoClient.Clientset, error) {
-	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)
-	if err != nil {
-		return nil, err
-	}
-	return vpoClient.NewForConfig(config)
-}
-
 // GetVerrazzanoProjectClientsetInCluster returns the Kubernetes clientset for the VerrazzanoProject
 func GetVerrazzanoProjectClientsetInCluster(kubeconfigPath string) (*vaoClient.Clientset, error) {
 	config, err := k8sutil.GetKubeConfigGivenPath(kubeconfigPath)

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	clusterapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/rancher"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,7 +60,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 	// attempt to fetch the registration manifest YAML
 	vzVMCWaitingForClusterID := false
 
-	if vmc.Labels != nil && vmc.Labels[createdByLabel] == createdByVerrazzano && len(vmc.Status.RancherRegistration.ClusterID) == 0 {
+	if vmc.Labels != nil && vmc.Labels[rancher.CreatedByLabel] == rancher.CreatedByVerrazzano && len(vmc.Status.RancherRegistration.ClusterID) == 0 {
 		r.log.Progressf("Waiting for Verrazzano-created VMC named %s to have a cluster id in the status before attempting to fetch Rancher registration manifest", vmc.Name)
 		vzVMCWaitingForClusterID = true
 	} else {
