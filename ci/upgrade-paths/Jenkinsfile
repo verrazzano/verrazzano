@@ -1883,15 +1883,17 @@ def runConsoleTests() {
     // Console runs on admin cluster and the KUBECONFIG is pointed at it (which is cluster 1)
     // Make sure that application page tests are also run by setting RUN_APP_TESTS=true since we deployed
     // a sample app for that purpose
-    sh """
-        export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-        export CONSOLE_REPO_BRANCH="${params.CONSOLE_REPO_BRANCH}"
-        export CONSOLE_APP_NAME="${SAMPLE_APP_NAME}"
-        export CONSOLE_APP_NAMESPACE="${SAMPLE_APP_NAMESPACE}"
-        export CONSOLE_APP_CLUSTER="managed1"
-        export CONSOLE_APP_COMP="${SAMPLE_APP_COMPONENT}"
-        KUBECONFIG=${ADMIN_KUBECONFIG} RUN_APP_TESTS=true ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
-    """
+    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+        sh """
+            export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+            export CONSOLE_REPO_BRANCH="${params.CONSOLE_REPO_BRANCH}"
+            export CONSOLE_APP_NAME="${SAMPLE_APP_NAME}"
+            export CONSOLE_APP_NAMESPACE="${SAMPLE_APP_NAMESPACE}"
+            export CONSOLE_APP_CLUSTER="managed1"
+            export CONSOLE_APP_COMP="${SAMPLE_APP_COMPONENT}"
+            KUBECONFIG=${ADMIN_KUBECONFIG} RUN_APP_TESTS=true ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
+        """
+    }
 }
 
 def emitJobMetrics() {
