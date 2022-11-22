@@ -1,3 +1,8 @@
+### v1.4.3
+Fixes:
+
+- Fixed a bug that resulted in user applications restarting during upgrade from a previous Verrazzano release.
+
 ### v1.4.2
 Fixes:
 
