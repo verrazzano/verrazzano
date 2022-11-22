@@ -485,6 +485,11 @@ func TestPreInstall(t *testing.T) {
 //	WHEN I call PreUpgrade with defaults
 //	THEN no error is returned
 func TestPreUpgrade(t *testing.T) {
+	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helmcli.ChartStatusDeployed, nil
+	})
+	defer helmcli.SetDefaultChartStateFunction()
+
 	tests := []struct {
 		name       string
 		client     clipkg.Client
