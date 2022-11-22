@@ -13,9 +13,6 @@ const (
 	MysqlInstallValuesWebhook      = "verrazzano-platform-mysqlinstalloverrides"
 	MysqlInstallValuesV1beta1path  = "/v1beta1-validate-mysql-install-override-values"
 	MysqlInstallValuesV1alpha1path = "/v1alpha1-validate-mysql-install-override-values"
-	RequirementsWebhook            = "verrazzano-platform-requirements-validator"
-	RequirementsV1beta1Path        = "/v1beta1-validate-requirements"
-	RequirementsV1alpha1Path       = "/v1alpha1-validate-requirements"
 )
 
 // isMinVersion indicates whether the provide version is greater than the min version provided
