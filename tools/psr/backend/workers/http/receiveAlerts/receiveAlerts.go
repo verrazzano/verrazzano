@@ -126,8 +126,7 @@ func (w worker) PreconditionsMet() (bool, error) {
 }
 
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Infof("Received POST")
+	http.HandleFunc("/alerts", func(w http.ResponseWriter, r *http.Request) {
 		c, err := funcNewPsrClient()
 		if err != nil {
 			log.Errorf("error creating client: %v", err)
@@ -144,10 +143,6 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 			Type:    "Alert",
 			Message: "Alert received",
 		}
-		//if err = c.CrtlRuntime.Create(context.TODO(), &event); err != nil {
-		//	log.Errorf("error generating event: %v", err)
-		//}
-		//
 		if _, err = controllerutil.CreateOrUpdate(context.TODO(), c.CrtlRuntime, &event, func() error {
 			event.LastTimestamp = v1.Time{Time: time.Now()}
 			return nil
@@ -155,10 +150,6 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 			log.Errorf("error generating event: %v", err)
 		}
 	})
-	err := http.ListenAndServe("localhost:8181", nil)
-	if err != nil {
-		log.Errorf("Error: %v", err)
-	}
 	select {}
 	return nil
 }

@@ -38,6 +38,6 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
           ports:
-            - containerPort: 8080
+            - containerPort: 9090
               name: backend
 {{- end }}
