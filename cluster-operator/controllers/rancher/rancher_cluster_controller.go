@@ -95,13 +95,17 @@ func (r *RancherClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	var l labels.Set = cluster.GetLabels()
-	selector, err := metav1.LabelSelectorAsSelector(r.ClusterSelector)
-	if err != nil {
-		r.Log.Errorf("Error parsing cluster label selector: %v", err)
-		return ctrl.Result{}, err
+	var selector labels.Selector
+
+	if r.ClusterSelector != nil {
+		selector, err = metav1.LabelSelectorAsSelector(r.ClusterSelector)
+		if err != nil {
+			r.Log.Errorf("Error parsing cluster label selector: %v", err)
+			return ctrl.Result{}, err
+		}
 	}
 
-	if selector.Matches(l) {
+	if selector == nil || selector.Matches(l) {
 		// ensure the VMC exists
 		if err = r.ensureVMC(cluster); err != nil {
 			return ctrl.Result{}, err
