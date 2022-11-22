@@ -141,6 +141,10 @@ func TestRepairICStuckDeleting(t *testing.T) {
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
 	assert.NoError(t, err, "expected the mysql-operator pod to be found")
 
+	// Call repair after the timer has started, but not expired.  Expect an error because the IC object is not deleted yet.
+	err = mysqlComp.repairICStuckDeleting(fakeCtx)
+	assert.Error(t, err)
+
 	// Force the timer to be expired, expect the mysql-operator pod to be deleted
 	*mysqlComp.InitialTimeICUninstallChecked = time.Now().Add(-time.Hour * 2)
 	err = mysqlComp.repairICStuckDeleting(fakeCtx)

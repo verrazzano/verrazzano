@@ -66,9 +66,12 @@ func (c mysqlComponent) repairICStuckDeleting(ctx spi.ComponentContext) error {
 
 		// Clear the timer
 		*c.InitialTimeICUninstallChecked = time.Time{}
+		return nil
 	}
 
-	return nil
+	ctx.Log().Progressf("Waiting for InnoDBCluster %s/%s to be deleted", ComponentNamespace, helmReleaseName)
+
+	return fmt.Errorf("Waiting for InnoDBCluster %s/%s to be deleted", ComponentNamespace, helmReleaseName)
 }
 
 // repairMySQLPodsWaitingReadinessGates - temporary workaround to repair issue were a MySQL pod
