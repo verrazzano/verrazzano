@@ -33,7 +33,7 @@ compareCoverageNumbers(){
 if [[ ! "$LOCAL_BRANCH_NAME" =~ ^release-[0-9]+\.[0-9]+$|^master$ ]]
 then
     echo "Trying to download unit-test-coverage-number.txt from release-$LOCAL_BRANCH_VERSION..."
-    oci --region us-phoenix-1 os object get --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name "$CLEAN_BRANCH_NAME"/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
+    oci --region us-phoenix-1 os object get --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name release-"$LOCAL_BRANCH_VERSION"/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
 
     if [[ $? -gt 0  ]];
     then
