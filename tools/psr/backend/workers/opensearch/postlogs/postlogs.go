@@ -28,7 +28,7 @@ const (
 
 	LogEntries      = "LOG_ENTRIES"
 	LogLength       = "LOG_LENGTH"
-	osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
+	osIngestService = "vmi-system-os-ingest.verrazzano-system:9200"
 )
 
 // Use an http client interface so that we can override http.Client for unit tests
@@ -84,13 +84,22 @@ func NewPostLogsWorker() (spi.Worker, error) {
 		},
 	}}
 
-	w.metricDescList = []prometheus.Desc{
-		*w.openSearchPostSuccessCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
-		*w.openSearchPostFailureCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
-		*w.openSearchPostSuccessLatencyNanoSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
-		*w.openSearchPostFailureLatencyNanoSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
-		*w.openSearchPostDataCharsTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
+	if err := config.PsrEnv.LoadFromEnv(w.GetEnvDescList()); err != nil {
+		return w, err
 	}
+
+	metricsLabels := map[string]string{
+		config.PsrWorkerTypeMetricsName: config.PsrEnv.GetEnv(config.PsrWorkerType),
+	}
+
+	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
+		&w.openSearchPostSuccessCountTotal,
+		&w.openSearchPostFailureCountTotal,
+		&w.openSearchPostSuccessLatencyNanoSeconds,
+		&w.openSearchPostFailureLatencyNanoSeconds,
+		&w.openSearchPostDataCharsTotal,
+	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
+
 	return w, nil
 }
 

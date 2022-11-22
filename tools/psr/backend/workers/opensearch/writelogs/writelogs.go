@@ -45,10 +45,19 @@ func NewWriteLogsWorker() (spi.Worker, error) {
 		},
 	}}
 
-	w.metricDescList = []prometheus.Desc{
-		*w.loggedLinesCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
-		*w.loggedCharsCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
+	if err := config.PsrEnv.LoadFromEnv(w.GetEnvDescList()); err != nil {
+		return w, err
 	}
+
+	metricsLabels := map[string]string{
+		config.PsrWorkerTypeMetricsName: config.PsrEnv.GetEnv(config.PsrWorkerType),
+	}
+
+	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
+		&w.loggedLinesCountTotal,
+		&w.loggedCharsCountTotal,
+	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
+
 	return w, nil
 }
 

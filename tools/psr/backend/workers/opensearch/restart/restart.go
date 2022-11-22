@@ -29,9 +29,9 @@ import (
 
 const (
 	// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
-	metricsPrefix = "opensearch_restart"
-
-	openSearchTier = "OPENSEARCH_TIER"
+	metricsPrefix            = "opensearch_restart"
+	openSearchTier           = "OPENSEARCH_TIER"
+	openSearchTierMetricName = "opensearch_tier"
 )
 
 var funcNewPsrClient = k8sclient.NewPsrClient
@@ -80,13 +80,26 @@ func NewRestartWorker() (spi.Worker, error) {
 		},
 	}
 
-	w.metricDescList = []prometheus.Desc{
-		*w.restartCount.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
-		*w.restartTime.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
+	if err = config.PsrEnv.LoadFromEnv(w.GetEnvDescList()); err != nil {
+		return w, err
 	}
 
-	return w, nil
+	tier, err := psropensearch.ValidateOpenSeachTier(openSearchTier)
+	if err != nil {
+		return w, err
+	}
 
+	metricsLabels := map[string]string{
+		openSearchTierMetricName:        tier,
+		config.PsrWorkerTypeMetricsName: config.PsrEnv.GetEnv(config.PsrWorkerType),
+	}
+
+	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
+		&w.restartCount,
+		&w.restartTime,
+	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
+
+	return w, nil
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker

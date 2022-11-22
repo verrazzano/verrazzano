@@ -27,7 +27,7 @@ const (
 	ComponentNamespace = constants.VerrazzanoSystemNamespace
 
 	// Certificate names
-	osdCertificateName = "system-tls-kibana"
+	osdCertificateName = "system-tls-osd"
 )
 
 // ComponentJSONName is the json name of the OpenSearch-Dashboards component in CRD
@@ -229,7 +229,7 @@ func (d opensearchDashboardsComponent) GetIngressNames(ctx spi.ComponentContext)
 	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
-			Name:      constants.KibanaIngress,
+			Name:      constants.OpensearchDashboardsIngress,
 		})
 	}
 

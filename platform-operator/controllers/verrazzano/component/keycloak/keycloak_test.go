@@ -434,6 +434,18 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 	cfg, cli, _ := fakeRESTConfig()
 	clientID := "client"
 	uriTemplate := "\"redirectUris\": [\"https://client.{{.DNSSubDomain}}/verify-auth\"]"
+	osIngress := &networkv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "vmi-system-os-ingest",
+			Namespace: "verrazzano-system",
+		},
+		Spec: networkv1.IngressSpec{
+			Rules: []networkv1.IngressRule{{
+				Host: "elasticsearch.vmi.system.default",
+			},
+			},
+		},
+	}
 	tests := []struct {
 		name        string
 		ctx         spi.ComponentContext
@@ -443,7 +455,7 @@ func TestUpdateKeycloakURIs(t *testing.T) {
 	}{
 		{
 			name:        "testUpdateKeycloakURIs",
-			ctx:         spi.NewFakeContext(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService()).Build(), testVZ, nil, false),
+			ctx:         spi.NewFakeContext(fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(createTestLoginSecret(), createTestNginxService(), osIngress).Build(), testVZ, nil, false),
 			clientID:    clientID,
 			uriTemplate: uriTemplate,
 			wantErr:     false,
@@ -502,6 +514,18 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 					Type:   v1.PodReady,
 					Status: v1.ConditionTrue,
 				},
+			},
+		},
+	}
+	osIngress := &networkv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "vmi-system-os-ingest",
+			Namespace: "verrazzano-system",
+		},
+		Spec: networkv1.IngressSpec{
+			Rules: []networkv1.IngressRule{{
+				Host: "elasticsearch.vmi.system.default",
+			},
 			},
 		},
 	}
@@ -565,7 +589,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 		},
 		{
 			"should fail when nginx service is not present",
-			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod,
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, keycloakPod, osIngress,
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "verrazzano",
@@ -600,7 +624,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 		},
 		{
 			"fails during updateKeycloakURIs",
-			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, nginxService, keycloakPod,
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, nginxService, keycloakPod, osIngress,
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "verrazzano",
@@ -635,7 +659,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 		},
 		{
 			"should pass when able to successfully exec commands on the keycloak pod and all k8s objects are present",
-			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, nginxService, keycloakPod, &authConfig,
+			fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(loginSecret, nginxService, keycloakPod, &authConfig, osIngress,
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "verrazzano",

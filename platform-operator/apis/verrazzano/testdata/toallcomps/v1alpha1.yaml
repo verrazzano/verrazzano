@@ -114,7 +114,7 @@ spec:
     fluentd:
       enabled: true
       elasticsearchSecret: verrazzano-es-internal
-      elasticsearchURL: http://verrazzano-authproxy-elasticsearch:8775
+      elasticsearchURL: http://verrazzano-authproxy-opensearch:8775
       overrides:
         - values:
             frobber: frob
