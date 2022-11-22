@@ -166,12 +166,14 @@ func TestReconcileCreateVMCAlreadyExists(t *testing.T) {
 	asserts.Equal(clusterName, vmc.Status.RancherRegistration.ClusterID)
 }
 
-// GIVEN a Rancher cluster resource is being deleted
-// WHEN  the reconciler runs
-// THEN  the corresponding VMC is deleted
+// TestReconcileDeleteVMC tests reconciling and deleting VMCs.
 func TestReconcileDeleteVMC(t *testing.T) {
 	asserts := assert.New(t)
 
+	// GIVEN a Rancher cluster resource is being deleted
+	// AND   cluster sync is enabled
+	// WHEN  the reconciler runs
+	// THEN  the corresponding VMC is deleted
 	cluster := newCattleCluster(clusterName, displayName)
 	now := metav1.Now()
 	cluster.SetDeletionTimestamp(&now)
@@ -181,11 +183,40 @@ func TestReconcileDeleteVMC(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(cluster, vmc).Build()
 
 	reconciler := newRancherClusterReconciler(fakeClient)
-	// disable cluster sync, the VMC (if it exists) should be deleted even if this flag is false
-	reconciler.ClusterSyncEnabled = false
 	request := newRequest(clusterName)
 
 	_, err := reconciler.Reconcile(context.TODO(), request)
+	asserts.NoError(err)
+
+	// expect that the VMC was deleted
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: displayName, Namespace: vzconst.VerrazzanoMultiClusterNamespace}, vmc)
+	asserts.Error(err)
+	asserts.True(errors.IsNotFound(err))
+
+	// since the last finalizer was removed from the Rancher cluster, the cluster should be gone as well
+	cluster = &unstructured.Unstructured{}
+	cluster.SetGroupVersionKind(gvk)
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName}, cluster)
+	asserts.Error(err)
+	asserts.True(errors.IsNotFound(err))
+
+	// GIVEN a Rancher cluster resource is being deleted
+	// AND   cluster sync is disabled
+	// WHEN  the reconciler runs
+	// THEN  the corresponding VMC is deleted
+	cluster = newCattleCluster(clusterName, displayName)
+	cluster.SetDeletionTimestamp(&now)
+	cluster.SetFinalizers([]string{finalizerName})
+	vmc = newVMC(displayName)
+	vmc.Status.RancherRegistration.ClusterID = clusterName
+	fakeClient = fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(cluster, vmc).Build()
+
+	reconciler = newRancherClusterReconciler(fakeClient)
+	// disable cluster sync, the VMC (if it exists) should be deleted even if this flag is false
+	reconciler.ClusterSyncEnabled = false
+	request = newRequest(clusterName)
+
+	_, err = reconciler.Reconcile(context.TODO(), request)
 	asserts.NoError(err)
 
 	// expect that the VMC was deleted
