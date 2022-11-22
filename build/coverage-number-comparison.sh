@@ -38,7 +38,7 @@ then
     if [[ $? -gt 0  ]];
     then
       echo "Trying to download unit-test-coverage-number.txt from master..."
-      oci --region us-phoenix-1 os object get --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name master/unit-test-coverage-number.txt -file unit-test-coverage-number.txt
+      oci --region us-phoenix-1 os object get --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name master/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
     fi
 
     #Runs when we are on a feature branch and determines if line coverage passes
