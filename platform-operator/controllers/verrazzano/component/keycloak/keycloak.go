@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"reflect"
 	"strings"
 	"text/template"
@@ -1622,14 +1623,14 @@ func DoesDeprecatedIngressHostExist(ctx spi.ComponentContext, namespace string) 
 
 // removeDeprecatedESSecretIfExists removes the deprecated ES secret if exists.
 func removeDeprecatedESSecretIfExists(ctx spi.ComponentContext) {
-	secret := &corev1.Secret{}
-	namespacedName := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-es-internal"}
-	if err := ctx.Client().Get(context.TODO(), namespacedName, secret); err != nil {
-		ctx.Log().Debugf("Unable to retrieve deprecated ES secret : %s, %v", secret.Name, err)
-	} else {
-		ctx.Log().Debugf("Deleting the deprecated ES secret: %s", secret.Name)
-		if err = ctx.Client().Delete(context.TODO(), secret); err != nil {
-			ctx.Log().Errorf("Unable to delete deprecated ES secret: %s, %v", secret.Name, err)
-		}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoSystemNamespace,
+			Name:      "verrazzano-es-internal",
+		},
+	}
+	ctx.Log().Debugf("Deleting the deprecated ES secret: %s", secret.Name)
+	if err := ctx.Client().Delete(context.TODO(), secret, &client.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+		ctx.Log().Errorf("Unable to delete deprecated ES secret: %s, %v", secret.Name, err)
 	}
 }

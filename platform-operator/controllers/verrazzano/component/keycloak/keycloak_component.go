@@ -184,6 +184,11 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 	}
+	// Create secret for the verrazzano-os-internal user
+	err := createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, vzInternalOSSecret, vzInternalOSUser)
+	if err != nil {
+		return err
+	}
 	removeDeprecatedESSecretIfExists(ctx)
 	return configureKeycloakRealms(ctx)
 }
