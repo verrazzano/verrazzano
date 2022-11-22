@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+
 	k8sready "github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
@@ -45,7 +47,9 @@ func (c mysqlComponent) repairICStuckDeleting(ctx spi.ComponentContext) error {
 	// Found an IC object with a deletion timestamp. Start a timer if this is the first time.
 	if c.InitialTimeICUninstallChecked.IsZero() {
 		*c.InitialTimeICUninstallChecked = time.Now()
-		return fmt.Errorf("Starting check to insure the InnoDBCluster %s/%s is not stuck deleting", ComponentNamespace, helmReleaseName)
+		return ctrlerrors.RetryableError{}
+
+		//return fmt.Errorf("Starting check to insure the InnoDBCluster %s/%s is not stuck deleting", ComponentNamespace, helmReleaseName)
 	}
 
 	// Initiate repair only if time to wait period has been exceeded
