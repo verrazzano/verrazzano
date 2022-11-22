@@ -149,4 +149,11 @@ func TestRepairICStuckDeleting(t *testing.T) {
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
+
+	// If the IC object is already deleted, then no error should be returned
+	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLOperatorPod).Build()
+	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
+	err = mysqlComp.repairICStuckDeleting(fakeCtx)
+	assert.NoError(t, err)
+
 }

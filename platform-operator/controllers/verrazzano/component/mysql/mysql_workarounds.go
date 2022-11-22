@@ -161,7 +161,7 @@ func getInnoDBCluster(ctx spi.ComponentContext) (*unstructured.Unstructured, err
 	// The InnoDBCluster resource name is the helm release name
 	nsn := types.NamespacedName{Namespace: ComponentNamespace, Name: helmReleaseName}
 	if err := ctx.Client().Get(context.Background(), nsn, &innoDBCluster); err != nil {
-		return nil, fmt.Errorf("Error retrieving InnoDBCluster %v: %v", nsn, err)
+		return nil, err
 	}
 	return &innoDBCluster, nil
 }
