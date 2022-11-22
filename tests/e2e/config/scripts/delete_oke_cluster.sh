@@ -59,7 +59,10 @@ do
     export KUBECONFIG=${KUBECONFIG_DIR}/$i/kube_config
     export VERRAZZANO_KUBECONFIG=$KUBECONFIG
   fi
-  cleanup_vz_resources
+  #cleanup_vz_resources
+  resName=$(kubectl get vz -o jsonpath='{.items[*].metadata.name}')
+  echo "Deleting verrazzano resource ${resName}"
+  kubectl delete vz ${resName}
 done
 
 # delete the OKE clusters
