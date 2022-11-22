@@ -132,7 +132,7 @@ func (c mysqlComponent) PostUpgrade(ctx spi.ComponentContext) error {
 
 // PostUninstall performs additional actions after the uninstall step
 func (c mysqlComponent) PostUninstall(ctx spi.ComponentContext) error {
-	return nil
+	return postInstall(ctx)
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
