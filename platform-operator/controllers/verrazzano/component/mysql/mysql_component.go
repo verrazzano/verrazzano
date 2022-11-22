@@ -43,6 +43,7 @@ const ComponentJSONName = "keycloak.mysql"
 // mysqlComponent represents an MySQL component
 type mysqlComponent struct {
 	LastTimeReadinessGateRepairStarted *time.Time
+	InitialTimeICUninstallChecked      *time.Time
 
 	helm.HelmComponent
 }
@@ -57,8 +58,9 @@ func NewComponent() spi.Component {
 	const MySQLOperatorComponentName = "mysql-operator"
 
 	return mysqlComponent{
-		&lastTimeStatefulSetReady,
-		helm.HelmComponent{
+		LastTimeReadinessGateRepairStarted: &lastTimeStatefulSetReady,
+		InitialTimeICUninstallChecked:      &initialTimeICUninstallChecked,
+		HelmComponent: helm.HelmComponent{
 			ReleaseName:               helmReleaseName,
 			JSONName:                  ComponentJSONName,
 			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),

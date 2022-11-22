@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	k8sready "github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
@@ -21,7 +23,30 @@ import (
 // Last time the MySQL StatefulSet was ready
 var lastTimeStatefulSetReady time.Time
 
+// The start of the timer for determining if an IC object is stuck terminating
 var initialTimeICUninstallChecked time.Time
+
+// repairICStuckTerminating - temporary workaround to repair issue where a InnoDBCluster object
+// can be stuck terminating (e.g. during uninstall).  The workaround is to recycle the mysql-operator
+func (c mysqlComponent) repairICStuckTerminating(ctx spi.ComponentContext) error {
+	// Get the IC object
+	innoDBCluster, err := getInnoDBCluster(ctx)
+	if err != nil {
+		return err
+	}
+	if innoDBCluster.GetDeletionTimestamp() == nil {
+		*c.InitialTimeICUninstallChecked = time.Time{}
+		return nil
+	}
+
+	// Found an IC object with a deletion timestamp. Start a timer if this is the first time.
+	if c.InitialTimeICUninstallChecked.IsZero() {
+		*c.InitialTimeICUninstallChecked = time.Now()
+		return fmt.Errorf("Starting timer to watch if the InnoDBCluster %s/%s object is stuck terminating", ComponentNamespace, helmReleaseName)
+	}
+
+	return nil
+}
 
 // repairMySQLPodsWaitingReadinessGates - temporary workaround to repair issue were a MySQL pod
 // can be stuck waiting for its readiness gates to be met.
@@ -103,4 +128,17 @@ func getMySQLOperatorPod(log vzlog.VerrazzanoLogger, client clipkg.Client) (*v1.
 		return nil, fmt.Errorf("no pods found matching selector %s", operSelector.String())
 	}
 	return &operPodList.Items[0], nil
+}
+
+// getInnoDBCluster - get the InnoDBCluster object
+func getInnoDBCluster(ctx spi.ComponentContext) (*unstructured.Unstructured, error) {
+	innoDBCluster := unstructured.Unstructured{}
+	innoDBCluster.SetGroupVersionKind(innoDBClusterGVK)
+
+	// The InnoDBCluster resource name is the helm release name
+	nsn := types.NamespacedName{Namespace: ComponentNamespace, Name: helmReleaseName}
+	if err := ctx.Client().Get(context.Background(), nsn, &innoDBCluster); err != nil {
+		return nil, fmt.Errorf("Error retrieving InnoDBCluster %v: %v", nsn, err)
+	}
+	return &innoDBCluster, nil
 }
