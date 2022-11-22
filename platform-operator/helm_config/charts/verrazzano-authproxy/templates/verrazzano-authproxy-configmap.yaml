@@ -514,9 +514,9 @@ data:
         elseif backend == 'prometheus' then
             serverUrl = me.makeMonitoringComponentBackendUrl('prometheus-operator-kube-p-prometheus', '9090')
         elseif backend == 'kibana' then
-            serverUrl = me.makeVmiBackendUrl(backend, '5601')
+            serverUrl = me.makeVmiBackendUrl('osd', '5601')
         elseif backend == 'osd' then
-            serverUrl = me.makeVmiBackendUrl('kibana', '5601')    
+            serverUrl = me.makeVmiBackendUrl('osd', '5601')    
         elseif backend == 'elasticsearch' then
             serverUrl = me.makeVmiBackendUrl('os-ingest', '9200')
         elseif backend == 'opensearch' then

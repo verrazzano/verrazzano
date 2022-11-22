@@ -211,6 +211,11 @@ func TestPreInstall(t *testing.T) {
 
 // TestPreUpgrade tests the PreUpgrade func call
 func TestPreUpgrade(t *testing.T) {
+	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helmcli.ChartStatusDeployed, nil
+	})
+	defer helmcli.SetDefaultChartStateFunction()
+
 	asserts := assert.New(t)
 	three := int32(3)
 	// create a fake dynamic client to serve the Setting and ClusterRepo resources

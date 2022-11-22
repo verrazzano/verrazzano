@@ -14,7 +14,7 @@ import (
 )
 
 const verrazzanoNamespace string = "verrazzano-system"
-const VmiESURL = "http://verrazzano-authproxy-elasticsearch:8775"
+const VmiESURL = "http://verrazzano-authproxy-opensearch:8775"
 const VmiESLegacySecret = "verrazzano"               //nolint:gosec //#gosec G101
 const VmiESInternalSecret = "verrazzano-es-internal" //nolint:gosec //#gosec G101
 
