@@ -40,7 +40,7 @@ writeToObjectStorage(){
   then
     echo "Writing new coverage number to unit-test-coverage-number.txt ..."
     echo "$LOCAL_BRANCH_LINE_RATE" > unit-test-coverage-number.txt
-#    oci --region us-phoenix-1 os object put --force --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name "$CLEAN_BRANCH_NAME"/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
+    oci --region us-phoenix-1 os object put --force --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name "$CLEAN_BRANCH_NAME"/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
   fi
 }
 
