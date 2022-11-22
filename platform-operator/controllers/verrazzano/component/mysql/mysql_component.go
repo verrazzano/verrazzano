@@ -130,6 +130,11 @@ func (c mysqlComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	return postUpgrade(ctx)
 }
 
+// PostUninstall performs additional actions after the uninstall step
+func (c mysqlComponent) PostUninstall(ctx spi.ComponentContext) error {
+	return nil
+}
+
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
 func (c mysqlComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Block all changes for now, particularly around storage changes
