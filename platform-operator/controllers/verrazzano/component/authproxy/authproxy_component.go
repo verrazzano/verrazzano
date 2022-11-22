@@ -166,10 +166,17 @@ func (c authProxyComponent) Uninstall(context spi.ComponentContext) error {
 
 // PreUpgrade performs any required pre upgrade operations
 func (c authProxyComponent) PreUpgrade(ctx spi.ComponentContext) error {
+
+	return c.HelmComponent.PostUpgrade(ctx)
+}
+
+// PostUpgrade performs any required post upgrade operations
+func (c authProxyComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := authproxyPreHelmOps(ctx); err != nil {
 		return err
 	}
-	return c.HelmComponent.PreUpgrade(ctx)
+	removeDeprecatedAuthProxyESServiceIfExists(ctx)
+	return c.HelmComponent.PostUpgrade(ctx)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
