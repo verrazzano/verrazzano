@@ -40,7 +40,7 @@ const (
 )
 
 var esPods = []string{"vmi-system-es-master", "vmi-system-es-ingest", "vmi-system-es-data"}
-var esPodsUp = []string{"vmi-system-es-master", "vmi-system-es-ingest", "vmi-system-es-data", "verrazzano-monitoring-operator", "vmi-system-kibana"}
+var esPodsUp = []string{"vmi-system-es-master", "vmi-system-es-ingest", "vmi-system-es-data", "verrazzano-monitoring-operator", "vmi-system-osd"}
 
 var _ = t.BeforeSuite(func() {
 	start := time.Now()

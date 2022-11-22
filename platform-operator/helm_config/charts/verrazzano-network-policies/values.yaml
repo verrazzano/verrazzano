@@ -13,6 +13,12 @@ prometheus:
 grafana:
   enabled: true
 
+certManager:
+  enabled: true
+
+ingressNGINX:
+  enabled: true
+
 istio:
   enabled: true
 
@@ -28,6 +34,24 @@ externaldns:
 jaegerOperator:
   enabled: false
   namespace: verrazzano-monitoring
+
+weblogicOperator:
+  enabled: true
+
+coherenceOperator:
+  enabled: true
+
+authproxy:
+  enabled: true
+
+applicationOperator:
+  enabled: true
+
+oam:
+  enabled: true
+
+clusterOperator:
+  enabled: true
 
 console:
   enabled: true

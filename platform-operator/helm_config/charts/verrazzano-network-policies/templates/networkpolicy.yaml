@@ -1,6 +1,7 @@
 # Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+{{- if .Values.authproxy.enabled }}
 # Network policy for Verrazzano API Proxy
 # Ingress: allow nginx-ingress-controller to connect to port 8775
 #          allow connect from Prometheus to scrape Envoy stats on port 15090
@@ -61,6 +62,7 @@ spec:
           protocol: TCP
         - port: 9113
           protocol: TCP
+{{- end }}
 {{- if .Values.console.enabled }}
 ---
 # Network policy for Verrazzano console
@@ -100,6 +102,7 @@ spec:
         - port: 15090
           protocol: TCP
 {{- end }}
+{{- if .Values.applicationOperator.enabled }}
 ---
 # Network policy for Verrazzano application operator
 # Ingress: allow access from Kubernetes API server for webhook port 9443
@@ -129,6 +132,8 @@ spec:
       ports:    
         - port: 9100
           protocol: TCP
+{{- end }}
+{{- if .Values.oam.enabled }}
 ---
 # Network policy for OAM Kubernetes Runtime operator
 # Ingress: deny all
@@ -144,6 +149,7 @@ spec:
       app.kubernetes.io/name: oam-kubernetes-runtime
   policyTypes:
     - Ingress
+{{- end }}
 {{- if .Values.jaegerOperator.enabled }}
 ---
 # Network policy for Jaeger Collector
@@ -227,6 +233,7 @@ spec:
         - port: 16686
           protocol: TCP
 {{- end }}
+{{- if .Values.clusterOperator.enabled }}
 ---
 # Network policy for Verrazzano cluster operator
 # Ingress: allow access from Prometheus to scrape metrics on port 8080
@@ -253,3 +260,4 @@ spec:
       ports:
         - port: 8080
           protocol: TCP
+{{- end }}
