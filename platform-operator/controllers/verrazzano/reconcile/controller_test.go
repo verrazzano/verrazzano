@@ -6,6 +6,12 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"sync"
+	"testing"
+	"time"
+
+	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	constants3 "github.com/verrazzano/verrazzano/pkg/constants"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
@@ -14,11 +20,7 @@ import (
 	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
 	v1 "k8s.io/api/batch/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sync"
-	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -27,7 +29,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
-	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
@@ -57,7 +58,6 @@ const testBomFilePath = "../testdata/test_bom.json"
 //go:generate mockgen -destination=../../../mocks/controller_mock.go -package=mocks -copyright_file=../../../hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/client Client,StatusWriter
 //go:generate mockgen -destination=../../../mocks/runtime_controller_mock.go -package=mocks -copyright_file=../../../hack/boilerplate.go.txt sigs.k8s.io/controller-runtime/pkg/controller Controller
 const installPrefix = "verrazzano-install-"
-
 const uninstallPrefix = "verrazzano-uninstall-"
 const relativeProfilesDir = "../../../manifests/profiles"
 const relativeHelmConfig = "../../../helm_config"

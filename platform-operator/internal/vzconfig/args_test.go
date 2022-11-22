@@ -1,5 +1,6 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 package vzconfig
 
 import (
@@ -86,14 +87,14 @@ func TestCheckExternalIPsOverridesArgsWithPaths(t *testing.T) {
 // getIstioOverride returns an Istio override in json format
 func getIstioOverride(externalIP string) []byte {
 	override := fmt.Sprintf(`spec:
- components:
-   ingressGateways:
-     - name: istio-ingressgateway
-       k8s:
-         service:
-           type: NodePort
-           externalIPs:
-           - %s`, externalIP)
+  components:
+    ingressGateways:
+      - name: istio-ingressgateway
+        k8s:
+          service:
+            type: NodePort
+            externalIPs:
+            - %s`, externalIP)
 
 	json, _ := yaml.ToJSON([]byte(override))
 	return json
