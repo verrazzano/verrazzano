@@ -46,7 +46,7 @@ func (c mysqlComponent) repairICStuckDeleting(ctx spi.ComponentContext) error {
 	// Found an IC object with a deletion timestamp. Start a timer if this is the first time.
 	if c.InitialTimeICUninstallChecked.IsZero() {
 		*c.InitialTimeICUninstallChecked = time.Now()
-		return nil
+		return fmt.Errorf("Starting check to insure the InnoDBCluster %s/%s is not stuck deleting", ComponentNamespace, helmReleaseName)
 	}
 
 	// Initiate repair only if time to wait period has been exceeded
