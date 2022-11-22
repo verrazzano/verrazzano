@@ -163,7 +163,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("includes es-ingest", "vmi-system-es-ingest", isProdProfile),
 			t.Entry("includes es-data", "vmi-system-es-data", isProdProfile),
 			t.Entry("includes es-master", "vmi-system-es-master", !isManagedClusterProfile),
-			t.Entry("includes es-kibana", "vmi-system-kibana", !isManagedClusterProfile),
+			t.Entry("includes es-kibana", "vmi-system-osd", !isManagedClusterProfile),
 			t.Entry("includes es-grafana", "vmi-system-grafana", !isManagedClusterProfile),
 			t.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 		)

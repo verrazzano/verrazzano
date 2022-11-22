@@ -172,6 +172,12 @@ func (c authProxyComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return c.HelmComponent.PreUpgrade(ctx)
 }
 
+// PostUpgrade performs any required post upgrade operations
+func (c authProxyComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	removeDeprecatedAuthProxyESServiceIfExists(ctx)
+	return c.HelmComponent.PostUpgrade(ctx)
+}
+
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
 func (c authProxyComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 	if ctx.EffectiveCR().Spec.Components.AuthProxy != nil {
