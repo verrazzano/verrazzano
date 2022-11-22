@@ -218,7 +218,7 @@ func makeClusterPayload(clusterName string, labels map[string]string) (string, e
 }
 
 func makeLabelsJSONString(labels map[string]string) (string, error) {
-	if labels == nil || len(labels) == 0 {
+	if len(labels) == 0 {
 		return "", nil
 	}
 	labelsJSON, err := json.Marshal(labels)
