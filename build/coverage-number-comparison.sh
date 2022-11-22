@@ -18,7 +18,7 @@ WRITE_ON_ENABLED=0
 #Returns 1 if Local-line-rate is gte Remote-line-rate, otherwise returns 0
 compareCoverageNumbers(){
   REMOTE_LINE_RATE=$(cat unit-test-coverage-number.txt)
-  RATE="$LOCAL_BRANCH_LINE_RATE >= 1"
+  RATE="$LOCAL_BRANCH_LINE_RATE >= $REMOTE_LINE_RATE"
   RESULT=$(echo "$RATE" | bc)
     if [[ "$RESULT" -eq 1 ]]
         then
