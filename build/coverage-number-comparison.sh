@@ -33,12 +33,12 @@ compareCoverageNumbers(){
 if [[ ! "$LOCAL_BRANCH_NAME" =~ ^release-[0-9]+\.[0-9]+$|^master$ ]]
 then
     echo "Trying to download unit-test-coverage-number.txt from release-$LOCAL_BRANCH_VERSION..."
-    oci --region us-phoenix-1 os object get --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name "$env.BRANCH_NAME"/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
+    oci --region us-phoenix-1 os object get --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name "$CLEAN_BRANCH_NAME"/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
 
     if [[ $? -gt 0  ]];
     then
       echo "Trying to download unit-test-coverage-number.txt from master..."
-      oci --region us-phoenix-1 os object get --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name master/unit-test-coverage-number.txt
+      oci --region us-phoenix-1 os object get --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name master/unit-test-coverage-number.txt -file unit-test-coverage-number.txt
     fi
 
     #Runs when we are on a feature branch and determines if line coverage passes
@@ -47,5 +47,5 @@ then
 else
   echo "Is a release-* or master branch..."
   echo "Putting unit-test-coverage-number.txt into object at $CLEAN_BRANCH_NAME/unit-test-coverage-number.txt"
-  oci --region us-phoenix-1 os object put --force --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name "$env.BRANCH_NAME"/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
+  oci --region us-phoenix-1 os object put --force --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name "$CLEAN_BRANCH_NAME"/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
 fi

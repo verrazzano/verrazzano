@@ -278,8 +278,6 @@ pipeline {
                         cd ${GO_REPO_PATH}/verrazzano
                         cp coverage.html ${WORKSPACE}
                         cp coverage.xml ${WORKSPACE}
-                        echo "CLEAN BRANCH NAME..."
-                        echo ${CLEAN_BRANCH_NAME}
                         build/copy-junit-output.sh ${WORKSPACE}
                     """
                             archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
