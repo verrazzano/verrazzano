@@ -15,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
+	"time"
 )
 
 var httpGetFunc = http.Get
@@ -132,8 +133,9 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 		}
 		event := corev1.Event{
 			ObjectMeta: v1.ObjectMeta{
-				GenerateName: "psr-alert-",
-				Namespace:    config.PsrEnv.GetEnv(config.PsrWorkerNamespace),
+				GenerateName:      "psr-alert-",
+				Namespace:         config.PsrEnv.GetEnv(config.PsrWorkerNamespace),
+				CreationTimestamp: v1.Time{Time: time.Now()},
 			},
 			InvolvedObject: corev1.ObjectReference{
 				Namespace: config.PsrEnv.GetEnv(config.PsrWorkerNamespace),
