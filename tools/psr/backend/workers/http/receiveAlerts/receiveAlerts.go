@@ -132,7 +132,8 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 		}
 		event := corev1.Event{
 			ObjectMeta: v1.ObjectMeta{
-				Namespace: config.PsrEnv.GetEnv(config.PsrWorkerNamespace),
+				//Namespace: config.PsrEnv.GetEnv(config.PsrWorkerNamespace)
+				Namespace: "psr",
 			},
 			Type:    "Alert",
 			Message: "Alert received",
