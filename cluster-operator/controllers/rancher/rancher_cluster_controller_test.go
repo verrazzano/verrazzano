@@ -189,9 +189,10 @@ func newRequest(name string) ctrl.Request {
 
 func newRancherClusterReconciler(c client.Client) RancherClusterReconciler {
 	return RancherClusterReconciler{
-		Client: c,
-		Scheme: newScheme(),
-		Log:    zap.S(),
+		Client:             c,
+		Scheme:             newScheme(),
+		ClusterSyncEnabled: true,
+		Log:                zap.S(),
 	}
 }
 
