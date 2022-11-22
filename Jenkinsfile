@@ -266,13 +266,6 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano
                     make precommit
                 """
-                        script{
-                            if (UT_COVERAGE_TEST == true){
-                                sh """
-                                oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/unit-test-coverage-number.txt --file unit-test-coverage-number.txt
-                                """
-                            }
-                        }
                     }
                     post {
                         failure {
@@ -285,6 +278,8 @@ pipeline {
                         cd ${GO_REPO_PATH}/verrazzano
                         cp coverage.html ${WORKSPACE}
                         cp coverage.xml ${WORKSPACE}
+                        echo "CLEAN BRANCH NAME..."
+                        echo ${CLEAN_BRANCH_NAME}
                         build/copy-junit-output.sh ${WORKSPACE}
                     """
                             archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
