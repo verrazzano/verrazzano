@@ -126,7 +126,6 @@ func (w worker) PreconditionsMet() (bool, error) {
 }
 
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-	log.Infof("Namespace: %s", config.PsrEnv.GetEnv(config.PsrWorkerNamespace))
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		log.Infof("Received POST")
 		c, err := funcNewPsrClient()

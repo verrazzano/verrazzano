@@ -29,7 +29,7 @@ spec:
             {{- range $key, $val := .Values.global.envVars }}
             - name: {{ $key }}
               value: {{ $val | quote}}
-            {{- end }}
+              {{- end }}
             - name: NAMESPACE
               valueFrom:
                 fieldRef:
