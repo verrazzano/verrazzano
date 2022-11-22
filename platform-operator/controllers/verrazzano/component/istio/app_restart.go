@@ -220,8 +220,10 @@ func restartAllApps(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVer
 func DoesAppPodNeedRestart(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string, istioProxyImageName string) (bool, error) {
 	// Return true if the pod has an old Istio proxy container
 	for _, pod := range podList.Items {
+		doesProxyExist := false
 		for _, container := range pod.Spec.Containers {
 			if strings.Contains(container.Image, "proxyv2") {
+				doesProxyExist = true
 				// Container contains the proxy2 image (Envoy Proxy).  Return true if it
 				// doesn't match the Istio proxy in the BOM
 				if 0 != strings.Compare(container.Image, istioProxyImageName) {
@@ -230,6 +232,11 @@ func DoesAppPodNeedRestart(log vzlog.VerrazzanoLogger, podList *v1.PodList, work
 				}
 			}
 		}
+		// proxy exists but the image didn't change, do not restart the app
+		if doesProxyExist {
+			return false, nil
+		}
+
 		goClient, err := k8sutil.GetGoClient(log)
 		if err != nil {
 			return false, log.ErrorfNewErr("Failed to get kubernetes client for AppConfig %s/%s: %v", workloadType, workloadName, err)
