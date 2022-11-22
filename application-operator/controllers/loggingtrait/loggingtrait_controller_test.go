@@ -33,6 +33,16 @@ import (
 	// +kubebuilder:scaffold:imports
 )
 
+var (
+	namespaceName               = "test-namespace"
+	workloadName                = "test-workload-name"
+	workloadUID                 = "test-workload-uid"
+	traitName                   = "test-trait-name"
+	deploymentName              = "test-deployment-name"
+	workloadDefinitionNamespace = "containerizedworkloads.core.oam.dev"
+	serverErr                   = "server error"
+)
+
 func TestReconcilerSetupWithManager(t *testing.T) {
 	assert := asserts.New(t)
 
@@ -74,11 +84,6 @@ func TestLoggingTraitCreatedForContainerizedWorkload(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	mockStatus := mocks.NewMockStatusWriter(mocker)
 
-	namespaceName := "test-namespace"
-	traitName := "test-trait-name"
-	workloadName := "test-workload-name"
-	workloadUID := "test-workload-uid"
-	deploymentName := "test-deployment-name"
 	testDeployment := newDeployment(deploymentName, namespaceName, workloadName, workloadUID)
 
 	// Expect a call to get the logging trait
@@ -102,7 +107,7 @@ func TestLoggingTraitCreatedForContainerizedWorkload(t *testing.T) {
 		})
 	// Expect a call to get the workload definition
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: "", Name: workloadDefinitionNamespace}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, workloadDef *oamcore.WorkloadDefinition) error {
 			workloadDef.Spec.ChildResourceKinds = []oamcore.ChildResourceKind{
 				{
@@ -163,11 +168,6 @@ func TestDeleteLoggingTraitFromContainerizedWorkload(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	namespaceName := "test-namespace"
-	traitName := "test-trait-name"
-	workloadName := "test-workload-name"
-	workloadUID := "test-workload-uid"
-	deploymentName := "test-deployment-name"
 	testDeployment := newDeployment(deploymentName, namespaceName, workloadName, workloadUID)
 
 	// Create trait for deletion
@@ -199,7 +199,7 @@ func TestDeleteLoggingTraitFromContainerizedWorkload(t *testing.T) {
 		})
 	// Expect a call to get the workload definition
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: "", Name: workloadDefinitionNamespace}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, workloadDef *oamcore.WorkloadDefinition) error {
 			workloadDef.Spec.ChildResourceKinds = []oamcore.ChildResourceKind{
 				{
@@ -247,18 +247,17 @@ func TestDeleteLoggingTraitFromContainerizedWorkload(t *testing.T) {
 // GIVEN a call to fetchTrait method of the LoggingTrait Reconciler
 // WHEN there is some error during retrieving the trait
 // THEN expect the reconciler to requeue and return no error
-func Test_fetchTrait(t *testing.T) {
+func TestFetchTraitError(t *testing.T) {
 	assert := asserts.New(t)
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	namespaceName := "test-namespace"
-	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: namespaceName, Name: "test-trait-name"}}
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: namespaceName, Name: traitName}}
 
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespaceName, Name: "test-trait-name"}), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespaceName, Name: traitName}), gomock.Not(gomock.Nil())).
 		Return(
-			fmt.Errorf("server error"),
+			fmt.Errorf(serverErr),
 		)
 
 	reconciler := newLoggingTraitReconciler(mock, t)
@@ -269,7 +268,7 @@ func Test_fetchTrait(t *testing.T) {
 
 	mock = mocks.NewMockClient(mocker)
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespaceName, Name: "test-trait-name"}), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: namespaceName, Name: traitName}), gomock.Not(gomock.Nil())).
 		Return(
 			&errors.StatusError{ErrStatus: k8smeta.Status{Code: 404}},
 		)
@@ -291,11 +290,6 @@ func TestReconcileTraitNoWorkloadChild(t *testing.T) {
 	mocker := gomock.NewController(t)
 	mock := mocks.NewMockClient(mocker)
 
-	traitName := "test-trait-name"
-	namespaceName := "test-namespace"
-	workloadName := "test-workload-name"
-	workloadUID := "test-workload-uid"
-
 	trait := &vzapi.LoggingTrait{
 		TypeMeta: k8smeta.TypeMeta{
 			Kind: vzapi.LoggingTraitKind,
@@ -314,14 +308,14 @@ func TestReconcileTraitNoWorkloadChild(t *testing.T) {
 	}
 
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: "test-workload-name"}), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: workloadName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
 			return nil
 		})
 
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}), gomock.Not(gomock.Nil())).
-		Return(fmt.Errorf("server error"))
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: workloadDefinitionNamespace}), gomock.Not(gomock.Nil())).
+		Return(fmt.Errorf(serverErr))
 
 	reconciler := newLoggingTraitReconciler(mock, t)
 	result, supported, err := reconciler.reconcileTraitCreateOrUpdate(context.TODO(), vzlog.DefaultLogger(), trait)
@@ -331,14 +325,14 @@ func TestReconcileTraitNoWorkloadChild(t *testing.T) {
 
 	mock = mocks.NewMockClient(mocker)
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: "test-workload-name"}), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: namespaceName, Name: workloadName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj *unstructured.Unstructured) error {
 			return nil
 		})
 
 	mock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: "containerizedworkloads.core.oam.dev"}), gomock.Not(gomock.Nil())).
-		Return(fmt.Errorf("server error"))
+		Get(gomock.Any(), gomock.Eq(client.ObjectKey{Namespace: "", Name: workloadDefinitionNamespace}), gomock.Not(gomock.Nil())).
+		Return(fmt.Errorf(serverErr))
 
 	reconciler = newLoggingTraitReconciler(mock, t)
 	result, err = reconciler.reconcileTraitDelete(context.TODO(), vzlog.DefaultLogger(), trait)
@@ -424,7 +418,7 @@ func TestReconcileKubeSystem(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 
 	// create a request and reconcile it
-	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: vzconst.KubeSystem, Name: "test-trait-name"}}
+	request := ctrl.Request{NamespacedName: types.NamespacedName{Namespace: vzconst.KubeSystem, Name: traitName}}
 	reconciler := newLoggingTraitReconciler(mock, t)
 	result, err := reconciler.Reconcile(context.TODO(), request)
 

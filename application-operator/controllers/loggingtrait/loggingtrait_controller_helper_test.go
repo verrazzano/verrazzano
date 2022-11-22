@@ -300,25 +300,27 @@ func Test_locateVolumesField(t *testing.T) {
 
 func getResource(resource string) *unstructured.Unstructured {
 	res := unstructured.Unstructured{}
+	appsv1 := "apps/v1"
+	v1 := "v1"
 
 	switch resource {
 	case "Deployment":
-		res.SetAPIVersion("apps/v1")
+		res.SetAPIVersion(appsv1)
 		res.SetKind("Deployment")
 	case "Pod":
-		res.SetAPIVersion("v1")
+		res.SetAPIVersion(v1)
 		res.SetKind("Pod")
 	case "ContainerizedWorkload":
-		res.SetAPIVersion("v1")
+		res.SetAPIVersion(v1)
 		res.SetKind("ContainerizedWorkload")
 	case "StatefulState":
-		res.SetAPIVersion("apps/v1")
+		res.SetAPIVersion(appsv1)
 		res.SetKind("StatefulSet")
 	case "DaemonSet":
-		res.SetAPIVersion("apps/v1")
+		res.SetAPIVersion(appsv1)
 		res.SetKind("DaemonSet")
 	case "Secret":
-		res.SetAPIVersion("v1")
+		res.SetAPIVersion(v1)
 		res.SetKind("Secret")
 	}
 
