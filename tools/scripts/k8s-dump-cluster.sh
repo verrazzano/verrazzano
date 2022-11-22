@@ -257,6 +257,7 @@ function full_k8s_cluster_snapshot() {
     kubectl --insecure-skip-tls-verify describe ClusterIssuer -A 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/cluster-issuers.txt || true
     kubectl --insecure-skip-tls-verify get MutatingWebhookConfigurations -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/mutating-webhook-configs.txt || true
     kubectl --insecure-skip-tls-verify get ValidatingWebhookConfigurations -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/validating-webhook-configs.txt || true
+    kubectl --insecure-skip-tls-verify get settings -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/settings.txt || true
     # squelch the "too many clients" warnings from newer kubectl versions
     dump_extra_details_per_namespace
     dump_configmaps
