@@ -5,8 +5,6 @@ package scale
 
 import (
 	"fmt"
-	"k8s.io/client-go/dynamic"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -18,6 +16,8 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/weblogic"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
+	"k8s.io/client-go/dynamic"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
 const (
