@@ -420,17 +420,17 @@ func getOSInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
 		// Check verrazzano-os-internal Secret. return error which will cause requeue
 		err := ctx.Client().Get(context.TODO(), clipkg.ObjectKey{
 			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      globalconst.VerrazzanoESInternal,
+			Name:      globalconst.VerrazzanoOSInternal,
 		}, &secret)
 
 		if err != nil {
 			if errors.IsNotFound(err) {
 				ctx.Log().Progressf("Component Jaeger Operator waiting for the secret %s/%s to exist",
-					constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal)
+					constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoOSInternal)
 				return secret, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 			}
 			ctx.Log().Errorf("Component Jaeger Operator failed to get the secret %s/%s: %v",
-				constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal, err)
+				constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoOSInternal, err)
 			return secret, err
 		}
 		return secret, nil

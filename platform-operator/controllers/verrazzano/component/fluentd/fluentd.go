@@ -35,11 +35,11 @@ func checkSecretExists(ctx spi.ComponentContext) error {
 	if vzcr.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		secret := &corev1.Secret{}
 		// Check verrazzano-os-internal secret by default
-		secretName := globalconst.VerrazzanoESInternal
+		secretName := globalconst.VerrazzanoOSInternal
 		fluentdConfig := ctx.EffectiveCR().Spec.Components.Fluentd
 
 		// Check external es secret if using external ES/OS
-		if fluentdConfig != nil && len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoESInternal {
+		if fluentdConfig != nil && len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoOSInternal {
 			secretName = fluentdConfig.ElasticsearchSecret
 		}
 		// Wait for secret to be available, return error which will cause requeue
@@ -69,7 +69,7 @@ func loggingPreInstall(ctx spi.ComponentContext) error {
 		fluentdConfig := ctx.EffectiveCR().Spec.Components.Fluentd
 		if fluentdConfig != nil {
 			// Copy the internal Elasticsearch secret
-			if len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoESInternal {
+			if len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoOSInternal {
 				if err := common.CopySecret(ctx, fluentdConfig.ElasticsearchSecret, constants.VerrazzanoSystemNamespace, "custom Elasticsearch"); err != nil {
 					return err
 				}

@@ -56,7 +56,7 @@ var fluentdEnabledCR = &v1alpha1.Verrazzano{
 
 var vzEsInternalSecret = &corev1.Secret{
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      globalconst.VerrazzanoESInternal,
+		Name:      globalconst.VerrazzanoOSInternal,
 		Namespace: constants.VerrazzanoSystemNamespace,
 	},
 }

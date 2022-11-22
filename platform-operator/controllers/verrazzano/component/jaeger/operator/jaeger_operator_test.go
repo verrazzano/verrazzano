@@ -86,14 +86,14 @@ var keycloakEnabledCR = &vzapi.Verrazzano{
 
 var vzEsInternalSecret = &corev1.Secret{
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      globalconst.VerrazzanoESInternal,
+		Name:      globalconst.VerrazzanoOSInternal,
 		Namespace: constants.VerrazzanoSystemNamespace,
 	},
 }
 
 var vzEsInternalSecretWithData = &corev1.Secret{
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      globalconst.VerrazzanoESInternal,
+		Name:      globalconst.VerrazzanoOSInternal,
 		Namespace: constants.VerrazzanoSystemNamespace,
 	},
 	Data: map[string][]byte{

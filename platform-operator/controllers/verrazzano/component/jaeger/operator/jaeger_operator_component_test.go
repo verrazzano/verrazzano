@@ -1227,7 +1227,7 @@ func getIngressTests(isUpgradeOperation bool) []ingressTestStruct {
 							OCI: &vzapi.OCI{
 								DNSZoneOCID:            "somezoneocid",
 								DNSZoneCompartmentOCID: "somenewocid",
-								OCIConfigSecret:        globalconst.VerrazzanoESInternal,
+								OCIConfigSecret:        globalconst.VerrazzanoOSInternal,
 								DNSZoneName:            "newzone.dns.io",
 							},
 						},
@@ -1335,7 +1335,7 @@ func getESSecretWithData() client.Object {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      globalconst.VerrazzanoESInternal,
+			Name:      globalconst.VerrazzanoOSInternal,
 		},
 		Data: map[string][]byte{
 			"ES_USERNAME": []byte("abcd"),
@@ -1348,7 +1348,7 @@ func getESSecretNoData() client.Object {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      globalconst.VerrazzanoESInternal,
+			Name:      globalconst.VerrazzanoOSInternal,
 		},
 	}
 }
