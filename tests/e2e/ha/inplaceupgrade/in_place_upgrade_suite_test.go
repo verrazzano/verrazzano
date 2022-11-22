@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestInPlaceUpgrade(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "OKE in-place cluster upgrade")
+func TestInPlaceUpgrade(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "OKE in-place cluster upgrade")
 }

@@ -53,7 +53,7 @@ var (
 
 	// services that are common plus the ones unique to admin cluster
 	adminClusterSystemServiceNames = append(managedClusterSystemServiceNames,
-		"jaeger-operator-jaeger.verrazzano-monitoring",
+		"jaeger.verrazzano-monitoring",
 		"system-es-master.verrazzano-system")
 )
 

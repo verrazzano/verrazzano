@@ -7,7 +7,7 @@ import (
 	"context"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
-	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
+	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,7 +17,7 @@ import (
 // syncMCAgentDeleteResources deletes the managed cluster resources if the correlating admin VMC gets deleted
 func (s *Syncer) syncDeregistration() error {
 	vmcName := client.ObjectKey{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
-	vmc := platformopclusters.VerrazzanoManagedCluster{}
+	vmc := clustersapi.VerrazzanoManagedCluster{}
 	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
 	if client.IgnoreNotFound(err) != nil && !apierrors.IsUnauthorized(err) {
 		s.Log.Errorf("Failed to get the VMC resources %s/%s from the admin cluster: %v", constants.VerrazzanoMultiClusterNamespace, s.ManagedClusterName, err)

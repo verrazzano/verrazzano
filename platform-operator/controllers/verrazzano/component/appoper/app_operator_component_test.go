@@ -6,11 +6,18 @@ package appoper
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+
 	"testing"
 
+	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	v1alpha12 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/helm"
+
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
 	"github.com/stretchr/testify/assert"
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -21,7 +28,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profilesRelativePath = "../../../../manifests/profiles"
+const (
+	profilesRelativePath = "../../../../manifests/profiles"
+	relativeRootDir      = "../../../../../"
+)
 
 var crEnabled = v1alpha1.Verrazzano{
 	Spec: v1alpha1.VerrazzanoSpec{
@@ -31,6 +41,27 @@ var crEnabled = v1alpha1.Verrazzano{
 			},
 		},
 	},
+}
+
+// TestPreUpgrade tests the PreUpgrade function
+// GIVEN a call to PreUpgrade
+// WHEN the Helm chart is deployed and CRDs exist
+// THEN no error during PreUpgrade
+func TestPreUpgrade(t *testing.T) {
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VerrazzanoRootDir: relativeRootDir})
+	helm.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helm.ChartStatusDeployed, nil
+	})
+	defer helm.SetDefaultChartStatusFunction()
+
+	a := NewComponent()
+	client := fake.NewClientBuilder().WithScheme(newScheme()).
+		WithObjects(append(testTraitObjects(), testWorkloadDefinitionObjects()...)...).
+		Build()
+	ctx := spi.NewFakeContext(client, nil, nil, false)
+	err := a.PreUpgrade(ctx)
+	assert.NoError(t, err)
 }
 
 // TestAppOperatorPostUpgradeNoDeleteClusterRoleBinding tests the PostUpgrade function
@@ -51,7 +82,7 @@ func TestAppOperatorPostUpgradeNoDeleteClusterRoleBinding(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(
-		&clustersv1alpha1.VerrazzanoManagedCluster{
+		&v1alpha12.VerrazzanoManagedCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: clusterName,
 			},
@@ -78,7 +109,7 @@ func TestAppOperatorPostUpgradeDeleteClusterRoleBinding(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(
-		&clustersv1alpha1.VerrazzanoManagedCluster{
+		&v1alpha12.VerrazzanoManagedCluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: clusterName,
 			},
@@ -102,8 +133,10 @@ func TestAppOperatorPostUpgradeDeleteClusterRoleBinding(t *testing.T) {
 
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	_ = clustersv1alpha1.AddToScheme(scheme)
+	_ = v1alpha12.AddToScheme(scheme)
 	_ = v1alpha1.AddToScheme(scheme)
+	_ = oamv1alpha1.AddToScheme(scheme)
+	_ = oamv1alpha2.SchemeBuilder.AddToScheme(scheme)
 	_ = rbacv1.AddToScheme(scheme)
 	return scheme
 }

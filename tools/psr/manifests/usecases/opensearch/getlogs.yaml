@@ -3,7 +3,7 @@
 
 global:
   envVars:
-    PSR_WORKER_TYPE: getlogs
+    PSR_WORKER_TYPE: ops-getlogs
 
 # activate subchart
 opensearch-authpol:

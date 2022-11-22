@@ -6,14 +6,13 @@ package fluentd
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
+	"os"
+	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -163,7 +162,7 @@ func (c fluentdComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := checkSecretExists(ctx); err != nil {
 		return err
 	}
-	return nil
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 func (c fluentdComponent) Reconcile(ctx spi.ComponentContext) error {
@@ -193,7 +192,7 @@ func (c fluentdComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := checkSecretExists(ctx); err != nil {
 		return err
 	}
-	return nil
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // Uninstall Fluentd to handle upgrade case where Fluentd was not its own helm chart.

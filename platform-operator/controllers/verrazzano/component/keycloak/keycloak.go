@@ -375,26 +375,33 @@ const pkceClientUrisTemplate = `
 	"redirectUris": [
 	  "https://verrazzano.{{.DNSSubDomain}}/*",
 	  "https://verrazzano.{{.DNSSubDomain}}/verrazzano/authcallback",
-	  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
-	  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://opensearch.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://opensearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/*",
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://grafana.vmi.system.{{.DNSSubDomain}}/*",
 	  "https://grafana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
-	  "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+	  "https://osd.vmi.system.{{.DNSSubDomain}}/*",
+	  "https://osd.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}/*",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
-	  "https://jaeger.{{.DNSSubDomain}}/*"
+	  "https://jaeger.{{.DNSSubDomain}}/*"{{ if .OSHostExists}},
+      "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/*",
+      "https://elasticsearch.vmi.system.{{.DNSSubDomain}}/_authentication_callback",
+      "https://kibana.vmi.system.{{.DNSSubDomain}}/*",
+      "https://kibana.vmi.system.{{.DNSSubDomain}}/_authentication_callback"{{end}}
 	],
 	"webOrigins": [
 	  "https://verrazzano.{{.DNSSubDomain}}",
-	  "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
+	  "https://opensearch.vmi.system.{{.DNSSubDomain}}",
 	  "https://prometheus.vmi.system.{{.DNSSubDomain}}",
 	  "https://grafana.vmi.system.{{.DNSSubDomain}}",
-	  "https://kibana.vmi.system.{{.DNSSubDomain}}",
+	  "https://osd.vmi.system.{{.DNSSubDomain}}",
 	  "https://kiali.vmi.system.{{.DNSSubDomain}}",
-	  "https://jaeger.{{.DNSSubDomain}}"
+	  "https://jaeger.{{.DNSSubDomain}}"{{ if .OSHostExists}},
+      "https://elasticsearch.vmi.system.{{.DNSSubDomain}}",
+      "https://kibana.vmi.system.{{.DNSSubDomain}}"
+ {{end}} 
 	]
 `
 
@@ -467,6 +474,7 @@ type KeycloakClientSecret struct {
 
 type templateData struct {
 	DNSSubDomain string
+	OSHostExists bool
 }
 
 // imageData needed for template rendering
@@ -754,7 +762,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	if vzcr.IsRancherEnabled(ctx.ActualCR()) {
+	if vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
 		// Creating rancher client
 		err = createOrUpdateClient(ctx, cfg, cli, "rancher", rancherClientTmpl, rancherClientUrisTemplate, true)
 		if err != nil {
@@ -1415,6 +1423,15 @@ func upgradeStatefulSet(ctx spi.ComponentContext) error {
 
 func populateSubdomainInTemplate(ctx spi.ComponentContext, tmpl string) (string, error) {
 	data := templateData{}
+
+	// Update verrazzano-pkce client redirect and web origin uris if deprecated host exists in the ingress
+	osHostExists, err := DoesDeprecatedIngressHostExist(ctx, constants.VerrazzanoSystemNamespace)
+	if err != nil {
+		ctx.Log().Errorf("Error retrieving the ingressList : %v", err)
+	}
+	// Set bool value if deprecated host exists
+	data.OSHostExists = osHostExists
+
 	// Get DNS Domain Configuration
 	dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
 	if err != nil {
@@ -1583,4 +1600,21 @@ func addClientRoleToUser(ctx spi.ComponentContext, cfg *restclient.Config, cli k
 	}
 	ctx.Log().Oncef("Added client role %s to the user %s", roleName, userName)
 	return nil
+}
+
+// DoesDeprecatedIngressHostExist returns true if ingress host exists
+func DoesDeprecatedIngressHostExist(ctx spi.ComponentContext, namespace string) (bool, error) {
+	ingressList := &networkv1.IngressList{}
+
+	listOptions := &client.ListOptions{Namespace: namespace}
+	err := ctx.Client().List(context.TODO(), ingressList, listOptions)
+	if err != nil && len(ingressList.Items) == 0 {
+		return false, err
+	}
+	for _, ingress := range ingressList.Items {
+		if len(ingress.Spec.Rules) > 0 && strings.HasPrefix(ingress.Spec.Rules[0].Host, "elasticsearch") {
+			return true, nil
+		}
+	}
+	return false, nil
 }

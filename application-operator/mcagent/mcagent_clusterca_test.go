@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -18,7 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clusterstest "github.com/verrazzano/verrazzano/application-operator/controllers/clusters/test"
-	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -552,8 +552,8 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 }
 
 // getSampleClusterCAVMC creates and returns a sample VMC
-func getSampleClusterCAVMC(filePath string) (platformopclusters.VerrazzanoManagedCluster, error) {
-	vmc := platformopclusters.VerrazzanoManagedCluster{}
+func getSampleClusterCAVMC(filePath string) (v1alpha1.VerrazzanoManagedCluster, error) {
+	vmc := v1alpha1.VerrazzanoManagedCluster{}
 	sampleVMCFile, err := filepath.Abs(filePath)
 	if err != nil {
 		return vmc, err
@@ -571,7 +571,7 @@ func getSampleClusterCAVMC(filePath string) (platformopclusters.VerrazzanoManage
 func newClusterCAScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	corev1.SchemeBuilder.AddToScheme(scheme)
-	platformopclusters.AddToScheme(scheme)
+	v1alpha1.AddToScheme(scheme)
 	return scheme
 }
 

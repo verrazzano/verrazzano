@@ -36,9 +36,9 @@ func TestGetters(t *testing.T) {
 	assert.NoError(t, err)
 
 	wd := w.GetWorkerDesc()
-	assert.Equal(t, config.WorkerTypePostLogs, wd.WorkerType)
+	assert.Equal(t, config.WorkerTypeOpsPostLogs, wd.WorkerType)
 	assert.Equal(t, "The postlogs worker performs POST requests on the OpenSearch endpoint", wd.Description)
-	assert.Equal(t, config.WorkerTypePostLogs, wd.MetricsName)
+	assert.Equal(t, metricsPrefix, wd.MetricsPrefix)
 
 	logged := w.WantLoopInfoLogged()
 	assert.False(t, logged)
@@ -89,11 +89,11 @@ func TestGetMetricDescList(t *testing.T) {
 		fqName string
 		help   string
 	}{
-		{name: "1", fqName: "opensearch_post_success_count_total", help: "The total number of successful OpenSearch POST requests"},
-		{name: "2", fqName: "opensearch_post_failure_count_total", help: "The total number of successful OpenSearch POST requests"},
-		{name: "3", fqName: "opensearch_post_success_latency_nanoseconds", help: "The latency of successful OpenSearch POST requests in nanoseconds"},
-		{name: "4", fqName: "opensearch_post_failure_latency_nanoseconds", help: "The latency of failed OpenSearch POST requests in nanoseconds"},
-		{name: "5", fqName: "opensearch_post_data_chars_total", help: "The total number of characters posted to OpenSearch"},
+		{name: "1", fqName: "opensearch_postlogs_success_count_total", help: "The total number of successful OpenSearch POST requests"},
+		{name: "2", fqName: "opensearch_postlogs_failure_count_total", help: "The total number of successful OpenSearch POST requests"},
+		{name: "3", fqName: "opensearch_postlogs_success_latency_nanoseconds", help: "The latency of successful OpenSearch POST requests in nanoseconds"},
+		{name: "4", fqName: "opensearch_postlogs_failure_latency_nanoseconds", help: "The latency of failed OpenSearch POST requests in nanoseconds"},
+		{name: "5", fqName: "opensearch_postlogs_data_chars_total", help: "The total number of characters posted to OpenSearch"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -120,11 +120,11 @@ func TestGetMetricList(t *testing.T) {
 		fqName string
 		help   string
 	}{
-		{name: "1", fqName: "opensearch_post_success_count_total", help: "The total number of successful OpenSearch POST requests"},
-		{name: "2", fqName: "opensearch_post_failure_count_total", help: "The total number of successful OpenSearch POST requests"},
-		{name: "3", fqName: "opensearch_post_success_latency_nanoseconds", help: "The latency of successful OpenSearch POST requests in nanoseconds"},
-		{name: "4", fqName: "opensearch_post_failure_latency_nanoseconds", help: "The latency of failed OpenSearch POST requests in nanoseconds"},
-		{name: "5", fqName: "opensearch_post_data_chars_total", help: "The total number of characters posted to OpenSearch"},
+		{name: "1", fqName: metricsPrefix + "_success_count_total", help: "The total number of successful OpenSearch POST requests"},
+		{name: "2", fqName: metricsPrefix + "_failure_count_total", help: "The total number of successful OpenSearch POST requests"},
+		{name: "3", fqName: metricsPrefix + "_success_latency_nanoseconds", help: "The latency of successful OpenSearch POST requests in nanoseconds"},
+		{name: "4", fqName: metricsPrefix + "_failure_latency_nanoseconds", help: "The latency of failed OpenSearch POST requests in nanoseconds"},
+		{name: "5", fqName: metricsPrefix + "_data_chars_total", help: "The total number of characters posted to OpenSearch"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

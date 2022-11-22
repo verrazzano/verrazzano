@@ -7,11 +7,10 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 // TestOpenSearchLogging tests the logging to Verrazzano indices in OpenSearch.
-func TestOpenSearchLogging(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "OpenSearch Logging Suite")
+func TestOpenSearchLogging(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "OpenSearch Logging Suite")
 }

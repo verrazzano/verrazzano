@@ -22,7 +22,7 @@ func TestGetters(t *testing.T) {
 	wd := w.GetWorkerDesc()
 	assert.Equal(t, config.WorkerTypeExample, wd.WorkerType)
 	assert.Equal(t, "Example worker that demonstrates executing a fake use case", wd.Description)
-	assert.Equal(t, config.WorkerTypeExample, wd.MetricsName)
+	assert.Equal(t, config.WorkerTypeExample, wd.MetricsPrefix)
 
 	el := w.GetEnvDescList()
 	assert.Len(t, el, 0)

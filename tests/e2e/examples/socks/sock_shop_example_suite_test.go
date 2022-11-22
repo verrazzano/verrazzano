@@ -6,7 +6,7 @@ package socks
 import (
 	"flag"
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+
 	"testing"
 )
 
@@ -20,7 +20,7 @@ func init() {
 	flag.StringVar(&namespace, "namespace", generatedNamespace, "namespace is the app namespace")
 }
 
-func TestSockShopApplication(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Sock Shop Suite")
+func TestSockShopApplication(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Sock Shop Suite")
 }

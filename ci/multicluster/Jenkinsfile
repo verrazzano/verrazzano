@@ -1176,10 +1176,10 @@ def dumpVerrazzanoSystemPods() {
                 ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
                 export DIAGNOSTIC_LOG="${LOG_DIR}/verrazzano-system-certs.log"
                 ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-                export DIAGNOSTIC_LOG="${LOG_DIR}/verrazzano-system-kibana.log"
-                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                export DIAGNOSTIC_LOG="${LOG_DIR}/verrazzano-system-osd.log"
+                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-osd-*" -m "verrazzano system opensearchdashboards log" -l -c osd || echo "failed" > ${POST_DUMP_FAILED_FILE}
                 export DIAGNOSTIC_LOG="${LOG_DIR}/verrazzano-system-es-master.log"
-                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
+                ${GO_REPO_PATH}/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system opensearchdashboards log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
             """
         }
     }
@@ -1471,15 +1471,17 @@ def runConsoleTests() {
     // Console runs on admin cluster and the KUBECONFIG is pointed at it (which is cluster 1)
     // Make sure that application page tests are also run by setting RUN_APP_TESTS=true since we deployed
     // a sample app for that purpose
-    sh """
-        export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-        export CONSOLE_REPO_BRANCH="${params.CONSOLE_REPO_BRANCH}"
-        export CONSOLE_APP_NAME="${SAMPLE_APP_NAME}"
-        export CONSOLE_APP_NAMESPACE="${SAMPLE_APP_NAMESPACE}"
-        export CONSOLE_APP_CLUSTER="managed1"
-        export CONSOLE_APP_COMP="${SAMPLE_APP_COMPONENT}"
-        KUBECONFIG=${ADMIN_KUBECONFIG} RUN_APP_TESTS=true ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
-   """
+    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+        sh """
+            export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+            export CONSOLE_REPO_BRANCH="${params.CONSOLE_REPO_BRANCH}"
+            export CONSOLE_APP_NAME="${SAMPLE_APP_NAME}"
+            export CONSOLE_APP_NAMESPACE="${SAMPLE_APP_NAMESPACE}"
+            export CONSOLE_APP_CLUSTER="managed1"
+            export CONSOLE_APP_COMP="${SAMPLE_APP_COMPONENT}"
+            KUBECONFIG=${ADMIN_KUBECONFIG} RUN_APP_TESTS=true ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
+        """
+    }
 }
 
 def emitJobMetrics() {

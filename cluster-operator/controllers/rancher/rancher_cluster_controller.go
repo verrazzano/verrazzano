@@ -17,14 +17,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 )
 
 const (
-	createdByLabel      = "app.kubernetes.io/created-by"
-	createdByVerrazzano = "verrazzano"
+	CreatedByLabel      = "app.kubernetes.io/created-by"
+	CreatedByVerrazzano = "verrazzano"
 	localClusterName    = "local"
 
 	finalizerName = "verrazzano.io/rancher-cluster"
@@ -215,7 +215,7 @@ func newVMC(name string) *clustersv1alpha1.VerrazzanoManagedCluster {
 			Name:      name,
 			Namespace: vzconst.VerrazzanoMultiClusterNamespace,
 			Labels: map[string]string{
-				createdByLabel:                    createdByVerrazzano,
+				CreatedByLabel:                    CreatedByVerrazzano,
 				vzconst.VerrazzanoManagedLabelKey: "true",
 			},
 		},

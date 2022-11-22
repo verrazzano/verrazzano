@@ -7,10 +7,12 @@ import (
 	"context"
 	"fmt"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelpers "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"os"
@@ -60,7 +62,29 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	// Verrazzano as a list is required for the analysis tool
 	vz := v1beta1.VerrazzanoList{}
 	err = client.List(context.TODO(), &vz)
-	if (err != nil && len(vz.Items) == 0) || len(vz.Items) == 0 {
+	if err != nil && !meta.IsNoMatchError(err) {
+		return err
+	}
+
+	// Loop through the existing v1alpha1 Verrazzano and convert them to v1beta1
+	// Add them to the vz list so that the bug report is not skipped
+	vzA1 := v1alpha1.VerrazzanoList{}
+	err = client.List(context.TODO(), &vzA1)
+	if err != nil && !meta.IsNoMatchError(err) {
+		return err
+	}
+	if len(vzA1.Items) != 0 {
+		for _, vzA1Item := range vzA1.Items {
+			convertedVZ := v1beta1.Verrazzano{}
+			err = vzA1Item.ConvertTo(&convertedVZ)
+			if err != nil {
+				return err
+			}
+			vz.Items = append(vz.Items, convertedVZ)
+		}
+	}
+
+	if len(vz.Items) == 0 {
 		return fmt.Errorf("skip analyzing the cluster as Verrazzano is not installed")
 	}
 

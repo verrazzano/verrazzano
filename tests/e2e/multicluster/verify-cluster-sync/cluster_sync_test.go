@@ -11,11 +11,11 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/cluster-operator/clientset/versioned"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -31,7 +31,7 @@ const (
 var t = framework.NewTestFramework("cluster_sync_test")
 
 var client *versioned.Clientset
-var rc *clusters.RancherConfig
+var rc *vmc.RancherConfig
 
 var _ = t.BeforeSuite(func() {})
 var _ = t.AfterEach(func() {})
@@ -119,12 +119,12 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 	})
 })
 
-func initializeTestResources() (*versioned.Clientset, *clusters.RancherConfig) {
+func initializeTestResources() (*versioned.Clientset, *vmc.RancherConfig) {
 	adminKubeconfig := os.Getenv("ADMIN_KUBECONFIG")
 	Expect(adminKubeconfig).To(Not(BeEmpty()))
 
 	var err error
-	client, err = pkg.GetVerrazzanoClientsetInCluster(adminKubeconfig)
+	client, err = pkg.GetClusterOperatorClientset(adminKubeconfig)
 	Expect(err).ShouldNot(HaveOccurred())
 
 	// Get Rancher API URL and creds
@@ -135,14 +135,14 @@ func initializeTestResources() (*versioned.Clientset, *clusters.RancherConfig) {
 }
 
 // testRancherClusterCreation tests a cluster created in Rancher
-func testRancherClusterCreation(rc *clusters.RancherConfig, client *versioned.Clientset, clusterName string) string {
+func testRancherClusterCreation(rc *vmc.RancherConfig, client *versioned.Clientset, clusterName string) string {
 	// GIVEN a Rancher cluster is created using Rancher API/UI
 	// WHEN the Rancher cluster is appropriately labeled
 	// THEN a VMC is auto-created for that cluster
 
 	// Create cluster in Rancher and label it (when labels are supported)
 	var err error
-	clusterID, err := clusters.ImportClusterToRancher(rc, clusterName, vzlog.DefaultLogger())
+	clusterID, err := vmc.ImportClusterToRancher(rc, clusterName, vzlog.DefaultLogger())
 	Expect(err).ShouldNot(HaveOccurred())
 	pkg.Log(pkg.Info, fmt.Sprintf("Got cluster id %s from Rancher\n", clusterID))
 
@@ -155,7 +155,7 @@ func testRancherClusterCreation(rc *clusters.RancherConfig, client *versioned.Cl
 }
 
 // testRancherClusterDeletion tests a cluster deleted in Rancher
-func testRancherClusterDeletion(rc *clusters.RancherConfig, client *versioned.Clientset, clusterName, clusterID string) {
+func testRancherClusterDeletion(rc *vmc.RancherConfig, client *versioned.Clientset, clusterName, clusterID string) {
 	// GIVEN a Rancher cluster is deleted using Rancher API/UI
 	// WHEN the Rancher cluster is appropriately labeled
 	// THEN the VMC for the cluster is deleted
@@ -166,7 +166,7 @@ func testRancherClusterDeletion(rc *clusters.RancherConfig, client *versioned.Cl
 	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 
 	// Delete cluster using Rancher API
-	deleted, err := clusters.DeleteClusterFromRancher(rc, clusterID, vzlog.DefaultLogger())
+	deleted, err := vmc.DeleteClusterFromRancher(rc, clusterID, vzlog.DefaultLogger())
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(deleted).To(BeTrue())
 
@@ -185,7 +185,7 @@ func testRancherClusterDeletion(rc *clusters.RancherConfig, client *versioned.Cl
 }
 
 // testVMCCreation tests a VMC created for a managed cluster
-func testVMCCreation(rc *clusters.RancherConfig, client *versioned.Clientset, clusterName string) string {
+func testVMCCreation(rc *vmc.RancherConfig, client *versioned.Clientset, clusterName string) string {
 	// GIVEN a VMC is created for a cluster
 	// WHEN the Rancher clusters are prompted to sync with the VMC
 	// THEN a Rancher cluster should be created with the same name
@@ -206,13 +206,13 @@ func testVMCCreation(rc *clusters.RancherConfig, client *versioned.Clientset, cl
 		return clusterExistsInRancher(rc, clusterName)
 	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 
-	clusterID, err := clusters.GetClusterIDFromRancher(rc, clusterName, vzlog.DefaultLogger())
+	clusterID, err := vmc.GetClusterIDFromRancher(rc, clusterName, vzlog.DefaultLogger())
 	Expect(err).ShouldNot(HaveOccurred())
 	return clusterID
 }
 
 // testVMCDeletion tests a VMC deleted for a managed cluster
-func testVMCDeletion(rc *clusters.RancherConfig, client *versioned.Clientset, clusterName string) {
+func testVMCDeletion(rc *vmc.RancherConfig, client *versioned.Clientset, clusterName string) {
 	// GIVEN a VMC is deleted from the admin cluster
 	// WHEN the Rancher sync process runs
 	// THEN a Rancher cluster with that name should be deleted
@@ -252,8 +252,8 @@ func verifyRancherRegistration(clusterName string) bool {
 }
 
 // clusterExistsInRancher returns true if the cluster is listed by the Rancher API
-func clusterExistsInRancher(rc *clusters.RancherConfig, clusterName string) bool {
-	ranchClusters, _, err := clusters.GetAllClustersInRancher(rc, vzlog.DefaultLogger())
+func clusterExistsInRancher(rc *vmc.RancherConfig, clusterName string) bool {
+	ranchClusters, _, err := vmc.GetAllClustersInRancher(rc, vzlog.DefaultLogger())
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Failed to get all clusters in Rancher: %v", err))
 		return false

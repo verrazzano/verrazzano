@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -59,6 +59,9 @@ do
     export KUBECONFIG=${KUBECONFIG_DIR}/$i/kube_config
     export VERRAZZANO_KUBECONFIG=$KUBECONFIG
   fi
+  resName=$(kubectl get vz -o jsonpath='{.items[*].metadata.name}')
+  echo "Deleting verrazzano resource ${resName}"
+  kubectl delete vz ${resName} --timeout 30m
   cleanup_vz_resources
 done
 

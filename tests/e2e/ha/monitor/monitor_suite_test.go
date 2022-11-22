@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 )
 
@@ -19,7 +18,7 @@ func init() {
 	flag.BoolVar(&runContinuous, "runContinuous", true, "run monitors continuously if set")
 }
 
-func TestHAMonitor(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "HA Monitoring Suite")
+func TestHAMonitor(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "HA Monitoring Suite")
 }

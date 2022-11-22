@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestSecurityRBACExample(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Verrazzano Role Based Access Suite")
+func TestSecurityRBACExample(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Verrazzano Role Based Access Suite")
 }
