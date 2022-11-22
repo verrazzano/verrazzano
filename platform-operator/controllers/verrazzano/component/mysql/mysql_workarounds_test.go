@@ -134,7 +134,7 @@ func TestRepairICStuckDeleting(t *testing.T) {
 
 	assert.True(t, mysqlComp.InitialTimeICUninstallChecked.IsZero())
 	err = mysqlComp.repairICStuckDeleting(fakeCtx)
-	assert.Error(t, err)
+	assert.NoError(t, err)
 	assert.False(t, mysqlComp.InitialTimeICUninstallChecked.IsZero())
 
 	pod := v1.Pod{}
