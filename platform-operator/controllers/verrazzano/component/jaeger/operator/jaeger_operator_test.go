@@ -319,7 +319,7 @@ func getPreInstallTests() []preInstallTestStruct {
 		// WHEN we call the PreInstall function with no secret to access the storage,
 		// THEN an error is returned.
 		{
-			"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
+			"should fail when verrazzano-os-internal secret does not exist and keycloak is enabled",
 			keycloakEnabledCR,
 			createFakeClient(),
 			ctrlerrors.RetryableError{Source: ComponentName},
@@ -329,7 +329,7 @@ func getPreInstallTests() []preInstallTestStruct {
 		// WHEN we call the PreInstall function with a valid secret to access the storage,
 		// THEN no error is returned.
 		{
-			"should pass when verrazzano-es-internal secret does exist without data and keycloak is enabled",
+			"should pass when verrazzano-os-internal secret does exist without data and keycloak is enabled",
 			keycloakEnabledCR,
 			createFakeClient(vzEsInternalSecret),
 			nil,
@@ -339,7 +339,7 @@ func getPreInstallTests() []preInstallTestStruct {
 		// WHEN we call the PreInstall function with a valid secret to access the storage,
 		// THEN no error is returned.
 		{
-			"should pass when verrazzano-es-internal secret does exist with valid data and keycloak is enabled",
+			"should pass when verrazzano-os-internal secret does exist with valid data and keycloak is enabled",
 			keycloakEnabledCR,
 			createFakeClient(vzEsInternalSecretWithData),
 			nil,

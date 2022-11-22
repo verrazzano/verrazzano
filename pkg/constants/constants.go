@@ -86,7 +86,7 @@ const LabelVerrazzanoNamespace = "verrazzano.io/namespace"
 const LegacyOpensearchSecretName = "verrazzano"
 
 // VerrazzanoESInternal is the name of the Verrazzano internal Opensearch secret in the Verrazzano system namespace
-const VerrazzanoESInternal = "verrazzano-es-internal"
+const VerrazzanoESInternal = "verrazzano-os-internal"
 
 // VerrazzanoPromInternal is the name of the Verrazzano internal Prometheus secret in the Verrazzano system namespace
 const VerrazzanoPromInternal = "verrazzano-prom-internal"

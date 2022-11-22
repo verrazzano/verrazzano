@@ -52,7 +52,7 @@ const (
 	vzAPIAccessRole         = "vz_api_access"
 	vzUserName              = "verrazzano"
 	vzInternalPromUser      = "verrazzano-prom-internal"
-	vzInternalEsUser        = "verrazzano-es-internal"
+	vzInternalEsUser        = "verrazzano-os-internal"
 	keycloakPodName         = "keycloak-0"
 	realmManagement         = "realm-management"
 	viewUsersRole           = "view-users"
@@ -745,7 +745,7 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 	}
 
 	// Creating Verrazzano Internal ES User
-	err = createUser(ctx, cfg, cli, vzInternalEsUser, "verrazzano-es-internal", vzSystemGroup, "", "")
+	err = createUser(ctx, cfg, cli, vzInternalEsUser, "verrazzano-os-internal", vzSystemGroup, "", "")
 	if err != nil {
 		return err
 	}
@@ -1617,4 +1617,18 @@ func DoesDeprecatedIngressHostExist(ctx spi.ComponentContext, namespace string) 
 		}
 	}
 	return false, nil
+}
+
+// removeDeprecatedESSecretIfExists removes the deprecated ES secret if exists.
+func removeDeprecatedESSecretIfExists(ctx spi.ComponentContext) {
+	secret := &corev1.Secret{}
+	namespacedName := types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: "verrazzano-es-internal"}
+	if err := ctx.Client().Get(context.TODO(), namespacedName, secret); err != nil {
+		ctx.Log().Debugf("Unable to retrieve deprecated ES secret : %s, %v", secret.Name, err)
+	} else {
+		ctx.Log().Debugf("Deleting the deprecated ES secret: %s", secret.Name)
+		if err = ctx.Client().Delete(context.TODO(), secret); err != nil {
+			ctx.Log().Errorf("Unable to delete deprecated ES secret: %s, %v", secret.Name, err)
+		}
+	}
 }

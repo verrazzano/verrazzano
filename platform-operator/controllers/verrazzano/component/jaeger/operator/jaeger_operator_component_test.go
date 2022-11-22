@@ -276,7 +276,7 @@ func TestPreUpgrade(t *testing.T) {
 			).Build(),
 			actualCR:     *jaegerEnabledCR,
 			expectError:  true,
-			expectErrMsg: "secrets \"verrazzano-es-internal\" not found",
+			expectErrMsg: "secrets \"verrazzano-os-internal\" not found",
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled and custom Jaeger secret

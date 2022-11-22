@@ -30,11 +30,11 @@ const (
 	fluentdEsConfig = "fluentd-es-config"
 )
 
-// checkSecretExists whether verrazzano-es-internal secret exists. Return error if secret does not exist.
+// checkSecretExists whether verrazzano-os-internal secret exists. Return error if secret does not exist.
 func checkSecretExists(ctx spi.ComponentContext) error {
 	if vzcr.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		secret := &corev1.Secret{}
-		// Check verrazzano-es-internal secret by default
+		// Check verrazzano-os-internal secret by default
 		secretName := globalconst.VerrazzanoESInternal
 		fluentdConfig := ctx.EffectiveCR().Spec.Components.Fluentd
 

@@ -134,8 +134,8 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Create secret for the verrazzano-es-internal user
-	err = createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, "verrazzano-es-internal", "verrazzano-es-internal")
+	// Create secret for the verrazzano-os-internal user
+	err = createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, "verrazzano-os-internal", "verrazzano-os-internal")
 	if err != nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 	}
-
+	removeDeprecatedESSecretIfExists(ctx)
 	return configureKeycloakRealms(ctx)
 }
 
