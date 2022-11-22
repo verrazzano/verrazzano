@@ -134,15 +134,16 @@ func initializeTestResources() (*versioned.Clientset, *vmc.RancherConfig) {
 	return client, rc
 }
 
-// testRancherClusterCreation tests a cluster created in Rancher
+// testRancherClusterCreation tests that a cluster created in Rancher with the right labels results in a VMC
 func testRancherClusterCreation(rc *vmc.RancherConfig, client *versioned.Clientset, clusterName string) string {
 	// GIVEN a Rancher cluster is created using Rancher API/UI
 	// WHEN the Rancher cluster is appropriately labeled
 	// THEN a VMC is auto-created for that cluster
 
-	// Create cluster in Rancher and label it (when labels are supported)
+	// Create cluster in Rancher and label it as specified in the VZ resource installed
 	var err error
-	clusterID, err := vmc.ImportClusterToRancher(rc, clusterName, vzlog.DefaultLogger())
+	rancherClusterLabels := map[string]string{"rancher-sync": "enabled"}
+	clusterID, err := vmc.ImportClusterToRancher(rc, clusterName, rancherClusterLabels, vzlog.DefaultLogger())
 	Expect(err).ShouldNot(HaveOccurred())
 	pkg.Log(pkg.Info, fmt.Sprintf("Got cluster id %s from Rancher\n", clusterID))
 

@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Jeffail/gabs/v2"
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -92,6 +93,68 @@ func TestCreateOrUpdateSecretRancherProxy(t *testing.T) {
 			result, err := createOrUpdateSecretRancherProxy(&secret, &RancherConfig{}, clusterID, tt.f, vzlog.DefaultLogger())
 			a.Nil(err)
 			a.Equal(tt.result, result)
+		})
+	}
+}
+
+func Test_makeClusterPayload(t *testing.T) {
+	// a := asserts.New(t)
+
+	tests := []struct {
+		name        string
+		clusterName string
+		labels      map[string]string
+	}{
+		{
+			name:        "test nil labels",
+			clusterName: "nilLabelsCluster",
+			labels:      nil,
+		},
+		{
+			name:        "test empty labels map",
+			clusterName: "nilLabelsCluster",
+			labels:      map[string]string{},
+		},
+		{
+			name:        "test one label",
+			clusterName: "cluster1",
+			labels: map[string]string{
+				"label1": "val1",
+			},
+		},
+		{
+			name:        "test two labels",
+			clusterName: "cluster2",
+			labels: map[string]string{
+				"label1":      "val1",
+				"rancherLbl2": "val2",
+			},
+		},
+		{
+			name:        "test 3 labels",
+			clusterName: "cluster3",
+			labels: map[string]string{
+				"label1":      "val1",
+				"rancherLbl2": "val2",
+				"rancherLbl3": "val3",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			payload := makeClusterPayload(tt.clusterName, tt.labels)
+			fmt.Printf("%v\n", payload)
+			payloadParsed, err := gabs.ParseJSON([]byte(payload))
+			asserts.NoError(t, err)
+			asserts.Equal(t, tt.clusterName, payloadParsed.Path("name").Data())
+			asserts.Equal(t, "cluster", payloadParsed.Path("type").Data())
+			labels := payloadParsed.Path("labels")
+			if tt.labels == nil || len(tt.labels) == 0 {
+				asserts.Nil(t, labels)
+			}
+			for key, val := range tt.labels {
+				asserts.Equal(t, val, labels.Path(key).Data())
+			}
 		})
 	}
 }
