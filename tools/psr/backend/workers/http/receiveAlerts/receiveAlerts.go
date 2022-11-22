@@ -15,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
 )
 
@@ -133,9 +134,8 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 		}
 		event := corev1.Event{
 			ObjectMeta: v1.ObjectMeta{
-				GenerateName:      "psr-alert-",
-				Namespace:         config.PsrEnv.GetEnv(config.PsrWorkerNamespace),
-				CreationTimestamp: v1.Time{Time: time.Now()},
+				GenerateName: "psr-alert",
+				Namespace:    config.PsrEnv.GetEnv(config.PsrWorkerNamespace),
 			},
 			InvolvedObject: corev1.ObjectReference{
 				Namespace: config.PsrEnv.GetEnv(config.PsrWorkerNamespace),
@@ -143,7 +143,13 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 			Type:    "Alert",
 			Message: "Alert received",
 		}
-		if err = c.CrtlRuntime.Create(context.TODO(), &event); err != nil {
+		//if err = c.CrtlRuntime.Create(context.TODO(), &event); err != nil {
+		//	log.Errorf("error generating event: %v", err)
+		//}
+		if _, err = controllerutil.CreateOrUpdate(context.TODO(), c.CrtlRuntime, &event, func() error {
+			event.LastTimestamp = v1.Time{Time: time.Now()}
+			return nil
+		}); err != nil {
 			log.Errorf("error generating event: %v", err)
 		}
 	})
