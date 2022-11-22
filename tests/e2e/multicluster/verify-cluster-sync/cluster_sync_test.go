@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
@@ -23,9 +24,10 @@ import (
 )
 
 const (
-	waitTimeout      = 10 * time.Minute
-	shortWaitTimeout = time.Minute
-	pollingInterval  = 10 * time.Second
+	waitTimeout       = 10 * time.Minute
+	shortWaitTimeout  = 30 * time.Second
+	pollingInterval   = 10 * time.Second
+	shortPollInterval = 5 * time.Second
 )
 
 var t = framework.NewTestFramework("cluster_sync_test")
@@ -45,7 +47,7 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 	// 2. Delete the cluster in Rancher
 	// Verify that the VMC was created and deleted in sync
 	t.Context("When cluster is created and deleted in Rancher with the configured labels", func() {
-		const clusterName = "RancherCreateDelete"
+		var clusterName = "rancher-create-delete-" + uuid.NewString()[:7]
 		var clusterID string
 
 		t.BeforeEach(func() {
@@ -65,14 +67,23 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 	// 2. Delete the cluster in Rancher
 	// Verify that the VMC was created and deleted in sync
 	t.Context("When cluster is created in Rancher without the configured labels", func() {
-		const clusterName = "RancherNoLabel"
-
+		var clusterName = "rancher-no-label-" + uuid.NewString()[:7]
+		clusterID := ""
 		t.BeforeEach(func() {
 			client, rc = initializeTestResources()
 		})
 
+		t.AfterEach(func() {
+			if clusterID != "" {
+				// Delete cluster using Rancher API
+				deleted, err := vmc.DeleteClusterFromRancher(rc, clusterID, vzlog.DefaultLogger())
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(deleted).To(BeTrue())
+			}
+		})
+
 		t.It("a VMC is NOT created", func() {
-			_ = testRancherClusterCreation(rc, client, clusterName, nil, false)
+			clusterID = testRancherClusterCreation(rc, client, clusterName, nil, false)
 		})
 	})
 
@@ -80,7 +91,7 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 	// 2. Delete the VMC
 	// Verify the Rancher cluster was created and deleted in sync
 	t.Context("When VMCs are created and deleted", func() {
-		const clusterName = "VMCCreateDelete"
+		var clusterName = "vmc-create-delete-" + uuid.NewString()[:7]
 
 		t.BeforeEach(func() {
 			client, rc = initializeTestResources()
@@ -99,7 +110,7 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 	// 2. Delete the cluster in Rancher
 	// Verify the Rancher cluster is created and then the VMC is deleted
 	t.Context("When VMC is created and the cluster is deleted in Rancher", func() {
-		const clusterName = "VMCCreateRancherDelete"
+		var clusterName = "vmc-create-rancher-delete-" + uuid.NewString()[:7]
 		var clusterID string
 
 		t.BeforeEach(func() {
@@ -119,7 +130,7 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 	// 2. Delete the VMC
 	// Verify the VMC is created and then the Rancher cluster is deleted
 	t.Context("When Rancher cluster is created with configured labels and then the VMC is deleted", func() {
-		const clusterName = "rancherCreateVMCDelete"
+		var clusterName = "rancher-create-vmc-delete-" + uuid.NewString()[:7]
 
 		t.BeforeEach(func() {
 			client, rc = initializeTestResources()
@@ -137,7 +148,7 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 
 func initializeTestResources() (*versioned.Clientset, *vmc.RancherConfig) {
 	adminKubeconfig := os.Getenv("ADMIN_KUBECONFIG")
-	Expect(adminKubeconfig).To(Not(BeEmpty()))
+	Expect(adminKubeconfig).To(Not(BeEmpty()), "ADMIN_KUBECONFIG should not be empty")
 
 	var err error
 	client, err = pkg.GetClusterOperatorClientset(adminKubeconfig)
@@ -178,7 +189,7 @@ func assertVMCConsistentlyNotExists(clusterName string, msg string) {
 		pkg.Log(pkg.Info, msg)
 		_, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Get(context.TODO(), clusterName, metav1.GetOptions{})
 		return errors.IsNotFound(err)
-	}).WithPolling(pollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
+	}).WithPolling(shortPollInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 }
 
 // assertVMCEventuallyCreated asserts that eventually, a VMC with the given cluster name exists
@@ -267,7 +278,7 @@ func testVMCDeletion(rc *vmc.RancherConfig, client *versioned.Clientset, cluster
 
 	Consistently(func() bool {
 		return clusterExistsInRancher(rc, clusterName)
-	}).WithPolling(pollingInterval).WithTimeout(shortWaitTimeout).Should(BeFalse())
+	}).WithPolling(shortPollInterval).WithTimeout(shortWaitTimeout).Should(BeFalse())
 }
 
 func verifyRancherRegistration(clusterName string) bool {
