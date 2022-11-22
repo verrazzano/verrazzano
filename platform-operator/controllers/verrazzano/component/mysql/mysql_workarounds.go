@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	k8sready "github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
@@ -31,6 +33,9 @@ func (c mysqlComponent) repairICStuckDeleting(ctx spi.ComponentContext) error {
 	// Get the IC object
 	innoDBCluster, err := getInnoDBCluster(ctx)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
 		return err
 	}
 	if innoDBCluster.GetDeletionTimestamp() == nil {
