@@ -20,9 +20,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/yaml"
@@ -90,42 +88,21 @@ func main() {
 		LeaderElectionID:       "42d5ea87.verrazzano.io",
 	}
 
-	// if the user has specified a label selector to filter Rancher clusters, create a custom cache that applies the selector
-	// Note: populate this from the selector provided by the user
-	if clusterSelector != nil {
-		log.Debugf("Applying cluster label selector to controller cache: %+v", *clusterSelector)
-		options.NewCache = func(conf *rest.Config, opts cache.Options) (cache.Cache, error) {
-			if opts.SelectorsByObject == nil {
-				opts.SelectorsByObject = make(cache.SelectorsByObject)
-			}
-			selector, err := metav1.LabelSelectorAsSelector(clusterSelector)
-			if err != nil {
-				return nil, err
-			}
-			opts.SelectorsByObject[rancher.CattleClusterClientObject()] = cache.ObjectSelector{
-				Label: selector,
-			}
-			return cache.New(conf, opts)
-		}
-	}
-
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
 		log.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
-	if syncEnabled {
-		if err = (&rancher.RancherClusterReconciler{
-			Client: mgr.GetClient(),
-			Log:    log,
-			Scheme: mgr.GetScheme(),
-		}).SetupWithManager(mgr); err != nil {
-			log.Errorf("Failed to create Rancher cluster controller: %v", err)
-			os.Exit(1)
-		}
-	} else {
-		log.Info("Rancher cluster sync disabled, cluster reconciler not started")
+	if err = (&rancher.RancherClusterReconciler{
+		Client:             mgr.GetClient(),
+		ClusterSyncEnabled: syncEnabled,
+		ClusterSelector:    clusterSelector,
+		Log:                log,
+		Scheme:             mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		log.Errorf("Failed to create Rancher cluster controller: %v", err)
+		os.Exit(1)
 	}
 
 	// Set up the reconciler for VerrazzanoManagedCluster objects
