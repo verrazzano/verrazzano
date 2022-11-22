@@ -54,7 +54,6 @@ const (
 	vzUserName              = "verrazzano"
 	vzInternalPromUser      = "verrazzano-prom-internal"
 	vzInternalOSUser        = "verrazzano-os-internal"
-	vzInternalOSSecret      = "verrazzano-os-internal"
 	keycloakPodName         = "keycloak-0"
 	realmManagement         = "realm-management"
 	viewUsersRole           = "view-users"

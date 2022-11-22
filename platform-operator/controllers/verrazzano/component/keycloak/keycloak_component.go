@@ -135,7 +135,7 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 	}
 
 	// Create secret for the verrazzano-os-internal user
-	err = createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, vzInternalOSSecret, vzInternalOSUser)
+	err = createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, vzInternalOSUser, vzInternalOSUser)
 	if err != nil {
 		return err
 	}
@@ -185,7 +185,7 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 		}
 	}
 	// Create secret for the verrazzano-os-internal user
-	err := createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, vzInternalOSSecret, vzInternalOSUser)
+	err := createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, vzInternalOSUser, vzInternalOSUser)
 	if err != nil {
 		return err
 	}
