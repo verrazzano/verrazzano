@@ -26,9 +26,9 @@ var lastTimeStatefulSetReady time.Time
 // The start of the timer for determining if an IC object is stuck terminating
 var initialTimeICUninstallChecked time.Time
 
-// repairICStuckTerminating - temporary workaround to repair issue where a InnoDBCluster object
+// repairICStuckDeleting - temporary workaround to repair issue where a InnoDBCluster object
 // can be stuck terminating (e.g. during uninstall).  The workaround is to recycle the mysql-operator
-func (c mysqlComponent) repairICStuckTerminating(ctx spi.ComponentContext) error {
+func (c mysqlComponent) repairICStuckDeleting(ctx spi.ComponentContext) error {
 	// Get the IC object
 	innoDBCluster, err := getInnoDBCluster(ctx)
 	if err != nil {
@@ -43,6 +43,25 @@ func (c mysqlComponent) repairICStuckTerminating(ctx spi.ComponentContext) error
 	if c.InitialTimeICUninstallChecked.IsZero() {
 		*c.InitialTimeICUninstallChecked = time.Now()
 		return fmt.Errorf("Starting timer to watch if the InnoDBCluster %s/%s object is stuck terminating", ComponentNamespace, helmReleaseName)
+	}
+
+	// Initiate repair only if time to wait period has been exceeded
+	expiredTime := c.InitialTimeICUninstallChecked.Add(5 * time.Minute)
+	if time.Now().After(expiredTime) {
+		// Restart the mysql-operator to see if it will finish deleting the IC object
+		ctx.Log().Info("Restarting the mysql-operator to see if it will repair InnoDBCluster stuck deleting")
+
+		operPod, err := getMySQLOperatorPod(ctx.Log(), ctx.Client())
+		if err != nil {
+			return fmt.Errorf("Failed restarting the mysql-operator to repair InnoDBCluster stuck deleting: %v", err)
+		}
+
+		if err = ctx.Client().Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
+			return err
+		}
+
+		// Clear the timer
+		*c.InitialTimeICUninstallChecked = time.Time{}
 	}
 
 	return nil

@@ -97,12 +97,12 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	assert.True(t, errors.IsNotFound(err))
 }
 
-// TestRepairICStuckTerminating tests the temporary workaround for MySQL
+// TestRepairICStuckDeleting tests the temporary workaround for MySQL
 // IC object getting stuck being deleted.
 // GIVEN a IC with deletion timestamp
 // WHEN not deleted after the expected timer expires
 // THEN recycle the mysql-operator
-func TestRepairICStuckTerminating(t *testing.T) {
+func TestRepairICStuckDeleting(t *testing.T) {
 	mySQLOperatorPod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      mysqloperator.ComponentName,
@@ -120,7 +120,7 @@ func TestRepairICStuckTerminating(t *testing.T) {
 	mysqlComp.InitialTimeICUninstallChecked = &time.Time{}
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
 
-	err := mysqlComp.repairICStuckTerminating(fakeCtx)
+	err := mysqlComp.repairICStuckDeleting(fakeCtx)
 	assert.NoError(t, err)
 	assert.True(t, mysqlComp.InitialTimeICUninstallChecked.IsZero())
 
@@ -133,7 +133,7 @@ func TestRepairICStuckTerminating(t *testing.T) {
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
 
 	assert.True(t, mysqlComp.InitialTimeICUninstallChecked.IsZero())
-	err = mysqlComp.repairICStuckTerminating(fakeCtx)
+	err = mysqlComp.repairICStuckDeleting(fakeCtx)
 	assert.Error(t, err)
 	assert.False(t, mysqlComp.InitialTimeICUninstallChecked.IsZero())
 
@@ -141,37 +141,12 @@ func TestRepairICStuckTerminating(t *testing.T) {
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
 	assert.NoError(t, err, "expected the mysql-operator pod to be found")
 
-	/*
-		// Second time calling, expect no error and mysql-operator pod to still exist
-		err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
-		assert.NoError(t, err)
+	// Force the timer to be expired, expect the mysql-operator pod to be deleted
+	*mysqlComp.InitialTimeICUninstallChecked = time.Now().Add(-time.Hour * 2)
+	err = mysqlComp.repairICStuckDeleting(fakeCtx)
+	assert.NoError(t, err)
 
-		pod := v1.Pod{}
-		err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
-		assert.NoError(t, err)
-
-		// Third time calling, set the timer to exceed the expiration time which will force a check of the readiness gates.
-		// The readiness gates will be set to true going into the call, so the mysql-operator should not get recycled.
-		*mysqlComp.LastTimeReadinessGateRepairStarted = time.Now().Add(-time.Hour * 2)
-		err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
-		assert.NoError(t, err)
-
-		err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
-		assert.NoError(t, err)
-
-		// Fourth time calling, set one of the readiness gates to false.  This should force deletion of the mysql-operator pod.
-		// The timer should also get reset.
-		mySQLPod.Status.Conditions = []v1.PodCondition{{Type: "gate1", Status: v1.ConditionTrue}, {Type: "gate2", Status: v1.ConditionFalse}}
-		cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod, mySQLOperatorPod).Build()
-		fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
-		*mysqlComp.LastTimeReadinessGateRepairStarted = time.Now().Add(-time.Hour * 2)
-		err = mysqlComp.repairMySQLPodsWaitingReadinessGates(fakeCtx)
-		assert.NoError(t, err, fmt.Sprintf("unexpected error: %v", err))
-		assert.True(t, mysqlComp.LastTimeReadinessGateRepairStarted.IsZero())
-
-		err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
-		assert.Error(t, err)
-		assert.True(t, errors.IsNotFound(err))
-
-	*/
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
 }
