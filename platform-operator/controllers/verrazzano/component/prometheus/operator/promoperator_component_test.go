@@ -4,6 +4,7 @@
 package operator
 
 import (
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"testing"
 
@@ -311,6 +312,11 @@ func TestPreInstallcomponent(t *testing.T) {
 
 // test PreUpgrade for component class
 func TestPreUpgradecomponent(t *testing.T) {
+	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helmcli.ChartStatusDeployed, nil
+	})
+	defer helmcli.SetDefaultChartStateFunction()
+
 	c := fake.NewClientBuilder().Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, true)
 	assert.Nil(t, NewComponent().PreUpgrade(ctx))

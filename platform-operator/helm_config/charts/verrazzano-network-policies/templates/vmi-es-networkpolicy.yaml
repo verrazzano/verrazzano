@@ -62,7 +62,7 @@ spec:
 # Ingress: allow from ES master to port 9300
 #          allow from ES data to port 9300
 #          allow from ES ingest to port 9200 and 9300
-#          allow from Kibana to port 9200
+#          allow from OSD to port 9200
 #          allow from Prometheus to scrape port 9200 and Envoy stats on port 15090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
@@ -103,11 +103,11 @@ spec:
           port: 9200
         - protocol: TCP
           port: 9300
-    # Allow ingress from Kibana
+    # Allow ingress from OSD
     - from:
         - podSelector:
             matchLabels:
-              app: system-kibana
+              app: system-osd
       ports:
         - protocol: TCP
           port: 9200
@@ -128,7 +128,7 @@ spec:
 # Network policy for Elasticsearch Ingest
 # Ingress: allow from auth proxy to port 9200
 #          allow from ES master and ES data to port 9300
-#          allow from Kibana to port 9200
+#          allow from OSD to port 9200
 #          allow from Prometheus to scrape port 9200 and Envoy stats on port 15090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
@@ -164,11 +164,11 @@ spec:
       ports:
         - protocol: TCP
           port: 9300
-    # Allow ingress from Kibana
+    # Allow ingress from OSD
     - from:
         - podSelector:
             matchLabels:
-              app: system-kibana
+              app: system-osd
       ports:
         - protocol: TCP
           port: 9200
@@ -190,7 +190,7 @@ spec:
 # Ingress:
 #          allow from Verrazzano Monitoring Operator to port 9200
 #          allow from auth proxy to port 9200
-#          allow from Kibana to port 9200
+#          allow from OSD to port 9200
 #          allow from Prometheus to scrape port 9200 and Envoy stats on port 15090
 # Egress: allow all
 apiVersion: networking.k8s.io/v1
@@ -223,11 +223,11 @@ spec:
       ports:
         - protocol: TCP
           port: 9200
-    # Allow ingress from Kibana
+    # Allow ingress from OSD
     - from:
         - podSelector:
             matchLabels:
-              app: system-kibana
+              app: system-osd
       ports:
         - protocol: TCP
           port: 9200
@@ -255,7 +255,7 @@ spec:
   # end else
   {{- end }}
 ---
-# Network policy for Kibana
+# Network policy for OSD
 # Ingress: allow from auth proxy to port 5601
 #          allow from VMO on port 5601
 #          allow from Prometheus to scrape Envoy stats on port 15090
@@ -268,7 +268,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: system-kibana
+      app: system-osd
   policyTypes:
     - Ingress
   ingress:
