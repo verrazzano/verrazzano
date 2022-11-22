@@ -514,7 +514,7 @@ func ConfigureAuthProviders(ctx spi.ComponentContext) error {
 			return err
 		}
 
-		if err := createOrUpdateRancherVZMulticlusterUser(ctx); err != nil {
+		if err := createOrUpdateVZMulticlusterUser(ctx, UserVZMulticlusterUsername, UserVZMulticluster); err != nil {
 			return err
 		}
 
@@ -628,8 +628,4 @@ func createOrUpdateRancherUser(ctx spi.ComponentContext) error {
 		return err
 	}
 	return nil
-}
-
-func createOrUpdateRancherVZMulticlusterUser(ctx spi.ComponentContext) error {
-	return createOrUpdateVZMulticlusterUser(ctx, UserVZMulticlusterUsername, UserVZMulticluster)
 }
