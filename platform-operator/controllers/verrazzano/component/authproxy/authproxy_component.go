@@ -167,7 +167,7 @@ func (c authProxyComponent) Uninstall(context spi.ComponentContext) error {
 // PreUpgrade performs any required pre upgrade operations
 func (c authProxyComponent) PreUpgrade(ctx spi.ComponentContext) error {
 
-	return c.HelmComponent.PostUpgrade(ctx)
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // PostUpgrade performs any required post upgrade operations
