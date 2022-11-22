@@ -52,7 +52,8 @@ const (
 	vzAPIAccessRole         = "vz_api_access"
 	vzUserName              = "verrazzano"
 	vzInternalPromUser      = "verrazzano-prom-internal"
-	vzInternalEsUser        = "verrazzano-os-internal"
+	vzInternalOSUser        = "verrazzano-os-internal"
+	vzInternalOSSecret      = "verrazzano-os-internal"
 	keycloakPodName         = "keycloak-0"
 	realmManagement         = "realm-management"
 	viewUsersRole           = "view-users"
@@ -744,8 +745,8 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Creating Verrazzano Internal ES User
-	err = createUser(ctx, cfg, cli, vzInternalEsUser, "verrazzano-os-internal", vzSystemGroup, "", "")
+	// Creating Verrazzano Internal OS User
+	err = createUser(ctx, cfg, cli, vzInternalOSUser, "verrazzano-os-internal", vzSystemGroup, "", "")
 	if err != nil {
 		return err
 	}

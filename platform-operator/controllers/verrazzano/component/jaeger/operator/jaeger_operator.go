@@ -382,7 +382,7 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 	}
 	// Copy the internal Elasticsearch secret
 	ctx.Log().Debugf("Creating secret %s required by Jaeger instance to access storage", globalconst.DefaultJaegerSecretName)
-	esInternalSecret, err := getESInternalSecret(ctx)
+	esInternalSecret, err := getOSInternalSecret(ctx)
 	if err != nil {
 		return err
 	}
@@ -413,8 +413,8 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// getESInternalSecret checks whether verrazzano-os-internal secret exists. Return error if the secret does not exist.
-func getESInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
+// getOSInternalSecret checks whether verrazzano-os-internal secret exists. Return error if the secret does not exist.
+func getOSInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
 	secret := corev1.Secret{}
 	if vzcr.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		// Check verrazzano-os-internal Secret. return error which will cause requeue

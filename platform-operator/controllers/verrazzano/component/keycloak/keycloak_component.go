@@ -135,7 +135,7 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 	}
 
 	// Create secret for the verrazzano-os-internal user
-	err = createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, "verrazzano-os-internal", "verrazzano-os-internal")
+	err = createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, vzInternalOSSecret, vzInternalOSUser)
 	if err != nil {
 		return err
 	}
