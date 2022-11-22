@@ -113,6 +113,6 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 			err := update.UpdateCR(m)
 			foundExpectedErr := err != nil && strings.Contains(err.Error(), disableErrorMsg)
 			return foundExpectedErr
-		}).Should(BeTrue(), pollingInterval, waitTimeout)
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
 })

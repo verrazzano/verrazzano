@@ -483,28 +483,28 @@ pipeline {
 
         stage('acceptance-tests') {
             parallel {
-                stage('metrics') {
+                stage('system component metrics') {
                     steps {
                         script {
                             runGinkgo('metrics/syscomponents')
                         }
                     }
                 }
-                stage('restapi') {
+                stage('verify-infra restapi') {
                     steps {
                         script {
                             runGinkgo('verify-infra/restapi')
                         }
                     }
                 }
-                stage('vmi') {
+                stage('verify-infra vmi') {
                     steps {
                         script {
                             runGinkgo('verify-infra/vmi')
                         }
                     }
                 }
-                stage('oam') {
+                stage('verify-infra oam') {
                     steps {
                         script {
                             runGinkgo('verify-infra/oam')
@@ -527,7 +527,7 @@ pipeline {
                         runGinkgo('istio/authz')
                     }
                 }
-                stage('security role based access') {
+                stage('security rbac') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-rbac"
                     }
@@ -535,7 +535,7 @@ pipeline {
                         runGinkgo('security/rbac')
                     }
                 }
-                stage('WebLogic logging') {
+                stage('webLogic logging') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-logging"
                     }
@@ -545,7 +545,7 @@ pipeline {
                         }
                     }
                 }
-                stage('helidon workload') {
+                stage('examples helidon') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/helidon-workload"
                     }

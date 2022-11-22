@@ -7,6 +7,7 @@ import (
 	"flag"
 	"os"
 
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -19,7 +20,6 @@ import (
 	vzapp "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -122,7 +122,7 @@ func main() {
 	}
 
 	registry.InitRegistry()
-	//This allows separation of webhooks and operator
+	// This allows separation of webhooks and operator
 	var exitErr error
 	if config.RunWebhookInit {
 		exitErr = operatorinit.WebhookInit(config, log)

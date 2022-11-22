@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 var skipDeploy bool
@@ -23,7 +22,7 @@ func init() {
 	flag.StringVar(&istioInjection, "istioInjection", "enabled", "istioInjection enables the injection of istio side cars")
 }
 
-func TestBobsBooksExample(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Bobs Books Example Test Suite")
+func TestBobsBooksExample(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Bobs Books Example Test Suite")
 }

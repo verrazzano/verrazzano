@@ -56,6 +56,9 @@ const ImageRepoOverrideEnvVar = "IMAGE_REPO"
 // VerrazzanoAppOperatorImageEnvVar is the environment variable used to override the Verrazzano Application Operator image
 const VerrazzanoAppOperatorImageEnvVar = "APP_OPERATOR_IMAGE"
 
+// VerrazzanoClusterOperatorImageEnvVar is the environment variable used to override the Verrazzano Cluster Operator image
+const VerrazzanoClusterOperatorImageEnvVar = "CLUSTER_OPERATOR_IMAGE"
+
 // The Kubernetes default namespace
 const DefaultNamespace = "default"
 
@@ -75,7 +78,10 @@ const ClusterNameEnvVar = "CLUSTER_NAME"
 const OpensearchURLEnvVar = "OPENSEARCH_URL"
 
 // OpensearchIngress is the name of the ingress for Opensearch
-const OpensearchIngress = "vmi-system-es-ingest"
+const OpensearchIngress = "vmi-system-os-ingest"
+
+// OpensearchdashboardsIngress is the name of the ingress for Opensearchdashboards
+const OpensearchDashboardsIngress = "vmi-system-osd"
 
 // GrafanaIngress is the name of the ingress for Grafana
 const GrafanaIngress = "vmi-system-grafana"

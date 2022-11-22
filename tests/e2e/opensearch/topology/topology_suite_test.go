@@ -5,11 +5,11 @@ package topology
 
 import (
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+
 	"testing"
 )
 
-func TestTopology(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "OpenSearch Topology Suite")
+func TestTopology(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "OpenSearch Topology Suite")
 }

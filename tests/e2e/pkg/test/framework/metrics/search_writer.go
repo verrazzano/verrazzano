@@ -11,7 +11,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -79,12 +78,6 @@ func postRecord(hc *retryablehttp.Client, basicAuth, uri string, reader io.Reade
 // Write out the record to the search data store
 func (s SearchWriter) Write(data []byte) (int, error) {
 	index := s.timeStampIndex()
-
-	if strings.Contains(index, "metrics") {
-		v := string(data)
-		fmt.Println(v)
-	}
-
 	uri := fmt.Sprintf("%s/%s/_doc", s.url, index)
 	reader := bytes.NewReader(data)
 	if err := postRecord(s.hc, s.auth, uri, reader); err != nil {

@@ -90,7 +90,7 @@ func TestRunWorker(t *testing.T) {
 			log := vzlog.DefaultLogger()
 			f := fakeWorker{}
 			r, err := NewRunner(&f, config.CommonConfig{}, log)
-			actualRunner := r.(runner)
+			actualRunner := r.(workerRunner)
 			assert.NoError(t, err)
 
 			err = r.RunWorker(config.CommonConfig{
@@ -108,9 +108,9 @@ func TestRunWorker(t *testing.T) {
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w fakeWorker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		WorkerType:  config.WorkerTypeExample,
-		Description: "Example worker that demonstrates executing a fake use case",
-		MetricsName: "example",
+		WorkerType:    config.WorkerTypeExample,
+		Description:   "Example worker that demonstrates executing a fake use case",
+		MetricsPrefix: "example",
 	}
 }
 
@@ -128,6 +128,10 @@ func (w *fakeWorker) GetMetricList() []prometheus.Metric {
 
 func (w *fakeWorker) WantLoopInfoLogged() bool {
 	return true
+}
+
+func (w fakeWorker) PreconditionsMet() (bool, error) {
+	return true, nil
 }
 
 func (w *fakeWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {

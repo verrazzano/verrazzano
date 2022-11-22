@@ -29,9 +29,9 @@ func NewExampleWorker() (spi.Worker, error) {
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w exampleWorker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		WorkerType:  config.WorkerTypeExample,
-		Description: "Example worker that demonstrates executing a fake use case",
-		MetricsName: config.WorkerTypeExample,
+		WorkerType:    config.WorkerTypeExample,
+		Description:   "Example worker that demonstrates executing a fake use case",
+		MetricsPrefix: config.WorkerTypeExample,
 	}
 }
 
@@ -49,6 +49,10 @@ func (w exampleWorker) GetMetricList() []prometheus.Metric {
 
 func (w exampleWorker) WantLoopInfoLogged() bool {
 	return true
+}
+
+func (w exampleWorker) PreconditionsMet() (bool, error) {
+	return true, nil
 }
 
 func (w exampleWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {

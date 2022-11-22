@@ -342,7 +342,7 @@ pipeline {
                                 runGinkgoRandomize('verify-infra/vmi')
                             }
                         }
-                        stage('security role based access') {
+                        stage('security rbac') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/sec-role-based-access"
                             }
@@ -363,7 +363,9 @@ pipeline {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
                             }
                             steps {
-                                sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
+                                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                                    sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh"
+                                }
                             }
                             post {
                                 failure {
@@ -402,7 +404,7 @@ pipeline {
                                 }
                             }
                         }
-                        stage('k8s deployment workload metrics') {
+                        stage('deployment metrics') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/k8sdeploy-workload-metrics"
                             }
@@ -426,7 +428,7 @@ pipeline {
                                 runGinkgo('logging/opensearch')
                             }
                         }
-                        stage ('Grafana with DB') {
+                        stage ('grafana db') {
                             when {
                                 expression {params.USE_DB_FOR_GRAFANA == true}
                             }
@@ -477,7 +479,7 @@ pipeline {
                                runGinkgo('jaeger/hotrod')
                             }
                         }
-                        stage('JWT Workload Component') {
+                        stage('jwt helidon') {
                             when {
                                 expression {params.ENABLE_JWT_TESTING == true}
                             }
@@ -490,7 +492,7 @@ pipeline {
                                 runGinkgo('jwt/helidon')
                             }
                         }
-                        stage('JWT Service Component') {
+                        stage('jwt helidon svc') {
                             when {
                                 expression {params.ENABLE_JWT_TESTING == true}
                             }
@@ -519,7 +521,7 @@ pipeline {
                                 runGinkgo('workloads/coherence')
                             }
                         }
-                        stage('OAM workloads') {
+                        stage('oam workloads') {
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/oam-workloads"
                             }

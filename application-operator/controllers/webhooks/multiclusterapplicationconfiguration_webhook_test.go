@@ -7,6 +7,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	admissionv1 "k8s.io/api/admission/v1"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -14,7 +15,6 @@ import (
 	v1alpha12 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"

@@ -5,11 +5,11 @@ package opensearch
 
 import (
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+
 	"testing"
 )
 
-func TestOpenSearchPreUpgrade(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Pre Upgrade OpenSearch Suite")
+func TestOpenSearchPreUpgrade(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Pre Upgrade OpenSearch Suite")
 }

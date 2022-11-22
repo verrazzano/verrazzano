@@ -97,12 +97,18 @@ func (c consoleComponent) IsReady(ctx spi.ComponentContext) bool {
 
 // PreInstall - actions to perform prior to installing this component
 func (c consoleComponent) PreInstall(ctx spi.ComponentContext) error {
-	return preHook(ctx)
+	if err := preHook(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 // PreUpgrade performs any required pre upgrade operations
 func (c consoleComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return preHook(ctx)
+	if err := preHook(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // GetOverrides gets the install overrides for the console

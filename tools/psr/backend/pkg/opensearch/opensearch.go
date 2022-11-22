@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -127,4 +128,13 @@ func getPodsByLabels(ctrlRuntimeClient client.Client, namespace string, requirem
 		return nil, err
 	}
 	return podList.Items, nil
+}
+
+// ValidateOpenSeachTier validates the envvar is a correct opensearch tier
+func ValidateOpenSeachTier(opensearchTierEnvVar string) (string, error) {
+	tier := config.PsrEnv.GetEnv(opensearchTierEnvVar)
+	if tier != MasterTier && tier != DataTier && tier != IngestTier {
+		return "", fmt.Errorf("error, %s not a valid OpenSearch tier to restart", tier)
+	}
+	return tier, nil
 }

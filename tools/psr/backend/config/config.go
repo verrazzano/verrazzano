@@ -37,16 +37,20 @@ const (
 
 	// PsrWorkerNamespace is the namespace of the PSR release
 	PsrWorkerNamespace = "NAMESPACE"
+
+	// PsrWorkerTypeMetricsName is the metrics label key for the PSR worker type
+	PsrWorkerTypeMetricsName = "psr_worker_type"
 )
 
 // Define worker types
 const (
-	WorkerTypeExample   = "example"
-	WorkerTypeWriteLogs = "writelogs"
-	WorkerTypeGetLogs   = "getlogs"
-	WorkerTypeHTTPGet   = "httpget"
-	WorkerTypePostLogs  = "postlogs"
-	WorkerTypeScale     = "scale"
+	WorkerTypeExample      = "example"
+	WorkerTypeOpsWriteLogs = "ops-writelogs"
+	WorkerTypeOpsGetLogs   = "ops-getlogs"
+	WorkerTypeOpsPostLogs  = "ops-postlogs"
+	WorkerTypeOpsScale     = "ops-scale"
+	WorkerTypeOpsRestart   = "ops-restart"
+	WorkerTypeHTTPGet      = "http_get"
 )
 
 const (

@@ -57,7 +57,7 @@ docker-push: ## build and push all images
 
 .PHONY: create-test-deploy
 create-test-deploy: docker-push
-	(cd platform-operator; make create-test-deploy VZ_DEV_IMAGE=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE} VZ_APP_OP_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE})
+	(cd platform-operator; make create-test-deploy VZ_DEV_IMAGE=${VERRAZZANO_PLATFORM_OPERATOR_IMAGE} VZ_APP_OP_IMAGE=${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} VZ_CLUSTER_OP_IMAGE=${VERRAZZANO_CLUSTER_OPERATOR_IMAGE})
 
 .PHONY: test-platform-operator-install
 test-platform-operator-install:
@@ -85,6 +85,7 @@ precommit-check: check check-tests copyright-check
 precommit-build:
 	go build ./...
 
+unit-test-coverage: export COVERAGE_EXCLUSIONS ?= tests/e2e|tools/psr
 .PHONY: unit-test-coverage
 unit-test-coverage:
 	${SCRIPT_DIR}/coverage.sh html

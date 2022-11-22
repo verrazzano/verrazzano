@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestMultiClusterWebLogicApplication(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Test Suite to validate the support for VerrazzanoWebLogicWorkload in multi-cluster environment")
+func TestMultiClusterWebLogicApplication(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Test Suite to validate the support for VerrazzanoWebLogicWorkload in multi-cluster environment")
 }

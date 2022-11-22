@@ -5,7 +5,9 @@ package workmanager
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/restart"
 	"sync"
+	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
@@ -21,7 +23,7 @@ import (
 
 var startMetricsFunc = metrics2.StartMetricsServerOrDie
 
-// StartWorkerRunners starts the runner threads, each which runs a worker in a loop
+// StartWorkerRunners starts the workerRunner threads, each which runs a worker in a loop
 func StartWorkerRunners(log vzlog.VerrazzanoLogger) error {
 	// Get the common config for all the workers
 	conf, err := config.GetCommonConfig(log)
@@ -37,17 +39,12 @@ func StartWorkerRunners(log vzlog.VerrazzanoLogger) error {
 		log.Error(err)
 		return err
 	}
-	// add the worker config
-	if err := config.PsrEnv.LoadFromEnv(worker.GetEnvDescList()); err != nil {
-		log.Error(err)
-		return err
-	}
 
-	// init the runner with the worker that it will call repeatedly to DoWork
+	// init the workerRunner with the worker that it will call repeatedly to DoWork
 	log.Infof("Initializing worker %s", wt)
 	runner, err := NewRunner(worker, conf, log)
 	if err != nil {
-		log.Errorf("Failed initializing runner and worker: %v", err)
+		log.Errorf("Failed initializing workerRunner and worker: %v", err)
 		return err
 	}
 
@@ -57,6 +54,11 @@ func StartWorkerRunners(log vzlog.VerrazzanoLogger) error {
 	mProviders = append(mProviders, runner)
 	mProviders = append(mProviders, worker)
 	go startMetricsFunc(mProviders)
+
+	// Wait for any dependencies to be resolved before continuing
+	if err := waitForPreconditions(log, worker); err != nil {
+		return err
+	}
 
 	// run the worker in go-routine to completion (usually forever)
 	var wg sync.WaitGroup
@@ -72,6 +74,23 @@ func StartWorkerRunners(log vzlog.VerrazzanoLogger) error {
 	return nil
 }
 
+// waitForPreconditions Waits indefinitely for any worker preconditions to be met
+func waitForPreconditions(log vzlog.VerrazzanoLogger, worker spi.Worker) error {
+	for {
+		log.Progressf("Waiting for worker preconditions to be met")
+		readyToExecute, err := worker.PreconditionsMet()
+		if err != nil {
+			return err
+		}
+		if readyToExecute {
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
+	log.Progressf("Worker preconditions be met, continuing")
+	return nil
+}
+
 // getWorker returns a worker given the name of the worker
 func getWorker(wt string) (spi.Worker, error) {
 	switch wt {
@@ -79,14 +98,16 @@ func getWorker(wt string) (spi.Worker, error) {
 		return example.NewExampleWorker()
 	case config.WorkerTypeHTTPGet:
 		return http.NewHTTPGetWorker()
-	case config.WorkerTypeWriteLogs:
+	case config.WorkerTypeOpsWriteLogs:
 		return writelogs.NewWriteLogsWorker()
-	case config.WorkerTypeGetLogs:
+	case config.WorkerTypeOpsGetLogs:
 		return getlogs.NewGetLogsWorker()
-	case config.WorkerTypePostLogs:
+	case config.WorkerTypeOpsPostLogs:
 		return postlogs.NewPostLogsWorker()
-	case config.WorkerTypeScale:
+	case config.WorkerTypeOpsScale:
 		return scale.NewScaleWorker()
+	case config.WorkerTypeOpsRestart:
+		return restart.NewRestartWorker()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}

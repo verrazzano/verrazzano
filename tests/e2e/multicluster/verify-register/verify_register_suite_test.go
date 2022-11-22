@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 var minimalVerification bool
@@ -17,7 +16,7 @@ func init() {
 	flag.BoolVar(&minimalVerification, "minimalVerification", false, "minimalVerification to perform minimal verification")
 }
 
-func TestVerifyRegister(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Register Managed Cluster multi-cluster Suite")
+func TestVerifyRegister(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Register Managed Cluster multi-cluster Suite")
 }

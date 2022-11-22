@@ -423,12 +423,12 @@ pipeline {
                         deploySampleApp()
                     }
                 }
-                stage ('Verify Register') {
+                stage ('verify-register') {
                     steps {
                         verifyRegisterManagedClusters()
                     }
                 }
-                stage ('Verify Metrics') {
+                stage ('system component metrics') {
                     steps {
                         runGinkgoRandomize('metrics/syscomponents')
                     }
@@ -479,7 +479,7 @@ pipeline {
                         runGinkgoAdmin('multicluster/verify-cluster-sync')
                     }
                 }
-                stage ('multicluster/verify-install') {
+                stage ('mc verify-install') {
                     steps {
                         runGinkgoRandomize('multicluster/verify-install')
                     }
@@ -525,7 +525,7 @@ pipeline {
                         undeploySampleApp()
                     }
                 }
-                stage ('Multi-cluster Verify Api') {
+                stage ('mc verify-api') {
                     steps {
                         catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                             script {
@@ -1471,15 +1471,17 @@ def runConsoleTests() {
     // Console runs on admin cluster and the KUBECONFIG is pointed at it (which is cluster 1)
     // Make sure that application page tests are also run by setting RUN_APP_TESTS=true since we deployed
     // a sample app for that purpose
-    sh """
-        export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
-        export CONSOLE_REPO_BRANCH="${params.CONSOLE_REPO_BRANCH}"
-        export CONSOLE_APP_NAME="${SAMPLE_APP_NAME}"
-        export CONSOLE_APP_NAMESPACE="${SAMPLE_APP_NAMESPACE}"
-        export CONSOLE_APP_CLUSTER="managed1"
-        export CONSOLE_APP_COMP="${SAMPLE_APP_COMPONENT}"
-        KUBECONFIG=${ADMIN_KUBECONFIG} RUN_APP_TESTS=true ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
-   """
+    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+        sh """
+            export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
+            export CONSOLE_REPO_BRANCH="${params.CONSOLE_REPO_BRANCH}"
+            export CONSOLE_APP_NAME="${SAMPLE_APP_NAME}"
+            export CONSOLE_APP_NAMESPACE="${SAMPLE_APP_NAMESPACE}"
+            export CONSOLE_APP_CLUSTER="managed1"
+            export CONSOLE_APP_COMP="${SAMPLE_APP_COMPONENT}"
+            KUBECONFIG=${ADMIN_KUBECONFIG} RUN_APP_TESTS=true ${GO_REPO_PATH}/verrazzano/ci/scripts/run_console_tests.sh
+        """
+    }
 }
 
 def emitJobMetrics() {
@@ -1497,10 +1499,10 @@ def verifyUpgrade() {
         "Verify Register": {
             verifyRegisterManagedClusters()
         },
-        "Verify Managed Cluster Permissions": {
+        "verify-permissions": {
             verifyManagedClusterPermissions()
         },
-        "Verify Metrics": {
+        "system component metrics": {
             runGinkgoRandomize('metrics/syscomponents')
         },
     ]
@@ -1544,10 +1546,10 @@ def verifyInfra() {
         "verify-infra vmi": {
             runGinkgoRandomize('verify-infra/vmi')
         },
-        "verify-infra jaeger-install": {
+        "mc verify-jaeger-install": {
             runGinkgoRandomize('multicluster/verify-jaeger/install')
         },
-        "verify-infra jaeger-system": {
+        "mc verify-jaeger-system": {
             runGinkgoRandomize('multicluster/verify-jaeger/system')
         },
     ]
@@ -1555,25 +1557,25 @@ def verifyInfra() {
 
 def verifyExamples() {
     return [
-        "Examples Helidon": {
+        "mc examples helidon": {
             runGinkgo("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/helidon-workload")
         },
-        "Examples Helidon Deprecated": {
+        "mc examples helidon deprecated": {
             runGinkgo("multicluster/examples/helidon-deprecated", "${TEST_DUMP_ROOT}/helidon-deprecated")
         },
         "Delete Deployed App NS": {
             runHelidonNsOpsTest()
         },
-        "WebLogic Workload": {
+        "mc weblogic workload": {
             runGinkgo("multicluster/workloads/mcweblogic", "${TEST_DUMP_ROOT}/weblogic-workload")
         },
-        "Coherence Workload": {
+        "mc coherence workload": {
             runGinkgo("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/coherence-workload")
         },
-        "Jaeger Helidon": {
+        "jaeger helidon": {
             runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
         },
-        "Jaeger Hotrod": {
+        "jaeger hotrod": {
             runGinkgo("multicluster/verify-jaeger/hotrod", "${TEST_DUMP_ROOT}/jaeger-hotrod")
         },
     ]

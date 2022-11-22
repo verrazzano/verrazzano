@@ -17,7 +17,7 @@ import (
 
 const (
 	esDataDeployment   = "vmi-system-es-data"
-	esIngestDeployment = "vmi-system-es-ingest"
+	esIngestDeployment = "vmi-system-os-ingest"
 
 	esMasterStatefulset = "vmi-system-es-master"
 	nodeNamePrefix      = "vmi-system-%s"
