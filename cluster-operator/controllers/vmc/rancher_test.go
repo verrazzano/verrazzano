@@ -142,8 +142,8 @@ func Test_makeClusterPayload(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			payload := makeClusterPayload(tt.clusterName, tt.labels)
-			fmt.Printf("%v\n", payload)
+			payload, err := makeClusterPayload(tt.clusterName, tt.labels)
+			asserts.NoError(t, err)
 			payloadParsed, err := gabs.ParseJSON([]byte(payload))
 			asserts.NoError(t, err)
 			asserts.Equal(t, tt.clusterName, payloadParsed.Path("name").Data())

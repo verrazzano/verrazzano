@@ -160,7 +160,10 @@ func newRancherConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*RancherCo
 func ImportClusterToRancher(rc *RancherConfig, clusterName string, labels map[string]string, log vzlog.VerrazzanoLogger) (string, error) {
 	action := http.MethodPost
 
-	payload := makeClusterPayload(clusterName, labels)
+	payload, err := makeClusterPayload(clusterName, labels)
+	if err != nil {
+		return "", err
+	}
 
 	reqURL := rc.BaseURL + clusterPath
 	headers := map[string]string{"Content-Type": "application/json"}
@@ -194,9 +197,11 @@ func ImportClusterToRancher(rc *RancherConfig, clusterName string, labels map[st
 
 // makeClusterPayload returns the payload for Rancher cluster creation, given a cluster name
 // and labels to apply to it
-func makeClusterPayload(clusterName string, labels map[string]string) string {
-	labelsJSONString := makeLabelsJSONString(labels)
-
+func makeClusterPayload(clusterName string, labels map[string]string) (string, error) {
+	labelsJSONString, err := makeLabelsJSONString(labels)
+	if err != nil {
+		return "", err
+	}
 	payload := `{"type": "cluster",
 		"name":"` + clusterName + `",
 		"dockerRootDir": "/var/lib/docker",
@@ -205,29 +210,22 @@ func makeClusterPayload(clusterName string, labels map[string]string) string {
 		"enableNetworkPolicy": "false"`
 
 	if len(labelsJSONString) > 0 {
-		payload = fmt.Sprintf(`%s, "labels": { %s } }`, payload, labelsJSONString)
+		payload = fmt.Sprintf(`%s, "labels": %s }`, payload, labelsJSONString)
 	} else {
 		payload = fmt.Sprintf("%s}", payload)
 	}
-	return payload
+	return payload, nil
 }
 
-func makeLabelsJSONString(labels map[string]string) string {
-	if labels == nil {
-		return ""
+func makeLabelsJSONString(labels map[string]string) (string, error) {
+	if labels == nil || len(labels) == 0 {
+		return "", nil
 	}
-
-	labelsJSONString := ""
-	i := 0
-	for label, val := range labels {
-		commaIfNeeded := ","
-		if i == 0 {
-			commaIfNeeded = ""
-		}
-		i++
-		labelsJSONString = fmt.Sprintf(`%s%s "%s": "%s"`, labelsJSONString, commaIfNeeded, label, val)
+	labelsJSON, err := json.Marshal(labels)
+	if err != nil {
+		return "", err
 	}
-	return labelsJSONString
+	return string(labelsJSON), nil
 }
 
 // DeleteClusterFromRancher uses the Rancher API to delete a cluster in Rancher.
