@@ -4,6 +4,7 @@
 package transform
 
 import (
+	string2 "github.com/verrazzano/verrazzano/pkg/string"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -25,13 +26,8 @@ func GetEffectiveCR(actualCR *v1alpha1.Verrazzano) (*v1alpha1.Verrazzano, error)
 	if actualCR == nil {
 		return nil, nil
 	}
-	implicitProfiles := []string{string(v1alpha1.None), baseProfile}
 	// Identify the set of profiles, base + declared
-	var profiles []string
-	profiles = append(implicitProfiles, string(v1alpha1.Prod))
-	if len(actualCR.Spec.Profile) > 0 {
-		profiles = append(implicitProfiles, strings.Split(string(actualCR.Spec.Profile), ",")...)
-	}
+	profiles := buildProfilesList(string(actualCR.Spec.Profile), string(v1alpha1.Prod), string(v1alpha1.None))
 	var profileFiles []string
 	for _, profile := range profiles {
 		profileFiles = append(profileFiles, config.GetProfile(v1alpha1.SchemeGroupVersion, profile))
@@ -60,13 +56,7 @@ func GetEffectiveV1beta1CR(actualCR *v1beta1.Verrazzano) (*v1beta1.Verrazzano, e
 	if actualCR == nil {
 		return nil, nil
 	}
-	implicitProfiles := []string{string(v1beta1.None), baseProfile}
-	// Identify the set of profiles, base + declared
-	var profiles []string
-	profiles = append(implicitProfiles, string(v1beta1.Prod))
-	if len(actualCR.Spec.Profile) > 0 {
-		profiles = append(implicitProfiles, strings.Split(string(actualCR.Spec.Profile), ",")...)
-	}
+	profiles := buildProfilesList(string(actualCR.Spec.Profile), string(v1beta1.Prod), string(v1beta1.None))
 	var profileFiles []string
 	for _, profile := range profiles {
 		profileFiles = append(profileFiles, config.GetProfile(v1beta1.SchemeGroupVersion, profile))
@@ -86,4 +76,24 @@ func GetEffectiveV1beta1CR(actualCR *v1beta1.Verrazzano) (*v1beta1.Verrazzano, e
 		}
 	}
 	return effectiveCR, nil
+}
+
+func buildProfilesList(profilesVal string, defaultVal string, noneVal string) []string {
+	if len(profilesVal) == 0 {
+		return []string{baseProfile, defaultVal}
+	}
+	if profilesVal == noneVal {
+		return []string{noneVal}
+	}
+	profiles := []string{}
+	explicitProfilesList := strings.Split(profilesVal, ",")
+	for _, explicitProfile := range explicitProfilesList {
+		if explicitProfile != noneVal && !string2.SliceContainsString(explicitProfilesList, baseProfile) {
+			// if the profile is not None and we haven't already included the baseProfile, include it
+			profiles = append(profiles, baseProfile)
+		}
+		// append the explicitly declared profile to the list
+		profiles = append(profiles, explicitProfile)
+	}
+	return profiles
 }

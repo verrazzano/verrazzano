@@ -49,10 +49,9 @@ func NewMinimalContext(c clipkg.Client, log vzlog.VerrazzanoLogger) (ComponentCo
 // dryRun Dry-run indicator
 // profilesDir Optional override to the location of the profiles dir; if not provided, EffectiveCR == ActualCR
 func NewFakeContext(c clipkg.Client, actualCR *v1alpha1.Verrazzano, actualV1beta1CR *v1beta1.Verrazzano, dryRun bool, profilesDir ...string) ComponentContext {
+	effectiveCR := actualCR
+	effectiveV1beta1CR := actualV1beta1CR
 	log := vzlog.DefaultLogger()
-
-	effectiveCR := actualCR.DeepCopy()
-	effectiveV1beta1CR := actualV1beta1CR.DeepCopy()
 	if len(profilesDir) > 0 {
 		config.TestProfilesDir = profilesDir[0]
 		log.Debugf("Profiles location: %s", config.TestProfilesDir)
