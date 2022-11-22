@@ -28,8 +28,8 @@ import (
 
 const (
 	profilesRelativePath = "../../../../manifests/profiles"
-	masterAppName        = "system-kibana"
-	DeploymentName       = "vmi-system-kibana"
+	masterAppName        = "system-osd"
+	DeploymentName       = "vmi-system-osd"
 	InstallArgsName      = "nodes.data.requests.storage"
 )
 
@@ -578,7 +578,7 @@ func TestIsAvailable(t *testing.T) {
 			"TestIsAvailable",
 			opensearchDashboardsComponent{},
 			spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false),
-			"waiting for deployment verrazzano-system/vmi-system-kibana to exist",
+			"waiting for deployment verrazzano-system/vmi-system-osd to exist",
 			vzapi.ComponentUnavailable,
 		},
 	}
