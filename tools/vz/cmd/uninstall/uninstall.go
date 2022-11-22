@@ -183,6 +183,11 @@ func cleanupResources(client client.Client, vzHelper helpers.VZHelper) {
 		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
 	}
 
+	err = deleteWebhookConfiguration(client, constants.VerrazzanoRequirementsValidatorWebhook)
+	if err != nil {
+		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+	}
+
 	err = deleteMutatingWebhookConfiguration(client, constants.MysqlBackupMutatingWebhookName)
 	if err != nil {
 		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
