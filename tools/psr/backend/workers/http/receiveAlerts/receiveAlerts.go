@@ -132,6 +132,7 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 		if err != nil {
 			log.Errorf("error creating client: %v", err)
 		}
+		log.Infof("Namespace: %s", config.PsrEnv.GetEnv(config.PsrWorkerNamespace))
 		event := corev1.Event{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "psr-alert",
@@ -154,6 +155,10 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 			log.Errorf("error generating event: %v", err)
 		}
 	})
+	err := http.ListenAndServe("localhost:8181", nil)
+	if err != nil {
+		log.Errorf("Error: %v", err)
+	}
 	select {}
 	return nil
 }
