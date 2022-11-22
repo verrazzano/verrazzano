@@ -267,9 +267,9 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			} else {
 				var secret string
 				if supported {
-					secret = pkg.VmiESInternalSecret
+					secret = pkg.VmiOSInternalSecret
 				} else {
-					secret = pkg.VmiESLegacySecret
+					secret = pkg.VmiOSLegacySecret
 				}
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret("", secret)
