@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
+
+set -xv
 
 SECONDS=0
 retval_success=1
 retval_failed=1
 i=0
+
 
 resName=$(kubectl get vz -o jsonpath='{.items[*].metadata.name}')
 echo "waiting for install of resource ${resName} to complete"
@@ -23,7 +26,7 @@ done
 
 if [[ $retval_failed -eq 0 ]] || [[ $i -eq 30 ]] ; then
     echo "Installation Failed"
-    kubectl get vz my-verrazzano -o yaml
+    kubectl get vz ${resName} -o yaml
     exit 1
 fi
 
