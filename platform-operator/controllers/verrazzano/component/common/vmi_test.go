@@ -183,14 +183,7 @@ func TestVMI(t *testing.T) {
 			} else {
 				a.NoError(err)
 			}
-			if test.expectedOverride != nil {
-				if override == nil {
-					a.FailNow("Expected returned override to not be nil")
-				}
-				a.Equal(*test.expectedOverride, *override)
-			} else {
-				a.Nil(override)
-			}
+			a.Equal(test.expectedOverride, override)
 		})
 	}
 }
@@ -335,14 +328,7 @@ func TestStorageOverrideBeta1(t *testing.T) {
 			} else {
 				a.NoError(err)
 			}
-			if test.expectedOverride != nil {
-				if override == nil {
-					a.FailNow("Expected returned override to not be nil")
-				}
-				a.Equal(*test.expectedOverride, *override)
-			} else {
-				a.Nil(override)
-			}
+			a.Equal(test.expectedOverride, override)
 		})
 	}
 }
