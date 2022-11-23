@@ -21,6 +21,7 @@ const (
 	attempts          = "attempts"
 	test              = "test"
 	codeLocation      = "code_location"
+	fullSpecJSON      = "spec_report"
 	stageName         = "stage_name"
 	BuildURL          = "build_url"
 	JenkinsJob        = "jenkins_job"
@@ -176,10 +177,19 @@ func emitInternal(log *zap.SugaredLogger, spec ginkgo.SpecReport) {
 	l := spec.Labels()
 	log = withCodeLocation(log, spec)
 	log, _ = withEnvVar(log, stageName, stageNameEnv)
+	log = withSpecJSON(log, spec)
 	log.With(attempts, spec.NumAttempts,
 		test, t,
 		Label, l).
 		Info()
+}
+
+func withSpecJSON(log *zap.SugaredLogger, spec ginkgo.SpecReport) *zap.SugaredLogger {
+	specJSON, err := spec.MarshalJSON()
+	if err != nil {
+		log = log.With(fullSpecJSON, string(specJSON))
+	}
+	return log
 }
 
 func withCodeLocation(log *zap.SugaredLogger, spec ginkgo.SpecReport) *zap.SugaredLogger {
