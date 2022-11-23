@@ -17,7 +17,6 @@ compareCoverageNumbers() {
   if [[ "$RESULT" -eq 1 ]]; then
     echo "PASS."
     echo "Branch-line-rate: $LOCAL_BRANCH_LINE_RATE is gte to Remote-line-rate: $REMOTE_LINE_RATE"
-    uploadToObjectStorage
   else
     echo "WARNING: Unit Test coverage(line-rate) does NOT pass"
     echo "Branch-line-rate: $LOCAL_BRANCH_LINE_RATE is lte to Remote-line-rate: $REMOTE_LINE_RATE"
@@ -30,17 +29,14 @@ compareCoverageNumbers() {
 
 #Only upload coverage number if it passes
 uploadToObjectStorage() {
-  if [[ "$UPLOAD_UT_COVERAGE" = true ]]; then
-    echo "Writing new coverage number to $UNIT_TEST_TXT_FILE ..."
-    echo "$LOCAL_BRANCH_LINE_RATE" > "$UNIT_TEST_TXT_FILE"
-    echo "Putting in object storage at $CLEAN_BRANCH_NAME/$UNIT_TEST_TXT_FILE"
-    oci --region us-phoenix-1 os object put --force --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name "$CLEAN_BRANCH_NAME"/"$UNIT_TEST_TXT_FILE" --file "$UNIT_TEST_TXT_FILE"
-  fi
+  echo "Writing coverage number $LOCAL_BRANCH_LINE_RATE to $UNIT_TEST_TXT_FILE ..."
+  echo "$LOCAL_BRANCH_LINE_RATE" > "$UNIT_TEST_TXT_FILE"
+  echo "Putting in object storage at $CLEAN_BRANCH_NAME/$UNIT_TEST_TXT_FILE"
+  oci --region us-phoenix-1 os object put --force --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name "$CLEAN_BRANCH_NAME"/"$UNIT_TEST_TXT_FILE" --file "$UNIT_TEST_TXT_FILE"
 }
 
 #Determine if on a release or master branch and download unit-test-coverage-number
 if [[ ! "$CLEAN_BRANCH_NAME" =~ ^release-[0-9]+\.[0-9]+$|^master$ ]]; then
-  FAIL_BUILD_COVERAGE=true
   echo "Trying to download $UNIT_TEST_TXT_FILE from release-$LOCAL_BRANCH_VERSION..."
   oci --region us-phoenix-1 os object get --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name release-"$LOCAL_BRANCH_VERSION"/"$UNIT_TEST_TXT_FILE" --file "$UNIT_TEST_TXT_FILE"
 
@@ -54,7 +50,7 @@ if [[ ! "$CLEAN_BRANCH_NAME" =~ ^release-[0-9]+\.[0-9]+$|^master$ ]]; then
 
 else
   echo "Is a release-* or master branch..."
-  UPLOAD_UT_COVERAGE=true
-  oci --region us-phoenix-1 os object get --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name "$CLEAN_BRANCH_NAME"/"$UNIT_TEST_TXT_FILE" --file "$UNIT_TEST_TXT_FILE"
-  compareCoverageNumbers
+   if [[ "$UPLOAD_UT_COVERAGE" = true ]]; then
+     uploadToObjectStorage
+  fi
 fi

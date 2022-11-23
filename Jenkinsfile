@@ -39,8 +39,8 @@ pipeline {
         booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
         booleanParam (description: 'Whether to perform a scan of the built images', name: 'PERFORM_SCAN', defaultValue: false)
         booleanParam (description: 'Whether to wait for triggered tests or not. This defaults to false, this setting is useful for things like release automation that require everything to complete successfully', name: 'WAIT_FOR_TRIGGERED', defaultValue: false)
-        booleanParam (description: 'Whether to fail build if UT coverage number decreases lower than its release-* coverage from object storage. This defaults to false, meaning we are assuming the build will pass.', name: 'FAIL_IF_COVERAGE_DECREASED', defaultValue: false)
-        booleanParam (description: 'Whether to write new passing UT coverage number to object storage. This only occurs for release-* or master branches with gte coverage. Defaults to false, only time to upload is if we are on release-* or master.', name: 'UPLOAD_UNIT_TEST_COVERAGE', defaultValue: false)
+        booleanParam (description: 'Whether to fail build if UT coverage number decreases lower than its release-* coverage from object storage. This defaults to true, meaning Any non release-*/master branch will fail if its coverage is lower. This can be disabled so that jobs only WARN when coverage drops but not fail.', name: 'FAIL_IF_COVERAGE_DECREASED', defaultValue: true)
+        booleanParam (description: 'Whether to write the UT coverage number to object storage. This always occurs for release-*/master branches. Defaults to true, but it can be disabled to not always upload.', name: 'UPLOAD_UNIT_TEST_COVERAGE', defaultValue: true)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'Wildcard DNS Domain',
                 // 1st choice is the default value
