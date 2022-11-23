@@ -737,8 +737,7 @@ func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, defaultBufferLen
 		}
 
 		if len(logoContent) == defaultBufferLength {
-			log.Infof("logo content of default buffer length %v, retrying", defaultBufferLength)
-			return false, nil
+			return false, log.ErrorfThrottledNewErr("logo content of default buffer length %v", defaultBufferLength)
 		}
 
 		return true, nil
