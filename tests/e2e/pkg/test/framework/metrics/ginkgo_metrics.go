@@ -22,7 +22,7 @@ const (
 	attempts          = "attempts"
 	test              = "test"
 	codeLocation      = "code_location"
-	fullSpecJSON      = "spec_report"
+	fullSpecJSON      = "spec"
 	stageName         = "stage_name"
 	BuildURL          = "build_url"
 	JenkinsJob        = "jenkins_job"
