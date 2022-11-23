@@ -153,7 +153,7 @@ const (
 	VerrazzanoAdminRoleName       = "verrazzano-admin"
 	ViewRoleName                  = "view"
 	VerrazzanoMonitorRoleName     = "verrazzano-monitor"
-	VerrazzanoClusterUserRoleName = "verrazzano-cluster-user"
+	VerrazzanoClusterUserRoleName = "verrazzano-cluster-rancher-user"
 	ClusterMemberRoleName         = "cluster-member"
 	VerrazzanoAdminsGroupName     = "verrazzano-admins"
 	VerrazzanoMonitorsGroupName   = "verrazzano-monitors"
