@@ -13,10 +13,12 @@ import (
 	"strings"
 	"time"
 
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -26,6 +28,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+	corev1 "k8s.io/api/core/v1"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -100,9 +103,9 @@ const (
 	ClusterLocal                      = "local"
 	AuthConfigLocal                   = "local"
 	UserVerrazzano                    = "u-verrazzano"
-	UserVZMulticluster                = "u-verrazzano-multicluster"
-	UserVZMulticlusterUsername        = "verrazzanomc"
-	UserVZMulticlusterDescription     = "Verrazzano Multicluster"
+	UserVZCluster                     = vzconst.VerrazzanoClusterRancherUser
+	UserVZClusterUsername             = vzconst.VerrazzanoClusterRancherUsername
+	UserVZClusterDescription          = "Verrazzano Cluster"
 	UserVerrazzanoDescription         = "Verrazzano Admin"
 	GlobalRoleBindingVerrazzanoPrefix = "grb-"
 	SettingUIPL                       = "ui-pl"
@@ -140,6 +143,7 @@ const (
 const (
 	UserAttributeDisplayName                              = "displayName"
 	UserAttributeUserName                                 = "username"
+	UserAttributePassword                                 = "password"
 	UserAttributePrincipalIDs                             = "principalIds"
 	UserAttributeDescription                              = "description"
 	GlobalRoleBindingAttributeRoleName                    = "globalRoleName"
@@ -538,15 +542,36 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext, vzUser *keycl
 	return createOrUpdateResource(ctx, nsn, GVKUser, data)
 }
 
-// createOrUpdateVZClusterUser creates or updates the Verrazzano Cluster user in Rancher
+// createOrUpdateVZClusterUser creates or updates the Verrazzano Multicluster user in Rancher
 func createOrUpdateVZClusterUser(ctx spi.ComponentContext) error {
-	nsn := types.NamespacedName{Name: UserVZMulticluster}
+	// First, we need to create the secret that stores the password information for the Verrazzano mutlicluster user
+	pass, err := vzpassword.GeneratePassword(15)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to generate a password for the Verrazzano Multicluster User: %v", err)
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+			Name:      UserVZCluster,
+		},
+	}
+	_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), secret, func() error {
+		secret.Data = map[string][]byte{"password": []byte(pass)}
+		return nil
+	})
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed create or update the Secret for the Verrazzano Cluster User: %v", err)
+	}
+
+	nsn := types.NamespacedName{Name: UserVZCluster}
 	data := map[string]interface{}{}
-	data[UserAttributeUserName] = UserVZMulticlusterUsername
+	data[UserAttributeUserName] = UserVZClusterUsername
+	data[UserAttributePassword] = pass
 	caser := cases.Title(language.English)
-	data[UserAttributeDisplayName] = caser.String(UserVZMulticlusterUsername)
-	data[UserAttributeDescription] = caser.String(UserVZMulticlusterDescription)
-	data[UserAttributePrincipalIDs] = []interface{}{UserPrincipalLocalPrefix + UserVZMulticluster}
+	data[UserAttributeDisplayName] = caser.String(UserVZClusterUsername)
+	data[UserAttributeDescription] = caser.String(UserVZClusterDescription)
+	data[UserAttributePrincipalIDs] = []interface{}{UserPrincipalLocalPrefix + UserVZCluster}
 
 	return createOrUpdateResource(ctx, nsn, GVKUser, data)
 }

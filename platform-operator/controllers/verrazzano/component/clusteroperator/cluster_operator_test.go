@@ -6,6 +6,7 @@ package clusteroperator
 import (
 	"context"
 	"fmt"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"os"
 	"testing"
 
@@ -108,7 +109,7 @@ func TestPostInstallUpgrade(t *testing.T) {
 	cli := fake.NewClientBuilder().WithObjects(
 		&rbacv1.ClusterRole{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: VerrazzanoClusterUserRoleName,
+				Name: vzconst.VerrazzanoClusterRancherName,
 			},
 		},
 	).Build()
@@ -118,7 +119,7 @@ func TestPostInstallUpgrade(t *testing.T) {
 	// Ensure the resource exists after postInstallUpgrade
 	resource := unstructured.Unstructured{}
 	resource.SetGroupVersionKind(rancher.GVKRoleTemplate)
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: VerrazzanoClusterUserRoleName}, &resource)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: vzconst.VerrazzanoClusterRancherName}, &resource)
 	asserts.NoError(t, err)
 }
 
@@ -130,7 +131,7 @@ func TestPostInstallUpgradeRancherDisabled(t *testing.T) {
 	cli := fake.NewClientBuilder().WithObjects(
 		&rbacv1.ClusterRole{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: VerrazzanoClusterUserRoleName,
+				Name: vzconst.VerrazzanoClusterRancherName,
 			},
 		},
 	).Build()
@@ -149,6 +150,6 @@ func TestPostInstallUpgradeRancherDisabled(t *testing.T) {
 	// Ensure the resource does not exist after postInstallUpgrade
 	resource := unstructured.Unstructured{}
 	resource.SetGroupVersionKind(rancher.GVKRoleTemplate)
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: VerrazzanoClusterUserRoleName}, &resource)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: vzconst.VerrazzanoClusterRancherName}, &resource)
 	asserts.Error(t, err)
 }

@@ -52,7 +52,7 @@ func (r *VerrazzanoManagedClusterReconciler) UpdateRancherClusterRoleBindingTemp
 		data := resource.UnstructuredContent()
 		data[ClusterRoleTemplateBindingAttributeClusterName] = clusterID
 		data[ClusterRoleTemplateBindingAttributeUserName] = vzconst.VerrazzanoClusterRancherUser
-		data[ClusterRoleTemplateBindingAttributeRoleTemplateName] = vzconst.VerrazzanoClusterRancherRole
+		data[ClusterRoleTemplateBindingAttributeRoleTemplateName] = vzconst.VerrazzanoClusterRancherName
 		return nil
 	})
 	if err != nil {

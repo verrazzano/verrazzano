@@ -139,8 +139,8 @@ func generateClientObjects() client.WithWatch {
 		},
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: rancherNamespace,
-				Name:      rancherAdminSecret,
+				Namespace: constants.VerrazzanoMultiClusterNamespace,
+				Name:      pkgconst.VerrazzanoClusterRancherName,
 			},
 			Data: map[string][]byte{
 				"password": []byte(""),

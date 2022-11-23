@@ -144,8 +144,8 @@ func newRancherConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*RancherCo
 	log.Debugf("Checking for Rancher additional CA in secret %s", cons.AdditionalTLS)
 	rc.AdditionalCA = common.GetAdditionalCA(rdr)
 
-	log.Once("Getting admin token from Rancher")
-	adminToken, err := getAdminTokenFromRancher(rdr, rc, log)
+	log.Once("Getting Verrazzano cluster user token from Rancher")
+	adminToken, err := getVerrazzanoClusterUserTokenFromRancher(rdr, rc, log)
 	if err != nil {
 		log.ErrorfThrottled("Failed to get admin token from Rancher: %v", err)
 		return nil, err
@@ -469,11 +469,11 @@ func getRegistrationYAMLFromRancher(rc *RancherConfig, rancherClusterID string, 
 }
 
 // getAdminSecret fetches the Rancher admin secret
-func getAdminSecret(rdr client.Reader) (string, error) {
+func getVerrazzanoClusterUserSecret(rdr client.Reader) (string, error) {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
-		Namespace: rancherNamespace,
-		Name:      rancherAdminSecret}
+		Namespace: constants.VerrazzanoMultiClusterNamespace,
+		Name:      cons.VerrazzanoClusterRancherName}
 
 	if err := rdr.Get(context.TODO(), nsName, secret); err != nil {
 		return "", err
@@ -481,15 +481,15 @@ func getAdminSecret(rdr client.Reader) (string, error) {
 	return string(secret.Data["password"]), nil
 }
 
-// getAdminTokenFromRancher does a login with Rancher and returns the token from the response
-func getAdminTokenFromRancher(rdr client.Reader, rc *RancherConfig, log vzlog.VerrazzanoLogger) (string, error) {
-	secret, err := getAdminSecret(rdr)
+// getVerrazzanoClusterUserTokenFromRancher does a login with Rancher and returns the token from the response
+func getVerrazzanoClusterUserTokenFromRancher(rdr client.Reader, rc *RancherConfig, log vzlog.VerrazzanoLogger) (string, error) {
+	secret, err := getVerrazzanoClusterUserSecret(rdr)
 	if err != nil {
 		return "", err
 	}
 
 	action := http.MethodPost
-	payload := `{"Username": "admin", "Password": "` + secret + `"}`
+	payload := `{"Username": "` + cons.VerrazzanoClusterRancherUsername + `", "Password": "` + secret + `"}`
 	reqURL := rc.BaseURL + loginPath
 	headers := map[string]string{"Content-Type": "application/json"}
 
