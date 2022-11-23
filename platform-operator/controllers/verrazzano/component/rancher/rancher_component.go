@@ -565,7 +565,7 @@ func isKeycloakAuthEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
-// configureUISettings configures Rancher setting ui-pl, ui-logo-light, ui-logo-dark, ui-primary-color and ui-link-color.
+// configureUISettings configures Rancher setting ui-pl, ui-logo-light, ui-logo-dark, ui-primary-color, ui-link-color and ui-brand.
 func configureUISettings(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 	if err := createOrUpdateUIPlSetting(ctx); err != nil {
@@ -582,6 +582,10 @@ func configureUISettings(ctx spi.ComponentContext) error {
 
 	if err := createOrUpdateUIColorSettings(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring ui color settings: %s", err.Error())
+	}
+
+	if err := createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUIBrand}, common.GVKSetting, map[string]interface{}{"value": SettingUIBrandValue}); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring ui-brand setting: %s", err.Error())
 	}
 
 	return nil
