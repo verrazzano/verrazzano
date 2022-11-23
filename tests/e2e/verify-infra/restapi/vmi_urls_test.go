@@ -43,6 +43,13 @@ var _ = t.Describe("VMI", Label("f:infra-lcm", "f:ui.console"), func() {
 	// THEN  we expect an HTTP OK response status code
 	t.DescribeTable("Access VMI endpoints",
 		func(getURLFromVZStatus func() *string) {
+			// if Keycloak is not enabled, we cannot get the credentials needed for basic auth, so skip the test
+			keycloak := vz.Status.Components["keycloak"]
+			if keycloak != nil && keycloak.State == v1alpha1.CompStateDisabled {
+				t.Logs.Info("Keycloak disabled, skipping test")
+				return
+			}
+
 			url := getURLFromVZStatus()
 			if url != nil {
 				Eventually(func() (int, error) {
