@@ -117,7 +117,7 @@ func TestRepairICStuckDeleting(t *testing.T) {
 	innoDBCluster := newInnoDBCluster(innoDBClusterStatusOnline)
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLOperatorPod, innoDBCluster).Build()
 	mysqlComp := NewComponent().(mysqlComponent)
-	mysqlComp.InitialTimeICUninstallChecked = &time.Time{}
+	mysqlComp.initialTimeICUninstallChecked = &time.Time{}
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
 
 	err := mysqlComp.repairICStuckDeleting(fakeCtx)
@@ -146,7 +146,7 @@ func TestRepairICStuckDeleting(t *testing.T) {
 	assert.Error(t, err)
 
 	// Force the timer to be expired, expect the mysql-operator pod to be deleted
-	*mysqlComp.InitialTimeICUninstallChecked = time.Now().Add(-time.Hour * 2)
+	mysqlComp.SetInitialTimeICUninstallChecked(time.Now().Add(-time.Hour * 2))
 	err = mysqlComp.repairICStuckDeleting(fakeCtx)
 	assert.NoError(t, err)
 
@@ -213,33 +213,33 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	// Call with no MySQL pods being deleted, expect success
 	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod0, mySQLPod1).Build()
 	mysqlComp := NewComponent().(mysqlComponent)
-	mysqlComp.InitialTimeMySQLPodsStuckChecked = &time.Time{}
+	mysqlComp.initialTimeMySQLPodsStuckChecked = &time.Time{}
 	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
 
 	err := mysqlComp.repairMySQLPodStuckDeleting(fakeCtx)
 	assert.NoError(t, err)
-	assert.True(t, mysqlComp.InitialTimeMySQLPodsStuckChecked.IsZero())
+	assert.True(t, mysqlComp.GetInitialTimeMySQLPodsStuckChecked().IsZero())
 
 	// Call with MySQL pods being deleted, first time expect timer to start
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLPod0, mySQLPod1, mySQLPod2).Build()
 	mysqlComp = NewComponent().(mysqlComponent)
-	mysqlComp.InitialTimeMySQLPodsStuckChecked = &time.Time{}
+	mysqlComp.initialTimeMySQLPodsStuckChecked = &time.Time{}
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
 
 	err = mysqlComp.repairMySQLPodStuckDeleting(fakeCtx)
 	assert.Error(t, err)
-	assert.False(t, mysqlComp.InitialTimeMySQLPodsStuckChecked.IsZero())
+	assert.False(t, mysqlComp.GetInitialTimeMySQLPodsStuckChecked().IsZero())
 
 	// Call with MySQL pods being deleted and timer expired, expect mysql-operator pod to be deleted
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLOperatorPod, mySQLPod0, mySQLPod1, mySQLPod2).Build()
 	mysqlComp = NewComponent().(mysqlComponent)
-	mysqlComp.InitialTimeMySQLPodsStuckChecked = &time.Time{}
-	*mysqlComp.InitialTimeMySQLPodsStuckChecked = time.Now().Add(-time.Hour * 2)
+	mysqlComp.initialTimeMySQLPodsStuckChecked = &time.Time{}
+	mysqlComp.SetInitialTimeMySQLPodsStuckChecked(time.Now().Add(-time.Hour * 2))
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
 
 	err = mysqlComp.repairMySQLPodStuckDeleting(fakeCtx)
 	assert.NoError(t, err)
-	assert.True(t, mysqlComp.InitialTimeMySQLPodsStuckChecked.IsZero())
+	assert.True(t, mysqlComp.GetInitialTimeMySQLPodsStuckChecked().IsZero())
 
 	pod := v1.Pod{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
@@ -249,10 +249,10 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	// Call with no MySQL pods, expect success
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects().Build()
 	mysqlComp = NewComponent().(mysqlComponent)
-	mysqlComp.InitialTimeMySQLPodsStuckChecked = &time.Time{}
+	mysqlComp.initialTimeMySQLPodsStuckChecked = &time.Time{}
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
 
 	err = mysqlComp.repairMySQLPodStuckDeleting(fakeCtx)
 	assert.NoError(t, err)
-	assert.True(t, mysqlComp.InitialTimeMySQLPodsStuckChecked.IsZero())
+	assert.True(t, mysqlComp.GetInitialTimeMySQLPodsStuckChecked().IsZero())
 }

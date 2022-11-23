@@ -33,22 +33,32 @@ var initialTimeMySQLPodsStuckChecked time.Time
 
 // ResetInitialTimeICUninstallChecked allocates an empty time struct
 func (c mysqlComponent) ResetInitialTimeICUninstallChecked() {
-	*c.InitialTimeICUninstallChecked = time.Time{}
+	*c.initialTimeICUninstallChecked = time.Time{}
 }
 
 // GetInitialTimeICUninstallChecked returns the time struct
 func (c mysqlComponent) GetInitialTimeICUninstallChecked() time.Time {
-	return *c.InitialTimeICUninstallChecked
+	return *c.initialTimeICUninstallChecked
 }
 
 // SetInitialTimeICUninstallChecked sets the time struct
 func (c mysqlComponent) SetInitialTimeICUninstallChecked(time time.Time) {
-	*c.InitialTimeICUninstallChecked = time
+	*c.initialTimeICUninstallChecked = time
 }
 
 // ResetInitialTimeMySQLPodsStuckChecked allocates an empty time struct
 func (c mysqlComponent) ResetInitialTimeMySQLPodsStuckChecked() {
-	*c.InitialTimeMySQLPodsStuckChecked = time.Time{}
+	*c.initialTimeMySQLPodsStuckChecked = time.Time{}
+}
+
+// GetInitialTimeMySQLPodsStuckChecked returns the time struct
+func (c mysqlComponent) GetInitialTimeMySQLPodsStuckChecked() time.Time {
+	return *c.initialTimeMySQLPodsStuckChecked
+}
+
+// SetInitialTimeMySQLPodsStuckChecked sets the time struct
+func (c mysqlComponent) SetInitialTimeMySQLPodsStuckChecked(time time.Time) {
+	*c.initialTimeMySQLPodsStuckChecked = time
 }
 
 // repairICStuckDeleting - temporary workaround to repair issue where a InnoDBCluster object
@@ -69,7 +79,7 @@ func (c mysqlComponent) repairICStuckDeleting(ctx spi.ComponentContext) error {
 
 	// Found an IC object with a deletion timestamp. Start a timer if this is the first time.
 	if c.GetInitialTimeICUninstallChecked().IsZero() {
-		*c.InitialTimeICUninstallChecked = time.Now()
+		c.SetInitialTimeICUninstallChecked(time.Now())
 		ctx.Log().Progressf("Starting check to insure the InnoDBCluster %s/%s is not stuck deleting", ComponentNamespace, helmReleaseName)
 		return ctrlerrors.RetryableError{}
 	}
@@ -217,14 +227,14 @@ func (c mysqlComponent) repairMySQLPodStuckDeleting(ctx spi.ComponentContext) er
 
 	if foundPodsDeleting {
 		// First time through start a timer
-		if c.InitialTimeMySQLPodsStuckChecked.IsZero() {
-			*c.InitialTimeMySQLPodsStuckChecked = time.Now()
+		if c.GetInitialTimeMySQLPodsStuckChecked().IsZero() {
+			c.SetInitialTimeMySQLPodsStuckChecked(time.Now())
 			ctx.Log().Progressf("Starting check to insure the no MySQL pods are stuck terminating in namespace %s", ComponentNamespace)
 			return ctrlerrors.RetryableError{}
 		}
 
 		// Initiate repair only if time to wait period has been exceeded
-		expiredTime := c.InitialTimeMySQLPodsStuckChecked.Add(5 * time.Minute)
+		expiredTime := c.GetInitialTimeMySQLPodsStuckChecked().Add(5 * time.Minute)
 		if time.Now().After(expiredTime) {
 			// Restart the mysql-operator to see if it will finish deleting the IC object
 			ctx.Log().Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck deleting")
