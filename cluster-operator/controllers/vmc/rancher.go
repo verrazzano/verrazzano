@@ -555,7 +555,7 @@ func doRequest(req *http.Request, rc *RancherConfig, log vzlog.VerrazzanoLogger)
 	// so we need to read the body and save it so we can use it in each retry
 	buffer, _ := io.ReadAll(req.Body)
 
-	retry(defaultRetry, log, func() (bool, error) {
+	common.Retry(defaultRetry, log, true, func() (bool, error) {
 		// update the body with the saved data to prevent the "zero length body" error
 		req.Body = io.NopCloser(bytes.NewBuffer(buffer))
 		resp, err = rancherHTTPClient.Do(client, req)

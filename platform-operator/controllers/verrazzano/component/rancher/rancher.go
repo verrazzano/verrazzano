@@ -4,12 +4,15 @@
 package rancher
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/base32"
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -26,6 +29,7 @@ import (
 	"golang.org/x/text/language"
 
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,7 +37,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -619,16 +626,16 @@ func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, l
 	}
 
 	logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("cat %s | base64", logoPath)}
-	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, pod, "rancher", logoCommand)
+	// starting with k8s.io/apimachinery v0.25.0, bufio.NewReader() is being used in SPDYExecutor which
+	// was seen to be returining only first 4096 (default buffer size in (bufio.NewReader) bytes of the logo
+	// content, therefore we retry a few times because logo content size is greater than 4096
+	defaultBufferLength := bufio.NewReader(&bytes.Reader{}).Size()
+	logoContent, err := getRancherLogoContentWithRetry(log, defaultBufferLength, cli, cfg, pod, logoCommand)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed execing into Rancher pod %s: %v", stderr, err)
+		return err
 	}
 
-	if len(stdout) == 0 {
-		return log.ErrorfThrottledNewErr("Invalid empty output from Rancher pod")
-	}
-
-	return createOrUpdateResource(ctx, types.NamespacedName{Name: settingName}, common.GVKSetting, map[string]interface{}{"value": fmt.Sprintf("%s%s", SettingUILogoValueprefix, stdout)})
+	return createOrUpdateResource(ctx, types.NamespacedName{Name: settingName}, common.GVKSetting, map[string]interface{}{"value": fmt.Sprintf("%s%s", SettingUILogoValueprefix, logoContent)})
 }
 
 // createOrUpdateUIColorSettings creates/updates the ui-primary-color and ui-link-color settings
@@ -706,4 +713,36 @@ func getUserNameForPrincipal(principal string) string {
 	hasher.Write([]byte(principal))
 	sha := base32.StdEncoding.WithPadding(-1).EncodeToString(hasher.Sum(nil))[:10]
 	return "u-" + strings.ToLower(sha)
+}
+
+// getRancherLogoContentWithRetry gets the logo content from rancher and retries if the size of logo content returned is same as default defaultBufferLength
+func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, defaultBufferLength int, cli kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, logoCommand []string) (string, error) {
+	var logoContent string
+	var backoff = wait.Backoff{
+		Steps:    3,
+		Duration: 1 * time.Second,
+		Factor:   2.0,
+		Jitter:   0.1,
+	}
+	err := common.Retry(backoff, log, false, func() (bool, error) {
+		var stderr string
+		var err error
+		logoContent, stderr, err = k8sutil.ExecPod(cli, cfg, pod, "rancher", logoCommand)
+		if err != nil {
+			return false, log.ErrorfThrottledNewErr("Failed execing into Rancher pod %s: %v", stderr, err)
+		}
+
+		if len(logoContent) == 0 {
+			return false, log.ErrorfThrottledNewErr("Invalid empty output from Rancher pod")
+		}
+
+		if len(logoContent) == defaultBufferLength {
+			log.Infof("logo content of default buffer length %v, retrying", defaultBufferLength)
+			return false, nil
+		}
+
+		return true, nil
+	})
+
+	return logoContent, err
 }
