@@ -229,7 +229,7 @@ func (c mysqlComponent) repairMySQLPodStuckDeleting(ctx spi.ComponentContext) er
 		// First time through start a timer
 		if c.GetInitialTimeMySQLPodsStuckChecked().IsZero() {
 			c.SetInitialTimeMySQLPodsStuckChecked(time.Now())
-			ctx.Log().Progressf("Starting check to insure the no MySQL pods are stuck terminating in namespace %s", ComponentNamespace)
+			ctx.Log().Progressf("Waiting for MySQL pods to terminate in namespace %s", ComponentNamespace)
 			return ctrlerrors.RetryableError{}
 		}
 
