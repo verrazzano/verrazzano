@@ -514,7 +514,7 @@ func ConfigureAuthProviders(ctx spi.ComponentContext) error {
 			return err
 		}
 
-		if err := createOrUpdateVZMulticlusterUser(ctx, UserVZMulticlusterUsername, UserVZMulticluster); err != nil {
+		if err := createOrUpdateVZMulticlusterUser(ctx); err != nil {
 			return err
 		}
 
@@ -533,13 +533,17 @@ func ConfigureAuthProviders(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// createOrUpdateRoleTemplates creates or updates the verrazzano-admin and verrazzano-monitor RoleTemplates
+// createOrUpdateRoleTemplates creates or updates the verrazzano-admin, verrazzano-monitor, and verrazzano-cluster-user RoleTemplates
 func createOrUpdateRoleTemplates(ctx spi.ComponentContext) error {
 	if err := createOrUpdateRoleTemplate(ctx, VerrazzanoAdminRoleName); err != nil {
 		return err
 	}
 
-	return createOrUpdateRoleTemplate(ctx, VerrazzanoMonitorRoleName)
+	if err := createOrUpdateRoleTemplate(ctx, VerrazzanoMonitorRoleName); err != nil {
+		return err
+	}
+
+	return createOrUpdateRoleTemplate(ctx, VerrazzanoClusterUserRoleName)
 }
 
 // createOrUpdateClusterRoleTemplateBindings creates or updates the CRTBs for the verrazzano-admins and verrazzano-monitors groups

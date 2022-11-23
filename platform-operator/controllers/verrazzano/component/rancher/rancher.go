@@ -157,15 +157,16 @@ const (
 
 // roles and groups
 const (
-	AdminRoleName               = "admin"
-	VerrazzanoAdminRoleName     = "verrazzano-admin"
-	ViewRoleName                = "view"
-	VerrazzanoMonitorRoleName   = "verrazzano-monitor"
-	ClusterMemberRoleName       = "cluster-member"
-	VerrazzanoAdminsGroupName   = "verrazzano-admins"
-	VerrazzanoMonitorsGroupName = "verrazzano-monitors"
-	GroupKey                    = "group"
-	ClusterRoleKey              = "clusterRole"
+	AdminRoleName                 = "admin"
+	VerrazzanoAdminRoleName       = "verrazzano-admin"
+	ViewRoleName                  = "view"
+	VerrazzanoMonitorRoleName     = "verrazzano-monitor"
+	VerrazzanoClusterUserRoleName = "verrazzano-cluster-user"
+	ClusterMemberRoleName         = "cluster-member"
+	VerrazzanoAdminsGroupName     = "verrazzano-admins"
+	VerrazzanoMonitorsGroupName   = "verrazzano-monitors"
+	GroupKey                      = "group"
+	ClusterRoleKey                = "clusterRole"
 )
 
 // prefixes
@@ -539,14 +540,14 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext, vzUser *keycl
 }
 
 // createOrUpdateVZMulticlusterUser creates or updates the Verrazzano Multicluster user in Rancher
-func createOrUpdateVZMulticlusterUser(ctx spi.ComponentContext, username string, rancherUsername string) error {
-	nsn := types.NamespacedName{Name: rancherUsername}
+func createOrUpdateVZMulticlusterUser(ctx spi.ComponentContext) error {
+	nsn := types.NamespacedName{Name: UserVZMulticluster}
 	data := map[string]interface{}{}
-	data[UserAttributeUserName] = username
+	data[UserAttributeUserName] = UserVZMulticlusterUsername
 	caser := cases.Title(language.English)
-	data[UserAttributeDisplayName] = caser.String(username)
+	data[UserAttributeDisplayName] = caser.String(UserVZMulticlusterUsername)
 	data[UserAttributeDescription] = caser.String(UserVZMulticlusterDescription)
-	data[UserAttributePrincipalIDs] = []interface{}{UserPrincipalLocalPrefix + rancherUsername}
+	data[UserAttributePrincipalIDs] = []interface{}{UserPrincipalLocalPrefix + UserVZMulticluster}
 
 	return createOrUpdateResource(ctx, nsn, GVKUser, data)
 }
