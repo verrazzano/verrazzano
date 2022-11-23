@@ -1,7 +1,7 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package vmi_test
+package restapi_test
 
 import (
 	"io"
@@ -17,7 +17,7 @@ import (
 
 var (
 	vz             *v1alpha1.Verrazzano
-	httpClient2    *retryablehttp.Client
+	httpClient     *retryablehttp.Client
 	vmiCredentials *pkg.UsernamePassword
 )
 
@@ -26,7 +26,7 @@ var _ = t.BeforeSuite(func() {
 	vz, err = pkg.GetVerrazzano()
 	Expect(err).To(Not(HaveOccurred()))
 
-	httpClient2 = pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	vmiCredentials = pkg.EventuallyGetSystemVMICredentials()
 })
 
@@ -73,7 +73,7 @@ func httpGet(url string) (int, error) {
 		return 0, err
 	}
 	req.SetBasicAuth(vmiCredentials.Username, vmiCredentials.Password)
-	resp, err := httpClient2.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return 0, err
 	}
