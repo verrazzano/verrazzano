@@ -120,7 +120,7 @@ pipeline {
 
         // used to write to object storage, or fail build if UT coverage does not pass
         FAIL_BUILD_COVERAGE = "${params.FAIL_IF_COVERAGE_DECREASED}"
-        UPLOAD_UT_COVERAGE = "{params.UPLOAD_UNIT_TEST_COVERAGE}"
+        UPLOAD_UT_COVERAGE = "${params.UPLOAD_UNIT_TEST_COVERAGE}"
     }
 
     stages {
