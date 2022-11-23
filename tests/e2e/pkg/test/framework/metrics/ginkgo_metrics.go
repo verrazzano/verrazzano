@@ -22,7 +22,7 @@ const (
 	attempts          = "attempts"
 	test              = "test"
 	codeLocation      = "code_location"
-	fullSpecJSON      = "spec"
+	delimiter         = "_"
 	stageName         = "stage_name"
 	BuildURL          = "build_url"
 	JenkinsJob        = "jenkins_job"
@@ -187,11 +187,35 @@ func emitInternal(log *zap.SugaredLogger, spec ginkgo.SpecReport) {
 
 func withSpecJSON(log *zap.SugaredLogger, spec ginkgo.SpecReport) *zap.SugaredLogger {
 	specJSON, err := spec.MarshalJSON()
-	raw := json.RawMessage(specJSON)
 	if err == nil {
-		log = log.With(fullSpecJSON, raw)
+		jsonMap := map[string]interface{}{}
+		if err := json.Unmarshal(specJSON, &jsonMap); err == nil {
+			flattenedJSONMap := flattenMap(jsonMap, delimiter)
+			var keyValues []interface{}
+			for k, v := range flattenedJSONMap {
+				keyValues = append(keyValues, "spec"+delimiter+k, v)
+			}
+			log = log.With(keyValues...)
+		}
 	}
 	return log
+}
+
+func flattenMap(m map[string]interface{}, delimiter string) map[string]interface{} {
+	flattened := map[string]interface{}{}
+	for k, v := range m {
+		switch value := v.(type) {
+		case map[string]interface{}:
+			nestedMap := flattenMap(value, delimiter)
+			for nestedKey, nestedValue := range nestedMap {
+				key := fmt.Sprintf("%s%s%s", k, delimiter, nestedKey)
+				flattened[key] = nestedValue
+			}
+		default:
+			flattened[k] = value
+		}
+	}
+	return flattened
 }
 
 func withCodeLocation(log *zap.SugaredLogger, spec ginkgo.SpecReport) *zap.SugaredLogger {
