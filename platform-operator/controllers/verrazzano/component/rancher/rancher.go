@@ -632,7 +632,7 @@ func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, l
 	defaultBufferLength := bufio.NewReader(&bytes.Reader{}).Size()
 	logoContent, err := getRancherLogoContentWithRetry(log, defaultBufferLength, cli, cfg, pod, logoCommand)
 	if err != nil {
-		return err
+		return log.ErrorfThrottledNewErr("failed getting actual logo content from rancher pod from %s", logoPath)
 	}
 
 	return createOrUpdateResource(ctx, types.NamespacedName{Name: settingName}, common.GVKSetting, map[string]interface{}{"value": fmt.Sprintf("%s%s", SettingUILogoValueprefix, logoContent)})
@@ -737,7 +737,8 @@ func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, defaultBufferLen
 		}
 
 		if len(logoContent) == defaultBufferLength {
-			return false, log.ErrorfThrottledNewErr("logo content of default buffer length %v", defaultBufferLength)
+			log.Infof("logo content of default buffer length %v, retrying", defaultBufferLength)
+			return false, nil
 		}
 
 		return true, nil
