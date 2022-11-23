@@ -44,6 +44,7 @@ const ComponentJSONName = "keycloak.mysql"
 type mysqlComponent struct {
 	LastTimeReadinessGateRepairStarted *time.Time
 	InitialTimeICUninstallChecked      *time.Time
+	InitialTimeMySQLPodsStuckChecked   *time.Time
 
 	helm.HelmComponent
 }
@@ -60,6 +61,7 @@ func NewComponent() spi.Component {
 	return mysqlComponent{
 		LastTimeReadinessGateRepairStarted: &lastTimeStatefulSetReady,
 		InitialTimeICUninstallChecked:      &initialTimeICUninstallChecked,
+		InitialTimeMySQLPodsStuckChecked:   &initialTimeMySQLPodsStuckChecked,
 		HelmComponent: helm.HelmComponent{
 			ReleaseName:               helmReleaseName,
 			JSONName:                  ComponentJSONName,
