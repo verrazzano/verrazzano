@@ -190,7 +190,7 @@ func withSpecJSON(log *zap.SugaredLogger, spec ginkgo.SpecReport) *zap.SugaredLo
 	if err == nil {
 		jsonMap := map[string]interface{}{}
 		if err := json.Unmarshal(specJSON, &jsonMap); err == nil {
-			flattenedJSONMap := flattenMap(jsonMap, delimiter)
+			flattenedJSONMap := flattenMap(jsonMap)
 			var keyValues []interface{}
 			for k, v := range flattenedJSONMap {
 				keyValues = append(keyValues, "spec"+delimiter+k, v)
@@ -201,21 +201,31 @@ func withSpecJSON(log *zap.SugaredLogger, spec ginkgo.SpecReport) *zap.SugaredLo
 	return log
 }
 
-func flattenMap(m map[string]interface{}, delimiter string) map[string]interface{} {
+func flattenMap(m map[string]interface{}) map[string]interface{} {
 	flattened := map[string]interface{}{}
 	for k, v := range m {
-		switch value := v.(type) {
-		case map[string]interface{}:
-			nestedMap := flattenMap(value, delimiter)
-			for nestedKey, nestedValue := range nestedMap {
-				key := fmt.Sprintf("%s%s%s", k, delimiter, nestedKey)
-				flattened[key] = nestedValue
-			}
-		default:
-			flattened[k] = value
-		}
+		setFlattenedValue(flattened, k, v)
 	}
 	return flattened
+}
+
+func setFlattenedValue(flattened map[string]interface{}, k string, v interface{}) {
+	switch value := v.(type) {
+	case map[string]interface{}:
+		nestedMap := flattenMap(value)
+		for nestedKey, nestedValue := range nestedMap {
+			key := fmt.Sprintf("%s%s%s", k, delimiter, nestedKey)
+			flattened[key] = nestedValue
+		}
+	case []interface{}:
+		for idx, item := range value {
+			key := fmt.Sprintf("%s%s%d", k, delimiter, idx)
+			setFlattenedValue(flattened, key, item)
+		}
+
+	default:
+		flattened[k] = value
+	}
 }
 
 func withCodeLocation(log *zap.SugaredLogger, spec ginkgo.SpecReport) *zap.SugaredLogger {
