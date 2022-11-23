@@ -50,7 +50,7 @@ if [[ ! "$CLEAN_BRANCH_NAME" =~ ^release-[0-9]+\.[0-9]+$|^master$ ]]; then
 
 else
   echo "Is a release-* or master branch..."
-   if [[ "$UPLOAD_UT_COVERAGE" = true ]]; then
-     uploadToObjectStorage
+  if [[ "$UPLOAD_UT_COVERAGE" = true ]]; then
+    uploadToObjectStorage
   fi
 fi
