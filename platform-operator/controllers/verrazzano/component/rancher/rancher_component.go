@@ -497,6 +497,7 @@ func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
 // ConfigureAuthProviders
 // +configures Keycloak as OIDC provider for Rancher.
 // +creates or updates default user verrazzano.
+// +creates or updated the verrazzano cluster user
 // +creates or updates admin clusterRole binding for  user verrazzano.
 // +disables first login setting to disable prompting for password on first login.
 // +enables or disables Keycloak Auth provider.
