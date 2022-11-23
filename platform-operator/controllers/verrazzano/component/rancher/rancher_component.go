@@ -497,7 +497,6 @@ func activateDrivers(log vzlog.VerrazzanoLogger, c client.Client) error {
 // ConfigureAuthProviders
 // +configures Keycloak as OIDC provider for Rancher.
 // +creates or updates default user verrazzano.
-// +creates or updated the verrazzano cluster user
 // +creates or updates admin clusterRole binding for  user verrazzano.
 // +disables first login setting to disable prompting for password on first login.
 // +enables or disables Keycloak Auth provider.
@@ -512,10 +511,6 @@ func ConfigureAuthProviders(ctx spi.ComponentContext) error {
 		}
 
 		if err := createOrUpdateRancherUser(ctx); err != nil {
-			return err
-		}
-
-		if err := createOrUpdateVZMulticlusterUser(ctx); err != nil {
 			return err
 		}
 
@@ -534,17 +529,13 @@ func ConfigureAuthProviders(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// createOrUpdateRoleTemplates creates or updates the verrazzano-admin, verrazzano-monitor, and verrazzano-cluster-user RoleTemplates
+// createOrUpdateRoleTemplates creates or updates the verrazzano-admin and verrazzano-monitor RoleTemplates
 func createOrUpdateRoleTemplates(ctx spi.ComponentContext) error {
 	if err := createOrUpdateRoleTemplate(ctx, VerrazzanoAdminRoleName); err != nil {
 		return err
 	}
 
-	if err := createOrUpdateRoleTemplate(ctx, VerrazzanoMonitorRoleName); err != nil {
-		return err
-	}
-
-	return createOrUpdateRoleTemplate(ctx, VerrazzanoClusterUserRoleName)
+	return createOrUpdateRoleTemplate(ctx, VerrazzanoMonitorRoleName)
 }
 
 // createOrUpdateClusterRoleTemplateBindings creates or updates the CRTBs for the verrazzano-admins and verrazzano-monitors groups
