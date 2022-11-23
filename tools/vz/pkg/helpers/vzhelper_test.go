@@ -68,12 +68,15 @@ func TestGetLatestReleaseVersion(t *testing.T) {
 //
 //	WHEN I call GetVerrazzanoResource
 //	THEN expect it to return a verrazzano resource
-func TestGetVerrazzanoResource(t *testing.T) {
+func TestVerrazzanoResource(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(NewScheme()).WithObjects(
 		&v1beta1.Verrazzano{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "default",
 				Name:      "verrazzano",
+			},
+			Status: v1beta1.VerrazzanoStatus{
+				Components: map[string]*v1beta1.ComponentStatusDetails{"test_component": {Name: "grafana"}},
 			},
 		}).Build()
 
@@ -81,6 +84,31 @@ func TestGetVerrazzanoResource(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "default", vz.Namespace)
 	assert.Equal(t, "verrazzano", vz.Name)
+	assert.Nil(t, UpdateVerrazzanoResource(client, vz))
+	assert.NotEmpty(t, GetNamespacesForAllComponents(*vz))
+	_, err = findVerazzanoResourceV1Alpha1(client)
+	assert.Error(t, failedToFindResourceError(err))
+}
+
+func TestGetOperatorYaml(t *testing.T) {
+	var tests = []struct {
+		version string
+	}{
+		{
+			"v1.3.0",
+		},
+		{
+			"v1.4.0",
+		},
+		{
+			"",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.version, func(t *testing.T) {
+			GetOperatorYaml(tt.version)
+		})
+	}
 }
 
 // TestGetVerrazzanoResourceNotFound
@@ -90,7 +118,6 @@ func TestGetVerrazzanoResource(t *testing.T) {
 //	THEN expect it to return an error
 func TestGetVerrazzanoResourceNotFound(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(NewScheme()).Build()
-
 	_, err := GetVerrazzanoResource(client, types.NamespacedName{Namespace: "default", Name: "verrazzano"})
 	assert.EqualError(t, err, "Failed to get a Verrazzano install resource: verrazzanos.install.verrazzano.io \"verrazzano\" not found")
 }
@@ -149,4 +176,25 @@ func TestFindVerrazzanoResourceNone(t *testing.T) {
 
 	_, err := FindVerrazzanoResource(client)
 	assert.EqualError(t, err, "Failed to find any Verrazzano resources")
+}
+
+func TestNewVerrazzanoForVZVersion(t *testing.T) {
+	var tests = []struct {
+		version string
+	}{
+		{
+			"v1.3.0",
+		},
+		{
+			"v1.4.0",
+		},
+		{
+			"",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.version, func(t *testing.T) {
+			NewVerrazzanoForVZVersion(tt.version)
+		})
+	}
 }

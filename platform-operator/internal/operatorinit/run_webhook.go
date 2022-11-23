@@ -136,6 +136,10 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 			},
 		},
 	)
+	// register requirements validator webhooks
+	mgr.GetWebhookServer().Register(webhooks.RequirementsV1beta1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1beta1{}})
+	mgr.GetWebhookServer().Register(webhooks.RequirementsV1alpha1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1alpha1{}})
+
 	// register MySQL install values webhooks
 	bomFile, err := bom.NewBom(internalconfig.GetDefaultBOMFilePath())
 	if err != nil {
@@ -172,6 +176,11 @@ func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.Suga
 
 	if err := updateMutatingWebhookConfiguration(kubeClient, constants.MysqlBackupMutatingWebhookName); err != nil {
 		return fmt.Errorf("Failed to update pod mutating webhook configuration: %v", err)
+	}
+
+	log.Debug("Updating Requirements webhook configuration")
+	if err := updateValidatingWebhookConfiguration(kubeClient, webhooks.RequirementsWebhook); err != nil {
+		return fmt.Errorf("Failed to update requirements validation webhook configuration: %v", err)
 	}
 
 	log.Debug("Updating MySQL install values webhook configuration")
