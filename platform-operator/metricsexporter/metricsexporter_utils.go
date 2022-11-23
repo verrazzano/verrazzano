@@ -57,6 +57,8 @@ const (
 	ReconcileCounter               metricName = "reconcile counter"
 	ReconcileError                 metricName = "reconcile error"
 	ReconcileDuration              metricName = "reconcile duration"
+	AvailableComponents            metricName = "available components"
+	EnabledComponents              metricName = "enabled components"
 	authproxyMetricName            metricName = authproxy.ComponentName
 	oamMetricName                  metricName = oam.ComponentName
 	appoperMetricName              metricName = appoper.ComponentName
@@ -104,7 +106,12 @@ func RequiredInitialization() {
 			simpleGaugeMetricMap:   initSimpleGaugeMetricMap(),
 			durationMetricMap:      initDurationMetricMap(),
 			metricsComponentMap:    initMetricComponentMap(),
+			componentHealth:        initComponentHealthMetrics(),
 		},
+	}
+	// initialize component availability metric to false
+	for _, metricComponent := range MetricsExp.internalData.metricsComponentMap {
+		MetricsExp.internalData.componentHealth.SetComponentHealth(metricComponent.metricName, false, false)
 	}
 
 }
@@ -118,6 +125,7 @@ func RegisterMetrics(log *zap.SugaredLogger) {
 // This function returns a pointer to a new MetricComponent Object
 func newMetricsComponent(name string) *MetricsComponent {
 	return &MetricsComponent{
+		metricName: name,
 		latestInstallDuration: &SimpleGaugeMetric{
 
 			metric: prometheus.NewGauge(prometheus.GaugeOpts{
@@ -184,14 +192,36 @@ func initMetricComponentMap() map[metricName]*MetricsComponent {
 		consoleMetricName:              newMetricsComponent("verrazzano_console"),
 		fluentdMetricName:              newMetricsComponent("fluentd"),
 		veleroMetricName:               newMetricsComponent("velero"),
-		rancherBackupMetricName:        newMetricsComponent("rancher-backup"),
+		rancherBackupMetricName:        newMetricsComponent("rancher_backup"),
 		networkpoliciesMetricName:      newMetricsComponent("networkpolicies"),
+	}
+}
+
+func initComponentHealthMetrics() *ComponentHealth {
+	return &ComponentHealth{
+		available: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "vpo_component_health",
+			Help: "Is component enabled and available",
+		}, []string{"component"}),
 	}
 }
 
 // This function initializes the simpleGaugeMetricMap for the metricsExporter object
 func initSimpleGaugeMetricMap() map[metricName]*SimpleGaugeMetric {
-	return map[metricName]*SimpleGaugeMetric{}
+	return map[metricName]*SimpleGaugeMetric{
+		AvailableComponents: {
+			metric: prometheus.NewGauge(prometheus.GaugeOpts{
+				Name: "vpo_component_health_count",
+				Help: "The number of currently available Verrazzano components",
+			}),
+		},
+		EnabledComponents: {
+			metric: prometheus.NewGauge(prometheus.GaugeOpts{
+				Name: "vpo_component_enabled_count",
+				Help: "The number of currently enabled Verrazzano components",
+			}),
+		},
+	}
 }
 
 // This function initializes the durationMetricMap for the metricsExporter object
@@ -271,6 +301,8 @@ func registerMetricsHandlers(log *zap.SugaredLogger) {
 		log.Errorf("Failed to register metrics for VPO %v \n", err)
 		time.Sleep(time.Second)
 	}
+	// register component health metrics vector
+	MetricsExp.internalConfig.registry.MustRegister(MetricsExp.internalData.componentHealth.available)
 }
 
 // This function initializes the failedMetrics array
@@ -334,6 +366,9 @@ func InitializeAllMetricsArray() {
 	for _, value := range MetricsExp.internalData.durationMetricMap {
 		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.metric)
 	}
+	for _, value := range MetricsExp.internalData.simpleGaugeMetricMap {
+		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.metric)
+	}
 	for _, value := range MetricsExp.internalData.metricsComponentMap {
 		MetricsExp.internalConfig.allMetrics = append(MetricsExp.internalConfig.allMetrics, value.latestInstallDuration.metric, value.latestUpgradeDuration.metric)
 	}
@@ -382,4 +417,14 @@ func GetMetricComponent(name metricName) (*MetricsComponent, error) {
 		return nil, fmt.Errorf("%v not found in metricsComponentMap due to metricName being defined, but not being a key in the map", name)
 	}
 	return metricComponent, nil
+}
+
+// SetComponentAvailabilityMetric updates the components availability status metric
+func SetComponentAvailabilityMetric(name string, availability vzapi.ComponentAvailability, isEnabled bool) error {
+	compMetric, err := GetMetricComponent(metricName(name))
+	if err != nil {
+		return err
+	}
+	MetricsExp.internalData.componentHealth.SetComponentHealth(compMetric.metricName, availability == vzapi.ComponentAvailable, isEnabled)
+	return nil
 }

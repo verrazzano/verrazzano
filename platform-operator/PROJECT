@@ -7,9 +7,6 @@ resources:
 - group: install
   kind: Verrazzano
   version: v1alpha1
-- group: clusters
-  kind: VerrazzanoManagedCluster
-  version: v1alpha1
 - group: install.verrazzano.io
   kind: Verrazzano
   version: v1beta1

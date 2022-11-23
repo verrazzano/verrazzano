@@ -14,7 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 )
 
-// WorkerRunner interface specifies a runner that loops calling a worker
+// WorkerRunner interface specifies a workerRunner that loops calling a worker
 type WorkerRunner interface {
 	// StartWorkerRunners runs the worker use case in a loop
 	RunWorker(config.CommonConfig, vzlog.VerrazzanoLogger) error
@@ -23,17 +23,17 @@ type WorkerRunner interface {
 	spi.WorkerMetricsProvider
 }
 
-// runner is needed to run the worker
-type runner struct {
+// workerRunner is needed to run the worker
+type workerRunner struct {
 	spi.Worker
 	metricDescList []prometheus.Desc
 	*runnerMetrics
 	prevWorkFailed bool
 }
 
-var _ WorkerRunner = runner{}
+var _ WorkerRunner = workerRunner{}
 
-// runnerMetrics holds the metrics produced by the runner. Metrics must be thread safe.
+// runnerMetrics holds the metrics produced by the workerRunner. Metrics must be thread safe.
 type runnerMetrics struct {
 	loopCount                  metrics.MetricItem
 	workerThreadCount          metrics.MetricItem
@@ -41,9 +41,9 @@ type runnerMetrics struct {
 	workerDurationTotalSeconds metrics.MetricItem
 }
 
-// NewRunner creates a new runner
+// NewRunner creates a new workerRunner
 func NewRunner(worker spi.Worker, conf config.CommonConfig, log vzlog.VerrazzanoLogger) (WorkerRunner, error) {
-	r := runner{Worker: worker, runnerMetrics: &runnerMetrics{
+	r := workerRunner{Worker: worker, runnerMetrics: &runnerMetrics{
 		loopCount: metrics.MetricItem{
 			Name: "loop_count_total",
 			Help: "The total number of loops executed",
@@ -67,22 +67,22 @@ func NewRunner(worker spi.Worker, conf config.CommonConfig, log vzlog.Verrazzano
 	}}
 
 	r.metricDescList = []prometheus.Desc{
-		*r.loopCount.BuildMetricDesc(r.GetWorkerDesc().MetricsName),
-		*r.workerThreadCount.BuildMetricDesc(r.GetWorkerDesc().MetricsName),
-		*r.workerLoopNanoSeconds.BuildMetricDesc(r.GetWorkerDesc().MetricsName),
-		*r.workerDurationTotalSeconds.BuildMetricDesc(r.GetWorkerDesc().MetricsName),
+		*r.loopCount.BuildMetricDesc(r.GetWorkerDesc().MetricsPrefix),
+		*r.workerThreadCount.BuildMetricDesc(r.GetWorkerDesc().MetricsPrefix),
+		*r.workerLoopNanoSeconds.BuildMetricDesc(r.GetWorkerDesc().MetricsPrefix),
+		*r.workerDurationTotalSeconds.BuildMetricDesc(r.GetWorkerDesc().MetricsPrefix),
 	}
 
 	return r, nil
 }
 
 // GetMetricDescList returns the prometheus metrics descriptors for the worker metrics.  Must be thread safe
-func (r runner) GetMetricDescList() []prometheus.Desc {
+func (r workerRunner) GetMetricDescList() []prometheus.Desc {
 	return r.metricDescList
 }
 
 // GetMetricList returns the realtime metrics for the worker.  Must be thread safe
-func (r runner) GetMetricList() []prometheus.Metric {
+func (r workerRunner) GetMetricList() []prometheus.Metric {
 	return []prometheus.Metric{
 		r.loopCount.BuildMetric(),
 		r.workerThreadCount.BuildMetric(),
@@ -92,7 +92,7 @@ func (r runner) GetMetricList() []prometheus.Metric {
 }
 
 // StartWorkerRunners runs the worker in a loop
-func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+func (r workerRunner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	if conf.NumLoops == 0 {
 		return nil
 	}
@@ -112,7 +112,7 @@ func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 			if r.prevWorkFailed {
 				// If we had a failure on the prev call then log success so you can tell
 				// get is working just be looking at the pod log.
-				log.Info("Next call to DoWork from runner successful after previous DoWork failed")
+				log.Info("Next call to DoWork from workerRunner successful after previous DoWork failed")
 			}
 			if loopCount == 1 {
 				log.Info("First call to DoWork succeeded")
@@ -133,6 +133,6 @@ func (r runner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) 
 	}
 }
 
-func (r runner) incThreadCount() {
+func (r workerRunner) incThreadCount() {
 	atomic.AddInt64(&r.runnerMetrics.workerThreadCount.Val, 1)
 }

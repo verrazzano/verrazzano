@@ -624,11 +624,13 @@ def generateWLSTests(dumpRoot, skipDeploy='false', skipUndeploy='false') {
 
 // Called in parallel Stage console of Stage Run Acceptance Tests
 def acceptanceTestsConsole(dumpRoot) {
-    try {
-        sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} $GO_REPO_PATH/verrazzano/ci/scripts/run_console_tests.sh"
-    } catch (err) {
-        saveConsoleScreenShots()
-        error "${err}"
+    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+        try {
+            sh "CONSOLE_REPO_BRANCH=${params.CONSOLE_REPO_BRANCH} $GO_REPO_PATH/verrazzano/ci/scripts/run_console_tests.sh"
+        } catch (err) {
+            saveConsoleScreenShots()
+            error "${err}"
+        }
     }
 }
 
@@ -699,10 +701,10 @@ def dumpVerrazzanoSystemPods() {
         $GO_REPO_PATH/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
         export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-system-certs.log"
         $GO_REPO_PATH/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-system-kibana.log"
-        $GO_REPO_PATH/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-system-osd.log"
+        $GO_REPO_PATH/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-osd-*" -m "verrazzano system opensearchdashboards log" -l -c osd || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
         export DIAGNOSTIC_LOG="$WORKSPACE/platform-operator/scripts/install/build/logs/verrazzano-system-es-master.log"
-        $GO_REPO_PATH/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
+        $GO_REPO_PATH/verrazzano/platform-operator/scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system opensearchdashboards log" -l -c es-master || echo "[ERROR] failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 

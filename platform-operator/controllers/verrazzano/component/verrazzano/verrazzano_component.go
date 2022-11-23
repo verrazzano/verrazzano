@@ -90,7 +90,7 @@ func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := common.CreateAndLabelNamespaces(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespaces for Verrazzano: %v", err)
 	}
-	return nil
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 // Install Verrazzano component install processing
@@ -111,7 +111,10 @@ func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 	}
-	return verrazzanoPreUpgrade(ctx)
+	if err := verrazzanoPreUpgrade(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // Upgrade Verrazzano component upgrade processing

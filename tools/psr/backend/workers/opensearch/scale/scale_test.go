@@ -44,13 +44,23 @@ func TestGetters(t *testing.T) {
 		funcNewPsrClient = origFunc
 	}()
 
+	envMap := map[string]string{
+		openSearchTier: opensearchpsr.MasterTier,
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
+	}()
+
 	w, err := NewScaleWorker()
 	assert.NoError(t, err)
 
 	wd := w.GetWorkerDesc()
-	assert.Equal(t, config.WorkerTypeScale, wd.WorkerType)
+	assert.Equal(t, config.WorkerTypeOpsScale, wd.WorkerType)
 	assert.Equal(t, "The OpenSearch scale worker scales an OpenSearch tier in and out continuously", wd.Description)
-	assert.Equal(t, config.WorkerTypeScale, wd.MetricsName)
+	assert.Equal(t, metricsPrefix, wd.MetricsPrefix)
 
 	logged := w.WantLoopInfoLogged()
 	assert.False(t, logged)
@@ -65,6 +75,16 @@ func TestGetEnvDescList(t *testing.T) {
 	origFunc := overridePsrClient()
 	defer func() {
 		funcNewPsrClient = origFunc
+	}()
+
+	envMap := map[string]string{
+		openSearchTier: opensearchpsr.MasterTier,
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
 	}()
 
 	tests := []struct {
@@ -116,15 +136,26 @@ func TestGetMetricDescList(t *testing.T) {
 		funcNewPsrClient = origFunc
 	}()
 
+	envMap := map[string]string{
+		openSearchTier: opensearchpsr.MasterTier,
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
+	}()
+
 	tests := []struct {
 		name   string
 		fqName string
 		help   string
+		label  string
 	}{
-		{name: "1", fqName: "opensearch_scale_out_count_total", help: "The total number of times OpenSearch scaled out"},
-		{name: "2", fqName: "opensearch_scale_in_count_total", help: "The total number of times OpenSearch scaled in"},
-		{name: "3", fqName: "opensearch_scale_out_seconds", help: "The number of seconds elapsed to scale out OpenSearch"},
-		{name: "4", fqName: "opensearch_scale_in_seconds", help: "The number of seconds elapsed to scale in OpenSearch"},
+		{name: "1", fqName: metricsPrefix + "_scale_out_count_total", help: "The total number of times OpenSearch scaled out", label: `opensearch_tier="master"`},
+		{name: "2", fqName: metricsPrefix + "_scale_in_count_total", help: "The total number of times OpenSearch scaled in", label: `opensearch_tier="master"`},
+		{name: "3", fqName: metricsPrefix + "_scale_out_seconds", help: "The number of seconds elapsed to scale out OpenSearch", label: `opensearch_tier="master"`},
+		{name: "4", fqName: metricsPrefix + "_scale_in_seconds", help: "The number of seconds elapsed to scale in OpenSearch", label: `opensearch_tier="master"`},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -155,15 +186,25 @@ func TestGetMetricList(t *testing.T) {
 		funcNewPsrClient = origFunc
 	}()
 
+	envMap := map[string]string{
+		openSearchTier: opensearchpsr.MasterTier,
+	}
+	f := fakeEnv{data: envMap}
+	saveEnv := osenv.GetEnvFunc
+	osenv.GetEnvFunc = f.GetEnv
+	defer func() {
+		osenv.GetEnvFunc = saveEnv
+	}()
+
 	tests := []struct {
 		name   string
 		fqName string
 		help   string
 	}{
-		{name: "1", fqName: "opensearch_scale_out_count_total", help: "The total number of times OpenSearch scaled out"},
-		{name: "2", fqName: "opensearch_scale_in_count_total", help: "The total number of times OpenSearch scaled in"},
-		{name: "3", fqName: "opensearch_scale_out_seconds", help: "The number of seconds elapsed to scale out OpenSearch"},
-		{name: "4", fqName: "opensearch_scale_in_seconds", help: "The number of seconds elapsed to scale in OpenSearch"},
+		{name: "1", fqName: metricsPrefix + "_scale_out_count_total", help: "The total number of times OpenSearch scaled out"},
+		{name: "2", fqName: metricsPrefix + "_scale_in_count_total", help: "The total number of times OpenSearch scaled in"},
+		{name: "3", fqName: metricsPrefix + "_scale_out_seconds", help: "The number of seconds elapsed to scale out OpenSearch"},
+		{name: "4", fqName: metricsPrefix + "_scale_in_seconds", help: "The number of seconds elapsed to scale in OpenSearch"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

@@ -4,8 +4,9 @@
 package config
 
 import (
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"path/filepath"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 )
@@ -21,6 +22,7 @@ const (
 	helmChartsDirSuffix          = "/platform-operator/helm_config/charts"
 	helmVMOChartsDirSuffix       = "/platform-operator/helm_config/charts/verrazzano-monitoring-operator"
 	helmAppOpChartsDirSuffix     = "/platform-operator/helm_config/charts/verrazzano-application-operator"
+	helmClusterOpChartsDirSuffix = "/platform-operator/helm_config/charts/verrazzano-cluster-operator"
 	helmKialiChartsDirSuffix     = "/platform-operator/thirdparty/charts/kiali-server"
 	helmPromOpChartsDirSuffix    = "/platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack"
 	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
@@ -125,6 +127,14 @@ func GetHelmAppOpChartsDir() string {
 		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano-application-operator")
 	}
 	return filepath.Join(instance.VerrazzanoRootDir, helmAppOpChartsDirSuffix)
+}
+
+// GetHelmClusterOpChartsDir returns the Verrazzano Cluster Operator helm charts dir
+func GetHelmClusterOpChartsDir() string {
+	if TestHelmConfigDir != "" {
+		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano-cluster-operator")
+	}
+	return filepath.Join(instance.VerrazzanoRootDir, helmClusterOpChartsDirSuffix)
 }
 
 // GetHelmPromOpChartsDir returns the Prometheus Operator helm charts dir

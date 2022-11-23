@@ -121,6 +121,10 @@ func getExpectedConsoleURLs(kubeConfig string) ([]string, error) {
 
 	for _, ingress := range ingresses.Items {
 		ingressHost := ingress.Spec.Rules[0].Host
+		// elasticsearch and kibana ingresses are created for permanent redirection when upgraded from older VZ releases to 1.5.0 or later.
+		if strings.HasPrefix(ingressHost, "elasticsearch") || strings.HasPrefix(ingressHost, "kibana") {
+			continue
+		}
 		// If it's not the console ingress, or it is and the console is enabled, add it to the expected set of URLs
 		if !isConsoleIngressHost(ingressHost) || consoleURLExpected {
 			expectedUrls = append(expectedUrls, fmt.Sprintf("https://%s", ingressHost))

@@ -6,14 +6,15 @@ metadata:
   name: verrazzano-cluster-operator
 rules:
   - apiGroups:
-      - management.cattle.io
+    - admissionregistration.k8s.io
     resources:
-      - clusters
+    - validatingwebhookconfigurations
     verbs:
-      - update
-      - get
-      - list
-      - watch
+    - create
+    - get
+    - list
+    - patch
+    - update
   - apiGroups:
       - clusters.verrazzano.io
     resources:
@@ -26,4 +27,50 @@ rules:
       - get
       - list
       - patch
+      - watch
+  - apiGroups:
+      - install.verrazzano.io
+    resources:
+      - verrazzanos
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - serviceaccounts
+      - configmaps
+      - secrets
+    verbs:
+      - create
+      - get
+      - list
+      - update
+      - watch
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - ingresses
+    verbs:
+      - list
+      - watch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - rolebindings
+    verbs:
+      - create
+      - get
+      - list
+      - update
+      - watch
+  - apiGroups:
+      - management.cattle.io
+    resources:
+      - clusters
+    verbs:
+      - update
+      - get
+      - list
       - watch
