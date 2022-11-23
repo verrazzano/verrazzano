@@ -94,6 +94,9 @@ const (
 	ClusterLocal                      = "local"
 	AuthConfigLocal                   = "local"
 	UserVerrazzano                    = "u-verrazzano"
+	UserVZMulticluster                = "u-verrazzano-multicluster"
+	UserVZMulticlusterUsername        = "verrazzanomc"
+	UserVZMulticlusterDescription     = "Verrazzano Multicluster"
 	UserVerrazzanoDescription         = "Verrazzano Admin"
 	GlobalRoleBindingVerrazzanoPrefix = "grb-"
 	SettingUIPL                       = "ui-pl"
@@ -146,15 +149,16 @@ const (
 
 // roles and groups
 const (
-	AdminRoleName               = "admin"
-	VerrazzanoAdminRoleName     = "verrazzano-admin"
-	ViewRoleName                = "view"
-	VerrazzanoMonitorRoleName   = "verrazzano-monitor"
-	ClusterMemberRoleName       = "cluster-member"
-	VerrazzanoAdminsGroupName   = "verrazzano-admins"
-	VerrazzanoMonitorsGroupName = "verrazzano-monitors"
-	GroupKey                    = "group"
-	ClusterRoleKey              = "clusterRole"
+	AdminRoleName                 = "admin"
+	VerrazzanoAdminRoleName       = "verrazzano-admin"
+	ViewRoleName                  = "view"
+	VerrazzanoMonitorRoleName     = "verrazzano-monitor"
+	VerrazzanoClusterUserRoleName = "verrazzano-cluster-rancher-user"
+	ClusterMemberRoleName         = "cluster-member"
+	VerrazzanoAdminsGroupName     = "verrazzano-admins"
+	VerrazzanoMonitorsGroupName   = "verrazzano-monitors"
+	GroupKey                      = "group"
+	ClusterRoleKey                = "clusterRole"
 )
 
 // prefixes
@@ -523,6 +527,19 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext, vzUser *keycl
 	data[UserAttributeDisplayName] = caser.String(vzUser.Username)
 	data[UserAttributeDescription] = caser.String(UserVerrazzanoDescription)
 	data[UserAttributePrincipalIDs] = []interface{}{UserPrincipalKeycloakPrefix + vzUser.ID, UserPrincipalLocalPrefix + rancherUsername}
+
+	return createOrUpdateResource(ctx, nsn, GVKUser, data)
+}
+
+// createOrUpdateVZMulticlusterUser creates or updates the Verrazzano Multicluster user in Rancher
+func createOrUpdateVZMulticlusterUser(ctx spi.ComponentContext) error {
+	nsn := types.NamespacedName{Name: UserVZMulticluster}
+	data := map[string]interface{}{}
+	data[UserAttributeUserName] = UserVZMulticlusterUsername
+	caser := cases.Title(language.English)
+	data[UserAttributeDisplayName] = caser.String(UserVZMulticlusterUsername)
+	data[UserAttributeDescription] = caser.String(UserVZMulticlusterDescription)
+	data[UserAttributePrincipalIDs] = []interface{}{UserPrincipalLocalPrefix + UserVZMulticluster}
 
 	return createOrUpdateResource(ctx, nsn, GVKUser, data)
 }
