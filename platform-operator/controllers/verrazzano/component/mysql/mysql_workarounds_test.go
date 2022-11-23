@@ -122,7 +122,7 @@ func TestRepairICStuckDeleting(t *testing.T) {
 
 	err := mysqlComp.repairICStuckDeleting(fakeCtx)
 	assert.NoError(t, err)
-	assert.True(t, mysqlComp.InitialTimeICUninstallChecked.IsZero())
+	assert.True(t, mysqlComp.GetInitialTimeICUninstallChecked().IsZero())
 
 	// Test first time calling with a deletion timestamp, the timer should get initialized
 	// and the mysql-operator pod should not get deleted.
@@ -132,10 +132,10 @@ func TestRepairICStuckDeleting(t *testing.T) {
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLOperatorPod, innoDBCluster).Build()
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
 
-	assert.True(t, mysqlComp.InitialTimeICUninstallChecked.IsZero())
+	assert.True(t, mysqlComp.GetInitialTimeICUninstallChecked().IsZero())
 	err = mysqlComp.repairICStuckDeleting(fakeCtx)
 	assert.Error(t, err)
-	assert.False(t, mysqlComp.InitialTimeICUninstallChecked.IsZero())
+	assert.False(t, mysqlComp.GetInitialTimeICUninstallChecked().IsZero())
 
 	pod := v1.Pod{}
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
@@ -245,4 +245,14 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
+
+	// Call with no MySQL pods, expect success
+	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects().Build()
+	mysqlComp = NewComponent().(mysqlComponent)
+	mysqlComp.InitialTimeMySQLPodsStuckChecked = &time.Time{}
+	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
+
+	err = mysqlComp.repairMySQLPodStuckDeleting(fakeCtx)
+	assert.NoError(t, err)
+	assert.True(t, mysqlComp.InitialTimeMySQLPodsStuckChecked.IsZero())
 }

@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"time"
 
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+
 	k8sready "github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
@@ -29,6 +31,26 @@ var initialTimeICUninstallChecked time.Time
 // The start of the timer for determining if any MySQL pods are stuck terminating
 var initialTimeMySQLPodsStuckChecked time.Time
 
+// ResetInitialTimeICUninstallChecked allocates an empty time struct
+func (c mysqlComponent) ResetInitialTimeICUninstallChecked() {
+	*c.InitialTimeICUninstallChecked = time.Time{}
+}
+
+// GetInitialTimeICUninstallChecked returns the time struct
+func (c mysqlComponent) GetInitialTimeICUninstallChecked() time.Time {
+	return *c.InitialTimeICUninstallChecked
+}
+
+// SetInitialTimeICUninstallChecked sets the time struct
+func (c mysqlComponent) SetInitialTimeICUninstallChecked(time time.Time) {
+	*c.InitialTimeICUninstallChecked = time
+}
+
+// ResetInitialTimeMySQLPodsStuckChecked allocates an empty time struct
+func (c mysqlComponent) ResetInitialTimeMySQLPodsStuckChecked() {
+	*c.InitialTimeMySQLPodsStuckChecked = time.Time{}
+}
+
 // repairICStuckDeleting - temporary workaround to repair issue where a InnoDBCluster object
 // can be stuck terminating (e.g. during uninstall).  The workaround is to recycle the mysql-operator
 func (c mysqlComponent) repairICStuckDeleting(ctx spi.ComponentContext) error {
@@ -41,18 +63,19 @@ func (c mysqlComponent) repairICStuckDeleting(ctx spi.ComponentContext) error {
 		return err
 	}
 	if innoDBCluster.GetDeletionTimestamp() == nil {
-		*c.InitialTimeICUninstallChecked = time.Time{}
+		c.ResetInitialTimeICUninstallChecked()
 		return nil
 	}
 
 	// Found an IC object with a deletion timestamp. Start a timer if this is the first time.
-	if c.InitialTimeICUninstallChecked.IsZero() {
+	if c.GetInitialTimeICUninstallChecked().IsZero() {
 		*c.InitialTimeICUninstallChecked = time.Now()
-		return fmt.Errorf("Starting check to insure the InnoDBCluster %s/%s is not stuck deleting", ComponentNamespace, helmReleaseName)
+		ctx.Log().Progressf("Starting check to insure the InnoDBCluster %s/%s is not stuck deleting", ComponentNamespace, helmReleaseName)
+		return ctrlerrors.RetryableError{}
 	}
 
 	// Initiate repair only if time to wait period has been exceeded
-	expiredTime := c.InitialTimeICUninstallChecked.Add(5 * time.Minute)
+	expiredTime := c.GetInitialTimeICUninstallChecked().Add(5 * time.Minute)
 	if time.Now().After(expiredTime) {
 		// Restart the mysql-operator to see if it will finish deleting the IC object
 		ctx.Log().Info("Restarting the mysql-operator to see if it will repair InnoDBCluster stuck deleting")
@@ -67,13 +90,13 @@ func (c mysqlComponent) repairICStuckDeleting(ctx spi.ComponentContext) error {
 		}
 
 		// Clear the timer
-		*c.InitialTimeICUninstallChecked = time.Time{}
+		c.ResetInitialTimeICUninstallChecked()
 		return nil
 	}
 
 	ctx.Log().Progressf("Waiting for InnoDBCluster %s/%s to be deleted", ComponentNamespace, helmReleaseName)
 
-	return fmt.Errorf("Waiting for InnoDBCluster %s/%s to be deleted", ComponentNamespace, helmReleaseName)
+	return ctrlerrors.RetryableError{}
 }
 
 // repairMySQLPodsWaitingReadinessGates - temporary workaround to repair issue were a MySQL pod
@@ -178,7 +201,9 @@ func (c mysqlComponent) repairMySQLPodStuckDeleting(ctx spi.ComponentContext) er
 	selector := metav1.LabelSelectorRequirement{Key: mySQLComponentLabel, Operator: metav1.LabelSelectorOpIn, Values: []string{mySQLDComponentName}}
 	podList := k8sready.GetPodsList(ctx.Log(), ctx.Client(), types.NamespacedName{Namespace: ComponentNamespace}, &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{selector}})
 	if podList == nil || len(podList.Items) == 0 {
-		return fmt.Errorf("Failed checking if MySQL pods stuck terminating, no pods found matching selector %s", selector.String())
+		// No MySQL pods found, assume they have finished deleting
+		c.ResetInitialTimeMySQLPodsStuckChecked()
+		return nil
 	}
 
 	foundPodsDeleting := false
@@ -194,7 +219,8 @@ func (c mysqlComponent) repairMySQLPodStuckDeleting(ctx spi.ComponentContext) er
 		// First time through start a timer
 		if c.InitialTimeMySQLPodsStuckChecked.IsZero() {
 			*c.InitialTimeMySQLPodsStuckChecked = time.Now()
-			return fmt.Errorf("Starting check to insure the no MySQL pods are stuck terminating in namespace %s", ComponentNamespace)
+			ctx.Log().Progressf("Starting check to insure the no MySQL pods are stuck terminating in namespace %s", ComponentNamespace)
+			return ctrlerrors.RetryableError{}
 		}
 
 		// Initiate repair only if time to wait period has been exceeded
@@ -211,14 +237,13 @@ func (c mysqlComponent) repairMySQLPodStuckDeleting(ctx spi.ComponentContext) er
 			if err = ctx.Client().Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
 				return err
 			}
-
-			// Clear the timer
-			*c.InitialTimeMySQLPodsStuckChecked = time.Time{}
-			return nil
+		} else {
+			// Keep trying until no pods deleting or time expires
+			return ctrlerrors.RetryableError{}
 		}
-
 	}
 
-	*c.InitialTimeMySQLPodsStuckChecked = time.Time{}
+	// Clear the timer
+	c.ResetInitialTimeMySQLPodsStuckChecked()
 	return nil
 }
