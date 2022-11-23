@@ -1003,7 +1003,7 @@ func TestAddMetrics(t *testing.T) {
 		"##FLUENTD_IMAGE##":      "test-fluentd-image-name",
 		"##WORKLOAD_APIVER##":    "oam.verrazzano.io/v1alpha1",
 		"##WORKLOAD_KIND##":      "VerrazzanoHelidonWorkload",
-		"##WORKLOAD_NAME##":      "test-workload-name",
+		"##WORKLOAD_NAME##":      testNamespace,
 		"##WORKLOAD_NAMESPACE##": testNamespace,
 		"##DEPLOYMENT_NAME##":    "test-deployment",
 		"##LOGGING_SCOPE_NAME##": "test-logging-scope",
@@ -1029,6 +1029,8 @@ func TestAddMetrics(t *testing.T) {
 			assert.NoError(updateObjectFromYAMLTemplate(workload1, helidonWorkload, params))
 			workload1.ObjectMeta.Labels = labels
 			workload1.ObjectMeta.Annotations = annotations
+			workload1.ObjectMeta.Namespace = testNamespace
+			workload1.ObjectMeta.OwnerReferences = []metav1.OwnerReference{{Name: testNamespace}}
 			return nil
 		})
 
@@ -1041,7 +1043,17 @@ func TestAddMetrics(t *testing.T) {
 			assert.NoError(updateObjectFromYAMLTemplate(workload1, helidonWorkload, params))
 			workload1.ObjectMeta.Labels = labels
 			workload1.ObjectMeta.Annotations = annotations
-			workload1.Spec.Components = []oamapi.ApplicationConfigurationComponent{{ComponentName: componentName, Traits: []oamapi.ComponentTrait{{Trait: runtime.RawExtension{Raw: []byte(`{"app":"hello"}`)}}}}}
+			workload1.ObjectMeta.Namespace = testNamespace
+			workload1.ObjectMeta.OwnerReferences = []metav1.OwnerReference{{Name: testNamespace}}
+			workload1.Spec.Components = []oamapi.ApplicationConfigurationComponent{{ComponentName: componentName, Traits: []oamapi.ComponentTrait{{Trait: runtime.RawExtension{Raw: []byte(`{"kind":"MetricsTrait"}`)}}}}}
+			return nil
+		})
+
+	cli.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *vzapi.MetricsTraitList, opts ...client.ListOption) error {
+			list.Items = []vzapi.MetricsTrait{{ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, OwnerReferences: []metav1.OwnerReference{{Name: testNamespace}}}}}
+			list.Items[0].Spec.WorkloadReference.Name = testNamespace
 			return nil
 		})
 
@@ -1053,7 +1065,6 @@ func TestAddMetrics(t *testing.T) {
 	// Unwrap the apps/DeploymentSpec and meta/ObjectMeta
 	deploy, err := reconciler.convertWorkloadToDeployment(&workload, log)
 	assert.NoError(err)
-	err = reconciler.addMetrics(context.TODO(), log, workload.Namespace, &workload, deploy)
-	assert.NoError(err)
+	assert.NoError(reconciler.addMetrics(context.TODO(), log, workload.Namespace, &workload, deploy))
 	mocker.Finish()
 }
