@@ -49,34 +49,41 @@ var _ spi.Worker = worker{}
 
 // workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
 type workerMetrics struct {
-	scaleDomainCountTotal          metrics.MetricItem
-	scaleDomainSucceededCountTotal metrics.MetricItem
-	scaleDomainFailedCountTotal    metrics.MetricItem
+	scaleUpDomainCountTotal   metrics.MetricItem
+	scaleDownDomainCountTotal metrics.MetricItem
+	scaleUpSeconds            metrics.MetricItem
+	scaleDownSeconds          metrics.MetricItem
 }
 
 func NewScaleWorker() (spi.Worker, error) {
 	w := worker{workerMetrics: &workerMetrics{
-		scaleDomainCountTotal: metrics.MetricItem{
-			Name: "scale_domain_count_total",
-			Help: "The total number of scale domain requests",
+		scaleUpDomainCountTotal: metrics.MetricItem{
+			Name: "scale_up_domain_count_total",
+			Help: "The total number of successful scale up domain requests",
 			Type: prometheus.CounterValue,
 		},
-		scaleDomainSucceededCountTotal: metrics.MetricItem{
-			Name: "scale_domain_succeeded_count_total",
-			Help: "The total number of successful scale domain requests",
+		scaleDownDomainCountTotal: metrics.MetricItem{
+			Name: "scale_down_domain_count_total",
+			Help: "The total number of failed scale down domain requests",
 			Type: prometheus.CounterValue,
 		},
-		scaleDomainFailedCountTotal: metrics.MetricItem{
-			Name: "scale_domain_failed_count_total",
-			Help: "The total number of failed scale domain requests",
-			Type: prometheus.CounterValue,
+		scaleUpSeconds: metrics.MetricItem{
+			Name: "scale_up_seconds",
+			Help: "The total number of seconds elapsed to scale up the domain",
+			Type: prometheus.GaugeValue,
+		},
+		scaleDownSeconds: metrics.MetricItem{
+			Name: "scale_down_seconds",
+			Help: "The total number of seconds elapsed to scale down the domain",
+			Type: prometheus.GaugeValue,
 		},
 	}}
 
 	w.metricDescList = []prometheus.Desc{
-		*w.scaleDomainCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
-		*w.scaleDomainSucceededCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
-		*w.scaleDomainFailedCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
+		*w.scaleUpDomainCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
+		*w.scaleDownDomainCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
+		*w.scaleUpSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
+		*w.scaleDownSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
 	}
 
 	if err := config.PsrEnv.LoadFromEnv(w.GetEnvDescList()); err != nil {
@@ -88,9 +95,10 @@ func NewScaleWorker() (spi.Worker, error) {
 	}
 
 	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
-		&w.scaleDomainCountTotal,
-		&w.scaleDomainSucceededCountTotal,
-		&w.scaleDomainFailedCountTotal,
+		&w.scaleUpDomainCountTotal,
+		&w.scaleDownDomainCountTotal,
+		&w.scaleUpSeconds,
+		&w.scaleDownSeconds,
 	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
 
 	return w, nil
@@ -120,9 +128,10 @@ func (w worker) GetMetricDescList() []prometheus.Desc {
 
 func (w worker) GetMetricList() []prometheus.Metric {
 	return []prometheus.Metric{
-		w.scaleDomainCountTotal.BuildMetric(),
-		w.scaleDomainSucceededCountTotal.BuildMetric(),
-		w.scaleDomainFailedCountTotal.BuildMetric(),
+		w.scaleUpDomainCountTotal.BuildMetric(),
+		w.scaleDownDomainCountTotal.BuildMetric(),
+		w.scaleUpSeconds.BuildMetric(),
+		w.scaleDownSeconds.BuildMetric(),
 	}
 }
 
@@ -135,10 +144,8 @@ func (w worker) PreconditionsMet() (bool, error) {
 }
 
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-
-	//increment scaleDomainCountTotal
-	atomic.AddInt64(&w.workerMetrics.scaleDomainCountTotal.Val, 1)
 	var replicas int64
+	var scaleUp bool
 	max, err := strconv.ParseInt(config.PsrEnv.GetEnv(MaxReplicaCount), 10, 64)
 	if err != nil {
 		return fmt.Errorf("MaxReplicaCount can not be parsed to an integer: %v", err)
@@ -152,37 +159,41 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 
 	client, err := w.createClient()
 	if err != nil {
-		return err
+		return log.ErrorfNewErr("Failed to get client: %v", err)
 	}
 
 	// get current replicas at /spec/replicas
 	currentReplicas, err := weblogic.GetCurrentReplicas(client, domainNamespace, domainUID)
 	if err != nil {
-		atomic.AddInt64(&w.workerMetrics.scaleDomainFailedCountTotal.Val, 1)
-		return err
+		return log.ErrorfNewErr("Failed to get current replicas: %v", err)
 	}
 
 	// set replicas to scale based on current replicas
 	if currentReplicas > min {
 		replicas = min
+		scaleUp = false
 	} else {
 		replicas = max
+		scaleUp = true
 	}
+	timeBeforeScaling := time.Now().UnixNano()
 	err = weblogic.PatchReplicas(client, domainNamespace, domainUID, replicas)
 	if err != nil {
-		atomic.AddInt64(&w.workerMetrics.scaleDomainFailedCountTotal.Val, 1)
-		return err
+		return log.ErrorfNewErr("Failed to patch the replicas: %v", err)
 	}
-	success, err := w.waitForReadyReplicas(client, domainNamespace, domainUID, replicas)
+	err = w.waitForReadyReplicas(client, domainNamespace, domainUID, replicas)
+	elapsedSecs := time.Now().UnixNano() - timeBeforeScaling
 	if err != nil {
-		atomic.AddInt64(&w.workerMetrics.scaleDomainFailedCountTotal.Val, 1)
-		return err
+		return log.ErrorfNewErr("Failed to get the ready replicas: %v", err)
 	}
-	if success {
-		atomic.AddInt64(&w.workerMetrics.scaleDomainSucceededCountTotal.Val, 1)
+	if scaleUp {
+		atomic.StoreInt64(&w.workerMetrics.scaleUpSeconds.Val, elapsedSecs)
+		atomic.AddInt64(&w.workerMetrics.scaleUpDomainCountTotal.Val, 1)
 	} else {
-		atomic.AddInt64(&w.workerMetrics.scaleDomainFailedCountTotal.Val, 1)
+		atomic.StoreInt64(&w.workerMetrics.scaleDownSeconds.Val, elapsedSecs)
+		atomic.AddInt64(&w.workerMetrics.scaleDownDomainCountTotal.Val, 1)
 	}
+
 	return nil
 }
 
@@ -194,16 +205,16 @@ func (w worker) createClient() (dynamic.Interface, error) {
 	return dynamic.NewForConfig(cfg)
 }
 
-func (w worker) waitForReadyReplicas(client dynamic.Interface, namespace string, name string, readyReplicas int64) (bool, error) {
+func (w worker) waitForReadyReplicas(client dynamic.Interface, namespace string, name string, readyReplicas int64) error {
 	for {
 		rr, err := weblogic.GetReadyReplicas(client, namespace, name)
 		if err != nil {
-			return false, err
+			return err
 		}
 		if rr == readyReplicas {
 			break
 		}
 		time.Sleep(1 * time.Second)
 	}
-	return true, nil
+	return nil
 }
