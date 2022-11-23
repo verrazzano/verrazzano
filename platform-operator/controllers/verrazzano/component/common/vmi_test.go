@@ -153,20 +153,24 @@ func Test_Vmi(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			a := assert.New(t)
-			fakeContext := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), &test.actualCR, nil, false, profileDir)
+			cli := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects().Build()
+			fakeContext := spi.NewFakeContext(cli, &test.actualCR, nil, false, profileDir)
+			a.False(IsVMISecretReady(fakeContext))
+			a.False(IsGrafanaAdminSecretReady(fakeContext))
+			a.Nil(CreateAndLabelVMINamespaces(fakeContext))
+			a.Error(CreateOrUpdateVMI(fakeContext, nil))
 			fakeContext.EffectiveCR().Spec.Components.DNS = &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "verrazzano"}}
 			fakeContext.EffectiveCR().Spec.Components.Grafana = &vzapi.GrafanaComponent{Database: &vzapi.DatabaseInfo{Name: "name", Host: "host"}}
 			fakeContext.EffectiveCR().Spec.Components.DNS.OCI = &vzapi.OCI{DNSZoneName: "ind"}
-			a.NotNil(NewVMI())
-			cli := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects().Build()
+			fakeContext.EffectiveCR().Spec.Components.DNS.Wildcard = nil
+			a.Error(CreateOrUpdateVMI(fakeContext, nil))
 			a.NoError(EnsureBackupSecret(cli))
 			a.NoError(EnsureGrafanaAdminSecret(cli))
 			a.NoError(EnsureVMISecret(cli))
+			a.NotNil(NewVMI())
 			a.NotNil(EnsureGrafanaDatabaseSecret(fakeContext))
-			a.Error(CreateOrUpdateVMI(fakeContext, nil))
-			a.False(IsVMISecretReady(fakeContext))
-			a.False(IsGrafanaAdminSecretReady(fakeContext))
-			a.Error(CreateAndLabelVMINamespaces(fakeContext))
+			a.True(IsVMISecretReady(fakeContext))
+			a.True(IsGrafanaAdminSecretReady(fakeContext))
 			err := CompareStorageOverrides(fakeContext.ActualCR(), fakeContext.EffectiveCR(), "")
 			if test.expectedErr {
 				a.Error(err)
@@ -192,6 +196,8 @@ func Test_Vmi(t *testing.T) {
 }
 
 // Test_StorageOverrideBeta1 tests the StorageOverrides functions for V1Beta1
+// case mentioned to description
+// expected error with multiple cases
 func Test_StorageOverrideBeta1(t *testing.T) {
 	tests := []struct {
 		name             string
