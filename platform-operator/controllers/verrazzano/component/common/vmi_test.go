@@ -25,8 +25,8 @@ const profileDir = "../../../../manifests/profiles"
 
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
-// Test_Vmi tests the Multiple VMI functions
-func Test_Vmi(t *testing.T) {
+// TestVMI tests the Multiple VMI functions
+func TestVMI(t *testing.T) {
 	b := true
 	tests := []struct {
 		name             string
@@ -195,10 +195,10 @@ func Test_Vmi(t *testing.T) {
 	}
 }
 
-// Test_StorageOverrideBeta1 tests the StorageOverrides functions for V1Beta1
+// TestStorageOverrideBeta1 tests the StorageOverrides functions for V1Beta1
 // case mentioned to description
 // expected error with multiple cases
-func Test_StorageOverrideBeta1(t *testing.T) {
+func TestStorageOverrideBeta1(t *testing.T) {
 	tests := []struct {
 		name             string
 		description      string
