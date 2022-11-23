@@ -17,13 +17,12 @@ compareCoverageNumbers() {
   if [[ "$RESULT" -eq 1 ]]; then
     echo "PASS."
     echo "Branch-line-rate: $LOCAL_BRANCH_LINE_RATE is gte to Remote-line-rate: $REMOTE_LINE_RATE"
-    echo "Upload coverage bool should be false is $UPLOAD_UT_COVERAGE"
     echo "Fail build bool should be false is $FAIL_BUILD_COVERAGE"
     uploadToObjectStorage
   else
     echo "WARNING: Unit Test coverage(line-rate) does NOT pass"
     echo "Branch-line-rate: $LOCAL_BRANCH_LINE_RATE is lte to Remote-line-rate: $REMOTE_LINE_RATE"
-    if [[ "$FAIL_BUILD_COVERAGE" ]]; then
+    if [[ "$FAIL_BUILD_COVERAGE" = true ]]; then
       echo "Job Failed."
       exit 1
     fi
@@ -32,7 +31,8 @@ compareCoverageNumbers() {
 
 #Only upload coverage number if it passes
 uploadToObjectStorage() {
-  if [[ "$UPLOAD_UT_COVERAGE" ]]; then
+  if [[ "$UPLOAD_UT_COVERAGE" = true ]]; then
+    echo "Upload coverage bool should be true is $UPLOAD_UT_COVERAGE"
     echo "Writing new coverage number to $UNIT_TEST_TXT_FILE ..."
     echo "$LOCAL_BRANCH_LINE_RATE" > "$UNIT_TEST_TXT_FILE"
     echo "Putting in object storage at $CLEAN_BRANCH_NAME/$UNIT_TEST_TXT_FILE"
