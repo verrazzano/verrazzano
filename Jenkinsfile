@@ -39,6 +39,8 @@ pipeline {
         booleanParam (description: 'Whether to fail the Integration Tests to test failure handling', name: 'SIMULATE_FAILURE', defaultValue: false)
         booleanParam (description: 'Whether to perform a scan of the built images', name: 'PERFORM_SCAN', defaultValue: false)
         booleanParam (description: 'Whether to wait for triggered tests or not. This defaults to false, this setting is useful for things like release automation that require everything to complete successfully', name: 'WAIT_FOR_TRIGGERED', defaultValue: false)
+        booleanParam (description: 'Whether to fail build if UT coverage number decreases lower than its release-* coverage from object storage. This defaults to false, meaning we are assuming the build will pass.', name: 'FAIL_IF_COVERAGE_DECREASED', defaultValue: false)
+        booleanParam (description: 'Whether to write new passing UT coverage number to object storage. This only occurs for release-* or master branches with gte coverage. Defaults to false, only time to upload is if we are on release-* or master.', name: 'UPLOAD_UNIT_TEST_COVERAGE', defaultValue: false)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'Wildcard DNS Domain',
                 // 1st choice is the default value
@@ -115,6 +117,10 @@ pipeline {
         OCIR_SCAN_REGISTRY = credentials('ocir-scan-registry')
         OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
         DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
+
+        // used to write to object storage, or fail build if UT coverage does not pass
+        FAIL_BUILD_COVERAGE = params.FAIL_IF_COVERAGE_DECREASED
+        UPLOAD_UT_COVERAGE = params.UPLOAD_UNIT_TEST_COVERAGE
     }
 
     stages {
