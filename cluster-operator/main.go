@@ -4,16 +4,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"strings"
 
-	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
-	"github.com/verrazzano/verrazzano/cluster-operator/internal/certificate"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"go.uber.org/zap"
-
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -27,12 +25,17 @@ import (
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/rancher"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
+	"github.com/verrazzano/verrazzano/cluster-operator/internal/certificate"
+	vzlog "github.com/verrazzano/verrazzano/pkg/log"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	// +kubebuilder:scaffold:imports
 )
 
 const (
 	clusterSelectorFilePath = "/var/syncRancherClusters/selector.yaml"
 	syncClustersEnvVarName  = "RANCHER_CLUSTER_SYNC_ENABLED"
+	cattleClustersCRDName   = "clusters.management.cattle.io"
 )
 
 var (
@@ -73,12 +76,6 @@ func main() {
 
 	ctrl.SetLogger(kzap.New(kzap.UseFlagOptions(&opts)))
 
-	syncEnabled, clusterSelector, err := shouldSyncRancherClusters(clusterSelectorFilePath)
-	if err != nil {
-		log.Error(err, "error processing cluster sync config")
-		os.Exit(1)
-	}
-
 	options := ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -88,21 +85,37 @@ func main() {
 		LeaderElectionID:       "42d5ea87.verrazzano.io",
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
+	config := ctrl.GetConfigOrDie()
+	mgr, err := ctrl.NewManager(config, options)
 	if err != nil {
 		log.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
-	if err = (&rancher.RancherClusterReconciler{
-		Client:             mgr.GetClient(),
-		ClusterSyncEnabled: syncEnabled,
-		ClusterSelector:    clusterSelector,
-		Log:                log,
-		Scheme:             mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		log.Errorf("Failed to create Rancher cluster controller: %v", err)
+	crdInstalled, err := isCattleClustersCRDInstalled(apiextv1.NewForConfigOrDie(config))
+	if err != nil {
+		log.Error(err, "unable to determine if cattle CRD is installed")
 		os.Exit(1)
+	}
+
+	// only start the Rancher cluster sync controller if the cattle clusters CRD is installed
+	if crdInstalled {
+		syncEnabled, clusterSelector, err := shouldSyncRancherClusters(clusterSelectorFilePath)
+		if err != nil {
+			log.Error(err, "error processing cluster sync config")
+			os.Exit(1)
+		}
+
+		if err = (&rancher.RancherClusterReconciler{
+			Client:             mgr.GetClient(),
+			ClusterSyncEnabled: syncEnabled,
+			ClusterSelector:    clusterSelector,
+			Log:                log,
+			Scheme:             mgr.GetScheme(),
+		}).SetupWithManager(mgr); err != nil {
+			log.Errorf("Failed to create Rancher cluster controller: %v", err)
+			os.Exit(1)
+		}
 	}
 
 	// Set up the reconciler for VerrazzanoManagedCluster objects
@@ -194,4 +207,17 @@ func shouldSyncRancherClusters(clusterSelectorFile string) (bool, *metav1.LabelS
 	}
 
 	return true, selector, err
+}
+
+// isCattleClustersCRDInstalled returns true if the clusters.management.cattle.io CRD is installed
+func isCattleClustersCRDInstalled(client apiextv1.ApiextensionsV1Interface) (bool, error) {
+	_, err := client.CustomResourceDefinitions().Get(context.TODO(), cattleClustersCRDName, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }

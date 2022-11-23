@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -119,6 +121,32 @@ func TestShouldSyncRancherClusters(t *testing.T) {
 			asserts.Equal(tt.expectedLabelSelector, labelSelector, tt.testName)
 		})
 	}
+}
+
+// TestIsCattleClustersCRDInstalled tests the isCattleClustersCRDInstalled function
+func TestIsCattleClustersCRDInstalled(t *testing.T) {
+	asserts := assert.New(t)
+
+	// GIVEN a cluster that does not have the cattle clusters CRD installed
+	// WHEN  a call is made to isCattleClustersCRDInstalled
+	// THEN  the function returns false
+	client := fake.NewSimpleClientset().ApiextensionsV1()
+	isInstalled, err := isCattleClustersCRDInstalled(client)
+	asserts.NoError(err)
+	asserts.False(isInstalled)
+
+	// GIVEN a cluster that does have the cattle clusters CRD installed
+	// WHEN  a call is made to isCattleClustersCRDInstalled
+	// THEN  the function returns true
+	crd := &apiextv1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: cattleClustersCRDName,
+		},
+	}
+	client = fake.NewSimpleClientset(crd).ApiextensionsV1()
+	isInstalled, err = isCattleClustersCRDInstalled(client)
+	asserts.NoError(err)
+	asserts.True(isInstalled)
 }
 
 // writeTempFile creates a temp file with the specified string content. It returns the
