@@ -4,6 +4,7 @@
 package metrics
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
@@ -186,8 +187,9 @@ func emitInternal(log *zap.SugaredLogger, spec ginkgo.SpecReport) {
 
 func withSpecJSON(log *zap.SugaredLogger, spec ginkgo.SpecReport) *zap.SugaredLogger {
 	specJSON, err := spec.MarshalJSON()
+	raw := json.RawMessage(specJSON)
 	if err == nil {
-		log = log.With(fullSpecJSON, string(specJSON))
+		log = log.With(fullSpecJSON, raw)
 	}
 	return log
 }
