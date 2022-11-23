@@ -1,7 +1,7 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package restapi_test
+package vmi_test
 
 import (
 	"io"
@@ -17,7 +17,7 @@ import (
 
 var (
 	vz             *v1alpha1.Verrazzano
-	httpClient     *retryablehttp.Client
+	httpClient2    *retryablehttp.Client
 	vmiCredentials *pkg.UsernamePassword
 )
 
@@ -26,7 +26,7 @@ var _ = t.BeforeSuite(func() {
 	vz, err = pkg.GetVerrazzano()
 	Expect(err).To(Not(HaveOccurred()))
 
-	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	httpClient2 = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	vmiCredentials = pkg.EventuallyGetSystemVMICredentials()
 })
 
@@ -38,18 +38,19 @@ var _ = t.Describe("VMI", Label("f:infra-lcm", "f:ui.console"), func() {
 		pollingInterval = 5 * time.Second
 	)
 
+	t.BeforeEach(func() {
+		// if Keycloak is disabled, we cannot get the credentials needed for basic auth, so skip the test
+		keycloak := vz.Status.Components["keycloak"]
+		if keycloak == nil || keycloak.State == v1alpha1.CompStateDisabled {
+			Skip("Keycloak disabled, skipping test")
+		}
+	})
+
 	// GIVEN a Verrazzano custom resource
 	// WHEN  we attempt to access VMI endpoints present in the CR status
 	// THEN  we expect an HTTP OK response status code
 	t.DescribeTable("Access VMI endpoints",
 		func(getURLFromVZStatus func() *string) {
-			// if Keycloak is not enabled, we cannot get the credentials needed for basic auth, so skip the test
-			keycloak := vz.Status.Components["keycloak"]
-			if keycloak != nil && keycloak.State == v1alpha1.CompStateDisabled {
-				t.Logs.Info("Keycloak disabled, skipping test")
-				return
-			}
-
 			url := getURLFromVZStatus()
 			if url != nil {
 				Eventually(func() (int, error) {
@@ -72,7 +73,7 @@ func httpGet(url string) (int, error) {
 		return 0, err
 	}
 	req.SetBasicAuth(vmiCredentials.Username, vmiCredentials.Password)
-	resp, err := httpClient.Do(req)
+	resp, err := httpClient2.Do(req)
 	if err != nil {
 		return 0, err
 	}
