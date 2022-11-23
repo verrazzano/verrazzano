@@ -373,13 +373,10 @@ func testUpdate(t *testing.T,
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
 	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
-	verrazzanoClusterUserRole := createClusterRoles(rancher.VerrazzanoClusterUserRoleName)
 	jobList := createJobsList()
 	addExec()
 
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).
-		WithObjects(vz, sa, crb, &rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole).
-		WithLists(&ingressList, &jobList).Build()
+	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vz, sa, crb, &rancherIngress, &kcIngress, &authConfig, &kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole).WithLists(&ingressList, &jobList).Build()
 
 	ctx := spi.NewFakeContext(c, vz, nil, false)
 	// Sample bom file for version validation functions
