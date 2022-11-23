@@ -603,27 +603,6 @@ func doRequest(req *http.Request, rc *RancherConfig, log vzlog.VerrazzanoLogger)
 	return resp, string(body), err
 }
 
-// retry executes the provided function repeatedly, retrying until the function
-// returns done = true, or exceeds the given timeout.
-// errors will be logged, but will not trigger retry to stop
-func retry(backoff wait.Backoff, log vzlog.VerrazzanoLogger, fn wait.ConditionFunc) error {
-	var lastErr error
-	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		done, err := fn()
-		lastErr = err
-		if err != nil {
-			log.Infof("Retrying after error: %v", err)
-		}
-		return done, nil
-	})
-	if err == wait.ErrWaitTimeout {
-		if lastErr != nil {
-			err = lastErr
-		}
-	}
-	return err
-}
-
 // getProxyURL returns an HTTP proxy from the environment if one is set, otherwise an empty string
 func getProxyURL() string {
 	if proxyURL := os.Getenv("https_proxy"); proxyURL != "" {
