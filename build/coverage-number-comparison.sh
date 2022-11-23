@@ -34,7 +34,7 @@ uploadToObjectStorage() {
     echo "Writing new coverage number to $UNIT_TEST_TXT_FILE ..."
     echo "$LOCAL_BRANCH_LINE_RATE" > "$UNIT_TEST_TXT_FILE"
     echo "Putting in object storage at $CLEAN_BRANCH_NAME/$UNIT_TEST_TXT_FILE"
-#    oci --region us-phoenix-1 os object put --force --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name "$CLEAN_BRANCH_NAME"/"$UNIT_TEST_TXT_FILE" --file "$UNIT_TEST_TXT_FILE"
+    oci --region us-phoenix-1 os object put --force --namespace "$OCI_OS_NAMESPACE" -bn "$OCI_OS_BUCKET" --name "$CLEAN_BRANCH_NAME"/"$UNIT_TEST_TXT_FILE" --file "$UNIT_TEST_TXT_FILE"
   fi
 }
 
