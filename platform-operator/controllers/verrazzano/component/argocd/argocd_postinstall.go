@@ -7,13 +7,13 @@ import (
 	"context"
 	"fmt"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -90,9 +90,7 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 		RootCA: string(caCert),
 	}
 
-	ctx.Log().Infof("cacert - %s", string(caCert))
 	keycloakUrl = fmt.Sprintf("https://%s/%s", keycloakHost, "auth/realms/verrazzano-system")
-	//b := &bytes.Buffer{}
 	data, err := yaml.Marshal(conf)
 	if err != nil {
 		fmt.Println(err)
@@ -100,7 +98,7 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 	}
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "argocd-cm",
+			Name:      common.ArgoCDCM,
 			Namespace: constants.ArgoCDNamespace,
 		},
 	}
@@ -111,7 +109,6 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 			cm.Data = make(map[string]string)
 		}
 		cm.Data["url"] = fmt.Sprintf("https://%s", argocdHost)
-		cm.Data["admin.enabled"] = "false"
 		cm.Data["oidc.config"] = string(data)
 
 		return nil
@@ -127,7 +124,7 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 func patchArgoCDRbacConfigMap(ctx spi.ComponentContext) error {
 	rbaccm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "argocd-rbac-cm",
+			Name:      common.ArgoCDRBACCM,
 			Namespace: constants.ArgoCDNamespace,
 		},
 	}
@@ -152,18 +149,19 @@ func patchArgoCDRbacConfigMap(ctx spi.ComponentContext) error {
 
 // restartArgoCDServerDeploy restarts the argocd server deployment
 func restartArgoCDServerDeploy(ctx spi.ComponentContext) error {
-	// Get the go client so we can bypass the cache and get directly from etcd
-	goClient, err := k8sutil.GetGoClient(ctx.Log())
-	if err != nil {
+	deployment := &appsv1.Deployment{}
+	deployName := types.NamespacedName{
+		Namespace: constants.ArgoCDNamespace,
+		Name:      common.ArgoCDServer}
+
+	if err := ctx.Client().Get(context.TODO(), deployName, deployment); err != nil {
 		return err
 	}
-
-	deployment, err := goClient.AppsV1().Deployments("argocd").Get(context.TODO(), "argocd-server", metav1.GetOptions{})
 
 	time := time.Now()
 	// Annotate the deployment to do a restart of the pods
 	deployment.Spec.Template.ObjectMeta.Annotations[vzconst.VerrazzanoRestartAnnotation] = buildRestartAnnotationString(time)
-	if _, err := goClient.AppsV1().Deployments(deployment.Namespace).Update(context.TODO(), deployment, metav1.UpdateOptions{}); err != nil {
+	if err := ctx.Client().Update(context.TODO(), deployment); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed, error updating Deployment %s annotation to force a pod restart", deployment.Name)
 	}
 

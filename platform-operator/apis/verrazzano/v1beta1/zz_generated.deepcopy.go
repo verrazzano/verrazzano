@@ -337,7 +337,7 @@ func (in *ComponentSpec) DeepCopyInto(out *ComponentSpec) {
 		in, out := &in.ArgoCD, &out.ArgoCD
 		*out = new(ArgoCDComponent)
 		(*in).DeepCopyInto(*out)
-        }
+	}
 	if in.WebLogicOperator != nil {
 		in, out := &in.WebLogicOperator, &out.WebLogicOperator
 		*out = new(WebLogicOperatorComponent)

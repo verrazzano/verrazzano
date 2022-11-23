@@ -3,3 +3,8 @@
 
 server:
   extraArgs: ["--insecure"]
+  ingress:
+    enabled: true
+
+dex:
+  enabled: false

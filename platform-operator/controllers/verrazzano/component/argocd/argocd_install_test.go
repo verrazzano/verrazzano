@@ -7,7 +7,6 @@ import (
 	certapiv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/stretchr/testify/assert"
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -27,8 +26,6 @@ func init() {
 	_ = clientgoscheme.AddToScheme(testScheme)
 
 	_ = vzapi.AddToScheme(testScheme)
-	_ = clustersv1alpha1.AddToScheme(testScheme)
-
 	_ = istioclinet.AddToScheme(testScheme)
 	_ = istioclisec.AddToScheme(testScheme)
 	_ = certapiv1.AddToScheme(testScheme)

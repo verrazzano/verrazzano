@@ -1476,7 +1476,6 @@ func getKeycloakClientScopes(ctx spi.ComponentContext) (KeycloakClientScopes, er
 }
 
 func getClientID(keycloakClients KeycloakClients, clientName string) string {
-
 	for _, keycloakClient := range keycloakClients {
 		if keycloakClient.ClientID == clientName {
 			return keycloakClient.ID
@@ -1486,7 +1485,6 @@ func getClientID(keycloakClients KeycloakClients, clientName string) string {
 }
 
 func getClientScopeName(keycloakClientScopes KeycloakClientScopes, groupname string) string {
-
 	for _, keycloakClient := range keycloakClientScopes {
 		if keycloakClient.Name == groupname {
 			return keycloakClient.Name

@@ -805,6 +805,7 @@ func convertVerrazzanoInstanceTo(instance *InstanceInfo) *v1beta1.InstanceInfo {
 		return nil
 	}
 	return &v1beta1.InstanceInfo{
+		ArgoCDURL:               instance.ArgoCDURL,
 		ConsoleURL:              instance.ConsoleURL,
 		KeyCloakURL:             instance.KeyCloakURL,
 		RancherURL:              instance.RancherURL,

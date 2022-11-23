@@ -66,6 +66,7 @@ var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "kiali"},
 	{Namespace: constants.VeleroNameSpace, Name: "allow-same-namespace"},
 	{Namespace: constants.VeleroNameSpace, Name: "velero"},
+	{Namespace: constants.ArgoCDNamespace, Name: "argocd-netpolicy"},
 }
 
 var (
@@ -140,6 +141,7 @@ func appendVerrazzanoValues(ctx spi.ComponentContext, overrides *chartValues) er
 	overrides.Prometheus = &prometheusValues{Enabled: promEnable}
 	overrides.Rancher = &rancherValues{Enabled: vzcr.IsRancherEnabled(effectiveCR)}
 	overrides.Velero = &veleroValues{Enabled: vzcr.IsVeleroEnabled(effectiveCR)}
+	overrides.ArgoCD = &argoCDValues{Enabled: vzcr.IsArgoCDEnabled(effectiveCR)}
 	return nil
 }
 

@@ -11,6 +11,8 @@ const (
 	ArgoCDIngressCAName = "tls-argocd-ingress"
 	ArgoCDCACert        = "ca.crt"
 	ArgoCDService       = "argocd-server"
+	ArgoCDCM            = "argocd-cm"
+	ArgoCDRBACCM        = "argocd-rbac-cm"
 )
 
 // ArgoCD deployments

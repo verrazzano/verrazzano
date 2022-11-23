@@ -6,6 +6,7 @@ package argocd
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -57,6 +58,30 @@ func NewComponent() spi.Component {
 			AppendOverridesFunc:       AppendOverrides,
 			Certificates:              certificates,
 			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, nginx.ComponentName, certmanager.ComponentName, keycloak.ComponentName},
+			AvailabilityObjects: &ready.AvailabilityObjects{
+				DeploymentNames: []types.NamespacedName{
+					{
+						Name:      common.ArgoCDApplicationSetController,
+						Namespace: constants.ArgoCDNamespace,
+					},
+					{
+						Name:      common.ArgoCDNotificationController,
+						Namespace: constants.ArgoCDNamespace,
+					},
+					{
+						Name:      common.ArgoCDRedis,
+						Namespace: constants.ArgoCDNamespace,
+					},
+					{
+						Name:      common.ArgoCDRepoServer,
+						Namespace: constants.ArgoCDNamespace,
+					},
+					{
+						Name:      common.ArgoCDServer,
+						Namespace: constants.ArgoCDNamespace,
+					},
+				},
+			},
 			IngressNames: []types.NamespacedName{
 				{
 					Namespace: ComponentNamespace,
@@ -81,8 +106,6 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 	kvs = append(kvs, bom.KeyValue{Key: "global.image.repository", Value: images[1].Value})
 	kvs = append(kvs, bom.KeyValue{Key: "global.image.tag", Value: images[0].Value})
-	kvs = append(kvs, bom.KeyValue{Key: "server.ingress.enabled", Value: "true"})
-	kvs = append(kvs, bom.KeyValue{Key: "dex.enabled", Value: "false"})
 
 	images, err = bomFile.BuildImageOverrides("redis")
 	if err != nil {
