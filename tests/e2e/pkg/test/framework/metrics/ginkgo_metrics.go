@@ -186,7 +186,7 @@ func emitInternal(log *zap.SugaredLogger, spec ginkgo.SpecReport) {
 
 func withSpecJSON(log *zap.SugaredLogger, spec ginkgo.SpecReport) *zap.SugaredLogger {
 	specJSON, err := spec.MarshalJSON()
-	if err != nil {
+	if err == nil {
 		log = log.With(fullSpecJSON, string(specJSON))
 	}
 	return log
