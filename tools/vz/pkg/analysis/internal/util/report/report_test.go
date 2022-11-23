@@ -61,7 +61,7 @@ func TestInvalidIssues(t *testing.T) {
 	assert.Nil(t, ContributeIssue(logger, invalidIssue))
 
 	// to get no issues from contribute issues map
-	assert.Nil(t, ContributeIssuesMap(logger, "MyIssueSource", map[string]Issue{"issue":invalidIssue}))
+	assert.Nil(t, ContributeIssuesMap(logger, "MyIssueSource", map[string]Issue{"issue": invalidIssue}))
 	assert.Empty(t, GetAllSourcesFilteredIssues(logger, true, 8, 11))
 	AddSourceAnalyzed(invalidIssue.Source)
 
