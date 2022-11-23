@@ -175,6 +175,13 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		}
 	}
 
+	log.Debugf("Updating Rancher ClusterRoleBindingTemplate for VMC %s", vmc.Name)
+	err = r.UpdateRancherClusterRoleBindingTemplate(vmc)
+	if err != nil {
+		r.handleError(ctx, vmc, "Failed to update Rancher ClusterRoleBindingTemplate", err, log)
+		return newRequeueWithDelay(), err
+	}
+
 	log.Debugf("Pushing the Manifest objects for VMC %s", vmc.Name)
 	pushedManifest, err := r.pushManifestObjects(vmc)
 	if err != nil {

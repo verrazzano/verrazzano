@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"net/http"
 	"strings"
 	"testing"
@@ -124,6 +125,7 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectMockCallsForCreateClusterRoleBindingTemplate(t, mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
@@ -197,6 +199,7 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectMockCallsForCreateClusterRoleBindingTemplate(t, mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
@@ -270,6 +273,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectMockCallsForCreateClusterRoleBindingTemplate(t, mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, "", func(configMap *corev1.ConfigMap) error {
@@ -346,6 +350,7 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	expectSyncCACertRancherHTTPCalls(t, mockRequestSender, "")
 	expectRancherConfigK8sCalls(t, mock)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectMockCallsForCreateClusterRoleBindingTemplate(t, mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", false, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -420,6 +425,7 @@ func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, true)
 	expectRancherConfigK8sCalls(t, mock)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectMockCallsForCreateClusterRoleBindingTemplate(t, mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
 		asserts.Len(configMap.Data, 2, "no data found")
@@ -501,6 +507,7 @@ scrape_configs:
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectMockCallsForCreateClusterRoleBindingTemplate(t, mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, jobs, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
@@ -586,6 +593,7 @@ scrape_configs:
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectMockCallsForCreateClusterRoleBindingTemplate(t, mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, prometheusYaml, jobs, true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
@@ -661,6 +669,7 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, true, rancherManifestYAML)
 	expectRancherConfigK8sCalls(t, mock)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
+	expectMockCallsForCreateClusterRoleBindingTemplate(t, mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, false)
 	expectSyncPrometheusScraper(mock, testManagedCluster, "", "", true, getCaCrt(), func(configMap *corev1.ConfigMap) error {
@@ -2507,4 +2516,17 @@ func expectMockCallsForDelete(t *testing.T, mock *mocks.MockClient, namespace st
 
 	// Expect Rancher k8s calls to configure the API client
 	expectRancherConfigK8sCalls(t, mock)
+}
+
+func expectMockCallsForCreateClusterRoleBindingTemplate(t *testing.T, mock *mocks.MockClient, clusterID string) {
+	name := fmt.Sprintf("crtb-verrazzano-cluster-%s", clusterID)
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Name: name, Namespace: clusterID}), gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, nsn types.NamespacedName, resource *unstructured.Unstructured) error {
+			data := resource.UnstructuredContent()
+			data[ClusterRoleTemplateBindingAttributeClusterName] = clusterID
+			data[ClusterRoleTemplateBindingAttributeUserName] = constants.VerrazzanoClusterRancherUser
+			data[ClusterRoleTemplateBindingAttributeRoleTemplateName] = constants.VerrazzanoClusterRancherRole
+			return nil
+		})
 }
