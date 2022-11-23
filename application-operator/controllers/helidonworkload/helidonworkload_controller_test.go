@@ -1003,7 +1003,7 @@ func TestAddMetrics(t *testing.T) {
 		"##FLUENTD_IMAGE##":      "test-fluentd-image-name",
 		"##WORKLOAD_APIVER##":    "oam.verrazzano.io/v1alpha1",
 		"##WORKLOAD_KIND##":      "VerrazzanoHelidonWorkload",
-		"##WORKLOAD_NAME##":      testNamespace,
+		"##WORKLOAD_NAME##":      "test-workload-name",
 		"##WORKLOAD_NAMESPACE##": testNamespace,
 		"##DEPLOYMENT_NAME##":    "test-deployment",
 		"##LOGGING_SCOPE_NAME##": "test-logging-scope",
@@ -1050,10 +1050,13 @@ func TestAddMetrics(t *testing.T) {
 		})
 
 	cli.EXPECT().
+		// GIVEN a default mocker client
+		// WHEN we call List from the MetricsTraitFromWorkloadLabels method
+		// THEN the call gets MetricsTrait object associated with the workload
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *vzapi.MetricsTraitList, opts ...client.ListOption) error {
 			list.Items = []vzapi.MetricsTrait{{ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, OwnerReferences: []metav1.OwnerReference{{Name: testNamespace}}}}}
-			list.Items[0].Spec.WorkloadReference.Name = testNamespace
+			list.Items[0].Spec.WorkloadReference.Name = params["##WORKLOAD_NAME##"]
 			return nil
 		})
 
