@@ -4,11 +4,10 @@
 package rancher
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/base32"
+	"encoding/base64"
 	"fmt"
 	"reflect"
 	"strings"
@@ -628,11 +627,10 @@ func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, l
 	}
 
 	logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("cat %s | base64", logoPath)}
-	// starting with k8s.io/apimachinery v0.25.0, bufio.NewReader() is being used in SPDYExecutor which
-	// was seen to be returining only first 4096 (default buffer size in (bufio.NewReader) bytes of the logo
-	// content, therefore we retry a few times because logo content size is greater than 4096
-	defaultBufferLength := bufio.NewReader(&bytes.Reader{}).Size()
-	logoContent, err := getRancherLogoContentWithRetry(log, defaultBufferLength, cli, cfg, pod, logoCommand)
+	// starting with k8s.io/apimachinery v0.25.0, the internal buffer is changed and the api request
+	// was seen to be returining only first few bytes of the logo content,
+	// therefore we retry a few times untill we get valid logo content which will be a svg
+	logoContent, err := getRancherLogoContentWithRetry(log, cli, cfg, pod, logoCommand)
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed getting actual logo content from rancher pod from %s", logoPath)
 	}
@@ -717,8 +715,8 @@ func getUserNameForPrincipal(principal string) string {
 	return "u-" + strings.ToLower(sha)
 }
 
-// getRancherLogoContentWithRetry gets the logo content from rancher and retries if the size of logo content returned is same as default defaultBufferLength
-func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, defaultBufferLength int, cli kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, logoCommand []string) (string, error) {
+// getRancherLogoContentWithRetry gets the logo content from rancher and retries if the logo content returned is not a full svg file
+func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, cli kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, logoCommand []string) (string, error) {
 	var logoContent string
 	var backoff = wait.Backoff{
 		Steps:    3,
@@ -738,8 +736,13 @@ func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, defaultBufferLen
 			return false, log.ErrorfThrottledNewErr("Invalid empty output from Rancher pod")
 		}
 
-		if len(logoContent) == defaultBufferLength {
-			log.Infof("logo content of default buffer length %v, retrying", defaultBufferLength)
+		decodedLogo, err := base64.StdEncoding.DecodeString(logoContent)
+		if err != nil {
+			return false, log.ErrorfThrottledNewErr("Error while decoding logo: %v", err)
+		}
+
+		if !(strings.HasSuffix(string(decodedLogo), "</svg>")) {
+			log.Infof("logo not completely read from rancher pod %v, retrying", string(decodedLogo))
 			return false, nil
 		}
 
