@@ -114,6 +114,8 @@ const (
 	SettingUIPrimaryColorValue        = "rgb(48, 99, 142)"
 	SettingUILinkColor                = "ui-link-color"
 	SettingUILinkColorValue           = "rgb(49, 118, 217)"
+	SettingUIBrand                    = "ui-brand"
+	SettingUIBrandValue               = "verrazzano"
 )
 
 // auth config
