@@ -629,7 +629,7 @@ func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, l
 	logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("cat %s | base64", logoPath)}
 	// starting with k8s.io/apimachinery v0.25.0, the internal buffer is changed and the api request
 	// was seen to be returining only first few bytes of the logo content,
-	// therefore we retry a few times untill we get valid logo content which will be a svg
+	// therefore we retry a few times until we get valid logo content which will be a svg
 	logoContent, err := getRancherLogoContentWithRetry(log, cli, cfg, pod, logoCommand)
 	if err != nil {
 		return log.ErrorfThrottledNewErr("failed getting actual logo content from rancher pod from %s", logoPath)
