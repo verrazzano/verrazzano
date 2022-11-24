@@ -632,7 +632,7 @@ func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, l
 	// therefore we retry a few times until we get valid logo content which will be a svg
 	logoContent, err := getRancherLogoContentWithRetry(log, cli, cfg, pod, logoCommand)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("failed getting actual logo content from rancher pod from %s", logoPath)
+		return log.ErrorfThrottledNewErr("failed getting actual logo content from rancher pod from %s: %v", logoPath, err.Error())
 	}
 
 	return createOrUpdateResource(ctx, types.NamespacedName{Name: settingName}, common.GVKSetting, map[string]interface{}{"value": fmt.Sprintf("%s%s", SettingUILogoValueprefix, logoContent)})
@@ -741,7 +741,7 @@ func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, cli kubernetes.I
 			return false, log.ErrorfThrottledNewErr("Error while decoding logo: %v", err)
 		}
 
-		if !(strings.HasSuffix(string(decodedLogo), "</svg>")) {
+		if !(strings.HasSuffix(strings.TrimSpace(string(decodedLogo)), "</svg>")) {
 			log.Infof("logo not completely read from rancher pod %v, retrying", string(decodedLogo))
 			return false, nil
 		}
