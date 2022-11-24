@@ -626,9 +626,8 @@ func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, l
 		return err
 	}
 
-	logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("cat %s | base64", logoPath)}
-	// starting with k8s.io/apimachinery v0.25.0, the internal buffer is changed and the api request
-	// was seen to be returining only first few bytes of the logo content,
+	logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("base64 %s", logoPath)}
+	// The api request to pod was seen to be returining only first few bytes of the logo content,
 	// therefore we retry a few times until we get valid logo content which will be a svg
 	logoContent, err := getRancherLogoContentWithRetry(log, cli, cfg, pod, logoCommand)
 	if err != nil {
@@ -742,7 +741,7 @@ func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, cli kubernetes.I
 		}
 
 		if !(strings.HasSuffix(strings.TrimSpace(string(decodedLogo)), "</svg>")) {
-			log.Infof("logo not completely read from rancher pod %v, retrying", string(decodedLogo))
+			log.Errorf("logo not completely read from rancher pod, logo content: %v, retrying", string(decodedLogo))
 			return false, nil
 		}
 
