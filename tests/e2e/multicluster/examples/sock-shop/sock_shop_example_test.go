@@ -5,6 +5,7 @@ package sock_shop
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"os"
 	"strconv"
 	"time"
@@ -47,7 +48,7 @@ var _ = t.AfterEach(func() {
 })
 
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	// deploy the VerrazzanoProject
 	start := time.Now()
 	Eventually(func() error {
@@ -65,6 +66,8 @@ var _ = t.BeforeSuite(func() {
 	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = ginkgo.BeforeSuite(beforeSuite)
 
 var _ = t.Describe("In Multi-cluster, verify sock-shop", Label("f:multicluster.mc-app-lcm"), func() {
 	t.Context("Admin Cluster", func() {
@@ -250,7 +253,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", Label("f:multicluster.m
 	})
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		err := pkg.ExecuteBugReport(testNamespace)
 		if err != nil {
@@ -258,6 +261,8 @@ var _ = t.AfterSuite(func() {
 		}
 	}
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 func cleanUp(kubeconfigPath string) error {
 	start := time.Now()

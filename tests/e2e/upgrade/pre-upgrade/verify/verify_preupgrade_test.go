@@ -5,6 +5,7 @@ package verify
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"time"
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
@@ -23,12 +24,14 @@ var shortPollingInterval = 10 * time.Second
 
 var t = framework.NewTestFramework("verify")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
 	updateConfigMap()
 	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("before_suite_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = ginkgo.BeforeSuite(beforeSuite)
 
 var failed = false
 var beforeSuitePassed = false
@@ -37,13 +40,15 @@ var _ = t.AfterEach(func() {
 	failed = failed || framework.VzCurrentGinkgoTestDescription().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	start := time.Now()
 	if failed || !beforeSuitePassed {
 		pkg.ExecuteBugReport()
 	}
 	metrics.Emit(t.Metrics.With("after_suite_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 func updateConfigMap() {
 	t.Logs.Info("Update prometheus configmap")

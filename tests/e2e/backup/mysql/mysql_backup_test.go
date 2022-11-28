@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	common "github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
@@ -41,7 +42,7 @@ var keycloakNamespacePods = []string{"keycloak", "mysql"}
 var mysqlPods = []string{"mysql"}
 var keycloakPods = []string{"keycloak"}
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
 	common.GatherInfo()
 	file, err := os.CreateTemp("", "mysql-values-")
@@ -54,12 +55,14 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	start := time.Now()
 	cleanUpVelero()
 	os.Remove(common.MySQLBackupHelmFileName)
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var t = framework.NewTestFramework("mysql-backup")
 

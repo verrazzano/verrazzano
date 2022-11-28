@@ -5,6 +5,7 @@ package mcnshelidon
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
@@ -44,7 +45,7 @@ var _ = t.AfterEach(func() {
 })
 
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	// deploy the VerrazzanoProject
 	start := time.Now()
 	Eventually(func() error {
@@ -62,6 +63,8 @@ var _ = t.BeforeSuite(func() {
 	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = ginkgo.BeforeSuite(beforeSuite)
 
 var _ = t.Describe("In Multi-cluster, verify delete ns of hello-helidon-ns", Label("f:multicluster.mc-app-lcm"), func() {
 	t.Context("Admin Cluster", func() {
@@ -144,11 +147,13 @@ var _ = t.Describe("In Multi-cluster, verify delete ns of hello-helidon-ns", Lab
 	})
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		pkg.ExecuteBugReport(testNamespace)
 	}
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 func deleteProject(kubeconfigPath string) error {
 	start := time.Now()

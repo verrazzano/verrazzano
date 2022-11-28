@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
@@ -31,7 +32,7 @@ var clientset = k8sutil.GetKubernetesClientsetOrDie()
 var testDashboard pkg.DashboardMetadata
 var t = framework.NewTestFramework("grafana")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Fail(fmt.Sprintf(pkg.KubeConfigErrorFmt, err))
@@ -67,6 +68,8 @@ var _ = t.BeforeSuite(func() {
 	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue(),
 		"It should be possible to create a Grafana dashboard and persist it.")
 })
+
+var _ = ginkgo.BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.logging.es"), func() {
 

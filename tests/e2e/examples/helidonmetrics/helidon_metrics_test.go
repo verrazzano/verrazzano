@@ -4,6 +4,7 @@
 package helidonmetrics
 
 import (
+	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
@@ -32,7 +33,7 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("helidon-metrics")
 )
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
 		Eventually(func() (*v1.Namespace, error) {
@@ -63,6 +64,8 @@ var _ = t.BeforeSuite(func() {
 	Eventually(helidonConfigPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
 })
 
+var _ = ginkgo.BeforeSuite(beforeSuite)
+
 var failed = false
 var beforeSuitePassed = false
 
@@ -70,8 +73,7 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
-
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		pkg.ExecuteBugReport(namespace)
 	}
@@ -121,6 +123,8 @@ var _ = t.AfterSuite(func() {
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var (
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}

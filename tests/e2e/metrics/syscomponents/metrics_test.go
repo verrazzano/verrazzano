@@ -5,6 +5,7 @@ package syscomponents
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"os"
 	"strings"
 	"time"
@@ -100,7 +101,7 @@ var excludePodsIstio = []string{
 
 var t = framework.NewTestFramework("syscomponents")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	present := false
 	var err error
 	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
@@ -122,9 +123,13 @@ var _ = t.BeforeSuite(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
-
 })
-var _ = t.AfterSuite(func() {})
+
+var _ = ginkgo.BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {})
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var _ = t.AfterEach(func() {})
 

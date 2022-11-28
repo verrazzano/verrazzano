@@ -5,6 +5,7 @@ package fluentdextes
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -32,7 +33,7 @@ var (
 	pollingInterval  = 5 * time.Second
 )
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	cr := update.GetCR()
 	orignalFluentd = cr.Spec.Components.Fluentd
 	if orignalFluentd != nil { //External Collector is enabled
@@ -43,7 +44,9 @@ var _ = t.BeforeSuite(func() {
 	managedClusters = multicluster.ManagedClusters()
 })
 
-var _ = t.AfterSuite(func() {
+var _ = ginkgo.BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	if extOpensearchURL != "" && extOpensearchURL != pkg.VmiOSURL && extOpensearchSec != "" {
 		start := time.Now()
 		gomega.Eventually(func() bool {
@@ -51,6 +54,8 @@ var _ = t.AfterSuite(func() {
 		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", extOpensearchURL, time.Since(start)))
 	}
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 	t.Describe("Update to default Opensearch", Label("f:platform-lcm.fluentd-default-opensearch"), func() {

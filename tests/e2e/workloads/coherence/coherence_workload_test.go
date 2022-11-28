@@ -5,6 +5,7 @@ package coherence
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"net/http"
 	"time"
 
@@ -81,7 +82,7 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		pkg.ExecuteBugReport(namespace)
 	}
@@ -89,6 +90,8 @@ var _ = t.AfterSuite(func() {
 		undeployCoherenceApp()
 	}
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("f:app-lcm.oam", "f:app-lcm.coherence-workload"), func() {
 

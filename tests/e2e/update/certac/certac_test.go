@@ -5,6 +5,7 @@ package certac
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"reflect"
 	"strings"
 	"time"
@@ -40,7 +41,7 @@ func (u *CertModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.CertManager = u.CertManager
 }
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	adminCluster = multicluster.AdminCluster()
 	managedClusters = multicluster.ManagedClusters()
 	adminVZ := adminCluster.GetCR(true)
@@ -52,9 +53,13 @@ var _ = t.BeforeSuite(func() {
 	verifyRegistration()
 })
 
-var _ = t.AfterSuite(func() {
+var _ = ginkgo.BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	//verifyManagedClustersFluentdConnection()
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var _ = t.Describe("Update admin-cluster cert-manager", Label("f:platform-lcm.update"), func() {
 	t.Describe("multicluster cert-manager verify", Label("f:platform-lcm.multicluster-verify"), func() {

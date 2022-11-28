@@ -5,6 +5,7 @@ package weblogic
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -43,7 +44,7 @@ var _ = t.AfterEach(func() {
 })
 
 // Create all of the resources to deploy the application and wait for the pods to run
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
 
 	t.Logs.Info("Deploy WebLogic logging application")
@@ -116,8 +117,10 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
+var _ = ginkgo.BeforeSuite(beforeSuite)
+
 // Delete all of the resources to undeploy the application
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		pkg.ExecuteBugReport(namespace)
 	}
@@ -169,6 +172,8 @@ var _ = t.AfterSuite(func() {
 
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var _ = t.Describe("WebLogic logging test", Label("f:app-lcm.oam", "f:app-lcm.weblogic-workload"), func() {
 

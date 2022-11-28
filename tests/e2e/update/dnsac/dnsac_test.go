@@ -5,6 +5,7 @@ package dnsac
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"reflect"
 	"strings"
 	"time"
@@ -39,13 +40,15 @@ func (m *DNSModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.DNS = m.DNS
 }
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	cr := update.GetCR()
 	adminFluentd = cr.Spec.Components.Fluentd
 	adminCluster = multicluster.AdminCluster()
 	managedClusters = multicluster.ManagedClusters()
 	verifyRegistration()
 })
+
+var _ = ginkgo.BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Update admin-cluster dns", Serial, Ordered, Label("f:platform-lcm.update"), func() {
 	t.Describe("multicluster dns verify", Label("f:platform-lcm.multicluster-verify"), func() {

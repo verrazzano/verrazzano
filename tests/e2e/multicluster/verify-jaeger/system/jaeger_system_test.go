@@ -4,6 +4,7 @@
 package system
 
 import (
+	"github.com/onsi/ginkgo"
 	"os"
 	"time"
 
@@ -32,7 +33,7 @@ var (
 	failed              = false
 )
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	// Allow 3hr allowance for the traces.
 	start = time.Now().Add(-3 * time.Hour)
 	if adminKubeConfigPath == "" {
@@ -40,11 +41,13 @@ var _ = t.BeforeSuite(func() {
 	}
 })
 
+var _ = ginkgo.BeforeSuite(beforeSuite)
+
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed {
 		err := pkg.ExecuteBugReport()
 		if err != nil {
@@ -52,6 +55,8 @@ var _ = t.AfterSuite(func() {
 		}
 	}
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var _ = t.Describe("Multi Cluster Jaeger Validation", Label("f:platform-lcm.install"), func() {
 

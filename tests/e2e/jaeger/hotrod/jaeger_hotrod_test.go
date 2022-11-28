@@ -5,6 +5,7 @@ package hotrod
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -36,7 +37,7 @@ var (
 	hotrodServiceName  = fmt.Sprintf("hotrod.%s", generatedNamespace)
 )
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	start = time.Now()
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -51,11 +52,13 @@ var _ = t.BeforeSuite(func() {
 	beforeSuitePassed = true
 })
 
+var _ = ginkgo.BeforeSuite(beforeSuite)
+
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		pkg.ExecuteBugReport(namespace)
 	}
@@ -65,6 +68,8 @@ var _ = t.AfterSuite(func() {
 	jaeger.UndeployApplication(namespace, testAppComponentFilePath, testAppConfigurationFilePath, expectedPodsHotrod)
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var _ = t.Describe("Hotrod App with Jaeger Traces", Label("f:jaeger.hotrod-workload"), func() {
 	t.Context("after successful installation", func() {

@@ -5,6 +5,7 @@ package defaultresource_test
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"os"
 	"time"
@@ -28,14 +29,17 @@ var expectedPodsKubeSystem = []string{
 
 var t = framework.NewTestFramework("defaultresource_test")
 
-var _ = t.BeforeSuite(func() {})
+var beforeSuite = t.BeforeSuiteFunc(func() {})
+var _ = ginkgo.BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	Eventually(func() error {
 		return listPodsInKubeSystem()
 	}, waitTimeout, pollingInterval).Should(BeNil())
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var _ = t.Describe("Multi Cluster Install Validation", Label("f:platform-lcm.install"),
 	func() {

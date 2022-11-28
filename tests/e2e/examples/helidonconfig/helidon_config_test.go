@@ -5,6 +5,7 @@ package helidonconfig
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -32,7 +33,7 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("helidon-config")
 )
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
 		Eventually(func() (*v1.Namespace, error) {
@@ -72,6 +73,8 @@ var _ = t.BeforeSuite(func() {
 	Eventually(helidonConfigPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
 })
 
+var _ = ginkgo.BeforeSuite(beforeSuite)
+
 var failed = false
 var beforeSuitePassed = false
 
@@ -79,8 +82,7 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
-
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		pkg.ExecuteBugReport(namespace)
 	}
@@ -130,6 +132,8 @@ var _ = t.AfterSuite(func() {
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var (
 	expectedPodsHelidonConfig = []string{"helidon-config-deployment"}

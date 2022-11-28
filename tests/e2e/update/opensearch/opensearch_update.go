@@ -154,7 +154,9 @@ func newResources(requestMemory string) *corev1.ResourceRequirements {
 // Initialize the Test Framework
 var t = framework.NewTestFramework("update opensearch")
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	m := OpensearchAllNodeRolesModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)

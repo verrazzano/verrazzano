@@ -4,6 +4,7 @@
 package oam
 
 import (
+	"github.com/onsi/ginkgo"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -49,7 +50,7 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		pkg.ExecuteBugReport(namespace)
 	}
@@ -57,6 +58,8 @@ var _ = t.AfterSuite(func() {
 		undeployOAMApp()
 	}
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var _ = t.Describe("An OAM application is deployed", Label("f:app-lcm.oam"), func() {
 	t.Context("Check for created resources", func() {

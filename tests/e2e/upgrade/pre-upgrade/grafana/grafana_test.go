@@ -6,6 +6,7 @@ package grafana
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"net/http"
 	"os"
@@ -26,7 +27,7 @@ const (
 var testDashboard pkg.DashboardMetadata
 var t = framework.NewTestFramework("grafana")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Fail(fmt.Sprintf(pkg.KubeConfigErrorFmt, err))
@@ -62,6 +63,8 @@ var _ = t.BeforeSuite(func() {
 	}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue(),
 		"It should be possible to create a Grafana dashboard and persist it.")
 })
+
+var _ = ginkgo.BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.logging.es"), func() {
 

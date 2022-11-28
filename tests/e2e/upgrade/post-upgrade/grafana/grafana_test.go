@@ -5,6 +5,7 @@ package grafana
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"time"
 
@@ -21,7 +22,7 @@ const (
 
 var t = framework.NewTestFramework("grafana")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		Fail(fmt.Sprintf(pkg.KubeConfigErrorFmt, err))
@@ -32,6 +33,8 @@ var _ = t.BeforeSuite(func() {
 		Skip("Grafana component is not enabled")
 	}
 })
+
+var _ = ginkgo.BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Post Upgrade Grafana Dashboard", Label("f:observability.logging.es"), func() {
 

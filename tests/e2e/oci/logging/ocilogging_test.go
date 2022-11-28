@@ -6,6 +6,7 @@ package logging
 import (
 	"context"
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"os"
 	"time"
 
@@ -52,7 +53,7 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	compartmentID = os.Getenv(compartmentIDEnvVar)
 	logGroupID = os.Getenv(logGroupIDEnvVar)
 	nsLogID = os.Getenv(nsLogIDEnvVar)
@@ -68,7 +69,7 @@ var _ = t.BeforeSuite(func() {
 	beforeSuitePassed = true
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		pkg.ExecuteBugReport(springbootNamespace, helidonNamespace)
 	}
@@ -85,6 +86,8 @@ var _ = t.AfterSuite(func() {
 		},
 	)
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var _ = t.AfterEach(func() {})
 

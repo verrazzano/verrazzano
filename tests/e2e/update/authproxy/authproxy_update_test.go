@@ -5,6 +5,7 @@ package authproxy
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -127,7 +128,7 @@ var t = framework.NewTestFramework("update authproxy")
 
 var nodeCount uint32
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	nodeCount, err = pkg.GetNodeCount()
 	if err != nil {
@@ -135,7 +136,9 @@ var _ = t.BeforeSuite(func() {
 	}
 })
 
-var _ = t.AfterSuite(func() {
+var _ = ginkgo.BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	m := AuthProxyDefaultModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 
@@ -147,6 +150,8 @@ var _ = t.AfterSuite(func() {
 	update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy verify", Label("f:platform-lcm.authproxy-verify"), func() {

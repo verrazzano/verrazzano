@@ -6,6 +6,7 @@ package system
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"regexp"
 	"strings"
@@ -59,18 +60,20 @@ var (
 
 var t = framework.NewTestFramework("system-logging")
 
-var _ = t.BeforeSuite(func() {})
-
+var beforeSuite = t.BeforeSuiteFunc(func() {})
+var _ = ginkgo.BeforeSuite(beforeSuite)
 var failed = false
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed {
 		pkg.ExecuteBugReport()
 	}
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var _ = t.Describe("Opensearch system component data", Label("f:observability.logging.es"), func() {
 	t.It("contains verrazzano-system index with valid records", func() {

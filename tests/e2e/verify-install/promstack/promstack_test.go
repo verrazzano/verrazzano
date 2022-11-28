@@ -5,6 +5,7 @@ package promstack
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
@@ -146,7 +147,7 @@ func WhenPromStackInstalledIt(description string, f func()) {
 	}
 }
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -157,6 +158,8 @@ var _ = t.BeforeSuite(func() {
 		Fail(err.Error())
 	}
 })
+
+var _ = ginkgo.BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 	t.Context("after successful installation", func() {

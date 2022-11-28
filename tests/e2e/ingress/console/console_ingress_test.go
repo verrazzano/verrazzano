@@ -5,6 +5,7 @@ package ingress
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -29,10 +30,12 @@ const (
 
 var t = framework.NewTestFramework("ingress")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	deployApplication()
 	beforeSuitePassed = true
 })
+
+var _ = ginkgo.BeforeSuite(beforeSuite)
 
 var failed = false
 var beforeSuitePassed = false
@@ -41,12 +44,14 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		pkg.ExecuteBugReport(namespace)
 	}
 	undeployApplication()
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 func deployApplication() {
 	t.Logs.Info("Deploy test application")

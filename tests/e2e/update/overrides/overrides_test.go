@@ -124,7 +124,7 @@ func (o PrometheusOperatorValuesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.PrometheusOperator.ValueOverrides = overrides
 }
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	m := PrometheusOperatorOverridesModifier{}
 	inlineData = oldInlineData
 	monitorChanges = true
@@ -132,7 +132,9 @@ var _ = t.BeforeSuite(func() {
 	_ = update.GetCR()
 })
 
-var _ = t.AfterSuite(func() {
+var _ = ginkgo.BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	m := PrometheusOperatorDefaultModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 	_ = update.GetCR()
@@ -140,6 +142,8 @@ var _ = t.AfterSuite(func() {
 		pkg.ExecuteBugReport()
 	}
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var _ = t.Describe("Post Install Overrides", func() {
 

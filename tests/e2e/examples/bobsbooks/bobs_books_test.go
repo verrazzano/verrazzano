@@ -5,6 +5,7 @@ package bobsbooks
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -68,7 +69,7 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		// bobbys frontend
 		pkg.CaptureContainerLogs(namespace, "bobbys-front-end-adminserver", "weblogic-server", "/scratch/logs/bobbys-front-end")
@@ -82,6 +83,8 @@ var _ = t.AfterSuite(func() {
 		undeployBobsBooksExample()
 	}
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 func deployBobsBooksExample(namespace string) {
 	t.Logs.Info("Deploy BobsBooks example")

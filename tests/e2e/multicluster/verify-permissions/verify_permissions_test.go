@@ -6,6 +6,7 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"github.com/onsi/ginkgo"
 
 	v1alpha12 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -48,15 +49,19 @@ const vpTest2 = "permissions-test2"
 
 var t = framework.NewTestFramework("permissions_test")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	// Do set up for multi cluster tests
 	deployTestResources()
 })
 
-var _ = t.AfterSuite(func() {
+var _ = ginkgo.BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	// Do set up for multi cluster tests
 	undeployTestResources()
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var _ = t.AfterEach(func() {})
 

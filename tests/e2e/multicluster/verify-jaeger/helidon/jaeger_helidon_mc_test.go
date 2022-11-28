@@ -5,6 +5,7 @@ package helidon
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"os"
 	"time"
 
@@ -42,7 +43,7 @@ var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	start = time.Now()
 	// set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
 
@@ -100,11 +101,13 @@ var _ = t.BeforeSuite(func() {
 	beforeSuitePassed = true
 })
 
+var _ = ginkgo.BeforeSuite(beforeSuite)
+
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		err := pkg.ExecuteBugReport(projectName)
 		if err != nil {
@@ -154,6 +157,8 @@ var _ = t.AfterSuite(func() {
 
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var _ = t.Describe("Helidon App with Jaeger Traces", Label("f:jaeger.helidon-workload"), func() {
 	t.Context("after successful installation", func() {

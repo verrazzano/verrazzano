@@ -4,6 +4,7 @@
 package mcweblogic
 
 import (
+	"github.com/onsi/ginkgo"
 	"net/http"
 	"os"
 	"strconv"
@@ -91,8 +92,7 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.BeforeSuite(func() {
-
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
 
 	wlsUser := "weblogic"
@@ -133,7 +133,9 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = t.AfterSuite(func() {
+var _ = ginkgo.BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		err := pkg.ExecuteBugReport(appNamespace)
 		if err != nil {
@@ -141,6 +143,8 @@ var _ = t.AfterSuite(func() {
 		}
 	}
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 var _ = t.Describe("In Multi-cluster, verify WebLogic application", Label("f:multicluster.mc-app-lcm"), func() {
 

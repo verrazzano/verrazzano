@@ -5,6 +5,7 @@ package weblogic
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo"
 	"net/http"
 	"time"
 
@@ -83,7 +84,7 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		pkg.CaptureContainerLogs(namespace, wlsAdminServer, "weblogic-server", "/scratch/logs/hello-domain")
 		pkg.ExecuteBugReport(namespace)
@@ -92,6 +93,8 @@ var _ = t.AfterSuite(func() {
 		undeployWebLogicApp()
 	}
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)
 
 func deployWebLogicApp(namespace string) {
 	t.Logs.Info("Deploy WebLogic application")
