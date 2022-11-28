@@ -376,15 +376,7 @@ var _ = t.Describe("Rancher Backup and Restore,", Label("f:platform-verrazzano.r
 		})
 
 	})
-
-	//t.Context("Disaster simulation", func() {
-	//	WhenRancherBackupInstalledIt("Delete all users that were created as part of pre-suite", func() {
-	//		Eventually(func() bool {
-	//			return DeleteRancherUsers(common.RancherURL)
-	//		}, waitTimeout, pollingInterval).Should(BeTrue(), "Delete rancher user")
-	//	})
-	//})
-
+	
 	t.Context("Rancher restore", func() {
 		WhenRancherBackupInstalledIt("Start restore after rancher backup is completed", func() {
 			Eventually(func() error {
