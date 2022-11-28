@@ -382,7 +382,7 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 	}
 	// Copy the internal Elasticsearch secret
 	ctx.Log().Debugf("Creating secret %s required by Jaeger instance to access storage", globalconst.DefaultJaegerSecretName)
-	esInternalSecret, err := getESInternalSecret(ctx)
+	esInternalSecret, err := getOSInternalSecret(ctx)
 	if err != nil {
 		return err
 	}
@@ -413,24 +413,24 @@ func createJaegerSecret(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// getESInternalSecret checks whether verrazzano-es-internal secret exists. Return error if the secret does not exist.
-func getESInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
+// getOSInternalSecret checks whether verrazzano-os-internal secret exists. Return error if the secret does not exist.
+func getOSInternalSecret(ctx spi.ComponentContext) (corev1.Secret, error) {
 	secret := corev1.Secret{}
 	if vzcr.IsKeycloakEnabled(ctx.EffectiveCR()) {
-		// Check verrazzano-es-internal Secret. return error which will cause requeue
+		// Check verrazzano-os-internal Secret. return error which will cause requeue
 		err := ctx.Client().Get(context.TODO(), clipkg.ObjectKey{
 			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      globalconst.VerrazzanoESInternal,
+			Name:      globalconst.VerrazzanoOSInternal,
 		}, &secret)
 
 		if err != nil {
 			if errors.IsNotFound(err) {
 				ctx.Log().Progressf("Component Jaeger Operator waiting for the secret %s/%s to exist",
-					constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal)
+					constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoOSInternal)
 				return secret, ctrlerrors.RetryableError{Source: ComponentName, Cause: err}
 			}
 			ctx.Log().Errorf("Component Jaeger Operator failed to get the secret %s/%s: %v",
-				constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoESInternal, err)
+				constants.VerrazzanoSystemNamespace, globalconst.VerrazzanoOSInternal, err)
 			return secret, err
 		}
 		return secret, nil

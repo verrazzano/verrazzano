@@ -68,6 +68,8 @@ const VerrazzanoPlatformOperatorWebhook = "verrazzano-platform-operator-webhook"
 
 const VerrazzanoMysqlInstallValuesWebhook = "verrazzano-platform-mysqlinstalloverrides"
 
+const VerrazzanoRequirementsValidatorWebhook = "verrazzano-platform-requirements-validator"
+
 const VerrazzanoApplicationOperator = "verrazzano-application-operator"
 
 const VerrazzanoMonitoringOperator = "verrazzano-monitoring-operator"

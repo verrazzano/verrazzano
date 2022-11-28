@@ -96,3 +96,68 @@ func TestRepairMySQLPodsWaitingReadinessGates(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, errors.IsNotFound(err))
 }
+
+// TestRepairICStuckDeleting tests the temporary workaround for MySQL
+// IC object getting stuck being deleted.
+// GIVEN a IC with deletion timestamp
+// WHEN not deleted after the expected timer expires
+// THEN recycle the mysql-operator
+func TestRepairICStuckDeleting(t *testing.T) {
+	mySQLOperatorPod := &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mysqloperator.ComponentName,
+			Namespace: mysqloperator.ComponentNamespace,
+			Labels: map[string]string{
+				"name": mysqloperator.ComponentName,
+			},
+		},
+	}
+
+	// Test without a deletion timestamp, the timer should not get initialized
+	innoDBCluster := newInnoDBCluster(innoDBClusterStatusOnline)
+	cli := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLOperatorPod, innoDBCluster).Build()
+	mysqlComp := NewComponent().(mysqlComponent)
+	mysqlComp.InitialTimeICUninstallChecked = &time.Time{}
+	fakeCtx := spi.NewFakeContext(cli, nil, nil, false)
+
+	err := mysqlComp.repairICStuckDeleting(fakeCtx)
+	assert.NoError(t, err)
+	assert.True(t, mysqlComp.InitialTimeICUninstallChecked.IsZero())
+
+	// Test first time calling with a deletion timestamp, the timer should get initialized
+	// and the mysql-operator pod should not get deleted.
+	innoDBCluster = newInnoDBCluster(innoDBClusterStatusOnline)
+	startTime := metav1.Now()
+	innoDBCluster.SetDeletionTimestamp(&startTime)
+	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLOperatorPod, innoDBCluster).Build()
+	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
+
+	assert.True(t, mysqlComp.InitialTimeICUninstallChecked.IsZero())
+	err = mysqlComp.repairICStuckDeleting(fakeCtx)
+	assert.Error(t, err)
+	assert.False(t, mysqlComp.InitialTimeICUninstallChecked.IsZero())
+
+	pod := v1.Pod{}
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
+	assert.NoError(t, err, "expected the mysql-operator pod to be found")
+
+	// Call repair after the timer has started, but not expired.  Expect an error because the IC object is not deleted yet.
+	err = mysqlComp.repairICStuckDeleting(fakeCtx)
+	assert.Error(t, err)
+
+	// Force the timer to be expired, expect the mysql-operator pod to be deleted
+	*mysqlComp.InitialTimeICUninstallChecked = time.Now().Add(-time.Hour * 2)
+	err = mysqlComp.repairICStuckDeleting(fakeCtx)
+	assert.NoError(t, err)
+
+	err = cli.Get(context.TODO(), types.NamespacedName{Namespace: mysqloperator.ComponentNamespace, Name: mysqloperator.ComponentName}, &pod)
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+
+	// If the IC object is already deleted, then no error should be returned
+	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLOperatorPod).Build()
+	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
+	err = mysqlComp.repairICStuckDeleting(fakeCtx)
+	assert.NoError(t, err)
+
+}

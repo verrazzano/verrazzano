@@ -111,7 +111,7 @@ func RequiredInitialization() {
 	}
 	// initialize component availability metric to false
 	for _, metricComponent := range MetricsExp.internalData.metricsComponentMap {
-		MetricsExp.internalData.componentHealth.SetComponentHealth(metricComponent.metricName, false)
+		MetricsExp.internalData.componentHealth.SetComponentHealth(metricComponent.metricName, false, false)
 	}
 
 }
@@ -420,12 +420,11 @@ func GetMetricComponent(name metricName) (*MetricsComponent, error) {
 }
 
 // SetComponentAvailabilityMetric updates the components availability status metric
-func SetComponentAvailabilityMetric(name string, availability vzapi.ComponentAvailability) error {
+func SetComponentAvailabilityMetric(name string, availability vzapi.ComponentAvailability, isEnabled bool) error {
 	compMetric, err := GetMetricComponent(metricName(name))
 	if err != nil {
 		return err
 	}
-	MetricsExp.internalData.componentHealth.SetComponentHealth(compMetric.metricName, availability == vzapi.ComponentAvailable)
-
+	MetricsExp.internalData.componentHealth.SetComponentHealth(compMetric.metricName, availability == vzapi.ComponentAvailable, isEnabled)
 	return nil
 }
