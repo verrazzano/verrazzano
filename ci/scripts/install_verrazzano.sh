@@ -21,6 +21,22 @@
 #
 set -o pipefail
 
+is_macos () {
+	if [[ "${OSTYPE}" == "darwin"** ]]
+	then
+		return 0
+	fi
+	return 1
+}
+
+get_arch_type() {
+  local os=linux
+  if is_macos ; then
+    os=darwin
+  fi
+  echo $os
+}
+
 if [ -z "$GO_REPO_PATH" ] ; then
   echo "GO_REPO_PATH must be set"
   exit 1
@@ -49,91 +65,135 @@ if [ -n "${VZ_TEST_DEBUG}" ]; then
   set -xv
 fi
 
+INSTALL_TIMEOUT_VALUE=${INSTALL_TIMEOUT_VALUE:-30m}
 WILDCARD_DNS_DOMAIN=${WILDCARD_DNS_DOMAIN:-""}
+ENABLE_API_ENVOY_LOGGING=${ENABLE_API_ENVOY_LOGGING:-false}
+CREATE_TEST_OVERRIDES=${CREATE_TEST_OVERRIDES:-true}
+USE_DB_FOR_GRAFANA=${USE_DB_FOR_GRAFANA:-false}
 
-ENABLE_API_ENVOY_LOGGING=${ENABLE_API_ENVOY_LOGGING:-"false"}
+echo "Create Image Pull Secrets"
+${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+# REVIEW: Do we need github-packages still?
+${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+if [ -n "${OCR_REPO}" ] && [ -n "${OCR_CREDS_USR}" ] && [ -n "${OCR_CREDS_PSW}" ]; then
+  echo "Creating Oracle Container Registry pull secret"
+  ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
+fi
+
+# Create the verrazzano-install namespace
+kubectl create namespace verrazzano-install || true
+
+# create secret in verrazzano-install ns
+${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+
+# optionally create a cluster dump snapshot for verifying uninstalls
+if [ -n "${CLUSTER_SNAPSHOT_DIR}" ]; then
+  ${TEST_SCRIPTS_DIR}/looping-test/dump_cluster.sh ${CLUSTER_SNAPSHOT_DIR}
+fi
 
 INSTALL_PROFILE=${INSTALL_PROFILE:-"dev"}
 VERRAZZANO_INSTALL_LOGS_DIR=${VERRAZZANO_INSTALL_LOGS_DIR:-${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs}
 
+echo "Determine which yaml file to use to install the Verrazzano Platform Operator"
+cd ${GO_REPO_PATH}/verrazzano
+
+TARGET_OPERATOR_FILE=${TARGET_OPERATOR_FILE:-"${WORKSPACE}/acceptance-test-operator.yaml"}
+if [ -z "$OPERATOR_YAML" ]; then
+  # Derive the name of the operator.yaml file, copy or generate the file, then install
+  if [ "NONE" == "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
+      echo "Using operator.yaml from object storage"
+      oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+      cp -v ${WORKSPACE}/downloaded-operator.yaml ${TARGET_OPERATOR_FILE}
+  else
+      echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
+      env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${TARGET_OPERATOR_FILE}
+  fi
+else
+  # The operator.yaml filename was provided, install using that file.
+  echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
+  TARGET_OPERATOR_FILE=${OPERATOR_YAML}
+fi
+
+# if enabled, deploy the Grafana MySQL instance and create the Grafana DB secret
+if [ $USE_DB_FOR_GRAFANA == true ]; then
+  # create the necessary secrets
+  MYSQL_ROOT_PASSWORD=$(openssl rand -base64 12)
+  MYSQL_PASSWORD=$(openssl rand -base64 12)
+  ROOT_SECRET=$(echo -n $MYSQL_ROOT_PASSWORD | base64)
+  USER_SECRET=$(echo -n $MYSQL_PASSWORD | base64)
+  USER=$(echo -n "grafana" | base64)
+
+  kubectl apply -f - <<-EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-db
+  namespace: verrazzano-install
+type: Opaque
+data:
+  root-password: $ROOT_SECRET
+  username: $USER
+  password: $USER_SECRET
+EOF
+  # deploy MySQL instance
+  kubectl apply -f $WORKSPACE/tests/testdata/grafana/grafana-mysql.yaml
+fi
+
+# optionally create a cluster dump snapshot for verifying uninstalls
+if [ -n "${CLUSTER_SNAPSHOT_DIR}" ]; then
+  ./tests/e2e/config/scripts/looping-test/dump_cluster.sh ${CLUSTER_SNAPSHOT_DIR}
+fi
+
 # Configure the custom resource to install Verrazzano on Kind
-${TEST_SCRIPTS_DIR}/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
+VZ_INSTALL_FILE=${VZ_INSTALL_FILE:-"${WORKSPACE}/acceptance-test-config.yaml"}
+./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
+# If grafana is using a DB add the database configuration to the VZ file
+if [ $USE_DB_FOR_GRAFANA == true ]; then
+  ./tests/e2e/config/scripts/process_grafana_db_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND}
+fi
+cp -v ${INSTALL_CONFIG_FILE_KIND} ${VZ_INSTALL_FILE}
 
-echo "Installing Verrazzano on Kind"
-install_retries=0
-install_failed=false
-until kubectl apply -f ${INSTALL_CONFIG_FILE_KIND}; do
-  install_retries=$((install_retries+1))
-  sleep 6
-  if [ $install_retries -ge 10 ] ; then
-    echo "Installation Failed trying to apply the Verrazzano CR YAML"
-    install_failed=true
-  fi
-done
+if [ "${CREATE_TEST_OVERRIDES}" == "true" ]; then
+  TEST_OVERRIDE_CONFIGMAP_FILE="${TEST_SCRIPTS_DIR}/pre-install-overrides/test-overrides-configmap.yaml"
+  TEST_OVERRIDE_SECRET_FILE="${TEST_SCRIPTS_DIR}/pre-install-overrides/test-overrides-secret.yaml"
 
-# wait for Verrazzano install to complete
-${TEST_SCRIPTS_DIR}/wait-for-verrazzano-install.sh
-result=$?
-
-if [ "${POST_INSTALL_DUMP}" == "true" ]; then
-  echo "Generating post-install cluster-snapshot..."
-  if [ -e ${WORKSPACE}/post-vz-install-cluster-snapshot ]; then
-    echo "Removing existing post-install cluster-snapshot"
-    rm -rf ${WORKSPACE}/post-vz-install-cluster-snapshot
-  fi
-  # TODO: Capture full cluster only when an environment variable CAPTURE_FULL_CLUSTER is set
-  FULL_CLUSTER_DIR="${WORKSPACE}/post-vz-install-cluster-snapshot/full-cluster"
-  mkdir -p ${FULL_CLUSTER_DIR}
-  ANALYSIS_REPORT="analysis.report"
-  ${GO_REPO_PATH}/verrazzano/tools/scripts/k8s-dump-cluster.sh -d ${FULL_CLUSTER_DIR} -r ${FULL_CLUSTER_DIR}/${ANALYSIS_REPORT}
-  if [[ $result -ne 0 ]]; then
-    echo "Post-install cluster snapshot failed"
+  echo "Creating Override ConfigMap"
+  kubectl create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
+  if [ $? -ne 0 ]; then
+    echo "Could not create Override ConfigMap"
     exit 1
   fi
 
-  # Create a bug-report and run analysis tool on the bug-report
-  # Requires environment variable KUBECONFIG or $HOME/.kube/config
-  BUG_REPORT_DIR="${WORKSPACE}/post-vz-install-cluster-snapshot/bug-report"
-  BUG_REPORT_FILE="${BUG_REPORT_DIR}/bug-report.tar.gz"
-  mkdir -p ${BUG_REPORT_DIR}
-  if [[ -x $GOPATH/bin/vz ]]; then
-    $GOPATH/vz bug-report --report-file ${BUG_REPORT_FILE}
-  else
-    GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go bug-report --report-file ${BUG_REPORT_FILE}
-  fi
-
-  # Check if the bug-report exists
-  if [ -f "${BUG_REPORT_FILE}" ]; then
-    tar -xvf ${BUG_REPORT_FILE} -C ${BUG_REPORT_DIR}
-    rm ${BUG_REPORT_FILE} || true
-
-    # Run vz analyze on the extracted directory
-    if [[ -x $GOPATH/bin/vz ]]; then
-      $GOPATH/vz analyze --capture-dir ${BUG_REPORT_DIR} --report-format detailed --report-file ${BUG_REPORT_DIR}/${ANALYSIS_REPORT}
-    else
-      GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go analyze --capture-dir ${BUG_REPORT_DIR} --report-format detailed --report-file ${BUG_REPORT_DIR}/${ANALYSIS_REPORT}
-    fi
+  echo "Creating Override Secret"
+  kubectl create secret generic test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
+  if [ $? -ne 0 ]; then
+    echo "Could not create Override Secret"
+    exit 1
   fi
 
 fi
 
-if [ "install_failed" == "true" ]; then
+if [[ -n "${OCI_OS_LOCATION}" ]]; then
+  ARCHTYPE=$(get_arch_type)
+  VZ_CLI_TARGZ="vz-${ARCHTYPE}-amd64.tar.gz"
+  echo "Downloading VZ CLI from object storage"
+  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/$VZ_CLI_TARGZ --file ${WORKSPACE}/$VZ_CLI_TARGZ
+  tar xzf "$WORKSPACE"/$VZ_CLI_TARGZ -C "$WORKSPACE"
+fi
+
+echo "Installing Verrazzano on Kind"
+if [ -f "$WORKSPACE/vz" ]; then
+  cd $WORKSPACE
+  ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
+else
+  cd ${GO_REPO_PATH}/verrazzano/tools/vz
+  GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${VZ_INSTALL_FILE} --operator-file ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
+fi
+
+result=$?
+if [[ $result -ne 0 ]]; then
   exit 1
 fi
 
-if [ "${ENABLE_API_ENVOY_LOGGING}" == "true" ]; then
-  vz_api_pod=$(kubectl get pod -n verrazzano-system -l app=verrazzano-authproxy --no-headers -o custom-columns=":metadata.name")
-  if [ -z "$vz_api_pod" ]; then
-    echo "Could not find verrazzano-authproxy pod, not enabling debug logging"
-  else
-    kubectl exec $vz_api_pod -c istio-proxy -n verrazzano-system -- curl -X POST http://localhost:15000/logging?level=debug
-  fi
-  nginx_ing_pod=$(kubectl get pod -n ingress-nginx -l app.kubernetes.io/component=controller --no-headers -o custom-columns=":metadata.name")
-  if [ -z "$nginx_ing_pod" ]; then
-    echo "Could not find nginx ingress controller pod, not enabling debug logging"
-  else
-    kubectl exec $nginx_ing_pod -c istio-proxy -n ingress-nginx -- curl -X POST http://localhost:15000/logging?level=debug
-  fi
-fi
-
 exit 0
+

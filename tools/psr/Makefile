@@ -121,5 +121,7 @@ install-cli:
 unit-test:
 	$(GO) test -v  ${TEST_PATHS}
 
+psr-quality: export FAIL_IF_COVERAGE_DECREASED ?= false
+psr-quality: export UPLOAD_UNIT_TEST_COVERAGE ?= false
 .PHONY: psr-quality
 psr-quality: golangci-lint word-linter coverage
