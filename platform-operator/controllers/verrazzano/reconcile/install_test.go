@@ -6,6 +6,7 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	v1 "k8s.io/api/batch/v1"
 	"net/url"
 	"strings"
@@ -373,7 +374,7 @@ func testUpdate(t *testing.T,
 	kcIngress := createIngress(constants.KeycloakNamespace, constants.KeycloakIngress, constants.KeycloakIngress)
 	verrazzanoAdminClusterRole := createClusterRoles(rancher.VerrazzanoAdminRoleName)
 	verrazzanoMonitorClusterRole := createClusterRoles(rancher.VerrazzanoMonitorRoleName)
-	verrazzanoClusterUserRole := createClusterRoles(rancher.VerrazzanoClusterUserRoleName)
+	verrazzanoClusterUserRole := createClusterRoles(clusteroperator.VerrazzanoClusterUserRoleName)
 	jobList := createJobsList()
 	addExec()
 

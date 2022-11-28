@@ -5,6 +5,7 @@ package clusteroperator
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"os"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -14,6 +15,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/runtime"
+)
+
+const (
+	VerrazzanoClusterUserRoleName = "verrazzano-cluster-rancher-user"
 )
 
 // AppendOverrides appends any additional overrides needed by the Cluster Operator component
@@ -52,4 +57,8 @@ func GetOverrides(object runtime.Object) interface{} {
 		return []v1beta1.Overrides{}
 	}
 	return []vzapi.Overrides{}
+}
+
+func (c clusterOperatorComponent) postInstallUpgrade(ctx spi.ComponentContext) error {
+	return rancher.CreateOrUpdateRoleTemplate(ctx, VerrazzanoClusterUserRoleName)
 }

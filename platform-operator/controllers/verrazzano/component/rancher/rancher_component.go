@@ -531,19 +531,11 @@ func ConfigureAuthProviders(ctx spi.ComponentContext) error {
 
 // createOrUpdateRoleTemplates creates or updates the verrazzano-admin, verrazzano-monitor, and verrazzano-cluster-user RoleTemplates
 func createOrUpdateRoleTemplates(ctx spi.ComponentContext) error {
-	if err := createOrUpdateRoleTemplate(ctx, VerrazzanoAdminRoleName); err != nil {
+	if err := CreateOrUpdateRoleTemplate(ctx, VerrazzanoAdminRoleName); err != nil {
 		return err
 	}
 
-	if err := createOrUpdateRoleTemplate(ctx, VerrazzanoMonitorRoleName); err != nil {
-		return err
-	}
-
-	if err := createOrUpdateClusterUserClusterRole(ctx); err != nil {
-		return err
-	}
-
-	return createOrUpdateRoleTemplate(ctx, VerrazzanoClusterUserRoleName)
+	return CreateOrUpdateRoleTemplate(ctx, VerrazzanoMonitorRoleName)
 }
 
 // createOrUpdateClusterRoleTemplateBindings creates or updates the CRTBs for the verrazzano-admins and verrazzano-monitors groups
