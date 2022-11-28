@@ -568,32 +568,12 @@ func createOrUpdateRoleTemplate(ctx spi.ComponentContext, role string) error {
 	log := ctx.Log()
 	c := ctx.Client()
 
-	// Here, we want to create the cluster user ClusterRole so that it can be consumed by the roletemplate
 	nsn := types.NamespacedName{Name: role}
 
-	clusterRole := &rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: role,
-		},
-	}
-	_, err := controllerutil.CreateOrUpdate(context.TODO(), c, clusterRole, func() error {
-		clusterRole.Rules = []rbacv1.PolicyRule{
-			{
-				APIGroups: []string{""},
-				Resources: []string{"secrets"},
-				Verbs: []string{
-					"get",
-					"list",
-					"watch",
-					"create",
-					"update",
-				},
-			},
-		}
-		return nil
-	})
+	clusterRole := &rbacv1.ClusterRole{}
+	err := c.Get(context.Background(), nsn, clusterRole)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed creating ClusterRole %s for the Rancher RoleTemplate: %s", role, err.Error())
+		return log.ErrorfThrottledNewErr("failed creating RoleTemplate, unable to fetch ClusterRole %s: %s", role, err.Error())
 	}
 
 	data := map[string]interface{}{}
