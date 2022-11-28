@@ -32,7 +32,7 @@ var ephemeralIPLimitReachedRe = regexp.MustCompile(`.*Limit for non-ephemeral re
 var lbServiceLimitReachedRe = regexp.MustCompile(`.*The following service limits were exceeded: lb-.*`)
 var failedToEnsureLoadBalancer = regexp.MustCompile(`.*failed to ensure load balancer: awaiting load balancer.*`)
 var invalidLoadBalancerParameter = regexp.MustCompile(`.*Service error:InvalidParameter. Limits-Service returned 400.*Invalid service/quota load-balancer.*`)
-
+var istioLoadBalancerCreationIssue = regexp.MustCompile(`.*failed to ensure load balancer: creating load balancer.*`)
 var vpoErrorMessages []string
 
 const logLevelError = "error"
@@ -283,6 +283,7 @@ func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issu
 			log.Debugf("External IP located for service %s/%s, skipping issue report", service.ObjectMeta.Namespace, service.ObjectMeta.Name)
 			return
 		}
+		print(vpoErrorMessages)
 		for _, errorMsg := range vpoErrorMessages {
 			if noIPForIstioIngressReqExp.MatchString(errorMsg) {
 				// Populate the message from the matched error message
@@ -297,6 +298,23 @@ func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issu
 			}
 		}
 	}
+	eventsList, err := GetEventList(log, files.FindFileInNamespace(clusterRoot, istioSystem, eventsJSON))
+	log.Debugf("Found %d events in events file", len(eventsList.Items))
+	serviceEvents := make([]corev1.Event, 0, 1)
+	isIssueAlreadyExists := false
+	for _, event := range eventsList.Items {
+		if istioLoadBalancerCreationIssue.MatchString(event.Message) && !isIssueAlreadyExists {
+			isIssueAlreadyExists = true
+			serviceEvents = append(serviceEvents, event)
+		}
+	}
+	messages := make(StringSlice, 1)
+	messages[0] = istioLoadBalancerCreationIssue.String()
+	// Create the service message from the object metadata
+	servFiles := make(StringSlice, 1)
+	servFiles[0] = report.GetRelatedServiceMessage(serviceEvents[0].ObjectMeta.Name, istioSystem)
+	fmt.Println(servFiles[0])
+	issueReporter.AddKnownIssueMessagesFiles(report.IstioLoadBalancerFailure, clusterRoot, messages, servFiles)
 }
 
 // Read the Verrazzano resource and return the list of components which did not reach Ready state
