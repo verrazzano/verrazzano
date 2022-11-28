@@ -510,7 +510,7 @@ func ConfigureAuthProviders(ctx spi.ComponentContext) error {
 			return err
 		}
 
-		if err := createOrUpdateVZMulticlusterUser(ctx); err != nil {
+		if err := createOrUpdateVZClusterUser(ctx); err != nil {
 			return err
 		}
 

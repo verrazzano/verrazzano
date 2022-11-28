@@ -538,8 +538,8 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext, vzUser *keycl
 	return createOrUpdateResource(ctx, nsn, GVKUser, data)
 }
 
-// createOrUpdateVZMulticlusterUser creates or updates the Verrazzano Multicluster user in Rancher
-func createOrUpdateVZMulticlusterUser(ctx spi.ComponentContext) error {
+// createOrUpdateVZClusterUser creates or updates the Verrazzano Cluster user in Rancher
+func createOrUpdateVZClusterUser(ctx spi.ComponentContext) error {
 	nsn := types.NamespacedName{Name: UserVZMulticluster}
 	data := map[string]interface{}{}
 	data[UserAttributeUserName] = UserVZMulticlusterUsername

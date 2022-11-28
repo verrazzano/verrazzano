@@ -4,6 +4,7 @@
 package clusteroperator
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -12,10 +13,13 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -97,6 +101,7 @@ func TestAppendOverrides(t *testing.T) {
 	asserts.Equal(t, customImage, kvs[0].Value)
 }
 
+// TestPostInstallUpgrade tests the PostInstall Upgrade creation of the RoleTemplate
 func TestPostInstallUpgrade(t *testing.T) {
 	clustOpComp := clusterOperatorComponent{}
 
@@ -108,5 +113,11 @@ func TestPostInstallUpgrade(t *testing.T) {
 		},
 	).Build()
 	err := clustOpComp.postInstallUpgrade(spi.NewFakeContext(cli, &v1alpha1.Verrazzano{}, &v1beta1.Verrazzano{}, false))
+	asserts.NoError(t, err)
+
+	// Ensure the resource exists after postInstallUpgrade
+	resource := unstructured.Unstructured{}
+	resource.SetGroupVersionKind(rancher.GVKRoleTemplate)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: VerrazzanoClusterUserRoleName}, &resource)
 	asserts.NoError(t, err)
 }
