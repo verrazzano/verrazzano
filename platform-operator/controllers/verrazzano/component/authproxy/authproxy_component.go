@@ -33,7 +33,7 @@ const ComponentName = "verrazzano-authproxy"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
-// ComponentJSONName is the josn name of the verrazzano component in CRD
+// ComponentJSONName is the json name of the verrazzano component in CRD
 const ComponentJSONName = "authProxy"
 
 type authProxyComponent struct {

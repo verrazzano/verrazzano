@@ -32,8 +32,8 @@ const ComponentName = "ingress-controller"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vpoconst.IngressNginxNamespace
 
-// ComponentJSONName is the josn name of the verrazzano component in CRD
-const ComponentJSONName = "ingress"
+// ComponentJSONName is the json name of the verrazzano component in CRD
+const ComponentJSONName = "ingressNGINX"
 
 // nginxExternalIPKey is the nginxInstallArgs key for externalIPs
 const nginxExternalIPKey = "controller.service.externalIPs"

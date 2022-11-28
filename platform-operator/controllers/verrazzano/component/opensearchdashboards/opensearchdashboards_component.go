@@ -31,7 +31,7 @@ const (
 )
 
 // ComponentJSONName is the json name of the OpenSearch-Dashboards component in CRD
-const ComponentJSONName = "opensearch-dashboards"
+const ComponentJSONName = "opensearchDashboards"
 
 type opensearchDashboardsComponent struct{}
 

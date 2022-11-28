@@ -34,7 +34,7 @@ const ComponentName = "verrazzano-application-operator"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
-// ComponentJSONName is the josn name of the verrazzano component in CRD
+// ComponentJSONName is the json name of the verrazzano component in CRD
 const ComponentJSONName = "applicationOperator"
 
 type applicationOperatorComponent struct {

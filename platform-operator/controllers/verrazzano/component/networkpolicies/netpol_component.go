@@ -42,7 +42,7 @@ const ComponentName = "verrazzano-network-policies"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
-// ComponentName is the JSON name of the component
+// ComponentName is the json name of the component
 const ComponentJSONName = "verrazzanoNetworkPolicies"
 
 type networkPoliciesComponent struct {

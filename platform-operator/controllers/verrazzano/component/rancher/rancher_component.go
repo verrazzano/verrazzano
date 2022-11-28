@@ -46,7 +46,7 @@ const ComponentName = common.RancherName
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = common.CattleSystem
 
-// ComponentJSONName is the josn name of the verrazzano component in CRD
+// ComponentJSONName is the json name of the verrazzano component in CRD
 const ComponentJSONName = "rancher"
 
 const rancherIngressClassNameKey = "ingress.ingressClassName"
