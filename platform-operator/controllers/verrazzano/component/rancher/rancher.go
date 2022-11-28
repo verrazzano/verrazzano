@@ -556,7 +556,7 @@ func createOrUpdateVZClusterUser(ctx spi.ComponentContext) error {
 		},
 	}
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), secret, func() error {
-		secret.Data = map[string][]byte{"password": []byte(pass)}
+		secret.Data = map[string][]byte{UserAttributePassword: []byte(pass)}
 		return nil
 	})
 	if err != nil {

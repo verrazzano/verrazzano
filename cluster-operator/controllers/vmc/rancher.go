@@ -473,7 +473,7 @@ func getVerrazzanoClusterUserSecret(rdr client.Reader) (string, error) {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
 		Namespace: constants.VerrazzanoMultiClusterNamespace,
-		Name:      cons.VerrazzanoClusterRancherName}
+		Name:      cons.VerrazzanoClusterRancherUser}
 
 	if err := rdr.Get(context.TODO(), nsName, secret); err != nil {
 		return "", err
