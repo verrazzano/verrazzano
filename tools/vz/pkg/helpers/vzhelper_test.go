@@ -325,7 +325,6 @@ func TestUpdateVerrazzanoResource(t *testing.T) {
 	vz, _ := GetVerrazzanoResource(client, types.NamespacedName{Namespace: "default", Name: "verrazzano"})
 	err := UpdateVerrazzanoResource(client, vz)
 	assert.NoError(t, err)
-	assert.Equal(t, nil, err)
 
 }
 
