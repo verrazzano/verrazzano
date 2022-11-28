@@ -5,7 +5,6 @@ package argocd
 
 import (
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -306,10 +305,10 @@ func TestValidateInstall(t *testing.T) {
 	}{
 		{
 			name: "ArgoCDComponent empty",
-			vz: &v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						ArgoCD: &v1alpha1.ArgoCDComponent{},
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						ArgoCD: &vzapi.ArgoCDComponent{},
 					},
 				},
 			},
@@ -317,10 +316,10 @@ func TestValidateInstall(t *testing.T) {
 		},
 		{
 			name: "ArgoCDComponent enabled",
-			vz: &v1alpha1.Verrazzano{
-				Spec: v1alpha1.VerrazzanoSpec{
-					Components: v1alpha1.ComponentSpec{
-						ArgoCD: &v1alpha1.ArgoCDComponent{
+			vz: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						ArgoCD: &vzapi.ArgoCDComponent{
 							Enabled: &trueValue,
 						},
 					},

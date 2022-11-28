@@ -647,6 +647,11 @@ func (in *InstanceInfo) DeepCopyInto(out *InstanceInfo) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.ArgoCDURL != nil {
+		in, out := &in.ArgoCDURL, &out.ArgoCDURL
+		*out = new(string)
+		**out = **in
+	}
 	if in.KeyCloakURL != nil {
 		in, out := &in.KeyCloakURL, &out.KeyCloakURL
 		*out = new(string)
@@ -674,11 +679,6 @@ func (in *InstanceInfo) DeepCopyInto(out *InstanceInfo) {
 	}
 	if in.RancherURL != nil {
 		in, out := &in.RancherURL, &out.RancherURL
-		*out = new(string)
-		**out = **in
-	}
-	if in.ArgoCDURL != nil {
-		in, out := &in.ArgoCDURL, &out.ArgoCDURL
 		*out = new(string)
 		**out = **in
 	}

@@ -378,7 +378,7 @@ func (in *ComponentSpec) DeepCopyInto(out *ComponentSpec) {
 		in, out := &in.ArgoCD, &out.ArgoCD
 		*out = new(ArgoCDComponent)
 		(*in).DeepCopyInto(*out)
-        }
+	}
 	if in.WebLogicOperator != nil {
 		in, out := &in.WebLogicOperator, &out.WebLogicOperator
 		*out = new(WebLogicOperatorComponent)
@@ -761,6 +761,11 @@ func (in *InstanceInfo) DeepCopyInto(out *InstanceInfo) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.ArgoCDURL != nil {
+		in, out := &in.ArgoCDURL, &out.ArgoCDURL
+		*out = new(string)
+		**out = **in
+	}
 	if in.KeyCloakURL != nil {
 		in, out := &in.KeyCloakURL, &out.KeyCloakURL
 		*out = new(string)
@@ -783,11 +788,6 @@ func (in *InstanceInfo) DeepCopyInto(out *InstanceInfo) {
 	}
 	if in.RancherURL != nil {
 		in, out := &in.RancherURL, &out.RancherURL
-		*out = new(string)
-		**out = **in
-	}
-	if in.ArgoCDURL != nil {
-		in, out := &in.ArgoCDURL, &out.ArgoCDURL
 		*out = new(string)
 		**out = **in
 	}

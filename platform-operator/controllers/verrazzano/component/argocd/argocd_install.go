@@ -10,7 +10,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	networkv1 "k8s.io/api/networking/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -18,7 +17,7 @@ import (
 
 // patchArgoCDIngress annotates the ArgoCD ingress with environment specific values
 func patchArgoCDIngress(ctx spi.ComponentContext) error {
-	ingress := networkv1.Ingress{
+	ingress := v1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{Name: "argocd-server", Namespace: "argocd"},
 	}
 	_, err := controllerruntime.CreateOrUpdate(context.TODO(), ctx.Client(), &ingress, func() error {
