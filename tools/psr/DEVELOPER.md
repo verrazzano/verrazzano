@@ -17,7 +17,7 @@ Verrazzano components, or Verrazzano as a whole. Here is a summary of the steps 
 - Read the [Verrazzano PSR README](./README.md)  to get familiar with the PSR concepts and structure of the source code.
 - A Kubernetes cluster with Verrazzano installed (full installation or the components you are testing).
 
-## Areas
+## PSR Areas
 PSR workers and scenarios are grouped into areas.  The following area names are used in the source code and YAML configuration.
 They are not exposed in metrics names, rather each `worker.go` file specifies the metrics prefix, which is the long name.  
 For example, the OpenSearch worker uses the metric prefix `opensearch`
@@ -40,26 +40,43 @@ For example, the OpenSearch worker uses the metric prefix `opensearch`
 16. wls - Weblogic
 
 
-## Implementing a Worker
+## Implementing a worker
 A worker is the code that implements a single use case.  Workers are organized per area, where each aread typically maps 
 to a Verrazzano backend component, but that doesn't have to be the case.  You can see OpenSearch and HTTP workers
 in the [workers](./backend/workers) package.
 
-Lets use a new mysql worker that queries the MySQL database as an example in the following section.
+We will create a new mysql worker that queries the MySQL database as an example in the following section.
 
+### Stubbing out a worker
 Following are the first steps to implement a worker:
 1. Add a worker type named `WorkerTypeMysqlScale = mysql-scale` to [config.go](./backend/config/config.go)
-2. Create a package named `mysql` in [workers](./backend/workers)
+2. Create a package named `mysql` in package [workers](./backend/workers)
 3. Create a file `query.go` in the `mysql` package and do the following:
-   1. Stub out the [worker SPI](./backend/spi/worker.go) SPI implementation in `query.go`  You can copy the ops getlogs worker as a starting point.
+   1. Stub out the [worker interface](./backend/spi/worker.go) implementation in `query.go`  You can copy the ops getlogs worker as a starting point.
    2. Change the const metrics prefix to `metricsPrefix = "mysql_query"`
    3. Rename function `NewGetLogsWorker` to `NewQueryWorker`
+   4. Change the DoWork function to  `fmt.Println("hello mysql query worker")`
 4. Add your worker case to the switch statement in [manager.go](./backend/workmanager/manager.go)
-5. Add a directory named `mysql` to [usecases](./manifests)
-6. Copy [usecases/opensearch/getlogs.yaml](./manifests/usecases/getlogs.yaml) to a file named `usecases/mysql/query.yaml` 
+5. Add a directory named `mysql` to [usecases](./manifests/usecases)
+6. Copy [usecases/opensearch/getlogs.yaml](./manifests/usecases/opensearch/getlogs.yaml) to a file named `usecases/mysql/query.yaml` 
 7. Edit query.yaml  
    1. change `PSR_WORKER_TYPE: ops-getlogs` to `PSR_WORKER_TYPE: mysql-query` 
    2. remove the opensearch-authpol section
 
+### Testing a stubbed out a worker
+This section shows how to test the new worker in a Kind cluster. 
+
+1. Test the example worker first by building the image, loading it into the cluster and running the example worker
+   1. `make run-example-k8s`
+   2. take note of the image name:tag that is used with the --set override, for example the output might show this:
+      1. helm upgrade --install psr manifests/charts/worker --set appType=k8s --set imageName=ghcr.io/verrazzano/psr-backend:local-4210a50
+2. kubectl get pods to see the example worker, look at the pod logs to make sure it is logging
+3. Delete the example worker
+   1. `helm delete psr`
+4. Run the mysql worker with the newly built image, an example image tag is shown below:
+   1. `helm install psr manifests/charts/worker -f manifests/usescases/mysql/query.yaml --set appType=k8s --set imageName=ghcr.io/verrazzano/psr-backend:local-4210a50`
+5. Look at the PSR mysql worker pod and make sure that it is logging `hello mysql query worker`
+6. Delete the mysql worker
+   1. `helm delete psr`
 
 
