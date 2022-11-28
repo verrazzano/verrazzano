@@ -40,7 +40,7 @@ For example, the OpenSearch worker uses the metric prefix `opensearch`
 16. wls - Weblogic
 
 
-## Implementing a worker
+## Developing a worker
 A worker is the code that implements a single use case.  Workers are organized per area, where each aread typically maps 
 to a Verrazzano backend component, but that doesn't have to be the case.  You can see OpenSearch and HTTP workers
 in the [workers](./backend/workers) package.
@@ -63,8 +63,45 @@ Following are the first steps to implement a worker:
    1. change `PSR_WORKER_TYPE: ops-getlogs` to `PSR_WORKER_TYPE: mysql-query` 
    2. remove the opensearch-authpol section
 
-### Testing a stubbed out a worker
+### Testing a stubbed-out worker
 This section shows how to test the new worker in a Kind cluster. 
+
+1. Test the example worker first by building the image, loading it into the cluster and running the example worker
+   1. `make run-example-k8s`
+   2. take note of the image name:tag that is used with the --set override, for example the output might show this:
+      1. helm upgrade --install psr manifests/charts/worker --set appType=k8s --set imageName=ghcr.io/verrazzano/psr-backend:local-4210a50
+2. kubectl get pods to see the example worker, look at the pod logs to make sure it is logging
+3. Delete the example worker
+   1. `helm delete psr`
+4. Run the mysql worker with the newly built image, an example image tag is shown below:
+   1. `helm install psr manifests/charts/worker -f manifests/usescases/mysql/query.yaml --set appType=k8s --set imageName=ghcr.io/verrazzano/psr-backend:local-4210a50`
+5. Look at the PSR mysql worker pod and make sure that it is logging `hello mysql query worker`
+6. Delete the mysql worker
+   1. `helm delete psr`
+
+
+### Add worker specific charts
+To function properly, certain workers need additional Kubernetes resources to be created.  Rather than having the worker create the 
+resources at runtime, you can use a subchart to create them. The subchar will be shared by all workers in an area.  
+Since the mysql query worker needs to access mysql directly within the cluster, it will need an Istio AuthorizationPolicy, 
+just like the OpenSearch workers do.  This section will show how to add the chart and use it in the usecase YAML file.
+
+1. Create a new subchart called mysql
+   1. copy the opensearch chart from [manifests/charts/worker/charts/opensearch](./manifests/charts/worker/charts/opensearch-authpol) to [manifests/charts/worker/charts/mysql](./manifests/charts/worker/charts/mysql) 
+   2. create the authorizationpolicy.yaml file with the correct policy to access mysql.  
+   3. Delete the existing opensearch policy yaml files
+   4. Update Chart.yaml and values.yaml to reflect mysql changes
+2. Edit [usecases/mysql/query.yaml](./manifests/usecases/mysql/query.yaml) and add the following section
+```
+# activate subchart
+mysql:
+  enabled: true
+```
+3. Test the chart in an Verrazzano installation.  You will need to install the chart in an Istio enabled namespace.
+
+
+### Implement worker interface in query.go
+This section shows how to test the new worker in a Kind cluster.
 
 1. Test the example worker first by building the image, loading it into the cluster and running the example worker
    1. `make run-example-k8s`
