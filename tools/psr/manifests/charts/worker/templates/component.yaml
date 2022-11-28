@@ -29,9 +29,11 @@ spec:
             {{- range $key, $val := .Values.global.envVars }}
             - name: {{ $key }}
               value: {{ $val | quote}}
-              {{- end }}
-        - name: NAMESPACE
-          value: psr
+            {{- end }}
+            - name: NAMESPACE
+              value: {{ .Release.Namespace }}
+            - name: RELEASE_NAME
+              value: {{ .Release.Name }}
           ports:
             - containerPort: 9090
               name: backend

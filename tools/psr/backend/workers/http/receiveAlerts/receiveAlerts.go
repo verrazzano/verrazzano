@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/k8sclient"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
+	"io"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
@@ -131,7 +132,16 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 		if err != nil {
 			log.Errorf("error creating client: %v", err)
 		}
-		log.Infof("Namespace: %s", config.PsrEnv.GetEnv(config.PsrWorkerNamespace))
+		if r.Body == nil {
+			log.Errorf("Alert webhook POST request contained a nil body")
+			return
+		}
+		bodyRaw, err := io.ReadAll(r.Body)
+		if err != nil {
+			log.Errorf("Unexpected error while reading request body: %v", err)
+			return
+		}
+		r.Body.Close()
 		event := corev1.Event{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "psr-alert",
@@ -141,7 +151,7 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 				Namespace: config.PsrEnv.GetEnv(config.PsrWorkerNamespace),
 			},
 			Type:    "Alert",
-			Message: "Alert received",
+			Message: string(bodyRaw),
 		}
 		if _, err = controllerutil.CreateOrUpdate(context.TODO(), c.CrtlRuntime, &event, func() error {
 			event.LastTimestamp = v1.Time{Time: time.Now()}
