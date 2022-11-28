@@ -209,7 +209,7 @@ func (r argoCDComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verraz
 	return r.HelmComponent.ValidateUpdate(old, new)
 }
 
-// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
 func (r argoCDComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// Block all changes for now, particularly around storage changes
 	if r.IsEnabled(old) && !r.IsEnabled(new) {
@@ -219,17 +219,17 @@ func (r argoCDComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, n
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (f argoCDComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+func (r argoCDComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	vzV1Beta1 := &installv1beta1.Verrazzano{}
 
 	if err := vz.ConvertTo(vzV1Beta1); err != nil {
 		return err
 	}
 
-	return f.ValidateInstallV1Beta1(vzV1Beta1)
+	return r.ValidateInstallV1Beta1(vzV1Beta1)
 }
 
-// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (f argoCDComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return f.HelmComponent.ValidateInstallV1Beta1(vz)
+// ValidateInstallV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
+func (r argoCDComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return r.HelmComponent.ValidateInstallV1Beta1(vz)
 }

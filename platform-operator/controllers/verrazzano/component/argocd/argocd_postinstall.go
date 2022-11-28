@@ -67,7 +67,7 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 
 	keycloakHost := "keycloak." + dnsSubDomain
 	argocdHost := "argocd." + dnsSubDomain
-	keycloakUrl := fmt.Sprintf("https://%s/%s", keycloakHost, "auth/realms/verrazzano-system")
+	keycloakURL := fmt.Sprintf("https://%s/%s", keycloakHost, "auth/realms/verrazzano-system")
 
 	ctx.Log().Debugf("Getting ArgoCD TLS root CA")
 	caCert, err := GetRootCA(ctx)
@@ -78,7 +78,7 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 
 	conf := &OIDCConfig{
 		Name:         "Keycloak",
-		Issuer:       keycloakUrl,
+		Issuer:       keycloakURL,
 		ClientID:     "argocd",
 		ClientSecret: "$oidc.keycloak.clientSecret",
 		RequestedScopes: []string{
@@ -90,7 +90,6 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 		RootCA: string(caCert),
 	}
 
-	keycloakUrl = fmt.Sprintf("https://%s/%s", keycloakHost, "auth/realms/verrazzano-system")
 	data, err := yaml.Marshal(conf)
 	if err != nil {
 		fmt.Println(err)
