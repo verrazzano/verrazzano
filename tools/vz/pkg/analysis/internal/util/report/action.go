@@ -56,7 +56,7 @@ var RunbookLinks = map[string][]string{
 	IngressNoIPFound:          {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip"},
 	IstioIngressNoIP:          {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/istioingressgatewaynoloadbalancerip"},
 	IngressShapeInvalid:       {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/ingressinvalidshape"},
-	IstioLoadBalancerFailure:  {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/ingressinvalidshape"},
+	IstioLoadBalancerFailure:  {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/istioloadbalancercreation"},
 }
 
 // KnownActions are Standard Action types
@@ -76,7 +76,7 @@ var KnownActions = map[string]Action{
 	IngressNoIPFound:          {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IngressNoIPFound][0])},
 	IstioIngressNoIP:          {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IstioIngressNoIP][0])},
 	IngressShapeInvalid:       {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IngressShapeInvalid][0])},
-	IstioLoadBalancerFailure:  {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IngressShapeInvalid][0])},
+	IstioLoadBalancerFailure:  {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IstioLoadBalancerFailure][0])},
 }
 
 func getConsultRunbookAction(summaryF string, runbookLink string) string {
