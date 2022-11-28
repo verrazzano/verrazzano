@@ -298,7 +298,11 @@ func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issu
 			}
 		}
 	}
-	eventsList, err := GetEventList(log, files.FindFileInNamespace(clusterRoot, istioSystem, eventsJSON))
+	eventsList, e := GetEventList(log, files.FindFileInNamespace(clusterRoot, istioSystem, eventsJSON))
+	if e != nil {
+		log.Debugf("Failed to get events file %s", eventsJSON)
+		return
+	}
 	log.Debugf("Found %d events in events file", len(eventsList.Items))
 	serviceEvents := make([]corev1.Event, 0, 1)
 	isIssueAlreadyExists := false
