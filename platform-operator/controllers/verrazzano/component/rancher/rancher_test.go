@@ -694,7 +694,7 @@ func TestCreateOrUpdateVZClusterUser(t *testing.T) {
 
 	resource := &unstructured.Unstructured{}
 	resource.SetGroupVersionKind(GVKUser)
-	err = cli.Get(context.TODO(), types.NamespacedName{Name: UserVZMulticluster}, resource)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: UserVZCluster}, resource)
 	assert.NoError(t, err)
 }
 

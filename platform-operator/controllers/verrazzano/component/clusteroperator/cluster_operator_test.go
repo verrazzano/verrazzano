@@ -6,11 +6,11 @@ package clusteroperator
 import (
 	"context"
 	"fmt"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"os"
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"

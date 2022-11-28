@@ -28,10 +28,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
-	corev1 "k8s.io/api/core/v1"
 
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -756,7 +755,7 @@ func getUserNameForPrincipal(principal string) string {
 }
 
 // getRancherLogoContentWithRetry gets the logo content from rancher and retries if the logo content returned is not a full svg file
-func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, cli kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, logoCommand []string) (string, error) {
+func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, cli kubernetes.Interface, cfg *rest.Config, pod *corev1.Pod, logoCommand []string) (string, error) {
 	var logoContent string
 	var backoff = wait.Backoff{
 		Steps:    3,
