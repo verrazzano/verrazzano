@@ -9,6 +9,7 @@ import (
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -60,5 +61,8 @@ func GetOverrides(object runtime.Object) interface{} {
 }
 
 func (c clusterOperatorComponent) postInstallUpgrade(ctx spi.ComponentContext) error {
-	return rancher.CreateOrUpdateRoleTemplate(ctx, VerrazzanoClusterUserRoleName)
+	if vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
+		return rancher.CreateOrUpdateRoleTemplate(ctx, VerrazzanoClusterUserRoleName)
+	}
+	return nil
 }
