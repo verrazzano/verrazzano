@@ -1,0 +1,199 @@
+{
+  "metadata": {
+    "resourceVersion": "30912"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "coherence-operator-rest",
+        "namespace": "verrazzano-system",
+        "uid": "7b782a60-4964-4577-9e24-e98eeee6b675",
+        "resourceVersion": "3105",
+        "creationTimestamp": "2022-10-06T12:49:43Z",
+        "labels": {
+          "app.kubernetes.io/component": "rest",
+          "app.kubernetes.io/instance": "coherence-operator-rest",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "coherence-operator",
+          "app.kubernetes.io/part-of": "coherence-operator",
+          "app.kubernetes.io/version": "3.2.6",
+          "control-plane": "coherence"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "coherence-operator",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "helm",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2022-10-06T12:49:43Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/component": {},
+                  "f:app.kubernetes.io/instance": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:app.kubernetes.io/name": {},
+                  "f:app.kubernetes.io/part-of": {},
+                  "f:app.kubernetes.io/version": {},
+                  "f:control-plane": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":8000,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http-rest",
+            "protocol": "TCP",
+            "port": 8000,
+            "targetPort": 8000
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/component": "manager",
+          "app.kubernetes.io/instance": "coherence-operator-manager",
+          "app.kubernetes.io/name": "coherence-operator",
+          "app.kubernetes.io/version": "3.2.6"
+        },
+        "clusterIP": "c54493903341d9087a243a86bbcb461741e076f1a354409e50afa635e31c6d5d",
+        "clusterIPs": [
+          "c54493903341d9087a243a86bbcb461741e076f1a354409e50afa635e31c6d5d"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "coherence-operator-webhook",
+        "namespace": "verrazzano-system",
+        "uid": "87a51b2d-4faf-49e0-bcb6-57a949b9350b",
+        "resourceVersion": "3101",
+        "creationTimestamp": "2022-10-06T12:49:43Z",
+        "labels": {
+          "app.kubernetes.io/component": "webhook",
+          "app.kubernetes.io/instance": "coherence-operator-manager",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "coherence-operator",
+          "app.kubernetes.io/part-of": "coherence-operator",
+          "app.kubernetes.io/version": "3.2.6",
+          "control-plane": "coherence"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "coherence-operator",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "helm",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2022-10-06T12:49:43Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/component": {},
+                  "f:app.kubernetes.io/instance": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:app.kubernetes.io/name": {},
+                  "f:app.kubernetes.io/part-of": {},
+                  "f:app.kubernetes.io/version": {},
+                  "f:control-plane": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":443,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "webhook",
+            "protocol": "TCP",
+            "port": 443,
+            "targetPort": 9443
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/component": "manager",
+          "app.kubernetes.io/instance": "coherence-operator-manager",
+          "app.kubernetes.io/name": "coherence-operator",
+          "app.kubernetes.io/version": "3.2.6"
+        },
+        "clusterIP": "c54493903341d9087a243a86bbcb461741e076f1a354409e50afa635e31c6d5d",
+        "clusterIPs": [
+          "c54493903341d9087a243a86bbcb461741e076f1a354409e50afa635e31c6d5d"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ]
+}

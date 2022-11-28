@@ -314,7 +314,7 @@ func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issu
 	servFiles := make(StringSlice, 1)
 	servFiles[0] = report.GetRelatedServiceMessage(serviceEvents[0].ObjectMeta.Name, istioSystem)
 	fmt.Println(servFiles[0])
-	issueReporter.AddKnownIssueMessagesFiles(report.IstioLoadBalancerFailure, clusterRoot, messages, servFiles)
+	issueReporter.AddKnownIssueMessagesFiles(report.IstioIngressInstallFailure, clusterRoot, messages, servFiles)
 }
 
 // Read the Verrazzano resource and return the list of components which did not reach Ready state
