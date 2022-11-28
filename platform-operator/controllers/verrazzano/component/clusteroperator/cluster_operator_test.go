@@ -101,7 +101,7 @@ func TestAppendOverrides(t *testing.T) {
 	asserts.Equal(t, customImage, kvs[0].Value)
 }
 
-// TestPostInstallUpgrade tests the PostInstall Upgrade creation of the RoleTemplate
+// TestPostInstallUpgrade tests the PostInstallUpgrade creation of the RoleTemplate
 func TestPostInstallUpgrade(t *testing.T) {
 	clustOpComp := clusterOperatorComponent{}
 
@@ -112,7 +112,7 @@ func TestPostInstallUpgrade(t *testing.T) {
 			},
 		},
 	).Build()
-	err := clustOpComp.postInstallUpgrade(spi.NewFakeContext(cli, &v1alpha1.Verrazzano{}, &v1beta1.Verrazzano{}, false))
+	err := clustOpComp.postInstallUpgrade(spi.NewFakeContext(cli, nil, &v1beta1.Verrazzano{}, false))
 	asserts.NoError(t, err)
 
 	// Ensure the resource exists after postInstallUpgrade
@@ -120,4 +120,35 @@ func TestPostInstallUpgrade(t *testing.T) {
 	resource.SetGroupVersionKind(rancher.GVKRoleTemplate)
 	err = cli.Get(context.TODO(), types.NamespacedName{Name: VerrazzanoClusterUserRoleName}, &resource)
 	asserts.NoError(t, err)
+}
+
+// TestPostInstallUpgradeRancherDisabled tests the PostInstallUpgrade when Rancher is disabled
+func TestPostInstallUpgradeRancherDisabled(t *testing.T) {
+	clustOpComp := clusterOperatorComponent{}
+	falseVal := false
+
+	cli := fake.NewClientBuilder().WithObjects(
+		&rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: VerrazzanoClusterUserRoleName,
+			},
+		},
+	).Build()
+	vz := &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				Rancher: &v1alpha1.RancherComponent{
+					Enabled: &falseVal,
+				},
+			},
+		},
+	}
+	err := clustOpComp.postInstallUpgrade(spi.NewFakeContext(cli, vz, nil, false))
+	asserts.NoError(t, err)
+
+	// Ensure the resource does not exist after postInstallUpgrade
+	resource := unstructured.Unstructured{}
+	resource.SetGroupVersionKind(rancher.GVKRoleTemplate)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: VerrazzanoClusterUserRoleName}, &resource)
+	asserts.Error(t, err)
 }

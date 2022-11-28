@@ -133,7 +133,7 @@ func TestPostInstall(t *testing.T) {
 			},
 		},
 	).Build()
-	err := clustOpComp.PostInstall(spi.NewFakeContext(cli, &v1alpha1.Verrazzano{}, &v1beta1.Verrazzano{}, false))
+	err := clustOpComp.PostInstall(spi.NewFakeContext(cli, &v1alpha1.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 
 	// Ensure the resource exists after postInstallUpgrade
@@ -154,7 +154,7 @@ func TestPostUpgrade(t *testing.T) {
 			},
 		},
 	).Build()
-	err := clustOpComp.PostUpgrade(spi.NewFakeContext(cli, &v1alpha1.Verrazzano{}, &v1beta1.Verrazzano{}, false))
+	err := clustOpComp.PostUpgrade(spi.NewFakeContext(cli, &v1alpha1.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 
 	// Ensure the resource exists after postInstallUpgrade
