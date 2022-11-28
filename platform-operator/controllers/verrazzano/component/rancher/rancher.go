@@ -100,6 +100,9 @@ const (
 	ClusterLocal                      = "local"
 	AuthConfigLocal                   = "local"
 	UserVerrazzano                    = "u-verrazzano"
+	UserVZMulticluster                = "u-verrazzano-multicluster"
+	UserVZMulticlusterUsername        = "verrazzanomc"
+	UserVZMulticlusterDescription     = "Verrazzano Multicluster"
 	UserVerrazzanoDescription         = "Verrazzano Admin"
 	GlobalRoleBindingVerrazzanoPrefix = "grb-"
 	SettingUIPL                       = "ui-pl"
@@ -535,6 +538,19 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext, vzUser *keycl
 	return createOrUpdateResource(ctx, nsn, GVKUser, data)
 }
 
+// createOrUpdateVZClusterUser creates or updates the Verrazzano Cluster user in Rancher
+func createOrUpdateVZClusterUser(ctx spi.ComponentContext) error {
+	nsn := types.NamespacedName{Name: UserVZMulticluster}
+	data := map[string]interface{}{}
+	data[UserAttributeUserName] = UserVZMulticlusterUsername
+	caser := cases.Title(language.English)
+	data[UserAttributeDisplayName] = caser.String(UserVZMulticlusterUsername)
+	data[UserAttributeDescription] = caser.String(UserVZMulticlusterDescription)
+	data[UserAttributePrincipalIDs] = []interface{}{UserPrincipalLocalPrefix + UserVZMulticluster}
+
+	return createOrUpdateResource(ctx, nsn, GVKUser, data)
+}
+
 // createOrUpdateRancherVerrazzanoUserGlobalRoleBinding used to make the verrazzano user admin
 func createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx spi.ComponentContext, rancherUsername string) error {
 	nsn := types.NamespacedName{Name: GlobalRoleBindingVerrazzanoPrefix + rancherUsername}
@@ -546,8 +562,8 @@ func createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx spi.ComponentConte
 	return createOrUpdateResource(ctx, nsn, GVKGlobalRoleBinding, data)
 }
 
-// createOrUpdateRoleTemplate creates or updates RoleTemplates used to add Keycloak groups to the Rancher cluster
-func createOrUpdateRoleTemplate(ctx spi.ComponentContext, role string) error {
+// CreateOrUpdateRoleTemplate creates or updates RoleTemplates used to add Keycloak groups to the Rancher cluster
+func CreateOrUpdateRoleTemplate(ctx spi.ComponentContext, role string) error {
 	log := ctx.Log()
 	c := ctx.Client()
 
