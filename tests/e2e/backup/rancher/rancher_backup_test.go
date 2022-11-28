@@ -30,7 +30,7 @@ import (
 const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
-	waitTimeout          = 15 * time.Minute
+	waitTimeout          = 20 * time.Minute
 	pollingInterval      = 30 * time.Second
 	rancherPassword      = "rancher@newstack"
 	rancherUserPrefix    = "thor"

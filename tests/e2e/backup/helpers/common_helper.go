@@ -419,7 +419,12 @@ func HTTPHelper(httpClient *retryablehttp.Client, method, httpURL, token, tokenT
 	}
 	defer response.Body.Close()
 
-	err = httputil.ValidateResponseCode(response, expectedResponseCode)
+	// To handle 204 returns for delete apis
+	if method == "DELETE" && expectedResponseCode == 200 {
+		err = httputil.ValidateResponseCode(response, expectedResponseCode, http.StatusNoContent)
+	} else {
+		err = httputil.ValidateResponseCode(response, expectedResponseCode)
+	}
 	if err != nil {
 		log.Errorf("expected response code = %v, actual response code = %v, Error = %v", expectedResponseCode, response.StatusCode, zap.Error(err))
 		return nil, err
