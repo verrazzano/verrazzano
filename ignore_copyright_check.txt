@@ -27,3 +27,5 @@ tools/fix-copyright/copyright.go
 tools/vz/test/testdata/empty.yaml
 .idea
 .DS_Store
+tools/vz/pkg/analysis/internal/util/report/report
+unit-test-coverage-number.txt

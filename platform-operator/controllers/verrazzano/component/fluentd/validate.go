@@ -74,7 +74,7 @@ func validateLogCollector(fluentd *v1beta1.FluentdComponent) error {
 }
 
 func validateLogCollectorSecret(fluentd *v1beta1.FluentdComponent) error {
-	if len(fluentd.OpenSearchSecret) > 0 && fluentd.OpenSearchSecret != globalconst.VerrazzanoESInternal {
+	if len(fluentd.OpenSearchSecret) > 0 && fluentd.OpenSearchSecret != globalconst.VerrazzanoOSInternal {
 		cli, err := getControllerRuntimeClient()
 		if err != nil {
 			return err
