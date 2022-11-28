@@ -8,6 +8,7 @@ import (
 	"flag"
 	"os"
 	"strings"
+	"time"
 
 	"go.uber.org/zap"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
@@ -92,7 +93,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	crdInstalled, err := isCattleClustersCRDInstalled(apiextv1.NewForConfigOrDie(config))
+	apiextv1Client := apiextv1.NewForConfigOrDie(config)
+	crdInstalled, err := isCattleClustersCRDInstalled(apiextv1Client)
 	if err != nil {
 		log.Error(err, "unable to determine if cattle CRD is installed")
 		os.Exit(1)
@@ -174,8 +176,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	// wrap the controller context with a new context so we can cancel the context if we detect
+	// a change in the clusters.management.cattle.io CRD installation
+	ctx, cancel := context.WithCancel(ctrl.SetupSignalHandler())
+	go watchCattleClustersCRD(cancel, apiextv1Client, crdInstalled, log)
+
 	log.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		log.Error(err, "problem running manager")
 		os.Exit(1)
 	}
@@ -220,4 +227,24 @@ func isCattleClustersCRDInstalled(client apiextv1.ApiextensionsV1Interface) (boo
 	}
 
 	return true, nil
+}
+
+// watchCattleClustersCRD periodically checks to see if the clusters.management.cattle.io CRD is installed. If it detects a change
+// it will call the context cancel function which will cause the operator to gracefully shut down. The operator will then be
+// restarted by Kubernetes and it will start the cattle clusters sync controller if the CRD is installed.
+func watchCattleClustersCRD(cancel context.CancelFunc, client apiextv1.ApiextensionsV1Interface, crdInstalled bool, log *zap.SugaredLogger) {
+	log.Infof("Watching for CRD %s to be installed or uninstalled", cattleClustersCRDName)
+	for {
+		installed, err := isCattleClustersCRDInstalled(client)
+		if err != nil {
+			log.Debugf("Unable to determine if CRD %s is installed: %v", cattleClustersCRDName, err)
+			continue
+		}
+		if installed != crdInstalled {
+			log.Infof("Detected CRD %s was installed or uninstalled, shutting down operator", cattleClustersCRDName)
+			cancel()
+			return
+		}
+		time.Sleep(10 * time.Second)
+	}
 }

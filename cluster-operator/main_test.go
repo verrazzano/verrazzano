@@ -4,11 +4,13 @@
 package main
 
 import (
+	"context"
 	"os"
 	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -147,6 +149,36 @@ func TestIsCattleClustersCRDInstalled(t *testing.T) {
 	isInstalled, err = isCattleClustersCRDInstalled(client)
 	asserts.NoError(err)
 	asserts.True(isInstalled)
+}
+
+// TestWatchCattleClustersCRD tests the watchCattleClustersCRD function
+func TestWatchCattleClustersCRD(t *testing.T) {
+	asserts := assert.New(t)
+
+	// GIVEN the cattle clusters CRD is installed after the cluster operator starts up
+	// WHEN  the watchCattleClustersCRD function is called
+	// THEN  the context Done channel has been closed due to the context cancel function being called
+	crd := &apiextv1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: cattleClustersCRDName,
+		},
+	}
+	client := fake.NewSimpleClientset(crd).ApiextensionsV1()
+
+	ctx, cancel := context.WithCancel(context.TODO())
+	watchCattleClustersCRD(cancel, client, false, zap.L().Sugar())
+	_, open := <-ctx.Done()
+	asserts.False(open)
+
+	// GIVEN the cattle clusters CRD is uninstalled after the cluster operator starts up
+	// WHEN  the watchCattleClustersCRD function is called
+	// THEN  the context Done channel has been closed due to the context cancel function being called
+	client = fake.NewSimpleClientset().ApiextensionsV1()
+
+	ctx, cancel = context.WithCancel(context.TODO())
+	watchCattleClustersCRD(cancel, client, true, zap.L().Sugar())
+	_, open = <-ctx.Done()
+	asserts.False(open)
 }
 
 // writeTempFile creates a temp file with the specified string content. It returns the
