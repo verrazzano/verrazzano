@@ -5,10 +5,7 @@ package clusteroperator
 
 import (
 	"fmt"
-	rbacv1 "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
-	fakes "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
@@ -16,7 +13,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestGetOverrides(t *testing.T) {
@@ -100,7 +100,7 @@ func TestAppendOverrides(t *testing.T) {
 func TestPostInstallUpgrade(t *testing.T) {
 	clustOpComp := clusterOperatorComponent{}
 
-	cli := fakes.NewClientBuilder().WithObjects(
+	cli := fake.NewClientBuilder().WithObjects(
 		&rbacv1.ClusterRole{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: VerrazzanoClusterUserRoleName,
