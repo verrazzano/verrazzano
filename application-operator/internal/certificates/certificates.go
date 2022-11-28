@@ -76,17 +76,17 @@ func CreateWebhookCertificates(log *zap.SugaredLogger, kubeClient kubernetes.Int
 	}
 
 	log.Debugf("Creating certs dir %s", certDir)
-	if err := os.MkdirAll(certDir, 0666); err != nil {
+	if err = os.MkdirAll(certDir, 0666); err != nil && !errors.IsAlreadyExists(err) {
 		log.Errorf("Mkdir error %v", err)
 		return err
 	}
 
-	if err := writeFile(log, fmt.Sprintf("%s/%s", certDir, CertKey), serverPEM); err != nil {
+	if err = writeFile(log, fmt.Sprintf("%s/%s", certDir, CertKey), serverPEM); err != nil {
 		log.Errorf("Error writing cert file: %v", err)
 		return err
 	}
 
-	if err := writeFile(log, fmt.Sprintf("%s/%s", certDir, PrivKey), serverKeyPEM); err != nil {
+	if err = writeFile(log, fmt.Sprintf("%s/%s", certDir, PrivKey), serverKeyPEM); err != nil {
 		log.Errorf("Error 3 %v", err)
 		return err
 	}

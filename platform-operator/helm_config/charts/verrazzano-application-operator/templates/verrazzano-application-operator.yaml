@@ -464,6 +464,7 @@ spec:
             - --zap-log-level=info
             - --run-webhook-init=true
             - --run-webhooks=false
+            - --cert-dir="/etc/certs"
           resources:
             requests:
               memory: {{ .Values.requestMemory }}
@@ -485,6 +486,7 @@ spec:
             - --zap-log-level={{ .Values.logLevel }}
             - --run-webhooks=true
             - --run-webhook-init=false
+            - --metrics-addr="0.0.0.0:8080"
           resources:
             requests:
               memory: {{ .Values.requestMemory }}
