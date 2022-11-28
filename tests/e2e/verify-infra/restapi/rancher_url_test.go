@@ -229,6 +229,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 				if minVer15 {
 					verifySettingValue(rancher.SettingUIPrimaryColor, rancher.SettingUIPrimaryColorValue, k8sClient)
 					verifySettingValue(rancher.SettingUILinkColor, rancher.SettingUILinkColorValue, k8sClient)
+					verifySettingValue(rancher.SettingUIBrand, rancher.SettingUIBrandValue, k8sClient)
 				}
 			}
 		})

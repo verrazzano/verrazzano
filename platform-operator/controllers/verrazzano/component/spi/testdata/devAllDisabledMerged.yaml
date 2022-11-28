@@ -98,7 +98,7 @@ spec:
     fluentd:
       enabled: false
       elasticsearchURL: "http://verrazzano-authproxy-opensearch:8775"
-      elasticsearchSecret: verrazzano-es-internal
+      elasticsearchSecret: verrazzano-os-internal
     grafana:
       enabled: false
     ingress:

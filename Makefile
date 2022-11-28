@@ -46,6 +46,8 @@ clean: ## remove coverage and test results
 	find . -name coverage.html -exec rm {} \;
 	find . -name coverage.raw.cov -exec rm {} \;
 	find . -name \*-test-result.xml -exec rm {} \;
+	find . -name coverage.xml -exec rm {} \;
+	find . -name unit-test-coverage-number.txt -exec rm {} \;
 
 ##@ Build
 
@@ -73,7 +75,7 @@ test-platform-operator-install-logs:
 	kubectl logs -f -n verrazzano-install $(shell kubectl get pods -n verrazzano-install --no-headers | grep "^verrazzano-platform-operator-" | cut -d ' ' -f 1)
 
 .PHONY: precommit
-precommit: precommit-check precommit-build unit-test-coverage
+precommit: precommit-check precommit-build unit-test-coverage get-unit-test-coverage-master-release
 
 .PHONY: precommit-nocover
 precommit-nocover: precommit-check precommit-build unit-test
@@ -89,6 +91,10 @@ unit-test-coverage: export COVERAGE_EXCLUSIONS ?= tests/e2e|tools/psr
 .PHONY: unit-test-coverage
 unit-test-coverage:
 	${SCRIPT_DIR}/coverage.sh html
+
+.PHONY: get-unit-test-coverage-master-release
+get-unit-test-coverage-master-release:
+	${SCRIPT_DIR}/coverage-number-comparison.sh
 
 .PHONY: unit-test
 unit-test:
