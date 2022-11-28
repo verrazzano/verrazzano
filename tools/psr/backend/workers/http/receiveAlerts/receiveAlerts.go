@@ -173,7 +173,8 @@ func updateVZForAlertmanager(log vzlog.VerrazzanoLogger) error {
 	}
 	var m psrprom.AlertmanagerConfigModifier
 	m.ModifyCR(cr)
-	return psrvz.UpdateVZCR(c, log, cr, m)
+
+	return psrvz.UpdateVerrazzano(c.VzInstall, cr)
 }
 
 func createAlertmanagerOverridesCM(log vzlog.VerrazzanoLogger) error {
