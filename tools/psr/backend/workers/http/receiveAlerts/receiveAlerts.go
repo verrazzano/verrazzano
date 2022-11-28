@@ -12,6 +12,8 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/k8sclient"
+	psrprom "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/prometheus"
+	psrvz "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/verrazzano"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 	"io"
 	corev1 "k8s.io/api/core/v1"
@@ -21,29 +23,11 @@ import (
 	"time"
 )
 
+// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
+const metricsPrefix = "http_get"
+
 var httpGetFunc = http.Get
 var funcNewPsrClient = k8sclient.NewPsrClient
-
-const (
-	// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
-	metricsPrefix = "http_get"
-
-	// ServiceName specifies the name of the service in the local cluster
-	// By default, the ServiceName is not specified
-	ServiceName = "SERVICE_NAME"
-
-	// ServiceNamespace specifies the namespace of the service in the local cluster
-	// By default, the ServiceNamespace is not specified
-	ServiceNamespace = "SERVICE_NAMESPACE"
-
-	// ServicePort specifies the port of the service in the local cluster
-	// By default, the ServicePort is not specified
-	ServicePort = "SERVICE_PORT"
-
-	// Path specifies the path in the URL
-	// By default, the path is not specified
-	Path = "PATH"
-)
 
 type worker struct {
 	metricDescList []prometheus.Desc
@@ -128,6 +112,10 @@ func (w worker) PreconditionsMet() (bool, error) {
 }
 
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+	if err := updateVZForAlertmanager(log); err != nil {
+		return err
+	}
+
 	http.HandleFunc("/alerts", func(w http.ResponseWriter, r *http.Request) {
 		c, err := funcNewPsrClient()
 		if err != nil {
@@ -145,7 +133,7 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 		r.Body.Close()
 		alertName, err := httputil.ExtractFieldFromResponseBodyOrReturnError(string(bodyRaw), "alerts.0.labels.alertname", "unable to extract alertname from body json")
 		if err != nil {
-
+			log.Error(err)
 		}
 		event := corev1.Event{
 			ObjectMeta: v1.ObjectMeta{
@@ -163,9 +151,82 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 			event.Message = string(bodyRaw)
 			return nil
 		}); err != nil {
-			log.Errorf("error generating event: %v", err)
+			log.Errorf("error generating alert event: %v", err)
 		}
 	})
 	select {}
 	return nil
+}
+
+func updateVZForAlertmanager(log vzlog.VerrazzanoLogger) error {
+	if err := createAlertmanagerOverridesCM(log); err != nil {
+		return err
+	}
+
+	c, err := funcNewPsrClient()
+	if err != nil {
+		log.Errorf("error creating client: %v", err)
+	}
+	cr, err := psrvz.GetVerrazzano(c.VzInstall)
+	if err != nil {
+		return err
+	}
+	var m psrprom.AlertmanagerConfigModifier
+	m.ModifyCR(cr)
+	return psrvz.UpdateVZCR(c, log, cr, m)
+}
+
+func createAlertmanagerOverridesCM(log vzlog.VerrazzanoLogger) error {
+	c, err := funcNewPsrClient()
+	if err != nil {
+		log.Errorf("error creating client: %v", err)
+	}
+	cr, err := psrvz.GetVerrazzano(c.VzInstall)
+	if err != nil {
+		return err
+	}
+	cm := corev1.ConfigMap{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      psrprom.AlertmanagerCMName,
+			Namespace: cr.Namespace,
+		},
+		Data: map[string]string{},
+	}
+	_, err = controllerutil.CreateOrUpdate(context.TODO(), c.CrtlRuntime, &cm, func() error {
+		cm.Data = map[string]string{
+			psrprom.AlertmanagerCMKey: `
+{
+	"alertmanager": {
+		"alertmanagerSpec": {
+			"podMetadata": {
+				"annotations": {
+					"sidecar.istio.io/inject": "false"
+				}
+			}
+		},
+		"config": {
+			"receivers": [
+				{
+					"name": "webhook",
+					"webhook_configs": [
+						{
+							"url": "http://psr-alerts-http-alerts.psr:9090/alerts"
+						}
+					]
+				}
+			],
+			"route": {
+				"group_by": [
+					"alertname"
+				],
+				"receiver": "webhook"
+			}
+		},
+		"enabled": true
+	}
+}`,
+		}
+		return nil
+	})
+	return err
 }
