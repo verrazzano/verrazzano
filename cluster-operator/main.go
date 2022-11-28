@@ -6,6 +6,7 @@ package main
 import (
 	"flag"
 	"os"
+	"strings"
 
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/cluster-operator/internal/certificate"
@@ -19,15 +20,19 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/yaml"
 
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/rancher"
 	// +kubebuilder:scaffold:imports
+)
+
+const (
+	clusterSelectorFilePath = "/var/syncRancherClusters/selector.yaml"
+	syncClustersEnvVarName  = "RANCHER_CLUSTER_SYNC_ENABLED"
 )
 
 var (
@@ -68,6 +73,12 @@ func main() {
 
 	ctrl.SetLogger(kzap.New(kzap.UseFlagOptions(&opts)))
 
+	syncEnabled, clusterSelector, err := shouldSyncRancherClusters(clusterSelectorFilePath)
+	if err != nil {
+		log.Error(err, "error processing cluster sync config")
+		os.Exit(1)
+	}
+
 	options := ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -77,25 +88,6 @@ func main() {
 		LeaderElectionID:       "42d5ea87.verrazzano.io",
 	}
 
-	// if the user has specified a label selector to filter Rancher clusters, create a custom cache that applies the selector
-	// Note: populate this from the selector provided by the user
-	var clusterSelector *metav1.LabelSelector
-	if clusterSelector != nil {
-		options.NewCache = func(conf *rest.Config, opts cache.Options) (cache.Cache, error) {
-			if opts.SelectorsByObject == nil {
-				opts.SelectorsByObject = make(cache.SelectorsByObject)
-			}
-			selector, err := metav1.LabelSelectorAsSelector(clusterSelector)
-			if err != nil {
-				return nil, err
-			}
-			opts.SelectorsByObject[rancher.CattleClusterClientObject()] = cache.ObjectSelector{
-				Label: selector,
-			}
-			return cache.New(conf, opts)
-		}
-	}
-
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)
 	if err != nil {
 		log.Error(err, "unable to start manager")
@@ -103,11 +95,13 @@ func main() {
 	}
 
 	if err = (&rancher.RancherClusterReconciler{
-		Client: mgr.GetClient(),
-		Log:    log,
-		Scheme: mgr.GetScheme(),
+		Client:             mgr.GetClient(),
+		ClusterSyncEnabled: syncEnabled,
+		ClusterSelector:    clusterSelector,
+		Log:                log,
+		Scheme:             mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		log.Errorf("Failed to create IngressTrait controller: %v", err)
+		log.Errorf("Failed to create Rancher cluster controller: %v", err)
 		os.Exit(1)
 	}
 
@@ -172,4 +166,32 @@ func main() {
 		log.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+// shouldSyncRancherClusters returns true if Rancher cluster synchronization is enabled. An optional
+// user-specified label selector can be used to filter the Rancher clusters. If sync is enabled and
+// the label selector is nil, we will sync all Rancher clusters.
+func shouldSyncRancherClusters(clusterSelectorFile string) (bool, *metav1.LabelSelector, error) {
+	enabled := os.Getenv(syncClustersEnvVarName)
+	if enabled == "" || strings.ToLower(enabled) != "true" {
+		return false, nil, nil
+	}
+
+	f, err := os.Stat(clusterSelectorFile)
+	if err != nil || f.Size() == 0 {
+		return true, nil, nil
+	}
+
+	b, err := os.ReadFile(clusterSelectorFile)
+	if err != nil {
+		return true, nil, err
+	}
+
+	selector := &metav1.LabelSelector{}
+	err = yaml.Unmarshal(b, selector)
+	if err != nil {
+		return true, nil, err
+	}
+
+	return true, selector, err
 }
