@@ -31,7 +31,7 @@ func (u AlertmanagerConfigModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		overrides = []vzapi.Overrides{}
 	} else {
 		for _, override := range overrides {
-			if override.ConfigMapRef == selector {
+			if override.ConfigMapRef.Name == selector.LocalObjectReference.Name && override.ConfigMapRef.Key == selector.Key {
 				return
 			}
 		}
