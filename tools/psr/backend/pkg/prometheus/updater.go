@@ -23,6 +23,9 @@ func (u AlertmanagerConfigModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		},
 		Key: AlertmanagerCMKey,
 	}
+	if cr.Spec.Components.PrometheusOperator == nil {
+		cr.Spec.Components.PrometheusOperator = &vzapi.PrometheusOperatorComponent{}
+	}
 	overrides := cr.Spec.Components.PrometheusOperator.ValueOverrides
 	if overrides == nil {
 		overrides = []vzapi.Overrides{}
