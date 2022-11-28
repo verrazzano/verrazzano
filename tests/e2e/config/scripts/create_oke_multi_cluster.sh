@@ -13,6 +13,13 @@ REQUIRED_LB_COUNT=0
 CLUSTER_NAME_PREFIX="oke"
 MODULE_NAME_PREFIX="oke"
 
+set_private_access() {
+  echo "Cluster access set to private."
+  export TF_VAR_cluster_access=private
+  export TF_VAR_bastion_enabled=true
+  export TF_VAR_operator_enabled=false
+}
+
 check_for_resources() {
   local resource_type=$1
   local service_name=$2
@@ -36,6 +43,9 @@ check_for_resources() {
     exit 1
   fi
 }
+
+# Set the cluster to private access (if needed we can add a parameter to control this)
+set_private_access
 
 if [ -z "$TF_VAR_compartment_id" ] ; then
     echo "TF_VAR_compartment_id env var must be set!"
