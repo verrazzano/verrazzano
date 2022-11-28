@@ -90,27 +90,6 @@ func TestVerrazzanoResource(t *testing.T) {
 	assert.Error(t, failedToFindResourceError(err))
 }
 
-func TestGetOperatorYaml(t *testing.T) {
-	var tests = []struct {
-		version string
-	}{
-		{
-			"v1.3.0",
-		},
-		{
-			"v1.4.0",
-		},
-		{
-			"",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.version, func(t *testing.T) {
-			GetOperatorYaml(tt.version)
-		})
-	}
-}
-
 // TestGetVerrazzanoResourceNotFound
 // GIVEN the namespace and name of a verrazzano resource
 //
