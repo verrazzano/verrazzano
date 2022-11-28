@@ -6,6 +6,12 @@ ID: ops-sat
 description: |
   This is a scenario that scales pods on all 3 OpenSearch tiers simultaneously
 usecases:
-  - usecasePath: opensearch/restart.yaml
-    overrideFile: restart-master.yaml
-    description: restarts master nodes
+  - usecasePath: opensearch/scale.yaml
+    overrideFile: scale-master.yaml
+    description: scales master nodes
+  - usecasePath: opensearch/scale.yaml
+    overrideFile: scale-data.yaml
+    description: scales data nodes
+  - usecasePath: opensearch/scale.yaml
+    overrideFile: scale-ingest.yaml
+    description: scales ingest nodes

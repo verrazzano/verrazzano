@@ -4,8 +4,14 @@
 name: opensearch-s4
 ID: ops-s4
 description: |
-  This is a scenario that combines the writelogs, getlogs, and putlogs use cases
+  This is a scenario that combines the writelogs, getlogs, and postlogs use cases
 usecases:
-  - usecasePath: opensearch/restart.yaml
-    overrideFile: restart-master.yaml
-    description: restarts master nodes
+  - usecasePath: opensearch/getlogs.yaml
+    overrideFile: getlogs-fast.yaml
+    description: getlogs from Opensearch 1000 times a second
+  - usecasePath: opensearch/writelogs.yaml
+    overrideFile: writelogs-fast.yaml
+    description: write logs to STDOUT 1000 times a second
+  - usecasePath: opensearch/postlogs.yaml
+    overrideFile: postlogs-fast.yaml
+    description: postlogs to Opensearch 1000 times a second
