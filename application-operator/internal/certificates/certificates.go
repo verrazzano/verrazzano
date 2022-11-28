@@ -75,7 +75,7 @@ func CreateWebhookCertificates(log *zap.SugaredLogger, kubeClient kubernetes.Int
 		return err
 	}
 
-	log.Debugf("Checking existance certs dir %s", certDir)
+	log.Debugf("Checking existence certs dir %s", certDir)
 	if err = os.Chdir(certDir); err != nil {
 		log.Errorf("Mkdir error %v", err)
 		return err
