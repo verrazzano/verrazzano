@@ -654,5 +654,8 @@ func initUnitTesting() {
 
 // postUninstall performs additional actions after the uninstall step
 func (c mysqlComponent) postUninstall(ctx spi.ComponentContext) error {
-	return c.repairICStuckDeleting(ctx)
+	if err := c.repairICStuckDeleting(ctx); err != nil {
+		return err
+	}
+	return c.repairMySQLPodStuckDeleting(ctx)
 }
