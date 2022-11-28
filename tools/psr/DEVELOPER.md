@@ -22,22 +22,23 @@ PSR workers and scenarios are grouped into areas.  The following area names are 
 They are not exposed in metrics names, rather each `worker.go` file specifies the metrics prefix, which is the long name.  
 For example, the OpenSearch worker uses the metric prefix `opensearch`
 
-1. oam - oam applications, app operator
-2. cm - cert-manager
-3. cluster - cluster operator, multicluster
-4. coh - Coherence
-5. dns - external dns
-6. jaeger - Jaeger
-7. kc - Keycloak
-8. http - HTTP tests
-9. istio - Istio, Kiali
-10. mysql - mysql
-11. nginx - NGINX Ingress Controller, Authproxy
-12. ops - OpenSearch, OpenSearchDashboards, Fluentd, VMO
-13. prom - Prometheus stack, Kabana
-14. rancher - Rancher
-15. velero - Velero
-16. wls - Weblogic
+1. argo - Argo
+2. oam - OAM applications, Verrazzano applicaiton operator
+3. cm - cert-manager
+4. cluster - Verrazzano Cluster operator, multicluster
+5. coh - Coherence
+6. dns - external dns
+7. jaeger - Jaeger
+8. kc - Keycloak
+9. http - HTTP tests
+10. istio - Istio, Kiali
+11. mysql - MySQL
+12. nginx - NGINX Ingress Controller, Authproxy
+13. ops - OpenSearch, OpenSearchDashboards, Fluentd, VMO
+14. prom - Prometheus stack, Kabana
+15. rancher - Rancher
+16. velero - Velero
+17. wls - Weblogic
 
 
 ## Developing a worker
@@ -45,9 +46,26 @@ A worker is the code that implements a single use case.  Workers are organized p
 to a Verrazzano backend component, but that doesn't have to be the case.  You can see OpenSearch and HTTP workers
 in the [workers](./backend/workers) package.
 
-We will create a new mysql worker that queries the MySQL database as an example in the following section.
+To make this section more concrete, we will describe creating a new mysql worker that queries the MySQL database in the following section.
 
-### Stubbing out a worker
+### Worker Tips
+Here is some important information to know about workers, much of it is repeated in the README.
+
+1. Worker code runs in a backend pod
+2. The same backend pod has the code for all the workers, but only one worker is executing
+3. Workers can have multiple threads doing work (scale up)
+4. Workers can have multiple replicas (scale out)
+5. Workers are configured using environment variables 
+6. Workers should only do one thing (e.g. scale a component in and out)
+7. All worker should emit metrics
+8. Workers must wait for their dependencies before doing work (e.g. Verrazzano ready)
+9. Worker `DoWork` function is called repeatedly in a loop by the `runner`
+10. Some workers must be run in an Istio enabled namespace (depends on what the worker does)
+11. A Worker might need additional Kubernetes resources to be created (e.g. AuthorizationPolicies)
+12. Workers can be run as Kubernetes deployments or OAM apps (default), this is specified at Helm install
+13. All workers run as cluster-admin
+
+### Stubbing-out a worker
 Following are the first steps to implement a worker:
 1. Add a worker type named `WorkerTypeMysqlScale = mysql-scale` to [config.go](./backend/config/config.go)
 2. Create a package named `mysql` in package [workers](./backend/workers)
@@ -138,3 +156,4 @@ OpenSearch [getlogs](./backend/workers/opensearch/scale/scale.go) worker uses ` 
 **NOTE** The same worker struct and metrics is shared across all worker threads.  There is currently no state per worker.  Workers
 that keep state, such as the scaling worker, normally only run in a single thread. 
 
+## Creating scenarios
