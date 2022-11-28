@@ -19,7 +19,8 @@ Verrazzano components, or Verrazzano as a whole. Here is a summary of the steps 
 
 ## Areas
 PSR workers and scenarios are grouped into areas.  The following area names are used in the source code and YAML configuration.
-They are not exposed in metrics names.
+They are not exposed in metrics names, rather each `worker.go` file specifies the metrics prefix, which is the long name.  
+For example, the OpenSearch worker uses the metric prefix `opensearch`
 
 1. oam - oam applications, app operator
 2. cm - cert-manager
@@ -44,14 +45,17 @@ A worker is the code that implements a single use case.  Workers are organized p
 to a Verrazzano backend component, but that doesn't have to be the case.  You can see OpenSearch and HTTP workers
 in the [workers](./backend/workers) package.
 
-Lets use a new mysql worker that scales the MySQL database as an example in the following section.
+Lets use a new mysql worker that queries the MySQL database as an example in the following section.
 
 Following are the steps to implement a worker:
 1. Add a worker type named `WorkerTypeMysqlScale = mysql-scale` to [config.go](./backend/config/config.go)
 2. Create a package named `mysql` in [workers](./backend/workers)
-3. Create a go file name `scale.go`
-4. Stub out the [worker SPI](./backend/spi/worker.go) SPI implementation in `scale.go`  You can copy the ops scale worker as a starting point.
-5. Add your worker case to the switch statement in [manager.go](./backend/workmanager/manager.go)
+3. Create a go file name `query.go` and do the following
+   1. Stub out the [worker SPI](./backend/spi/worker.go) SPI implementation in `query.go`  You can copy the ops getlogs worker as a starting point.
+   2. Change the const metrics prefix to `metricsPrefix = "mysql_query"`
+   3. Add a function NewQueryWorker to `query.go`
+4. Add your worker case to the switch statement in [manager.go](./backend/workmanager/manager.go)
+5. 
 
 
 
