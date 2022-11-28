@@ -24,9 +24,13 @@ func (u AlertmanagerConfigModifier) ModifyCR(cr *vzapi.Verrazzano) {
 		Key: AlertmanagerCMKey,
 	}
 	overrides := cr.Spec.Components.PrometheusOperator.ValueOverrides
-	for _, override := range overrides {
-		if override.ConfigMapRef == selector {
-			return
+	if overrides == nil {
+		overrides = []vzapi.Overrides{}
+	} else {
+		for _, override := range overrides {
+			if override.ConfigMapRef == selector {
+				return
+			}
 		}
 	}
 	cr.Spec.Components.PrometheusOperator.ValueOverrides = append(overrides, vzapi.Overrides{ConfigMapRef: selector})
