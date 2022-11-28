@@ -6,6 +6,7 @@ package alerts
 import (
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
@@ -142,9 +143,13 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 			return
 		}
 		r.Body.Close()
+		alertName, err := httputil.ExtractFieldFromResponseBodyOrReturnError(string(bodyRaw), "alerts.0.labels.alertname", "unable to extract alertname from body json")
+		if err != nil {
+
+		}
 		event := corev1.Event{
 			ObjectMeta: v1.ObjectMeta{
-				Name:      "psr-alert",
+				Name:      "psr-alert-" + alertName,
 				Namespace: config.PsrEnv.GetEnv(config.PsrWorkerNamespace),
 			},
 			InvolvedObject: corev1.ObjectReference{
