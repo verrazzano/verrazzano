@@ -181,6 +181,20 @@ func TestWatchCattleClustersCRD(t *testing.T) {
 	asserts.False(open)
 }
 
+// TestHandleFlags tests the handleFlags function
+func TestHandleFlags(t *testing.T) {
+	asserts := assert.New(t)
+
+	// GIVEN command line arguments
+	// WHEN  the handleFlags function is called
+	// THEN  the command line flags are parsed correctly
+	const testCertDir = "/tmp/unit-test"
+	os.Args = []string{"cmd", "--cert-dir=" + testCertDir}
+	handleFlags()
+
+	asserts.Equal(testCertDir, certDir)
+}
+
 // writeTempFile creates a temp file with the specified string content. It returns the
 // file name.
 func writeTempFile(clusterSelectorText string) (string, error) {
