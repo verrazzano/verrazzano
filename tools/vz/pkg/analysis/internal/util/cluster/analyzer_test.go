@@ -42,9 +42,8 @@ func TestRunAnalysisBadArgs(t *testing.T) {
 // THEN no error is returned
 func TestRunAnalysisValidArgs(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	// Call runAnalysis with an analyzer that fails, it will NOT return an error here, we
-	// log them as errors and continue on
-	err = RunAnalysis(logger, "../../../test/cluster/cluster-snapshot")
+	// Call runAnalysis with an analyzer that passes, we log the info and continue
+	err := RunAnalysis(logger, "../../../test/cluster/cluster-snapshot")
 	assert.Nil(t, err)
 
 }
