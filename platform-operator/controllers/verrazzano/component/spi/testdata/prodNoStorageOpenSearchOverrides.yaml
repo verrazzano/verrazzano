@@ -116,8 +116,8 @@ spec:
             - ingest
             - master
     fluentd:
-      elasticsearchSecret: verrazzano-es-internal
-      elasticsearchURL: http://verrazzano-authproxy-elasticsearch:8775
+      elasticsearchSecret: verrazzano-os-internal
+      elasticsearchURL: http://verrazzano-authproxy-opensearch:8775
       enabled: true
     grafana:
       enabled: true

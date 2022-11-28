@@ -171,7 +171,7 @@ func appendFluentdOverrides(client clipkg.Client, effectiveCR *vzapi.Verrazzano,
 	// This may be the case during an upgrade from a version that was not using the ES internal password for Fluentd.
 	if overrides.Logging != nil {
 		if overrides.Logging.OpenSearchURL == globalconst.LegacyOpensearchSecretName {
-			overrides.Logging.CredentialsSecret = globalconst.VerrazzanoESInternal
+			overrides.Logging.CredentialsSecret = globalconst.VerrazzanoOSInternal
 		}
 	}
 	overrides.Monitoring = &Monitoring{

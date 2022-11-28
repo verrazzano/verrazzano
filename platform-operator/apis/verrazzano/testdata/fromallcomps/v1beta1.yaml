@@ -113,8 +113,8 @@ spec:
         domain: nip.io
     fluentd:
       enabled: true
-      opensearchSecret: verrazzano-es-internal
-      opensearchURL: http://verrazzano-authproxy-elasticsearch:8775
+      opensearchSecret: verrazzano-os-internal
+      opensearchURL: http://verrazzano-authproxy-opensearch:8775
       overrides:
         - values:
             frobber: frob

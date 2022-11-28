@@ -6,15 +6,18 @@ package common
 import (
 	"context"
 	"crypto/x509"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -125,4 +128,26 @@ func UpdateKeycloakOIDCAuthConfig(ctx spi.ComponentContext, attributes map[strin
 	}
 
 	return nil
+}
+
+// Retry executes the provided function repeatedly, retrying until the function
+// returns done = true, or exceeds the given timeout.
+// errors will be logged, but will not trigger retry to stop unless retryOnError is false
+func Retry(backoff wait.Backoff, log vzlog.VerrazzanoLogger, retryOnError bool, fn wait.ConditionFunc) error {
+	var lastErr error
+	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
+		done, err := fn()
+		lastErr = err
+		if err != nil && retryOnError {
+			log.Infof("Retrying after error: %v", err)
+			return done, nil
+		}
+		return done, err
+	})
+	if err == wait.ErrWaitTimeout {
+		if lastErr != nil {
+			err = lastErr
+		}
+	}
+	return err
 }

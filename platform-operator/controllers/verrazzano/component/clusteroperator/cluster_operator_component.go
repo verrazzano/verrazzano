@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,7 +43,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
-			Dependencies:              []string{networkpolicies.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, rancher.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{

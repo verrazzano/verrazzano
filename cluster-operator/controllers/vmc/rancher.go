@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Jeffail/gabs/v2"
+	gabs "github.com/Jeffail/gabs/v2"
 	cons "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -103,7 +103,7 @@ func registerManagedClusterWithRancher(rc *RancherConfig, clusterName string, ra
 	var err error
 	if clusterID == "" {
 		log.Oncef("Registering managed cluster in Rancher with name: %s", clusterName)
-		clusterID, err = ImportClusterToRancher(rc, clusterName, log)
+		clusterID, err = ImportClusterToRancher(rc, clusterName, nil, log)
 		if err != nil {
 			log.Errorf("Failed to import cluster to Rancher: %v", err)
 			return "", "", err
@@ -157,14 +157,14 @@ func newRancherConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*RancherCo
 
 // ImportClusterToRancher uses the Rancher API to import the cluster. The cluster will show as "pending" until the registration
 // YAML is applied on the managed cluster.
-func ImportClusterToRancher(rc *RancherConfig, clusterName string, log vzlog.VerrazzanoLogger) (string, error) {
+func ImportClusterToRancher(rc *RancherConfig, clusterName string, labels map[string]string, log vzlog.VerrazzanoLogger) (string, error) {
 	action := http.MethodPost
-	payload := `{"type": "cluster",
-		"name":"` + clusterName + `",
-		"dockerRootDir": "/var/lib/docker",
-		"enableClusterAlerting": "false",
-		"enableClusterMonitoring": "false",
-		"enableNetworkPolicy": "false"}`
+
+	payload, err := makeClusterPayload(clusterName, labels)
+	if err != nil {
+		return "", err
+	}
+
 	reqURL := rc.BaseURL + clusterPath
 	headers := map[string]string{"Content-Type": "application/json"}
 	headers["Authorization"] = "Bearer " + rc.APIAccessToken
@@ -193,6 +193,39 @@ func ImportClusterToRancher(rc *RancherConfig, clusterName string, log vzlog.Ver
 	log.Oncef("Successfully registered managed cluster in Rancher with name: %s", clusterName)
 
 	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "id", "unable to find cluster id in Rancher response")
+}
+
+// makeClusterPayload returns the payload for Rancher cluster creation, given a cluster name
+// and labels to apply to it
+func makeClusterPayload(clusterName string, labels map[string]string) (string, error) {
+	labelsJSONString, err := makeLabelsJSONString(labels)
+	if err != nil {
+		return "", err
+	}
+	payload := `{"type": "cluster",
+		"name":"` + clusterName + `",
+		"dockerRootDir": "/var/lib/docker",
+		"enableClusterAlerting": "false",
+		"enableClusterMonitoring": "false",
+		"enableNetworkPolicy": "false"`
+
+	if len(labelsJSONString) > 0 {
+		payload = fmt.Sprintf(`%s, "labels": %s }`, payload, labelsJSONString)
+	} else {
+		payload = fmt.Sprintf("%s}", payload)
+	}
+	return payload, nil
+}
+
+func makeLabelsJSONString(labels map[string]string) (string, error) {
+	if len(labels) == 0 {
+		return "", nil
+	}
+	labelsJSON, err := json.Marshal(labels)
+	if err != nil {
+		return "", err
+	}
+	return string(labelsJSON), nil
 }
 
 // DeleteClusterFromRancher uses the Rancher API to delete a cluster in Rancher.
@@ -555,7 +588,7 @@ func doRequest(req *http.Request, rc *RancherConfig, log vzlog.VerrazzanoLogger)
 	// so we need to read the body and save it so we can use it in each retry
 	buffer, _ := io.ReadAll(req.Body)
 
-	retry(defaultRetry, log, func() (bool, error) {
+	common.Retry(defaultRetry, log, true, func() (bool, error) {
 		// update the body with the saved data to prevent the "zero length body" error
 		req.Body = io.NopCloser(bytes.NewBuffer(buffer))
 		resp, err = rancherHTTPClient.Do(client, req)
@@ -601,27 +634,6 @@ func doRequest(req *http.Request, rc *RancherConfig, log vzlog.VerrazzanoLogger)
 	}
 
 	return resp, string(body), err
-}
-
-// retry executes the provided function repeatedly, retrying until the function
-// returns done = true, or exceeds the given timeout.
-// errors will be logged, but will not trigger retry to stop
-func retry(backoff wait.Backoff, log vzlog.VerrazzanoLogger, fn wait.ConditionFunc) error {
-	var lastErr error
-	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		done, err := fn()
-		lastErr = err
-		if err != nil {
-			log.Infof("Retrying after error: %v", err)
-		}
-		return done, nil
-	})
-	if err == wait.ErrWaitTimeout {
-		if lastErr != nil {
-			err = lastErr
-		}
-	}
-	return err
 }
 
 // getProxyURL returns an HTTP proxy from the environment if one is set, otherwise an empty string

@@ -92,7 +92,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 	}
 
 	// Decide which ES secret to use for username/password and password.
-	// If the fluentd opensearchSecret is the default "verrazzano", use VerrazzanoESInternal secret for username/password, and adminCaBundle for ES CA bundle.
+	// If the fluentd opensearchSecret is the default "verrazzano", use VerrazzanoOSInternal secret for username/password, and adminCaBundle for ES CA bundle.
 	// if the fluentd opensearchSecret is not the default, meaning it is a custom secret, use its username/password and CA bundle.
 	var esCaBundle []byte
 	var esUsername []byte
@@ -106,7 +106,7 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		esUsername = esSecret.Data[mcconstants.VerrazzanoUsernameKey]
 		esPassword = esSecret.Data[mcconstants.VerrazzanoPasswordKey]
 	} else {
-		esSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoESInternal, true)
+		esSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoOSInternal, true)
 		if err != nil {
 			return err
 		}

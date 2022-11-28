@@ -14,9 +14,9 @@ import (
 )
 
 const verrazzanoNamespace string = "verrazzano-system"
-const VmiESURL = "http://verrazzano-authproxy-elasticsearch:8775"
-const VmiESLegacySecret = "verrazzano"               //nolint:gosec //#gosec G101
-const VmiESInternalSecret = "verrazzano-es-internal" //nolint:gosec //#gosec G101
+const VmiOSURL = "http://verrazzano-authproxy-opensearch:8775"
+const VmiOSLegacySecret = "verrazzano"               //nolint:gosec //#gosec G101
+const VmiOSInternalSecret = "verrazzano-os-internal" //nolint:gosec //#gosec G101
 
 func getFluentdDaemonset() (*appv1.DaemonSet, error) {
 	clientset, err := k8sutil.GetKubernetesClientset()

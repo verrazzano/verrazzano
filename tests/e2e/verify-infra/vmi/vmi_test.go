@@ -165,7 +165,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 			// Verify Kibana not present
 			Eventually(func() (bool, error) {
-				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})
+				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-osd"})
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Expect(ingressURLs).NotTo(HaveKey("vmi-system-kibana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 
@@ -242,9 +242,9 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		t.It("Kibana endpoint should be accessible", Label("f:mesh.ingress",
 			"f:observability.logging.kibana"), func() {
 			kibanaPodsRunning := func() bool {
-				result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})
+				result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-osd"})
 				if err != nil {
-					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-kibana", verrazzanoNamespace, err))
+					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-osd", verrazzanoNamespace, err))
 				}
 				return result
 			}

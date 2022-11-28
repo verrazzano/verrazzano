@@ -64,6 +64,17 @@ pipeline {
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
+        booleanParam (description: 'Whether to Post-Update1 Verify, Infra, and Acceptance Tests', name: 'RUN_POST_UPDATE1', defaultValue: false)
+        booleanParam (description: 'Whether to Post-Update2 Verify, Infra, and Acceptance Tests', name: 'RUN_POST_UPDATE2', defaultValue: false)
+        booleanParam (description: 'Whether to run Availability Status Updates', name: 'RUN_AVAILABILITY_STATUS', defaultValue: false)
+        booleanParam (description: 'Whether to run API Conversion Update Tests', name: 'RUN_API_CONVERSION', defaultValue: false)
+        booleanParam (description: 'Whether to run AuthProxy Update Tests', name: 'RUN_AUTHPROXY', defaultValue: false)
+        booleanParam (description: 'Whether to run EnvironmentName/DNS/CertManager Update Tests', name: 'RUN_CERT_MANAGER', defaultValue: false)
+        booleanParam (description: 'Whether to run Nginx/Istio Update Tests', name: 'RUN_NGINX_ISTIO', defaultValue: false)
+        booleanParam (description: 'Whether to run Fluentd Update Tests', name: 'RUN_FLUENTD', defaultValue: false)
+        booleanParam (description: 'Whether to run Opensearch Update Tests', name: 'RUN_OPENSEARCH', defaultValue: false)
+        booleanParam (description: 'Whether to run Jaeger Update Tests', name: 'RUN_JAEGER', defaultValue: false)
+        booleanParam (description: 'Whether to run Post-install overrides Tests', name: 'RUN_POST_INSTALL_OVERRIDES', defaultValue: false)
     }
 
     environment {
@@ -323,6 +334,7 @@ pipeline {
                 }
 
                 stage('Post-Update1 Verify Tests') {
+                    when { expression {params.RUN_POST_UPDATE1} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-verify-infra"
                     }
@@ -338,6 +350,7 @@ pipeline {
                 }
 
                 stage('Post-Update1 Infra Tests') {
+                    when { expression {params.RUN_POST_UPDATE1} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-infra-tests"
                     }
@@ -355,6 +368,7 @@ pipeline {
                 }
 
                 stage('Post-Update1 Acceptance Tests') {
+                    when { expression {params.RUN_POST_UPDATE1} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update1-infra-tests"
                     }
@@ -393,6 +407,7 @@ pipeline {
                 }
 
                 stage('WLS/COH Post-Update2 Acceptance Tests') {
+                    when { expression {params.RUN_POST_UPDATE2} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-update"
                     }
@@ -411,6 +426,7 @@ pipeline {
                 }
 
                 stage('Availability Status Updates') {
+                    when { expression {params.RUN_AVAILABILITY_STATUS} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/availability-update"
@@ -427,6 +443,7 @@ pipeline {
                 }
 
                 stage('API Conversion Update Tests') {
+                    when { expression {params.RUN_API_CONVERSION} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/apiconversion-update"
@@ -443,6 +460,7 @@ pipeline {
                 }
 
                 stage('AuthProxy Update Tests') {
+                    when { expression {params.RUN_AUTHPROXY} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/authproxy-update"
@@ -459,6 +477,7 @@ pipeline {
                 }
 
                 stage('EnvironmentName/DNS/CertManager Update Tests') {
+                    when { expression {params.RUN_CERT_MANAGER} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/env-dns-cm-update"
@@ -475,6 +494,7 @@ pipeline {
                 }
 
                 stage('Nginx/Istio Update Tests') {
+                    when { expression {params.RUN_NGINX_ISTIO} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/nginx-istio-update"
@@ -491,6 +511,7 @@ pipeline {
                 }
 
                 stage('Fluentd Update Tests') {
+                    when { expression {params.RUN_FLUENTD} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/fluentd-update"
@@ -508,6 +529,7 @@ pipeline {
 
 
                 stage('Opensearch Update Tests') {
+                    when { expression {params.RUN_OPENSEARCH} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/opensearch-update"
@@ -524,6 +546,7 @@ pipeline {
                 }
 
                 stage('Jaeger Update Tests') {
+                    when { expression {params.RUN_JAEGER} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/jaeger-update"
@@ -540,6 +563,7 @@ pipeline {
                 }
 
                 stage('Post-install overrides Tests') {
+                    when { expression {params.RUN_POST_INSTALL_OVERRIDES} }
                     environment {
                         TEST_ENV = "KIND"
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/overrides"
@@ -556,6 +580,7 @@ pipeline {
                 }
 
                 stage('Post-update2 Verify Tests') {
+                    when { expression {params.RUN_POST_UPDATE2} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-verify-install"
                     }
@@ -571,6 +596,7 @@ pipeline {
                 }
 
                 stage('Post-Update2 Infra Tests') {
+                    when { expression {params.RUN_POST_UPDATE2} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/post-update2-infra-tests"
                     }
@@ -588,6 +614,7 @@ pipeline {
                 }
 
                 stage('Post-update2 Acceptance Tests') {
+                    when { expression {params.RUN_POST_UPDATE2} }
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/verify-update"
                     }
@@ -817,10 +844,10 @@ def dumpVerrazzanoSystemPods() {
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
         export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-certs.log"
         ./scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-kibana.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-osd.log"
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-osd-*" -m "verrazzano system opensearchdashboards log" -l -c osd || echo "failed" > ${POST_DUMP_FAILED_FILE}
         export DIAGNOSTIC_LOG="${VERRAZZANO_INSTALL_LOGS_DIR}/verrazzano-system-es-master.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system opensearchdashboards log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 

@@ -130,14 +130,14 @@
           "images": [
             {
               "image": "rancher",
-              "tag": "v2.6.8-20221104180228-77e20c949",
-              "dashboard": "v2.6.8-20221104175219-10d4af93",
+              "tag": "v2.6.8-20221123130449-77e20c949",
+              "dashboard": "v2.6.8-20221123125358-b834db59",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.6.8-20221104180228-77e20c949"
+              "tag": "v2.6.8-20221123130449-77e20c949"
             }
           ]
         },
@@ -219,7 +219,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.0-20221118192449-16ff500",
+              "tag": "v1.5.0-20221121231653-ed610f6",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -240,7 +240,7 @@
             },
             {
               "image": "opensearch",
-              "tag": "1.2.3-20220810140719-c1dbc115d8a",
+              "tag": "1.2.3-20221123112624-b9a03fdef55",
               "helmFullImageKey": "monitoringOperator.esImage"
             },
             {

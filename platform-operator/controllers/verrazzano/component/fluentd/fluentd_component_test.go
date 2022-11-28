@@ -56,7 +56,7 @@ var fluentdEnabledCR = &v1alpha1.Verrazzano{
 
 var vzEsInternalSecret = &corev1.Secret{
 	ObjectMeta: metav1.ObjectMeta{
-		Name:      globalconst.VerrazzanoESInternal,
+		Name:      globalconst.VerrazzanoOSInternal,
 		Namespace: constants.VerrazzanoSystemNamespace,
 	},
 }
@@ -301,13 +301,13 @@ func TestPreInstall(t *testing.T) {
 		err    error
 	}{
 		{
-			"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
+			"should fail when verrazzano-os-internal secret does not exist and keycloak is enabled",
 			keycloakEnabledCR,
 			createFakeClient(),
 			ctrlerrors.RetryableError{Source: ComponentName},
 		},
 		{
-			"should pass when verrazzano-es-internal secret does exist and keycloak is enabled",
+			"should pass when verrazzano-os-internal secret does exist and keycloak is enabled",
 			keycloakEnabledCR,
 			createFakeClient(vzEsInternalSecret),
 			nil,
@@ -441,6 +441,11 @@ func fakeUpgrade(_ vzlog.VerrazzanoLogger, releaseName string, namespace string,
 //	WHEN I call PreUpgrade with defaults
 //	THEN no error is returned. Otherwise, return error.
 func TestPreUpgrade(t *testing.T) {
+	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helmcli.ChartStatusDeployed, nil
+	})
+	defer helmcli.SetDefaultChartStateFunction()
+
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
 	config.TestHelmConfigDir = "../../../../helm_config"
@@ -452,13 +457,13 @@ func TestPreUpgrade(t *testing.T) {
 		err    error
 	}{
 		{
-			"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
+			"should fail when verrazzano-os-internal secret does not exist and keycloak is enabled",
 			keycloakEnabledCR,
 			createFakeClient(),
 			ctrlerrors.RetryableError{Source: ComponentName},
 		},
 		{
-			"should pass when verrazzano-es-internal secret does exist and keycloak is enabled",
+			"should pass when verrazzano-os-internal secret does exist and keycloak is enabled",
 			keycloakEnabledCR,
 			createFakeClient(vzEsInternalSecret),
 			nil,
