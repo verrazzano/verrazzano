@@ -197,7 +197,7 @@
         "resourceVersion": "3315"
       },
       "reason": "SyncLoadBalancerFailed",
-      "message": "Error syncing load balancer: failed to ensure load balancer: creating load balancer: Service error:InvalidParameter. Private subnet with id ocid1.subnet.oc1.eu-frankfurt-1.aaaaaaaaxxewgkfrvtp32pzuq7io7viu4vepursqtj7qhxm4jfslv23lruia is not allowed in a public loadbalancer.. http status code: 400. Opc request id: 95f362544d68d9e4ec0c7e7b8c383a1a/7CCA73A437F032B7ECEBE9D2F835FAE2/E985A2D036AF6BA48A815CAD2A01E491",
+      "message": "Error syncing load balancer: failed to ensure load balancer: creating load balancer: Service error:InvalidParameter. Private subnet with id ocid1.subnet.oc1.eu-frankfurt-1.REDACTED is not allowed in a public loadbalancer.. http status code: 400. Opc request id: 1eb286/49200/DUMMY",
       "source": {
         "component": "service-controller"
       },
@@ -247,7 +247,7 @@
         "resourceVersion": "3315"
       },
       "reason": "SyncLoadBalancerFailed",
-      "message": "(combined from similar events): Error syncing load balancer: failed to ensure load balancer: creating load balancer: Service error:InvalidParameter. Private subnet with id ocid1.subnet.oc1.eu-frankfurt-1.aaaaaaaaxxewgkfrvtp32pzuq7io7viu4vepursqtj7qhxm4jfslv23lruia is not allowed in a public loadbalancer.. http status code: 400. Opc request id: 1eb286af6aea7bf18afce40292e2edf5/5D1D3DA4AC340F08B10BFA3A26149200/C15B5C1543835B2204E9EA9B1973F71B",
+      "message": "(combined from similar events): Error syncing load balancer: failed to ensure load balancer: creating load balancer: Service error:InvalidParameter. Private subnet with id ocid1.subnet.oc1.eu-frankfurt-1.REDACTED is not allowed in a public loadbalancer.. http status code: 400. Opc request id: 1eb286/49200/DUMMY",
       "source": {
         "component": "service-controller"
       },
