@@ -539,6 +539,10 @@ func createOrUpdateRoleTemplates(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	if err := createOrUpdateClusterUserClusterRole(ctx); err != nil {
+		return err
+	}
+
 	return createOrUpdateRoleTemplate(ctx, VerrazzanoClusterUserRoleName)
 }
 

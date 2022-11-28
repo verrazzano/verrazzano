@@ -590,6 +590,38 @@ func createOrUpdateRoleTemplate(ctx spi.ComponentContext, role string) error {
 	return createOrUpdateResource(ctx, nsn, GVKRoleTemplate, data)
 }
 
+// createOrUpdateClusterUserClusterRole Creates the ClusterRole for the Verrazzano Cluster User to be consumed by the RoleTemplate
+func createOrUpdateClusterUserClusterRole(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	c := ctx.Client()
+
+	clusterRole := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: VerrazzanoClusterUserRoleName,
+		},
+	}
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), c, clusterRole, func() error {
+		clusterRole.Rules = []rbacv1.PolicyRule{
+			{
+				APIGroups: []string{""},
+				Resources: []string{"secrets"},
+				Verbs: []string{
+					"get",
+					"list",
+					"watch",
+					"create",
+					"update",
+				},
+			},
+		}
+		return nil
+	})
+	if err != nil {
+		return log.ErrorfThrottledNewErr("Failed creating ClusterRole %s: %s", VerrazzanoClusterUserRoleName, err.Error())
+	}
+	return nil
+}
+
 // createOrUpdateClusterRoleTemplateBinding creates or updates ClusterRoleTemplateBinding used to add Keycloak groups to the Rancher cluster
 func createOrUpdateClusterRoleTemplateBinding(ctx spi.ComponentContext, clusterRole string, group string) error {
 	name := fmt.Sprintf("crtb-%s-%s", clusterRole, group)
