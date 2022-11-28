@@ -468,7 +468,7 @@ func getRegistrationYAMLFromRancher(rc *RancherConfig, rancherClusterID string, 
 	return manifestContent, nil
 }
 
-// getAdminSecret fetches the Rancher admin secret
+// getVerrazzanoClusterUserSecret fetches the Rancher Verrazzano user secret
 func getVerrazzanoClusterUserSecret(rdr client.Reader) (string, error) {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
