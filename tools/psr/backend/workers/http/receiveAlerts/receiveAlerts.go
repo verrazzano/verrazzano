@@ -196,36 +196,22 @@ func createAlertmanagerOverridesCM(log vzlog.VerrazzanoLogger) error {
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), c.CrtlRuntime, &cm, func() error {
 		cm.Data = map[string]string{
 			psrprom.AlertmanagerCMKey: `
-{
-	"alertmanager": {
-		"alertmanagerSpec": {
-			"podMetadata": {
-				"annotations": {
-					"sidecar.istio.io/inject": "false"
-				}
-			}
-		},
-		"config": {
-			"receivers": [
-				{
-					"name": "webhook",
-					"webhook_configs": [
-						{
-							"url": "http://psr-alerts-http-alerts.psr:9090/alerts"
-						}
-					]
-				}
-			],
-			"route": {
-				"group_by": [
-					"alertname"
-				],
-				"receiver": "webhook"
-			}
-		},
-		"enabled": true
-	}
-}`,
+alertmanager:
+  alertmanagerSpec:
+    podMetadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+  config:
+    receivers:
+    - webhook_configs:
+      - http://psr-alerts-http-alerts.psr:9090/alerts
+      name: webhook
+    route:
+      group_by:
+      - alertname
+      receiver: webhook
+  enabled: true
+`,
 		}
 		return nil
 	})
