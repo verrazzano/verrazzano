@@ -5,7 +5,10 @@ package clusteroperator
 
 import (
 	"fmt"
+	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
+	fakes "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
@@ -92,4 +95,18 @@ func TestAppendOverrides(t *testing.T) {
 	asserts.Len(t, kvs, 1)
 	asserts.Equal(t, "image", kvs[0].Key)
 	asserts.Equal(t, customImage, kvs[0].Value)
+}
+
+func TestPostInstallUpgrade(t *testing.T) {
+	clustOpComp := clusterOperatorComponent{}
+
+	cli := fakes.NewClientBuilder().WithObjects(
+		&rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: VerrazzanoClusterUserRoleName,
+			},
+		},
+	).Build()
+	err := clustOpComp.postInstallUpgrade(spi.NewFakeContext(cli, &v1alpha1.Verrazzano{}, &v1beta1.Verrazzano{}, false))
+	asserts.NoError(t, err)
 }
