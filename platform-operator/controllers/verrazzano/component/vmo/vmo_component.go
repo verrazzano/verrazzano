@@ -31,7 +31,7 @@ const ComponentName = "verrazzano-monitoring-operator"
 const ComponentNamespace = vzconst.VerrazzanoSystemNamespace
 
 // ComponentJSONName is the json name of the verrazzano-monitoring-operator component
-const ComponentJSONName = "verrazzanoMonitoringOperator"
+const ComponentJSONName = "verrazzano-monitoring-operator"
 
 // vmoComponent represents a VMO component
 type vmoComponent struct {
