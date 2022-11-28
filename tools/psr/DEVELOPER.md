@@ -47,15 +47,19 @@ in the [workers](./backend/workers) package.
 
 Lets use a new mysql worker that queries the MySQL database as an example in the following section.
 
-Following are the steps to implement a worker:
+Following are the first steps to implement a worker:
 1. Add a worker type named `WorkerTypeMysqlScale = mysql-scale` to [config.go](./backend/config/config.go)
 2. Create a package named `mysql` in [workers](./backend/workers)
-3. Create a go file name `query.go` and do the following
+3. Create a file `query.go` in the `mysql` package and do the following:
    1. Stub out the [worker SPI](./backend/spi/worker.go) SPI implementation in `query.go`  You can copy the ops getlogs worker as a starting point.
    2. Change the const metrics prefix to `metricsPrefix = "mysql_query"`
-   3. Add a function NewQueryWorker to `query.go`
+   3. Rename function `NewGetLogsWorker` to `NewQueryWorker`
 4. Add your worker case to the switch statement in [manager.go](./backend/workmanager/manager.go)
-5. 
+5. Add a directory named `mysql` to [usecases](./manifests)
+6. Copy [usecases/opensearch/getlogs.yaml](./manifests/usecases/getlogs.yaml) to a file named `usecases/mysql/query.yaml` 
+7. Edit query.yaml  
+   1. change `PSR_WORKER_TYPE: ops-getlogs` to `PSR_WORKER_TYPE: mysql-query` 
+   2. remove the opensearch-authpol section
 
 
 
