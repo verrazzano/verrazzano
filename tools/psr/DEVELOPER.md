@@ -191,22 +191,7 @@ OpenSearch [getlogs](./backend/workers/opensearch/scale/scale.go) worker uses ` 
 **NOTE** The same worker struct and metrics is shared across all worker threads.  There is currently no state per worker.  Workers
 that keep state, such as the scaling worker, normally only run in a single thread. 
 
-## PSR CLI (psrctl)
-Scenarios are run by the PSR command line interface, `psrctl`.  The source code [manifests](./manifests) directory contains all
-of the helm charts, use cases overrides, and scenario files.  These manifests files are built into the psrctl binary and accessed
-internally at runtime, so the psrctl binary is self contained and there is no need for the user to provide external files.  However,
-you can override the scenario directory at runtime with the `-d` flag.  This allows you to modify and test scenarions without having
-to rebuild `psrctl`.  See `psrctl` help for details.
-
-### PSR CLI Backend Image
-If you build `psrctl` using make, the image tag is derived from the last commit id.  If that image has not been uploaded to
-ghcr.io, you will need to run `make docker-push`.  Since that image is private will need to provide a secret with the ghcr.io
-credentials with `psrctl -p`.  If you want to override the image name, use `psrctl -w`.
-
-If you want to use a local image and load it into a kind cluster, they run `make kind-load-image` and specify that image
-using `psrctl -w`.  This is the easiest way to develop and test a worker on Kind.
-
-## Creating scenarios
+## Creating a scenario
 A scenario is a collection of use cases with a curated configuration, that are run concurrently.  Typically, 
 you should restrict a scenario use cases to a single area, but that is not a strict requirement.  You can run multiple 
 scenarios concurrently so creating a mixed-area scenario might not be necessary.  If you do decide to create a mixed area scenario, 
@@ -256,5 +241,24 @@ This file specifies that the data tier should be restarted every 5 seconds.  The
 is already in the use case file at [usecases/opensearch/restart.yaml](./manifests/usecases/opensearch/restart.yaml), however, it
 doesn't hurt to have it for documentation purposes.
 
+## Running a scenario
+Scenarios are run by the PSR command line interface, `psrctl`.  The source code [manifests](./manifests) directory contains all
+of the helm charts, use cases overrides, and scenario files.  These manifests files are built into the psrctl binary and accessed
+internally at runtime, so the psrctl binary is self contained and there is no need for the user to provide external files.  However,
+you can override the scenario directory at runtime with the `-d` flag.  This allows you to modify and test scenarions without having
+to rebuild `psrctl`.  See `psrctl` help for details.
+
+### Specifying the backend image
+If you build `psrctl` using make, the image tag is derived from the last commit id.  If that image has not been uploaded to
+ghcr.io, you will need to run `make docker-push`.  Since that image is private will need to provide a secret with the ghcr.io
+credentials with `psrctl -p`.  If you want to override the image name, use `psrctl -w`.
+
+If you want to use a local image and load it into a kind cluster, they run `make kind-load-image` and specify that image
+using `psrctl -w`.  This is the easiest way to develop and test a worker on Kind.
+
+### Updating a running scenario
+During development, you may want to update scenario override values while testing the scenario.  Currently, you
+can only update with `psrctl -u` but only the `usecase-overrides` files can be changed. If you need to change a chart
+or scenario.yaml, then just restart the scenario.
 
 
