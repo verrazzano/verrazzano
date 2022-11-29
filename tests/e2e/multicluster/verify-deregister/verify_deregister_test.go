@@ -42,7 +42,7 @@ var _ = t.Describe("Multi Cluster Verify Deregister", Label("f:multicluster.dere
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected external ES in admin cluster fluentd Daemonset setting")
 			} else {
 				Eventually(func() bool {
-					return pkg.AssertFluentdURLAndSecret(pkg.VmiOSURL, pkg.VmiOSInternalSecret)
+					return pkg.AssertFluentdURLAndSecret(pkg.VmiESURL, pkg.VmiESInternalSecret)
 				}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES in admin cluster fluentd Daemonset setting")
 			}
 		})
@@ -67,7 +67,7 @@ var _ = t.Describe("Multi Cluster Verify Deregister", Label("f:multicluster.dere
 
 		t.It("Fluentd should point to the correct ES", func() {
 			Eventually(func() bool {
-				return pkg.AssertFluentdURLAndSecret(pkg.VmiOSURL, pkg.VmiOSInternalSecret)
+				return pkg.AssertFluentdURLAndSecret(pkg.VmiESURL, pkg.VmiESInternalSecret)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected VMI ES in managed cluster fluentd Daemonset setting")
 		})
 	})

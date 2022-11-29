@@ -38,8 +38,8 @@ var _ = t.AfterSuite(func() {
 	pkg.DeleteSecret(pcons.VerrazzanoInstallNamespace, wrongSec)
 	start := time.Now()
 	gomega.Eventually(func() bool {
-		return ValidateDaemonset(pkg.VmiOSURL, pkg.VmiOSInternalSecret, "")
-	}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiOSURL, time.Since(start)))
+		return ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
+	}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
 })
 
 var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
@@ -47,8 +47,8 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 		t.It("fluentd default config", func() {
 			start := time.Now()
 			gomega.Eventually(func() bool {
-				return ValidateDaemonset(pkg.VmiOSURL, pkg.VmiOSInternalSecret, "")
-			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiOSURL, time.Since(start)))
+				return ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
+			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
 		})
 	})
 
@@ -149,8 +149,8 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 
 			start := time.Now()
 			gomega.Eventually(func() bool {
-				return ValidateDaemonset(pkg.VmiOSURL, pkg.VmiOSInternalSecret, "", vm)
-			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiOSURL, time.Since(start)))
+				return ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "", vm)
+			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
 		})
 	})
 })
