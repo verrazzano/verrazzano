@@ -201,6 +201,7 @@ pipeline {
         // OCI_COMPARTMENT_ID=credentials('oci-tiburon-dev-compartment-ocid')
         // OCI_TELEMETRY_URL=credentials('oci-telemetry-url')
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
+        USE_V8O_DOC_STAGE = "${env.BRANCH_NAME == 'master' ? 'true' : 'false'}"
 
         // used to emit metrics
         PROMETHEUS_GW_URL=credentials('prometheus-dev-url')
