@@ -224,7 +224,7 @@ func (g grafanaComponent) PostUpgrade(ctx spi.ComponentContext) error {
 func (g grafanaComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// do not allow disabling active components
 	if vzcr.IsGrafanaEnabled(old) && !vzcr.IsGrafanaEnabled(new) {
-		return fmt.Errorf("Disabling component grafana not allowed")
+		return fmt.Errorf("Disabling component %s not allowed", ComponentJSONName)
 	}
 	return nil
 }
@@ -233,7 +233,7 @@ func (g grafanaComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verra
 func (g grafanaComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// do not allow disabling active components
 	if vzcr.IsGrafanaEnabled(old) && !vzcr.IsGrafanaEnabled(new) {
-		return fmt.Errorf("Disabling component grafana not allowed")
+		return fmt.Errorf("Disabling component %s not allowed", ComponentJSONName)
 	}
 	return nil
 }

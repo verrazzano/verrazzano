@@ -217,7 +217,7 @@ func (d opensearchDashboardsComponent) Name() string {
 func (d opensearchDashboardsComponent) isOpenSearchDashboardEnabled(old runtime.Object, new runtime.Object) error {
 	// Do not allow disabling of any component post-install for now
 	if vzcr.IsOpenSearchDashboardsEnabled(old) && !vzcr.IsOpenSearchDashboardsEnabled(new) {
-		return fmt.Errorf("Disabling component opensearchDashboards not allowed")
+		return fmt.Errorf("Disabling component %s not allowed", ComponentJSONName)
 	}
 	return nil
 }
