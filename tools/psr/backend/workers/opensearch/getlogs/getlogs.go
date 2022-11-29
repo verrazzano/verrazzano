@@ -25,7 +25,7 @@ const (
 	// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
 	metricsPrefix = "opensearch_getlogs"
 
-	osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
+	osIngestService = "vmi-system-os-ingest.verrazzano-system:9200"
 	letters         = "abcdefghijklmnopqrstuvwxyz"
 )
 

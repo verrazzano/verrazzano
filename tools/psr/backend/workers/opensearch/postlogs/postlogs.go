@@ -28,7 +28,7 @@ const (
 
 	LogEntries      = "LOG_ENTRIES"
 	LogLength       = "LOG_LENGTH"
-	osIngestService = "vmi-system-es-ingest.verrazzano-system:9200"
+	osIngestService = "vmi-system-os-ingest.verrazzano-system:9200"
 )
 
 // Use an http client interface so that we can override http.Client for unit tests
