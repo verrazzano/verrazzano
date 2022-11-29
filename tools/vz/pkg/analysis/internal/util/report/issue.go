@@ -58,6 +58,36 @@ type Issue struct {
 	Impact         int           // Optional 0-10 (TBD: This is a swag at how broad the impact is, 0 low, 10 high, defaults to -1 unknown)
 }
 
+func (issue *Issue) CheckIfPodShouldBeAdded() bool {
+
+	if issue.Type != PodProblemsNotReported {
+		return true
+	}
+	podsError := make(map[string]bool)
+	podsError["helm-operation"] = false
+	podsError["rancher"] = false
+	for _, data := range issue.SupportingData {
+		if len(data.Messages) == 0 {
+			continue
+		}
+		for _, message := range data.Messages {
+			if strings.Contains(message, "Namespace cattle-system, Pod helm-operation") {
+				podsError["helm-operation"] = true
+			}
+			if strings.Contains(message, "Namespace cattle-system, Pod rancher") {
+				podsError["rancher"] = true
+			}
+		}
+
+	}
+	if !podsError["helm-operation"] || !podsError["rancher"] {
+		return true
+	}
+
+	return false
+
+}
+
 // Validate validates an issue. A zeroed Issue is not valid, there is some amount of information that must be specified for the Issue to
 // be useful. Currently the report will validate that the issues contributed are valid at the point where they are
 // being contributed.

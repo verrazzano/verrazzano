@@ -322,8 +322,8 @@ func GetAllSourcesFilteredIssues(log *zap.SugaredLogger, includeInfo bool, minCo
 func filterReportIssues(log *zap.SugaredLogger, reportIssues []Issue, includeInfo bool, minConfidence int, minImpact int) (filtered []Issue) {
 	filtered = make([]Issue, 0, len(reportIssues))
 	for _, issue := range reportIssues {
-		// Skip issues that are Informational or lower Confidence that we want
-		if issue.Informational && !includeInfo || issue.Confidence < minConfidence || issue.Impact < minImpact {
+		// Skip issues that are Informational or lower Confidence that we want or have another set of pods related to them in properly functioning state
+		if issue.Informational && !includeInfo || issue.Confidence < minConfidence || issue.Impact < minImpact || !issue.CheckIfPodShouldBeAdded() {
 			log.Debugf("Skipping issue %s based on informational/confidence/impact settings", issue.Summary)
 			continue
 		}
