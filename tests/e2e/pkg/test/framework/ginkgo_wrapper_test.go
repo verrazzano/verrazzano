@@ -17,24 +17,10 @@ func TestAfterEach(t *testing.T) {
 	assert.True(t, result)
 }
 
-// TestAfterSuite
-func TestAfterSuite(t *testing.T) {
-	var f = NewTestFramework("test")
-	result := f.AfterSuite(func() {})
-	assert.True(t, result)
-}
-
 // TestBeforeEach
 func TestBeforeEach(t *testing.T) {
 	var f = NewTestFramework("test")
 	result := f.BeforeEach(func() {})
-	assert.True(t, result)
-}
-
-// TestBeforeSuite
-func TestBeforeSuite(t *testing.T) {
-	var f = NewTestFramework("test")
-	result := f.BeforeSuite(func() {})
 	assert.True(t, result)
 }
 

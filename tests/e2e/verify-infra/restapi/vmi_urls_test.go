@@ -21,7 +21,7 @@ var (
 	vmiCredentials *pkg.UsernamePassword
 )
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	vz, err = pkg.GetVerrazzano()
 	Expect(err).To(Not(HaveOccurred()))
@@ -29,6 +29,8 @@ var _ = t.BeforeSuite(func() {
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	vmiCredentials = pkg.EventuallyGetSystemVMICredentials()
 })
+
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.AfterEach(func() {})
 

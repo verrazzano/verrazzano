@@ -32,7 +32,7 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("helidon-logging")
 )
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
 	Eventually(func() (*v1.Namespace, error) {
 		nsLabels := map[string]string{
@@ -66,6 +66,8 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var failed = false
 var beforeSuitePassed = false
 
@@ -73,7 +75,7 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		pkg.ExecuteBugReport(namespace)
 	}
@@ -122,6 +124,8 @@ var _ = t.AfterSuite(func() {
 
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = AfterSuite(afterSuite)
 
 var (
 	expectedPodsHelloHelidon = []string{"hello-helidon-workload"}
