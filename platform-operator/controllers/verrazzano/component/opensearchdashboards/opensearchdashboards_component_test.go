@@ -100,7 +100,7 @@ func TestGetMinVerrazzanoVersion(t *testing.T) {
 //	THEN a string containing JSONName is returned
 func TestGetJSONName(t *testing.T) {
 	jsonName := NewComponent().GetJSONName()
-	assert.Equal(t, jsonName, "opensearchDashboards")
+	assert.Equal(t, jsonName, ComponentJSONName)
 
 }
 
