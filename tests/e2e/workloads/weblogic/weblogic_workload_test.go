@@ -44,7 +44,7 @@ var (
 	host               = ""
 )
 
-var _ = BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
 		deployWebLogicApp(namespace)
@@ -77,13 +77,15 @@ var _ = BeforeSuite(func() {
 	beforeSuitePassed = true
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var failed = false
 var beforeSuitePassed = false
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		pkg.CaptureContainerLogs(namespace, wlsAdminServer, "weblogic-server", "/scratch/logs/hello-domain")
 		pkg.ExecuteBugReport(namespace)
@@ -92,6 +94,8 @@ var _ = t.AfterSuite(func() {
 		undeployWebLogicApp()
 	}
 })
+
+var _ = AfterSuite(afterSuite)
 
 func deployWebLogicApp(namespace string) {
 	t.Logs.Info("Deploy WebLogic application")

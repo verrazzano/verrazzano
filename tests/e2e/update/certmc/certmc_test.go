@@ -36,16 +36,20 @@ func (u *CertModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.CertManager = u.CertManager
 }
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	adminCluster = multicluster.AdminCluster()
 	managedClusters = multicluster.ManagedClusters()
 	verifyRegistration()
 	verifyScrapeTargets()
 })
 
-var _ = t.AfterSuite(func() {
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	verifyScrapeTargets()
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Update managed-cluster cert-manager", Label("f:platform-lcm.update"), func() {
 	t.Describe("multicluster cert-manager verify", Label("f:platform-lcm.multicluster-verify"), func() {
