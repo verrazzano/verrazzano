@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -164,6 +165,7 @@ func TestGetOverrides(t *testing.T) {
 //	WHEN I call ValidateInstall with defaults
 //	THEN an bool value is returned
 func TestValidateInstall(t *testing.T) {
+	trueVal := true
 	var tests = []struct {
 		name     string
 		vz       *vzapi.Verrazzano
@@ -197,6 +199,62 @@ func TestValidateInstall(t *testing.T) {
 				},
 			}),
 			true,
+		},
+		{
+			"no duplication when component has Node groups with inadequate number of master nodes",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							Enabled: &(trueVal),
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 1, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{"ingest"}}},
+						},
+					},
+				},
+			},
+			true,
+		},
+		{
+			"no duplication when component has Node groups with inadequate number of data nodes",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							Enabled: &(trueVal),
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 3, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{"ingest"}}},
+						},
+					},
+				},
+			},
+			true,
+		},
+		{
+			"no duplication when component has Node groups with inadequate number of data nodes",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							Enabled: &(trueVal),
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 2, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 3, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 0, Roles: []vmov1.NodeRole{"ingest"}}},
+						},
+					},
+				},
+			},
+			true,
+		},
+		{
+			"no duplication when component has Node groups with adequate number of nodes",
+			&vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							Enabled: &(trueVal),
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 2, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 1, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 0, Roles: []vmov1.NodeRole{"ingest"}}},
+						},
+					},
+				},
+			},
+			false,
 		},
 	}
 
@@ -248,7 +306,7 @@ func TestValidateInstallV1Beta1(t *testing.T) {
 					createNG("master", 3, nil),
 				},
 			}),
-			true,
+			false,
 		},
 	}
 

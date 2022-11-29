@@ -4,7 +4,9 @@
 package opensearch
 
 import (
+	"errors"
 	"fmt"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 )
 
@@ -48,5 +50,35 @@ func validateNoDuplicateNodeGroups(opensearch *v1beta1.OpenSearchComponent) erro
 			return fmt.Errorf("OpenSearch node group name is duplicated or invalid: %v", err)
 		}
 	}
+	if _, err := GetNodesNumber(opensearch); err != nil {
+		return err
+	}
 	return nil
+}
+
+func GetNodesNumber(opensearch *v1beta1.OpenSearchComponent) (map[vmov1.NodeRole]int32, error) {
+	numberNodes := make(map[vmov1.NodeRole]int32)
+	sum := int32(0)
+	for _, group := range opensearch.Nodes {
+		for _, role := range group.Roles {
+			numberNodes[role] += group.Replicas
+			sum += group.Replicas
+		}
+	}
+	if sum <= 1 {
+		return numberNodes, nil
+	}
+
+	if numberNodes["master"] < 3 {
+		return numberNodes, errors.New("Number of master nodes should be atleast 3")
+	}
+	if numberNodes["data"] < 2 {
+		return numberNodes, errors.New("Number of master nodes should be atleast 2")
+	}
+	if numberNodes["ingest"] < 1 {
+		return numberNodes, errors.New("Number of ingest nodes should be atleast 1")
+	}
+
+	return numberNodes, nil
+
 }
