@@ -6,6 +6,7 @@ package netpol
 import (
 	"encoding/json"
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"strings"
 	"time"
 
@@ -79,7 +80,7 @@ var (
 )
 
 var t = framework.NewTestFramework("netpol")
-var clusterDump = pkg.NewClusterDumpWrapper(t, generatedNamespace)
+var clusterDump = dump.NewClusterDumpWrapper(t, generatedNamespace)
 
 var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 	start := time.Now()

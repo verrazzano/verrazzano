@@ -7,6 +7,7 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
@@ -46,7 +47,7 @@ var username, password string
 var (
 	t                  = framework.NewTestFramework("socks")
 	generatedNamespace = pkg.GenerateNamespace("sockshop")
-	clusterDump        = pkg.NewClusterDumpWrapper(t, generatedNamespace)
+	clusterDump        = dump.NewClusterDumpWrapper(t, generatedNamespace)
 )
 
 // creates the sockshop namespace and applies the components and application yaml

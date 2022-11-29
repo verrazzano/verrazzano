@@ -6,6 +6,7 @@ package deploymetrics
 import (
 	"context"
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"os"
 	"time"
 
@@ -52,7 +53,7 @@ var (
 	t = framework.NewTestFramework("deploymetrics")
 )
 
-var clusterDump = pkg.NewClusterDumpWrapper(t, generatedNamespace)
+var clusterDump = dump.NewClusterDumpWrapper(t, generatedNamespace)
 var kubeconfig string
 var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 	if !skipDeploy {

@@ -5,6 +5,7 @@ package metricsbinding
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -28,7 +29,7 @@ const (
 
 var (
 	t           = framework.NewTestFramework("deploymentworkload")
-	clusterDump = pkg.NewClusterDumpWrapper(t, deploymentNamespace, podNamespace, replicasetNamespace, statefulsetNamespace)
+	clusterDump = dump.NewClusterDumpWrapper(t, deploymentNamespace, podNamespace, replicasetNamespace, statefulsetNamespace)
 )
 
 var beforeSuite = clusterDump.BeforeSuiteFunc(func() {}) // Needed to initialize cluster dump flags

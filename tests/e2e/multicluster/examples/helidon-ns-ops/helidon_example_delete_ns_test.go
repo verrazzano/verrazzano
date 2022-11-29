@@ -5,6 +5,7 @@ package mcnshelidon
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
@@ -148,7 +149,7 @@ var _ = t.Describe("In Multi-cluster, verify delete ns of hello-helidon-ns", Lab
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport(testNamespace)
+		dump.ExecuteBugReport(testNamespace)
 	}
 })
 

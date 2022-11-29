@@ -6,6 +6,7 @@ package topology
 import (
 	"context"
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"strings"
 	"time"
 
@@ -41,7 +42,7 @@ var (
 	isMinVersion140 bool
 )
 
-var clusterDump = pkg.NewClusterDumpWrapper(t, namespace)
+var clusterDump = dump.NewClusterDumpWrapper(t, namespace)
 var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 	var err error
 	client, err = vmiClientFromConfig()

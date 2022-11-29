@@ -5,6 +5,7 @@ package helidonworkload
 
 import (
 	"github.com/verrazzano/verrazzano/tests/e2e/loggingtrait"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
@@ -28,7 +29,7 @@ var (
 	kubeConfig         = os.Getenv("KUBECONFIG")
 	t                  = framework.NewTestFramework("helidonworkload")
 	generatedNamespace = pkg.GenerateNamespace("hello-helidon-logging")
-	clusterDump        = pkg.NewClusterDumpWrapper(t, generatedNamespace)
+	clusterDump        = dump.NewClusterDumpWrapper(t, generatedNamespace)
 )
 
 var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
