@@ -162,10 +162,10 @@ func TestRepairICStuckDeleting(t *testing.T) {
 
 }
 
-// TestRepairMySQLPodsWaitingReadinessGates tests the temporary workaround for MySQL
-// pods getting stuck during install waiting for all readiness gates to be true.
-// GIVEN a MySQL Pod with readiness gates defined
-// WHEN they are not all ready after a given time period
+// TestRepairMySQLPodsStuckTerminating tests the temporary workaround for MySQL
+// pods getting stuck terminating.
+// GIVEN a pod is deleting
+// WHEN still deleting after the expiration time period
 // THEN recycle the mysql-operator
 func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	mySQLOperatorPod := &v1.Pod{
