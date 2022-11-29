@@ -460,7 +460,6 @@ def getLatestRelease(){
 def getInterimRelease(){
     final String fileContent = readFile(file: "${workspace}/tags.txt")
     final List gitTags = extractReleaseTags(fileContent)
-    echo "gitTags = ${gitTags}"
     def latestReleaseTag = gitTags.pop() - "v"
     def interimRelease
     def latestPatch = 0
@@ -501,6 +500,8 @@ def getInterimRelease(){
 }
 
 def getInstallVersion(){
+    final String fileContent = readFile(file: "${workspace}/tags.txt")
+    final List gitTags = extractReleaseTags(fileContent)
     def latestReleaseTag = gitTags.pop() - "v"
     def installRelease
     def latestPatch = 0
