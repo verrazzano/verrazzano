@@ -203,8 +203,7 @@ func createAlertmanagerOverridesCM(log vzlog.VerrazzanoLogger) error {
 	}
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), c.CrtlRuntime, &cm, func() error {
 		cm.Data = map[string]string{
-			psrprom.AlertmanagerCMKey: `
-alertmanager:
+			psrprom.AlertmanagerCMKey: `alertmanager:
   alertmanagerSpec:
     podMetadata:
       annotations:
