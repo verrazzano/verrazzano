@@ -220,7 +220,7 @@ func CheckPvcsTerminated(labelSelector, namespace string, log *zap.SugaredLogger
 
 }
 
-// DeleteSecret cleans up secrets as part of AfterSuite
+// DeleteSecret cleans up secrets as part of AfterSuiteFunc
 func DeleteSecret(namespace string, name string, log *zap.SugaredLogger) error {
 	clientset, err := k8sutil.GetKubernetesClientset()
 	if err != nil {

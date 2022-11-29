@@ -27,15 +27,16 @@ const (
 
 var (
 	t           = framework.NewTestFramework("ha-helidon")
-	clusterDump = pkg.NewClusterDumpWrapper(namespace)
+	clusterDump = pkg.NewClusterDumpWrapper(t, namespace)
 	clientset   = k8sutil.GetKubernetesClientsetOrDie()
 
 	httpClient *retryablehttp.Client
 )
 
-var _ = clusterDump.BeforeSuite(func() {
+var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 })
+var _ = BeforeSuite(beforeSuite)
 
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
 

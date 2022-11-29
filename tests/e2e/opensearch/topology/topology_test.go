@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vmoClient "github.com/verrazzano/verrazzano-monitoring-operator/pkg/client/clientset/versioned"
@@ -40,8 +41,8 @@ var (
 	isMinVersion140 bool
 )
 
-var clusterDump = pkg.NewClusterDumpWrapper(namespace)
-var _ = clusterDump.BeforeSuite(func() {
+var clusterDump = pkg.NewClusterDumpWrapper(t, namespace)
+var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 	var err error
 	client, err = vmiClientFromConfig()
 	Expect(err).To(BeNil())
@@ -83,7 +84,7 @@ var _ = clusterDump.BeforeSuite(func() {
 })
 
 var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
-var _ = clusterDump.AfterSuite(func() {
+var afterSuite = clusterDump.AfterSuiteFunc(func() {
 	Eventually(func() bool {
 		if err := client.VerrazzanoV1().VerrazzanoMonitoringInstances(namespace).Delete(context.TODO(), vmiName, metav1.DeleteOptions{}); err != nil &&
 			!apierrors.IsNotFound(err) {
@@ -98,6 +99,9 @@ var _ = clusterDump.AfterSuite(func() {
 		return true
 	}, timeout, pollInterval).Should(BeTrue())
 })
+
+var _ = BeforeSuite(beforeSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("OpenSearch Cluster Topology", func() {
 	t.It("can scale the cluster", func() {

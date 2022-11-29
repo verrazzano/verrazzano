@@ -160,7 +160,7 @@ func (t *TestFramework) DescribeTable(text string, args ...interface{}) bool {
 	return ginkgo.DescribeTable(text, args...)
 }
 
-// BeforeSuiteFunc wrap a function to be called with ginkgo.BeforeSuite. ginkgo.BeforeSuite
+// BeforeSuiteFunc wrap a function to be called with ginkgo.BeforeSuiteFunc. ginkgo.BeforeSuiteFunc
 // // hard codes the call stack location, which requires calling it from the package level.
 func (t *TestFramework) BeforeSuiteFunc(body func()) func() {
 	t.failIfNilBody(body)
@@ -171,7 +171,7 @@ func (t *TestFramework) BeforeSuiteFunc(body func()) func() {
 	return f
 }
 
-// AfterSuiteFunc wrap a function to be called with ginkgo.AfterSuite. ginkgo.AfterSuite
+// AfterSuiteFunc wrap a function to be called with ginkgo.AfterSuiteFunc. ginkgo.AfterSuiteFunc
 // hard codes the call stack location, which requires calling it from the package level.
 func (t *TestFramework) AfterSuiteFunc(body func()) func() {
 	t.failIfNilBody(body)

@@ -52,9 +52,9 @@ var (
 	t = framework.NewTestFramework("deploymetrics")
 )
 
-var clusterDump = pkg.NewClusterDumpWrapper(generatedNamespace)
+var clusterDump = pkg.NewClusterDumpWrapper(t, generatedNamespace)
 var kubeconfig string
-var _ = clusterDump.BeforeSuite(func() {
+var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		deployMetricsApplication()
 	}
@@ -91,12 +91,15 @@ var _ = clusterDump.BeforeSuite(func() {
 		}, waitTimeout, pollingInterval).Should(BeNil(), "Expected to be able to create the metrics service")
 	}
 })
-var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
-var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
+var _ = clusterDump.AfterEach(func() {})             // Dump cluster if spec fails
+var afterSuite = clusterDump.AfterSuiteFunc(func() { // Dump cluster if aftersuite fails
 	if !skipUndeploy {
 		undeployMetricsApplication()
 	}
 })
+
+var _ = BeforeSuite(beforeSuite)
+var _ = AfterSuite(afterSuite)
 
 func deployMetricsApplication() {
 	t.Logs.Info("Deploy DeployMetrics Application")

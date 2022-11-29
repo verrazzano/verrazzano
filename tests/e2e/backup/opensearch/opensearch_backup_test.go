@@ -283,7 +283,7 @@ func checkPodsNotRunning(namespace string, expectedPods []string) bool {
 	return result
 }
 
-// Run as part of BeforeSuite
+// Run as part of BeforeSuiteFunc
 func backupPrerequisites() {
 	t.Logs.Info("Setup backup pre-requisites")
 	t.Logs.Info("Create backup secret for velero backup objects")
@@ -303,7 +303,7 @@ func backupPrerequisites() {
 
 }
 
-// Run as part of AfterSuite
+// Run as part of AfterSuiteFunc
 func cleanUpVelero() {
 	t.Logs.Info("Cleanup backup and restore objects")
 

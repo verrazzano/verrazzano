@@ -79,9 +79,9 @@ var (
 )
 
 var t = framework.NewTestFramework("netpol")
-var clusterDump = pkg.NewClusterDumpWrapper(generatedNamespace)
+var clusterDump = pkg.NewClusterDumpWrapper(t, generatedNamespace)
 
-var _ = clusterDump.BeforeSuite(func() {
+var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 	start := time.Now()
 	Eventually(func() (*corev1.Namespace, error) {
 		nsLabels := map[string]string{}
@@ -119,8 +119,8 @@ var _ = clusterDump.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
-var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
+var _ = clusterDump.AfterEach(func() {})             // Dump cluster if spec fails
+var afterSuite = clusterDump.AfterSuiteFunc(func() { // Dump cluster if aftersuite fails
 	// undeploy the applications here
 	start := time.Now()
 	Eventually(func() error {
@@ -139,6 +139,9 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	pkg.UndeployHelloHelidonApplication(namespace, "")
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = BeforeSuite(beforeSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 

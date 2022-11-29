@@ -308,7 +308,7 @@ func checkPodsRunning(namespace string, expectedPods []string) bool {
 	return result
 }
 
-// Run as part of BeforeSuite
+// Run as part of BeforeSuiteFunc
 func backupPrerequisites() {
 	t.Logs.Info("Setup backup pre-requisites")
 
@@ -338,7 +338,7 @@ func backupPrerequisites() {
 	time.Sleep(60 * time.Second)
 }
 
-// Run as part of AfterSuite
+// Run as part of AfterSuiteFunc
 func cleanUpRancher() {
 	t.Logs.Info("Cleanup backup and restore objects")
 
