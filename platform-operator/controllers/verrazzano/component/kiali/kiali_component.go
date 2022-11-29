@@ -35,7 +35,7 @@ const ComponentName = "kiali-server"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
-// ComponentJSONName is the json name of the verrazzano component in CRD
+// ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "kiali"
 
 type kialiComponent struct {

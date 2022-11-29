@@ -32,7 +32,7 @@ const (
 	grafanaCertificateName = "system-tls-grafana"
 )
 
-// ComponentJSONName is the json name of the component in the Verrazzano CRD
+// ComponentJSONName is the JSON name of the component in the Verrazzano CRD
 const ComponentJSONName = "grafana"
 
 type grafanaComponent struct{}

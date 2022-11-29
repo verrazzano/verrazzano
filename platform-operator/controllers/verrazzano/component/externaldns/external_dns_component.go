@@ -25,7 +25,7 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "external-dns"
 
-// ComponentJSONName is the json name of the verrazzano component in CRD
+// ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "dns"
 
 // ComponentNamespace is the namespace of the component

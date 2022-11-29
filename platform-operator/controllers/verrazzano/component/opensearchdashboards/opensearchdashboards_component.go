@@ -30,7 +30,7 @@ const (
 	osdCertificateName = "system-tls-osd"
 )
 
-// ComponentJSONName is the json name of the OpenSearch-Dashboards component in CRD
+// ComponentJSONName is the JSON name of the OpenSearch-Dashboards component in CRD
 const ComponentJSONName = "opensearchDashboards"
 
 type opensearchDashboardsComponent struct{}

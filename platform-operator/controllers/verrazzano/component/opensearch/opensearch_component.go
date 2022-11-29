@@ -30,7 +30,7 @@ const (
 	osCertificateName = "system-tls-os-ingest"
 )
 
-// ComponentJSONName is the json name of the opensearch component in CRD
+// ComponentJSONName is the JSON name of the opensearch component in CRD
 const ComponentJSONName = "opensearch"
 
 type opensearchComponent struct{}

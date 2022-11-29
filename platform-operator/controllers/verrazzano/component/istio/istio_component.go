@@ -40,7 +40,7 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "istio"
 
-// ComponentJSONName is the json name of the verrazzano component in CRD
+// ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "istio"
 
 // IstiodDeployment is the name of the istiod deployment

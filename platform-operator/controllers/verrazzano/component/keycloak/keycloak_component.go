@@ -39,7 +39,7 @@ const ComponentName = "keycloak"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.KeycloakNamespace
 
-// ComponentJSONName is the json name of the verrazzano component in CRD
+// ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "keycloak"
 
 // KeycloakComponent represents an Keycloak component
