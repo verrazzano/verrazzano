@@ -1,6 +1,7 @@
 # PSR Developer Guide
 
-This document describes how to develop PSR workers and scenarios that can be used to test specific Verrazzano areas. Following is a summary of the steps needed. Details will be described in this document.
+This document describes how to develop PSR workers and scenarios that can be used to test specific Verrazzano areas. 
+Following is a summary of the steps needed. Details will be described in this document.
 
 1. Get familiar with the PSR tool, run the example and some scenarios.
 2. Decide what component you want to test.
@@ -290,3 +291,13 @@ psrctl update -s ops-s2 -n psrtest -d ~/tmp/my-ops-s2
 ``` 
 psrctl stop -s ops-s2 -n psrtest
 ```
+
+## Summary
+This document has all the information needed to create new workers and scenarios for any Verrazzano component.
+When creating workers, it is easiest to use Helm to deploy and test the worker. Always start with a single worker
+thread, then test with multiple threads and replicas.  If your worker needs to access resource in the mesh, like
+OpenSearch, you will need to create AuthorizationPolicies (via a subchart) and will need to deploy your worker 
+to an Istio enabled namespace.  The existing OpenSearch workers have this requirement so you can use one of them as a 
+starting point. Make sure you use Prometheus to test your worker metrics.  Once the worker is running, you can 
+create any custom scenario using YAML files as described earlier.  Finally, use the `psrctl` CLI to run and test
+your scenarios.
