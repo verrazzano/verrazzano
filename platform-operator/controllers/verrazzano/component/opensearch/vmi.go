@@ -90,7 +90,7 @@ func newOpenSearch(effectiveCR, actualCR *vzapi.Verrazzano, storage *common.Reso
 		opensearch.Policies = append(opensearch.Policies, *policy.DeepCopy())
 	}
 
-	// Set the InstallPlugins to the VMI
+	// Set the OpenSearch InstallPlugins to the VMI
 	opensearch.InstallPlugins = opensearchComponent.InstallPlugins
 
 	// Set the values in the OpenSearch object from the Verrazzano component InstallArgs
