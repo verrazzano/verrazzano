@@ -4,6 +4,7 @@
 package opensearch
 
 import (
+	"github.com/onsi/ginkgo/v2"
 	"time"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"

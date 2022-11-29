@@ -4,6 +4,7 @@
 package envdnscm
 
 import (
+	"github.com/onsi/ginkgo/v2"
 	"log"
 	"os"
 	"os/exec"

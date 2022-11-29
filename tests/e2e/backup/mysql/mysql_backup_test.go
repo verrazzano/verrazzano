@@ -55,6 +55,8 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
+var _ = ginkgo.BeforeSuite(beforeSuite)
+
 var afterSuite = t.AfterSuiteFunc(func() {
 	start := time.Now()
 	cleanUpVelero()
