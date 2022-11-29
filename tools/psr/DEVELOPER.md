@@ -18,9 +18,9 @@ Following is a summary of the steps needed. Details will be described in this do
 - A Kubernetes cluster with Verrazzano installed (full installation or the components you are testing).
 
 ## PSR Areas
-Workers are organized per area, where each area typically maps to a Verrazzano backend component, but that isn't always
-the case.  You can see OpenSearch and HTTP workers in the [workers](./backend/workers) package.  PSR workers and scenarios
-are grouped into areas.
+Workers are organized into areas, where each area typically maps to a Verrazzano backend component, but that isn't always
+the case.  You can see OpenSearch and HTTP workers in the [workers](./backend/workers) package.  PSR scenarios
+are also grouped into areas.
 
 The following area names are used in the source code and YAML configuration.
 They are not exposed in metrics names, rather each `worker.go` file specifies the metrics prefix, which is the long name.  
@@ -70,7 +70,7 @@ Here is some important information to know about workers, much of it is repeated
 ### Worker Chart and Overrides
 Workers are deployed using Helm where there is a single Helm chart for all workers along with area specific Helm subcharts.
 Each worker specifies the value overrides in a YAML file, such as the environment variables needed to configure
-worker. If an area specific subchart is needed then it must be enabled in the override file.
+worker. If an area specific subchart is needed, then it must be enabled in the override file.
 
 The overrides YAML file is in manifests/usecases/<area>/<worker>.yaml.
 For example, [usecases/opensearch/getlogs.yaml](./manifests/usecases/opensearch/getlogs.yaml)
@@ -188,7 +188,7 @@ OpenSearch [getlogs](./backend/workers/opensearch/scale/scale.go) worker uses ` 
    such as Progress or ErrorfThrottled
 4. Test the worker using the Helm chart
 
-**NOTE** The same worker structure and metrics is shared across all worker threads.  There is currently no state per worker.  Workers
+**NOTE** The same worker instance is shared across all worker threads.  There is currently no state per worker.  Workers
 that keep state, such as the scaling worker, normally only run in a single thread.
 
 ## Creating a scenario
@@ -199,11 +199,12 @@ then create it in a directory called scenario/mixed.
 
 ### Scenario files
 Scenarios are specified by a scenario.yaml file along with use case override files, one for each use case.
-By convention, the files must be in the [scenarios](./manifests/scenarios) directory structured as follows:
+By convention, the files must be in the [<area>/<scenario-name>/scenarios](./manifests/scenarios) directory structured as follows:
 ```
 <area>/<scenario-name>/scenario.yaml
 <area>/<scenario-name>usecase-overrides/*
 ```
+Use the long name for the area, e.g. opensearch instead of ops, or cert-manager instead of cm.
 For example, the scenario to restart all OpenSearch tiers is in [restart-all-tiers](./manifests/scenarios/opensearch/restart-all-tiers)
 
 ### Scenario YAML file
@@ -225,9 +226,9 @@ usecases:
     overrideFile: restart-ingest.yaml
     description: restarts ingest nodes
 ```
-The front section has the scenario name, ID, and description.  The usecases section has all of the use cases that will be run when
+The front section has the scenario name, ID, and description.  The usecases section has all the use cases that will be run when
 the scenario is started.  The `usecasePath` points to the built-in use case override file.  The `overrideFile` specifies the file
-in `usecase-overrides` containing the scenario overrides for that specific use case.
+in the `usecase-overrides` directory which contains the scenario overrides for that specific use case.
 
 Following is the [scenario override file](./manifests/scenarios/opensearch/restart-all-tiers/usecase-overrides/restart-data.yaml) for restarting the data tier.
 ```
