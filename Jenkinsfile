@@ -267,6 +267,7 @@ pipeline {
                         sh """
                     cd ${GO_REPO_PATH}/verrazzano
                     make precommit
+                    make unit-test-coverage-ratcheting
                 """
                     }
                     post {

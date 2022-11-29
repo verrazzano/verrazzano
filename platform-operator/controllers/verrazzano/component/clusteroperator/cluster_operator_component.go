@@ -63,9 +63,19 @@ func (c clusterOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
 	return applyCRDs(ctx)
 }
 
+// PostInstall processing for the cluster-operator
+func (c clusterOperatorComponent) PostInstall(ctx spi.ComponentContext) error {
+	return c.postInstallUpgrade(ctx)
+}
+
 // PreUpgrade processing for the cluster-operator
 func (c clusterOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	return applyCRDs(ctx)
+}
+
+// PostUpgrade processing for the cluster-operator
+func (c clusterOperatorComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	return c.postInstallUpgrade(ctx)
 }
 
 func applyCRDs(ctx spi.ComponentContext) error {
