@@ -18,22 +18,26 @@ Verrazzano components, or Verrazzano as a whole. Here is a summary of the steps 
 - A Kubernetes cluster with Verrazzano installed (full installation or the components you are testing).
 
 ## PSR Areas
-PSR workers and scenarios are grouped into areas.  The following area names are used in the source code and YAML configuration.
+Workers are organized per area, where each aread typically maps to a Verrazzano backend component, but that isn't always 
+the case.  You can see OpenSearch and HTTP workers in the [workers](./backend/workers) package.PSR workers and scenarios 
+are grouped into areas.  
+
+The following area names are used in the source code and YAML configuration.
 They are not exposed in metrics names, rather each `worker.go` file specifies the metrics prefix, which is the long name.  
 For example, the OpenSearch worker uses the metric prefix `opensearch`
 
 1. argo - Argo
-2. oam - OAM applications, Verrazzano applicaiton operator
+2. oam - OAM applications, Verrazzano application operator
 3. cm - cert-manager
 4. cluster - Verrazzano Cluster operator, multicluster
 5. coh - Coherence
-6. dns - external dns
+6. dns - ExternalDNS
 7. jaeger - Jaeger
 8. kc - Keycloak
 9. http - HTTP tests
 10. istio - Istio, Kiali
 11. mysql - MySQL
-12. nginx - NGINX Ingress Controller, Authproxy
+12. nginx - NGINX Ingress Controller, AuthProxy
 13. ops - OpenSearch, OpenSearchDashboards, Fluentd, VMO
 14. prom - Prometheus stack, Kabana
 15. rancher - Rancher
@@ -42,11 +46,9 @@ For example, the OpenSearch worker uses the metric prefix `opensearch`
 
 
 ## Developing a worker
-A worker is the code that implements a single use case.  Workers are organized per area, where each aread typically maps 
-to a Verrazzano backend component, but that doesn't have to be the case.  You can see OpenSearch and HTTP workers
-in the [workers](./backend/workers) package.
-
-To make this section more concrete, we will describe creating a new mysql worker that queries the MySQL database in the following section.
+As mentioned in the README, a worker is the code that implements a single use case. For example, a worker might continuously
+scale OpenSearch in and out.  The `DoWork` function is the code that actually does the work and is called repeatedly by the
+`runner`.  DoWork does whatever it needs to do to perform work, this include blocking as needed waiting for conditions.
 
 ### Worker Tips
 Here is some important information to know about workers, much of it is repeated in the README.
@@ -65,8 +67,30 @@ Here is some important information to know about workers, much of it is repeated
 12. Workers can be run as Kubernetes deployments or OAM apps (default), this is specified at Helm install
 13. All workers run as cluster-admin
 
+### Worker Chart and Overrides
+Workers are deployed using Helm where there is a single Helm chart for all workers along with area specific Helm subcharts.
+Each worker specifies the value overrides in a YAML file, mostly this consists of environment variables needed to configure
+worker.  The overrides YAML file is in manifests/usecases/<area>/<worker>.yaml.  For example, [usecases/opensearch/getlogs.yaml](./manifests/usecases/opensearch/getlogs.yaml)
+
+```
+global:
+  envVars:
+    PSR_WORKER_TYPE: ops-getlogs
+    
+# activate subchart
+opensearch:
+  enabled: true
+
+```
+
+### Sample MySQL worker
+To make this section more like a tutorial, we will describe creating a new mysql worker that queries the MySQL database.  
+In general, when creating a worker, it is easiest to just copy an existing worker that does the same type of action (e.g. scale) 
+and modify it as needed for your component.  When it makes sense, common code should be factored out and reused by multiple workers.
+
 ### Stubbing-out a worker
 Following are the first steps to implement a worker:
+
 1. Add a worker type named `WorkerTypeMysqlScale = mysql-scale` to [config.go](./backend/config/config.go)
 2. Create a package named `mysql` in package [workers](./backend/workers)
 3. Create a file `query.go` in the `mysql` package and do the following:
@@ -157,3 +181,4 @@ OpenSearch [getlogs](./backend/workers/opensearch/scale/scale.go) worker uses ` 
 that keep state, such as the scaling worker, normally only run in a single thread. 
 
 ## Creating scenarios
+Scenarios are
