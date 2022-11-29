@@ -6,41 +6,10 @@ package verrazzano
 import (
 	"context"
 	"fmt"
-	er "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzalpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/k8sclient"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 )
-
-// UpdateVZCR updates the Verrazzano CR and retries if there is a conflict error
-func UpdateVZCR(c k8sclient.PsrClient, log vzlog.VerrazzanoLogger, cr *vzalpha1.Verrazzano, m update.CRModifier) error {
-	for {
-		// Modify the CR
-		m.ModifyCR(cr)
-
-		err := UpdateVerrazzano(c.VzInstall, cr)
-		if err == nil {
-			break
-		}
-		if !er.IsUpdateConflict(err) {
-			return fmt.Errorf("Failed to update Verrazzano cr: %v", err)
-		}
-		// Conflict error, get latest vz cr
-		time.Sleep(1 * time.Second)
-		log.Info("conflict error updating Verrazzano cr, retrying")
-
-		cr, err = GetVerrazzano(c.VzInstall)
-		if err != nil {
-			return err
-		}
-	}
-	log.Info("Updated Verrazzano CR")
-	return nil
-}
 
 // UpdateVerrazzano updates the CR with the given CRModifier
 func UpdateVerrazzano(client vpoClient.Interface, cr *vzalpha1.Verrazzano) error {

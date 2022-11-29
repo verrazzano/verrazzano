@@ -5,7 +5,10 @@ package alerts
 
 import (
 	"context"
-	"github.com/prometheus/client_golang/prometheus"
+	"io"
+	"net/http"
+	"time"
+
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
@@ -15,16 +18,15 @@ import (
 	psrprom "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/prometheus"
 	psrvz "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/verrazzano"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
-	"io"
+
+	"github.com/prometheus/client_golang/prometheus"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"time"
 )
 
 // metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
-const metricsPrefix = "http_get"
+const metricsPrefix = "http_alerts"
 
 var httpGetFunc = http.Get
 var funcNewPsrClient = k8sclient.NewPsrClient
@@ -46,13 +48,13 @@ type workerMetrics struct {
 func NewReceiveAlertsWorker() (spi.Worker, error) {
 	w := worker{workerMetrics: &workerMetrics{
 		getRequestsCountTotal: metrics.MetricItem{
-			Name: "request_count_total",
-			Help: "The total number of GET requests",
+			Name: "alerts_received_count",
+			Help: "The total number of alerts received from alertmanager",
 			Type: prometheus.CounterValue,
 		},
-		getRequestsSucceededCountTotal: metrics.MetricItem{
-			Name: "request_succeeded_count_total",
-			Help: "The total number of successful GET requests",
+		getRequestsCountTotal: metrics.MetricItem{
+			Name: "alerts_received_count",
+			Help: "The total number of alerts received from alertmanager",
 			Type: prometheus.CounterValue,
 		},
 		getRequestsFailedCountTotal: metrics.MetricItem{
@@ -204,7 +206,7 @@ alertmanager:
   config:
     receivers:
     - webhook_configs:
-      - http://psr-alerts-http-alerts.psr:9090/alerts
+      - url: http://psr-alerts-http-alerts.psr:9090/alerts
       name: webhook
     route:
       group_by:

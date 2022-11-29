@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	er "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
@@ -204,7 +205,7 @@ func (w worker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error 
 	w.state.startScaleTime = time.Now().UnixNano()
 
 	// Update the CR to change the replica count
-	err = psrvz.UpdateVZCR(w.psrClient, w.log, cr, m)
+	err = w.updateCr(cr, m)
 	if err != nil {
 		return err
 	}
@@ -248,6 +249,32 @@ func (w worker) getUpdateModifier(tier string, currentReplicas int) (update.CRMo
 		m = psropensearch.OpensearchIngestNodeGroupModifier{NodeReplicas: desiredReplicas}
 	}
 	return m, int(desiredReplicas), nil
+}
+
+// updateCr updates the Verrazzano CR and retries if there is a conflict error
+func (w worker) updateCr(cr *vzv1alpha1.Verrazzano, m update.CRModifier) error {
+	for {
+		// Modify the CR
+		m.ModifyCR(cr)
+
+		err := psrvz.UpdateVerrazzano(w.psrClient.VzInstall, cr)
+		if err == nil {
+			break
+		}
+		if !er.IsUpdateConflict(err) {
+			return fmt.Errorf("Failed to scale update Verrazzano cr: %v", err)
+		}
+		// Conflict error, get latest vz cr
+		time.Sleep(1 * time.Second)
+		w.log.Info("OpenSearch scaling, Verrazzano CR conflict error, retrying")
+
+		cr, err = psrvz.GetVerrazzano(w.psrClient.VzInstall)
+		if err != nil {
+			return err
+		}
+	}
+	w.log.Info("Updated Verrazzano CR")
+	return nil
 }
 
 // Wait until Verrazzano is ready or not ready
