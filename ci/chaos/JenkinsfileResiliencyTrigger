@@ -478,7 +478,7 @@ def getInterimRelease(){
             interimRelease = releaseTagSplit[0] + "." + minorInterimVersionValue + "." + latestPatch
         }
     }
-    return interimRelease
+    return "v"+interimRelease
 }
 
 def getInstallVersion(){
@@ -518,7 +518,7 @@ def getInstallVersion(){
             installRelease = releaseTagSplit[0] + "." + minorInstallVersionValue + "." + latestPatch
         }
     }
-    return installRelease
+    return "v"+installRelease
 }
 
 @NonCPS
