@@ -41,7 +41,6 @@ const (
 // limit network ingress and egress.
 func CreateOrUpdateNetworkPolicies(clientset kubernetes.Interface, client client.Client) ([]controllerutil.OperationResult, []error) {
 	ip, port, err := getAPIServerIPAndPort(clientset)
-	serviceip, serviceport, err := getAPIServerServiceIPAndPort(clientset)
 	var opResults []controllerutil.OperationResult
 	var errors []error
 	if err != nil {
@@ -50,7 +49,14 @@ func CreateOrUpdateNetworkPolicies(clientset kubernetes.Interface, client client
 		return opResults, errors
 	}
 
-	netPolicies := newNetworkPolicies(ip, port, serviceip, serviceport)
+	serviceIP, servicePort, err := getAPIServerServiceIPAndPort(clientset)
+	if err != nil {
+		opResults = append(opResults, controllerutil.OperationResultNone)
+		errors = append(errors, err)
+		return opResults, errors
+	}
+
+	netPolicies := newNetworkPolicies(ip, port, serviceIP, servicePort)
 	for _, netPolicy := range netPolicies {
 		objKey := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: netPolicy.ObjectMeta.Name, Namespace: netPolicy.ObjectMeta.Namespace}}
 
