@@ -25,7 +25,7 @@ import (
 
 const (
 	ComponentName      = "verrazzano-console"
-	ComponentJSONName  = ComponentName
+	ComponentJSONName  = "console"
 	ComponentNamespace = constants.VerrazzanoSystemNamespace
 )
 

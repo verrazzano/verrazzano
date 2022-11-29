@@ -129,7 +129,7 @@ func TestGetDependencies(t *testing.T) {
 // WHEN we call GetJSONName on the Grafana component
 // THEN the call returns a string showing JSON name of the component
 func TestGetJSONName(t *testing.T) {
-	assert.Equal(t, "grafana", NewComponent().GetJSONName())
+	assert.Equal(t, ComponentJSONName, NewComponent().GetJSONName())
 }
 
 // TestGetMinVerrazzanoVersion tests the GetMinVerrazzanoVersion function for the Grafana component

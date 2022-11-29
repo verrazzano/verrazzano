@@ -32,7 +32,7 @@ const (
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace = vzconst.VerrazzanoSystemNamespace
 
-	// ComponentJSONName is the json name of the verrazzano component in CRD
+	// ComponentJSONName is the JSON name of the verrazzano component in CRD
 	ComponentJSONName = "fluentd"
 
 	// HelmChartReleaseName is the helm chart release name

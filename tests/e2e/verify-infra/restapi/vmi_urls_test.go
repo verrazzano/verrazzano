@@ -4,95 +4,81 @@
 package restapi_test
 
 import (
-	"encoding/json"
+	"io"
 	"net/http"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 )
 
-var _ = t.Describe("VMI", Label("f:infra-lcm",
-	"f:ui.console"), func() {
-	const (
-		waitTimeout     = 5 * time.Minute
-		pollingInterval = 5 * time.Second
-	)
+var (
+	vz             *v1alpha1.Verrazzano
+	httpClient     *retryablehttp.Client
+	vmiCredentials *pkg.UsernamePassword
+)
 
-	t.Context("urls test to", func() {
+var _ = t.BeforeSuite(func() {
+	var err error
+	vz, err = pkg.GetVerrazzano()
+	Expect(err).To(Not(HaveOccurred()))
 
-		t.It("Access VMI endpoints", FlakeAttempts(5), Label("f:ui.api"), func() {
-			isManagedClusterProfile := pkg.IsManagedClusterProfile()
-			var isEsEnabled = false
-			var isKibanaEnabled = false
-			var isPrometheusEnabled = false
-			var isGrafanaEnabled = false
-
-			if !isManagedClusterProfile {
-				kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-				if err != nil {
-					t.Logs.Errorf("Error getting kubeconfig: %v", err)
-					Fail(err.Error())
-				}
-
-				Eventually(func() bool {
-					api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
-					response, err := api.Get("apis/verrazzano.io/v1/namespaces/verrazzano-system/verrazzanomonitoringinstances/system")
-					if err != nil {
-						t.Logs.Errorf("Error fetching system VMI from api, error: %v", err)
-						return false
-					}
-					if response.StatusCode != http.StatusOK {
-						t.Logs.Errorf("Error fetching system VMI from api, response: %v", response)
-						return false
-					}
-
-					var vmi map[string]interface{}
-					err = json.Unmarshal(response.Body, &vmi)
-					if err != nil {
-						t.Logs.Errorf("Invalid response for system VMI from api, error: %v", err)
-						return false
-					}
-
-					isEsEnabled = vmi["spec"].(map[string]interface{})["elasticsearch"].(map[string]interface{})["enabled"].(bool)
-					isKibanaEnabled = vmi["spec"].(map[string]interface{})["kibana"].(map[string]interface{})["enabled"].(bool)
-					isPrometheusEnabled = vmi["spec"].(map[string]interface{})["prometheus"].(map[string]interface{})["enabled"].(bool)
-					isGrafanaEnabled = vmi["spec"].(map[string]interface{})["grafana"].(map[string]interface{})["enabled"].(bool)
-					return true
-				}, waitTimeout, pollingInterval).Should(BeTrue())
-
-				kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
-				Expect(err).ShouldNot(HaveOccurred())
-				api := pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
-				vmiCredentials := pkg.EventuallyGetSystemVMICredentials()
-				// Test VMI endpoints
-				sysVmiHTTPClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
-				if isEsEnabled {
-					Eventually(func() bool {
-						return pkg.VerifyOpenSearchComponent(t.Logs, api, sysVmiHTTPClient, vmiCredentials)
-					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access OpenSearch VMI URL")
-				}
-				if isKibanaEnabled {
-					Eventually(func() bool {
-						return pkg.VerifyOpenSearchDashboardsComponent(t.Logs, api, sysVmiHTTPClient, vmiCredentials)
-					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access OpenSearch Dashboards VMI URL")
-				}
-				if isPrometheusEnabled {
-					Eventually(func() bool {
-						return pkg.VerifyPrometheusComponent(t.Logs, api, sysVmiHTTPClient, vmiCredentials)
-					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access Prometheus VMI URL")
-				}
-				if isGrafanaEnabled {
-					Eventually(func() bool {
-						return pkg.VerifyGrafanaComponent(t.Logs, api, sysVmiHTTPClient, vmiCredentials)
-					}, waitTimeout, pollingInterval).Should(BeTrue(), "Unable to access Grafana VMI URL")
-
-				}
-			}
-		})
-	})
+	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	vmiCredentials = pkg.EventuallyGetSystemVMICredentials()
 })
 
 var _ = t.AfterEach(func() {})
+
+var _ = t.Describe("VMI", Label("f:infra-lcm", "f:ui.console"), func() {
+	const (
+		waitTimeout     = 2 * time.Minute
+		pollingInterval = 5 * time.Second
+	)
+
+	t.BeforeEach(func() {
+		// if Keycloak is disabled, we cannot get the credentials needed for basic auth, so skip the test
+		keycloak := vz.Status.Components["keycloak"]
+		if keycloak == nil || keycloak.State == v1alpha1.CompStateDisabled {
+			Skip("Keycloak disabled, skipping test")
+		}
+	})
+
+	// GIVEN a Verrazzano custom resource
+	// WHEN  we attempt to access VMI endpoints present in the CR status
+	// THEN  we expect an HTTP OK response status code
+	t.DescribeTable("Access VMI endpoints",
+		func(getURLFromVZStatus func() *string) {
+			url := getURLFromVZStatus()
+			if url != nil {
+				Eventually(func() (int, error) {
+					return httpGet(*url)
+				}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(Equal(http.StatusOK))
+			}
+		},
+		Entry("Grafana web UI", func() *string { return vz.Status.VerrazzanoInstance.GrafanaURL }),
+		Entry("Prometheus web UI", func() *string { return vz.Status.VerrazzanoInstance.PrometheusURL }),
+		Entry("OpenSearch", func() *string { return vz.Status.VerrazzanoInstance.ElasticURL }),
+		Entry("OpenSearch Dashboards web UI", func() *string { return vz.Status.VerrazzanoInstance.KibanaURL }),
+	)
+})
+
+// httpGet issues an HTTP GET request with basic auth to the specified URL. httpGet returns the HTTP status code
+// and an error.
+func httpGet(url string) (int, error) {
+	req, err := retryablehttp.NewRequest("GET", url, nil)
+	if err != nil {
+		return 0, err
+	}
+	req.SetBasicAuth(vmiCredentials.Username, vmiCredentials.Password)
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	io.ReadAll(resp.Body)
+	resp.Body.Close()
+
+	return resp.StatusCode, nil
+}

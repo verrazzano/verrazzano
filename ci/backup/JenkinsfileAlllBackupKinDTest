@@ -326,6 +326,13 @@ pipeline {
                     """
                 }
             }
+            post {
+                failure {
+                    script {
+                        dumpK8sCluster('verify-install-cluster-dump')
+                    }
+                }
+            }
         }
 
         stage('opensearch backup') {
