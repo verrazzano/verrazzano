@@ -432,13 +432,6 @@ def getCronSchedule() {
     return ""
 }
 
-def getLatestRelease(){
-    final String fileContent = readFile(file: "${workspace}/tags.txt")
-    final List gitTags = extractReleaseTags(fileContent)
-    def latestReleaseTag = gitTags.pop() - "v"
-    return latestReleaseTag
-}
-
 // getInterimRelease returns the interim version, where interim version =  latest minor release - 1 older release
 def getInterimRelease(){
     // Read the tags from the file and create a list gitTags
