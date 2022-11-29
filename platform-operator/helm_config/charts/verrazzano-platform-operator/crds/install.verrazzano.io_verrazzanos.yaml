@@ -4113,7 +4113,7 @@ spec:
                 type: array
               instance:
                 properties:
-                  argoCDUrl:
+                  argocdUrl:
                     type: string
                   consoleUrl:
                     type: string
@@ -6986,7 +6986,7 @@ spec:
                 type: array
               instance:
                 properties:
-                  argoCDUrl:
+                  argocdUrl:
                     type: string
                   consoleUrl:
                     type: string

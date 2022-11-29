@@ -437,7 +437,7 @@ status:
       status: "True"
       type: InstallComplete
   instance:
-    argoCDUrl: https://argocd.default.172.18.0.231.nip.io
+    argocdUrl: https://argocd.default.172.18.0.231.nip.io
     consoleUrl: https://verrazzano.default.172.18.0.231.nip.io
     openSearchUrl: https://elasticsearch.vmi.system.default.172.18.0.231.nip.io
     grafanaUrl: https://grafana.vmi.system.default.172.18.0.231.nip.io

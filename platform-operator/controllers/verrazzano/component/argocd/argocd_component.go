@@ -36,6 +36,7 @@ const ComponentNamespace = constants.ArgoCDNamespace
 const ComponentJSONName = "argocd"
 
 type argoCDComponent struct {
+	keycloak.ArgoClientSecretProvider
 	helm.HelmComponent
 }
 
@@ -45,6 +46,7 @@ var certificates = []types.NamespacedName{
 
 func NewComponent() spi.Component {
 	return argoCDComponent{
+		ArgoClientSecretProvider: keycloak.DefaultArgoClientSecretProvider{},
 		HelmComponent: helm.HelmComponent{
 			ReleaseName:               common.ArgoCDName,
 			JSONName:                  ComponentJSONName,
@@ -120,13 +122,13 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 // IsEnabled ArgoCD is always enabled on admin clusters,
 // and is not enabled by default on managed clusters
-func (r argoCDComponent) IsEnabled(effectiveCR runtime.Object) bool {
+func (c argoCDComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzcr.IsArgoCDEnabled(effectiveCR)
 }
 
 // IsReady component check
-func (r argoCDComponent) IsReady(ctx spi.ComponentContext) bool {
-	if r.HelmComponent.IsReady(ctx) {
+func (c argoCDComponent) IsReady(ctx spi.ComponentContext) bool {
+	if c.HelmComponent.IsReady(ctx) {
 		return isArgoCDReady(ctx)
 	}
 	return false
@@ -137,9 +139,9 @@ func (r argoCDComponent) IsReady(ctx spi.ComponentContext) bool {
 - ensure Helm chart is installed
 - Patch ArgoCD ingress with NGINX/TLS annotations
 */
-func (r argoCDComponent) Install(ctx spi.ComponentContext) error {
+func (c argoCDComponent) Install(ctx spi.ComponentContext) error {
 	log := ctx.Log()
-	if err := r.HelmComponent.Install(ctx); err != nil {
+	if err := c.HelmComponent.Install(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed retrieving ArgoCD install component: %s", err.Error())
 	}
 	// Annotate ArgoCD ingress for NGINX/TLS
@@ -157,12 +159,13 @@ func (r argoCDComponent) Install(ctx spi.ComponentContext) error {
 - Patch argocd-cm with tls-argocd-ingress secret root ca
 - Patch argocd-secret with the keycloak client secret
 */
-func (r argoCDComponent) PostInstall(ctx spi.ComponentContext) error {
+func (c argoCDComponent) PostInstall(ctx spi.ComponentContext) error {
 	log := ctx.Log()
-	if err := r.HelmComponent.PostInstall(ctx); err != nil {
+	if err := c.HelmComponent.PostInstall(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("Failed retrieving ArgoCD post install component: %s", err.Error())
 	}
-	if err := configureKeycloakOIDC(ctx); err != nil {
+
+	if err := c.configureKeycloakOIDC(ctx); err != nil {
 		return log.ErrorfThrottledNewErr("failed configuring ArgoCD keycloak oidc provider: %s", err.Error())
 	}
 
@@ -174,10 +177,10 @@ func (r argoCDComponent) PostInstall(ctx spi.ComponentContext) error {
 // - Patch argocd-secret with the keycloak client secret.
 // - Patch argocd-cm with the oidc configuration to enable keycloak authentication.
 // - Patch argocd-rbac-cm by providing role admin to verrazzano-admins group
-func configureKeycloakOIDC(ctx spi.ComponentContext) error {
+func (c argoCDComponent) configureKeycloakOIDC(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 	if vzcr.IsKeycloakEnabled(ctx.ActualCR()) {
-		if err := patchArgoCDSecret(ctx); err != nil {
+		if err := c.patchArgoCDSecret(ctx); err != nil {
 			return log.ErrorfThrottledNewErr("Failed patching ArgoCD secret: %s", err.Error())
 		}
 		log.Debugf("Patched ArgoCD secret")
@@ -201,35 +204,35 @@ func configureKeycloakOIDC(ctx spi.ComponentContext) error {
 }
 
 // ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
-func (r argoCDComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
+func (c argoCDComponent) ValidateUpdate(old *vzapi.Verrazzano, new *vzapi.Verrazzano) error {
 	// Block all changes for now, particularly around storage changes
-	if r.IsEnabled(old) && !r.IsEnabled(new) {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	return r.HelmComponent.ValidateUpdate(old, new)
+	return c.HelmComponent.ValidateUpdate(old, new)
 }
 
 // ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
-func (r argoCDComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
+func (c argoCDComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// Block all changes for now, particularly around storage changes
-	if r.IsEnabled(old) && !r.IsEnabled(new) {
+	if c.IsEnabled(old) && !c.IsEnabled(new) {
 		return fmt.Errorf("Disabling component %s is not allowed", ComponentJSONName)
 	}
-	return r.HelmComponent.ValidateUpdateV1Beta1(old, new)
+	return c.HelmComponent.ValidateUpdateV1Beta1(old, new)
 }
 
 // ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
-func (r argoCDComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
+func (c argoCDComponent) ValidateInstall(vz *vzapi.Verrazzano) error {
 	vzV1Beta1 := &installv1beta1.Verrazzano{}
 
 	if err := vz.ConvertTo(vzV1Beta1); err != nil {
 		return err
 	}
 
-	return r.ValidateInstallV1Beta1(vzV1Beta1)
+	return c.ValidateInstallV1Beta1(vzV1Beta1)
 }
 
 // ValidateInstallV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
-func (r argoCDComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
-	return r.HelmComponent.ValidateInstallV1Beta1(vz)
+func (c argoCDComponent) ValidateInstallV1Beta1(vz *installv1beta1.Verrazzano) error {
+	return c.HelmComponent.ValidateInstallV1Beta1(vz)
 }

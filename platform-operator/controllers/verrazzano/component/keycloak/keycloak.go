@@ -1683,8 +1683,17 @@ func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error
 	return clientSecret.Value, nil
 }
 
-// GetArgoCDClientSecretFromKeycloak returns the secret from argocd client in Keycloak
-func GetArgoCDClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error) {
+type (
+	ArgoClientSecretProvider interface {
+		GetClientSecret(ctx spi.ComponentContext) (string, error)
+	}
+
+	// Gets the client secret from keycloak
+	DefaultArgoClientSecretProvider struct{}
+)
+
+// GetClientSecret returns the secret from argocd client in Keycloak
+func (p DefaultArgoClientSecretProvider) GetClientSecret(ctx spi.ComponentContext) (string, error) {
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return "", err

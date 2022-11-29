@@ -1781,7 +1781,7 @@ func TestGetArgoCDClientSecretFromKeycloak(t *testing.T) {
 			ctx := spi.NewFakeContext(tt.c, testVZ, nil, false)
 			k8sutilfake.PodExecResult = tt.execFunc
 			defer func() { k8sutilfake.PodExecResult = podExecFunc }()
-			_, err := GetArgoCDClientSecretFromKeycloak(ctx)
+			_, err := DefaultArgoClientSecretProvider{}.GetClientSecret(ctx)
 			if tt.isErr {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errContains)
