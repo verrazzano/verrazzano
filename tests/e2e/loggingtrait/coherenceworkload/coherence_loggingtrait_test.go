@@ -4,7 +4,6 @@
 package coherenceworkload
 
 import (
-	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
@@ -38,7 +37,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	beforeSuitePassed = true
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var failed = false
 var beforeSuitePassed = false
@@ -53,7 +52,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName, t)
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Test coherence loggingtrait application", Label("f:app-lcm.oam",
 	"f:app-lcm.coherence-workload",

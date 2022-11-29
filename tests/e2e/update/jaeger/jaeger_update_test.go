@@ -4,7 +4,6 @@
 package jaeger
 
 import (
-	"github.com/onsi/ginkgo"
 	"strings"
 	"time"
 
@@ -34,7 +33,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 

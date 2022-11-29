@@ -5,7 +5,6 @@ package springboot
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"net/http"
 	"time"
 
@@ -57,7 +56,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	beforeSuitePassed = true
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var failed = false
 var beforeSuitePassed = false
@@ -77,7 +76,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Spring Boot test", Label("f:app-lcm.oam",
 	"f:app-lcm.spring-workload"), func() {

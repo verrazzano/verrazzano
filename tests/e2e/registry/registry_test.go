@@ -5,7 +5,6 @@ package registry
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"os"
 	"strings"
 	"time"
@@ -56,9 +55,9 @@ var listOfNamespaces = []string{
 
 var t = framework.NewTestFramework("registry")
 var beforeSuite = t.BeforeSuiteFunc(func() {})
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 var afterSuite = t.AfterSuiteFunc(func() {})
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Image Registry Verification", Label("f:platform-lcm.private-registry"),

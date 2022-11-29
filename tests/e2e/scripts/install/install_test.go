@@ -6,7 +6,6 @@ package install
 import (
 	"context"
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"os"
 	"strings"
 	"time"
@@ -30,9 +29,9 @@ var kubeConfigFromEnv = os.Getenv("KUBECONFIG")
 var t = framework.NewTestFramework("install")
 
 var beforeSuite = t.BeforeSuiteFunc(func() {})
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 var afterSuite = t.AfterSuiteFunc(func() {})
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 var _ = t.AfterEach(func() {})
 
 // This test checks that the Verrazzano install resource has the expected console URLs.

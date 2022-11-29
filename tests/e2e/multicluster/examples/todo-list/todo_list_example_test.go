@@ -5,7 +5,6 @@ package todo_list
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"net/http"
 	"os"
 	"strconv"
@@ -89,7 +88,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("In Multi-cluster, verify todo-list", Label("f:multicluster.mc-app-lcm"), func() {
 	t.Context("Admin Cluster", func() {
@@ -303,7 +302,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 func cleanUp(kubeconfigPath string) error {
 	start := time.Now()

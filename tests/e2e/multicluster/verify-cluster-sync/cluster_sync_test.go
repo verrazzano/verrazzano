@@ -6,7 +6,6 @@ package cluster_sync_test
 import (
 	"context"
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"os"
 	"time"
 
@@ -37,11 +36,11 @@ var client *versioned.Clientset
 var rc *vmc.RancherConfig
 
 var beforeSuite = t.BeforeSuiteFunc(func() {})
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 
 var afterSuite = t.AfterSuiteFunc(func() {})
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var rancherClusterLabels = map[string]string{"rancher-sync": "enabled"}
 var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.install"), func() {

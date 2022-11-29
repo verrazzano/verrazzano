@@ -6,7 +6,6 @@ package keycloak
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"os/exec"
 	"path"
 	"strings"
@@ -140,7 +139,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.AfterEach(func() {})
 

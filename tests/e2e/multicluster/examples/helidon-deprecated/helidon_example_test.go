@@ -5,7 +5,6 @@ package mchelidon
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"os"
 	"strconv"
 	"time"
@@ -91,7 +90,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.AfterEach(func() {})
 
@@ -330,7 +329,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 func cleanUp(kubeconfigPath string) error {
 	start := time.Now()

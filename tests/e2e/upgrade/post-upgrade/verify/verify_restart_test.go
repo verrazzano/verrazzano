@@ -5,7 +5,6 @@ package verify
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"strings"
 	"time"
 
@@ -78,9 +77,9 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return err
 	}, shortWait, pollingInterval).Should(BeNil(), "Expected to get envoy proxy image name and tag")
 })
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 var afterSuite = t.AfterSuiteFunc(func() {})
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Post upgrade", Label("f:platform-lcm.upgrade"), func() {

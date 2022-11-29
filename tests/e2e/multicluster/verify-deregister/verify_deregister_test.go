@@ -5,7 +5,6 @@ package deregister_test
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"os"
 	"time"
 
@@ -27,9 +26,9 @@ var externalEsURL = pkg.GetExternalOpenSearchURL(os.Getenv("ADMIN_KUBECONFIG"))
 var t = framework.NewTestFramework("deregister_test")
 
 var afterSuite = t.AfterSuiteFunc(func() {})
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 var beforeSuite = t.BeforeSuiteFunc(func() {})
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Multi Cluster Verify Deregister", Label("f:multicluster.deregister"), func() {

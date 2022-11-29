@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	common "github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
@@ -46,7 +45,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	start := time.Now()
@@ -54,7 +53,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var t = framework.NewTestFramework("rancher-backup-operator")
 

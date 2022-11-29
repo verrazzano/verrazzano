@@ -5,7 +5,6 @@ package helidon
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"io"
 	"net/http"
 	"os"
@@ -64,7 +63,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	beforeSuitePassed = true
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var failed = false
 var beforeSuitePassed = false
@@ -84,7 +83,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Hello Helidon OAM App test", Label("f:app-lcm.oam",
 	"f:app-lcm.helidon-workload"), func() {

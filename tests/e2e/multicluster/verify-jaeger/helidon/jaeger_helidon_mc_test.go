@@ -5,7 +5,6 @@ package helidon
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"os"
 	"time"
 
@@ -101,7 +100,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	beforeSuitePassed = true
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
@@ -158,7 +157,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Helidon App with Jaeger Traces", Label("f:jaeger.helidon-workload"), func() {
 	t.Context("after successful installation", func() {

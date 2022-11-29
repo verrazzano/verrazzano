@@ -4,7 +4,6 @@
 package helidonmetrics
 
 import (
-	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
@@ -64,7 +63,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	Eventually(helidonConfigPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var failed = false
 var beforeSuitePassed = false
@@ -124,7 +123,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var (
 	expectedPodsHelloHelidon = []string{"hello-helidon-deployment"}

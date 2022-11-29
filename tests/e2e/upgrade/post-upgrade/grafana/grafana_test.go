@@ -5,7 +5,6 @@ package grafana
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"time"
 
@@ -34,7 +33,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Post Upgrade Grafana Dashboard", Label("f:observability.logging.es"), func() {
 

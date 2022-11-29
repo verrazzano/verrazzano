@@ -4,7 +4,7 @@
 package envdnscm
 
 import (
-	"github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/ginkgo/v2"
 	"log"
 	"os"
 	"os/exec"
@@ -84,7 +84,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	cleanupTemporaryFiles(files)
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Test updates to environment name, dns domain and cert-manager CA certificates", func() {
 	t.It("Verify the current environment name", func() {

@@ -5,7 +5,6 @@ package keycloak
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -59,7 +58,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("before_suite_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var failed = false
 var beforeSuitePassed = false
@@ -76,7 +75,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("after_suite_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Verify users exist in Keycloak", Label("f:platform-lcm.install"), func() {
 	t.It("Verifying user in master realm", func() {

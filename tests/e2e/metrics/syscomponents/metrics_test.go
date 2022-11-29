@@ -5,7 +5,6 @@ package syscomponents
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"os"
 	"strings"
 	"time"
@@ -125,11 +124,11 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {})
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.AfterEach(func() {})
 

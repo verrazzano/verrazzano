@@ -5,7 +5,6 @@ package helidonconfig
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -73,7 +72,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	Eventually(helidonConfigPodsRunning, longWaitTimeout, longPollingInterval).Should(BeTrue())
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var failed = false
 var beforeSuitePassed = false
@@ -133,7 +132,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var (
 	expectedPodsHelidonConfig = []string{"helidon-config-deployment"}

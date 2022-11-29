@@ -5,7 +5,6 @@ package bobsbooks
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -42,7 +41,7 @@ var (
 		"mysql"}
 )
 
-var _ = BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
 		deployBobsBooksExample(namespace)
@@ -84,7 +83,8 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
+var _ = BeforeSuite(beforeSuite)
 
 func deployBobsBooksExample(namespace string) {
 	t.Logs.Info("Deploy BobsBooks example")

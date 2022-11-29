@@ -6,7 +6,6 @@ package api_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"net/http"
 	"os"
@@ -30,9 +29,9 @@ var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var t = framework.NewTestFramework("api_test")
 
 var afterSuite = t.AfterSuiteFunc(func() {})
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 var beforeSuite = t.BeforeSuiteFunc(func() {})
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Multi Cluster Verify API", Label("f:ui.api"), func() {

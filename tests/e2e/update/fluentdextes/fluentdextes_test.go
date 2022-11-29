@@ -5,7 +5,6 @@ package fluentdextes
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -44,7 +43,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	managedClusters = multicluster.ManagedClusters()
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if extOpensearchURL != "" && extOpensearchURL != pkg.VmiOSURL && extOpensearchSec != "" {
@@ -55,7 +54,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 	t.Describe("Update to default Opensearch", Label("f:platform-lcm.fluentd-default-opensearch"), func() {

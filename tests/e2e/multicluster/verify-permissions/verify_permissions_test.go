@@ -6,7 +6,6 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
-	"github.com/onsi/ginkgo"
 
 	v1alpha12 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -54,14 +53,14 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	deployTestResources()
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	// Do set up for multi cluster tests
 	undeployTestResources()
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.AfterEach(func() {})
 

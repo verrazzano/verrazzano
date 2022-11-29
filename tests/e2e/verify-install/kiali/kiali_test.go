@@ -5,7 +5,6 @@ package kiali
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	corev1 "k8s.io/api/core/v1"
@@ -40,7 +39,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 // 'It' Wrapper to only run spec if Kiali is supported on the current Verrazzano installation
 func WhenKialiInstalledIt(description string, f interface{}) {

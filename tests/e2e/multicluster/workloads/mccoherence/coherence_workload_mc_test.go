@@ -5,7 +5,6 @@ package mccoherence
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"net/http"
 	"os"
 	"strconv"
@@ -114,7 +113,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	beforeSuitePassed = true
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
@@ -125,7 +124,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:multicluster.mc-app-lcm"), func() {
 

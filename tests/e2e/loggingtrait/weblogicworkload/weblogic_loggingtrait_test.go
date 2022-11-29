@@ -5,7 +5,6 @@ package weblogicworkload
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"os"
 	"time"
 
@@ -44,7 +43,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	beforeSuitePassed = true
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var failed = false
 var beforeSuitePassed = false
@@ -60,7 +59,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName, t)
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 func deployWebLogicApplication() {
 	t.Logs.Info("Deploy test application")

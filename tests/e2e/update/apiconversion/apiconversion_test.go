@@ -5,7 +5,6 @@ package apiconversion
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -53,7 +52,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	m := IngressNGINXDefaultModifierV1beta1{}
@@ -63,7 +62,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 func (u IngressNGINXBackendReplicasModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
 	if cr.Spec.Components.IngressNGINX == nil {

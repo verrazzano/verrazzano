@@ -7,7 +7,6 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"net/http"
 	"time"
 
@@ -66,13 +65,13 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	t.Logs.Debug("executing after suite")
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.AfterEach(func() {})
 

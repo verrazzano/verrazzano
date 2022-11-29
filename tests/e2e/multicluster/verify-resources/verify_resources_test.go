@@ -5,7 +5,6 @@ package resources_test
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 
@@ -27,9 +26,9 @@ const shortPollInterval = 5 * time.Second
 var t = framework.NewTestFramework("resources_test")
 
 var afterSuite = t.AfterSuiteFunc(func() {})
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 var beforeSuite = t.BeforeSuiteFunc(func() {})
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Multi Cluster Verify Resources", Label("f:multicluster.register"), func() {

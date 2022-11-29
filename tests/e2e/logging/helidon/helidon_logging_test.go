@@ -5,7 +5,6 @@ package helidon
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -67,7 +66,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var failed = false
 var beforeSuitePassed = false
@@ -126,7 +125,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var (
 	expectedPodsHelloHelidon = []string{"hello-helidon-workload"}

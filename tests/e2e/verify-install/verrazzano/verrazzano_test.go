@@ -5,7 +5,6 @@ package verrazzano_test
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"strings"
 	"time"
 
@@ -66,7 +65,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	mySQLOperatorEnabled = pkg.IsMySQLOperatorEnabled(kubeconfigPath)
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 

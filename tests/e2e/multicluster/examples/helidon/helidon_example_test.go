@@ -5,7 +5,6 @@ package mchelidon
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"os"
 	"strconv"
 	"time"
@@ -70,7 +69,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	beforeSuitePassed = true
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multicluster.mc-app-lcm"), func() {
 	t.Context("Admin Cluster", func() {
@@ -393,7 +392,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 func cleanUp(kubeconfigPath string) error {
 	start := time.Now()

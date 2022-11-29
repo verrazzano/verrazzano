@@ -4,7 +4,6 @@
 package oam
 
 import (
-	"github.com/onsi/ginkgo"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -35,7 +34,7 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("oam-workloads")
 )
 
-var _ = BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
 		deployOAMApp()
@@ -43,6 +42,8 @@ var _ = BeforeSuite(func() {
 	}
 	beforeSuitePassed = true
 })
+
+var _ = BeforeSuite(beforeSuite)
 
 var failed = false
 var beforeSuitePassed = false
@@ -59,7 +60,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("An OAM application is deployed", Label("f:app-lcm.oam"), func() {
 	t.Context("Check for created resources", func() {

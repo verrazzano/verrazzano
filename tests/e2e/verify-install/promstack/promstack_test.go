@@ -5,7 +5,6 @@ package promstack
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
@@ -159,7 +158,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 	t.Context("after successful installation", func() {

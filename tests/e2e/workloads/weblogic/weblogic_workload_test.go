@@ -5,7 +5,6 @@ package weblogic
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"net/http"
 	"time"
 
@@ -45,7 +44,7 @@ var (
 	host               = ""
 )
 
-var _ = BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
 		deployWebLogicApp(namespace)
@@ -78,6 +77,8 @@ var _ = BeforeSuite(func() {
 	beforeSuitePassed = true
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var failed = false
 var beforeSuitePassed = false
 var _ = t.AfterEach(func() {
@@ -94,7 +95,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 func deployWebLogicApp(namespace string) {
 	t.Logs.Info("Deploy WebLogic application")

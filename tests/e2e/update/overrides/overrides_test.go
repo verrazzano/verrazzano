@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -42,7 +42,7 @@ var monitorChanges bool
 
 var failed = false
 var _ = t.AfterEach(func() {
-	failed = failed || ginkgo.CurrentSpecReport().Failed()
+	failed = failed || CurrentSpecReport().Failed()
 })
 
 type PrometheusOperatorOverridesModifier struct {
@@ -132,7 +132,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	_ = update.GetCR()
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	m := PrometheusOperatorDefaultModifier{}
@@ -143,7 +143,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Post Install Overrides", func() {
 
@@ -287,12 +287,12 @@ var _ = t.Describe("Post Install Overrides", func() {
 func deleteOverrides() {
 	err0 := pkg.DeleteConfigMap(constants.DefaultNamespace, overrideConfigMapSecretName)
 	if err0 != nil && !k8serrors.IsNotFound(err0) {
-		ginkgo.AbortSuite("Failed to delete ConfigMap")
+		AbortSuite("Failed to delete ConfigMap")
 	}
 
 	err1 := pkg.DeleteSecret(constants.DefaultNamespace, overrideConfigMapSecretName)
 	if err1 != nil && !k8serrors.IsNotFound(err1) {
-		ginkgo.AbortSuite("Failed to delete Secret")
+		AbortSuite("Failed to delete Secret")
 	}
 	m := PrometheusOperatorValuesModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
@@ -316,7 +316,7 @@ func checkValues(overrideValue string) bool {
 		MatchLabels: labelMatch,
 	}, constants.VerrazzanoMonitoringNamespace)
 	if err != nil {
-		ginkgo.AbortSuite(fmt.Sprintf("Label override not found for the Prometheus Operator pod in namespace %s: %v", constants.VerrazzanoMonitoringNamespace, err))
+		AbortSuite(fmt.Sprintf("Label override not found for the Prometheus Operator pod in namespace %s: %v", constants.VerrazzanoMonitoringNamespace, err))
 	}
 	foundAnnotation := false
 	for _, pod := range pods {

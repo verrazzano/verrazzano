@@ -5,7 +5,6 @@ package mcnshelidon
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
@@ -64,7 +63,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("In Multi-cluster, verify delete ns of hello-helidon-ns", Label("f:multicluster.mc-app-lcm"), func() {
 	t.Context("Admin Cluster", func() {
@@ -153,7 +152,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 func deleteProject(kubeconfigPath string) error {
 	start := time.Now()

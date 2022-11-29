@@ -5,7 +5,6 @@ package opensearch
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -36,7 +35,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	pkg.DeleteApplicationDataStream("verrazzano-application-test")
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.es"), func() {
 	// It Wrapper to only run spec if component is supported on the current Verrazzano installation

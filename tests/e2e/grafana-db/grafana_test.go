@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	corev1 "k8s.io/api/core/v1"
@@ -69,7 +68,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		"It should be possible to create a Grafana dashboard and persist it.")
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Test Grafana Dashboard Persistence", Label("f:observability.logging.es"), func() {
 

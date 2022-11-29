@@ -5,7 +5,6 @@ package certac
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"reflect"
 	"strings"
 	"time"
@@ -53,13 +52,13 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	verifyRegistration()
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	//verifyManagedClustersFluentdConnection()
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Update admin-cluster cert-manager", Label("f:platform-lcm.update"), func() {
 	t.Describe("multicluster cert-manager verify", Label("f:platform-lcm.multicluster-verify"), func() {

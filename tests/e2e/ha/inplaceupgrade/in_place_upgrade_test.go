@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"os"
 	"os/exec"
 	"strconv"
@@ -88,14 +87,14 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	Expect(err).ShouldNot(HaveOccurred(), "Error configuring OCI SDK compute client")
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	// signal that the upgrade is done so the tests know to stop
 	hacommon.EventuallyCreateShutdownSignal(clientset, t.Logs)
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 	var clusterResponse ocice.GetClusterResponse

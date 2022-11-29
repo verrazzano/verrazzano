@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"os"
 	"regexp"
 	"time"
@@ -39,11 +38,11 @@ const (
 var t = framework.NewTestFramework("rancher_test")
 
 var beforeSuite = t.BeforeSuiteFunc(func() {})
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 
 var afterSuite = t.AfterSuiteFunc(func() {})
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.install"), func() {
 	t.It("Rancher log records do not contain any websocket bad handshake messages", func() {

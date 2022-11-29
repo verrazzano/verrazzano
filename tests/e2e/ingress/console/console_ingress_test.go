@@ -5,7 +5,6 @@ package ingress
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -35,7 +34,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	beforeSuitePassed = true
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var failed = false
 var beforeSuitePassed = false
@@ -51,7 +50,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	undeployApplication()
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 func deployApplication() {
 	t.Logs.Info("Deploy test application")

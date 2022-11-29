@@ -6,7 +6,6 @@ package logging
 import (
 	"context"
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"os"
 	"time"
 
@@ -69,6 +68,8 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	beforeSuitePassed = true
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		pkg.ExecuteBugReport(springbootNamespace, helidonNamespace)
@@ -87,7 +88,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	)
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.AfterEach(func() {})
 

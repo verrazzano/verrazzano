@@ -5,7 +5,6 @@ package authz
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"net/http"
 	"time"
 
@@ -42,7 +41,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var failed = false
 var beforeSuitePassed = false
@@ -62,7 +61,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 func deployFooApplication() {
 	t.Logs.Info("Deploy Auth Policy Application in foo namespace")

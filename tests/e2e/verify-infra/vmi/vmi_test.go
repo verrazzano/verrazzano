@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"io"
 	"net/http"
 	"strings"
@@ -146,7 +145,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	elastic = vmi.GetOpensearch("system")
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.AfterEach(func() {})
 

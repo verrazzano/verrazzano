@@ -5,7 +5,6 @@ package fluentd
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"time"
 
 	"github.com/google/uuid"
@@ -43,7 +42,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiOSURL, time.Since(start)))
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 	t.Describe("fluentd verify", Label("f:platform-lcm.fluentd-verify"), func() {

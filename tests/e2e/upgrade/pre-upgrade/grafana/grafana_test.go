@@ -6,7 +6,6 @@ package grafana
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"net/http"
 	"os"
@@ -64,7 +63,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		"It should be possible to create a Grafana dashboard and persist it.")
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Pre Upgrade Grafana Dashboard", Label("f:observability.logging.es"), func() {
 

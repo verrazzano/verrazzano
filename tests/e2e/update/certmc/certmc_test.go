@@ -5,7 +5,6 @@ package certmc
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"reflect"
 	"time"
 
@@ -44,13 +43,13 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	verifyScrapeTargets()
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	verifyScrapeTargets()
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Update managed-cluster cert-manager", Label("f:platform-lcm.update"), func() {
 	t.Describe("multicluster cert-manager verify", Label("f:platform-lcm.multicluster-verify"), func() {

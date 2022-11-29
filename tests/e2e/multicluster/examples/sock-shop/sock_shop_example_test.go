@@ -5,7 +5,6 @@ package sock_shop
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"os"
 	"strconv"
 	"time"
@@ -67,7 +66,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("In Multi-cluster, verify sock-shop", Label("f:multicluster.mc-app-lcm"), func() {
 	t.Context("Admin Cluster", func() {
@@ -262,7 +261,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 func cleanUp(kubeconfigPath string) error {
 	start := time.Now()

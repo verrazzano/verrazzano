@@ -4,7 +4,6 @@
 package mcweblogic
 
 import (
-	"github.com/onsi/ginkgo"
 	"net/http"
 	"os"
 	"strconv"
@@ -133,7 +132,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
@@ -144,7 +143,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("In Multi-cluster, verify WebLogic application", Label("f:multicluster.mc-app-lcm"), func() {
 

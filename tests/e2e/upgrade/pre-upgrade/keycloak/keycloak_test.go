@@ -5,7 +5,6 @@ package keycloak
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"os/exec"
@@ -70,7 +69,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("before_suite_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var failed = false
 var beforeSuitePassed = false
@@ -88,7 +87,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("after_suite_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Create users in Keycloak", Label("f:platform-lcm.install"), func() {
 	t.It("Creating user in master realm", func() {

@@ -6,7 +6,7 @@ package availability
 import (
 	"context"
 	"fmt"
-	"github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/ginkgo/v2"
 	"strconv"
 	"strings"
 	"time"
@@ -31,7 +31,7 @@ var (
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {})
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Status", func() {
 	// If a component is taken offline, the number of unavailable components should increase by 1

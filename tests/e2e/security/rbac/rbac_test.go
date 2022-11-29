@@ -5,7 +5,6 @@ package rbac
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo"
 	"strconv"
 	"strings"
 	"time"
@@ -44,7 +43,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 })
 
-var _ = ginkgo.BeforeSuite(beforeSuite)
+var _ = BeforeSuite(beforeSuite)
 
 var failed = false
 var _ = t.AfterEach(func() {
@@ -67,7 +66,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	}, waitTimeout, pollingInterval).Should(BeTrue())
 })
 
-var _ = ginkgo.AfterSuite(afterSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Test RBAC Permission", Label("f:security.rbac"), func() {
 	t.Context("for verrazzano-project-admin.", func() {
