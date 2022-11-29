@@ -345,7 +345,7 @@ func (r *VerrazzanoManagedClusterReconciler) deleteClusterFromRancher(ctx contex
 		return nil
 	}
 
-	rc, err := rancherutil.NewRancherConfig(r.Client, r.log)
+	rc, err := rancherutil.NewRancherConfig(r.Client, false, r.log)
 	if err != nil {
 		msg := "Failed to create Rancher API client"
 		r.updateRancherStatus(ctx, vmc, clustersv1alpha1.DeleteFailed, clusterID, msg)

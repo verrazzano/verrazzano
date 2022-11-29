@@ -1154,7 +1154,7 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 			return nil
 		})
 
-	rc, err := rancherutil.NewRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err := rancherutil.NewRancherConfig(mock, false, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1182,7 +1182,7 @@ func TestRegisterClusterWithRancherK8sErrorCases(t *testing.T) {
 			return errors.NewResourceExpired("something bad happened")
 		})
 
-	rc, err = rancherutil.NewRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewRancherConfig(mock, false, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1223,7 +1223,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err := rancherutil.NewRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err := rancherutil.NewRancherConfig(mock, false, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)
@@ -1266,7 +1266,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err = rancherutil.NewRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewRancherConfig(mock, false, vzlog.DefaultLogger())
 	asserts.NoError(err)
 
 	regYAML, _, err := registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
@@ -1324,7 +1324,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err = rancherutil.NewRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewRancherConfig(mock, false, vzlog.DefaultLogger())
 	asserts.NoError(err)
 
 	regYAML, _, err = registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
@@ -1395,7 +1395,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 			return resp, nil
 		})
 
-	rc, err = rancherutil.NewRancherConfig(mock, vzlog.DefaultLogger())
+	rc, err = rancherutil.NewRancherConfig(mock, false, vzlog.DefaultLogger())
 	asserts.NoError(err)
 
 	regYAML, _, err = registerManagedClusterWithRancher(rc, testManagedCluster, "", vzlog.DefaultLogger())
@@ -1451,7 +1451,7 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 			return resp, nil
 		}).Times(retrySteps)
 
-	_, err := rancherutil.NewRancherConfig(mock, vzlog.DefaultLogger())
+	_, err := rancherutil.NewRancherConfig(mock, false, vzlog.DefaultLogger())
 
 	mocker.Finish()
 	asserts.Error(err)

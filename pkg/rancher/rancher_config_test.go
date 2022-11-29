@@ -60,7 +60,7 @@ func TestCreateRancherRequest(t *testing.T) {
 	httpMock = expectHTTPRequests(httpMock, testPath, testBody)
 	RancherHTTPClient = httpMock
 
-	rc, err := NewRancherConfig(cli, log)
+	rc, err := NewRancherConfig(cli, false, log)
 	assert.NoError(t, err)
 
 	response, body, err := SendRequest(http.MethodGet, testPath, map[string]string{}, "", rc, log)

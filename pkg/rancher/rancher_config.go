@@ -70,7 +70,7 @@ func (*HTTPRequestSender) Do(httpClient *http.Client, req *http.Request) (*http.
 }
 
 // NewRancherConfig returns a populated RancherConfig struct that can be used to make calls to the Rancher API
-func NewRancherConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*RancherConfig, error) {
+func NewRancherConfig(rdr client.Reader, admin bool, log vzlog.VerrazzanoLogger) (*RancherConfig, error) {
 	rc := &RancherConfig{BaseURL: "https://" + nginxIngressHostName}
 
 	// Rancher host name is needed for TLS
@@ -93,14 +93,24 @@ func NewRancherConfig(rdr client.Reader, log vzlog.VerrazzanoLogger) (*RancherCo
 	log.Debugf("Checking for Rancher additional CA in secret %s", cons.AdditionalTLS)
 	rc.AdditionalCA = common.GetAdditionalCA(rdr)
 
+	if admin {
+		log.Once("Getting admin token from Rancher")
+		token, err := getAdminTokenFromRancher(rdr, rc, log)
+		if err != nil {
+			log.ErrorfThrottled("Failed to get admin token from Rancher: %v", err)
+			return nil, err
+		}
+		rc.APIAccessToken = token
+		return rc, nil
+	}
+
 	log.Once("Getting Verrazzano cluster user token from Rancher")
-	adminToken, err := getVerrazzanoClusterUserTokenFromRancher(rdr, rc, log)
+	token, err := getVerrazzanoClusterUserTokenFromRancher(rdr, rc, log)
 	if err != nil {
-		log.ErrorfThrottled("Failed to get admin token from Rancher: %v", err)
+		log.ErrorfThrottled("Failed to get Verrazzano cluster user token from Rancher: %v", err)
 		return nil, err
 	}
-	rc.APIAccessToken = adminToken
-
+	rc.APIAccessToken = token
 	return rc, nil
 }
 
@@ -135,13 +145,26 @@ func getVerrazzanoClusterUserSecret(rdr client.Reader) (string, error) {
 	return string(secret.Data["password"]), nil
 }
 
-// getVerrazzanoClusterUserTokenFromRancher does a login with Rancher and returns the token from the response
+// getVerrazzanoClusterUserTokenFromRancher does a login with the verrazzano user so Rancher and returns the token from the response
 func getVerrazzanoClusterUserTokenFromRancher(rdr client.Reader, rc *RancherConfig, log vzlog.VerrazzanoLogger) (string, error) {
 	secret, err := getVerrazzanoClusterUserSecret(rdr)
 	if err != nil {
 		return "", err
 	}
+	return getUserToken(rc, log, secret)
+}
 
+// getAdminTokenFromRancher does a login with the admin user in Rancher and returns the token from the response
+func getAdminTokenFromRancher(rdr client.Reader, rc *RancherConfig, log vzlog.VerrazzanoLogger) (string, error) {
+	secret, err := getVerrazzanoClusterUserSecret(rdr)
+	if err != nil {
+		return "", err
+	}
+	return getUserToken(rc, log, secret)
+}
+
+// getUserToken gets a user token from a secret
+func getUserToken(rc *RancherConfig, log vzlog.VerrazzanoLogger, secret string) (string, error) {
 	action := http.MethodPost
 	payload := `{"Username": "` + cons.VerrazzanoClusterRancherUsername + `", "Password": "` + secret + `"}`
 	reqURL := rc.BaseURL + loginPath

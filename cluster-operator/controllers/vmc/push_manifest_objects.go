@@ -19,7 +19,7 @@ func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(vmc *clusterapi
 		r.log.Debugf("Waiting to push manifest objects, Rancher ClusterID not found in the VMC %s/%s status", vmc.GetNamespace(), vmc.GetName())
 		return false, nil
 	}
-	rc, err := rancherutil.NewRancherConfig(r.Client, r.log)
+	rc, err := rancherutil.NewRancherConfig(r.Client, false, r.log)
 	if err != nil || rc == nil {
 		return false, err
 	}
