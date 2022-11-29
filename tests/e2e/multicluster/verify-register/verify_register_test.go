@@ -267,9 +267,9 @@ var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.regist
 			} else {
 				var secret string
 				if supported {
-					secret = pkg.VmiOSInternalSecret
+					secret = pkg.VmiESInternalSecret
 				} else {
-					secret = pkg.VmiOSLegacySecret
+					secret = pkg.VmiESLegacySecret
 				}
 				Eventually(func() bool {
 					return pkg.AssertFluentdURLAndSecret("", secret)
@@ -475,7 +475,7 @@ func assertRegistrationSecret() {
 		Expect(regSecret.Data["es-ca-bundle"]).To(Equal(esSecret.Data["ca-bundle"]))
 	} else {
 		Expect(string(regSecret.Data["es-url"])).To(Equal(vmiEsIngressURL))
-		vmiEsInternalSecret, err := pkg.GetSecretInCluster("verrazzano-system", "verrazzano-os-internal", os.Getenv("ADMIN_KUBECONFIG"))
+		vmiEsInternalSecret, err := pkg.GetSecretInCluster("verrazzano-system", "verrazzano-es-internal", os.Getenv("ADMIN_KUBECONFIG"))
 		Expect(err).To(BeNil())
 		Expect(regSecret.Data["username"]).To(Equal(vmiEsInternalSecret.Data["username"]))
 		Expect(regSecret.Data["password"]).To(Equal(vmiEsInternalSecret.Data["password"]))

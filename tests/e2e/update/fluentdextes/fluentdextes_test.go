@@ -44,7 +44,7 @@ var _ = t.BeforeSuite(func() {
 })
 
 var _ = t.AfterSuite(func() {
-	if extOpensearchURL != "" && extOpensearchURL != pkg.VmiOSURL && extOpensearchSec != "" {
+	if extOpensearchURL != "" && extOpensearchURL != pkg.VmiESURL && extOpensearchSec != "" {
 		start := time.Now()
 		gomega.Eventually(func() bool {
 			return fluentd.ValidateDaemonset(extOpensearchURL, extOpensearchSec, "")
@@ -62,8 +62,8 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 				fluentd.ValidateUpdate(m, "")
 
 				gomega.Eventually(func() bool {
-					return fluentd.ValidateDaemonset(pkg.VmiOSURL, pkg.VmiOSInternalSecret, "")
-				}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiOSURL, time.Since(start)))
+					return fluentd.ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
+				}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
 			}
 		})
 	})
@@ -91,7 +91,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 
 func verifyCaSync(esSec string) {
 	extEsCa := ""
-	if esSec != "" && esSec != pkg.VmiOSInternalSecret {
+	if esSec != "" && esSec != pkg.VmiESInternalSecret {
 		bytes, _ := adminCluster.GetSecretData(poconst.VerrazzanoInstallNamespace, esSec, mcconst.FluentdESCaBundleKey)
 		if len(bytes) > 0 {
 			extEsCa = string(bytes)
