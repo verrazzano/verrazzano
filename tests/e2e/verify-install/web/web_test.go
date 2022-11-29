@@ -32,7 +32,7 @@ var serverURL string
 var isManagedClusterProfile bool
 var isTestSupported bool
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	var ingress *networkingv1.Ingress
 	var clientset *kubernetes.Clientset
 	isManagedClusterProfile = pkg.IsManagedClusterProfile()
@@ -65,9 +65,13 @@ var _ = t.BeforeSuite(func() {
 	}
 })
 
-var _ = t.AfterSuite(func() {
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	t.Logs.Debug("executing after suite")
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.AfterEach(func() {})
 

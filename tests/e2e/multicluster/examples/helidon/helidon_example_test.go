@@ -48,7 +48,7 @@ var _ = t.AfterEach(func() {
 })
 
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		// deploy the VerrazzanoProject
 		start := time.Now()
@@ -68,6 +68,8 @@ var _ = t.BeforeSuite(func() {
 	}
 	beforeSuitePassed = true
 })
+
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multicluster.mc-app-lcm"), func() {
 	t.Context("Admin Cluster", func() {
@@ -384,11 +386,13 @@ var _ = t.Describe("In Multi-cluster, verify hello-helidon", Label("f:multiclust
 	})
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		pkg.ExecuteBugReport(testNamespace)
 	}
 })
+
+var _ = AfterSuite(afterSuite)
 
 func cleanUp(kubeconfigPath string) error {
 	start := time.Now()
