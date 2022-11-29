@@ -561,11 +561,3 @@ List extractReleaseTags(final String fileContent) {
     }
     return releases
 }
-
-def getNextPatchReleaseVersion(upgradeTargetVersion){
-
-    def latestReleaseTagSplit = upgradeTargetVersion.split("\\.")
-    int nextPatchVersion = Integer.parseInt(latestReleaseTagSplit[2]) + 1
-    def nextPatchRelease = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1] + "." + nextPatchVersion
-    return nextPatchRelease
-}
