@@ -37,10 +37,12 @@ const (
 
 var t = framework.NewTestFramework("rancher_test")
 
-var _ = t.BeforeSuite(func() {})
+var beforeSuite = t.BeforeSuiteFunc(func() {})
+var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 
-var _ = t.AfterSuite(func() {})
+var afterSuite = t.AfterSuiteFunc(func() {})
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.install"), func() {
 	t.It("Rancher log records do not contain any websocket bad handshake messages", func() {

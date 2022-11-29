@@ -34,17 +34,19 @@ var (
 	failed         = false
 )
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	if kubeconfigPath == "" {
 		AbortSuite("Required env variable KUBECONFIG not set.")
 	}
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed {
 		err := pkg.ExecuteBugReport()
 		if err != nil {
@@ -52,6 +54,8 @@ var _ = t.AfterSuite(func() {
 		}
 	}
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Multi Cluster Jaeger Installation Validation", Label("f:platform-lcm.install"), func() {
 

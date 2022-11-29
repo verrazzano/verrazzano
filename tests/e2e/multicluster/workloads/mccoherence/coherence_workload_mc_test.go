@@ -87,7 +87,7 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
 
@@ -113,7 +113,9 @@ var _ = t.BeforeSuite(func() {
 	beforeSuitePassed = true
 })
 
-var _ = t.AfterSuite(func() {
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		err := pkg.ExecuteBugReport(appNamespace)
 		if err != nil {
@@ -121,6 +123,8 @@ var _ = t.AfterSuite(func() {
 		}
 	}
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("In Multi-cluster, verify Coherence application", Label("f:multicluster.mc-app-lcm"), func() {
 

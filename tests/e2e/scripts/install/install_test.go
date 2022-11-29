@@ -28,8 +28,10 @@ var kubeConfigFromEnv = os.Getenv("KUBECONFIG")
 
 var t = framework.NewTestFramework("install")
 
-var _ = t.BeforeSuite(func() {})
-var _ = t.AfterSuite(func() {})
+var beforeSuite = t.BeforeSuiteFunc(func() {})
+var _ = BeforeSuite(beforeSuite)
+var afterSuite = t.AfterSuiteFunc(func() {})
+var _ = AfterSuite(afterSuite)
 var _ = t.AfterEach(func() {})
 
 // This test checks that the Verrazzano install resource has the expected console URLs.
