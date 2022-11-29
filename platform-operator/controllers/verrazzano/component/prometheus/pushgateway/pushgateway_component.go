@@ -26,7 +26,7 @@ const ComponentName = "prometheus-pushgateway"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoMonitoringNamespace
 
-// ComponentJSONName is the json name of the component in the CRD
+// ComponentJSONName is the JSON name of the component in the CRD
 const ComponentJSONName = "prometheusPushgateway"
 
 const chartName = "prometheus-community/prometheus-pushgateway"

@@ -48,15 +48,19 @@ const vpTest2 = "permissions-test2"
 
 var t = framework.NewTestFramework("permissions_test")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	// Do set up for multi cluster tests
 	deployTestResources()
 })
 
-var _ = t.AfterSuite(func() {
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	// Do set up for multi cluster tests
 	undeployTestResources()
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.AfterEach(func() {})
 

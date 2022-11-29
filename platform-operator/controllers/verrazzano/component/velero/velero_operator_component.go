@@ -32,7 +32,7 @@ const (
 	ComponentName = "velero"
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace = constants.VeleroNameSpace
-	// ComponentJSONName is the json name of the component in the CRD
+	// ComponentJSONName is the JSON name of the component in the CRD
 	ComponentJSONName = "velero"
 	// ChartDir is the name of the directory for third party helm charts
 	ChartDir = "velero"

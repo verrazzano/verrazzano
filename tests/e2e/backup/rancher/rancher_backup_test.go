@@ -38,18 +38,22 @@ const (
 
 var rancherPods = []string{"rancher"}
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
 	common.GatherInfo()
 	backupPrerequisites()
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = t.AfterSuite(func() {
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	start := time.Now()
 	cleanUpRancher()
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = AfterSuite(afterSuite)
 
 var t = framework.NewTestFramework("rancher-backup-operator")
 

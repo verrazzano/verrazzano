@@ -37,8 +37,8 @@ const ComponentNamespace = vzconst.KeycloakNamespace
 // DeploymentPersistentVolumeClaim is the name of a volume claim associated with a MySQL deployment
 const DeploymentPersistentVolumeClaim = "mysql"
 
-// ComponentJSONName is the josn name of the verrazzano component in CRD
-const ComponentJSONName = "keycloak.mysql"
+// ComponentJSONName is the JSON name of the verrazzano component in CRD
+const ComponentJSONName = "mysql"
 
 // mysqlComponent represents an MySQL component
 type mysqlComponent struct {
