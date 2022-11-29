@@ -7,9 +7,11 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base32"
+	"encoding/base64"
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -26,6 +28,7 @@ import (
 	"golang.org/x/text/language"
 
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,7 +36,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -94,6 +100,9 @@ const (
 	ClusterLocal                      = "local"
 	AuthConfigLocal                   = "local"
 	UserVerrazzano                    = "u-verrazzano"
+	UserVZMulticluster                = "u-verrazzano-multicluster"
+	UserVZMulticlusterUsername        = "verrazzanomc"
+	UserVZMulticlusterDescription     = "Verrazzano Multicluster"
 	UserVerrazzanoDescription         = "Verrazzano Admin"
 	GlobalRoleBindingVerrazzanoPrefix = "grb-"
 	SettingUIPL                       = "ui-pl"
@@ -529,6 +538,19 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext, vzUser *keycl
 	return createOrUpdateResource(ctx, nsn, GVKUser, data)
 }
 
+// createOrUpdateVZClusterUser creates or updates the Verrazzano Cluster user in Rancher
+func createOrUpdateVZClusterUser(ctx spi.ComponentContext) error {
+	nsn := types.NamespacedName{Name: UserVZMulticluster}
+	data := map[string]interface{}{}
+	data[UserAttributeUserName] = UserVZMulticlusterUsername
+	caser := cases.Title(language.English)
+	data[UserAttributeDisplayName] = caser.String(UserVZMulticlusterUsername)
+	data[UserAttributeDescription] = caser.String(UserVZMulticlusterDescription)
+	data[UserAttributePrincipalIDs] = []interface{}{UserPrincipalLocalPrefix + UserVZMulticluster}
+
+	return createOrUpdateResource(ctx, nsn, GVKUser, data)
+}
+
 // createOrUpdateRancherVerrazzanoUserGlobalRoleBinding used to make the verrazzano user admin
 func createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx spi.ComponentContext, rancherUsername string) error {
 	nsn := types.NamespacedName{Name: GlobalRoleBindingVerrazzanoPrefix + rancherUsername}
@@ -540,8 +562,8 @@ func createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx spi.ComponentConte
 	return createOrUpdateResource(ctx, nsn, GVKGlobalRoleBinding, data)
 }
 
-// createOrUpdateRoleTemplate creates or updates RoleTemplates used to add Keycloak groups to the Rancher cluster
-func createOrUpdateRoleTemplate(ctx spi.ComponentContext, role string) error {
+// CreateOrUpdateRoleTemplate creates or updates RoleTemplates used to add Keycloak groups to the Rancher cluster
+func CreateOrUpdateRoleTemplate(ctx spi.ComponentContext, role string) error {
 	log := ctx.Log()
 	c := ctx.Client()
 
@@ -620,17 +642,15 @@ func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, l
 		return err
 	}
 
-	logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("cat %s | base64", logoPath)}
-	stdout, stderr, err := k8sutil.ExecPod(cli, cfg, pod, "rancher", logoCommand)
+	logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("base64 %s", logoPath)}
+	// The api request to pod was seen to be returining only first few bytes of the logo content,
+	// therefore we retry a few times until we get valid logo content which will be a svg
+	logoContent, err := getRancherLogoContentWithRetry(log, cli, cfg, pod, logoCommand)
 	if err != nil {
-		return log.ErrorfThrottledNewErr("Failed execing into Rancher pod %s: %v", stderr, err)
+		return log.ErrorfThrottledNewErr("failed getting actual logo content from rancher pod from %s: %v", logoPath, err.Error())
 	}
 
-	if len(stdout) == 0 {
-		return log.ErrorfThrottledNewErr("Invalid empty output from Rancher pod")
-	}
-
-	return createOrUpdateResource(ctx, types.NamespacedName{Name: settingName}, common.GVKSetting, map[string]interface{}{"value": fmt.Sprintf("%s%s", SettingUILogoValueprefix, stdout)})
+	return createOrUpdateResource(ctx, types.NamespacedName{Name: settingName}, common.GVKSetting, map[string]interface{}{"value": fmt.Sprintf("%s%s", SettingUILogoValueprefix, logoContent)})
 }
 
 // createOrUpdateUIColorSettings creates/updates the ui-primary-color and ui-link-color settings
@@ -708,4 +728,41 @@ func getUserNameForPrincipal(principal string) string {
 	hasher.Write([]byte(principal))
 	sha := base32.StdEncoding.WithPadding(-1).EncodeToString(hasher.Sum(nil))[:10]
 	return "u-" + strings.ToLower(sha)
+}
+
+// getRancherLogoContentWithRetry gets the logo content from rancher and retries if the logo content returned is not a full svg file
+func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, cli kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, logoCommand []string) (string, error) {
+	var logoContent string
+	var backoff = wait.Backoff{
+		Steps:    3,
+		Duration: 1 * time.Second,
+		Factor:   2.0,
+		Jitter:   0.1,
+	}
+	err := common.Retry(backoff, log, false, func() (bool, error) {
+		var stderr string
+		var err error
+		logoContent, stderr, err = k8sutil.ExecPod(cli, cfg, pod, "rancher", logoCommand)
+		if err != nil {
+			return false, log.ErrorfThrottledNewErr("Failed execing into Rancher pod %s: %v", stderr, err)
+		}
+
+		if len(logoContent) == 0 {
+			return false, log.ErrorfThrottledNewErr("Invalid empty output from Rancher pod")
+		}
+
+		decodedLogo, err := base64.StdEncoding.DecodeString(logoContent)
+		if err != nil {
+			return false, log.ErrorfThrottledNewErr("Error while decoding logo: %v", err)
+		}
+
+		if !(strings.HasSuffix(strings.TrimSpace(string(decodedLogo)), "</svg>")) {
+			log.Errorf("logo not completely read from rancher pod, logo content: %v, retrying", string(decodedLogo))
+			return false, nil
+		}
+
+		return true, nil
+	})
+
+	return logoContent, err
 }

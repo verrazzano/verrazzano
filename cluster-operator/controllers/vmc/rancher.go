@@ -588,7 +588,7 @@ func doRequest(req *http.Request, rc *RancherConfig, log vzlog.VerrazzanoLogger)
 	// so we need to read the body and save it so we can use it in each retry
 	buffer, _ := io.ReadAll(req.Body)
 
-	retry(defaultRetry, log, func() (bool, error) {
+	common.Retry(defaultRetry, log, true, func() (bool, error) {
 		// update the body with the saved data to prevent the "zero length body" error
 		req.Body = io.NopCloser(bytes.NewBuffer(buffer))
 		resp, err = rancherHTTPClient.Do(client, req)
@@ -634,27 +634,6 @@ func doRequest(req *http.Request, rc *RancherConfig, log vzlog.VerrazzanoLogger)
 	}
 
 	return resp, string(body), err
-}
-
-// retry executes the provided function repeatedly, retrying until the function
-// returns done = true, or exceeds the given timeout.
-// errors will be logged, but will not trigger retry to stop
-func retry(backoff wait.Backoff, log vzlog.VerrazzanoLogger, fn wait.ConditionFunc) error {
-	var lastErr error
-	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		done, err := fn()
-		lastErr = err
-		if err != nil {
-			log.Infof("Retrying after error: %v", err)
-		}
-		return done, nil
-	})
-	if err == wait.ErrWaitTimeout {
-		if lastErr != nil {
-			err = lastErr
-		}
-	}
-	return err
 }
 
 // getProxyURL returns an HTTP proxy from the environment if one is set, otherwise an empty string
