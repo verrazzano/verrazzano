@@ -4,8 +4,16 @@
 package clusteroperator
 
 import (
+	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/httputil"
+	rancherutil "github.com/verrazzano/verrazzano/pkg/rancher"
+	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"net/http"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -18,6 +26,24 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/runtime"
 )
+
+const (
+	usersByNamePath = "/v3/users?name="
+	usersPath       = "/v3/users"
+
+	dataField     = "data"
+	passwordField = "password"
+)
+
+var userPayload = `
+{
+	"description": "Verrazzano Cluster",
+	"enabled": true,
+	"mustChangePassword": false,
+	"name": %s,
+	"password": %s,
+	"username": %s
+}`
 
 // AppendOverrides appends any additional overrides needed by the Cluster Operator component
 func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
@@ -59,7 +85,68 @@ func GetOverrides(object runtime.Object) interface{} {
 
 func (c clusterOperatorComponent) postInstallUpgrade(ctx spi.ComponentContext) error {
 	if vzcr.IsRancherEnabled(ctx.EffectiveCR()) {
+		if err := createVZClusterUser(ctx); err != nil {
+			return err
+		}
+
 		return rancher.CreateOrUpdateRoleTemplate(ctx, vzconst.VerrazzanoClusterRancherName)
+	}
+	return nil
+}
+
+// createVZClusterUser creates the Verrazzano cluster user in Rancher using the Rancher API
+func createVZClusterUser(ctx spi.ComponentContext) error {
+	rc, err := rancherutil.NewRancherConfig(ctx.Client(), ctx.Log())
+	if err != nil {
+		return err
+	}
+
+	// Send a request to see if the user exists
+	reqURL := rc.BaseURL + usersByNamePath + vzconst.VerrazzanoClusterRancherUsername
+	response, body, err := rancherutil.SendRequest(http.MethodGet, reqURL, map[string]string{}, "", rc, ctx.Log())
+	if err != nil {
+		return err
+	}
+	if response.StatusCode != 200 {
+		return ctx.Log().ErrorfNewErr("Failed to get expected response code viewing existing users in Rancher, code: %s")
+	}
+	data, err := httputil.ExtractFieldFromResponseBodyOrReturnError(body, dataField, "failed to locate the data field of the response body")
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to find user given the username: %v", err)
+	}
+	if data != "[]" {
+		ctx.Log().Oncef("Verrazzano cluster user was located, skipping the creation process")
+		return nil
+	}
+
+	// If the user has not been located, generate the user with a new password
+	pass, err := vzpassword.GeneratePassword(15)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to generate a password for the Verrazzano cluster user: %v", err)
+	}
+	reqURL = rc.BaseURL + usersPath
+	payload := fmt.Sprintf(userPayload, vzconst.VerrazzanoClusterRancherName, pass, vzconst.VerrazzanoClusterRancherName)
+	response, body, err = rancherutil.SendRequest(http.MethodPost, reqURL, map[string]string{}, payload, rc, ctx.Log())
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to create the Verrazzano cluster user in Rancher: %v", err)
+	}
+	if response.StatusCode != http.StatusCreated {
+		return ctx.Log().ErrorfNewErr("Failed to get expected response code creating the Verrazzano cluster user in Rancher, code: %s", response.StatusCode)
+	}
+
+	// Store the password in a secret, so we can later use it to provide the Verrazzano cluster user credentials
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+			Name:      vzconst.VerrazzanoClusterRancherName,
+		},
+	}
+	_, err = controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), secret, func() error {
+		secret.Data = map[string][]byte{passwordField: []byte(pass)}
+		return nil
+	})
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed create or update the Secret for the Verrazzano Cluster User: %v", err)
 	}
 	return nil
 }

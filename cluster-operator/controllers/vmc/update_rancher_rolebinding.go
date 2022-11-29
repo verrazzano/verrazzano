@@ -51,7 +51,7 @@ func (r *VerrazzanoManagedClusterReconciler) UpdateRancherClusterRoleBindingTemp
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &resource, func() error {
 		data := resource.UnstructuredContent()
 		data[ClusterRoleTemplateBindingAttributeClusterName] = clusterID
-		data[ClusterRoleTemplateBindingAttributeUserName] = vzconst.VerrazzanoClusterRancherUser
+		data[ClusterRoleTemplateBindingAttributeUserName] = vzconst.VerrazzanoClusterRancherUsername
 		data[ClusterRoleTemplateBindingAttributeRoleTemplateName] = vzconst.VerrazzanoClusterRancherName
 		return nil
 	})

@@ -25,6 +25,12 @@ func TestExtractTokenFromResponseBody(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal("abcd", token)
 
+	// Valid non-string response
+	body = `{"token": [{"abcd": "efgh"}]}`
+	token, err = httputil.ExtractFieldFromResponseBodyOrReturnError(body, "token")
+	asserts.NoError(err)
+	asserts.Equal(`[{"abcd":"efgh"}]`, token)
+
 	// Expected error message
 	body = `{"notoken": "yes"}`
 	errMsg := "unable to find auth code"

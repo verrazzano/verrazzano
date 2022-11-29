@@ -512,10 +512,6 @@ func ConfigureAuthProviders(ctx spi.ComponentContext) error {
 			return err
 		}
 
-		if err := createOrUpdateVZClusterUser(ctx); err != nil {
-			return err
-		}
-
 		if err := createOrUpdateRoleTemplates(ctx); err != nil {
 			return err
 		}

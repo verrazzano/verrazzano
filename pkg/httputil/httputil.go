@@ -22,6 +22,10 @@ func ExtractFieldFromResponseBodyOrReturnError(responseBody string, field string
 		return token, nil
 	}
 
+	if toString := jsonString.Path(field).String(); toString != "null" {
+		return toString, nil
+	}
+
 	errorString := "unable to find token in response"
 	if errMsg != nil {
 		errorString = errMsg[0]

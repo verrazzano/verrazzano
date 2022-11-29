@@ -4,10 +4,22 @@
 package clusteroperator
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"github.com/golang/mock/gomock"
+	rancherutil "github.com/verrazzano/verrazzano/pkg/rancher"
+	"github.com/verrazzano/verrazzano/pkg/test/mockmatchers"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+	"io"
+	corev1 "k8s.io/api/core/v1"
+	networkv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"net/http"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
+	"time"
 
 	asserts "github.com/stretchr/testify/assert"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -152,4 +164,162 @@ func TestPostInstallUpgradeRancherDisabled(t *testing.T) {
 	resource.SetGroupVersionKind(rancher.GVKRoleTemplate)
 	err = cli.Get(context.TODO(), types.NamespacedName{Name: vzconst.VerrazzanoClusterRancherName}, &resource)
 	asserts.Error(t, err)
+}
+
+// TestCreateVZClusterUser tests the creation of the VZ cluster user through the Rancher API
+func TestCreateVZClusterUser(t *testing.T) {
+	cli := createClusterUserTestObjects()
+	mocker := gomock.NewController(t)
+
+	vz := &v1alpha1.Verrazzano{}
+
+	savedRancherHTTPClient := rancherutil.RancherHTTPClient
+	defer func() {
+		rancherutil.RancherHTTPClient = savedRancherHTTPClient
+	}()
+
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = wait.Backoff{
+		Steps:    1,
+		Duration: 1 * time.Millisecond,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}
+
+	tests := []struct {
+		name      string
+		mock      *mocks.MockRequestSender
+		expectErr bool
+	}{
+		// GIVEN a call to createVZClusterUser
+		// WHEN  the user exists
+		// THEN  no error is returned
+		{
+			name:      "test user exists",
+			mock:      createClusterUserExists(mocks.NewMockRequestSender(mocker), http.StatusOK),
+			expectErr: false,
+		},
+		// GIVEN a call to createVZClusterUser
+		// WHEN  the user API call fails
+		// THEN  an error is returned
+		{
+			name:      "test fail check users",
+			mock:      createClusterUserExists(mocks.NewMockRequestSender(mocker), http.StatusUnauthorized),
+			expectErr: true,
+		},
+		// GIVEN a call to createVZClusterUser
+		// WHEN  the user does not exist
+		// THEN  a user is created and no error is returned
+		{
+			name:      "test user does not exist",
+			mock:      createClusterUserDoesNotExist(mocks.NewMockRequestSender(mocker), http.StatusCreated),
+			expectErr: false,
+		},
+		// GIVEN a call to createVZClusterUser
+		// WHEN  the user creation API call fails
+		// THEN  an error is returned
+		{
+			name:      "test user failed create",
+			mock:      createClusterUserDoesNotExist(mocks.NewMockRequestSender(mocker), http.StatusUnauthorized),
+			expectErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rancherutil.RancherHTTPClient = tt.mock
+			err := createVZClusterUser(spi.NewFakeContext(cli, vz, nil, false))
+			if tt.expectErr {
+				asserts.Error(t, err)
+				return
+			}
+			asserts.NoError(t, err)
+		})
+	}
+}
+
+func createClusterUserTestObjects() client.WithWatch {
+	return fake.NewClientBuilder().WithRuntimeObjects(
+		&networkv1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconst.RancherSystemNamespace,
+				Name:      constants.RancherIngress,
+			},
+			Spec: networkv1.IngressSpec{
+				Rules: []networkv1.IngressRule{
+					{
+						Host: "test-rancher.com",
+					},
+				},
+			},
+		},
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconst.VerrazzanoMultiClusterNamespace,
+				Name:      vzconst.VerrazzanoClusterRancherName,
+			},
+			Data: map[string][]byte{
+				"password": []byte(""),
+			},
+		}).Build()
+}
+
+func createClusterUserExists(httpMock *mocks.MockRequestSender, getUserStatus int) *mocks.MockRequestSender {
+	httpMock = adminTokenMock(httpMock)
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(usersPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[{"dataexists":"true"}]}`)))
+			resp := &http.Response{
+				StatusCode: getUserStatus,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodGet},
+			}
+			return resp, nil
+		})
+	return httpMock
+}
+
+func createClusterUserDoesNotExist(httpMock *mocks.MockRequestSender, createStatus int) *mocks.MockRequestSender {
+	httpMock = adminTokenMock(httpMock)
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, usersPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[]}`)))
+			resp := &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodGet},
+			}
+			return resp, nil
+		})
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodPost, usersPath)).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[]}`)))
+			resp := &http.Response{
+				StatusCode: createStatus,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
+			}
+			return resp, nil
+		})
+	return httpMock
+}
+
+func adminTokenMock(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI("/v3-public/localProviders/local")).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			r := io.NopCloser(bytes.NewReader([]byte(`{"token":"unit-test-token"}`)))
+			resp := &http.Response{
+				StatusCode: http.StatusCreated,
+				Body:       r,
+				Request:    &http.Request{Method: http.MethodPost},
+			}
+			return resp, nil
+		})
+	return httpMock
 }

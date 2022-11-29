@@ -69,7 +69,7 @@ func TestUpdateRancherClusterRoleBinding(t *testing.T) {
 				a.NoError(err)
 				a.NotNil(resource)
 				a.Equal(clusterID, resource.Object[ClusterRoleTemplateBindingAttributeClusterName])
-				a.Equal(vzconst.VerrazzanoClusterRancherUser, resource.Object[ClusterRoleTemplateBindingAttributeUserName])
+				a.Equal(vzconst.VerrazzanoClusterRancherUsername, resource.Object[ClusterRoleTemplateBindingAttributeUserName])
 				a.Equal(vzconst.VerrazzanoClusterRancherName, resource.Object[ClusterRoleTemplateBindingAttributeRoleTemplateName])
 			}
 		})
