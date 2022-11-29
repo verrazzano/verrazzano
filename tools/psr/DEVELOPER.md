@@ -1,6 +1,6 @@
 # PSR Developer Guide
 
-This document describes how to develop PSR workers and scenarios that can be used to test individual 
+This documnt describes how to develop PSR workers and scenarios that can be used to test individual 
 Verrazzano components, or Verrazzano as a whole. Here is a summary of the steps you should follow, details will follow.
 
 1. Get familiar with the PSR tool, run the example and some scenarios.
@@ -191,13 +191,6 @@ OpenSearch [getlogs](./backend/workers/opensearch/scale/scale.go) worker uses ` 
 **NOTE** The same worker struct and metrics is shared across all worker threads.  There is currently no state per worker.  Workers
 that keep state, such as the scaling worker, normally only run in a single thread. 
 
-
-## Creating and running scenarios
-A scenarios is a collection of use cases with a curated configuration, that are run concurrently.  Typically, 
-you should restrict a scenario use cases to a single area, but that is not a strict requirement.  You can run multiple 
-scenarios concurrently so creating a mixed-area scenario might not be necessary.  If you do decide to create a mixed area scenario, 
-then create it in a directory called scenario/mixed.
-
 ## PSR CLI (psrctl)
 Scenarios are run by the PSR command line interface, `psrctl`.  The source code [manifests](./manifests) directory contains all
 of the helm charts, use cases overrides, and scenario files.  These manifests files are built into the psrctl binary and accessed
@@ -213,6 +206,12 @@ credentials with `psrctl -p`.  If you want to override the image name, use `psrc
 If you want to use a local image and load it into a kind cluster, they run `make kind-load-image` and specify that image
 using `psrctl -w`.  This is the easiest way to develop and test a worker on Kind.
 
+## Creating scenarios
+A scenario is a collection of use cases with a curated configuration, that are run concurrently.  Typically, 
+you should restrict a scenario use cases to a single area, but that is not a strict requirement.  You can run multiple 
+scenarios concurrently so creating a mixed-area scenario might not be necessary.  If you do decide to create a mixed area scenario, 
+then create it in a directory called scenario/mixed.
+
 ### Scenario files
 Scenarios are specified by a scenario.yaml file along with usecase override files, one for each use case.
 By convention, the files must be in the [scenarios](./manifests/scenarios) directory structured as follows:
@@ -222,8 +221,40 @@ By convention, the files must be in the [scenarios](./manifests/scenarios) direc
 ```
 For example, the scenario to restart all OpenSearch tiers is in [restart-all-tiers](./manifests/scenarios/opensearch/restart-all-tiers)
 
-### Scenario location
+### Scenario YAML file
+The scenario YAML file describes the scenario, the use cases that comprise the scenario, and the use case overrides for the scenario.
+Following is the OpenSearch [restart-all-tiers/scenario.yaml](./manifests/scenarios/opensearch/restart-all-tiers/scenario.yaml).
+```
+name: opensearch-restart-all-tiers
+ID: ops-rat
+description: |
+  This is a scenario that restarts pods on all 3 OpenSearch tiers simultaneously
+usecases:
+  - usecasePath: opensearch/restart.yaml
+    overrideFile: restart-master.yaml
+    description: restarts master nodes
+  - usecasePath: opensearch/restart.yaml
+    overrideFile: restart-data.yaml
+    description: restarts data nodes
+  - usecasePath: opensearch/restart.yaml
+    overrideFile: restart-ingest.yaml
+    description: restarts ingest nodes
+```
+The front section has the scenario name, ID, and description.  The usecases section has all of the use cases that will be run when
+the scenario is started.  The `usecasePath` points to the built-in use case override file.  The `overrideFile` specifies the file
+in `usecase-overrides` containing the scenario overrides for that specific use case.
 
+Following is the [scenario override file](./manifests/scenarios/opensearch/restart-all-tiers/usecase-overrides/restart-data.yaml) for restarting the data tier.
+```
+global:
+  envVars:
+    PSR_WORKER_TYPE: ops-restart
+    OPENSEARCH_TIER: data
+    PSR_LOOP_SLEEP: 5s
+```
+This file specifies that the data tier should be restarted every 5 seconds.  The `PSR_WORKER_TYPE` is not really needed here, since it
+is already in the use case file at [usecases/opensearch/restart.yaml](./manifests/usecases/opensearch/restart.yaml), however, it
+doesn't hurt to have it for documentation purposes.
 
 
 
