@@ -5,7 +5,13 @@ package clusteroperator
 
 import (
 	"context"
+	"github.com/golang/mock/gomock"
+	rancherutil "github.com/verrazzano/verrazzano/pkg/rancher"
+	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -127,13 +133,34 @@ func TestIsReadyFalse(t *testing.T) {
 func TestPostInstall(t *testing.T) {
 	clustOpComp := clusterOperatorComponent{}
 
-	cli := fake.NewClientBuilder().WithObjects(
+	cli := createClusterUserTestObjects().WithObjects(
 		&rbacv1.ClusterRole{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: vzconst.VerrazzanoClusterRancherName,
 			},
 		},
 	).Build()
+
+	mocker := gomock.NewController(t)
+	httpMock := createClusterUserExists(mocks.NewMockRequestSender(mocker), http.StatusOK)
+
+	savedRancherHTTPClient := rancherutil.RancherHTTPClient
+	defer func() {
+		rancherutil.RancherHTTPClient = savedRancherHTTPClient
+	}()
+	rancherutil.RancherHTTPClient = httpMock
+
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = wait.Backoff{
+		Steps:    1,
+		Duration: 1 * time.Millisecond,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}
+
 	err := clustOpComp.PostInstall(spi.NewFakeContext(cli, &v1alpha1.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 
@@ -148,13 +175,34 @@ func TestPostInstall(t *testing.T) {
 func TestPostUpgrade(t *testing.T) {
 	clustOpComp := clusterOperatorComponent{}
 
-	cli := fake.NewClientBuilder().WithObjects(
+	cli := createClusterUserTestObjects().WithObjects(
 		&rbacv1.ClusterRole{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: vzconst.VerrazzanoClusterRancherName,
 			},
 		},
 	).Build()
+
+	mocker := gomock.NewController(t)
+	httpMock := createClusterUserExists(mocks.NewMockRequestSender(mocker), http.StatusOK)
+
+	savedRancherHTTPClient := rancherutil.RancherHTTPClient
+	defer func() {
+		rancherutil.RancherHTTPClient = savedRancherHTTPClient
+	}()
+	rancherutil.RancherHTTPClient = httpMock
+
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = wait.Backoff{
+		Steps:    1,
+		Duration: 1 * time.Millisecond,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}
+
 	err := clustOpComp.PostUpgrade(spi.NewFakeContext(cli, &v1alpha1.Verrazzano{}, nil, false))
 	assert.NoError(t, err)
 

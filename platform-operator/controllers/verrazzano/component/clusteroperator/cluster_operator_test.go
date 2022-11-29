@@ -32,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -93,8 +92,8 @@ func TestGetOverrides(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			asserts.Equal(t, tt.expA1Overrides, NewComponent().GetOverrides(spi.NewFakeContext(nil, tt.verrazzanoA1, tt.verrazzanoB1, false, profilesRelativePath).EffectiveCR()))
-			asserts.Equal(t, tt.expB1Overrides, NewComponent().GetOverrides(spi.NewFakeContext(nil, tt.verrazzanoA1, tt.verrazzanoB1, false, profilesRelativePath).EffectiveCRV1Beta1()))
+			asserts.Equal(t, tt.expA1Overrides, NewComponent().GetOverrides(tt.verrazzanoA1))
+			asserts.Equal(t, tt.expB1Overrides, NewComponent().GetOverrides(tt.verrazzanoB1))
 		})
 	}
 }
@@ -118,13 +117,34 @@ func TestAppendOverrides(t *testing.T) {
 func TestPostInstallUpgrade(t *testing.T) {
 	clustOpComp := clusterOperatorComponent{}
 
-	cli := fake.NewClientBuilder().WithObjects(
+	cli := createClusterUserTestObjects().WithObjects(
 		&rbacv1.ClusterRole{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: vzconst.VerrazzanoClusterRancherName,
 			},
 		},
 	).Build()
+
+	mocker := gomock.NewController(t)
+	httpMock := createClusterUserExists(mocks.NewMockRequestSender(mocker), http.StatusOK)
+
+	savedRancherHTTPClient := rancherutil.RancherHTTPClient
+	defer func() {
+		rancherutil.RancherHTTPClient = savedRancherHTTPClient
+	}()
+	rancherutil.RancherHTTPClient = httpMock
+
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = wait.Backoff{
+		Steps:    1,
+		Duration: 1 * time.Millisecond,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}
+
 	err := clustOpComp.postInstallUpgrade(spi.NewFakeContext(cli, nil, &v1beta1.Verrazzano{}, false))
 	asserts.NoError(t, err)
 
@@ -168,7 +188,7 @@ func TestPostInstallUpgradeRancherDisabled(t *testing.T) {
 
 // TestCreateVZClusterUser tests the creation of the VZ cluster user through the Rancher API
 func TestCreateVZClusterUser(t *testing.T) {
-	cli := createClusterUserTestObjects()
+	cli := createClusterUserTestObjects().Build()
 	mocker := gomock.NewController(t)
 
 	vz := &v1alpha1.Verrazzano{}
@@ -240,7 +260,7 @@ func TestCreateVZClusterUser(t *testing.T) {
 	}
 }
 
-func createClusterUserTestObjects() client.WithWatch {
+func createClusterUserTestObjects() *fake.ClientBuilder {
 	return fake.NewClientBuilder().WithRuntimeObjects(
 		&networkv1.Ingress{
 			ObjectMeta: metav1.ObjectMeta{
@@ -263,7 +283,7 @@ func createClusterUserTestObjects() client.WithWatch {
 			Data: map[string][]byte{
 				"password": []byte(""),
 			},
-		}).Build()
+		})
 }
 
 func createClusterUserExists(httpMock *mocks.MockRequestSender, getUserStatus int) *mocks.MockRequestSender {

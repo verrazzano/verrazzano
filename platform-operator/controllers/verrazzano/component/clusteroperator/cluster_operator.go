@@ -126,7 +126,7 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 	}
 	reqURL = rc.BaseURL + usersPath
 	payload := fmt.Sprintf(userPayload, vzconst.VerrazzanoClusterRancherName, pass, vzconst.VerrazzanoClusterRancherName)
-	response, body, err = rancherutil.SendRequest(http.MethodPost, reqURL, map[string]string{}, payload, rc, ctx.Log())
+	response, _, err = rancherutil.SendRequest(http.MethodPost, reqURL, map[string]string{}, payload, rc, ctx.Log())
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to create the Verrazzano cluster user in Rancher: %v", err)
 	}
