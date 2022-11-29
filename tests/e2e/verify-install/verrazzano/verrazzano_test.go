@@ -27,7 +27,7 @@ const (
 	pollingInterval = 5 * time.Second
 )
 
-// Initialized in BeforeSuiteFunc
+// Initialized in BeforeSuite
 var isMinVersion110 bool
 var isMinVersion120 bool
 var isMinVersion140 bool
