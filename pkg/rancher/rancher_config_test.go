@@ -60,10 +60,20 @@ func TestCreateRancherRequest(t *testing.T) {
 	httpMock = expectHTTPRequests(httpMock, testPath, testBody)
 	RancherHTTPClient = httpMock
 
+	// Test with the Verrazzano cluster user
 	rc, err := NewRancherConfig(cli, false, log)
 	assert.NoError(t, err)
 
 	response, body, err := SendRequest(http.MethodGet, testPath, map[string]string{}, "", rc, log)
+	assert.NoError(t, err)
+	assert.Equal(t, testBody, body)
+	assert.Equal(t, http.StatusOK, response.StatusCode)
+
+	// Test with the admin user
+	rc, err = NewRancherConfig(cli, true, log)
+	assert.NoError(t, err)
+
+	response, body, err = SendRequest(http.MethodGet, testPath, map[string]string{}, "", rc, log)
 	assert.NoError(t, err)
 	assert.Equal(t, testBody, body)
 	assert.Equal(t, http.StatusOK, response.StatusCode)
@@ -92,6 +102,15 @@ func createTestObjects() client.WithWatch {
 			Data: map[string][]byte{
 				"password": []byte(""),
 			},
+		},
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: rancherNamespace,
+				Name:      rancherAdminSecret,
+			},
+			Data: map[string][]byte{
+				"password": []byte(""),
+			},
 		}).Build()
 }
 
@@ -106,7 +125,7 @@ func expectHTTPRequests(httpMock *mocks.MockRequestSender, testPath, testBody st
 				Body:       r,
 			}
 			return resp, nil
-		})
+		}).Times(2)
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(loginURIPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
@@ -117,6 +136,6 @@ func expectHTTPRequests(httpMock *mocks.MockRequestSender, testPath, testBody st
 				Request:    &http.Request{Method: http.MethodPost},
 			}
 			return resp, nil
-		})
+		}).Times(2)
 	return httpMock
 }

@@ -32,6 +32,8 @@ const (
 	rancherNamespace   = "cattle-system"
 	rancherIngressName = "rancher"
 
+	rancherAdminSecret = "rancher-admin-secret" //nolint:gosec //#gosec G101
+
 	loginPath = "/v3-public/localProviders/local?action=login"
 
 	// this host resolves to the cluster IP
@@ -145,6 +147,19 @@ func getVerrazzanoClusterUserSecret(rdr client.Reader) (string, error) {
 	return string(secret.Data["password"]), nil
 }
 
+// getAdminSecret fetches the Rancher admin secret
+func getAdminSecret(rdr client.Reader) (string, error) {
+	secret := &corev1.Secret{}
+	nsName := types.NamespacedName{
+		Namespace: rancherNamespace,
+		Name:      rancherAdminSecret}
+
+	if err := rdr.Get(context.TODO(), nsName, secret); err != nil {
+		return "", err
+	}
+	return string(secret.Data["password"]), nil
+}
+
 // getVerrazzanoClusterUserTokenFromRancher does a login with the verrazzano user so Rancher and returns the token from the response
 func getVerrazzanoClusterUserTokenFromRancher(rdr client.Reader, rc *RancherConfig, log vzlog.VerrazzanoLogger) (string, error) {
 	secret, err := getVerrazzanoClusterUserSecret(rdr)
@@ -156,7 +171,7 @@ func getVerrazzanoClusterUserTokenFromRancher(rdr client.Reader, rc *RancherConf
 
 // getAdminTokenFromRancher does a login with the admin user in Rancher and returns the token from the response
 func getAdminTokenFromRancher(rdr client.Reader, rc *RancherConfig, log vzlog.VerrazzanoLogger) (string, error) {
-	secret, err := getVerrazzanoClusterUserSecret(rdr)
+	secret, err := getAdminSecret(rdr)
 	if err != nil {
 		return "", err
 	}
