@@ -7,6 +7,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/httputil"
@@ -40,26 +41,20 @@ var _ spi.Worker = worker{}
 
 // workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
 type workerMetrics struct {
-	getRequestsCountTotal          metrics.MetricItem
-	getRequestsSucceededCountTotal metrics.MetricItem
-	getRequestsFailedCountTotal    metrics.MetricItem
+	alertsFiringCount   metrics.MetricItem
+	alertsResolvedCount metrics.MetricItem
 }
 
 func NewReceiveAlertsWorker() (spi.Worker, error) {
 	w := worker{workerMetrics: &workerMetrics{
-		getRequestsCountTotal: metrics.MetricItem{
-			Name: "alerts_received_count",
+		alertsFiringCount: metrics.MetricItem{
+			Name: "alerts_firing_received_count",
 			Help: "The total number of alerts received from alertmanager",
 			Type: prometheus.CounterValue,
 		},
-		getRequestsCountTotal: metrics.MetricItem{
-			Name: "alerts_received_count",
+		alertsResolvedCount: metrics.MetricItem{
+			Name: "alerts_resolved_received_count",
 			Help: "The total number of alerts received from alertmanager",
-			Type: prometheus.CounterValue,
-		},
-		getRequestsFailedCountTotal: metrics.MetricItem{
-			Name: "request_failed_count_total",
-			Help: "The total number of failed GET requests",
 			Type: prometheus.CounterValue,
 		},
 	}}
@@ -73,9 +68,8 @@ func NewReceiveAlertsWorker() (spi.Worker, error) {
 	}
 
 	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
-		&w.getRequestsCountTotal,
-		&w.getRequestsSucceededCountTotal,
-		&w.getRequestsFailedCountTotal,
+		&w.alertsFiringCount,
+		&w.alertsResolvedCount,
 	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
 	return w, nil
 }
@@ -84,7 +78,7 @@ func NewReceiveAlertsWorker() (spi.Worker, error) {
 func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
 		WorkerType:    config.WorkerTypeHTTPGet,
-		Description:   "The get worker makes GET request on the given endpoint",
+		Description:   "The alerts receiver worker configures ",
 		MetricsPrefix: metricsPrefix,
 	}
 }
@@ -99,9 +93,8 @@ func (w worker) GetMetricDescList() []prometheus.Desc {
 
 func (w worker) GetMetricList() []prometheus.Metric {
 	return []prometheus.Metric{
-		w.getRequestsCountTotal.BuildMetric(),
-		w.getRequestsSucceededCountTotal.BuildMetric(),
-		w.getRequestsFailedCountTotal.BuildMetric(),
+		w.alertsFiringCount.BuildMetric(),
+		w.alertsResolvedCount.BuildMetric(),
 	}
 }
 
@@ -118,7 +111,7 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 		return err
 	}
 
-	http.HandleFunc("/alerts", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/alerts", func(rw http.ResponseWriter, r *http.Request) {
 		c, err := funcNewPsrClient()
 		if err != nil {
 			log.Errorf("error creating client: %v", err)
@@ -137,6 +130,18 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 		if err != nil {
 			log.Error(err)
 		}
+		alertStatus, err := httputil.ExtractFieldFromResponseBodyOrReturnError(string(bodyRaw), "status", "unable to extract alert status from body json")
+		if err != nil {
+			log.Error(err)
+		}
+		if alertStatus == "firing" {
+			atomic.AddInt64(&w.workerMetrics.alertsFiringCount.Val, 1)
+		} else if alertStatus == "resolved" {
+			atomic.AddInt64(&w.workerMetrics.alertsResolvedCount.Val, 1)
+		} else {
+			log.Errorf("alert received with unknown status: %s", alertStatus)
+		}
+
 		event := corev1.Event{
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "psr-alert-" + alertName,
@@ -147,6 +152,7 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 			},
 			Type:    "Alert",
 			Message: string(bodyRaw),
+			Reason:  alertStatus,
 		}
 		if _, err = controllerutil.CreateOrUpdate(context.TODO(), c.CrtlRuntime, &event, func() error {
 			event.LastTimestamp = v1.Time{Time: time.Now()}
