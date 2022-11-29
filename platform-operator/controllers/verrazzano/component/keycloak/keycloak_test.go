@@ -505,7 +505,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 				},
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "verrazzano-os-internal",
+						Name:      "verrazzano-es-internal",
 						Namespace: "verrazzano-system",
 					},
 					Data: map[string][]byte{
@@ -540,7 +540,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 				},
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "verrazzano-os-internal",
+						Name:      "verrazzano-es-internal",
 						Namespace: "verrazzano-system",
 					},
 					Data: map[string][]byte{
@@ -575,7 +575,7 @@ func TestConfigureKeycloakRealms(t *testing.T) {
 				},
 				&v1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "verrazzano-os-internal",
+						Name:      "verrazzano-es-internal",
 						Namespace: "verrazzano-system",
 					},
 					Data: map[string][]byte{
