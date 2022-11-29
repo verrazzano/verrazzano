@@ -439,9 +439,12 @@ def getLatestRelease(){
     return latestReleaseTag
 }
 
+// getInterimRelease returns the interim version, where interim version =  latest minor release - 1 older release
 def getInterimRelease(){
+    // Read the tags from the file and create a list gitTags
     final String fileContent = readFile(file: "${workspace}/tags.txt")
     final List gitTags = extractReleaseTags(fileContent)
+
     def latestReleaseTag = gitTags.pop() - "v"
     def interimRelease
     def latestPatch = 0
@@ -449,6 +452,8 @@ def getInterimRelease(){
     def latestRelease = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
     def minorInterimVersionValue =  Integer.parseInt(latestReleaseTagSplit[1]) - 1
     def majorVersionValue = Integer.parseInt(latestReleaseTagSplit[0])
+
+    //Handles the major release case, ex: where the latest version is 2.0.0 and the previous version is 1.4.2
     if(minorInterimVersionValue < 0){
         minorInterimVersionValue = 0
         majorVersionValue = Integer.parseInt(latestReleaseTagSplit[0]) - 1
@@ -465,6 +470,8 @@ def getInterimRelease(){
     }else {
         minorInterimVersionValue =  Integer.parseInt(latestReleaseTagSplit[1]) - 1
     }
+
+    //Iterate over all releases to configure the latest patch release
     for (version in gitTags) {
          if(version ==~ "^\\w{5}\\-\\w{4}\$"){
             continue
@@ -481,9 +488,12 @@ def getInterimRelease(){
     return "v"+interimRelease
 }
 
+// getInstallVersion returns the install version, where install version =  latest minor release - 2 older release
 def getInstallVersion(){
+     // Read the tags from the file and create a list gitTags
     final String fileContent = readFile(file: "${workspace}/tags.txt")
     final List gitTags = extractReleaseTags(fileContent)
+
     def latestReleaseTag = gitTags.pop() - "v"
     def installRelease
     def latestPatch = 0
@@ -491,6 +501,8 @@ def getInstallVersion(){
     def latestRelease = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
     def minorInstallVersionValue =  Integer.parseInt(latestReleaseTagSplit[1]) - 2
     def majorVersionValue = Integer.parseInt(latestReleaseTagSplit[0])
+
+    //Handles the major release case, ex: where the latest version is 2.0.0 and the previous version is 1.4.2
     if(minorInstallVersionValue < 0){
         minorInstallVersionValue = 0
         majorVersionValue = Integer.parseInt(latestReleaseTagSplit[0]) - 1
@@ -505,6 +517,8 @@ def getInstallVersion(){
           }
         }
     }
+
+    //Iterate over all releases to configure the latest patch release
     for (version in gitTags) {
          if(version ==~ "^\\w{5}\\-\\w{4}\$"){
             continue
