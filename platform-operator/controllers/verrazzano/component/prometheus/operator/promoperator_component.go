@@ -34,7 +34,7 @@ const ComponentName = "prometheus-operator"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoMonitoringNamespace
 
-// ComponentJSONName is the json name of the component in the CRD
+// ComponentJSONName is the JSON name of the component in the CRD
 const ComponentJSONName = "prometheusOperator"
 
 const chartDir = "prometheus-community/kube-prometheus-stack"
@@ -107,12 +107,18 @@ func (c prometheusComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 
 // PreInstall updates resources necessary for the Prometheus Operator Component installation
 func (c prometheusComponent) PreInstall(ctx spi.ComponentContext) error {
-	return preInstallUpgrade(ctx)
+	if err := preInstallUpgrade(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 // PreUpgrade updates resources necessary for the Prometheus Operator Component installation
 func (c prometheusComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	return preInstallUpgrade(ctx)
+	if err := preInstallUpgrade(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // PostInstall creates/updates associated resources after this component is installed

@@ -4,12 +4,12 @@ package operatorinit
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	"os"
+
+	"github.com/verrazzano/verrazzano/pkg/bom"
 
 	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/webhooks"
@@ -136,6 +136,10 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 			},
 		},
 	)
+	// register requirements validator webhooks
+	mgr.GetWebhookServer().Register(webhooks.RequirementsV1beta1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1beta1{}})
+	mgr.GetWebhookServer().Register(webhooks.RequirementsV1alpha1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1alpha1{}})
+
 	// register MySQL install values webhooks
 	bomFile, err := bom.NewBom(internalconfig.GetDefaultBOMFilePath())
 	if err != nil {
@@ -144,11 +148,6 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1beta1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1beta1{BomVersion: bomFile.GetVersion()}})
 	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1alpha1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1alpha1{BomVersion: bomFile.GetVersion()}})
 
-	// Set up the validation webhook for VMC
-	log.Debug("Setting up VerrazzanoManagedCluster webhook with manager")
-	if err := (&clustersv1alpha1.VerrazzanoManagedCluster{}).SetupWebhookWithManager(mgr); err != nil {
-		return fmt.Errorf("Failed to setup webhook with manager: %v", err)
-	}
 	return nil
 }
 
@@ -177,6 +176,11 @@ func updateWebhookConfigurations(kubeClient *kubernetes.Clientset, log *zap.Suga
 
 	if err := updateMutatingWebhookConfiguration(kubeClient, constants.MysqlBackupMutatingWebhookName); err != nil {
 		return fmt.Errorf("Failed to update pod mutating webhook configuration: %v", err)
+	}
+
+	log.Debug("Updating Requirements webhook configuration")
+	if err := updateValidatingWebhookConfiguration(kubeClient, webhooks.RequirementsWebhook); err != nil {
+		return fmt.Errorf("Failed to update requirements validation webhook configuration: %v", err)
 	}
 
 	log.Debug("Updating MySQL install values webhook configuration")

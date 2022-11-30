@@ -4,6 +4,7 @@
 package reconcile
 
 import (
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -110,7 +111,9 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 		case compStateUninstall:
 			compLog.Progressf("Component %s is calling uninstall", compName)
 			if err := comp.Uninstall(compContext); err != nil {
-				compLog.Errorf("Failed uninstalling component %s, will retry: %v", compName, err)
+				if !ctrlerrors.IsRetryableError(err) {
+					compLog.Errorf("Failed uninstalling component %s, will retry: %v", compName, err)
+				}
 				return ctrl.Result{}, err
 			}
 			UninstallContext.state = compStateWaitUninstalled
@@ -127,7 +130,9 @@ func (r *Reconciler) uninstallSingleComponent(spiCtx spi.ComponentContext, Unins
 			}
 			compLog.Progressf("Component %s has been uninstalled, running post-uninstall", compName)
 			if err := comp.PostUninstall(compContext); err != nil {
-				compLog.Errorf("PostUninstall for component %s failed: %v", compName, err)
+				if !ctrlerrors.IsRetryableError(err) {
+					compLog.Errorf("PostUninstall for component %s failed: %v", compName, err)
+				}
 				return newRequeueWithDelay(), nil
 			}
 			UninstallContext.state = compStateUninstalleDone

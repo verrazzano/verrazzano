@@ -5,6 +5,7 @@ package mchelidon
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"os"
 	"strconv"
 	"time"
@@ -53,7 +54,7 @@ var _ = t.AfterEach(func() {
 })
 
 // set the kubeconfig to use the admin cluster kubeconfig and deploy the example resources
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	// deploy the VerrazzanoProject
 	start := time.Now()
 	Eventually(func() error {
@@ -89,6 +90,8 @@ var _ = t.BeforeSuite(func() {
 	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.AfterEach(func() {})
 
@@ -321,11 +324,13 @@ var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
 	})
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport(testNamespace)
+		dump.ExecuteBugReport(testNamespace)
 	}
 })
+
+var _ = AfterSuite(afterSuite)
 
 func cleanUp(kubeconfigPath string) error {
 	start := time.Now()

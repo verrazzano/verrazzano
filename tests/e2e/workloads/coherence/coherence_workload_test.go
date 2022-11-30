@@ -5,6 +5,7 @@ package coherence
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"net/http"
 	"time"
 
@@ -42,7 +43,7 @@ var (
 	host               = ""
 )
 
-var _ = BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
 		deployCoherenceApp(namespace)
@@ -75,20 +76,24 @@ var _ = BeforeSuite(func() {
 	beforeSuitePassed = true
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var failed = false
 var beforeSuitePassed = false
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport(namespace)
+		dump.ExecuteBugReport(namespace)
 	}
 	if !skipUndeploy {
 		undeployCoherenceApp()
 	}
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Validate deployment of VerrazzanoCoherenceWorkload", Label("f:app-lcm.oam", "f:app-lcm.coherence-workload"), func() {
 

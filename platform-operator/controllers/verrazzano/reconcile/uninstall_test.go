@@ -11,11 +11,11 @@ import (
 	"time"
 
 	vzappclusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
-	clustersapi "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
@@ -112,7 +112,7 @@ func TestReconcileUninstalling(t *testing.T) {
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	_ = clustersapi.AddToScheme(k8scheme.Scheme)
+	_ = v1alpha1.AddToScheme(k8scheme.Scheme)
 	_ = vzappclusters.AddToScheme(k8scheme.Scheme)
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -200,7 +200,7 @@ func TestReconcileUninstall(t *testing.T) {
 		},
 	}
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	_ = clustersapi.AddToScheme(k8scheme.Scheme)
+	_ = v1alpha1.AddToScheme(k8scheme.Scheme)
 	_ = vzappclusters.AddToScheme(k8scheme.Scheme)
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
@@ -316,7 +316,7 @@ func TestUninstallVariations(t *testing.T) {
 			config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
 			_ = vzapi.AddToScheme(k8scheme.Scheme)
-			_ = clustersapi.AddToScheme(k8scheme.Scheme)
+			_ = v1alpha1.AddToScheme(k8scheme.Scheme)
 			_ = vzappclusters.AddToScheme(k8scheme.Scheme)
 
 			c, vzcr := buildFakeClientAndObjects(test.createMCNamespace, test.createProject, test.secrets)
@@ -580,7 +580,7 @@ func TestDeleteNamespaces(t *testing.T) {
 	}
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	_ = clustersapi.AddToScheme(k8scheme.Scheme)
+	_ = v1alpha1.AddToScheme(k8scheme.Scheme)
 	_ = vzappclusters.AddToScheme(k8scheme.Scheme)
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(nameSpaces...).Build()
@@ -714,13 +714,13 @@ func TestReconcilerDeleteMCResources(t *testing.T) {
 			},
 		},
 	}
-	managedClusters := []clustersapi.VerrazzanoManagedCluster{
+	managedClusters := []v1alpha1.VerrazzanoManagedCluster{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "testsNS",
 				Name:      "testName",
 			},
-			Spec: clustersapi.VerrazzanoManagedClusterSpec{
+			Spec: v1alpha1.VerrazzanoManagedClusterSpec{
 				ServiceAccount: "serviceAccount",
 			},
 		},
@@ -752,7 +752,7 @@ func TestReconcilerDeleteMCResources(t *testing.T) {
 			return []interface{}{nil}
 		})
 		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&rbacv1.RoleBindingList{}), gomock.Any()).Return(nil)
-		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedClusterList{}), gomock.Any()).Return(fmt.Errorf(unExpectedError))
+		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedClusterList{}), gomock.Any()).Return(fmt.Errorf(unExpectedError))
 		return mockClient
 	}
 	getMockSAError := func() client.Client {
@@ -764,8 +764,8 @@ func TestReconcilerDeleteMCResources(t *testing.T) {
 			return []interface{}{nil}
 		})
 		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&rbacv1.RoleBindingList{}), gomock.Any()).Return(nil)
-		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedClusterList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
-			list.(*clustersapi.VerrazzanoManagedClusterList).Items = managedClusters
+		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedClusterList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
+			list.(*v1alpha1.VerrazzanoManagedClusterList).Items = managedClusters
 			return []interface{}{nil}
 		})
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.ServiceAccount{})).Return(fmt.Errorf(unExpectedError))
@@ -780,12 +780,12 @@ func TestReconcilerDeleteMCResources(t *testing.T) {
 			return []interface{}{nil}
 		})
 		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&rbacv1.RoleBindingList{}), gomock.Any()).Return(nil)
-		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedClusterList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
-			list.(*clustersapi.VerrazzanoManagedClusterList).Items = managedClusters
+		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedClusterList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
+			list.(*v1alpha1.VerrazzanoManagedClusterList).Items = managedClusters
 			return []interface{}{nil}
 		})
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.ServiceAccount{})).Return(nil)
-		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).Return(fmt.Errorf(unExpectedError))
+		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).Return(fmt.Errorf(unExpectedError))
 		return mockClient
 	}
 
@@ -796,12 +796,12 @@ func TestReconcilerDeleteMCResources(t *testing.T) {
 		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&vzappclusters.VerrazzanoProjectList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
 			return []interface{}{nil}
 		})
-		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedClusterList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
-			list.(*clustersapi.VerrazzanoManagedClusterList).Items = managedClusters
+		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedClusterList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
+			list.(*v1alpha1.VerrazzanoManagedClusterList).Items = managedClusters
 			return []interface{}{nil}
 		})
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.ServiceAccount{})).Return(nil)
-		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).Return(nil)
+		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).Return(nil)
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.Namespace{}), gomock.Any()).Return(fmt.Errorf(unExpectedError))
 		return mockClient
 	}
@@ -812,12 +812,12 @@ func TestReconcilerDeleteMCResources(t *testing.T) {
 		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&vzappclusters.VerrazzanoProjectList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
 			return []interface{}{nil}
 		})
-		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedClusterList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
-			list.(*clustersapi.VerrazzanoManagedClusterList).Items = managedClusters
+		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedClusterList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
+			list.(*v1alpha1.VerrazzanoManagedClusterList).Items = managedClusters
 			return []interface{}{nil}
 		})
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.ServiceAccount{})).Return(nil)
-		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).Return(nil)
+		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).Return(nil)
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.Namespace{}), gomock.Any()).Return(nil)
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: vzconst.VerrazzanoSystemNamespace, Name: vzconst.MCRegistrationSecret}}), gomock.Any()).Return(fmt.Errorf(unExpectedError))
 		return mockClient
@@ -829,12 +829,12 @@ func TestReconcilerDeleteMCResources(t *testing.T) {
 		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&vzappclusters.VerrazzanoProjectList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
 			return []interface{}{nil}
 		})
-		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedClusterList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
-			list.(*clustersapi.VerrazzanoManagedClusterList).Items = managedClusters
+		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedClusterList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
+			list.(*v1alpha1.VerrazzanoManagedClusterList).Items = managedClusters
 			return []interface{}{nil}
 		})
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.ServiceAccount{})).Return(nil)
-		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).Return(nil)
+		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).Return(nil)
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.Namespace{}), gomock.Any()).Return(nil)
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: vzconst.VerrazzanoSystemNamespace, Name: vzconst.MCRegistrationSecret}}), gomock.Any()).Return(nil)
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: vzconst.VerrazzanoSystemNamespace, Name: mcElasticSearchScrt}}), gomock.Any()).Return(fmt.Errorf(unExpectedError))
@@ -847,12 +847,12 @@ func TestReconcilerDeleteMCResources(t *testing.T) {
 		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&vzappclusters.VerrazzanoProjectList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
 			return []interface{}{nil}
 		})
-		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedClusterList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
-			list.(*clustersapi.VerrazzanoManagedClusterList).Items = managedClusters
+		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedClusterList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
+			list.(*v1alpha1.VerrazzanoManagedClusterList).Items = managedClusters
 			return []interface{}{nil}
 		})
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.ServiceAccount{})).Return(nil)
-		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).Return(nil)
+		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).Return(nil)
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.Namespace{}), gomock.Any()).Return(nil)
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: vzconst.VerrazzanoSystemNamespace, Name: vzconst.MCRegistrationSecret}}), gomock.Any()).Return(nil)
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: vzconst.VerrazzanoSystemNamespace, Name: mcElasticSearchScrt}}), gomock.Any()).Return(nil)
@@ -866,12 +866,12 @@ func TestReconcilerDeleteMCResources(t *testing.T) {
 		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&vzappclusters.VerrazzanoProjectList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
 			return []interface{}{nil}
 		})
-		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedClusterList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
-			list.(*clustersapi.VerrazzanoManagedClusterList).Items = managedClusters
+		mockClient.EXPECT().List(context.TODO(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedClusterList{}), gomock.Any()).DoAndReturn(func(ctx context.Context, list client.ObjectList, opts *client.ListOptions) []interface{} {
+			list.(*v1alpha1.VerrazzanoManagedClusterList).Items = managedClusters
 			return []interface{}{nil}
 		})
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.ServiceAccount{})).Return(nil)
-		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{})).Return(nil)
+		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&v1alpha1.VerrazzanoManagedCluster{})).Return(nil)
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.Namespace{}), gomock.Any()).Return(nil)
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: vzconst.VerrazzanoSystemNamespace, Name: vzconst.MCRegistrationSecret}}), gomock.Any()).Return(nil)
 		mockClient.EXPECT().Delete(context.TODO(), gomock.AssignableToTypeOf(&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: vzconst.VerrazzanoSystemNamespace, Name: mcElasticSearchScrt}}), gomock.Any()).Return(nil)

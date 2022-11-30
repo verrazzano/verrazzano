@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"regexp"
 	"strings"
 	"time"
@@ -59,18 +60,20 @@ var (
 
 var t = framework.NewTestFramework("system-logging")
 
-var _ = t.BeforeSuite(func() {})
-
+var beforeSuite = t.BeforeSuiteFunc(func() {})
+var _ = BeforeSuite(beforeSuite)
 var failed = false
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed {
-		pkg.ExecuteBugReport()
+		dump.ExecuteBugReport()
 	}
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Opensearch system component data", Label("f:observability.logging.es"), func() {
 	t.It("contains verrazzano-system index with valid records", func() {
@@ -432,7 +435,7 @@ func validateGrafanaLogs() bool {
 
 func validateOpenSearchLogs() bool {
 	valid := true
-	openSearchAppComponents := []string{"system-kibana", "system-es-data", "system-es-master", "system-os-ingest"}
+	openSearchAppComponents := []string{"system-osd", "system-es-data", "system-es-master", "system-os-ingest"}
 	for _, appLabel := range openSearchAppComponents {
 		valid = validateOpensearchRecords(
 			noLevelOpensearchRecordValidator,

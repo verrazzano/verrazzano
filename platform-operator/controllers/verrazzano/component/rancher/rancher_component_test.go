@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"net/url"
 	"os"
@@ -211,6 +212,11 @@ func TestPreInstall(t *testing.T) {
 
 // TestPreUpgrade tests the PreUpgrade func call
 func TestPreUpgrade(t *testing.T) {
+	helmcli.SetChartStatusFunction(func(releaseName string, namespace string) (string, error) {
+		return helmcli.ChartStatusDeployed, nil
+	})
+	defer helmcli.SetDefaultChartStateFunction()
+
 	asserts := assert.New(t)
 	three := int32(3)
 	// create a fake dynamic client to serve the Setting and ClusterRepo resources
@@ -1001,12 +1007,12 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 	k8sutilfake.PodExecResult = func(url *url.URL) (string, string, error) {
 		var commands []string
 		if commands = url.Query()["command"]; len(commands) == 3 {
-			if strings.Contains(commands[2], fmt.Sprintf("cat %s", SettingUILogoDarkLogoFilePath)) {
-				return "dark", "", nil
+			if strings.Contains(commands[2], fmt.Sprintf("base64 %s", SettingUILogoDarkLogoFilePath)) {
+				return base64.StdEncoding.EncodeToString([]byte("<svg>dark</svg>")), "", nil
 			}
 
-			if strings.Contains(commands[2], fmt.Sprintf("cat %s", SettingUILogoLightLogoFilePath)) {
-				return "light", "", nil
+			if strings.Contains(commands[2], fmt.Sprintf("base64 %s", SettingUILogoLightLogoFilePath)) {
+				return base64.StdEncoding.EncodeToString([]byte("<svg>light</svg>")), "", nil
 			}
 
 		}

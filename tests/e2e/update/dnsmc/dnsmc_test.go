@@ -33,11 +33,13 @@ func (m *DNSModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.DNS = m.DNS
 }
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	adminCluster = multicluster.AdminCluster()
 	managedClusters = multicluster.ManagedClusters()
 	verifyRegistration()
 })
+
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Update managed-cluster dns", Serial, Ordered, Label("f:platform-lcm.update"), func() {
 	t.Describe("multicluster dns verify", Label("f:platform-lcm.multicluster-verify"), func() {

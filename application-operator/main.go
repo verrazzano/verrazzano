@@ -34,6 +34,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
 	"github.com/verrazzano/verrazzano/application-operator/mcagent"
 	"github.com/verrazzano/verrazzano/application-operator/metricsexporter"
+	vmc "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	vmcclient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/scheme"
 	"go.uber.org/zap"
@@ -69,6 +70,7 @@ func init() {
 	_ = clisecurity.AddToScheme(scheme)
 
 	_ = clustersv1alpha1.AddToScheme(scheme)
+	_ = vmc.AddToScheme(scheme)
 	_ = certapiv1.AddToScheme(scheme)
 	_ = promoperapi.AddToScheme(scheme)
 }

@@ -255,12 +255,6 @@ func createExpectedValidatingWebhook(kubeClient *fake.Clientset, whName string) 
 		Namespace: certificate.OperatorNamespace,
 		Path:      &pathInstall,
 	}
-	pathClusters := "/validate-clusters-verrazzano-io-v1alpha1-verrazzanomanagedcluster"
-	serviceClusters := adminv1.ServiceReference{
-		Name:      whName,
-		Namespace: certificate.OperatorNamespace,
-		Path:      &pathClusters,
-	}
 
 	webhook := adminv1.ValidatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{},
@@ -272,12 +266,6 @@ func createExpectedValidatingWebhook(kubeClient *fake.Clientset, whName string) 
 				Name: "install.verrazzano.io",
 				ClientConfig: adminv1.WebhookClientConfig{
 					Service: &serviceInstall,
-				},
-			},
-			{
-				Name: "clusters.verrazzano.io",
-				ClientConfig: adminv1.WebhookClientConfig{
-					Service: &serviceClusters,
 				},
 			},
 			{

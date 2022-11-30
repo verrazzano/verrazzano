@@ -11,20 +11,21 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/v1alpha1"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 )
 
 const (
-	createdByLabel      = "app.kubernetes.io/created-by"
-	createdByVerrazzano = "verrazzano"
+	CreatedByLabel      = "app.kubernetes.io/created-by"
+	CreatedByVerrazzano = "verrazzano"
 	localClusterName    = "local"
 
 	finalizerName = "verrazzano.io/rancher-cluster"
@@ -32,8 +33,10 @@ const (
 
 type RancherClusterReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	Log    *zap.SugaredLogger
+	Scheme             *runtime.Scheme
+	ClusterSyncEnabled bool
+	ClusterSelector    *metav1.LabelSelector
+	Log                *zap.SugaredLogger
 }
 
 var gvk = schema.GroupVersionKind{
@@ -86,9 +89,27 @@ func (r *RancherClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	// ensure the VMC exists
-	if err = r.ensureVMC(cluster); err != nil {
-		return ctrl.Result{}, err
+	if !r.ClusterSyncEnabled {
+		r.Log.Debug("Cluster sync is disabled, skipping VMC creation")
+		return ctrl.Result{}, nil
+	}
+
+	var l labels.Set = cluster.GetLabels()
+	var selector labels.Selector
+
+	if r.ClusterSelector != nil {
+		selector, err = metav1.LabelSelectorAsSelector(r.ClusterSelector)
+		if err != nil {
+			r.Log.Errorf("Error parsing cluster label selector: %v", err)
+			return ctrl.Result{}, err
+		}
+	}
+
+	if selector == nil || selector.Matches(l) {
+		// ensure the VMC exists
+		if err = r.ensureVMC(cluster); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil
@@ -215,7 +236,7 @@ func newVMC(name string) *clustersv1alpha1.VerrazzanoManagedCluster {
 			Name:      name,
 			Namespace: vzconst.VerrazzanoMultiClusterNamespace,
 			Labels: map[string]string{
-				createdByLabel:                    createdByVerrazzano,
+				CreatedByLabel:                    CreatedByVerrazzano,
 				vzconst.VerrazzanoManagedLabelKey: "true",
 			},
 		},

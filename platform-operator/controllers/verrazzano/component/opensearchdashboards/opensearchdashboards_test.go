@@ -9,8 +9,8 @@ import (
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	vzclusters "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/helm"
-	vzclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -96,11 +96,11 @@ func TestIsReady(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      kibanaDeployment,
-				Labels:    map[string]string{"app": "system-kibana"},
+				Labels:    map[string]string{"app": "system-osd"},
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"app": "system-kibana"},
+					MatchLabels: map[string]string{"app": "system-osd"},
 				},
 			},
 			Status: appsv1.DeploymentStatus{
@@ -115,7 +115,7 @@ func TestIsReady(t *testing.T) {
 				Name:      kibanaDeployment,
 				Labels: map[string]string{
 					"pod-template-hash": "95d8c5d96",
-					"app":               "system-kibana",
+					"app":               "system-osd",
 				},
 			},
 		},
@@ -146,7 +146,7 @@ func TestIsReadyDeploymentNotAvailable(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
 				Name:      kibanaDeployment,
-				Labels:    map[string]string{"app": "system-kibana"},
+				Labels:    map[string]string{"app": "system-osd"},
 			},
 			Status: appsv1.DeploymentStatus{
 				AvailableReplicas: 1,
