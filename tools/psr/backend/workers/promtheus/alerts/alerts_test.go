@@ -36,7 +36,7 @@ type fakePsrClient struct {
 //	WHEN the getter methods are calls
 //	THEN ensure that the correct results are returned
 func TestGetters(t *testing.T) {
-	w, err := NewReceiveAlertsWorker()
+	w, err := NewAlertsWorker()
 	assert.NoError(t, err)
 
 	wd := w.GetWorkerDesc()
@@ -48,6 +48,11 @@ func TestGetters(t *testing.T) {
 	assert.False(t, logged)
 }
 
+// TestGetMetricDescList tests the GetEnvDescList method
+// GIVEN a worker
+//
+//	WHEN the GetEnvDescList methods is called
+//	THEN ensure that the correct results are returned
 func TestGetMetricDescList(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -60,7 +65,7 @@ func TestGetMetricDescList(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			wi, err := NewReceiveAlertsWorker()
+			wi, err := NewAlertsWorker()
 			w := wi.(worker)
 			assert.NoError(t, err)
 			dl := w.GetMetricDescList()
@@ -76,6 +81,11 @@ func TestGetMetricDescList(t *testing.T) {
 	}
 }
 
+// TestGetMetricList tests the GetMetricList method
+// GIVEN a worker
+//
+//	WHEN the GetMetricList methods is called
+//	THEN ensure that the correct results are returned
 func TestGetMetricList(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -87,7 +97,7 @@ func TestGetMetricList(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			wi, err := NewReceiveAlertsWorker()
+			wi, err := NewAlertsWorker()
 			w := wi.(worker)
 			assert.NoError(t, err)
 			ml := w.GetMetricList()
@@ -103,98 +113,12 @@ func TestGetMetricList(t *testing.T) {
 	}
 }
 
+// Test_updateVZForAlertmanager tests the updateVZForAlertmanager method
+// GIVEN a VZ CR
 //
-//// TestDoWork tests the DoWork method
-//// GIVEN a worker
-////
-////	WHEN the DoWork methods is called
-////	THEN ensure that the correct results are returned
-//func TestDoWork(t *testing.T) {
-//	tests := []struct {
-//		name         string
-//		bodyData     string
-//		getError     error
-//		doworkError  error
-//		statusCode   int
-//		nilResp      bool
-//		reqCount     int
-//		successCount int
-//		failureCount int
-//	}{
-//		{
-//			name:         "1",
-//			bodyData:     "testsuccess",
-//			statusCode:   200,
-//			reqCount:     1,
-//			successCount: 1,
-//			failureCount: 0,
-//		},
-//		{
-//			name:         "2",
-//			bodyData:     "testerror",
-//			getError:     errors.New("error"),
-//			reqCount:     1,
-//			successCount: 0,
-//			failureCount: 1,
-//		},
-//		{
-//			name:         "3",
-//			bodyData:     "testRespError",
-//			statusCode:   500,
-//			reqCount:     1,
-//			successCount: 0,
-//			failureCount: 1,
-//		},
-//		{
-//			name:         "4",
-//			bodyData:     "testNilResp",
-//			doworkError:  errors.New("GET request to endpoint received a nil response"),
-//			nilResp:      true,
-//			reqCount:     1,
-//			successCount: 0,
-//			failureCount: 1,
-//		},
-//	}
-//	for _, test := range tests {
-//		t.Run(test.name, func(t *testing.T) {
-//			f := httpGetFunc
-//			defer func() {
-//				httpGetFunc = f
-//			}()
-//			var resp *http.Response
-//			if !test.nilResp {
-//				resp = &http.Response{
-//					StatusCode:    test.statusCode,
-//					Body:          &fakeBody{data: test.bodyData},
-//					ContentLength: int64(len(test.bodyData)),
-//				}
-//			}
-//			httpGetFunc = fakeHTTP{
-//				bodyData: test.bodyData,
-//				error:    test.getError,
-//				resp:     resp,
-//			}.Get
-//
-//			wi, err := NewHTTPGetWorker()
-//			assert.NoError(t, err)
-//			w := wi.(worker)
-//			err = w.DoWork(config.CommonConfig{
-//				WorkerType: "Fake",
-//			}, vzlog.DefaultLogger())
-//			if test.doworkError == nil && test.getError == nil {
-//				assert.NoError(t, err)
-//			} else {
-//				assert.Error(t, err)
-//			}
-//
-//			assert.Equal(t, int64(test.reqCount), w.getRequestsCountTotal.Val)
-//			assert.Equal(t, int64(test.successCount), w.getRequestsSucceededCountTotal.Val)
-//			assert.Equal(t, int64(test.failureCount), w.getRequestsFailedCountTotal.Val)
-//		})
-//	}
-//}
-
-func Test_updateVZForAlertmanager_updateVZCR(t *testing.T) {
+//	WHEN the updateVZForAlertmanager method is called
+//	THEN ensure that the client objects have been successfully created and mutated and there are no errors
+func Test_updateVZForAlertmanager(t *testing.T) {
 	envMap := map[string]string{
 		config.PsrWorkerType:        config.WorkerTypeReceiveAlerts,
 		config.PsrWorkerReleaseName: "test-alerts",
@@ -284,13 +208,4 @@ func (f *fakeEnv) GetEnv(key string) string {
 
 func (f *fakePsrClient) NewPsrClient() (k8sclient.PsrClient, error) {
 	return *f.psrClient, nil
-}
-
-func overridePsrClient() func() (k8sclient.PsrClient, error) {
-	f := fakePsrClient{
-		psrClient: &k8sclient.PsrClient{},
-	}
-	origFc := funcNewPsrClient
-	funcNewPsrClient = f.NewPsrClient
-	return origFc
 }

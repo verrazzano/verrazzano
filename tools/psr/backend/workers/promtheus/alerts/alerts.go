@@ -28,9 +28,8 @@ import (
 )
 
 // metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
-const metricsPrefix = "http_alerts"
+const metricsPrefix = "prom_alerts"
 
-var httpGetFunc = http.Get
 var funcNewPsrClient = k8sclient.NewPsrClient
 
 type worker struct {
@@ -46,7 +45,7 @@ type workerMetrics struct {
 	alertsResolvedCount metrics.MetricItem
 }
 
-func NewReceiveAlertsWorker() (spi.Worker, error) {
+func NewAlertsWorker() (spi.Worker, error) {
 	w := worker{workerMetrics: &workerMetrics{
 		alertsFiringCount: metrics.MetricItem{
 			Name: "alerts_firing_received_count",
