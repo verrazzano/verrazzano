@@ -93,7 +93,7 @@ unit-test-coverage:
 	${SCRIPT_DIR}/coverage.sh html
 
 .PHONY: unit-test-coverage-ratcheting
-get-unit-test-coverage-master-release:
+unit-test-coverage-ratcheting:
 	${SCRIPT_DIR}/coverage-number-comparison.sh
 
 .PHONY: unit-test
