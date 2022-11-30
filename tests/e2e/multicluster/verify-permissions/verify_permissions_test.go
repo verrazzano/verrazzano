@@ -405,7 +405,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 		t.It("should be able to list secrets", func() {
 			Eventually(func() (*v1.SecretList, error) {
 				return clientset.CoreV1().Secrets(constants.VerrazzanoSystemNamespace).List(context.TODO(), metav1.ListOptions{})
-			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).ShouldNot(BeNil())
+			}).WithPolling(pollingInterval).WithTimeout(time.Minute).ShouldNot(BeNil())
 		})
 
 		t.It("should not be able to list pods", func() {
