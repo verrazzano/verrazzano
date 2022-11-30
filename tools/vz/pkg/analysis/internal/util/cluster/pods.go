@@ -422,6 +422,23 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 			}
 		}
 	}
+	messages = CheckIfHelmPodsAdded(messages)
+	supportingData := make([]report.SupportData, 1)
+	supportingData[0] = report.SupportData{
+		Messages:    messages,
+		TextMatches: matches,
+	}
+	// If all of the problematic pods were pending only, just report that, otherwise report them as problematic if some are
+	// failing or unknown
+	if len(messages) > 0 {
+		if pendingPodsSeen > 0 && problematicNotPending == 0 {
+			report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PendingPods, clusterRoot, supportingData))
+		} else {
+			report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PodProblemsNotReported, clusterRoot, supportingData))
+		}
+	}
+}
+func CheckIfHelmPodsAdded(messages []string) []string {
 	isHelm := false
 	isRancher := false
 	var indices []int
@@ -441,22 +458,9 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 
 		}
 	}
-	supportingData := make([]report.SupportData, 1)
-	supportingData[0] = report.SupportData{
-		Messages:    messages,
-		TextMatches: matches,
-	}
-	// If all of the problematic pods were pending only, just report that, otherwise report them as problematic if some are
-	// failing or unknown
-	if len(messages) > 0 {
-		if pendingPodsSeen > 0 && problematicNotPending == 0 {
-			report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PendingPods, clusterRoot, supportingData))
-		} else {
-			report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PodProblemsNotReported, clusterRoot, supportingData))
-		}
-	}
-}
+	return messages
 
+}
 func getPodListIfPresent(path string) (podList *corev1.PodList) {
 	podCacheMutex.Lock()
 	podListTest := podListMap[path]

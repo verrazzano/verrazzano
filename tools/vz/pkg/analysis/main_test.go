@@ -43,17 +43,13 @@ func TestProblemPodsInCattleSystem(t *testing.T) {
 	assert.Nil(t, reportedIssues)
 	assert.False(t, len(reportedIssues) > 0)
 	problemPodsFound := 0
-	exceededLBLimit := 0
 	for _, issue := range reportedIssues {
 		if issue.Type == report.PodProblemsNotReported {
 			problemPodsFound++
-		} else if issue.Type == report.IngressLBLimitExceeded {
-			exceededLBLimit++
 		}
 
 	}
 	assert.True(t, problemPodsFound == 0)
-	assert.True(t, exceededLBLimit == 0)
 }
 
 // TestImagePullCase1 Tests that analysis of a cluster dump with image pull issues is handled
