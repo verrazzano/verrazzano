@@ -276,7 +276,7 @@ func TestPreUpgrade(t *testing.T) {
 			).Build(),
 			actualCR:     *jaegerEnabledCR,
 			expectError:  true,
-			expectErrMsg: "secrets \"verrazzano-os-internal\" not found",
+			expectErrMsg: "secrets \"verrazzano-es-internal\" not found",
 		},
 		{
 			// GIVEN a Verrazzano custom resource with the Jaeger Operator enabled and custom Jaeger secret
@@ -1227,7 +1227,7 @@ func getIngressTests(isUpgradeOperation bool) []ingressTestStruct {
 							OCI: &vzapi.OCI{
 								DNSZoneOCID:            "somezoneocid",
 								DNSZoneCompartmentOCID: "somenewocid",
-								OCIConfigSecret:        globalconst.VerrazzanoOSInternal,
+								OCIConfigSecret:        globalconst.VerrazzanoESInternal,
 								DNSZoneName:            "newzone.dns.io",
 							},
 						},
@@ -1335,7 +1335,7 @@ func getESSecretWithData() client.Object {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      globalconst.VerrazzanoOSInternal,
+			Name:      globalconst.VerrazzanoESInternal,
 		},
 		Data: map[string][]byte{
 			"ES_USERNAME": []byte("abcd"),
@@ -1348,7 +1348,7 @@ func getESSecretNoData() client.Object {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      globalconst.VerrazzanoOSInternal,
+			Name:      globalconst.VerrazzanoESInternal,
 		},
 	}
 }

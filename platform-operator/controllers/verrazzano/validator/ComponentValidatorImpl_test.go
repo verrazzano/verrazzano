@@ -114,6 +114,7 @@ func TestComponentValidatorImpl_ValidateInstallV1Beta1(t *testing.T) {
 			numberOfErrors: 0,
 		},
 	}
+
 	config.TestProfilesDir = testProfilesDirectory
 	defer func() {
 		config.TestProfilesDir = ""
@@ -253,6 +254,7 @@ func TestComponentValidatorImpl_ValidateUpdateV1Beta1(t *testing.T) {
 			numberOfErrors: 1,
 		},
 		{
+
 			name: disabledCertAndIngress,
 			old:  &vzapibeta.Verrazzano{},
 			new: &vzapibeta.Verrazzano{
@@ -270,6 +272,7 @@ func TestComponentValidatorImpl_ValidateUpdateV1Beta1(t *testing.T) {
 			numberOfErrors: 2,
 		},
 	}
+
 	config.TestProfilesDir = testProfilesDirectory
 	defer func() { config.TestProfilesDir = "" }()
 	for _, tt := range tests {

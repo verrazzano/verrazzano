@@ -350,7 +350,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        dumpK8sCluster('verify-cluster-cluster-dump')
+                        dumpK8sCluster('verify-install-cluster-dump')
                     }
                 }
             }

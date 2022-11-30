@@ -29,8 +29,8 @@ const (
 	ComponentName = "rancher-backup"
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace = constants.RancherBackupNamesSpace
-	// ComponentJSONName is the json name of the component in the CRD
-	ComponentJSONName = "rancher-backup"
+	// ComponentJSONName is the JSON name of the component in the CRD
+	ComponentJSONName = "rancherBackup"
 	// ChartDir is the name of the directory for third party helm charts
 	ChartDir = "rancher-backup"
 )

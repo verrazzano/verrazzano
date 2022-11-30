@@ -2,8 +2,8 @@ cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.38.0/go.mod h1:990N+gfupTy94rShfmMCWGDn0LpTmnzTp2qbd1dvSRU=
 cloud.google.com/go v0.44.1/go.mod h1:iSa0KzasP4Uvy3f1mN/7PiObzGgflwredwwASm/v6AU=
-cloud.google.com/go v0.44.3/go.mod h1:60680Gw3Yr4ikxnPRS/oxxkBccT6SA1yMk63TGekxKY=
 cloud.google.com/go v0.44.2/go.mod h1:60680Gw3Yr4ikxnPRS/oxxkBccT6SA1yMk63TGekxKY=
+cloud.google.com/go v0.44.3/go.mod h1:60680Gw3Yr4ikxnPRS/oxxkBccT6SA1yMk63TGekxKY=
 cloud.google.com/go v0.45.1/go.mod h1:RpBamKRgapWJb87xiFSdk4g1CME7QZg3uwTez+TSTjc=
 cloud.google.com/go v0.46.3/go.mod h1:a6bKKbmY7er1mI7TEI4lsAkts/mkhTSZK8w33B4RAg0=
 cloud.google.com/go v0.50.0/go.mod h1:r9sluTvynVuxRIOHXQEHMFffphuXHOMZMycpNR5e6To=
@@ -753,8 +753,8 @@ github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijb
 github.com/valyala/fastjson v1.6.3 h1:tAKFnnwmeMGPbwJ7IwxcTPCNr3uIzoIj3/Fh90ra4xc=
 github.com/valyala/fastjson v1.6.3/go.mod h1:CLCAqky6SMuOcxStkYQvblddUtoRxhYMGLrsQns1aXY=
 github.com/vektah/gqlparser v1.1.2/go.mod h1:1ycwN7Ij5njmMkPPAOaRFY4rET2Enx7IkVv3vaXspKw=
-github.com/verrazzano/kind v0.14.1-0.20220901151917-d1f46433d223 h1:mlP5wCdzSMIEDXFshfJPY/1MldF9iDSrCz33/n6637s=
-github.com/verrazzano/kind v0.14.1-0.20220901151917-d1f46433d223/go.mod h1:t5GndzzvtTW702bHZ/6dpkbd/eC4SaTenEmivLVnBKA=
+github.com/verrazzano/kind v0.0.0-20221129215948-885481909133 h1:B4UOVPaicKuN8xUnNNGVTHzKck6EMLZ0jvvsfa6LYpA=
+github.com/verrazzano/kind v0.0.0-20221129215948-885481909133/go.mod h1:t5GndzzvtTW702bHZ/6dpkbd/eC4SaTenEmivLVnBKA=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220810134448-c6e8df57abb2 h1:eBRnz7U/thF3u7jlUztyapqNaOT5023CISdOO9nOfys=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220810134448-c6e8df57abb2/go.mod h1:oA+BTeIz1HtMU91xR0ak+d+TLax6oESkXuYvxZBGugo=
 github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f/go.mod h1:N2zxlSyiKSe5eX1tZViRH5QA0qijqEDrYZiPEAiq3wU=
