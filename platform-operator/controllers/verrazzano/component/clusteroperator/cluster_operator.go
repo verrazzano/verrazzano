@@ -109,8 +109,8 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 		return err
 	}
 	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNotFound {
-		return ctx.Log().ErrorfNewErr("Failed getting user %s in Rancher, got status code: %d: %s",
-			vzconst.VerrazzanoClusterRancherUsername, response.StatusCode, body)
+		return ctx.Log().ErrorfNewErr("Failed getting user %s in Rancher, got status code: %d",
+			vzconst.VerrazzanoClusterRancherUsername, response.StatusCode)
 	}
 
 	if response.StatusCode == http.StatusOK {
@@ -132,13 +132,14 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 	reqURL = rc.BaseURL + usersPath
 	payload := fmt.Sprintf(userPayload, vzconst.VerrazzanoClusterRancherName, pass, vzconst.VerrazzanoClusterRancherName)
 	headers["Content-Type"] = "application/json"
+	ctx.Log().Infof("Sending request message: Type: %s, URL: %s, headers: %v, payload %s", http.MethodPost, reqURL, headers, payload)
 	response, _, err = rancherutil.SendRequest(http.MethodPost, reqURL, headers, payload, rc, ctx.Log())
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to create the Verrazzano cluster user in Rancher: %v", err)
 	}
 	if response.StatusCode != http.StatusCreated {
-		return ctx.Log().ErrorfNewErr("Failed creating user %s in Rancher, got status code: %d: %s",
-			vzconst.VerrazzanoClusterRancherUsername, response.StatusCode, body)
+		return ctx.Log().ErrorfNewErr("Failed creating user %s in Rancher, got status code: %d",
+			vzconst.VerrazzanoClusterRancherUsername, response.StatusCode)
 	}
 
 	// Store the password in a secret, so we can later use it to provide the Verrazzano cluster user credentials
