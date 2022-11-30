@@ -54,7 +54,7 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 	if err != nil {
 		log.Errorf("Failed to start manager: %v", err)
 	}
-	
+
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		log.Errorf("Failed to get clientset", err)
