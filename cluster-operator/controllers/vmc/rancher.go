@@ -250,24 +250,6 @@ func GetAllClustersInRancher(rc *rancherutil.RancherConfig, log vzlog.Verrazzano
 	return clusters, hash.Sum(nil), nil
 }
 
-func GetClusterKubeconfig(rc *RancherConfig, clusterID string, log vzlog.VerrazzanoLogger) (string, error) {
-	action := http.MethodPost
-	reqURL := rc.BaseURL + clustersPath + "/" + clusterID + "?action=generateKubeconfig"
-	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
-
-	response, responseBody, err := sendRequest(action, reqURL, headers, "", rc, log)
-
-	if response != nil && response.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("failed fetching cluster kubeconfig for cluster id %s, response code: %d", clusterID, response.StatusCode)
-	}
-
-	if err != nil {
-		return "", err
-	}
-
-	return httputil.ExtractFieldFromResponseBodyOrReturnError(responseBody, "config", "")
-}
-
 // isManagedClusterActiveInRancher returns true if the managed cluster is active
 func isManagedClusterActiveInRancher(rc *rancherutil.RancherConfig, clusterID string, log vzlog.VerrazzanoLogger) (bool, error) {
 	reqURL := rc.BaseURL + clustersPath + "/" + clusterID

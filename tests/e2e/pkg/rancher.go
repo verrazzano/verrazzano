@@ -298,3 +298,35 @@ func CreateNewRancherConfigForUser(log *zap.SugaredLogger, kubeconfigPath string
 	}
 	return &rc, nil
 }
+
+func GetClusterKubeconfig(log *zap.SugaredLogger, httpClient *retryablehttp.Client, rc *vmc.RancherConfig, clusterID string) (string, error) {
+	reqURL := rc.BaseURL + "/v3/clusters/" + clusterID + "?action=generateKubeconfig"
+	req, err := retryablehttp.NewRequest("POST", reqURL, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+rc.APIAccessToken)
+
+	response, err := httpClient.Do(req)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error getting managed cluster kubeconfig: %v", err))
+		return "", err
+	}
+
+	err = httputil.ValidateResponseCode(response, http.StatusOK)
+	if err != nil {
+		log.Errorf("Invalid response code when fetching cluster kubeconfig: %v", err)
+		return "", err
+	}
+
+	defer response.Body.Close()
+
+	// extract the response body
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Errorf("Failed to read Rancher kubeconfig response: %v", err)
+		return "", err
+	}
+
+	return httputil.ExtractFieldFromResponseBodyOrReturnError(string(responseBody), "config", "")
+}

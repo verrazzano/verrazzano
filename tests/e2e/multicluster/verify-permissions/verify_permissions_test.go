@@ -7,8 +7,8 @@ import (
 	goerrors "errors"
 	"fmt"
 
+	"github.com/hashicorp/go-retryablehttp"
 	v1alpha12 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	covmc "github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 
@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	oamv1alpha2 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	. "github.com/onsi/ginkgo/v2"
@@ -58,9 +57,11 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	// Do set up for multi cluster tests
 	deployTestResources()
 
+	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
+
 	Eventually(func() error {
 		var err error
-		rancherProxyKubeconfig, err = getUserKubeconfigForManagedCluster()
+		rancherProxyKubeconfig, err = getUserKubeconfigForManagedCluster(httpClient)
 		return err
 	}).WithPolling(pollingInterval).WithTimeout(time.Minute).ShouldNot(HaveOccurred())
 })
@@ -68,6 +69,10 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
+	if len(rancherProxyKubeconfig) > 0 {
+		os.Remove(rancherProxyKubeconfig)
+	}
+
 	// Do set up for multi cluster tests
 	undeployTestResources()
 })
@@ -366,7 +371,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 		})
 
 		// VZ-2336: NOT be able to read other resources such as config maps in the admin cluster
-		t.It("cannot access resources in other namespaaces", func() {
+		t.It("cannot access resources in other namespaces", func() {
 			Eventually(func() (bool, error) {
 				err := listResource("verrazzano-system", &v1.ConfigMapList{})
 				// if we didn't get an error, return false to retry
@@ -794,7 +799,7 @@ func isStatusAsExpected(status clustersv1alpha1.MultiClusterResourceStatus,
 	return matchingConditionCount >= 1 && matchingClusterStatusCount == 1
 }
 
-func getUserKubeconfigForManagedCluster() (string, error) {
+func getUserKubeconfigForManagedCluster(httpClient *retryablehttp.Client) (string, error) {
 	// get the Rancher cluster id from the VMC status
 	client, err := pkg.GetClusterOperatorClientset(adminKubeconfig)
 	if err != nil {
@@ -819,7 +824,7 @@ func getUserKubeconfigForManagedCluster() (string, error) {
 	}
 
 	// get the managed cluster kubeconfig configured for the user from Rancher
-	kubeconfig, err := covmc.GetClusterKubeconfig(config, vmc.Status.RancherRegistration.ClusterID, vzlog.DefaultLogger())
+	kubeconfig, err := pkg.GetClusterKubeconfig(t.Logs, httpClient, config, vmc.Status.RancherRegistration.ClusterID)
 	Expect(err).ShouldNot(HaveOccurred())
 	if err != nil {
 		return "", err
