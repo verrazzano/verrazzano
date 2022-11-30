@@ -87,7 +87,7 @@ helm install psr-writelogs manifests/charts/worker --set global.envVars.PSR_WORK
 
 ## Workers
 All of the workers are deployed using the same worker Helm chart. Worker configs are stored in global.envVars values.
-There are common values that are available to each worker as follows:
+There are common values applicable to each worker as follows:
 
 ```
 global:
