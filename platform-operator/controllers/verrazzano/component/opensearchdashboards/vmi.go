@@ -29,8 +29,8 @@ func newOpenSearchDashboards(cr *vzapi.Verrazzano) vmov1.Kibana {
 			RequestMemory: "192Mi",
 		},
 	}
-	// Set the InstallPlugins to the VMI
-	opensearchDashboards.InstallPlugins = kibanaValues.InstallPlugins
+	// Set the Plugins to the VMI
+	opensearchDashboards.Plugins = kibanaValues.Plugins
 
 	if kibanaValues.Replicas != nil {
 		opensearchDashboards.Replicas = *kibanaValues.Replicas
