@@ -108,7 +108,7 @@ func (w worker) PreconditionsMet() (bool, error) {
 }
 
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-	if err := updateVZForAlertmanager(log); err != nil {
+	if err := updateVZForAlertmanager(log, conf); err != nil {
 		return err
 	}
 
@@ -166,8 +166,8 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 	return nil
 }
 
-func updateVZForAlertmanager(log vzlog.VerrazzanoLogger) error {
-	if err := createAlertmanagerOverridesCM(log); err != nil {
+func updateVZForAlertmanager(log vzlog.VerrazzanoLogger, conf config.CommonConfig) error {
+	if err := createAlertmanagerOverridesCM(log, conf); err != nil {
 		return err
 	}
 
@@ -185,7 +185,7 @@ func updateVZForAlertmanager(log vzlog.VerrazzanoLogger) error {
 	return psrvz.UpdateVerrazzano(c.VzInstall, cr)
 }
 
-func createAlertmanagerOverridesCM(log vzlog.VerrazzanoLogger) error {
+func createAlertmanagerOverridesCM(log vzlog.VerrazzanoLogger, conf config.CommonConfig) error {
 	c, err := funcNewPsrClient()
 	if err != nil {
 		log.Errorf("error creating client: %v", err)
@@ -222,7 +222,7 @@ func createAlertmanagerOverridesCM(log vzlog.VerrazzanoLogger) error {
           alertname: Watchdog
         receiver: webhook
   enabled: true
-`, config.PsrEnv.GetEnv(config.PsrWorkerReleaseName), config.PsrEnv.GetEnv(config.PsrWorkerType), config.PsrEnv.GetEnv(config.PsrWorkerNamespace),
+`, conf.ReleaseName, conf.WorkerType, conf.Namespace,
 			)}
 		return nil
 	})

@@ -69,13 +69,13 @@ type CommonConfig struct {
 	NumLoops          int64
 	WorkerThreadCount int
 	Namespace         string
+	ReleaseName       string
 }
 
 // GetCommonConfig loads the common config from env vars
 func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 	dd := []osenv.EnvVarDesc{
 		{Key: PsrWorkerType, DefaultVal: "", Required: true},
-		{Key: PsrDuration, DefaultVal: "", Required: false},
 		{Key: PsrLoopSleep, DefaultVal: "1s", Required: false},
 		{Key: PsrNumLoops, DefaultVal: "-1", Required: false},
 		{Key: PsrWorkerThreadCount, DefaultVal: "1", Required: false},
@@ -85,6 +85,7 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 	if err := PsrEnv.LoadFromEnv(dd); err != nil {
 		return CommonConfig{}, err
 	}
+
 	sleepDuration, err := time.ParseDuration(PsrEnv.GetEnv(PsrLoopSleep))
 	if err != nil {
 		return CommonConfig{}, log.ErrorfNewErr("Error parsing loop sleep duration: %v", err)
@@ -114,5 +115,6 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 		NumLoops:          int64(numLoops),
 		WorkerThreadCount: threadCount,
 		Namespace:         PsrEnv.GetEnv(PsrWorkerNamespace),
+		ReleaseName:       PsrEnv.GetEnv(PsrWorkerReleaseName),
 	}, nil
 }

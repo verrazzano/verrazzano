@@ -4,28 +4,30 @@
 package alerts
 
 import (
-	"errors"
+	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vpoFakeClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/fake"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
-	"net/http"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/k8sclient"
+	psrprom "github.com/verrazzano/verrazzano/tools/psr/backend/pkg/prometheus"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	crtFakeClient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"strings"
 	"testing"
 )
 
-type fakeHTTP struct {
-	error
-	resp     *http.Response
-	bodyData string
-}
-
-type fakeBody struct {
-	data string
-}
-
 type fakeEnv struct {
 	data map[string]string
+}
+
+type fakePsrClient struct {
+	psrClient *k8sclient.PsrClient
 }
 
 // TestGetters tests the worker getters
@@ -34,25 +36,12 @@ type fakeEnv struct {
 //	WHEN the getter methods are calls
 //	THEN ensure that the correct results are returned
 func TestGetters(t *testing.T) {
-	envMap := map[string]string{
-		ServiceName:      "test-service-name",
-		ServiceNamespace: "test-namespace",
-		ServicePort:      "1",
-		Path:             "test-path",
-	}
-	f := fakeEnv{data: envMap}
-	saveEnv := osenv.GetEnvFunc
-	osenv.GetEnvFunc = f.GetEnv
-	defer func() {
-		osenv.GetEnvFunc = saveEnv
-	}()
-
-	w, err := NewHTTPGetWorker()
+	w, err := NewReceiveAlertsWorker()
 	assert.NoError(t, err)
 
 	wd := w.GetWorkerDesc()
 	assert.Equal(t, config.WorkerTypeHTTPGet, wd.WorkerType)
-	assert.Equal(t, "The get worker makes GET request on the given endpoint", wd.Description)
+	assert.Equal(t, "The alerts receiver worker configures alertmanger and receives alerts and writes them to events", wd.Description)
 	assert.Equal(t, metricsPrefix, wd.MetricsPrefix)
 
 	logged := w.WantLoopInfoLogged()
@@ -60,32 +49,18 @@ func TestGetters(t *testing.T) {
 }
 
 func TestGetMetricDescList(t *testing.T) {
-	envMap := map[string]string{
-		ServiceName:      "test-service-name",
-		ServiceNamespace: "test-namespace",
-		ServicePort:      "1",
-		Path:             "test-path",
-	}
-	f := fakeEnv{data: envMap}
-	saveEnv := osenv.GetEnvFunc
-	osenv.GetEnvFunc = f.GetEnv
-	defer func() {
-		osenv.GetEnvFunc = saveEnv
-	}()
-
 	tests := []struct {
 		name   string
 		fqName string
 		help   string
 	}{
-		{name: "1", fqName: "http_get_request_count_total", help: "The total number of GET requests"},
-		{name: "2", fqName: "http_get_request_succeeded_count_total", help: "The total number of successful GET requests"},
-		{name: "3", fqName: "http_get_request_failed_count_total", help: "The total number of failed GET requests"},
+		{name: "1", fqName: "alerts_firing_received_count", help: "The total number of alerts received from alertmanager"},
+		{name: "2", fqName: "alerts_resolved_received_count", help: "The total number of alerts received from alertmanager"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 
-			wi, err := NewHTTPGetWorker()
+			wi, err := NewReceiveAlertsWorker()
 			w := wi.(worker)
 			assert.NoError(t, err)
 			dl := w.GetMetricDescList()
@@ -102,31 +77,17 @@ func TestGetMetricDescList(t *testing.T) {
 }
 
 func TestGetMetricList(t *testing.T) {
-	envMap := map[string]string{
-		ServiceName:      "test-service-name",
-		ServiceNamespace: "test-namespace",
-		ServicePort:      "1",
-		Path:             "test-path",
-	}
-	f := fakeEnv{data: envMap}
-	saveEnv := osenv.GetEnvFunc
-	osenv.GetEnvFunc = f.GetEnv
-	defer func() {
-		osenv.GetEnvFunc = saveEnv
-	}()
-
 	tests := []struct {
 		name   string
 		fqName string
 		help   string
 	}{
-		{name: "1", fqName: "http_get_request_count_total", help: "The total number of GET requests"},
-		{name: "2", fqName: "http_get_request_succeeded_count_total", help: "The total number of successful GET requests"},
-		{name: "3", fqName: "http_get_request_failed_count_total", help: "The total number of failed GET requests"},
+		{name: "1", fqName: "alerts_firing_received_count", help: "The total number of alerts received from alertmanager"},
+		{name: "2", fqName: "alerts_resolved_received_count", help: "The total number of alerts received from alertmanager"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			wi, err := NewHTTPGetWorker()
+			wi, err := NewReceiveAlertsWorker()
 			w := wi.(worker)
 			assert.NoError(t, err)
 			ml := w.GetMetricList()
@@ -142,17 +103,102 @@ func TestGetMetricList(t *testing.T) {
 	}
 }
 
-// TestGetEnvDescList tests the GetEnvDescList method
-// GIVEN a worker
 //
-//	WHEN the GetEnvDescList methods is called
-//	THEN ensure that the correct results are returned
-func TestGetEnvDescList(t *testing.T) {
+//// TestDoWork tests the DoWork method
+//// GIVEN a worker
+////
+////	WHEN the DoWork methods is called
+////	THEN ensure that the correct results are returned
+//func TestDoWork(t *testing.T) {
+//	tests := []struct {
+//		name         string
+//		bodyData     string
+//		getError     error
+//		doworkError  error
+//		statusCode   int
+//		nilResp      bool
+//		reqCount     int
+//		successCount int
+//		failureCount int
+//	}{
+//		{
+//			name:         "1",
+//			bodyData:     "testsuccess",
+//			statusCode:   200,
+//			reqCount:     1,
+//			successCount: 1,
+//			failureCount: 0,
+//		},
+//		{
+//			name:         "2",
+//			bodyData:     "testerror",
+//			getError:     errors.New("error"),
+//			reqCount:     1,
+//			successCount: 0,
+//			failureCount: 1,
+//		},
+//		{
+//			name:         "3",
+//			bodyData:     "testRespError",
+//			statusCode:   500,
+//			reqCount:     1,
+//			successCount: 0,
+//			failureCount: 1,
+//		},
+//		{
+//			name:         "4",
+//			bodyData:     "testNilResp",
+//			doworkError:  errors.New("GET request to endpoint received a nil response"),
+//			nilResp:      true,
+//			reqCount:     1,
+//			successCount: 0,
+//			failureCount: 1,
+//		},
+//	}
+//	for _, test := range tests {
+//		t.Run(test.name, func(t *testing.T) {
+//			f := httpGetFunc
+//			defer func() {
+//				httpGetFunc = f
+//			}()
+//			var resp *http.Response
+//			if !test.nilResp {
+//				resp = &http.Response{
+//					StatusCode:    test.statusCode,
+//					Body:          &fakeBody{data: test.bodyData},
+//					ContentLength: int64(len(test.bodyData)),
+//				}
+//			}
+//			httpGetFunc = fakeHTTP{
+//				bodyData: test.bodyData,
+//				error:    test.getError,
+//				resp:     resp,
+//			}.Get
+//
+//			wi, err := NewHTTPGetWorker()
+//			assert.NoError(t, err)
+//			w := wi.(worker)
+//			err = w.DoWork(config.CommonConfig{
+//				WorkerType: "Fake",
+//			}, vzlog.DefaultLogger())
+//			if test.doworkError == nil && test.getError == nil {
+//				assert.NoError(t, err)
+//			} else {
+//				assert.Error(t, err)
+//			}
+//
+//			assert.Equal(t, int64(test.reqCount), w.getRequestsCountTotal.Val)
+//			assert.Equal(t, int64(test.successCount), w.getRequestsSucceededCountTotal.Val)
+//			assert.Equal(t, int64(test.failureCount), w.getRequestsFailedCountTotal.Val)
+//		})
+//	}
+//}
+
+func Test_updateVZForAlertmanager_updateVZCR(t *testing.T) {
 	envMap := map[string]string{
-		ServiceName:      "test-service-name",
-		ServiceNamespace: "test-namespace",
-		ServicePort:      "1",
-		Path:             "test-path",
+		config.PsrWorkerType:        config.WorkerTypeReceiveAlerts,
+		config.PsrWorkerReleaseName: "test-alerts",
+		config.PsrWorkerNamespace:   "test-psr",
 	}
 	f := fakeEnv{data: envMap}
 	saveEnv := osenv.GetEnvFunc
@@ -161,165 +207,90 @@ func TestGetEnvDescList(t *testing.T) {
 		osenv.GetEnvFunc = saveEnv
 	}()
 
-	tests := []struct {
-		name     string
-		key      string
-		defval   string
-		required bool
-	}{
-		{name: "1",
-			key:      ServiceName,
-			defval:   "",
-			required: true,
-		},
-		{name: "2",
-			key:      ServiceNamespace,
-			defval:   "",
-			required: true,
-		},
-		{name: "3",
-			key:      ServicePort,
-			defval:   "",
-			required: true,
-		},
-		{name: "4",
-			key:      Path,
-			defval:   "",
-			required: true,
+	// Setup fake VZ client
+	cr := &v1alpha1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-vz",
+			Namespace: "test-ns",
 		},
 	}
+	vzclient := vpoFakeClient.NewSimpleClientset(cr)
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			w, err := NewHTTPGetWorker()
-			assert.NoError(t, err)
-			el := w.GetEnvDescList()
-			for _, e := range el {
-				if e.Key == test.key {
-					assert.Equal(t, test.defval, e.DefaultVal)
-					assert.Equal(t, test.required, e.Required)
-				}
-			}
-		})
-	}
-}
+	// Setup fake K8s client
+	scheme := runtime.NewScheme()
+	_ = corev1.AddToScheme(scheme)
+	_ = v1alpha1.AddToScheme(scheme)
+	builder := crtFakeClient.NewClientBuilder().WithScheme(scheme).WithObjects(cr)
+	crtClient := builder.Build()
 
-// TestDoWork tests the DoWork method
-// GIVEN a worker
-//
-//	WHEN the DoWork methods is called
-//	THEN ensure that the correct results are returned
-func TestDoWork(t *testing.T) {
-	envMap := map[string]string{
-		ServiceName:      "test-service-name",
-		ServiceNamespace: "test-namespace",
-		ServicePort:      "1",
-		Path:             "test-path",
+	// Load the PsrClient with both fake clients
+	psrClient := fakePsrClient{
+		psrClient: &k8sclient.PsrClient{
+			CrtlRuntime: crtClient,
+			VzInstall:   vzclient,
+		},
 	}
-	f := fakeEnv{data: envMap}
-	saveEnv := osenv.GetEnvFunc
-	osenv.GetEnvFunc = f.GetEnv
+	origFc := funcNewPsrClient
 	defer func() {
-		osenv.GetEnvFunc = saveEnv
+		funcNewPsrClient = origFc
 	}()
+	funcNewPsrClient = psrClient.NewPsrClient
 
-	tests := []struct {
-		name         string
-		bodyData     string
-		getError     error
-		doworkError  error
-		statusCode   int
-		nilResp      bool
-		reqCount     int
-		successCount int
-		failureCount int
-	}{
-		{
-			name:         "1",
-			bodyData:     "testsuccess",
-			statusCode:   200,
-			reqCount:     1,
-			successCount: 1,
-			failureCount: 0,
+	log := vzlog.DefaultLogger()
+	conf, err := config.GetCommonConfig(log)
+	err = updateVZForAlertmanager(log, conf)
+	assert.NoError(t, err)
+
+	var cm corev1.ConfigMap
+	err = psrClient.psrClient.CrtlRuntime.Get(context.TODO(), types.NamespacedName{
+		Name:      psrprom.AlertmanagerCMName,
+		Namespace: cr.Namespace,
+	}, &cm)
+	assert.NoError(t, err)
+	assert.Equal(t, `alertmanager:
+  alertmanagerSpec:
+    podMetadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+  config:
+    receivers:
+    - webhook_configs:
+      - url: http://test-alerts-http-alerts.test-psr:9090/alerts
+      name: webhook
+    route:
+      group_by:
+      - alertname
+      receiver: webhook
+      routes:
+      - match:
+          alertname: Watchdog
+        receiver: webhook
+  enabled: true
+`, cm.Data[psrprom.AlertmanagerCMKey])
+
+	cr, err = psrClient.psrClient.VzInstall.VerrazzanoV1alpha1().Verrazzanos(cr.Namespace).Get(context.TODO(), cr.Name, metav1.GetOptions{})
+	assert.NoError(t, err)
+	assert.Equal(t, &corev1.ConfigMapKeySelector{
+		LocalObjectReference: corev1.LocalObjectReference{
+			Name: psrprom.AlertmanagerCMName,
 		},
-		{
-			name:         "2",
-			bodyData:     "testerror",
-			getError:     errors.New("error"),
-			reqCount:     1,
-			successCount: 0,
-			failureCount: 1,
-		},
-		{
-			name:         "3",
-			bodyData:     "testRespError",
-			statusCode:   500,
-			reqCount:     1,
-			successCount: 0,
-			failureCount: 1,
-		},
-		{
-			name:         "4",
-			bodyData:     "testNilResp",
-			doworkError:  errors.New("GET request to endpoint received a nil response"),
-			nilResp:      true,
-			reqCount:     1,
-			successCount: 0,
-			failureCount: 1,
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			f := httpGetFunc
-			defer func() {
-				httpGetFunc = f
-			}()
-			var resp *http.Response
-			if !test.nilResp {
-				resp = &http.Response{
-					StatusCode:    test.statusCode,
-					Body:          &fakeBody{data: test.bodyData},
-					ContentLength: int64(len(test.bodyData)),
-				}
-			}
-			httpGetFunc = fakeHTTP{
-				bodyData: test.bodyData,
-				error:    test.getError,
-				resp:     resp,
-			}.Get
-
-			wi, err := NewHTTPGetWorker()
-			assert.NoError(t, err)
-			w := wi.(worker)
-			err = w.DoWork(config.CommonConfig{
-				WorkerType: "Fake",
-			}, vzlog.DefaultLogger())
-			if test.doworkError == nil && test.getError == nil {
-				assert.NoError(t, err)
-			} else {
-				assert.Error(t, err)
-			}
-
-			assert.Equal(t, int64(test.reqCount), w.getRequestsCountTotal.Val)
-			assert.Equal(t, int64(test.successCount), w.getRequestsSucceededCountTotal.Val)
-			assert.Equal(t, int64(test.failureCount), w.getRequestsFailedCountTotal.Val)
-		})
-	}
-}
-
-func (f fakeHTTP) Get(url string) (resp *http.Response, err error) {
-	return f.resp, f.error
-}
-
-func (f fakeBody) Read(d []byte) (n int, err error) {
-	copy(d, f.data)
-	return len(f.data), nil
-}
-
-func (f fakeBody) Close() error {
-	return nil
+		Key: psrprom.AlertmanagerCMKey,
+	}, cr.Spec.Components.PrometheusOperator.ValueOverrides[0].ConfigMapRef)
 }
 
 func (f *fakeEnv) GetEnv(key string) string {
 	return f.data[key]
+}
+
+func (f *fakePsrClient) NewPsrClient() (k8sclient.PsrClient, error) {
+	return *f.psrClient, nil
+}
+
+func overridePsrClient() func() (k8sclient.PsrClient, error) {
+	f := fakePsrClient{
+		psrClient: &k8sclient.PsrClient{},
+	}
+	origFc := funcNewPsrClient
+	funcNewPsrClient = f.NewPsrClient
+	return origFc
 }
