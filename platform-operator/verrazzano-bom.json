@@ -201,7 +201,7 @@
             },
             {
               "image": "nginx-prometheus-exporter",
-              "tag": "0.10.0-20221129133859-b29d89bb",
+              "tag": "v0.10.0-20221129133859-b29d89bb",
               "helmFullImageKey": "api.metricsImageName",
               "helmTagKey": "api.metricsImageVersion"
             }
