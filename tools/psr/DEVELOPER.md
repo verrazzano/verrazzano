@@ -327,7 +327,9 @@ contains the scenario.yaml file for the scenario, along with use case override f
 The scenarios are organized by area.
 
 ### Psrctl
-The `psrctl`
+The [psrct](./psrctl) directory contains the command line interface along with support packages.  One
+thing to note is that the [embed.go](./embed.go) file is needed by the psrctl code to access the built-in
+manifests.  This file needs to be in the parent directory of psrctl.
 
 
 ## Summary
