@@ -103,7 +103,8 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 
 	// Send a request to see if the user exists
 	reqURL := rc.BaseURL + usersByNamePath + vzconst.VerrazzanoClusterRancherUsername
-	response, body, err := rancherutil.SendRequest(http.MethodGet, reqURL, map[string]string{}, "", rc, ctx.Log())
+	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
+	response, body, err := rancherutil.SendRequest(http.MethodGet, reqURL, headers, "", rc, ctx.Log())
 	if err != nil {
 		return err
 	}

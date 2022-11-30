@@ -311,10 +311,9 @@ func createClusterUserDoesNotExist(httpMock *mocks.MockRequestSender, createStat
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURIMethod(http.MethodGet, usersPath)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
-			r := io.NopCloser(bytes.NewReader([]byte(
-				`{"baseType":"error","code":"NotFound","message":"no user","status":404,"type":"error"}`)))
+			r := io.NopCloser(bytes.NewReader([]byte(`{"data":[]}`)))
 			resp := &http.Response{
-				StatusCode: http.StatusNotFound,
+				StatusCode: http.StatusOK,
 				Body:       r,
 				Request:    &http.Request{Method: http.MethodGet},
 			}
