@@ -439,9 +439,6 @@ type ElasticsearchComponent struct {
 	// A list of <a href="https://opensearch.org/docs/1.2/im-plugin/ism/index/">Index State Management</a> policies
 	// to enable on OpenSearch.
 	Policies []vmov1.IndexManagementPolicy `json:"policies,omitempty"`
-	// Enable to add 3rd Party / Custom plugins not offered in the default OpenSearch image
-	// +optional
-	InstallPlugins vmov1.InstallPlugins  `json:"installPlugins,omitempty"`
 }
 
 // OpenSearchNode specifies a node group in the OpenSearch cluster.
@@ -474,9 +471,6 @@ type KibanaComponent struct {
 	Enabled *bool `json:"enabled,omitempty"`
 	// The number of pods to replicate. The default is `1`.
 	Replicas *int32 `json:"replicas,omitempty"`
-	// Enable to add 3rd Party / Custom plugins not offered in the default OpenSearch-Dashboard image
-	// +optional
-	InstallPlugins vmov1.InstallPlugins  `json:"installPlugins,omitempty"`
 }
 
 // KubeStateMetricsComponent specifies the kube-state-metrics configuration.

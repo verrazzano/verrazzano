@@ -5600,6 +5600,17 @@ spec:
                     properties:
                       enabled:
                         type: boolean
+                      installPlugins:
+                        properties:
+                          enabled:
+                            type: boolean
+                          plugins:
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - enabled
+                        type: object
                       nodes:
                         items:
                           properties:
@@ -5671,6 +5682,17 @@ spec:
                     properties:
                       enabled:
                         type: boolean
+                      installPlugins:
+                        properties:
+                          enabled:
+                            type: boolean
+                          plugins:
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - enabled
+                        type: object
                       replicas:
                         format: int32
                         type: integer
