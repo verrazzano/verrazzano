@@ -32,7 +32,8 @@ const (
 	rancherNamespace   = "cattle-system"
 	rancherIngressName = "rancher"
 
-	rancherAdminSecret = "rancher-admin-secret" //nolint:gosec //#gosec G101
+	rancherAdminSecret   = "rancher-admin-secret" //nolint:gosec //#gosec G101
+	rancherAdminUsername = "admin"
 
 	loginPath = "/v3-public/localProviders/local?action=login"
 
@@ -166,7 +167,7 @@ func getVerrazzanoClusterUserTokenFromRancher(rdr client.Reader, rc *RancherConf
 	if err != nil {
 		return "", err
 	}
-	return getUserToken(rc, log, secret)
+	return getUserToken(rc, log, secret, cons.VerrazzanoClusterRancherUsername)
 }
 
 // getAdminTokenFromRancher does a login with the admin user in Rancher and returns the token from the response
@@ -175,13 +176,13 @@ func getAdminTokenFromRancher(rdr client.Reader, rc *RancherConfig, log vzlog.Ve
 	if err != nil {
 		return "", err
 	}
-	return getUserToken(rc, log, secret)
+	return getUserToken(rc, log, secret, rancherAdminUsername)
 }
 
 // getUserToken gets a user token from a secret
-func getUserToken(rc *RancherConfig, log vzlog.VerrazzanoLogger, secret string) (string, error) {
+func getUserToken(rc *RancherConfig, log vzlog.VerrazzanoLogger, secret, username string) (string, error) {
 	action := http.MethodPost
-	payload := `{"Username": "` + cons.VerrazzanoClusterRancherUsername + `", "Password": "` + secret + `"}`
+	payload := `{"Username": "` + username + `", "Password": "` + secret + `"}`
 	reqURL := rc.BaseURL + loginPath
 	headers := map[string]string{"Content-Type": "application/json"}
 
