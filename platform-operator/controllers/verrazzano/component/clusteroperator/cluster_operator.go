@@ -107,19 +107,23 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	if response.StatusCode != 200 {
-		return ctx.Log().ErrorfNewErr("Failed getting existing user in Rancher, got status code: %d", response.StatusCode)
-	}
-	data, err := httputil.ExtractFieldFromResponseBodyOrReturnError(body, dataField, "failed to locate the data field of the response body")
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to find user given the username: %v", err)
-	}
-	if data != "[]" {
-		ctx.Log().Oncef("Verrazzano cluster user was located, skipping the creation process")
-		return nil
+	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusNotFound {
+		return ctx.Log().ErrorfNewErr("Failed getting user %s in Rancher, got status code: %d",
+			vzconst.VerrazzanoClusterRancherUsername, response.StatusCode)
 	}
 
-	// If the user has not been located, generate the user with a new password
+	if response.StatusCode == http.StatusOK {
+		data, err := httputil.ExtractFieldFromResponseBodyOrReturnError(body, dataField, "failed to locate the data field of the response body")
+		if err != nil {
+			return ctx.Log().ErrorfNewErr("Failed to find user given the username: %v", err)
+		}
+		if data != "[]" {
+			ctx.Log().Oncef("User %s was located, skipping the creation process", vzconst.VerrazzanoClusterRancherUsername)
+			return nil
+		}
+	}
+
+	// If the user has not been located in the response, or the status was not found, generate the user with a new password
 	pass, err := vzpassword.GeneratePassword(15)
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to generate a password for the Verrazzano cluster user: %v", err)
