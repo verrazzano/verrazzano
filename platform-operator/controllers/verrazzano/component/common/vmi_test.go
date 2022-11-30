@@ -7,11 +7,11 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzbeta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-
-	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,13 +25,9 @@ const profileDir = "../../../../manifests/profiles"
 
 var pvc100Gi, _ = resource.ParseQuantity("100Gi")
 
-// Test_FindStorageOverride tests the FindStorageOverride function
-// GIVEN a call to FindStorageOverride
-//
-//	WHEN I call with a ComponentContext with different profiles and overrides
-//	THEN the correct resource overrides or an error are returned
-func Test_FindStorageOverride(t *testing.T) {
-
+// TestVMI tests the Multiple VMI functions
+func TestVMI(t *testing.T) {
+	b := true
 	tests := []struct {
 		name             string
 		description      string
@@ -49,6 +45,7 @@ func Test_FindStorageOverride(t *testing.T) {
 			description: "Test prod profile with empty dir storage override",
 			actualCR: vzapi.Verrazzano{
 				Spec: vzapi.VerrazzanoSpec{
+					Components:          vzapi.ComponentSpec{Istio: &vzapi.IstioComponent{Enabled: &b, InjectionEnabled: &b}, DNS: &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: APIGroupRancherManagement}, InstallOverrides: vzapi.InstallOverrides{MonitorChanges: &b}}},
 					DefaultVolumeSource: &corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
 				},
 			},
@@ -152,26 +149,186 @@ func Test_FindStorageOverride(t *testing.T) {
 			expectedErr: true,
 		},
 	}
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			a := assert.New(t)
-
-			fakeContext := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), &test.actualCR, nil, false, profileDir)
-
+			cli := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects().Build()
+			fakeContext := spi.NewFakeContext(cli, &test.actualCR, nil, false, profileDir)
+			a.False(IsVMISecretReady(fakeContext))
+			a.False(IsGrafanaAdminSecretReady(fakeContext))
+			a.Nil(CreateAndLabelVMINamespaces(fakeContext))
+			a.Error(CreateOrUpdateVMI(fakeContext, nil))
+			fakeContext.EffectiveCR().Spec.Components.DNS = &vzapi.DNSComponent{Wildcard: &vzapi.Wildcard{Domain: "verrazzano"}}
+			fakeContext.EffectiveCR().Spec.Components.Grafana = &vzapi.GrafanaComponent{Database: &vzapi.DatabaseInfo{Name: "name", Host: "host"}}
+			fakeContext.EffectiveCR().Spec.Components.DNS.OCI = &vzapi.OCI{DNSZoneName: "ind"}
+			fakeContext.EffectiveCR().Spec.Components.DNS.Wildcard = nil
+			a.Error(CreateOrUpdateVMI(fakeContext, nil))
+			a.NoError(EnsureBackupSecret(cli))
+			a.NoError(EnsureGrafanaAdminSecret(cli))
+			a.NoError(EnsureVMISecret(cli))
+			a.NotNil(NewVMI())
+			a.NotNil(EnsureGrafanaDatabaseSecret(fakeContext))
+			a.True(IsVMISecretReady(fakeContext))
+			a.True(IsGrafanaAdminSecretReady(fakeContext))
+			err := CompareStorageOverrides(fakeContext.ActualCR(), fakeContext.EffectiveCR(), "")
+			if test.expectedErr {
+				a.Error(err)
+			} else {
+				a.NoError(err)
+			}
 			override, err := FindStorageOverride(fakeContext.EffectiveCR())
 			if test.expectedErr {
 				a.Error(err)
 			} else {
 				a.NoError(err)
 			}
-			if test.expectedOverride != nil {
-				if override == nil {
-					a.FailNow("Expected returned override to not be nil")
-				}
-				a.Equal(*test.expectedOverride, *override)
+			a.Equal(test.expectedOverride, override)
+		})
+	}
+}
+
+// TestStorageOverrideBeta1 tests the StorageOverrides functions for V1Beta1
+// case mentioned to description
+// expected error with multiple cases
+func TestStorageOverrideBeta1(t *testing.T) {
+	tests := []struct {
+		name             string
+		description      string
+		actualCR         vzbeta1.Verrazzano
+		expectedOverride *ResourceRequestValues
+		expectedErr      bool
+	}{
+		{
+			name:        "TestProdNoOverrides",
+			description: "Test storage override with empty CR",
+			actualCR:    vzbeta1.Verrazzano{},
+		},
+		{
+			name:        "TestProdEmptyDirOverride",
+			description: "Test prod profile with empty dir storage override",
+			actualCR: vzbeta1.Verrazzano{
+				Spec: vzbeta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}},
+				},
+			},
+			expectedOverride: &ResourceRequestValues{
+				Storage: "",
+			},
+		},
+		{
+			name:        "TestProdPVCOverride",
+			description: "Test prod profile with PVC storage override",
+			actualCR: vzbeta1.Verrazzano{
+				Spec: vzbeta1.VerrazzanoSpec{
+					DefaultVolumeSource: &corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"}},
+					VolumeClaimSpecTemplates: []vzbeta1.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc100Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedOverride: &ResourceRequestValues{
+				Storage: pvc100Gi.String(),
+			},
+		},
+		{
+			name:        "TestDevPVCOverride",
+			description: "Test dev profile with PVC storage override",
+			actualCR: vzbeta1.Verrazzano{
+				Spec: vzbeta1.VerrazzanoSpec{
+					Profile:             vzbeta1.Dev,
+					DefaultVolumeSource: &corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "vmi"}},
+					VolumeClaimSpecTemplates: []vzbeta1.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc100Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedOverride: &ResourceRequestValues{
+				Storage: pvc100Gi.String(),
+			},
+		},
+		{
+			name:        "TestDevUnsupportedVolumeSource",
+			description: "Test dev profile with an unsupported default volume source",
+			actualCR: vzbeta1.Verrazzano{
+				Spec: vzbeta1.VerrazzanoSpec{
+					Profile:             vzbeta1.Dev,
+					DefaultVolumeSource: &corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{}},
+					VolumeClaimSpecTemplates: []vzbeta1.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc100Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedErr: true,
+		},
+		{
+			name:        "TestDevMismatchedPVCClaimName",
+			description: "Test dev profile with PVC default volume source and mismatched PVC claim name",
+			actualCR: vzbeta1.Verrazzano{
+				Spec: vzbeta1.VerrazzanoSpec{
+					Profile:             vzbeta1.Dev,
+					DefaultVolumeSource: &corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "foo"}},
+					VolumeClaimSpecTemplates: []vzbeta1.VolumeClaimSpecTemplate{
+						{
+							ObjectMeta: metav1.ObjectMeta{Name: "vmi"},
+							Spec: corev1.PersistentVolumeClaimSpec{
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										"storage": pvc100Gi,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedErr: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			a := assert.New(t)
+			fakeContext := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(), nil, &test.actualCR, false, profileDir)
+			err := CompareStorageOverridesV1Beta1(fakeContext.ActualCRV1Beta1(), fakeContext.EffectiveCRV1Beta1(), "")
+			if test.expectedErr {
+				a.Error(err)
 			} else {
-				a.Nil(override)
+				a.NoError(err)
 			}
+			override, err := FindStorageOverrideV1Beta1(fakeContext.EffectiveCRV1Beta1())
+			if test.expectedErr {
+				a.Error(err)
+			} else {
+				a.NoError(err)
+			}
+			a.Equal(test.expectedOverride, override)
 		})
 	}
 }

@@ -5,6 +5,7 @@ package authz
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"net/http"
 	"time"
 
@@ -32,7 +33,7 @@ var shortPollingInterval = 10 * time.Second
 
 var t = framework.NewTestFramework("authz")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
 	deployFooApplication()
 	deployBarApplication()
@@ -41,6 +42,8 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var failed = false
 var beforeSuitePassed = false
 
@@ -48,9 +51,9 @@ var _ = t.AfterEach(func() {
 	failed = failed || framework.VzCurrentGinkgoTestDescription().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport(fooNamespace, barNamespace, noIstioNamespace)
+		dump.ExecuteBugReport(fooNamespace, barNamespace, noIstioNamespace)
 	}
 	start := time.Now()
 	undeployFooApplication()
@@ -58,6 +61,8 @@ var _ = t.AfterSuite(func() {
 	undeployNoIstioApplication()
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = AfterSuite(afterSuite)
 
 func deployFooApplication() {
 	t.Logs.Info("Deploy Auth Policy Application in foo namespace")

@@ -74,7 +74,7 @@ spec:
       to:
         - operation:
             ports: ["9200"]
-    # vmi-system-es-master:9200,9300 <- vmi-system-kibana (uses VMO SA)
+    # vmi-system-es-master:9200,9300 <- vmi-system-osd (uses VMO SA)
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
@@ -113,7 +113,7 @@ spec:
       to:
         - operation:
             ports: ["9200"]
-    # vmi-system-es-ingest:9200,9300 <- vmi-system-kibana (uses VMO SA)
+    # vmi-system-es-ingest:9200,9300 <- vmi-system-osd (uses VMO SA)
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
@@ -168,20 +168,20 @@ spec:
 ---
 {{- if .Values.kibana.enabled }}
 #
-# Istio AuthorizationPolicy for vmi-system-kibana
+# Istio AuthorizationPolicy for vmi-system-osd
 #
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: vmi-system-kibana-authzpol
+  name: vmi-system-osd-authzpol
   namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
-      app: system-kibana
+      app: system-osd
   action: ALLOW
   rules:
-    # vmi-system-kibana:5601 <- verrazzano-authproxy
+    # vmi-system-osd:5601 <- verrazzano-authproxy
     - from:
         - source:
             namespaces: ["{{ .Release.Namespace }}"]
@@ -189,7 +189,7 @@ spec:
       to:
         - operation:
             ports: ["5601"]
-    # vmi-system-kibana:15090 <- verrazzano-monitoring-operator
+    # vmi-system-osd:15090 <- verrazzano-monitoring-operator
     - from:
         - source:
             namespaces: [ "{{ .Release.Namespace }}" ]
@@ -197,7 +197,7 @@ spec:
       to:
         - operation:
             ports: ["15090","5601"]
-    # vmi-system-kibana:15090 <- prometheus
+    # vmi-system-osd:15090 <- prometheus
     - from:
         - source:
             namespaces: ["{{ .Values.prometheus.namespace }}"]

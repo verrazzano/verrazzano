@@ -28,10 +28,12 @@ var (
 	start = time.Now()
 )
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	m := JaegerOperatorEnabledModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 })
+
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 
@@ -113,6 +115,6 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 			err := update.UpdateCR(m)
 			foundExpectedErr := err != nil && strings.Contains(err.Error(), disableErrorMsg)
 			return foundExpectedErr
-		}).Should(BeTrue(), pollingInterval, waitTimeout)
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
 })

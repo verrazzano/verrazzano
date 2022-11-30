@@ -16,6 +16,16 @@ spec:
         volumeSource:
           persistentVolumeClaim:
             claimName: mysql  # set storage for keycloak's MySql instance
+    clusterOperator:
+      overrides:
+        - values:
+            syncRancherClusters:
+              enabled: true
+              clusterSelector:
+                matchExpressions:
+                  - key: rancher-sync
+                    operator: In
+                    values: [ enabled ]
     # Prometheus Operator components are not included to account for upgrade tests
   volumeClaimSpecTemplates:
     - metadata:

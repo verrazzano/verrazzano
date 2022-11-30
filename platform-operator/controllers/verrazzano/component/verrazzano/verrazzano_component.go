@@ -42,7 +42,7 @@ const (
 	esPasswordKey = "password"
 )
 
-// ComponentJSONName is the josn name of the verrazzano component in CRD
+// ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "verrazzano"
 
 type verrazzanoComponent struct {
@@ -90,7 +90,7 @@ func (c verrazzanoComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := common.CreateAndLabelNamespaces(ctx); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespaces for Verrazzano: %v", err)
 	}
-	return nil
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 // Install Verrazzano component install processing
@@ -111,7 +111,10 @@ func (c verrazzanoComponent) PreUpgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 	}
-	return verrazzanoPreUpgrade(ctx)
+	if err := verrazzanoPreUpgrade(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // Upgrade Verrazzano component upgrade processing

@@ -229,6 +229,7 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 				if minVer15 {
 					verifySettingValue(rancher.SettingUIPrimaryColor, rancher.SettingUIPrimaryColorValue, k8sClient)
 					verifySettingValue(rancher.SettingUILinkColor, rancher.SettingUILinkColorValue, k8sClient)
+					verifySettingValue(rancher.SettingUIBrand, rancher.SettingUIBrandValue, k8sClient)
 				}
 			}
 		})
@@ -256,6 +257,8 @@ func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dyna
 
 		value := clusterData.UnstructuredContent()["value"].(string)
 		logoSVG := strings.Split(value, rancher.SettingUILogoValueprefix)[1]
+		// Strip out any extra carriage returns
+		logoSVG = strings.ReplaceAll(logoSVG, "\r\r", "\r")
 		cfg, err := k8sutil.GetKubeConfig()
 		if err != nil {
 			t.Logs.Error(fmt.Sprintf("Error getting client config to verify value of %s setting: %v", settingName, err))
@@ -287,7 +290,10 @@ func verifyUILogoSetting(settingName string, logoPath string, dynamicClient dyna
 			return false, err
 		}
 
+		// Strip out any extra carriage returns
+		stdout = strings.ReplaceAll(stdout, "\r\r", "\r")
 		if stdout != logoSVG {
+			t.Logs.Errorf("Setting %s unstructured %v", logoPath, clusterData.UnstructuredContent())
 			t.Logs.Errorf("Got %s for Rancher UI logo path, expected %s", stdout, logoSVG)
 			return false, nil
 		}

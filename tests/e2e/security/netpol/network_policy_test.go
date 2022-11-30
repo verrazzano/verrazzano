@@ -6,6 +6,7 @@ package netpol
 import (
 	"encoding/json"
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"strings"
 	"time"
 
@@ -44,7 +45,7 @@ const (
 	defaultBackend      = "default-backend"
 	vzConsole           = "verrazzano-console"
 	grafanaSys          = "system-grafana"
-	kibanaSys           = "system-kibana"
+	kibanaSys           = "system-osd"
 	weblogicOperator    = "weblogic-operator"
 )
 
@@ -79,9 +80,9 @@ var (
 )
 
 var t = framework.NewTestFramework("netpol")
-var clusterDump = pkg.NewClusterDumpWrapper(generatedNamespace)
+var clusterDump = dump.NewClusterDumpWrapper(t, generatedNamespace)
 
-var _ = clusterDump.BeforeSuite(func() {
+var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 	start := time.Now()
 	Eventually(func() (*corev1.Namespace, error) {
 		nsLabels := map[string]string{}
@@ -119,8 +120,8 @@ var _ = clusterDump.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
-var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
+var _ = clusterDump.AfterEach(func() {})             // Dump cluster if spec fails
+var afterSuite = clusterDump.AfterSuiteFunc(func() { // Dump cluster if aftersuite fails
 	// undeploy the applications here
 	start := time.Now()
 	Eventually(func() error {
@@ -139,6 +140,9 @@ var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
 	pkg.UndeployHelloHelidonApplication(namespace, "")
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = BeforeSuite(beforeSuite)
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 
@@ -313,11 +317,11 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 
 			},
 			func() {
-				t.Logs.Info("Test vmi-system-kibana ingress rules")
+				t.Logs.Info("Test vmi-system-osd ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.VerrazzanoAuthProxyServiceName}}, vzconst.VerrazzanoSystemNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": kibanaSys}}, vzconst.VerrazzanoSystemNamespace, 5601, false, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-kibana ingress rules failed: reason = %s", err))
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-osd ingress rules failed: reason = %s", err))
 				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": kibanaSys}}, vzconst.VerrazzanoSystemNamespace, envoyStatsMetricsPort, false, true)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-kibana ingress rules failed: reason = %s", err))
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test vmi-system-osd ingress rules failed: reason = %s", err))
 			},
 			func() {
 				t.Logs.Info("Test prometheus ingress rules")
@@ -448,9 +452,9 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-grafana ingress rules failed: reason = %s", err))
 			},
 			func() {
-				t.Logs.Info("Negative test vmi-system-kibana ingress rules")
+				t.Logs.Info("Negative test vmi-system-osd ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": kibanaSys}}, vzconst.VerrazzanoSystemNamespace, 5601, false, false)
-				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-kibana ingress rules failed: reason = %s", err))
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test vmi-system-osd ingress rules failed: reason = %s", err))
 			},
 			func() {
 				t.Logs.Info("Negative test prometheus ingress rules")

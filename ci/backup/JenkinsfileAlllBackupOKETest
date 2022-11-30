@@ -300,13 +300,7 @@ pipeline {
 
                     # create secret in verrazzano-install ns
                     ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
-
-                    ${LOOPING_TEST_SCRIPTS_DIR}/dump_cluster.sh ${WORKSPACE}/verrazzano/build/resources/pre-install-resources
-
                     ./tests/e2e/config/scripts/process_nipio_install_yaml.sh ${INSTALL_CONFIG_FILE}
-                    yq -i eval '.spec.components.prometheusAdapter.enabled = true'  ${INSTALL_CONFIG_FILE}
-                    yq -i eval '.spec.components.kubeStateMetrics.enabled = true'  ${INSTALL_CONFIG_FILE}
-                    yq -i eval '.spec.components.prometheusPushgateway.enabled = true'  ${INSTALL_CONFIG_FILE}
 
                     echo "Waiting for Operator to be ready"
                     cd ${GO_REPO_PATH}/verrazzano
@@ -317,26 +311,12 @@ pipeline {
 
                     # wait for Verrazzano install to complete
                     ./tests/e2e/config/scripts/wait-for-verrazzano-install.sh
-
-                    ${TEST_SCRIPTS_DIR}/common-test-setup-script.sh "${GO_REPO_PATH}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "default" "${env.OCR_REPO}"
-                    ${TEST_SCRIPTS_DIR}/get_ingress_ip.sh ${TEST_CONFIG_FILE}
-                    echo "----------Test config file:-------------"
-                    cat ${TEST_CONFIG_FILE}
-                    echo "----------------------------------------"
                 """
             }
             post {
+
                 always {
                     archiveArtifacts artifacts: "acceptance-test-operator.yaml,downloaded-operator.yaml", allowEmptyArchive: true
-                    dumpVerrazzanoSystemPods('install')
-                    dumpCattleSystemPods('install')
-                    dumpNginxIngressControllerLogs('install')
-                    dumpVerrazzanoPlatformOperatorLogs('install')
-                    dumpVerrazzanoApplicationOperatorLogs('install')
-                    dumpOamKubernetesRuntimeLogs('install')
-                    dumpVerrazzanoApiLogs('install')
-                    listNamepacesAndPods('after Verrazzano install')
-                    listHelmReleases('after Verrazzano install')
                 }
                 success {
                     script {
@@ -357,6 +337,7 @@ pipeline {
             }
         }
 
+
         stage('verify-install') {
             steps {
                 catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
@@ -364,6 +345,13 @@ pipeline {
                         cd ${WORKSPACE}/tests/e2e
                         ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" verify-install/...
                     """
+                }
+            }
+            post {
+                failure {
+                    script {
+                        dumpK8sCluster('verify-install-cluster-dump')
+                    }
                 }
             }
         }
@@ -376,9 +364,10 @@ pipeline {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
             }
             steps {
+                println("Checking all pods in namespace verrazzano-system are ready before start of test")
                 waitForPodsToBeUp("verrazzano-system")
                 runGinkgoRandomize('backup/opensearch')
-                println("Wait for pods in verrazzano-system to be ready")
+                println("Checking all pods in namespace verrazzano-system are ready after test completion")
                 waitForPodsToBeUp("verrazzano-system")
             }
             post {
@@ -426,9 +415,10 @@ pipeline {
             }
             steps {
                 echoAllPodInfo()
+                println("Checking all pods in namespace keycloak are ready before start of test")
                 waitForPodsToBeUp("keycloak")
                 runGinkgoRandomize('backup/mysql')
-                println("Wait for pods in keycloak to be ready")
+                println("Checking all pods in namespace keycloak are ready after completion of test")
                 waitForPodsToBeUp("keycloak")
             }
             post {
@@ -547,10 +537,10 @@ def dumpVerrazzanoSystemPods(logDirectory) {
         ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -m "verrazzano system pods" || echo "failed" > ${POST_DUMP_FAILED_FILE}
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano-platform-operator/scripts/${logDirectory}/build/logs/verrazzano-system-certs.log"
         ./scripts/install/k8s-dump-objects.sh -o cert -n verrazzano-system -m "verrazzano system certs" || echo "failed" > ${POST_DUMP_FAILED_FILE}
-        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano-platform-operator/scripts/${logDirectory}/build/logs/verrazzano-system-kibana.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-kibana-*" -m "verrazzano system kibana log" -l -c kibana || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano-platform-operator/scripts/${logDirectory}/build/logs/verrazzano-system-osd.log"
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-osd-*" -m "verrazzano system opensearchdashboards log" -l -c osd || echo "failed" > ${POST_DUMP_FAILED_FILE}
         export DIAGNOSTIC_LOG="${WORKSPACE}/verrazzano-platform-operator/scripts/${logDirectory}/build/logs/verrazzano-system-es-master.log"
-        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system kibana log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        ./scripts/install/k8s-dump-objects.sh -o pods -n verrazzano-system -r "vmi-system-es-master-*" -m "verrazzano system opensearchdashboards log" -l -c es-master || echo "failed" > ${POST_DUMP_FAILED_FILE}
     """
 }
 

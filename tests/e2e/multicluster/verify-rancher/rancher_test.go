@@ -13,9 +13,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/cluster-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	corev1 "k8s.io/api/core/v1"
@@ -37,10 +37,12 @@ const (
 
 var t = framework.NewTestFramework("rancher_test")
 
-var _ = t.BeforeSuite(func() {})
+var beforeSuite = t.BeforeSuiteFunc(func() {})
+var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 
-var _ = t.AfterSuite(func() {})
+var afterSuite = t.AfterSuiteFunc(func() {})
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.install"), func() {
 	t.It("Rancher log records do not contain any websocket bad handshake messages", func() {
@@ -70,7 +72,7 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 
 			var err error
 
-			adminClient, err = pkg.GetVerrazzanoClientsetInCluster(adminKubeconfig)
+			adminClient, err = pkg.GetClusterOperatorClientset(adminKubeconfig)
 			Expect(err).ShouldNot(HaveOccurred())
 			managedClient, err = pkg.GetKubernetesClientsetForCluster(managedKubeconfig)
 			Expect(err).ShouldNot(HaveOccurred())

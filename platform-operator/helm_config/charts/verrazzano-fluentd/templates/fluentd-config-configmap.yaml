@@ -583,7 +583,7 @@ data:
     </filter>
 
     # filter to parse OpenSearch Dashboard container log files
-    <filter kubernetes.**vmi-system-kibana**verrazzano-system_kibana**>
+    <filter kubernetes.**vmi-system-osd**verrazzano-system_kibana**>
       @type parser
       @id kibana
       key_name log
@@ -604,7 +604,7 @@ data:
     </filter>
 
     # filter to parse OpenSearch Dashboard container log files
-    <filter kubernetes.**vmi-system-kibana**verrazzano-system_kibana**>
+    <filter kubernetes.**vmi-system-osd**verrazzano-system_kibana**>
       @type record_transformer
       @id kibana-json
       enable_ruby true

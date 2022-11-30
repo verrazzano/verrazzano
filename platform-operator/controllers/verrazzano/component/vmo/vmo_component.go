@@ -30,7 +30,7 @@ const ComponentName = "verrazzano-monitoring-operator"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = vzconst.VerrazzanoSystemNamespace
 
-// ComponentJSONName is the json name of the verrazzano-monitoring-operator component
+// ComponentJSONName is the JSON name of the verrazzano-monitoring-operator component
 const ComponentJSONName = "verrazzano-monitoring-operator"
 
 // vmoComponent represents a VMO component
@@ -102,7 +102,7 @@ func (c vmoComponent) PreUpgrade(context spi.ComponentContext) error {
 	if err := retainPrometheusPersistentVolume(context); err != nil {
 		return err
 	}
-	return nil
+	return c.HelmComponent.PreUpgrade(context)
 }
 
 // Upgrade VMO processing

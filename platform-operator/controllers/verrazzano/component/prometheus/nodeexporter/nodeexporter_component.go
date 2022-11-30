@@ -26,7 +26,7 @@ const ComponentName = "prometheus-node-exporter"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoMonitoringNamespace
 
-// ComponentJSONName is the json name of the component in the CRD
+// ComponentJSONName is the JSON name of the component in the CRD
 const ComponentJSONName = "prometheusNodeExporter"
 
 const chartDir = "prometheus-community/prometheus-node-exporter"
@@ -81,7 +81,10 @@ func (c prometheusNodeExporterComponent) IsReady(ctx spi.ComponentContext) bool 
 
 // PreInstall updates resources necessary for the Prometheus Node-Exporter Component installation
 func (c prometheusNodeExporterComponent) PreInstall(ctx spi.ComponentContext) error {
-	return preInstall(ctx)
+	if err := preInstall(ctx); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 // AppendOverrides appends install overrides for the Prometheus Node Exporter component's Helm chart

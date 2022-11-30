@@ -18,8 +18,8 @@ type WorkerDesc struct {
 	// Description returns a description of the worker
 	Description string
 
-	// MetricsName returns the worker name used for metrics
-	MetricsName string
+	// MetricsPrefix returns the worker prefix used for metrics
+	MetricsPrefix string
 }
 
 // Worker is an interface that must be implemented by all workers

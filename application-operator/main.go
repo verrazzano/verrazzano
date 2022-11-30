@@ -15,6 +15,7 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
+	vmc "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -44,6 +45,7 @@ func init() {
 	_ = clisecurity.AddToScheme(scheme)
 
 	_ = clustersv1alpha1.AddToScheme(scheme)
+	_ = vmc.AddToScheme(scheme)
 	_ = certapiv1.AddToScheme(scheme)
 	_ = promoperapi.AddToScheme(scheme)
 }

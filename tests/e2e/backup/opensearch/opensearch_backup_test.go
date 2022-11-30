@@ -27,7 +27,7 @@ import (
 const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
-	waitTimeout          = 15 * time.Minute
+	waitTimeout          = 20 * time.Minute
 	pollingInterval      = 30 * time.Second
 	vmoDeploymentName    = "verrazzano-monitoring-operator"
 	osStsName            = "vmi-system-es-master"
@@ -40,20 +40,24 @@ const (
 )
 
 var esPods = []string{"vmi-system-es-master", "vmi-system-es-ingest", "vmi-system-es-data"}
-var esPodsUp = []string{"vmi-system-es-master", "vmi-system-es-ingest", "vmi-system-es-data", "verrazzano-monitoring-operator", "vmi-system-kibana"}
+var esPodsUp = []string{"vmi-system-es-master", "vmi-system-es-ingest", "vmi-system-es-data", "verrazzano-monitoring-operator", "vmi-system-osd"}
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
 	common.GatherInfo()
 	backupPrerequisites()
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = t.AfterSuite(func() {
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	start := time.Now()
 	cleanUpVelero()
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = AfterSuite(afterSuite)
 
 var t = framework.NewTestFramework("opensearch-backup")
 
