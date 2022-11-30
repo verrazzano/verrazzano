@@ -4,6 +4,7 @@
 package system
 
 import (
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"os"
 	"time"
 
@@ -48,7 +49,7 @@ var _ = t.AfterEach(func() {
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed {
-		err := pkg.ExecuteBugReport()
+		err := dump.ExecuteBugReport()
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
 		}

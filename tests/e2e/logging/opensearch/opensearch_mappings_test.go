@@ -5,6 +5,7 @@ package opensearch
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -30,7 +31,7 @@ var _ = t.AfterEach(func() {
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed {
-		pkg.ExecuteBugReport()
+		dump.ExecuteBugReport()
 	}
 	pkg.DeleteApplicationDataStream("verrazzano-application-test")
 })

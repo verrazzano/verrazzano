@@ -5,6 +5,7 @@ package todo_list
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"net/http"
 	"os"
 	"strconv"
@@ -295,7 +296,7 @@ var _ = t.Describe("In Multi-cluster, verify todo-list", Label("f:multicluster.m
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		err := pkg.ExecuteBugReport(testNamespace)
+		err := dump.ExecuteBugReport(testNamespace)
 		if err != nil {
 			return
 		}
