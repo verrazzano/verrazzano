@@ -19,7 +19,7 @@ Following is a summary of the steps needed:
 
 ## PSR Areas
 Workers are organized into areas, where each area typically maps to one or more Verrazzano backend components, but that isn't always
-the case as shown with HTTP workers.  You can see OpenSearch and HTTP workers in the [workers](./backend/workers) package.  
+the case as shown with HTTP workers.  You can see the workers in the [workers](./backend/workers) package.  
 PSR scenarios are also grouped into areas.
 
 The following area names are used in the source code and YAML configuration.
@@ -39,7 +39,7 @@ For example, the OpenSearch worker uses the metric prefix `opensearch`
 11. mysql - MySQL
 12. nginx - NGINX Ingress Controller, AuthProxy
 13. ops - OpenSearch, OpenSearchDashboards, Fluentd, VMO
-14. prom - Prometheus stack, Kabana
+14. prom - Prometheus stack, Grafana
 15. rancher - Rancher
 16. velero - Velero
 17. wls - WebLogic
@@ -91,10 +91,10 @@ To make this section easier to follow, we will describe creating a new MySQL wor
 In general, when creating a worker, it is easiest to just copy an existing worker that does the same type of action (e.g., scale)
 and modify it as needed for your component.  When it makes sense, common code should be factored out and reused by multiple workers.
 
-### Stubbing-out a worker
+### Creating a worker skeleton
 Following are the first steps to implement a worker:
 
-1. Add a worker type named `WorkerTypeMysqlScale = mysql-scale` to [config.go](./backend/config/config.go).
+1. Add a worker type named `WorkerTypeMysqlQuery = mysql-query` to [config.go](./backend/config/config.go).
 2. Create a package named `mysql` in package [workers](./backend/workers).
 3. Create a file `query.go` in the `mysql` package and do the following:
    1. Stub out the [worker interface](./backend/spi/worker.go) implementation in `query.go`  You can copy the ops getlogs worker as a starting point.
@@ -109,7 +109,7 @@ Following are the first steps to implement a worker:
    1. change `PSR_WORKER_TYPE: ops-getlogs` to `PSR_WORKER_TYPE: mysql-query`.
    2. remove the opensearch-authpol section.
 
-### Testing a stubbed-out worker
+### Testing the worker skeleton
 This section shows how to test the new worker in a Kind cluster.
 
 1. Test the example worker first by building the image, loading it into the cluster and running the example worker:
