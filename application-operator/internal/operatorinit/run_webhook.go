@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -40,7 +39,12 @@ func WebhookInit(certDir string, log *zap.SugaredLogger) error {
 }
 
 func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeaderElection bool, certDir string, scheme *runtime.Scheme) error {
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	config, err := ctrl.GetConfig()
+	if err != nil {
+		log.Errorf("Failed to get kubeconfig: %v", err)
+	}
+
+	mgr, err := ctrl.NewManager(config, ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		Port:               9443,
@@ -50,17 +54,10 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 	if err != nil {
 		log.Errorf("Failed to start manager: %v", err)
 	}
-
-	config, err := ctrl.GetConfig()
-	if err != nil {
-		log.Errorf("Failed to get kubeconfig: %v", err)
-		os.Exit(1)
-	}
-
+	
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		log.Errorf("Failed to get clientset", err)
-		os.Exit(1)
 	}
 
 	log.Debug("Setting up certificates for webhook")

@@ -462,8 +462,7 @@ spec:
           image: {{ .Values.image }}
           args:
             - --zap-log-level=info
-            - --run-webhook-init=true
-            - --run-webhooks=false
+            - --run-webhook-init
             - --cert-dir=/etc/certs
           resources:
             requests:
@@ -484,9 +483,8 @@ spec:
               protocol: TCP
           args:
             - --zap-log-level={{ .Values.logLevel }}
-            - --run-webhooks=true
-            - --run-webhook-init=false
-            - --metrics-addr=:8080
+            - --run-webhooks
+            - --metrics-addr=:9100
           resources:
             requests:
               memory: {{ .Values.requestMemory }}
