@@ -38,6 +38,9 @@ const (
 	// PsrWorkerNamespace is the namespace of the PSR release
 	PsrWorkerNamespace = "NAMESPACE"
 
+	// PsrWorkerReleaseName is the name of the PSR release
+	PsrWorkerReleaseName = "RELEASE_NAME"
+
 	// PsrWorkerTypeMetricsName is the metrics label key for the PSR worker type
 	PsrWorkerTypeMetricsName = "psr_worker_type"
 )

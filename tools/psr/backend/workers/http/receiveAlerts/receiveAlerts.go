@@ -5,6 +5,7 @@ package alerts
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"sync/atomic"
@@ -202,7 +203,7 @@ func createAlertmanagerOverridesCM(log vzlog.VerrazzanoLogger) error {
 	}
 	_, err = controllerutil.CreateOrUpdate(context.TODO(), c.CrtlRuntime, &cm, func() error {
 		cm.Data = map[string]string{
-			psrprom.AlertmanagerCMKey: `alertmanager:
+			psrprom.AlertmanagerCMKey: fmt.Sprintf(`alertmanager:
   alertmanagerSpec:
     podMetadata:
       annotations:
@@ -210,7 +211,7 @@ func createAlertmanagerOverridesCM(log vzlog.VerrazzanoLogger) error {
   config:
     receivers:
     - webhook_configs:
-      - url: http://psr-alerts-http-alerts.psr:9090/alerts
+      - url: http://%s-%s.%s:9090/alerts
       name: webhook
     route:
       group_by:
@@ -221,8 +222,8 @@ func createAlertmanagerOverridesCM(log vzlog.VerrazzanoLogger) error {
           alertname: Watchdog
         receiver: webhook
   enabled: true
-`,
-		}
+`, config.PsrEnv.GetEnv(config.PsrWorkerReleaseName), config.PsrEnv.GetEnv(config.PsrWorkerType), config.PsrEnv.GetEnv(config.PsrWorkerNamespace),
+			)}
 		return nil
 	})
 	return err
