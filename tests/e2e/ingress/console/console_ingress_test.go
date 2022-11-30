@@ -5,6 +5,7 @@ package ingress
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -45,7 +46,7 @@ var _ = t.AfterEach(func() {
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport(namespace)
+		dump.ExecuteBugReport(namespace)
 	}
 	undeployApplication()
 })
