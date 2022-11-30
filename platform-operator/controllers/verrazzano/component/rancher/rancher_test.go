@@ -198,7 +198,7 @@ func createServerURLSetting() unstructured.Unstructured {
 	serverURLSetting := unstructured.Unstructured{
 		Object: map[string]interface{}{},
 	}
-	serverURLSetting.SetGroupVersionKind(GVKSetting)
+	serverURLSetting.SetGroupVersionKind(common.GVKSetting)
 	serverURLSetting.SetName(SettingServerURL)
 	return serverURLSetting
 }
@@ -207,7 +207,7 @@ func createFirstLoginSetting() unstructured.Unstructured {
 	firstLoginSetting := unstructured.Unstructured{
 		Object: map[string]interface{}{},
 	}
-	firstLoginSetting.SetGroupVersionKind(GVKSetting)
+	firstLoginSetting.SetGroupVersionKind(common.GVKSetting)
 	firstLoginSetting.SetName(SettingFirstLogin)
 	return firstLoginSetting
 }
@@ -270,8 +270,9 @@ func createKeycloakSecret() v1.Secret {
 
 // TestUseAdditionalCAs verifies that additional CAs should be used when specified in the Verrazzano CR
 // GIVEN a Verrazzano CR
-//  WHEN useAdditionalCAs is called
-//  THEN useAdditionalCAs return true or false if additional CAs are required
+//
+//	WHEN useAdditionalCAs is called
+//	THEN useAdditionalCAs return true or false if additional CAs are required
 func TestUseAdditionalCAs(t *testing.T) {
 	var tests = []struct {
 		in  vzapi.Acme
@@ -290,8 +291,9 @@ func TestUseAdditionalCAs(t *testing.T) {
 
 // TestGetRancherHostname verifies the Rancher hostname can be generated
 // GIVEN a Verrazzano CR
-//  WHEN getRancherHostname is called
-//  THEN getRancherHostname should return the Rancher hostname
+//
+//	WHEN getRancherHostname is called
+//	THEN getRancherHostname should return the Rancher hostname
 func TestGetRancherHostname(t *testing.T) {
 	expected := fmt.Sprintf("%s.%s.rancher", common.RancherName, vzAcmeDev.Spec.EnvironmentName)
 	actual, _ := getRancherHostname(fake.NewFakeClientWithScheme(getScheme()), &vzAcmeDev)
@@ -300,8 +302,9 @@ func TestGetRancherHostname(t *testing.T) {
 
 // TestGetRancherHostnameNotFound verifies the Rancher hostname can not be generated in the CR is invalid
 // GIVEN an invalid Verrazzano CR
-//  WHEN getRancherHostname is called
-//  THEN getRancherHostname should return an error
+//
+//	WHEN getRancherHostname is called
+//	THEN getRancherHostname should return an error
 func TestGetRancherHostnameNotFound(t *testing.T) {
 	_, err := getRancherHostname(fake.NewFakeClientWithScheme(getScheme()), &vzapi.Verrazzano{})
 	assert.NotNil(t, err)
@@ -374,7 +377,7 @@ func TestChartsNotUpdatedWorkaround(t *testing.T) {
 // newClusterRepoResources creates resources that will be loaded into the dynamic k8s client
 func newClusterRepoResources() []runtime.Object {
 	cattleSettings := &unstructured.Unstructured{}
-	cattleSettings.SetGroupVersionKind(GVKSetting)
+	cattleSettings.SetGroupVersionKind(common.GVKSetting)
 	cattleSettings.SetName(chartDefaultBranchName)
 
 	gvk := schema.GroupVersionKind{Group: "catalog.cattle.io", Version: "v1", Kind: "ClusterRepo"}

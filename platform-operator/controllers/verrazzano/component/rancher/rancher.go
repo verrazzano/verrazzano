@@ -100,6 +100,8 @@ const (
 	SettingUILogoDark              = "ui-logo-dark"
 	SettingUILogoDarkLogoFilePath  = "/usr/share/rancher/ui-dashboard/dashboard/_nuxt/pkg/verrazzano/assets/images/verrazzano-dark.svg"
 	SettingUILogoValueprefix       = "data:image/svg+xml;base64,"
+	SettingUIBrand                 = "ui-brand"
+	SettingUIBrandValue            = "verrazzano"
 )
 
 // auth config
@@ -165,7 +167,6 @@ const (
 	chartDefaultBranchName = "chart-default-branch"
 )
 
-var GVKSetting = common.GetRancherMgmtAPIGVKForKind("Setting")
 var GVKCluster = common.GetRancherMgmtAPIGVKForKind("Cluster")
 var GVKNodeDriver = common.GetRancherMgmtAPIGVKForKind("NodeDriver")
 var GVKKontainerDriver = common.GetRancherMgmtAPIGVKForKind("KontainerDriver")
@@ -450,7 +451,7 @@ func activatOKEDriver(log vzlog.VerrazzanoLogger, c client.Client) error {
 // putServerURL updates the server-url Setting
 func putServerURL(log vzlog.VerrazzanoLogger, c client.Client, serverURL string) error {
 	serverURLSetting := unstructured.Unstructured{}
-	serverURLSetting.SetGroupVersionKind(GVKSetting)
+	serverURLSetting.SetGroupVersionKind(common.GVKSetting)
 	serverURLSettingName := types.NamespacedName{Name: SettingServerURL}
 	err := c.Get(context.Background(), serverURLSettingName, &serverURLSetting)
 	if err != nil {
@@ -607,7 +608,7 @@ func disableFirstLogin(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 	c := ctx.Client()
 	firstLoginSetting := unstructured.Unstructured{}
-	firstLoginSetting.SetGroupVersionKind(GVKSetting)
+	firstLoginSetting.SetGroupVersionKind(common.GVKSetting)
 	firstLoginSettingName := types.NamespacedName{Name: SettingFirstLogin}
 	err := c.Get(context.Background(), firstLoginSettingName, &firstLoginSetting)
 	if err != nil {
@@ -625,7 +626,7 @@ func disableFirstLogin(ctx spi.ComponentContext) error {
 
 // createOrUpdateUIPlSetting creates/updates the ui-pl setting with value Verrazzano
 func createOrUpdateUIPlSetting(ctx spi.ComponentContext) error {
-	return createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUIPL}, GVKSetting, map[string]interface{}{"value": SettingUIPLValueVerrazzano})
+	return createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUIPL}, common.GVKSetting, map[string]interface{}{"value": SettingUIPLValueVerrazzano})
 }
 
 // createOrUpdateUILogoSetting updates the ui-logo-* settings
@@ -652,5 +653,5 @@ func createOrUpdateUILogoSetting(ctx spi.ComponentContext, settingName string, l
 		return log.ErrorfThrottledNewErr("Invalid empty output from Rancher pod")
 	}
 
-	return createOrUpdateResource(ctx, types.NamespacedName{Name: settingName}, GVKSetting, map[string]interface{}{"value": fmt.Sprintf("%s%s", SettingUILogoValueprefix, stdout)})
+	return createOrUpdateResource(ctx, types.NamespacedName{Name: settingName}, common.GVKSetting, map[string]interface{}{"value": fmt.Sprintf("%s%s", SettingUILogoValueprefix, stdout)})
 }

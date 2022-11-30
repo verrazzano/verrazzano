@@ -444,5 +444,9 @@ func configureUISettings(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("failed configuring %s setting for logo path %s: %s", SettingUILogoDark, SettingUILogoDarkLogoFilePath, err.Error())
 	}
 
+	if err := createOrUpdateResource(ctx, types.NamespacedName{Name: SettingUIBrand}, common.GVKSetting, map[string]interface{}{"value": SettingUIBrandValue}); err != nil {
+		return log.ErrorfThrottledNewErr("failed configuring ui-brand setting: %s", err.Error())
+	}
+
 	return nil
 }
