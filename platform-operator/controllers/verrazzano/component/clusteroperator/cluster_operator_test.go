@@ -35,6 +35,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+const (
+	rancherAdminSecret = "rancher-admin-secret" //nolint:gosec //#gosec G101
+)
+
 func TestGetOverrides(t *testing.T) {
 	testKey := "test-key"
 	testVal := "test-val"
@@ -277,8 +281,8 @@ func createClusterUserTestObjects() *fake.ClientBuilder {
 		},
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: vzconst.VerrazzanoMultiClusterNamespace,
-				Name:      vzconst.VerrazzanoClusterRancherName,
+				Namespace: vzconst.RancherSystemNamespace,
+				Name:      rancherAdminSecret,
 			},
 			Data: map[string][]byte{
 				"password": []byte(""),
