@@ -95,6 +95,28 @@ type RancherRegistration struct {
 	Status RancherRegistrationStatus `json:"status"`
 }
 
+// ArgoCDRegistrationStatus identifies the status of a argocd registration.
+type ArgoCDRegistrationStatus string
+
+const (
+	RegistrationPendingRancher              ArgoCDRegistrationStatus = "PendingRancherClusterRegisteration"
+	RegistrationMCResourceCreationCompleted ArgoCDRegistrationStatus = "MCResourceCreationCompleted"
+	UnregistrationCompleted                 ArgoCDRegistrationStatus = "MCUnregistered"
+	MCRegistrationCompleted                 ArgoCDRegistrationStatus = "Completed"
+	MCRegistrationFailed                    ArgoCDRegistrationStatus = "Failed"
+)
+
+// ArgoCDRegistration defines the ArgoCD registration state for a managed cluster
+type ArgoCDRegistration struct {
+	// The status of the ArgoCD registration
+	Status ArgoCDRegistrationStatus `json:"status"`
+	// The timestamp of last status set
+	Timestamp string `json:"@timestamp"`
+	// Supporting message related to the Rancher registration status
+	// +optional
+	Message string `json:"message,omitempty"`
+}
+
 // VerrazzanoManagedClusterStatus defines the observed state of a Verrazzano Managed Cluster.
 type VerrazzanoManagedClusterStatus struct {
 	// The Verrazzano API server URL for this managed cluster.
