@@ -216,6 +216,10 @@ func createAlertmanagerOverridesCM(log vzlog.VerrazzanoLogger) error {
       group_by:
       - alertname
       receiver: webhook
+      routes:
+      - match:
+          alertname: Watchdog
+        receiver: webhook
   enabled: true
 `,
 		}
