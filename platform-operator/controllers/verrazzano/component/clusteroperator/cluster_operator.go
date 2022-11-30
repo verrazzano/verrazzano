@@ -40,9 +40,9 @@ var userPayload = `
 	"description": "Verrazzano Cluster",
 	"enabled": true,
 	"mustChangePassword": false,
-	"name": %s,
-	"password": %s,
-	"username": %s
+	"name": "%s",
+	"password": "%s",
+	"username": "%s"
 }`
 
 // AppendOverrides appends any additional overrides needed by the Cluster Operator component
@@ -131,6 +131,7 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 	}
 	reqURL = rc.BaseURL + usersPath
 	payload := fmt.Sprintf(userPayload, vzconst.VerrazzanoClusterRancherName, pass, vzconst.VerrazzanoClusterRancherName)
+	headers["Content-Type"] = "application/json"
 	response, _, err = rancherutil.SendRequest(http.MethodPost, reqURL, headers, payload, rc, ctx.Log())
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to create the Verrazzano cluster user in Rancher: %v", err)
