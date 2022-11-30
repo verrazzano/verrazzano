@@ -24,9 +24,13 @@ import (
 )
 
 const (
-	openSearchTier  = "OPEN_SEARCH_TIER"
-	minReplicaCount = "MIN_REPLICA_COUNT"
-	maxReplicaCount = "MAX_REPLICA_COUNT"
+	// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
+	metricsPrefix = "opensearch_scaling"
+
+	openSearchTier           = "OPENSEARCH_TIER"
+	minReplicaCount          = "MIN_REPLICA_COUNT"
+	maxReplicaCount          = "MAX_REPLICA_COUNT"
+	openSearchTierMetricName = "opensearch_tier"
 )
 
 var funcNewPsrClient = k8sclient.NewPsrClient
@@ -65,34 +69,48 @@ func NewScaleWorker() (spi.Worker, error) {
 		state:     &state{},
 		workerMetrics: &workerMetrics{
 			scaleOutCountTotal: metrics.MetricItem{
-				Name: "opensearch_scale_out_count_total",
+				Name: "scale_out_count_total",
 				Help: "The total number of times OpenSearch scaled out",
 				Type: prometheus.CounterValue,
 			},
 			scaleInCountTotal: metrics.MetricItem{
-				Name: "opensearch_scale_in_count_total",
+				Name: "scale_in_count_total",
 				Help: "The total number of times OpenSearch scaled in",
 				Type: prometheus.CounterValue,
 			},
 			scaleOutSeconds: metrics.MetricItem{
-				Name: "opensearch_scale_out_seconds",
+				Name: "scale_out_seconds",
 				Help: "The number of seconds elapsed to scale out OpenSearch",
 				Type: prometheus.GaugeValue,
 			},
 			scaleInSeconds: metrics.MetricItem{
-				Name: "opensearch_scale_in_seconds",
+				Name: "scale_in_seconds",
 				Help: "The number of seconds elapsed to scale in OpenSearch",
 				Type: prometheus.GaugeValue,
 			},
 		},
 	}
 
-	w.metricDescList = []prometheus.Desc{
-		*w.scaleOutCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.scaleInCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.scaleOutSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.scaleInSeconds.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+	if err = config.PsrEnv.LoadFromEnv(w.GetEnvDescList()); err != nil {
+		return w, err
 	}
+
+	tier, err := psropensearch.ValidateOpenSeachTier(openSearchTier)
+	if err != nil {
+		return w, err
+	}
+
+	metricsLabels := map[string]string{
+		openSearchTierMetricName:        tier,
+		config.PsrWorkerTypeMetricsName: config.PsrEnv.GetEnv(config.PsrWorkerType),
+	}
+
+	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
+		&w.scaleOutCountTotal,
+		&w.scaleInCountTotal,
+		&w.scaleOutSeconds,
+		&w.scaleInSeconds,
+	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
 
 	return w, nil
 }
@@ -100,9 +118,9 @@ func NewScaleWorker() (spi.Worker, error) {
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		WorkerType:  config.WorkerTypeScale,
-		Description: "The OpenSearch scale worker scales an OpenSearch tier in and out continuously",
-		MetricsName: "scale",
+		WorkerType:    config.WorkerTypeOpsScale,
+		Description:   "The OpenSearch scale worker scales an OpenSearch tier in and out continuously",
+		MetricsPrefix: metricsPrefix,
 	}
 }
 
@@ -138,10 +156,11 @@ func (w worker) PreconditionsMet() (bool, error) {
 // DoWork continuously scales a specified OpenSearch out and in by modifying the VZ CR OpenSearch component
 func (w worker) DoWork(_ config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	// validate OS tier
-	tier := config.PsrEnv.GetEnv(openSearchTier)
-	if tier != psropensearch.MasterTier && tier != psropensearch.DataTier && tier != psropensearch.IngestTier {
-		return log.ErrorfNewErr("Failed %s tier is not valid", tier)
+	tier, err := psropensearch.ValidateOpenSeachTier(openSearchTier)
+	if err != nil {
+		return err
 	}
+
 	// Wait until VZ is ready
 	cr, err := w.waitReady(true)
 	if err != nil {
@@ -266,9 +285,6 @@ func (w worker) waitReady(desiredReady bool) (cr *vzv1alpha1.Verrazzano, err err
 			return nil, err
 		}
 		ready := psrvz.IsReady(cr)
-		if err != nil {
-			return nil, err
-		}
 		if ready == desiredReady {
 			break
 		}

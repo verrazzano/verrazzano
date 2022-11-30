@@ -19,6 +19,9 @@ import (
 var httpGetFunc = http.Get
 
 const (
+	// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
+	metricsPrefix = "http_get"
+
 	// ServiceName specifies the name of the service in the local cluster
 	// By default, the ServiceName is not specified
 	ServiceName = "SERVICE_NAME"
@@ -53,36 +56,44 @@ type workerMetrics struct {
 func NewHTTPGetWorker() (spi.Worker, error) {
 	w := worker{workerMetrics: &workerMetrics{
 		getRequestsCountTotal: metrics.MetricItem{
-			Name: "get_request_count_total",
+			Name: "request_count_total",
 			Help: "The total number of GET requests",
 			Type: prometheus.CounterValue,
 		},
 		getRequestsSucceededCountTotal: metrics.MetricItem{
-			Name: "get_request_succeeded_count_total",
+			Name: "request_succeeded_count_total",
 			Help: "The total number of successful GET requests",
 			Type: prometheus.CounterValue,
 		},
 		getRequestsFailedCountTotal: metrics.MetricItem{
-			Name: "get_request_failed_count_total",
+			Name: "request_failed_count_total",
 			Help: "The total number of failed GET requests",
 			Type: prometheus.CounterValue,
 		},
 	}}
 
-	w.metricDescList = []prometheus.Desc{
-		*w.getRequestsCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.getRequestsSucceededCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
-		*w.getRequestsFailedCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsName),
+	if err := config.PsrEnv.LoadFromEnv(w.GetEnvDescList()); err != nil {
+		return w, err
 	}
+
+	metricsLabels := map[string]string{
+		config.PsrWorkerTypeMetricsName: config.PsrEnv.GetEnv(config.PsrWorkerType),
+	}
+
+	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
+		&w.getRequestsCountTotal,
+		&w.getRequestsSucceededCountTotal,
+		&w.getRequestsFailedCountTotal,
+	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
 	return w, nil
 }
 
 // GetWorkerDesc returns the WorkerDesc for the worker
 func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		WorkerType:  config.WorkerTypeHTTPGet,
-		Description: "The get worker makes GET request on the given endpoint",
-		MetricsName: config.WorkerTypeHTTPGet,
+		WorkerType:    config.WorkerTypeHTTPGet,
+		Description:   "The get worker makes GET request on the given endpoint",
+		MetricsPrefix: metricsPrefix,
 	}
 }
 

@@ -32,7 +32,7 @@ const (
 	ComponentName = "velero"
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace = constants.VeleroNameSpace
-	// ComponentJSONName is the json name of the component in the CRD
+	// ComponentJSONName is the JSON name of the component in the CRD
 	ComponentJSONName = "velero"
 	// ChartDir is the name of the directory for third party helm charts
 	ChartDir = "velero"
@@ -128,7 +128,10 @@ func (v veleroHelmComponent) MonitorOverrides(ctx spi.ComponentContext) bool {
 }
 
 func (v veleroHelmComponent) PreInstall(ctx spi.ComponentContext) error {
-	return ensureVeleroNamespace(ctx)
+	if err := ensureVeleroNamespace(ctx); err != nil {
+		return err
+	}
+	return v.HelmComponent.PreInstall(ctx)
 }
 
 // IsReady checks if the Velero objects are ready

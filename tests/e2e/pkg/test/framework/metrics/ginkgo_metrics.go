@@ -22,6 +22,7 @@ const (
 	test              = "test"
 	codeLocation      = "code_location"
 	stageName         = "stage_name"
+	fileName          = "file_name"
 	BuildURL          = "build_url"
 	JenkinsJob        = "jenkins_job"
 	BranchName        = "branch_name"
@@ -157,18 +158,30 @@ func configureOutputs(ind string) ([]string, error) {
 	return outputs, nil
 }
 
+func EmitFail(log *zap.SugaredLogger) {
+	spec := ginkgo.CurrentSpecReport()
+	log = log.With(Status, types.SpecStateFailed)
+	emitInternal(log, spec)
+}
+
 func Emit(log *zap.SugaredLogger) {
 	spec := ginkgo.CurrentSpecReport()
-	if spec.State != types.SpecStateInvalid {
+	// EmitFail should be only called by the fail handler to emit test failed metrics
+	if spec.State != types.SpecStateFailed {
 		log = log.With(Status, spec.State)
 	}
+	emitInternal(log, spec)
+}
+
+func emitInternal(log *zap.SugaredLogger, spec ginkgo.SpecReport) {
 	t := spec.FullText()
 	l := spec.Labels()
 	log = withCodeLocation(log, spec)
 	log, _ = withEnvVar(log, stageName, stageNameEnv)
 	log.With(attempts, spec.NumAttempts,
 		test, t,
-		Label, l).
+		Label, l,
+		fileName, spec.FileName()).
 		Info()
 }
 

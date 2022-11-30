@@ -4,12 +4,19 @@
 package clusteroperator
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const profilesRelativePath = "../../../../manifests/profiles"
@@ -99,4 +106,60 @@ func TestClusterOperatorEnabled(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Test isReady when it's called with component context
+func TestIsReady(t *testing.T) {
+	c := fake.NewClientBuilder().Build()
+	ctx := spi.NewFakeContext(c, &v1alpha1.Verrazzano{}, nil, true)
+	assert.False(t, NewComponent().IsReady(ctx))
+}
+
+// Test isReady when it's called with component context when dry run false
+func TestIsReadyFalse(t *testing.T) {
+	c := fake.NewClientBuilder().Build()
+	ctx := spi.NewFakeContext(c, &v1alpha1.Verrazzano{}, nil, false)
+	assert.False(t, NewComponent().IsReady(ctx))
+}
+
+// TestPostInstall that the RoleTemplate gets created
+func TestPostInstall(t *testing.T) {
+	clustOpComp := clusterOperatorComponent{}
+
+	cli := fake.NewClientBuilder().WithObjects(
+		&rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: VerrazzanoClusterUserRoleName,
+			},
+		},
+	).Build()
+	err := clustOpComp.PostInstall(spi.NewFakeContext(cli, &v1alpha1.Verrazzano{}, nil, false))
+	assert.NoError(t, err)
+
+	// Ensure the resource exists after postInstallUpgrade
+	resource := unstructured.Unstructured{}
+	resource.SetGroupVersionKind(rancher.GVKRoleTemplate)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: VerrazzanoClusterUserRoleName}, &resource)
+	assert.NoError(t, err)
+}
+
+// TestPostUpgrade that the RoleTemplate gets created
+func TestPostUpgrade(t *testing.T) {
+	clustOpComp := clusterOperatorComponent{}
+
+	cli := fake.NewClientBuilder().WithObjects(
+		&rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: VerrazzanoClusterUserRoleName,
+			},
+		},
+	).Build()
+	err := clustOpComp.PostUpgrade(spi.NewFakeContext(cli, &v1alpha1.Verrazzano{}, nil, false))
+	assert.NoError(t, err)
+
+	// Ensure the resource exists after postInstallUpgrade
+	resource := unstructured.Unstructured{}
+	resource.SetGroupVersionKind(rancher.GVKRoleTemplate)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: VerrazzanoClusterUserRoleName}, &resource)
+	assert.NoError(t, err)
 }

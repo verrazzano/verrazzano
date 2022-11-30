@@ -39,6 +39,7 @@ const (
 )
 
 var t = framework.NewTestFramework("vmi")
+var isMinVersion150 bool
 
 func vmiIngressURLs() (map[string]string, error) {
 	clientset, err := k8sutil.GetKubernetesClientset()
@@ -103,9 +104,17 @@ var (
 	vzMonitoringVolumeClaims map[string]*corev1.PersistentVolumeClaim
 )
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		t.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	isMinVersion150, err = pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
+	if err != nil {
+		t.Fail(err.Error())
+	}
 
 	Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
 		vzCRD, err = verrazzanoInstallerCRD()
@@ -136,6 +145,8 @@ var _ = t.BeforeSuite(func() {
 	elastic = vmi.GetOpensearch("system")
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
@@ -152,11 +163,11 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Expect(elasticTLSSecret()).To(BeTrue())
 			Expect(elastic.CheckIngress()).To(BeFalse())
-			Expect(ingressURLs).NotTo(HaveKey("vmi-system-es-ingest"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
+			Expect(ingressURLs).NotTo(HaveKey("vmi-system-os-ingest"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 
 			// Verify Kibana not present
 			Eventually(func() (bool, error) {
-				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})
+				return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-osd"})
 			}, waitTimeout, pollingInterval).Should(BeTrue())
 			Expect(ingressURLs).NotTo(HaveKey("vmi-system-kibana"), fmt.Sprintf("Ingress %s not found", "vmi-system-grafana"))
 
@@ -179,8 +190,8 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			Eventually(elasticTLSSecret, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "tls-secret did not show up")
 			// Eventually(elasticCertificate, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "certificate did not show up")
 			Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "ingress did not show up")
-			Expect(ingressURLs).To(HaveKey("vmi-system-es-ingest"), "Ingress vmi-system-es-ingest not found")
-			assertOidcIngressByName("vmi-system-es-ingest")
+			Expect(ingressURLs).To(HaveKey("vmi-system-os-ingest"), "Ingress vmi-system-os-ingest not found")
+			assertOidcIngressByName("vmi-system-os-ingest")
 			Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "never connected")
 			Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices never created")
 		})
@@ -233,15 +244,15 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 		t.It("Kibana endpoint should be accessible", Label("f:mesh.ingress",
 			"f:observability.logging.kibana"), func() {
 			kibanaPodsRunning := func() bool {
-				result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-kibana"})
+				result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-osd"})
 				if err != nil {
-					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-kibana", verrazzanoNamespace, err))
+					AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-osd", verrazzanoNamespace, err))
 				}
 				return result
 			}
 			Eventually(kibanaPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "kibana pods did not all show up")
-			Expect(ingressURLs).To(HaveKey("vmi-system-kibana"), "Ingress vmi-system-kibana not found")
-			assertOidcIngressByName("vmi-system-kibana")
+			Expect(ingressURLs).To(HaveKey("vmi-system-osd"), "Ingress vmi-system-osd not found")
+			assertOidcIngressByName("vmi-system-osd")
 		})
 
 		t.It("Prometheus helm override for replicas is in effect", Label("f:observability.monitoring.prom"), func() {

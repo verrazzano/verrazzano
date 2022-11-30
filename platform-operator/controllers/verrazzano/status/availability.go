@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap/zapcore"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -63,16 +64,35 @@ func (p *HealthChecker) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazza
 			return nil, nil
 		}
 		// determine a component's availability
-		if component.IsEnabled(ctx.EffectiveCR()) {
+		isEnabled := component.IsEnabled(ctx.EffectiveCR())
+		if isEnabled {
 			countEnabled++
 			// gets new availability for a given component
 			a := p.getComponentAvailability(component, componentStatus.State, ctx)
 			if a.available == vzapi.ComponentAvailable {
 				countAvailable++
 			}
+			// update the component availability metric
+			err := metricsexporter.SetComponentAvailabilityMetric(component.Name(), a.available, isEnabled)
+			if err != nil {
+				return nil, err
+			}
+
 			status.Components[a.name] = a.available
 		}
 	}
+
+	// publish the associated available/enabled component metrics
+	availableComp, err := metricsexporter.GetSimpleGaugeMetric(metricsexporter.AvailableComponents)
+	if err != nil {
+		return nil, err
+	}
+	availableComp.Set(float64(countAvailable))
+	enabledComp, err := metricsexporter.GetSimpleGaugeMetric(metricsexporter.EnabledComponents)
+	if err != nil {
+		return nil, err
+	}
+	enabledComp.Set(float64(countEnabled))
 
 	// format the printer column with both values
 	availabilityColumn := fmt.Sprintf("%d/%d", countAvailable, countEnabled)

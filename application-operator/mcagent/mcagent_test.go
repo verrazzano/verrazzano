@@ -15,9 +15,9 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/application-operator/mocks"
+	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
-	platformopclusters "github.com/verrazzano/verrazzano/platform-operator/apis/clusters/v1alpha1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -105,7 +105,7 @@ func TestProcessAgentThreadNoProjects(t *testing.T) {
 	clusterCASecret := "clusterCASecret"
 	adminMock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: "cluster1"}, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *platformopclusters.VerrazzanoManagedCluster) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
 			vmc.DeletionTimestamp = nil
 			vmc.Name = vmcName.Name
 			vmc.Namespace = vmcName.Namespace
@@ -304,15 +304,15 @@ func expectAdminVMCStatusUpdateFailure(adminMock *mocks.MockClient, vmcName type
 func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName types.NamespacedName, adminStatusMock *mocks.MockStatusWriter, assert *asserts.Assertions) {
 	adminMock.EXPECT().
 		Get(gomock.Any(), vmcName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *platformopclusters.VerrazzanoManagedCluster) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
 			vmc.Name = vmcName.Name
 			vmc.Namespace = vmcName.Namespace
 			return nil
 		})
 	adminMock.EXPECT().Status().Return(adminStatusMock)
 	adminStatusMock.EXPECT().
-		Update(gomock.Any(), gomock.AssignableToTypeOf(&platformopclusters.VerrazzanoManagedCluster{}), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, vmc *platformopclusters.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
+		Update(gomock.Any(), gomock.AssignableToTypeOf(&clustersapi.VerrazzanoManagedCluster{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vmc *clustersapi.VerrazzanoManagedCluster, opts ...client.UpdateOption) error {
 			assert.Equal(vmcName.Namespace, vmc.Namespace)
 			assert.Equal(vmcName.Name, vmc.Name)
 			assert.NotNil(vmc.Status)
@@ -361,7 +361,7 @@ func expectCASyncSuccess(localMock, adminMock *mocks.MockClient, assert *asserts
 	clusterCASecret := "clusterCASecret"
 	adminMock.EXPECT().
 		Get(gomock.Any(), vmcName, gomock.Not(gomock.Nil())).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *platformopclusters.VerrazzanoManagedCluster) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, vmc *clustersapi.VerrazzanoManagedCluster) error {
 			vmc.Name = vmcName.Name
 			vmc.Namespace = vmcName.Namespace
 			vmc.Spec.CASecret = clusterCASecret

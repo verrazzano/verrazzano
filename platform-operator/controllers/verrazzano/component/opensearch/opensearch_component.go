@@ -27,10 +27,10 @@ const (
 	ComponentNamespace = constants.VerrazzanoSystemNamespace
 
 	// Certificate names
-	osCertificateName = "system-tls-es-ingest"
+	osCertificateName = "system-tls-os-ingest"
 )
 
-// ComponentJSONName is the josn name of the opensearch component in CRD
+// ComponentJSONName is the JSON name of the opensearch component in CRD
 const ComponentJSONName = "opensearch"
 
 type opensearchComponent struct{}
@@ -220,7 +220,7 @@ func (o opensearchComponent) Name() string {
 func (o opensearchComponent) isOpenSearchEnabled(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
 	if vzcr.IsOpenSearchEnabled(old) && !vzcr.IsOpenSearchEnabled(new) {
-		return fmt.Errorf("Disabling component OpenSearch not allowed")
+		return fmt.Errorf("Disabling component %s not allowed", ComponentJSONName)
 	}
 	return nil
 }

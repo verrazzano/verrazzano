@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 var skipDeploy bool
@@ -23,7 +22,7 @@ func init() {
 	flag.StringVar(&namespace, "namespace", generatedNamespace, "namespace is the app namespace")
 }
 
-func TestCoherenceApplication(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Test Suite to validate the support for VerrazzanoCoherenceWorkload")
+func TestCoherenceApplication(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Test Suite to validate the support for VerrazzanoCoherenceWorkload")
 }

@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestFluentdUpdate(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Update Fluentd External ES Suite")
+func TestFluentdUpdate(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Update Fluentd External ES Suite")
 }

@@ -100,7 +100,7 @@ var excludePodsIstio = []string{
 
 var t = framework.NewTestFramework("syscomponents")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	present := false
 	var err error
 	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
@@ -122,9 +122,13 @@ var _ = t.BeforeSuite(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
-
 })
-var _ = t.AfterSuite(func() {})
+
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {})
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.AfterEach(func() {})
 

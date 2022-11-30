@@ -7,11 +7,10 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
 // TestSystemLogging tests the logging from Verrazzano system components.
-func TestSystemLogging(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "System Logging Suite")
+func TestSystemLogging(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "System Logging Suite")
 }

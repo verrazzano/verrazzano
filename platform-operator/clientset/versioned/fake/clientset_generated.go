@@ -7,8 +7,6 @@ package fake
 
 import (
 	clientset "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
-	clustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/clusters/v1alpha1"
-	fakeclustersv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/clusters/v1alpha1/fake"
 	verrazzanov1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/verrazzano/v1alpha1"
 	fakeverrazzanov1alpha1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/verrazzano/v1alpha1/fake"
 	verrazzanov1beta1 "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned/typed/verrazzano/v1beta1"
@@ -69,11 +67,6 @@ var (
 	_ clientset.Interface = &Clientset{}
 	_ testing.FakeClient  = &Clientset{}
 )
-
-// ClustersV1alpha1 retrieves the ClustersV1alpha1Client
-func (c *Clientset) ClustersV1alpha1() clustersv1alpha1.ClustersV1alpha1Interface {
-	return &fakeclustersv1alpha1.FakeClustersV1alpha1{Fake: &c.Fake}
-}
 
 // VerrazzanoV1beta1 retrieves the VerrazzanoV1beta1Client
 func (c *Clientset) VerrazzanoV1beta1() verrazzanov1beta1.VerrazzanoV1beta1Interface {

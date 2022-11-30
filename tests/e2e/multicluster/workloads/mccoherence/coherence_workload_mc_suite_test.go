@@ -6,7 +6,7 @@ package mccoherence
 import (
 	"flag"
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+
 	"testing"
 )
 
@@ -20,7 +20,7 @@ func init() {
 	flag.BoolVar(&skipVerify, "skipVerify", false, "skipVerify skips the post deployment app validations")
 }
 
-func TestMultiClusterCoherenceApplication(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Test Suite to validate the support for VerrazzanoCoherenceWorkload in multi-cluster environment")
+func TestMultiClusterCoherenceApplication(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Test Suite to validate the support for VerrazzanoCoherenceWorkload in multi-cluster environment")
 }

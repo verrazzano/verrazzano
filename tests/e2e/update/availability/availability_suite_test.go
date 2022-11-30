@@ -7,10 +7,9 @@ import (
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 )
 
-func TestAvailability(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "Availability Suite")
+func TestAvailability(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "Availability Suite")
 }

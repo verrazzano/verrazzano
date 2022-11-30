@@ -46,6 +46,8 @@ clean: ## remove coverage and test results
 	find . -name coverage.html -exec rm {} \;
 	find . -name coverage.raw.cov -exec rm {} \;
 	find . -name \*-test-result.xml -exec rm {} \;
+	find . -name coverage.xml -exec rm {} \;
+	find . -name unit-test-coverage-number.txt -exec rm {} \;
 
 ##@ Build
 
@@ -85,9 +87,14 @@ precommit-check: check check-tests copyright-check
 precommit-build:
 	go build ./...
 
+unit-test-coverage: export COVERAGE_EXCLUSIONS ?= tests/e2e|tools/psr
 .PHONY: unit-test-coverage
 unit-test-coverage:
 	${SCRIPT_DIR}/coverage.sh html
+
+.PHONY: unit-test-coverage-ratcheting
+get-unit-test-coverage-master-release:
+	${SCRIPT_DIR}/coverage-number-comparison.sh
 
 .PHONY: unit-test
 unit-test:

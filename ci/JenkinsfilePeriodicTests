@@ -363,7 +363,7 @@ pipeline {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
-                                build job: "verrazzano-dynamic-config-tests/${CLEAN_BRANCH_NAME}",
+                                build job: "verrazzano-dynamic-config-suite/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.24'),
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),

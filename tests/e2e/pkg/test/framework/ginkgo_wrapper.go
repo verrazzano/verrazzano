@@ -5,6 +5,7 @@ package framework
 
 import (
 	"fmt"
+	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	"go.uber.org/zap"
@@ -28,6 +29,10 @@ func NewTestFramework(pkg string) *TestFramework {
 	t.Logs, _ = metrics.NewLogger(pkg, metrics.TestLogIndex, "stdout")
 	t.initDumpDirectoryIfNecessary()
 	return t
+}
+
+func (t *TestFramework) RegisterFailHandler() {
+	gomega.RegisterFailHandler(t.Fail)
 }
 
 // initDumpDirectoryIfNecessary - sets the DUMP_DIRECTORY env variable to a default if not set externally
@@ -155,30 +160,26 @@ func (t *TestFramework) DescribeTable(text string, args ...interface{}) bool {
 	return ginkgo.DescribeTable(text, args...)
 }
 
-// BeforeSuite - wrapper function for Ginkgo BeforeSuite
-func (t *TestFramework) BeforeSuite(body func()) bool {
-	if body == nil {
-		ginkgo.Fail("Unsupported body type - expected non-nil")
-	}
-
+// BeforeSuiteFunc wrap a function to be called with ginkgo.BeforeSuite. ginkgo.BeforeSuite
+// // hard codes the call stack location, which requires calling it from the package level.
+func (t *TestFramework) BeforeSuiteFunc(body func()) func() {
+	t.failIfNilBody(body)
 	f := func() {
 		metrics.Emit(t.Metrics)
 		reflect.ValueOf(body).Call([]reflect.Value{})
 	}
-	return ginkgo.BeforeSuite(f)
+	return f
 }
 
-// AfterSuite - wrapper function for Ginkgo AfterSuite
-func (t *TestFramework) AfterSuite(body func()) bool {
-	if body == nil {
-		ginkgo.Fail("Unsupported body type - expected non-nil")
-	}
-
+// AfterSuiteFunc wrap a function to be called with ginkgo.AfterSuite. ginkgo.AfterSuite
+// hard codes the call stack location, which requires calling it from the package level.
+func (t *TestFramework) AfterSuiteFunc(body func()) func() {
+	t.failIfNilBody(body)
 	f := func() {
 		metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
 		reflect.ValueOf(body).Call([]reflect.Value{})
 	}
-	return ginkgo.AfterSuite(f)
+	return f
 }
 
 // Entry - wrapper function for Ginkgo Entry
@@ -192,6 +193,13 @@ func (t *TestFramework) Entry(description interface{}, args ...interface{}) gink
 
 // Fail - wrapper function for Ginkgo Fail
 func (t *TestFramework) Fail(message string, callerSkip ...int) {
+	// Recover only to emit a fail, then re-panic
+	defer func() {
+		if p := recover(); p != nil {
+			metrics.EmitFail(t.Metrics)
+			panic(p)
+		}
+	}()
 	ginkgo.Fail(message, callerSkip...)
 }
 
@@ -239,4 +247,10 @@ func (t *TestFramework) AfterAll(args ...interface{}) bool {
 func VzCurrentGinkgoTestDescription() ginkgo.SpecReport {
 	pkg.Log(pkg.Debug, "VzCurrentGinkgoTestDescription wrapper")
 	return ginkgo.CurrentSpecReport()
+}
+
+func (t *TestFramework) failIfNilBody(body func()) {
+	if body == nil {
+		ginkgo.Fail("Unsupported body type - expected non-nil")
+	}
 }

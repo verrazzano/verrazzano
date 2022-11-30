@@ -5,11 +5,11 @@ package bomvalidator
 
 import (
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+
 	"testing"
 )
 
-func TestBOMValidator(t *testing.T) {
-	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "BOM Validator Suite")
+func TestBOMValidator(test *testing.T) {
+	t.RegisterFailHandler()
+	ginkgo.RunSpecs(test, "BOM Validator Suite")
 }
