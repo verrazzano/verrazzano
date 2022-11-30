@@ -429,7 +429,7 @@ func isKeycloakAuthEnabled(vz *vzapi.Verrazzano) bool {
 	return true
 }
 
-// configureUISettings configures Rancher setting ui-pl, ui-logo-light and ui-logo-dark.
+// configureUISettings configures Rancher setting ui-pl, ui-logo-light, ui-logo-dark and ui-brand.
 func configureUISettings(ctx spi.ComponentContext) error {
 	log := ctx.Log()
 	if err := createOrUpdateUIPlSetting(ctx); err != nil {
