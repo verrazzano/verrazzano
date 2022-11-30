@@ -5,6 +5,7 @@ package mccoherence
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"net/http"
 	"os"
 	"strconv"
@@ -117,7 +118,7 @@ var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		err := pkg.ExecuteBugReport(appNamespace)
+		err := dump.ExecuteBugReport(appNamespace)
 		if err != nil {
 			return
 		}

@@ -5,6 +5,7 @@ package rbac
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"strconv"
 	"strings"
 	"time"
@@ -52,7 +53,7 @@ var _ = t.AfterEach(func() {
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed {
-		pkg.ExecuteBugReport(rbacTestNamespace)
+		dump.ExecuteBugReport(rbacTestNamespace)
 	}
 
 	t.Logs.Info("Delete namespace")
