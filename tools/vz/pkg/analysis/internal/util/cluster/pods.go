@@ -422,6 +422,25 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 			}
 		}
 	}
+	isHelm := false
+	isRancher := false
+	var indices []int
+	for i, data := range messages {
+		if strings.Contains(data, "Namespace cattle-system, Pod helm-operation") {
+			isHelm = true
+			indices = append(indices, i)
+		}
+		if strings.Contains(data, "Namespace cattle-system, Pod rancher") {
+			isRancher = true
+		}
+
+	}
+	if isHelm && !isRancher {
+		for i, index := range indices {
+			messages = append(messages[:(index-i)], messages[(index+1-i):]...)
+
+		}
+	}
 	supportingData := make([]report.SupportData, 1)
 	supportingData[0] = report.SupportData{
 		Messages:    messages,
@@ -429,10 +448,12 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 	}
 	// If all of the problematic pods were pending only, just report that, otherwise report them as problematic if some are
 	// failing or unknown
-	if pendingPodsSeen > 0 && problematicNotPending == 0 {
-		report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PendingPods, clusterRoot, supportingData))
-	} else {
-		report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PodProblemsNotReported, clusterRoot, supportingData))
+	if len(messages) > 0 {
+		if pendingPodsSeen > 0 && problematicNotPending == 0 {
+			report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PendingPods, clusterRoot, supportingData))
+		} else {
+			report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PodProblemsNotReported, clusterRoot, supportingData))
+		}
 	}
 }
 
