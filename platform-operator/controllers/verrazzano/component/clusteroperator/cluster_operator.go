@@ -108,7 +108,7 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 		return err
 	}
 	if response.StatusCode != 200 {
-		return ctx.Log().ErrorfNewErr("Failed to get expected response code viewing existing users in Rancher, code: %s")
+		return ctx.Log().ErrorfNewErr("Failed getting existing user in Rancher, got status code: %d", response.StatusCode)
 	}
 	data, err := httputil.ExtractFieldFromResponseBodyOrReturnError(body, dataField, "failed to locate the data field of the response body")
 	if err != nil {
