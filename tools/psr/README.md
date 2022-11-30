@@ -1,87 +1,46 @@
 # PSR Testing Tool
-
 The PSR testing tool is used to test Verrazzano performance, scalability, and
-reliability. The tool works by doing some
-work on the Verrazzano cluster, then collecting and analyzing results. The type
-of work that is done depends on the goal of the test,
-and it can be done at any layer. For example, you could test OpenSearch REST API
-while doing a Verrazzano upgrade, or even
-a Kubernetes upgrade.
+reliability. The tool works by doing some work on the Verrazzano cluster, then collecting 
+and analyzing results. The type of work that is done depends on the goal of the test.  
 
 ## Concepts
 
+### Worker
+A worker is the code that performs a specific task, such as putting logs into OpenSearch.  A worker
+does a single task focused and run continuously in a loop doing the same task.  Workers are
+deployed in a pod and run in the cluster.  You can have multiple worker threads (doing the same work),
+along with multiple replicas.  The type of work done would determine how many workers of the same type
+should be running.  The idea is that different workers can be combined into scenarios, which is described later.
+
+**NOTE** The worker code expects all dependencies to exist at some point
+during the time of execution. Workers should not know about other workers, but they
+should explicitly wait until pre-conditions are met before doing work.
+
 ### Backend
+Workers run in backend pods that are deployed using Helm charts. The
+backend consists of a single image that has all the worker code. When a pod is started,
+the worker config is passed in as a set of Env vars.  The main.go code in the pod gets
+the worker type, creates an instance of the worker, then invokes it
+to run. The pod only runs a single worker, which executes until the pod terminates, by default.
 
-The tool consists of backend pods that are deployed using Helm charts. The
-backend consists of a single image
-that has all the worker code. When a pod is started, the worker config, is
-passed in as a set of Env vars.
-The main.go code in the pod gets the worker type, creates an instance of the
-worker, then invokes it
-to run. The pod only runs a single worker, which executes until the pod
-terminates, by default.
-
-### Use Cases
-
-The term `use case` just describes what the worker does. Each backend pod runs
-exactly one `use case` at a time,
-in the context of a worker. Each use case is a focused task, like log
-generation, making HTTP GET requests against
-some endpoint, or repeatedly scaling a component.
+### Use Case
+The term `use case` describes what work is being done by a . Each backend pod runs
+exactly one `use case` at a time, in the context of a worker. Each use case is a focused task, 
+like log generation, making OpenSearch requests, or repeatedly scaling a component.
 
 To run a use case, just do a Helm install or upgrade. Each use case has a set of
-Env vars stored in override files
-that define the configuration. For example, to deploy a use case to
+Env vars stored in override files that define the configuration. For example, to deploy a use case to
 generate logs using 10 replicas, you would run the following command:
-
 ```
 helm install psr-writelogs manifests/charts/worker -f manifests/usecases/opensearch/writelogs.yaml --set replicas=10
 ```
 
-**NOTE** The worker code for a use case expects all dependencies to exist at the
-time of execution. This is the job of the scenario,
-described next. Workers should not know about other workers, or explicitly
-depend on them (in the worker code itself). With that said,
-a worker could be written to gracefully wait until some required dependency was
-ready before doing the work, but it would never create or
-provision a dependency.
-
-### Scenarios
-
-Scenarios are a combination of one or more use cases running concurrently.
-Consider the scenario where one use case generates logs and another that scales
-OpenSearch out and in, repeatedly.
-
-To run a scenario, you install two Helm releases as follows (note some use cases
-might not exist yet):
-```
-helm install psr-writelogs manifests/charts/worker -f manifests/usecases/opensearch/writelogs.yaml --set replicas=5
-helm install psr-scale manifests/charts/worker -f manifests/usecases/opensearch/scale.yaml --set replicas=1
-```
-
-The override file for the scale use case might look like this:
-```
-global:
-  envVars:
-    PSR_WORKER_TYPE: ops-scale
-    OPEN_SEARCH_TIER: master
-    SCALE_DELAY_PER_TIER: 5s
-    MIN_REPLICA_COUNT: 3
-    MAX_REPLICA_COUNT: 5
-```
-
-The OpenSearch worker code would read those Env vars at run time and behave
-accordingly.
-
-### Metrics
-
-The workers themselves will generate metrics so that we know what kind of load
-they are putting on the system,
-and to also have insight to their progress to be sure that they are working as
-expected.
+### Scenario
+A scenario is a collection of use cases with a curated configuration, that are run concurrently.
+An example is a scenario where one use case generates logs and another that scales OpenSearch out and in, repeatedly.
+The PSR command line interface, `psrctl`, is used to run scenarios.  See [psrctl README](./psrctl/README.md)
 
 ### Remote Execution
-
 There is nothing preventing a worker accessing a cluster different from the one
 it is running in. You
 would just need to put the KUBECONFIG in a secret and pass the secret info to as
