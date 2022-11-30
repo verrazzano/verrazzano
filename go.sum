@@ -755,8 +755,6 @@ github.com/valyala/fastjson v1.6.3/go.mod h1:CLCAqky6SMuOcxStkYQvblddUtoRxhYMGLr
 github.com/vektah/gqlparser v1.1.2/go.mod h1:1ycwN7Ij5njmMkPPAOaRFY4rET2Enx7IkVv3vaXspKw=
 github.com/verrazzano/kind v0.0.0-20221129215948-885481909133 h1:B4UOVPaicKuN8xUnNNGVTHzKck6EMLZ0jvvsfa6LYpA=
 github.com/verrazzano/kind v0.0.0-20221129215948-885481909133/go.mod h1:t5GndzzvtTW702bHZ/6dpkbd/eC4SaTenEmivLVnBKA=
-github.com/verrazzano/kind v0.14.1-0.20220901151917-d1f46433d223 h1:mlP5wCdzSMIEDXFshfJPY/1MldF9iDSrCz33/n6637s=
-github.com/verrazzano/kind v0.14.1-0.20220901151917-d1f46433d223/go.mod h1:t5GndzzvtTW702bHZ/6dpkbd/eC4SaTenEmivLVnBKA=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220810134448-c6e8df57abb2 h1:eBRnz7U/thF3u7jlUztyapqNaOT5023CISdOO9nOfys=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.29-0.20220810134448-c6e8df57abb2/go.mod h1:oA+BTeIz1HtMU91xR0ak+d+TLax6oESkXuYvxZBGugo=
 github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f/go.mod h1:N2zxlSyiKSe5eX1tZViRH5QA0qijqEDrYZiPEAiq3wU=
