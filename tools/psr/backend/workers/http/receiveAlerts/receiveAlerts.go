@@ -78,7 +78,7 @@ func NewReceiveAlertsWorker() (spi.Worker, error) {
 func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
 		WorkerType:    config.WorkerTypeHTTPGet,
-		Description:   "The alerts receiver worker configures ",
+		Description:   "The alerts receiver worker configures alertmanger and receives alerts and writes them to events",
 		MetricsPrefix: metricsPrefix,
 	}
 }
@@ -150,13 +150,12 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 			InvolvedObject: corev1.ObjectReference{
 				Namespace: config.PsrEnv.GetEnv(config.PsrWorkerNamespace),
 			},
-			Type:    "Alert",
-			Message: string(bodyRaw),
-			Reason:  alertStatus,
+			Type: "Alert",
 		}
 		if _, err = controllerutil.CreateOrUpdate(context.TODO(), c.CrtlRuntime, &event, func() error {
 			event.LastTimestamp = v1.Time{Time: time.Now()}
 			event.Message = string(bodyRaw)
+			event.Reason = alertStatus
 			return nil
 		}); err != nil {
 			log.Errorf("error generating alert event: %v", err)
