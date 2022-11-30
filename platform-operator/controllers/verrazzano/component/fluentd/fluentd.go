@@ -30,16 +30,16 @@ const (
 	fluentdEsConfig = "fluentd-es-config"
 )
 
-// checkSecretExists whether verrazzano-os-internal secret exists. Return error if secret does not exist.
+// checkSecretExists whether verrazzano-es-internal secret exists. Return error if secret does not exist.
 func checkSecretExists(ctx spi.ComponentContext) error {
 	if vzcr.IsKeycloakEnabled(ctx.EffectiveCR()) {
 		secret := &corev1.Secret{}
-		// Check verrazzano-os-internal secret by default
-		secretName := globalconst.VerrazzanoOSInternal
+		// Check verrazzano-es-internal secret by default
+		secretName := globalconst.VerrazzanoESInternal
 		fluentdConfig := ctx.EffectiveCR().Spec.Components.Fluentd
 
 		// Check external es secret if using external ES/OS
-		if fluentdConfig != nil && len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoOSInternal {
+		if fluentdConfig != nil && len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoESInternal {
 			secretName = fluentdConfig.ElasticsearchSecret
 		}
 		// Wait for secret to be available, return error which will cause requeue
@@ -69,7 +69,7 @@ func loggingPreInstall(ctx spi.ComponentContext) error {
 		fluentdConfig := ctx.EffectiveCR().Spec.Components.Fluentd
 		if fluentdConfig != nil {
 			// Copy the internal Elasticsearch secret
-			if len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoOSInternal {
+			if len(fluentdConfig.ElasticsearchURL) > 0 && fluentdConfig.ElasticsearchSecret != globalconst.VerrazzanoESInternal {
 				if err := common.CopySecret(ctx, fluentdConfig.ElasticsearchSecret, constants.VerrazzanoSystemNamespace, "custom Elasticsearch"); err != nil {
 					return err
 				}

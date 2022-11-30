@@ -54,7 +54,7 @@ func TestConfigDefaults(t *testing.T) {
 func TestSetConfig(t *testing.T) {
 	asserts := assert.New(t)
 	vzsystemNamespace := []string{"verrazzano-system", "verrazzano-monitoring", "ingress-nginx", "keycloak"}
-	vznonsystemNamespace := []string{"coherence-operator", "oam-kubernetes-runtime", "verrazzano-application-operator"}
+	vznonsystemNamespace := []string{"coherence-operator", "oam-kubernetes-runtime", "verrazzano-application-operator", "verrazzano-cluster-operator"}
 	TestHelmConfigDir = "/etc/verrazzano/helm_config"
 	TestProfilesDir = "/etc/verrazzano/profile"
 	bomFilePathOverride = "/etc/verrazzano/bom.json"

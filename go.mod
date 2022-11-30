@@ -178,5 +178,5 @@ replace (
 	gopkg.in/yaml.v2 => gopkg.in/yaml.v2 v2.2.8
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.11.2
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.8.0
-	sigs.k8s.io/kind => github.com/verrazzano/kind v0.14.1-0.20220901151917-d1f46433d223
+	sigs.k8s.io/kind => github.com/verrazzano/kind v0.0.0-20221129215948-885481909133
 )

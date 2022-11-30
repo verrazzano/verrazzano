@@ -41,7 +41,7 @@ var (
 		"mysql"}
 )
 
-var _ = BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
 		deployBobsBooksExample(namespace)
@@ -68,7 +68,7 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		// bobbys frontend
 		pkg.CaptureContainerLogs(namespace, "bobbys-front-end-adminserver", "weblogic-server", "/scratch/logs/bobbys-front-end")
@@ -82,6 +82,9 @@ var _ = t.AfterSuite(func() {
 		undeployBobsBooksExample()
 	}
 })
+
+var _ = AfterSuite(afterSuite)
+var _ = BeforeSuite(beforeSuite)
 
 func deployBobsBooksExample(namespace string) {
 	t.Logs.Info("Deploy BobsBooks example")
