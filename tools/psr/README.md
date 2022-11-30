@@ -17,26 +17,24 @@ how many workers of the same type should be running.  The idea is that different
 combined into scenarios, which is described later.
 
 ### Backend
-Workers run in backend pods that are deployed using Helm charts. The 
-backend consists of a single image that has all the worker code for all workers. 
-When a pod is started, the worker config is passed in as a set of Env vars.  
-The main.go code in the pod gets the worker type, creates an instance of the worker, 
-then invokes it to run. The pod only runs a single worker, which executes until the pod terminates.  
-By default, the worker runs forever.
+Workers run in backend pods that are deployed using Helm charts. The backend consists of a single image that has 
+all the worker code for all workers.  When a pod is started, the worker config is passed in as a set of Env vars.
+The main.go code in the pod gets the worker type, creates an instance of the worker, then invokes it to run. 
+The pod only runs a single worker, which executes until the pod terminates.  By default, the worker runs forever.
 
 ### Use Case
 The term `use case` describes what work is being done by a worker. All use cases are deployed using 
-the [woker Helm chart](./manifests/charts/worker).  Each worker type has a Helm values override YAML file 
-the provides worker specific configuration, such as [usecases/opensearch/getlogs.yaml](./manifests/usecases/opensearch/getlogs.yaml)
-To run a use case, just do a Helm install or upgrade. For example, to deploy a use case to
-generate logs using 10 replicas, you would run the following command:
+the [worker Helm chart](./manifests/charts/worker).  Each worker type has a Helm values override YAML file 
+that provides worker specific configuration, such as [usecases/opensearch/getlogs.yaml](./manifests/usecases/opensearch/getlogs.yaml).  
+To run a use case, just do a Helm install. For example, to deploy a use case to generate logs using 10 replicas, 
+you would run the following command:
 ```
 helm install psr-writelogs manifests/charts/worker -f manifests/usecases/opensearch/writelogs.yaml --set replicas=10
 ```
 
 ### Scenario
 A scenario is a collection of use cases with a curated configuration, that are run concurrently.
-An example is a scenario where one use case generates logs and another that scales OpenSearch out and in, repeatedly.
+An example is a scenario where one use case generates logs and another scales OpenSearch out and in, repeatedly.
 The PSR command line interface, `psrctl`, is used to run scenarios.  See [psrctl README](./psrctl/README.md)
 
 ## Usage
@@ -46,10 +44,10 @@ builds the code, builds the docker image, loads the docker image into the Kind c
 ```
 make run-example-k8s
 ```
-After you run the make command, run `helm list` to see the `psr` release. The
-get the logs for backend pods in the default namespace to see that they are just logging then sleeping in a loop.
+After you run the make command, run `helm list` to see the `psr` release. Then use kubectl to 
+get the backend pod logs in the default namespace to see that they are generating log messages.
 
-**NOTE:** Any Kubernetes platform can be used, such as OKE. Kind is just one example.
+**NOTE:** Any Kubernetes platform can be used, such as OKE.
 
 The other Make targets include:  
 * go-build - build the code
@@ -63,7 +61,7 @@ The other Make targets include:
 * install-cli - build and install the psrctl CLI to your go path
 
 ### Running scenarios
-Refer to [psrctl README](./psrctl/README.md) to run scenarios.
+Refer to [psrctl README](./psrctl/README.md) for information on running scenarios.
 
 ### Example worker installs using Helm
 
@@ -88,11 +86,9 @@ helm install psr-writelogs manifests/charts/worker --set global.envVars.PSR_WORK
 ```
 
 ## Workers
-All of the workers are deployed using the same worker Helm chart. Worker configs are stored in global.envVars. Every worker, except the example, has the following requirements: 
-* must emit metrics
-* must not log while doing work, unless that is the purpose of the worker
+All of the workers are deployed using the same worker Helm chart. Worker configs are stored in global.envVars values.
+There are common values that are available to each worker as follows:
 
-### Common Configuration
 ```
 global:
   envVars:
@@ -108,6 +104,8 @@ global:
     PSR_WORKER_THREAD_COUNT - threads per worker
     default: 1
 ```
+
+The following section describes each worker.
 
 ### Example
 #### Description
@@ -143,7 +141,7 @@ no configuration overrides
 
 #### Run
 ```
-helm install psr-getlogs manifests/charts/worker -f manifests/usecases/opensearch/getlogs.yaml
+helm install psr-getlogs manifests/charts/worker -f manifests/usecases/opensearch/getlogs.yaml -n istioEnabledNamespace
 ```
 
 ### PostLogs
@@ -163,7 +161,7 @@ global:
 
 #### Run
 ```
-helm install psr-postlogs manifests/charts/worker -f manifests/usecases/opensearch/postlogs.yaml
+helm install psr-postlogs manifests/charts/worker -f manifests/usecases/opensearch/postlogs.yaml  -n istioEnabledNamespace
 ```
 
 ### Scale
@@ -186,12 +184,29 @@ global:
 
 #### Run
 ```
-helm install psr-scale manifests/charts/worker -f manifests/usecases/opensearch/scale.yaml
+helm install psr-scale manifests/charts/worker -f manifests/usecases/opensearch/scale.yaml -n istioEnabledNamespace
+```
+
+### Restart
+#### Description
+The restart worker continuously restarts pods one tier of OpenSearch.  This worker must run in the mesh.
+
+#### Configuration
+```
+global:
+  envVars:
+    OPEN_SEARCH_TIER - OpenSearch tier
+    default: none
+```
+
+#### Run
+```
+helm install psr-scale manifests/charts/worker -f manifests/usecases/opensearch/restart.yaml -n istioEnabledNamespace
 ```
 
 ### HTTPGet
 #### Description
-The HTTPGet worker makes http requests to the endpoint for a specified service. This worker must run in the mesh.
+The HTTPGet worker makes http requests to the endpoint for a specified service.
 
 #### Configuration
 ```
@@ -214,3 +229,6 @@ global:
 ```
 helm install psr-httpget manifests/charts/worker -f manifests/usecases/http/get.yaml
 ```
+
+## Developing scenarios and use cases
+Refer to the [PSR developer guide](./DEVELOPER.md) to learn how to develop new use cases and scenarios.
