@@ -23,7 +23,7 @@ var t = framework.NewTestFramework("verify")
 
 var userIDConfig map[string]string
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
 	beforeSuitePassed = true
 
@@ -58,6 +58,8 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("before_suite_elapsed_time", time.Since(start).Milliseconds()))
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var failed = false
 var beforeSuitePassed = false
 
@@ -65,13 +67,15 @@ var _ = t.AfterEach(func() {
 	failed = failed || framework.VzCurrentGinkgoTestDescription().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	start := time.Now()
 	if failed || !beforeSuitePassed {
 		pkg.ExecuteBugReport()
 	}
 	metrics.Emit(t.Metrics.With("after_suite_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Verify users exist in Keycloak", Label("f:platform-lcm.install"), func() {
 	t.It("Verifying user in master realm", func() {

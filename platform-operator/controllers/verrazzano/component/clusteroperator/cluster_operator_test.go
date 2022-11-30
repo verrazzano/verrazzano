@@ -4,6 +4,7 @@
 package clusteroperator
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -12,8 +13,14 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestGetOverrides(t *testing.T) {
@@ -92,4 +99,56 @@ func TestAppendOverrides(t *testing.T) {
 	asserts.Len(t, kvs, 1)
 	asserts.Equal(t, "image", kvs[0].Key)
 	asserts.Equal(t, customImage, kvs[0].Value)
+}
+
+// TestPostInstallUpgrade tests the PostInstallUpgrade creation of the RoleTemplate
+func TestPostInstallUpgrade(t *testing.T) {
+	clustOpComp := clusterOperatorComponent{}
+
+	cli := fake.NewClientBuilder().WithObjects(
+		&rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: VerrazzanoClusterUserRoleName,
+			},
+		},
+	).Build()
+	err := clustOpComp.postInstallUpgrade(spi.NewFakeContext(cli, nil, &v1beta1.Verrazzano{}, false))
+	asserts.NoError(t, err)
+
+	// Ensure the resource exists after postInstallUpgrade
+	resource := unstructured.Unstructured{}
+	resource.SetGroupVersionKind(rancher.GVKRoleTemplate)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: VerrazzanoClusterUserRoleName}, &resource)
+	asserts.NoError(t, err)
+}
+
+// TestPostInstallUpgradeRancherDisabled tests the PostInstallUpgrade when Rancher is disabled
+func TestPostInstallUpgradeRancherDisabled(t *testing.T) {
+	clustOpComp := clusterOperatorComponent{}
+	falseVal := false
+
+	cli := fake.NewClientBuilder().WithObjects(
+		&rbacv1.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: VerrazzanoClusterUserRoleName,
+			},
+		},
+	).Build()
+	vz := &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				Rancher: &v1alpha1.RancherComponent{
+					Enabled: &falseVal,
+				},
+			},
+		},
+	}
+	err := clustOpComp.postInstallUpgrade(spi.NewFakeContext(cli, vz, nil, false))
+	asserts.NoError(t, err)
+
+	// Ensure the resource does not exist after postInstallUpgrade
+	resource := unstructured.Unstructured{}
+	resource.SetGroupVersionKind(rancher.GVKRoleTemplate)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: VerrazzanoClusterUserRoleName}, &resource)
+	asserts.Error(t, err)
 }

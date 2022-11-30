@@ -30,8 +30,7 @@ var (
 	imagePullPollingInterval = 30 * time.Second
 )
 
-var _ = t.BeforeSuite(func() {
-
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
 		pkg.DeploySpringBootApplication(namespace, istioInjection)
@@ -57,6 +56,8 @@ var _ = t.BeforeSuite(func() {
 	beforeSuitePassed = true
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var failed = false
 var beforeSuitePassed = false
 
@@ -64,7 +65,7 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		pkg.ExecuteBugReport(namespace)
 	}
@@ -74,6 +75,8 @@ var _ = t.AfterSuite(func() {
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Spring Boot test", Label("f:app-lcm.oam",
 	"f:app-lcm.spring-workload"), func() {

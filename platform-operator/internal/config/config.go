@@ -219,5 +219,5 @@ func GetInjectedSystemNamespaces() []string {
 }
 
 func GetNoInjectionComponents() []string {
-	return []string{"coherence-operator", "oam-kubernetes-runtime", "verrazzano-application-operator"}
+	return []string{"coherence-operator", "oam-kubernetes-runtime", "verrazzano-application-operator", "verrazzano-cluster-operator"}
 }

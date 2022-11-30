@@ -51,7 +51,7 @@ var vzcr *vzapi.Verrazzano
 var kubeconfigPath string
 var envoyImage string
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	kubeconfigPath, err = k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -77,7 +77,9 @@ var _ = t.BeforeSuite(func() {
 		return err
 	}, shortWait, pollingInterval).Should(BeNil(), "Expected to get envoy proxy image name and tag")
 })
-var _ = t.AfterSuite(func() {})
+var _ = BeforeSuite(beforeSuite)
+var afterSuite = t.AfterSuiteFunc(func() {})
+var _ = AfterSuite(afterSuite)
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Post upgrade", Label("f:platform-lcm.upgrade"), func() {

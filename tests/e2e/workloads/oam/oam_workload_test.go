@@ -34,7 +34,7 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("oam-workloads")
 )
 
-var _ = BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
 		deployOAMApp()
@@ -43,13 +43,15 @@ var _ = BeforeSuite(func() {
 	beforeSuitePassed = true
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var failed = false
 var beforeSuitePassed = false
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
 		pkg.ExecuteBugReport(namespace)
 	}
@@ -57,6 +59,8 @@ var _ = t.AfterSuite(func() {
 		undeployOAMApp()
 	}
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("An OAM application is deployed", Label("f:app-lcm.oam"), func() {
 	t.Context("Check for created resources", func() {
