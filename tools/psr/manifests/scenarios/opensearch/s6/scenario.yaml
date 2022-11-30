@@ -5,6 +5,7 @@ name: opensearch-s6
 ID: ops-s6
 description: |
   This is a scenario that combines the writelogs, getlogs, and postlogs use cases while restarting all OpenSearch tiers
+  Namespace needs to be labeled with istio-injection=enabled
 usecases:
   - usecasePath: opensearch/restart.yaml
     overrideFile: restart-master.yaml

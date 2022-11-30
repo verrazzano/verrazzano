@@ -5,6 +5,7 @@ name: opensearch-combine-all-scenarios
 ID: ops-cas
 description: |
   This is a scenario that combines all of the existing OpenSearch use cases
+  Namespace needs to be labeled with istio-injection=enabled
 usecases:
   - usecasePath: opensearch/restart.yaml
     overrideFile: restart-master.yaml

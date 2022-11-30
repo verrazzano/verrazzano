@@ -5,6 +5,7 @@ name: opensearch-s4
 ID: ops-s4
 description: |
   This is a scenario that combines the writelogs, getlogs, and postlogs use cases
+  Namespace needs to be labeled with istio-injection=enabled
 usecases:
   - usecasePath: opensearch/getlogs.yaml
     overrideFile: getlogs-fast.yaml

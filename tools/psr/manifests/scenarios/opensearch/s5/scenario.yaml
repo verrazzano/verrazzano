@@ -5,6 +5,7 @@ name: opensearch-s5
 ID: ops-s5
 description: |
   This is a scenario that combines the writelogs, getlogs, and putlogs use cases while scaling all OpenSearch tiers
+  Namespace needs to be labeled with istio-injection=enabled
 usecases:
   - usecasePath: opensearch/scale.yaml
     overrideFile: scale-master.yaml
