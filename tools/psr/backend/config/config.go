@@ -80,6 +80,7 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 		{Key: PsrNumLoops, DefaultVal: "-1", Required: false},
 		{Key: PsrWorkerThreadCount, DefaultVal: "1", Required: false},
 		{Key: PsrWorkerNamespace, DefaultVal: "", Required: false},
+		{Key: PsrWorkerReleaseName, DefaultVal: "", Required: false},
 	}
 	if err := PsrEnv.LoadFromEnv(dd); err != nil {
 		return CommonConfig{}, err
