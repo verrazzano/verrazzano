@@ -162,7 +162,6 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 		}
 	})
 	select {}
-	return nil
 }
 
 func updateVZForAlertmanager(log vzlog.VerrazzanoLogger, conf config.CommonConfig) error {
