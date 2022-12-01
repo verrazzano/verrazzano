@@ -38,19 +38,23 @@ const (
 	// PsrWorkerNamespace is the namespace of the PSR release
 	PsrWorkerNamespace = "NAMESPACE"
 
+	// PsrWorkerReleaseName is the name of the PSR release
+	PsrWorkerReleaseName = "RELEASE_NAME"
+
 	// PsrWorkerTypeMetricsName is the metrics label key for the PSR worker type
 	PsrWorkerTypeMetricsName = "psr_worker_type"
 )
 
 // Define worker types
 const (
-	WorkerTypeExample      = "example"
-	WorkerTypeOpsWriteLogs = "ops-writelogs"
-	WorkerTypeOpsGetLogs   = "ops-getlogs"
-	WorkerTypeOpsPostLogs  = "ops-postlogs"
-	WorkerTypeOpsScale     = "ops-scale"
-	WorkerTypeOpsRestart   = "ops-restart"
-	WorkerTypeHTTPGet      = "http_get"
+	WorkerTypeExample       = "example"
+	WorkerTypeOpsWriteLogs  = "ops-writelogs"
+	WorkerTypeOpsGetLogs    = "ops-getlogs"
+	WorkerTypeOpsPostLogs   = "ops-postlogs"
+	WorkerTypeOpsScale      = "ops-scale"
+	WorkerTypeOpsRestart    = "ops-restart"
+	WorkerTypeHTTPGet       = "http-get"
+	WorkerTypeReceiveAlerts = "http-alerts"
 )
 
 const (
@@ -65,21 +69,23 @@ type CommonConfig struct {
 	NumLoops          int64
 	WorkerThreadCount int
 	Namespace         string
+	ReleaseName       string
 }
 
 // GetCommonConfig loads the common config from env vars
 func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 	dd := []osenv.EnvVarDesc{
 		{Key: PsrWorkerType, DefaultVal: "", Required: true},
-		{Key: PsrDuration, DefaultVal: "", Required: false},
 		{Key: PsrLoopSleep, DefaultVal: "1s", Required: false},
 		{Key: PsrNumLoops, DefaultVal: "-1", Required: false},
 		{Key: PsrWorkerThreadCount, DefaultVal: "1", Required: false},
 		{Key: PsrWorkerNamespace, DefaultVal: "", Required: false},
+		{Key: PsrWorkerReleaseName, DefaultVal: "", Required: false},
 	}
 	if err := PsrEnv.LoadFromEnv(dd); err != nil {
 		return CommonConfig{}, err
 	}
+
 	sleepDuration, err := time.ParseDuration(PsrEnv.GetEnv(PsrLoopSleep))
 	if err != nil {
 		return CommonConfig{}, log.ErrorfNewErr("Error parsing loop sleep duration: %v", err)
@@ -109,5 +115,6 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 		NumLoops:          int64(numLoops),
 		WorkerThreadCount: threadCount,
 		Namespace:         PsrEnv.GetEnv(PsrWorkerNamespace),
+		ReleaseName:       PsrEnv.GetEnv(PsrWorkerReleaseName),
 	}, nil
 }
