@@ -59,8 +59,8 @@ func InitRegistry() {
 	componentsRegistry = []spi.Component{
 		networkpolicies.NewComponent(), // This must be first, don't move it.  see netpol_components.go
 		oam.NewComponent(),
-		istio.NewComponent(),
 		appoper.NewComponent(),
+		istio.NewComponent(),
 		weblogic.NewComponent(),
 		nginx.NewComponent(),
 		certmanager.NewComponent(),

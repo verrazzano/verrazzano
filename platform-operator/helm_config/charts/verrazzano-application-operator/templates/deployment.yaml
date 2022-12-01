@@ -75,6 +75,7 @@ spec:
     metadata:
       labels:
         app: {{ .Values.name }}-webhook
+        sidecar.istio.io/inject: "false"
     spec:
       initContainers:
         - name: initwebhooks
