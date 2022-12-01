@@ -69,6 +69,7 @@ rules:
       - management.cattle.io
     resources:
       - clusters
+      - users
     verbs:
       - update
       - get
