@@ -27,34 +27,77 @@ func TestUpdateRancherClusterRoleBinding(t *testing.T) {
 	vmcID := vmcNoID.DeepCopy()
 	vmcID.Status.RancherRegistration.ClusterID = clusterID
 
+	clusterUserNoData := &unstructured.Unstructured{}
+	clusterUserNoData.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   APIGroupRancherManagement,
+		Version: APIGroupVersionRancherManagement,
+		Kind:    UserKind,
+	})
+	clusterUserNoData.SetName(vzconst.VerrazzanoClusterRancherUsername)
+
+	clusterUserData := clusterUserNoData.DeepCopy()
+	data := clusterUserData.UnstructuredContent()
+	data[UserUsernameAttribute] = vzconst.VerrazzanoClusterRancherUsername
+
 	tests := []struct {
 		name         string
 		vmc          *v1alpha1.VerrazzanoManagedCluster
 		expectCreate bool
+		expectErr    bool
+		user         *unstructured.Unstructured
 	}{
 		{
 			name:         "test nil vmc",
 			expectCreate: false,
+			expectErr:    false,
+			user:         clusterUserData,
 		},
 		{
 			name:         "test vmc no cluster id",
 			vmc:          vmcNoID,
 			expectCreate: false,
+			expectErr:    false,
+			user:         clusterUserData,
 		},
 		{
 			name:         "test vmc with cluster id",
 			vmc:          vmcID,
 			expectCreate: true,
+			expectErr:    false,
+			user:         clusterUserData,
+		},
+		{
+			name:         "test user doesn't exist",
+			vmc:          vmcID,
+			expectCreate: false,
+			expectErr:    true,
+		},
+		{
+			name:         "test user no username",
+			vmc:          vmcID,
+			expectCreate: false,
+			expectErr:    true,
+			user:         clusterUserNoData,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := fakes.NewClientBuilder().Build()
+			b := fakes.NewClientBuilder()
+			if tt.user != nil {
+				b = b.WithObjects(tt.user)
+			}
+			c := b.Build()
+
 			r := &VerrazzanoManagedClusterReconciler{
 				Client: c,
 				log:    vzlog.DefaultLogger(),
 			}
-			err := r.UpdateRancherClusterRoleBindingTemplate(tt.vmc)
+			err := r.updateRancherClusterRoleBindingTemplate(tt.vmc)
+
+			if tt.expectErr {
+				a.Error(err)
+				return
+			}
 			a.NoError(err)
 
 			if tt.expectCreate {
