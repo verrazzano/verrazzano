@@ -18,6 +18,14 @@ spec:
       labels:
         app: {{ .Values.name }}
     spec:
+      initContainers:
+        - name: webhookswait
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ .Values.image }}
+          command: [ 'sh', '-c', "/usr/local/bin/wait4webhook.sh" ]
+      {{- if .Values.affinity }}
+      affinity: {{ toYaml .Values.affinity | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Values.name }}
           image: {{ .Values.image }}
@@ -31,16 +39,6 @@ spec:
               protocol: TCP
           args:
             - --zap-log-level={{ .Values.logLevel }}
-          startupProbe:
-            exec:
-              command:
-                - sh
-                - -c
-                - 'reply=$(curl -s -o /dev/null -w %{http_code} -o /dev/null -k -H "Content-Type: application/json"  https://{{ .Values.name }}-webhook.{{ .Values.namespace }}.svc:9443/validate-clusters-verrazzano-io-v1alpha1-multiclusterapplicationconfiguration); if [ \"$reply\" -lt 200 -o \"$reply\" -ge 400 ]; then exit 1; fi;'
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 15
           resources:
             requests:
               memory: {{ .Values.requestMemory }}
