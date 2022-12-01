@@ -42,71 +42,62 @@ const restartVersion = "new-restart"
 const weblogicAPIVersion = "weblogic.oracle/v8"
 const weblogicKind = "Domain"
 const weblogicDomainName = "unit-test-domain"
-const commonMetadata = `{"metadata":{"name":"unit-test-cluster"}}`
+const commonMetadata = `{"name":"unit-test-cluster"}`
 const weblogicDomain = `
 {
-   "spec": {
-      "domainUID": "unit-test-domain"
-   }
+   "domainUID": "unit-test-domain"
 }
 `
 const weblogicDomainWithMonitoringExporter = `
 {
-   "spec": {
-      "domainUID": "unit-test-domain",
-      "monitoringExporter": {
-         "image": "my-weblogic-monitoring-exporter:1.0.0",
-         "imagePullPolicy": "IfNotPresent",
-         "configuration": {
-            "metricsNameSnakeCase": true,
-            "domainQualifier": true,
-            "queries": [
-               {
-                  "JVMRuntime": {
-                     "prefix": "wls_jvm_",
-                     "key": "name"
-                  }
-               }
-            ]
+   "domainUID": "unit-test-domain",
+   "monitoringExporter": {
+      "image": "my-weblogic-monitoring-exporter:1.0.0",
+      "imagePullPolicy": "IfNotPresent",
+      "configuration": {
+         "metricsNameSnakeCase": true,
+         "domainQualifier": true,
+         "queries": [
+         {
+            "JVMRuntime": {
+               "prefix": "wls_jvm_",
+               "key": "name"
+            }
          }
+         ]
       }
    }
 }
 `
 const weblogicDomainWithWDTConfigMap = `
 {
-   },
-   "spec": {
-      "domainUID": "unit-test-domain",
-      "configuration": {
-         "model": {
-            "configMap": "wdt-config-map"
-         }
+   "domainUID": "unit-test-domain",
+   "configuration": {
+      "model": {
+         "configMap": "wdt-config-map"
       }
    }
 }
 `
 const weblogicDomainWithLogHome = `
 {
-   "spec": {
-      "domainUID": "unit-test-domain",
-      "logHome": "/unit_test/log_home",
-      "serverPod": {
-         "volumes": [
-            {
-               "name": "unit-test-logging-volume",
-               "persistentVolumeClaim": {
-                  "claimName": "unit-test-pvc"
-               }
-            }
-         ],
-         "volumeMounts": [
-            {
-               "name": "unit-test-logging-volume",
-               "mountPath": "/unit_test"
-            }
-         ]
+   "domainUID": "unit-test-domain",
+   "logHome": "/unit_test/log_home",
+   "serverPod": {
+      "volumes": [
+      {
+         "name": "unit-test-logging-volume",
+         "persistentVolumeClaim": {
+            "claimName": "unit-test-pvc"
+         }
       }
+      ],
+      "volumeMounts": [
+      {
+         "name": "unit-test-logging-volume",
+         "mountPath": "/unit_test"
+      }
+      ]
    }
 }
 `
@@ -117,8 +108,9 @@ const loggingTrait = `
 	"name": "my-logging-trait"
 }
 `
+
 func buildTemplate(spec string) vzapi.VerrazzanoWebLogicWorkloadTemplate {
-	return vzapi.VerrazzanoWebLogicWorkloadTemplate{APIVersion: "weblogic.oracle/v9", Metadata: runtime.RawExtension{Raw: []byte(commonMetadata)}, Spec: runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(spec, " ", ""), "\n", ""))}}
+	return vzapi.VerrazzanoWebLogicWorkloadTemplate{APIVersion: weblogicAPIVersion, Metadata: runtime.RawExtension{Raw: []byte(commonMetadata)}, Spec: runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(spec, " ", ""), "\n", ""))}}
 }
 
 // TestReconcilerSetupWithManager test the creation of the VerrazzanoWebLogicWorkload reconciler.
@@ -1816,10 +1808,11 @@ func TestReconcileRestart(t *testing.T) {
 // GIVEN a VerrazzanoWebLogicWorkload resource
 // WHEN the controller Reconcile function is called and the WebLogic domain CR already exists and the restart-version is specified
 // THEN the WLS domain has restartVersion
-//   This should result in:
-//     1. NEVER written to the WLS domain serverStartPolicy
-//     2. The old serverStartPolicy saved in the domain annotation
-//     3. The WebLogic workload.Status.LastLifeCycleAction should have stop
+//
+//	This should result in:
+//	  1. NEVER written to the WLS domain serverStartPolicy
+//	  2. The old serverStartPolicy saved in the domain annotation
+//	  3. The WebLogic workload.Status.LastLifeCycleAction should have stop
 func TestReconcileStopDomain(t *testing.T) {
 	assert := asserts.New(t)
 
@@ -1949,9 +1942,10 @@ func TestReconcileStopDomain(t *testing.T) {
 // GIVEN a VerrazzanoWebLogicWorkload resource
 // WHEN the controller Reconcile function is called and the WebLogic domain CR already exists and the restart-version is specified
 // THEN the WLS domain has restartVersion
-//   This should result in:
-//     1. IF_NEEDED written to the WLS domain serverStartPolicy
-//     2. The WebLogic workload.Status.LastLifeCycleAction should have start
+//
+//	This should result in:
+//	  1. IF_NEEDED written to the WLS domain serverStartPolicy
+//	  2. The WebLogic workload.Status.LastLifeCycleAction should have start
 func TestReconcileStartDomain(t *testing.T) {
 	assert := asserts.New(t)
 

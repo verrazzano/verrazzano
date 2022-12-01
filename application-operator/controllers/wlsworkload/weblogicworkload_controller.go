@@ -285,12 +285,12 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload *vzapi.Verrazzano
 		return result, err
 	}
 
-	u, err := r.initalizeDomain(workload, log)
+	u, err := r.initializeDomain(workload, log)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	cus, err := r.initalizeClusters(workload, log)
+	cus, err := r.initializeClusters(workload, log)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -405,9 +405,9 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload *vzapi.Verrazzano
 	return reconcile.Result{}, nil
 }
 
-func (r *Reconciler) initalizeDomain(workload *vzapi.VerrazzanoWebLogicWorkload, log vzlog.VerrazzanoLogger) (*unstructured.Unstructured, error) {
+func (r *Reconciler) initializeDomain(workload *vzapi.VerrazzanoWebLogicWorkload, log vzlog.VerrazzanoLogger) (*unstructured.Unstructured, error) {
 	var u unstructured.Unstructured
-	err := r.initalizeResource(&u, workload, &workload.Spec.Template, log)
+	err := r.initializeResource(&u, workload, &workload.Spec.Template, log)
 	if err != nil {
 		return nil, err
 	}
@@ -420,11 +420,11 @@ func (r *Reconciler) initalizeDomain(workload *vzapi.VerrazzanoWebLogicWorkload,
 	return &u, nil
 }
 
-func (r *Reconciler) initalizeClusters(workload *vzapi.VerrazzanoWebLogicWorkload, log vzlog.VerrazzanoLogger) (*[]unstructured.Unstructured, error) {
+func (r *Reconciler) initializeClusters(workload *vzapi.VerrazzanoWebLogicWorkload, log vzlog.VerrazzanoLogger) (*[]unstructured.Unstructured, error) {
 	var clus []unstructured.Unstructured
 	for _, c := range workload.Spec.Clusters {
 		var u unstructured.Unstructured
-		err := r.initalizeResource(&u, workload, &c, log)
+		err := r.initializeResource(&u, workload, &c, log)
 		if err != nil {
 			return nil, err
 		}
@@ -439,7 +439,7 @@ func (r *Reconciler) initalizeClusters(workload *vzapi.VerrazzanoWebLogicWorkloa
 	return &clus, nil
 }
 
-func (r *Reconciler) initalizeResource(u *unstructured.Unstructured, workload *vzapi.VerrazzanoWebLogicWorkload, resource *vzapi.VerrazzanoWebLogicWorkloadTemplate, log vzlog.VerrazzanoLogger) error {
+func (r *Reconciler) initializeResource(u *unstructured.Unstructured, workload *vzapi.VerrazzanoWebLogicWorkload, resource *vzapi.VerrazzanoWebLogicWorkloadTemplate, log vzlog.VerrazzanoLogger) error {
 	spec, err := vznav.ConvertRawExtensionToUnstructured(&resource.Spec)
 	if err != nil {
 		return err
@@ -449,7 +449,10 @@ func (r *Reconciler) initalizeResource(u *unstructured.Unstructured, workload *v
 		u.SetAPIVersion(resource.APIVersion)
 	}
 
-	if err = unstructured.SetNestedField(u.Object, spec, specField); err != nil {
+	if u.Object == nil {
+		u.Object = make(map[string]interface{})
+	}
+	if err = unstructured.SetNestedField(u.Object, spec.Object, specField); err != nil {
 		return err
 	}
 
@@ -458,7 +461,7 @@ func (r *Reconciler) initalizeResource(u *unstructured.Unstructured, workload *v
 		return err
 	}
 
-	if err = unstructured.SetNestedField(u.Object, metadata, metadataField); err != nil {
+	if err = unstructured.SetNestedField(u.Object, metadata.Object, metadataField); err != nil {
 		return err
 	}
 
