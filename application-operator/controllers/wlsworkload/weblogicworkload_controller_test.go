@@ -42,11 +42,9 @@ const restartVersion = "new-restart"
 const weblogicAPIVersion = "weblogic.oracle/v8"
 const weblogicKind = "Domain"
 const weblogicDomainName = "unit-test-domain"
+const commonMetadata = `{"metadata":{"name":"unit-test-cluster"}}`
 const weblogicDomain = `
 {
-   "metadata": {
-      "name": "unit-test-cluster"
-   },
    "spec": {
       "domainUID": "unit-test-domain"
    }
@@ -54,9 +52,6 @@ const weblogicDomain = `
 `
 const weblogicDomainWithMonitoringExporter = `
 {
-   "metadata": {
-      "name": "unit-test-cluster"
-   },
    "spec": {
       "domainUID": "unit-test-domain",
       "monitoringExporter": {
@@ -80,8 +75,6 @@ const weblogicDomainWithMonitoringExporter = `
 `
 const weblogicDomainWithWDTConfigMap = `
 {
-   "metadata": {
-      "name": "unit-test-cluster"
    },
    "spec": {
       "domainUID": "unit-test-domain",
@@ -95,9 +88,6 @@ const weblogicDomainWithWDTConfigMap = `
 `
 const weblogicDomainWithLogHome = `
 {
-   "metadata": {
-      "name": "unit-test-cluster"
-   },
    "spec": {
       "domainUID": "unit-test-domain",
       "logHome": "/unit_test/log_home",
@@ -127,6 +117,9 @@ const loggingTrait = `
 	"name": "my-logging-trait"
 }
 `
+func buildTemplate(spec string) vzapi.VerrazzanoWebLogicWorkloadTemplate {
+	return vzapi.VerrazzanoWebLogicWorkloadTemplate{APIVersion: "weblogic.oracle/v9", Metadata: runtime.RawExtension{Raw: []byte(commonMetadata)}, Spec: runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(spec, " ", ""), "\n", ""))}}
+}
 
 // TestReconcilerSetupWithManager test the creation of the VerrazzanoWebLogicWorkload reconciler.
 // GIVEN a controller implementation
@@ -185,7 +178,7 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomain, " ", ""), "\n", ""))}
+			workload.Spec.Template = buildTemplate(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
@@ -317,7 +310,7 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomainWithMonitoringExporter, " ", ""), "\n", ""))}
+			workload.Spec.Template = buildTemplate(weblogicDomainWithMonitoringExporter)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
@@ -455,7 +448,7 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomain, " ", ""), "\n", ""))}
+			workload.Spec.Template = buildTemplate(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
@@ -591,7 +584,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomain, " ", ""), "\n", ""))}
+			workload.Spec.Template = buildTemplate(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
@@ -808,7 +801,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: workloadName}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomain, " ", ""), "\n", ""))}
+			workload.Spec.Template = buildTemplate(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
@@ -986,7 +979,7 @@ func TestReconcileCreateWebLogicDomainWithWDTConfigMap(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomainWithWDTConfigMap, " ", ""), "\n", ""))}
+			workload.Spec.Template = buildTemplate(weblogicDomainWithWDTConfigMap)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
@@ -1111,7 +1104,7 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomain, " ", ""), "\n", ""))}
+			workload.Spec.Template = buildTemplate(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
@@ -1247,7 +1240,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomain, " ", ""), "\n", ""))}
+			workload.Spec.Template = buildTemplate(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
@@ -1404,8 +1397,8 @@ func TestCopyLabelsFailure(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			json := `{"metadata":{"name":"unit-test-cluster"},"spec":27}`
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(json)}
+			json := `{"spec":27}`
+			workload.Spec.Template = buildTemplate(json)
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
 			workload.ObjectMeta.Generation = 2
@@ -1709,7 +1702,7 @@ func TestReconcileRestart(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomain, " ", ""), "\n", ""))}
+			workload.Spec.Template = buildTemplate(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
@@ -1852,7 +1845,7 @@ func TestReconcileStopDomain(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomain, " ", ""), "\n", ""))}
+			workload.Spec.Template = buildTemplate(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
@@ -1984,7 +1977,7 @@ func TestReconcileStartDomain(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomain, " ", ""), "\n", ""))}
+			workload.Spec.Template = buildTemplate(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
@@ -2126,7 +2119,7 @@ func TestReconcileUserProvidedLogHome(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			workload.Spec.Template = runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(weblogicDomainWithLogHome, " ", ""), "\n", ""))}
+			workload.Spec.Template = buildTemplate(weblogicDomainWithLogHome)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
