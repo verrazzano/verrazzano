@@ -5,6 +5,7 @@ package report
 import (
 	"bytes"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	help "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
@@ -57,19 +58,24 @@ func TestInvalidIssues(t *testing.T) {
 
 	// to get no issues, set the actions and confidence to a value in range
 	invalidIssue.Actions = []Action{{Summary: invalidIssue.Summary}}
-	invalidIssue.Confidence = 8
+	invalidIssue.Confidence = 10
+	invalidIssue.Impact = 10
+	invalidIssue.Informational = false
+	invalidIssue.Actions = []Action{{Summary: invalidIssue.Summary, Links: []string{"l1", "l2"}, Steps: []string{"s1", "s2"}}}
+	invalidIssue.SupportingData = []SupportData{{Messages: []string{"m1", "m2"}, JSONPaths: []JSONPath{{"file", "path"}}, RelatedFiles: []string{"f1"}, TextMatches: []files.TextMatch{{FileName: "file", FileLine: 1, MatchedText: "mt"}}}}
 	assert.Nil(t, ContributeIssue(logger, invalidIssue))
 
 	// to get no issues from contribute issues map
 	assert.Nil(t, ContributeIssuesMap(logger, "MyIssueSource", map[string]Issue{"issue": invalidIssue}))
-	assert.Empty(t, GetAllSourcesFilteredIssues(logger, true, 8, 11))
+	assert.NotEmpty(t, GetAllSourcesFilteredIssues(logger, true, 8, 8))
 	AddSourceAnalyzed(invalidIssue.Source)
 
 	// Send stdout stderr to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := help.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	assert.NoError(t, GenerateHumanReport(logger, "report", constants.SummaryReport, true, true, true, 11, 11, rc))
+	assert.NoError(t, GenerateHumanReport(logger, "report", constants.SummaryReport, true, true, true, 8, 8, rc))
+	assert.NoError(t, GenerateHumanReport(logger, "report", constants.BugReportDir, true, true, true, 8, 8, rc))
 }
 
 // We start with a custom issue which is created without being populated. This is
@@ -91,16 +97,16 @@ func TestFilterReportIssues(t *testing.T) {
 	validIssues[0].Confidence = 10
 
 	validIssues[1].Type = "ISSUE 2"
-	validIssues[1].Summary = "Test Summary 2"
-	validIssues[1].Actions = []Action{{Summary: "Test Summary 2", Links: []string{"l1", "l2"}, Steps: []string{"s1", "s2"}}}
+	validIssues[1].Summary = constants.SummaryReport
+	validIssues[1].Actions = []Action{{Summary: constants.SummaryReport, Links: []string{"l1", "l2"}, Steps: []string{"s1", "s2"}}}
 	validIssues[1].Source = "Test Source 2"
 	validIssues[1].Informational = false
 	validIssues[1].Impact = 10
 	validIssues[1].Confidence = 10
 
 	validIssues[2].Type = "ISSUE 2"
-	validIssues[2].Summary = "Test Summary 2"
-	validIssues[2].Actions = []Action{{Summary: "Test Summary 2", Links: []string{"l1", "l2"}, Steps: []string{"s1", "s2"}}}
+	validIssues[2].Summary = constants.SummaryReport
+	validIssues[2].Actions = []Action{{Summary: constants.SummaryReport, Links: []string{"l1", "l2"}, Steps: []string{"s1", "s2"}}}
 	validIssues[2].Source = "Test Source 2"
 	validIssues[2].Informational = false
 	validIssues[2].Impact = 10
