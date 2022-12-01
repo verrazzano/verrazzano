@@ -19,3 +19,23 @@ spec:
       to:
         - operation:
             ports: ["9200"]
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ template "worker.fullName" .}}-{{ .Release.Namespace }}-ingest-authzpol
+  namespace: verrazzano-system
+spec:
+  selector:
+    matchLabels:
+      app: system-es-ingest
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces: ["{{ .Release.Namespace }}"]
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ template "worker.fullName" . }}"]
+      to:
+        - operation:
+            ports: ["9200"]
