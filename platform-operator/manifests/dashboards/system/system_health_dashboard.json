@@ -251,7 +251,32 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "prometheusNodeExporter"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "PromNodeExporter"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "verrazzanoMonitoringOperator"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "vmo"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 10,
@@ -274,10 +299,9 @@
           "values": false
         },
         "text": {
-          "titleSize": 60,
-          "valueSize": 17
+          "titleSize": 12
         },
-        "textMode": "auto"
+        "textMode": "value_and_name"
       },
       "pluginVersion": "7.5.14",
       "targets": [
@@ -307,5 +331,5 @@
   "timezone": "",
   "title": "System Health",
   "uid": "Q4BkmcOVk",
-  "version": 1
+  "version": 3
 }
