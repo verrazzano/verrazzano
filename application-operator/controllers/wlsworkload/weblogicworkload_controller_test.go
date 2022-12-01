@@ -39,8 +39,6 @@ import (
 
 const namespace = "unit-test-namespace"
 const restartVersion = "new-restart"
-const weblogicAPIVersion = "weblogic.oracle/v8"
-const weblogicKind = "Domain"
 const weblogicDomainName = "unit-test-domain"
 const commonMetadata = `{"name":"unit-test-cluster"}`
 const weblogicDomain = `
@@ -110,7 +108,7 @@ const loggingTrait = `
 `
 
 func buildTemplate(spec string) vzapi.VerrazzanoWebLogicWorkloadTemplate {
-	return vzapi.VerrazzanoWebLogicWorkloadTemplate{APIVersion: weblogicAPIVersion, Metadata: runtime.RawExtension{Raw: []byte(commonMetadata)}, Spec: runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(spec, " ", ""), "\n", ""))}}
+	return vzapi.VerrazzanoWebLogicWorkloadTemplate{APIVersion: ApiVersionV8, Metadata: runtime.RawExtension{Raw: []byte(commonMetadata)}, Spec: runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(spec, " ", ""), "\n", ""))}}
 }
 
 // TestReconcilerSetupWithManager test the creation of the VerrazzanoWebLogicWorkload reconciler.
@@ -231,8 +229,8 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
-			assert.Equal(weblogicKind, u.GetKind())
+			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
 			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
@@ -362,8 +360,8 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
-			assert.Equal(weblogicKind, u.GetKind())
+			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
 			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
@@ -500,8 +498,8 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
-			assert.Equal(weblogicKind, u.GetKind())
+			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
 			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
@@ -716,8 +714,8 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
-			assert.Equal(weblogicKind, u.GetKind())
+			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
 			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
@@ -899,8 +897,8 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
-			assert.Equal(weblogicKind, u.GetKind())
+			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
 			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
@@ -1161,8 +1159,8 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
-			assert.Equal(weblogicKind, u.GetKind())
+			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied and the WebLogic type lobel applied
 			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
@@ -1292,8 +1290,8 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
-			assert.Equal(weblogicKind, u.GetKind())
+			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the restartVersion is empty
 			domainRestartVersion, _, _ := unstructured.NestedString(u.Object, specRestartVersionFields...)
@@ -1760,8 +1758,8 @@ func TestReconcileRestart(t *testing.T) {
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.UpdateOption) error {
-			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
-			assert.Equal(weblogicKind, u.GetKind())
+			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied and the WebLogic type lobel applied
 			specLabels, _, _ := unstructured.NestedStringMap(u.Object, specServerPodLabelsFields...)
@@ -1904,8 +1902,8 @@ func TestReconcileStopDomain(t *testing.T) {
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
-			assert.Equal(weblogicKind, u.GetKind())
+			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the restartVersion was added to the domain
 			policy, _, _ := unstructured.NestedString(u.Object, specServerStartPolicyFields...)
@@ -2037,8 +2035,8 @@ func TestReconcileStartDomain(t *testing.T) {
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
-			assert.Equal(weblogicKind, u.GetKind())
+			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the restartVersion was added to the domain
 			policy, _, _ := unstructured.NestedString(u.Object, specServerStartPolicyFields...)
@@ -2173,8 +2171,8 @@ func TestReconcileUserProvidedLogHome(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(weblogicAPIVersion, u.GetAPIVersion())
-			assert.Equal(weblogicKind, u.GetKind())
+			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(DomainKind, u.GetKind())
 
 			const (
 				expectedLogHome         = "/unit_test/log_home"
