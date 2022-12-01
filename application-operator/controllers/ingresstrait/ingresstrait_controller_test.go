@@ -2413,7 +2413,7 @@ func TestSelectExistingServiceForVirtualServiceDestination(t *testing.T) {
 		"TRAIT_NAMESPACE":     "test-namespace",
 		"WORKLOAD_NAME":       "test-workload",
 		"WORKLOAD_NAMESPACE":  "test-namespace",
-		"WORKLOAD_KIND":       "VerrazzanoWebLogicWorkload",
+		"WORKLOAD_KIND":       vzconst.VerrazzanoWebLogicWorkloadKind,
 		"DOMAIN_NAME":         "test-domain",
 		"DOMAIN_NAMESPACE":    "test-namespace",
 		"DOMAIN_UID":          "test-domain-uid",
@@ -2514,7 +2514,7 @@ func TestExplicitServiceProvidedForVirtualServiceDestination(t *testing.T) {
 		"TRAIT_NAMESPACE":     "test-namespace",
 		"WORKLOAD_NAME":       "test-workload",
 		"WORKLOAD_NAMESPACE":  "test-namespace",
-		"WORKLOAD_KIND":       "VerrazzanoWebLogicWorkload",
+		"WORKLOAD_KIND":       vzconst.VerrazzanoWebLogicWorkloadKind,
 		"DOMAIN_NAME":         "test-domain",
 		"DOMAIN_NAMESPACE":    "test-namespace",
 		"DOMAIN_UID":          "test-domain-uid",
@@ -2616,7 +2616,7 @@ func TestMultiplePortsOnDiscoveredService(t *testing.T) {
 		"TRAIT_NAMESPACE":     "test-namespace",
 		"WORKLOAD_NAME":       "test-workload",
 		"WORKLOAD_NAMESPACE":  "test-namespace",
-		"WORKLOAD_KIND":       "VerrazzanoWebLogicWorkload",
+		"WORKLOAD_KIND":       vzconst.VerrazzanoWebLogicWorkloadKind,
 		"DOMAIN_NAME":         "test-domain",
 		"DOMAIN_NAMESPACE":    "test-namespace",
 		"DOMAIN_UID":          "test-domain-uid",
@@ -2854,7 +2854,7 @@ func TestSelectExistingServiceForVirtualServiceDestinationAfterRetry(t *testing.
 		"TRAIT_NAMESPACE":     "test-namespace",
 		"WORKLOAD_NAME":       "test-workload",
 		"WORKLOAD_NAMESPACE":  "test-namespace",
-		"WORKLOAD_KIND":       "VerrazzanoWebLogicWorkload",
+		"WORKLOAD_KIND":       vzconst.VerrazzanoWebLogicWorkloadKind,
 		"DOMAIN_NAME":         "test-domain",
 		"DOMAIN_NAMESPACE":    "test-namespace",
 		"DOMAIN_UID":          "test-domain-uid",
@@ -3541,7 +3541,7 @@ func TestUpdateGatewayServersList(t *testing.T) {
 // IngressTrait definitions.  Post-1.3, we replace this with a 1:1 mapping of Server objects to IngressTrait.
 // Each Server object will define port settings for all hosts in the IngressTrait and be recomputed on each reconcile.
 //
-// On startup, the operator will reconcile all existing IngressTraits which will create the new mappings
+// # On startup, the operator will reconcile all existing IngressTraits which will create the new mappings
 //
 // GIVEN a request to update the gateway servers list for an ingress trait resource
 // WHEN we are upgrading from a release before 1.3 where the Gateway maintains a single Server object for all hosts for an application
@@ -4118,7 +4118,7 @@ func TestIngressTraitIsDeleted(t *testing.T) {
 		"TRAIT_NAMESPACE":     "test-namespace",
 		"WORKLOAD_NAME":       "test-workload",
 		"WORKLOAD_NAMESPACE":  "test-namespace",
-		"WORKLOAD_KIND":       "VerrazzanoWebLogicWorkload",
+		"WORKLOAD_KIND":       vzconst.VerrazzanoWebLogicWorkloadKind,
 		"DOMAIN_NAME":         "test-domain",
 		"DOMAIN_NAMESPACE":    "test-namespace",
 		"DOMAIN_UID":          "test-domain-uid",

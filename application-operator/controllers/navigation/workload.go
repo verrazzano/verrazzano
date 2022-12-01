@@ -13,6 +13,7 @@ import (
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -25,7 +26,6 @@ import (
 // structs of the resources that the workloads contain. This is needed because the embedded resources
 // do not have API version and kind fields.
 var workloadToContainedGVKMap = map[string]schema.GroupVersionKind{
-	"oam.verrazzano.io/v1alpha1.VerrazzanoWebLogicWorkload":  {Group: "weblogic.oracle", Version: "v9", Kind: "Domain"},
 	"oam.verrazzano.io/v1alpha1.VerrazzanoCoherenceWorkload": {Group: "coherence.oracle.com", Version: "v1", Kind: "Coherence"},
 }
 
@@ -245,6 +245,17 @@ func APIVersionAndKindToContainedGVK(apiVersion string, kind string) *schema.Gro
 // WorkloadToContainedGVK returns the GroupVersionKind of the contained resource
 // for the type wrapped by the provided Verrazzano workload.
 func WorkloadToContainedGVK(workload *unstructured.Unstructured) *schema.GroupVersionKind {
+	if workload.GetKind() == vzconst.VerrazzanoWebLogicWorkloadKind {
+		apiVersion, found, _ := unstructured.NestedString(workload.Object, "spec", "template", "apiVersion")
+		var gvk schema.GroupVersionKind
+		if found {
+			gvk = schema.FromAPIVersionAndKind(apiVersion, "Domain")
+		} else {
+			gvk = schema.GroupVersionKind{Group: "weblogic.oracle", Version: "v8", Kind: "Domain"}
+		}
+		return &gvk
+	}
+
 	return APIVersionAndKindToContainedGVK(workload.GetAPIVersion(), workload.GetKind())
 }
 

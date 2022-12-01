@@ -15,6 +15,7 @@ import (
 
 	oamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
+	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -125,7 +126,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log v
 	if err != nil || workload == nil {
 		return reconcile.Result{}, err
 	}
-	if workload.GetKind() == "VerrazzanoCoherenceWorkload" || workload.GetKind() == "VerrazzanoWebLogicWorkload" {
+	if workload.GetKind() == "VerrazzanoCoherenceWorkload" || workload.GetKind() == vzconst.VerrazzanoWebLogicWorkloadKind {
 		return reconcile.Result{}, nil
 	}
 
@@ -288,7 +289,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(ctx context.Contex
 	if err != nil || workload == nil {
 		return reconcile.Result{}, true, err
 	}
-	if workload.GetKind() == "VerrazzanoCoherenceWorkload" || workload.GetKind() == "VerrazzanoWebLogicWorkload" {
+	if workload.GetKind() == vzconst.VerrazzanoCoherenceWorkloadKind || workload.GetKind() == vzconst.VerrazzanoWebLogicWorkloadKind {
 		return reconcile.Result{}, true, nil
 	}
 	// Retrieve the child resources of the workload
