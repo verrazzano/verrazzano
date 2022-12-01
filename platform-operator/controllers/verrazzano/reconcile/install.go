@@ -11,7 +11,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -136,6 +135,7 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			return ctrl.Result{Requeue: true}, nil
 
 		case vzStateInstallComponents:
+			r.beforeInstallComponents(spiCtx)
 			res, err := r.installComponents(spiCtx, tracker, preUpgrade)
 			if err != nil || res.Requeue {
 				return res, err
@@ -190,4 +190,8 @@ func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) err
 		}
 	}
 	return nil
+}
+
+func (r *Reconciler) beforeInstallComponents(ctx spi.ComponentContext) {
+	r.createRancherIngressAndCertCopies(ctx)
 }
