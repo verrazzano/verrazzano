@@ -1,0 +1,26 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+name: opensearch-scale-restart-all-tiers
+ID: ops-srat
+description: |
+  This is a scenario that scales and restarts pods on all 3 OpenSearch tiers simultaneously
+usecases:
+  - usecasePath: opensearch/restart.yaml
+    overrideFile: restart-master.yaml
+    description: restarts master nodes
+  - usecasePath: opensearch/restart.yaml
+    overrideFile: restart-data.yaml
+    description: restarts data nodes
+  - usecasePath: opensearch/restart.yaml
+    overrideFile: restart-ingest.yaml
+    description: restarts ingest nodes
+  - usecasePath: opensearch/scale.yaml
+    overrideFile: scale-master.yaml
+    description: scales master nodes
+  - usecasePath: opensearch/scale.yaml
+    overrideFile: scale-data.yaml
+    description: scales data nodes
+  - usecasePath: opensearch/scale.yaml
+    overrideFile: scale-ingest.yaml
+    description: scales ingest nodes
