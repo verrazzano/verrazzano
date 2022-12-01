@@ -49,6 +49,7 @@ const (
 	testManagedCluster       = "test"
 	rancherAgentRegistry     = "ghcr.io"
 	rancherAgentImage        = rancherAgentRegistry + "/verrazzano/rancher-agent:v1.0.0"
+	rancherAdminSecret       = "rancher-admin-secret"
 	unitTestRancherClusterID = "unit-test-rancher-cluster-id"
 )
 
@@ -125,7 +126,7 @@ func doTestCreateVMC(t *testing.T, rancherEnabled bool) {
 	expectMockCallsForListingRancherUsers(mock)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectRancherConfigK8sCalls(t, mock)
+	expectRancherConfigK8sCalls(t, mock, false)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
@@ -200,7 +201,7 @@ func TestCreateVMCWithExternalES(t *testing.T) {
 	expectMockCallsForListingRancherUsers(mock)
 	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectRancherConfigK8sCalls(t, mock)
+	expectRancherConfigK8sCalls(t, mock, false)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
@@ -275,7 +276,7 @@ func TestCreateVMCOCIDNS(t *testing.T) {
 	expectMockCallsForListingRancherUsers(mock)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectRancherConfigK8sCalls(t, mock)
+	expectRancherConfigK8sCalls(t, mock, false)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
@@ -350,10 +351,10 @@ func TestCreateVMCNoCACert(t *testing.T) {
 	expectMockCallsForListingRancherUsers(mock)
 	expectSyncRegistration(t, mock, testManagedCluster, true)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectRancherConfigK8sCalls(t, mock)
+	expectRancherConfigK8sCalls(t, mock, true)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectSyncCACertRancherHTTPCalls(t, mockRequestSender, "")
-	expectRancherConfigK8sCalls(t, mock)
+	expectRancherConfigK8sCalls(t, mock, false)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
@@ -429,7 +430,7 @@ func TestCreateVMCFetchCACertFromManagedCluster(t *testing.T) {
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
 	expectSyncCACertRancherHTTPCalls(t, mockRequestSender, `{"data":{"ca.crt":"base64-ca-cert"}}`)
 	expectSyncCACertRancherK8sCalls(t, mock, mockRequestSender, true)
-	expectRancherConfigK8sCalls(t, mock)
+	expectRancherConfigK8sCalls(t, mock, false)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
@@ -512,7 +513,7 @@ scrape_configs:
 	expectMockCallsForListingRancherUsers(mock)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectRancherConfigK8sCalls(t, mock)
+	expectRancherConfigK8sCalls(t, mock, false)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
@@ -599,7 +600,7 @@ scrape_configs:
 	expectMockCallsForListingRancherUsers(mock)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, false, rancherManifestYAML)
-	expectRancherConfigK8sCalls(t, mock)
+	expectRancherConfigK8sCalls(t, mock, false)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
@@ -676,7 +677,7 @@ func TestCreateVMCClusterAlreadyRegistered(t *testing.T) {
 	expectMockCallsForListingRancherUsers(mock)
 	expectSyncRegistration(t, mock, testManagedCluster, false)
 	expectSyncManifest(t, mock, mockStatus, mockRequestSender, testManagedCluster, true, rancherManifestYAML)
-	expectRancherConfigK8sCalls(t, mock)
+	expectRancherConfigK8sCalls(t, mock, false)
 	expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 	expectMockCallsForCreateClusterRoleBindingTemplate(mock, unitTestRancherClusterID)
 	expectPushManifestRequests(mockRequestSender)
@@ -1216,7 +1217,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	// THEN the registration call returns an error
 
 	// Expect all of the Kubernetes calls
-	expectRancherConfigK8sCalls(t, mock)
+	expectRancherConfigK8sCalls(t, mock, false)
 
 	// Expect an HTTP request to fetch the admin token from Rancher but the call fails
 	mockRequestSender.EXPECT().
@@ -1246,7 +1247,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	rancherutil.RancherHTTPClient = mockRequestSender
 
 	// Expect all of the Kubernetes calls
-	expectRancherConfigK8sCalls(t, mock)
+	expectRancherConfigK8sCalls(t, mock, false)
 
 	// Expect an HTTP request to fetch the admin token from Rancher
 	mockRequestSender.EXPECT().
@@ -1292,7 +1293,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	rancherutil.RancherHTTPClient = mockRequestSender
 
 	// Expect all of the Kubernetes calls
-	expectRancherConfigK8sCalls(t, mock)
+	expectRancherConfigK8sCalls(t, mock, false)
 
 	// Expect an HTTP request to fetch the admin token from Rancher
 	mockRequestSender.EXPECT().
@@ -1350,7 +1351,7 @@ func TestRegisterClusterWithRancherHTTPErrorCases(t *testing.T) {
 	rancherutil.RancherHTTPClient = mockRequestSender
 
 	// Expect all of the Kubernetes calls
-	expectRancherConfigK8sCalls(t, mock)
+	expectRancherConfigK8sCalls(t, mock, false)
 
 	// Expect an HTTP request to fetch the admin token from Rancher
 	mockRequestSender.EXPECT().
@@ -1443,7 +1444,7 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 	}
 
 	// Expect all of the Kubernetes calls
-	expectRancherConfigK8sCalls(t, mock)
+	expectRancherConfigK8sCalls(t, mock, false)
 
 	// Expect an HTTP request to fetch the admin token from Rancher - return an error response and
 	// the request should be retried for a total of "retrySteps" # of times
@@ -2113,7 +2114,7 @@ func expectRegisterClusterWithRancher(t *testing.T,
 	clusterAlreadyRegistered bool,
 	expectedRancherYAML string) {
 
-	expectRancherConfigK8sCalls(t, k8sMock)
+	expectRancherConfigK8sCalls(t, k8sMock, true)
 	expectRegisterClusterWithRancherHTTPCalls(t, requestSenderMock, clusterName, clusterAlreadyRegistered, expectedRancherYAML)
 }
 
@@ -2264,7 +2265,7 @@ func expectSyncCACertRancherK8sCalls(t *testing.T, k8sMock *mocks.MockClient, mo
 		// Expect K8S calls and admin token call to create new Rancher config
 		expectRancherGetAdminTokenHTTPCall(t, mockRequestSender)
 
-		expectRancherConfigK8sCalls(t, k8sMock)
+		expectRancherConfigK8sCalls(t, k8sMock, true)
 
 		// Expect a call to get the CA cert secret for the managed cluster - return not found
 		k8sMock.EXPECT().
@@ -2395,7 +2396,7 @@ func validateScrapeConfig(t *testing.T, scrapeConfig *gabs.Container, caBasePath
 
 // expectRancherConfigK8sCalls asserts all of the expected calls on the Kubernetes client mock
 // when creating a new Rancher config for the purpose of making http calls
-func expectRancherConfigK8sCalls(t *testing.T, k8sMock *mocks.MockClient) {
+func expectRancherConfigK8sCalls(t *testing.T, k8sMock *mocks.MockClient, admin bool) {
 	// Expect a call to get the ingress host name
 	k8sMock.EXPECT().
 		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: rancherNamespace, Name: rancherIngressName}), gomock.Not(gomock.Nil())).
@@ -2415,9 +2416,15 @@ func expectRancherConfigK8sCalls(t *testing.T, k8sMock *mocks.MockClient) {
 			return nil
 		})
 
-	// Expect a call to get the Verrazzano cluster user secret
+	secNS := constants.VerrazzanoMultiClusterNamespace
+	secName := constants.VerrazzanoClusterRancherName
+	if admin {
+		secNS = constants.RancherSystemNamespace
+		secName = rancherAdminSecret
+	}
+	// Expect a call to get the admin secret
 	k8sMock.EXPECT().
-		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: constants.VerrazzanoClusterRancherName}), gomock.Not(gomock.Nil())).
+		Get(gomock.Any(), gomock.Eq(types.NamespacedName{Namespace: secNS, Name: secName}), gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, secret *corev1.Secret) error {
 			secret.Data = map[string][]byte{
 				"password": []byte("super-secret"),
@@ -2524,7 +2531,7 @@ func expectMockCallsForDelete(t *testing.T, mock *mocks.MockClient, namespace st
 		})
 
 	// Expect Rancher k8s calls to configure the API client
-	expectRancherConfigK8sCalls(t, mock)
+	expectRancherConfigK8sCalls(t, mock, true)
 }
 
 func expectMockCallsForCreateClusterRoleBindingTemplate(mock *mocks.MockClient, clusterID string) {
