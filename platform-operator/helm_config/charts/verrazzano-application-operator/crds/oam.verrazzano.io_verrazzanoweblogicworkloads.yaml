@@ -40,9 +40,34 @@ spec:
               The WebLogic domain specified in the template must contain a spec field
               and it may include a metadata field.
             properties:
+              clusters:
+                items:
+                  properties:
+                    apiVersion:
+                      type: string
+                    metadata:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    spec:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                  required:
+                  - spec
+                  type: object
+                type: array
               template:
+                properties:
+                  apiVersion:
+                    type: string
+                  metadata:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  spec:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                required:
+                - spec
                 type: object
-                x-kubernetes-preserve-unknown-fields: true
             required:
             - template
             type: object

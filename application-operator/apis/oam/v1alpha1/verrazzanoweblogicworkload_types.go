@@ -9,10 +9,11 @@ import (
 )
 
 type VerrazzanoWebLogicWorkloadTemplate struct {
-	// +kubebuilder:pruning:PreserveUnknownFields
 	APIVersion string               `json:"apiVersion,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Metadata   runtime.RawExtension `json:"metadata,omitempty"`
 
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Spec runtime.RawExtension `json:"spec"`
 }
 
