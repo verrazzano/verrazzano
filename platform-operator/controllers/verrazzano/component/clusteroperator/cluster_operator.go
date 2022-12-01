@@ -5,10 +5,8 @@ package clusteroperator
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"net/http"
-	"os"
-
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
@@ -24,6 +22,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"net/http"
+	"os"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -34,16 +34,6 @@ const (
 	dataField     = "data"
 	passwordField = "password"
 )
-
-var userPayload = `
-{
-	"description": "Verrazzano Cluster",
-	"enabled": true,
-	"mustChangePassword": false,
-	"name": "%s",
-	"password": "%s",
-	"username": "%s"
-}`
 
 // AppendOverrides appends any additional overrides needed by the Cluster Operator component
 func AppendOverrides(compContext spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
@@ -130,10 +120,14 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to generate a password for the Verrazzano cluster user: %v", err)
 	}
 	reqURL = rc.BaseURL + usersPath
-	payload := fmt.Sprintf(userPayload, vzconst.VerrazzanoClusterRancherName, pass, vzconst.VerrazzanoClusterRancherName)
+	payload, err := constructVZUserJson(pass)
+	if err != nil {
+		return ctx.Log().ErrorfNewErr("Failed to construct the user %s JSON: %v", vzconst.VerrazzanoClusterRancherUsername)
+	}
+
 	headers["Content-Type"] = "application/json"
 	ctx.Log().Infof("Sending request message: Type: %s, URL: %s, headers: %v, payload %s", http.MethodPost, reqURL, headers, payload)
-	response, _, err = rancherutil.SendRequest(http.MethodPost, reqURL, headers, payload, rc, ctx.Log())
+	response, _, err = rancherutil.SendRequest(http.MethodPost, reqURL, headers, string(payload), rc, ctx.Log())
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to create the Verrazzano cluster user in Rancher: %v", err)
 	}
@@ -157,4 +151,16 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed create or update the Secret for the Verrazzano Cluster User: %v", err)
 	}
 	return nil
+}
+
+func constructVZUserJson(pass string) ([]byte, error) {
+	userMap := map[string]interface{}{
+		"description":        "Verrazzano Cluster",
+		"enabled":            true,
+		"mustChangePassword": false,
+		"name":               vzconst.VerrazzanoClusterRancherUsername,
+		"password":           pass,
+		"username":           vzconst.VerrazzanoClusterRancherUsername,
+	}
+	return json.Marshal(userMap)
 }
