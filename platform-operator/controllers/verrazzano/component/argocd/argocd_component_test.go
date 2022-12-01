@@ -21,6 +21,22 @@ var (
 	trueValue  = true
 )
 
+const profilesRelativePath = "../../../../manifests/profiles"
+
+var crEnabled = vzapi.Verrazzano{
+	Spec: vzapi.VerrazzanoSpec{
+		Components: vzapi.ComponentSpec{
+			ArgoCD: &vzapi.ArgoCDComponent{
+				Enabled: getBoolPtr(true),
+			},
+		},
+	},
+}
+
+func getBoolPtr(b bool) *bool {
+	return &b
+}
+
 // TestIsReady verifies ArgoCD is enabled or disabled as expected
 // GIVEN a Verrzzano CR
 //
@@ -342,4 +358,81 @@ func TestValidateInstall(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestIsEnabledNilComponent tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//
+//	WHEN The ArgoCD component is nil
+//	THEN false is returned
+func TestIsEnabledNilComponent(t *testing.T) {
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &vzapi.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
+}
+
+// TestIsEnabledNilArgoCD tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//
+//	WHEN The ArgoCD component is nil
+//	THEN true is returned
+func TestIsEnabledNilArgoCD(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.ArgoCD = nil
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
+}
+
+// TestIsEnabledNilEnabled tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//
+//	WHEN The ArgoCD component enabled is nil
+//	THEN true is returned
+func TestIsEnabledNilEnabled(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.ArgoCD.Enabled = nil
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
+}
+
+// TestIsEnabledExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//
+//	WHEN The ArgoCD component is explicitly enabled
+//	THEN true is returned
+func TestIsEnabledExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.ArgoCD.Enabled = getBoolPtr(true)
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
+}
+
+// TestIsDisableExplicit tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//
+//	WHEN The ArgoCD component is explicitly disabled
+//	THEN false is returned
+func TestIsDisableExplicit(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.ArgoCD.Enabled = getBoolPtr(false)
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
+}
+
+// TestIsEnabledManagedClusterProfile tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//
+//	WHEN The ArgoCD enabled flag is nil and managed cluster profile
+//	THEN false is returned
+func TestIsEnabledManagedClusterProfile(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.ArgoCD = nil
+	cr.Spec.Profile = vzapi.ManagedCluster
+	assert.False(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
+}
+
+// TestIsEnabledProdProfile tests the IsEnabled function
+// GIVEN a call to IsEnabled
+//
+//	WHEN The ArgoCD enabled flag is nil and prod profile
+//	THEN false is returned
+func TestIsEnabledProdProfile(t *testing.T) {
+	cr := crEnabled
+	cr.Spec.Components.ArgoCD = nil
+	cr.Spec.Profile = vzapi.Prod
+	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &cr, nil, false, profilesRelativePath).EffectiveCR()))
 }

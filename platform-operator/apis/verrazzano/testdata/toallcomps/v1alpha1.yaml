@@ -113,7 +113,7 @@ spec:
         domain: nip.io
     fluentd:
       enabled: true
-      elasticsearchSecret: verrazzano-os-internal
+      elasticsearchSecret: verrazzano-es-internal
       elasticsearchURL: http://verrazzano-authproxy-opensearch:8775
       overrides:
         - values:
@@ -328,7 +328,7 @@ spec:
       overrides:
         - values:
             frobber: frob
-    argoCD:
+    argocd:
       enabled: true
       overrides:
         - values:

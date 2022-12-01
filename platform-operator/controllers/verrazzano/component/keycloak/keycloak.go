@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"reflect"
 	"strings"
 	"text/template"
@@ -53,7 +52,7 @@ const (
 	vzAPIAccessRole         = "vz_api_access"
 	vzUserName              = "verrazzano"
 	vzInternalPromUser      = "verrazzano-prom-internal"
-	vzInternalOSUser        = "verrazzano-os-internal"
+	vzInternalEsUser        = "verrazzano-es-internal"
 	keycloakPodName         = "keycloak-0"
 	realmManagement         = "realm-management"
 	viewUsersRole           = "view-users"
@@ -840,8 +839,8 @@ func configureKeycloakRealms(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Creating Verrazzano Internal OS User
-	err = createUser(ctx, cfg, cli, vzInternalOSUser, "verrazzano-os-internal", vzSystemGroup, "", "")
+	// Creating Verrazzano Internal ES User
+	err = createUser(ctx, cfg, cli, vzInternalEsUser, "verrazzano-es-internal", vzSystemGroup, "", "")
 	if err != nil {
 		return err
 	}
@@ -1683,8 +1682,17 @@ func GetRancherClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error
 	return clientSecret.Value, nil
 }
 
-// GetArgoCDClientSecretFromKeycloak returns the secret from argocd client in Keycloak
-func GetArgoCDClientSecretFromKeycloak(ctx spi.ComponentContext) (string, error) {
+type (
+	ArgoClientSecretProvider interface {
+		GetClientSecret(ctx spi.ComponentContext) (string, error)
+	}
+
+	// Gets the client secret from keycloak
+	DefaultArgoClientSecretProvider struct{}
+)
+
+// GetClientSecret returns the secret from argocd client in Keycloak
+func (p DefaultArgoClientSecretProvider) GetClientSecret(ctx spi.ComponentContext) (string, error) {
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return "", err
@@ -1843,18 +1851,4 @@ func DoesDeprecatedIngressHostExist(ctx spi.ComponentContext, namespace string) 
 		}
 	}
 	return false, nil
-}
-
-// removeDeprecatedESSecretIfExists removes the deprecated ES secret if exists.
-func removeDeprecatedESSecretIfExists(ctx spi.ComponentContext) {
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: constants.VerrazzanoSystemNamespace,
-			Name:      "verrazzano-es-internal",
-		},
-	}
-	ctx.Log().Debugf("Deleting the deprecated ES secret: %s", secret.Name)
-	if err := ctx.Client().Delete(context.TODO(), secret, &client.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
-		ctx.Log().Errorf("Unable to delete deprecated ES secret: %s, %v", secret.Name, err)
-	}
 }

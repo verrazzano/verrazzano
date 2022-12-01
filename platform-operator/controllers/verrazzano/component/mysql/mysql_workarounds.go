@@ -117,15 +117,7 @@ func (c mysqlComponent) repairMySQLPodsWaitingReadinessGates(ctx spi.ComponentCo
 		return err
 	}
 	if podsWaiting {
-		// Restart the mysql-operator to see if it will finish setting the readiness gates
-		ctx.Log().Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck waiting for readiness gates")
-
-		operPod, err := getMySQLOperatorPod(ctx.Log(), ctx.Client())
-		if err != nil {
-			return fmt.Errorf("Failed restarting the mysql-operator to repair stuck MySQL pods: %v", err)
-		}
-
-		if err = ctx.Client().Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
+		if err = restartMySQLOperator(ctx); err != nil {
 			return err
 		}
 
@@ -219,7 +211,7 @@ func (c mysqlComponent) repairMySQLPodStuckDeleting(ctx spi.ComponentContext) er
 	foundPodsDeleting := false
 	for i := range podList.Items {
 		pod := podList.Items[i]
-		if pod.GetDeletionTimestamp() != nil {
+		if !pod.GetDeletionTimestamp().IsZero() {
 			foundPodsDeleting = true
 			break
 		}
@@ -236,15 +228,7 @@ func (c mysqlComponent) repairMySQLPodStuckDeleting(ctx spi.ComponentContext) er
 		// Initiate repair only if time to wait period has been exceeded
 		expiredTime := c.GetInitialTimeMySQLPodsStuckChecked().Add(5 * time.Minute)
 		if time.Now().After(expiredTime) {
-			// Restart the mysql-operator to see if it will finish deleting the IC object
-			ctx.Log().Info("Restarting the mysql-operator to see if it will repair MySQL pods stuck deleting")
-
-			operPod, err := getMySQLOperatorPod(ctx.Log(), ctx.Client())
-			if err != nil {
-				return fmt.Errorf("Failed restarting the mysql-operator to repair MySQL pods stuck deleting: %v", err)
-			}
-
-			if err = ctx.Client().Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
+			if err := restartMySQLOperator(ctx); err != nil {
 				return err
 			}
 		} else {
@@ -255,5 +239,20 @@ func (c mysqlComponent) repairMySQLPodStuckDeleting(ctx spi.ComponentContext) er
 
 	// Clear the timer
 	c.ResetInitialTimeMySQLPodsStuckChecked()
+	return nil
+}
+
+// restartMySQLOperator - restart the MySQL Operator pod
+func restartMySQLOperator(ctx spi.ComponentContext) error {
+	ctx.Log().Info("Restarting the mysql-operator to see if it will repair stuck MySQL components")
+
+	operPod, err := getMySQLOperatorPod(ctx.Log(), ctx.Client())
+	if err != nil {
+		return fmt.Errorf("Failed restarting the mysql-operator to repair MySQL pods stuck deleting: %v", err)
+	}
+
+	if err = ctx.Client().Delete(context.TODO(), operPod, &clipkg.DeleteOptions{}); err != nil {
+		return err
+	}
 	return nil
 }

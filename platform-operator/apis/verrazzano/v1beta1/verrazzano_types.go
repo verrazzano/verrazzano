@@ -124,7 +124,7 @@ type InstanceInfo struct {
 	// The Jaeger UI URL for this Verrazzano installation.
 	JaegerURL *string `json:"jaegerUrl,omitempty"`
 	// ArgoCDURL The Argo CD UI URL for this Verrazzano installation
-	ArgoCDURL *string `json:"argoCDUrl,omitempty"`
+	ArgoCDURL *string `json:"argocdUrl,omitempty"`
 	// The KeyCloak URL for this Verrazzano installation.
 	KeyCloakURL *string `json:"keyCloakUrl,omitempty"`
 	// The Kiali URL for this Verrazzano installation.

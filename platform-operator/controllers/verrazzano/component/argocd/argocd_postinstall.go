@@ -10,7 +10,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
@@ -33,8 +32,8 @@ type OIDCConfig struct {
 }
 
 // patchArgoCDSecret
-func patchArgoCDSecret(ctx spi.ComponentContext) error {
-	clientSecret, err := keycloak.GetArgoCDClientSecretFromKeycloak(ctx)
+func (c argoCDComponent) patchArgoCDSecret(ctx spi.ComponentContext) error {
+	clientSecret, err := c.ArgoClientSecretProvider.GetClientSecret(ctx)
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("failed configuring keycloak as OIDC provider for argocd, unable to fetch argocd client secret: %s", err)
 	}

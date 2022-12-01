@@ -4,6 +4,7 @@
 package envdnscm
 
 import (
+	. "github.com/onsi/ginkgo/v2"
 	"log"
 	"os"
 	"os/exec"
@@ -78,10 +79,12 @@ var (
 	currentCertSecretName = "verrazzano-ca-certificate-secret"
 )
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	files := []string{testCertName + ".crt", testCertName + ".key"}
 	cleanupTemporaryFiles(files)
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Test updates to environment name, dns domain and cert-manager CA certificates", func() {
 	t.It("Verify the current environment name", func() {

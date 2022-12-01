@@ -30,8 +30,8 @@ const (
 	osdCertificateName = "system-tls-osd"
 )
 
-// ComponentJSONName is the json name of the OpenSearch-Dashboards component in CRD
-const ComponentJSONName = "opensearch-dashboards"
+// ComponentJSONName is the JSON name of the OpenSearch-Dashboards component in CRD
+const ComponentJSONName = "opensearchDashboards"
 
 type opensearchDashboardsComponent struct{}
 
@@ -217,7 +217,7 @@ func (d opensearchDashboardsComponent) Name() string {
 func (d opensearchDashboardsComponent) isOpenSearchDashboardEnabled(old runtime.Object, new runtime.Object) error {
 	// Do not allow disabling of any component post-install for now
 	if vzcr.IsOpenSearchDashboardsEnabled(old) && !vzcr.IsOpenSearchDashboardsEnabled(new) {
-		return fmt.Errorf("Disabling component OpenSearch-Dashboards not allowed")
+		return fmt.Errorf("Disabling component %s not allowed", ComponentJSONName)
 	}
 	return nil
 }

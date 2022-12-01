@@ -28,14 +28,17 @@ var expectedPodsKubeSystem = []string{
 
 var t = framework.NewTestFramework("defaultresource_test")
 
-var _ = t.BeforeSuite(func() {})
+var beforeSuite = t.BeforeSuiteFunc(func() {})
+var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	Eventually(func() error {
 		return listPodsInKubeSystem()
 	}, waitTimeout, pollingInterval).Should(BeNil())
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Multi Cluster Install Validation", Label("f:platform-lcm.install"),
 	func() {

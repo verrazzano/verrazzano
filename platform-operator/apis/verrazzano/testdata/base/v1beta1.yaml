@@ -88,7 +88,7 @@ spec:
         domain: nip.io
     fluentd:
       enabled: true
-      opensearchSecret: verrazzano-os-internal
+      opensearchSecret: verrazzano-es-internal
       opensearchURL: http://verrazzano-authproxy-opensearch:8775
     grafana:
       enabled: true
@@ -241,6 +241,8 @@ spec:
     verrazzano:
       enabled: true
     weblogicOperator:
+      enabled: true
+    argocd:
       enabled: true
   environmentName: default
 

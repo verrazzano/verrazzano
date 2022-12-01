@@ -120,7 +120,7 @@ var isMinVersion140 bool
 var isMinVersion150 bool
 var isKeycloakEnabled bool
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	Eventually(func() (map[string]*corev1.PersistentVolumeClaim, error) {
 		var err error
 		volumeClaims, err = pkg.GetPersistentVolumeClaims(keycloakNamespace)
@@ -138,6 +138,8 @@ var _ = t.BeforeSuite(func() {
 		Fail(err.Error())
 	}
 })
+
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.AfterEach(func() {})
 

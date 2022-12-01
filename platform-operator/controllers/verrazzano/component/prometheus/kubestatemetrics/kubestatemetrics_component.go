@@ -25,7 +25,7 @@ const ComponentName = "kube-state-metrics"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoMonitoringNamespace
 
-// ComponentJSONName is the json name of the component in the CRD
+// ComponentJSONName is the JSON name of the component in the CRD
 const ComponentJSONName = "kubeStateMetrics"
 
 const chartDir = "prometheus-community/kube-state-metrics"

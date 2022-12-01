@@ -28,12 +28,14 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed {
 		pkg.ExecuteBugReport()
 	}
 	pkg.DeleteApplicationDataStream("verrazzano-application-test")
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.es"), func() {
 	// It Wrapper to only run spec if component is supported on the current Verrazzano installation

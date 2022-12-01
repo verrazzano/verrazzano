@@ -39,7 +39,7 @@ const ComponentName = "keycloak"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.KeycloakNamespace
 
-// ComponentJSONName is the josn name of the verrazzano component in CRD
+// ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "keycloak"
 
 // KeycloakComponent represents an Keycloak component
@@ -134,8 +134,8 @@ func (c KeycloakComponent) PostInstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
-	// Create secret for the verrazzano-os-internal user
-	err = createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, vzInternalOSUser, vzInternalOSUser)
+	// Create secret for the verrazzano-es-internal user
+	err = createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, "verrazzano-es-internal", "verrazzano-es-internal")
 	if err != nil {
 		return err
 	}
@@ -184,12 +184,7 @@ func (c KeycloakComponent) PostUpgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 	}
-	// Create secret for the verrazzano-os-internal user
-	err := createAuthSecret(ctx, constants.VerrazzanoSystemNamespace, vzInternalOSUser, vzInternalOSUser)
-	if err != nil {
-		return err
-	}
-	removeDeprecatedESSecretIfExists(ctx)
+
 	return configureKeycloakRealms(ctx)
 }
 
