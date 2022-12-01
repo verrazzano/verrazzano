@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-type VerrazzanoWebLogicWorkloadDomainTemplate struct {
+type VerrazzanoWebLogicWorkloadTemplate struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	APIVersion string               `json:"apiVersion,omitempty"`
 	Metadata   runtime.RawExtension `json:"metadata,omitempty"`
@@ -22,7 +22,8 @@ type VerrazzanoWebLogicWorkloadSpec struct {
 	// The metadata and spec for the underlying
 	// <a href="https://github.com/oracle/weblogic-kubernetes-operator/blob/main/documentation/domains/Domain.md">Domain</a> resource.
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Template VerrazzanoWebLogicWorkloadDomainTemplate `json:"template"`
+	Template VerrazzanoWebLogicWorkloadTemplate   `json:"template"`
+	Clusters []VerrazzanoWebLogicWorkloadTemplate `json:"clusters,omitempty"`
 }
 
 // VerrazzanoWebLogicWorkloadStatus defines the observed state of a Verrazzano WebLogic workload.
