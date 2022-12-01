@@ -16,16 +16,16 @@ fi
 
 # Retain only alphanumeric characters from the BRANCH_NAME and truncate
 NEW_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9]//g')
-NEW_BRANCH=${NEW_BRANCH:0:8}
+NEW_BRANCH=${NEW_BRANCH:0:4}
 
 CLUSTER_PREFIX="$NEW_BRANCH$BUILD_NUMBER"
-if (( ${#CLUSTER_PREFIX} > 13 )); then
-  CLUSTER_PREFIX=${CLUSTER_PREFIX:0:13}
+if (( ${#CLUSTER_PREFIX} > 8 )); then
+  CLUSTER_PREFIX=${CLUSTER_PREFIX:0:8}
 fi
 
 TIMESTAMP=${SHORT_TIME_STAMP}
-if (( ${#TIMESTAMP} > 10 )); then
-  TIMESTAMP=${TIMESTAMP:0:10}
+if (( ${#TIMESTAMP} > 4 )); then
+  TIMESTAMP=${TIMESTAMP:0:4}
 fi
 
 CLUSTER_PREFIX="$CLUSTER_PREFIX-$TIMESTAMP"
