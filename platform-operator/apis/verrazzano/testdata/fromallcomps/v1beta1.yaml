@@ -327,7 +327,7 @@ spec:
       overrides:
         - values:
             frobber: frob
-    argoCD:
+    argocd:
       enabled: true
       overrides:
         - values:
