@@ -38,11 +38,35 @@ spec:
           spec:
             description: The desired state of a Verrazzano WebLogic workload.
             properties:
+              clusters:
+                items:
+                  properties:
+                    apiVersion:
+                      type: string
+                    metadata:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    spec:
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                  required:
+                  - spec
+                  type: object
+                type: array
               template:
-                description: The metadata and spec for the underlying <a href="https://github.com/oracle/weblogic-kubernetes-operator/blob/main/documentation/domains/Domain.md">Domain</a>
-                  resource.
+                properties:
+                  apiVersion:
+                    type: string
+                  metadata:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  spec:
+                    description: The metadata and spec for the underlying <a href="https://github.com/oracle/weblogic-kubernetes-operator/blob/main/documentation/domains/Domain.md">Domain</a>resource.
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                required:
+                - spec
                 type: object
-                x-kubernetes-preserve-unknown-fields: true
             required:
             - template
             type: object
