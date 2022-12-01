@@ -32,7 +32,7 @@ func NewTestFramework(pkg string) *TestFramework {
 }
 
 func (t *TestFramework) RegisterFailHandler() {
-	gomega.RegisterFailHandler(ginkgo.Fail)
+	gomega.RegisterFailHandler(t.Fail)
 }
 
 // initDumpDirectoryIfNecessary - sets the DUMP_DIRECTORY env variable to a default if not set externally
@@ -61,7 +61,7 @@ func (t *TestFramework) AfterEach(args ...interface{}) bool {
 
 	f := func() {
 		metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
-		t.invoke(body)
+		reflect.ValueOf(body).Call([]reflect.Value{})
 	}
 	args[0] = f
 
@@ -80,7 +80,9 @@ func (t *TestFramework) BeforeEach(args ...interface{}) bool {
 	}
 
 	f := func() {
-		t.invoke(body)
+
+		reflect.ValueOf(body).Call([]reflect.Value{})
+
 	}
 	args[0] = f
 
@@ -98,7 +100,7 @@ func (t *TestFramework) It(text string, args ...interface{}) bool {
 	}
 	f := func() {
 		metrics.Emit(t.Metrics) // Starting point metric
-		t.invoke(body)
+		reflect.ValueOf(body).Call([]reflect.Value{})
 	}
 
 	args[len(args)-1] = ginkgo.Offset(1)
@@ -130,7 +132,7 @@ func (t *TestFramework) Describe(text string, args ...interface{}) bool {
 	}
 	f := func() {
 		metrics.Emit(t.Metrics)
-		t.invoke(body)
+		reflect.ValueOf(body).Call([]reflect.Value{})
 		metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
 	}
 	args[len(args)-1] = ginkgo.Offset(1)
@@ -150,7 +152,7 @@ func (t *TestFramework) DescribeTable(text string, args ...interface{}) bool {
 	funcType := reflect.TypeOf(body)
 	f := reflect.MakeFunc(funcType, func(args []reflect.Value) (results []reflect.Value) {
 		metrics.Emit(t.Metrics)
-		rv := t.invokeWithArgs(body, args)
+		rv := reflect.ValueOf(body).Call(args)
 		metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
 		return rv
 	})
@@ -158,30 +160,26 @@ func (t *TestFramework) DescribeTable(text string, args ...interface{}) bool {
 	return ginkgo.DescribeTable(text, args...)
 }
 
-// BeforeSuite - wrapper function for Ginkgo BeforeSuite
-func (t *TestFramework) BeforeSuite(body func()) bool {
-	if body == nil {
-		ginkgo.Fail("Unsupported body type - expected non-nil")
-	}
-
+// BeforeSuiteFunc wrap a function to be called with ginkgo.BeforeSuiteFunc. ginkgo.BeforeSuiteFunc
+// // hard codes the call stack location, which requires calling it from the package level.
+func (t *TestFramework) BeforeSuiteFunc(body func()) func() {
+	t.failIfNilBody(body)
 	f := func() {
 		metrics.Emit(t.Metrics)
-		t.invoke(body)
+		reflect.ValueOf(body).Call([]reflect.Value{})
 	}
-	return ginkgo.BeforeSuite(f)
+	return f
 }
 
-// AfterSuite - wrapper function for Ginkgo AfterSuite
-func (t *TestFramework) AfterSuite(body func()) bool {
-	if body == nil {
-		ginkgo.Fail("Unsupported body type - expected non-nil")
-	}
-
+// AfterSuiteFunc wrap a function to be called with ginkgo.AfterSuiteFunc. ginkgo.AfterSuiteFunc
+// hard codes the call stack location, which requires calling it from the package level.
+func (t *TestFramework) AfterSuiteFunc(body func()) func() {
+	t.failIfNilBody(body)
 	f := func() {
 		metrics.Emit(t.Metrics.With(metrics.Duration, metrics.DurationMillis()))
-		t.invoke(body)
+		reflect.ValueOf(body).Call([]reflect.Value{})
 	}
-	return ginkgo.AfterSuite(f)
+	return f
 }
 
 // Entry - wrapper function for Ginkgo Entry
@@ -195,26 +193,14 @@ func (t *TestFramework) Entry(description interface{}, args ...interface{}) gink
 
 // Fail - wrapper function for Ginkgo Fail
 func (t *TestFramework) Fail(message string, callerSkip ...int) {
-	ginkgo.Fail(message, callerSkip...)
-}
-
-// panicHandler is used with defer to emit a failed status metric when a panic occurs
-func (t *TestFramework) panicHandler() {
 	// Recover only to emit a fail, then re-panic
-	if p := recover(); p != nil {
-		metrics.EmitFail(t.Metrics)
-		panic(p)
-	}
-}
-
-// invoke calls body as a function, wrapped with the panicHandler
-func (t *TestFramework) invoke(body interface{}) []reflect.Value {
-	return t.invokeWithArgs(body, []reflect.Value{})
-}
-
-func (t *TestFramework) invokeWithArgs(body interface{}, args []reflect.Value) []reflect.Value {
-	defer t.panicHandler()
-	return reflect.ValueOf(body).Call(args)
+	defer func() {
+		if p := recover(); p != nil {
+			metrics.EmitFail(t.Metrics)
+			panic(p)
+		}
+	}()
+	ginkgo.Fail(message, callerSkip...)
 }
 
 // Context - wrapper function for Ginkgo Context
@@ -261,4 +247,10 @@ func (t *TestFramework) AfterAll(args ...interface{}) bool {
 func VzCurrentGinkgoTestDescription() ginkgo.SpecReport {
 	pkg.Log(pkg.Debug, "VzCurrentGinkgoTestDescription wrapper")
 	return ginkgo.CurrentSpecReport()
+}
+
+func (t *TestFramework) failIfNilBody(body func()) {
+	if body == nil {
+		ginkgo.Fail("Unsupported body type - expected non-nil")
+	}
 }

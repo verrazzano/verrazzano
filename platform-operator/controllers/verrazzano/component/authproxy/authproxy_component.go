@@ -33,7 +33,7 @@ const ComponentName = "verrazzano-authproxy"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
-// ComponentJSONName is the josn name of the verrazzano component in CRD
+// ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "authProxy"
 
 type authProxyComponent struct {
@@ -170,6 +170,12 @@ func (c authProxyComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	return c.HelmComponent.PreUpgrade(ctx)
+}
+
+// PostUpgrade performs any required post upgrade operations
+func (c authProxyComponent) PostUpgrade(ctx spi.ComponentContext) error {
+	removeDeprecatedAuthProxyESServiceIfExists(ctx)
+	return c.HelmComponent.PostUpgrade(ctx)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

@@ -8,6 +8,6 @@ global:
     LOG_LENGTH: 1
 
 # activate subchart
-opensearch-authpol:
+opensearch:
   enabled: true
 

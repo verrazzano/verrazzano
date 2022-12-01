@@ -42,7 +42,7 @@ const (
 	esPasswordKey = "password"
 )
 
-// ComponentJSONName is the josn name of the verrazzano component in CRD
+// ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "verrazzano"
 
 type verrazzanoComponent struct {

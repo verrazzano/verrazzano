@@ -29,7 +29,7 @@ const ComponentName = "oam-kubernetes-runtime"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoSystemNamespace
 
-// ComponentJSONName is the josn name of the verrazzano component in CRD
+// ComponentJSONName is the JSON name of the verrazzano component in CRD
 const ComponentJSONName = "oam"
 
 type oamComponent struct {

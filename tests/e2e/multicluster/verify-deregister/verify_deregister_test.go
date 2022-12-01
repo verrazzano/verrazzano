@@ -25,8 +25,10 @@ var externalEsURL = pkg.GetExternalOpenSearchURL(os.Getenv("ADMIN_KUBECONFIG"))
 
 var t = framework.NewTestFramework("deregister_test")
 
-var _ = t.AfterSuite(func() {})
-var _ = t.BeforeSuite(func() {})
+var afterSuite = t.AfterSuiteFunc(func() {})
+var _ = AfterSuite(afterSuite)
+var beforeSuite = t.BeforeSuiteFunc(func() {})
+var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Multi Cluster Verify Deregister", Label("f:multicluster.deregister"), func() {

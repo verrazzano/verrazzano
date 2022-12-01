@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -32,8 +33,10 @@ const (
 
 type RancherClusterReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	Log    *zap.SugaredLogger
+	Scheme             *runtime.Scheme
+	ClusterSyncEnabled bool
+	ClusterSelector    *metav1.LabelSelector
+	Log                *zap.SugaredLogger
 }
 
 var gvk = schema.GroupVersionKind{
@@ -86,9 +89,27 @@ func (r *RancherClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	// ensure the VMC exists
-	if err = r.ensureVMC(cluster); err != nil {
-		return ctrl.Result{}, err
+	if !r.ClusterSyncEnabled {
+		r.Log.Debug("Cluster sync is disabled, skipping VMC creation")
+		return ctrl.Result{}, nil
+	}
+
+	var l labels.Set = cluster.GetLabels()
+	var selector labels.Selector
+
+	if r.ClusterSelector != nil {
+		selector, err = metav1.LabelSelectorAsSelector(r.ClusterSelector)
+		if err != nil {
+			r.Log.Errorf("Error parsing cluster label selector: %v", err)
+			return ctrl.Result{}, err
+		}
+	}
+
+	if selector == nil || selector.Matches(l) {
+		// ensure the VMC exists
+		if err = r.ensureVMC(cluster); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil

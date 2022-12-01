@@ -45,8 +45,10 @@ var externalEsURL = pkg.GetExternalOpenSearchURL(adminKubeconfig)
 
 var t = framework.NewTestFramework("register_test")
 
-var _ = t.AfterSuite(func() {})
-var _ = t.BeforeSuite(func() {})
+var afterSuite = t.AfterSuiteFunc(func() {})
+var _ = AfterSuite(afterSuite)
+var beforeSuite = t.BeforeSuiteFunc(func() {})
+var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Multi Cluster Verify Register", Label("f:multicluster.register"), func() {

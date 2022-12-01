@@ -4,8 +4,8 @@
 package authproxy
 
 import (
+	"context"
 	"fmt"
-
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 
@@ -288,5 +288,18 @@ func getAuthproxyManagedResources() []common.HelmManagedResource {
 		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: ComponentName, Namespace: ComponentNamespace}},
 		{Obj: &corev1.Service{}, NamespacedName: types.NamespacedName{Name: "verrazzano-authproxy-elasticsearch", Namespace: ComponentNamespace}},
 		{Obj: &corev1.ServiceAccount{}, NamespacedName: types.NamespacedName{Name: "impersonate-api-user", Namespace: ComponentNamespace}},
+	}
+}
+
+func removeDeprecatedAuthProxyESServiceIfExists(ctx spi.ComponentContext) {
+	svc := &corev1.Service{}
+	namespacedName := types.NamespacedName{Namespace: ComponentNamespace, Name: "verrazzano-authproxy-elasticsearch"}
+	if err := ctx.Client().Get(context.TODO(), namespacedName, svc); err != nil {
+		ctx.Log().Debugf("Unable to retrieve deprecated authproxy ES service: %s, %v", svc.Name, err)
+	} else {
+		ctx.Log().Debugf("Deleting the deprecated authproxy service: %s", svc.Name)
+		if err = ctx.Client().Delete(context.TODO(), svc); err != nil {
+			ctx.Log().Errorf("Unable to Delete deprecated authproxy ES service: %s, %v", svc.Name, err)
+		}
 	}
 }
