@@ -59,11 +59,11 @@ const (
 	webLogicPluginConfigYamlKey           = "WebLogicPlugin.yaml"
 	WDTConfigMapNameSuffix                = "-wdt-config-map"
 	controllerName                        = "weblogicworkload"
-	domainKind                            = "Domain"
-	clusterKind                           = "Cluster"
-	apiVersionV8                          = "weblogic.oracle/v8"
-	apiVersionV9                          = "weblogic.oracle/v9"
-	apiVersionV1                          = "weblogic.oracle/v1"
+	DomainKind                            = "Domain"
+	ClusterKind                           = "Cluster"
+	ApiVersionV8                          = "weblogic.oracle/v8"
+	ApiVersionV9                          = "weblogic.oracle/v9"
+	ApiVersionV1                          = "weblogic.oracle/v1"
 )
 
 const defaultMonitoringExporterTemplate = `
@@ -413,9 +413,9 @@ func (r *Reconciler) initializeDomain(workload *vzapi.VerrazzanoWebLogicWorkload
 	}
 
 	if u.GetAPIVersion() == "" {
-		u.SetAPIVersion(apiVersionV8)
+		u.SetAPIVersion(ApiVersionV8)
 	}
-	u.SetKind(domainKind)
+	u.SetKind(DomainKind)
 
 	return &u, nil
 }
@@ -430,9 +430,9 @@ func (r *Reconciler) initializeClusters(workload *vzapi.VerrazzanoWebLogicWorklo
 		}
 
 		if u.GetAPIVersion() == "" {
-			u.SetAPIVersion(apiVersionV1)
+			u.SetAPIVersion(ApiVersionV1)
 		}
-		u.SetKind(clusterKind)
+		u.SetKind(ClusterKind)
 		clus = append(clus, u)
 	}
 
@@ -552,7 +552,7 @@ func (r *Reconciler) isOkToRestartWebLogic(wl *vzapi.VerrazzanoWebLogicWorkload)
 }
 
 func isV8(weblogic *unstructured.Unstructured) bool {
-	return weblogic.GetAPIVersion() == apiVersionV8
+	return weblogic.GetAPIVersion() == ApiVersionV8
 }
 
 // copyLabels copies specific labels from the Verrazzano workload to the contained WebLogic resource
