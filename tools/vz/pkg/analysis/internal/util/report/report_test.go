@@ -15,6 +15,8 @@ import (
 	"testing"
 )
 
+var testSlice = []string{"s1", "s2"}
+
 // TestInvalidIssues Tests the helpers with invalid issues
 // GIVEN a call to helper
 // WHEN with an invalid issue
@@ -60,9 +62,8 @@ func TestInvalidIssues(t *testing.T) {
 	invalidIssue.Actions = []Action{{Summary: invalidIssue.Summary}}
 	invalidIssue.Confidence = 10
 	invalidIssue.Impact = 10
-	invalidIssue.Informational = false
-	invalidIssue.Actions = []Action{{Summary: invalidIssue.Summary, Links: []string{"l1", "l2"}, Steps: []string{"s1", "s2"}}}
-	invalidIssue.SupportingData = []SupportData{{Messages: []string{"m1", "m2"}, JSONPaths: []JSONPath{{"file", "path"}}, RelatedFiles: []string{"f1"}, TextMatches: []files.TextMatch{{FileName: "file", FileLine: 1, MatchedText: "mt"}}}}
+	invalidIssue.Actions = []Action{{Summary: invalidIssue.Summary, Links: testSlice, Steps: testSlice}}
+	invalidIssue.SupportingData = []SupportData{{Messages: testSlice, JSONPaths: []JSONPath{{"file", "path"}}, RelatedFiles: testSlice, TextMatches: []files.TextMatch{{FileName: "file", FileLine: 1, MatchedText: "mt"}}}}
 	assert.Nil(t, ContributeIssue(logger, invalidIssue))
 
 	// to get no issues from contribute issues map
@@ -90,27 +91,18 @@ func TestFilterReportIssues(t *testing.T) {
 	var validIssues = make([]Issue, 3)
 	validIssues[0].Type = "ISSUE 1"
 	validIssues[0].Summary = "Test Summary 1"
-	validIssues[0].Actions = []Action{{Summary: "Test Summary 1", Links: []string{"l1", "l2"}, Steps: []string{"s1", "s2"}}}
+	validIssues[0].Actions = []Action{{Summary: "Test Summary 1", Links: testSlice, Steps: testSlice}}
 	validIssues[0].Source = "Test Source 1"
-	validIssues[0].Informational = false
 	validIssues[0].Impact = 10
 	validIssues[0].Confidence = 10
 
+	validIssues[1] = validIssues[0]
 	validIssues[1].Type = "ISSUE 2"
 	validIssues[1].Summary = constants.SummaryReport
-	validIssues[1].Actions = []Action{{Summary: constants.SummaryReport, Links: []string{"l1", "l2"}, Steps: []string{"s1", "s2"}}}
+	validIssues[1].Actions[0].Summary = constants.SummaryReport
 	validIssues[1].Source = "Test Source 2"
-	validIssues[1].Informational = false
-	validIssues[1].Impact = 10
-	validIssues[1].Confidence = 10
 
-	validIssues[2].Type = "ISSUE 2"
-	validIssues[2].Summary = constants.SummaryReport
-	validIssues[2].Actions = []Action{{Summary: constants.SummaryReport, Links: []string{"l1", "l2"}, Steps: []string{"s1", "s2"}}}
-	validIssues[2].Source = "Test Source 2"
-	validIssues[2].Informational = false
-	validIssues[2].Impact = 10
-	validIssues[2].Confidence = 10
+	validIssues[2] = validIssues[1]
 
 	filteredIssue := filterReportIssues(logger, validIssues, false, 7, 8)
 	assert.Len(t, filteredIssue, 2, "duplicate issues must be filtered out")
