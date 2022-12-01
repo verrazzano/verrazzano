@@ -34,7 +34,7 @@ function list_images() {
     for subcomponent in ${sub_components}; do
       local override_registry=$(resolve_subcomponent_registry_from_bom ${component} ${subcomponent})
       local from_repository=$(get_subcomponent_repo ${component} ${subcomponent})
-      if [[ "$REPOS" == *"$from_repository"* ]]; then
+      if [[ $from_repository == "$REPOS"* ]]; then
         local image_names=$(list_subcomponent_images ${component} ${subcomponent})
         for base_image in ${image_names}; do
           local from_image
