@@ -39,7 +39,7 @@ var t = framework.NewTestFramework("verrazzano")
 
 var _ = t.AfterEach(func() {})
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -64,6 +64,8 @@ var _ = t.BeforeSuite(func() {
 	keycloakEnabled = pkg.IsKeycloakEnabled(kubeconfigPath)
 	mySQLOperatorEnabled = pkg.IsMySQLOperatorEnabled(kubeconfigPath)
 })
+
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("In Verrazzano", Label("f:platform-lcm.install"), func() {
 

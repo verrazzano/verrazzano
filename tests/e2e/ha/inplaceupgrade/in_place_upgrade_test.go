@@ -62,7 +62,7 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	clusterID = os.Getenv(clusterIDEnvVar)
 	region = os.Getenv(ociRegionEnvVar)
 
@@ -87,10 +87,14 @@ var _ = t.BeforeSuite(func() {
 	Expect(err).ShouldNot(HaveOccurred(), "Error configuring OCI SDK compute client")
 })
 
-var _ = t.AfterSuite(func() {
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	// signal that the upgrade is done so the tests know to stop
 	hacommon.EventuallyCreateShutdownSignal(clientset, t.Logs)
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("OKE In-Place Upgrade", Label("f:platform-lcm:ha"), func() {
 	var clusterResponse ocice.GetClusterResponse

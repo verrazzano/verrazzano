@@ -666,7 +666,7 @@ func TestCreateOrUpdateRoleTemplate(t *testing.T) {
 			cli = cliBuilder.WithObjects(&clr).Build()
 		}
 		fakeCtx := spi.NewFakeContext(cli, &vzapi.Verrazzano{}, nil, false)
-		err := createOrUpdateRoleTemplate(fakeCtx, clrName)
+		err := CreateOrUpdateRoleTemplate(fakeCtx, clrName)
 		if tt.wantErr {
 			asserts.ErrorContains(err, tt.errContains)
 		} else {
@@ -682,6 +682,20 @@ func TestCreateOrUpdateRoleTemplate(t *testing.T) {
 			asserts.True(data[RoleTemplateAttributeHidden].(bool))
 		}
 	}
+}
+
+// TestCreateOrUpdateVZClusterUser tests that the Verrazzano Cluster User gets created successfully
+func TestCreateOrUpdateVZClusterUser(t *testing.T) {
+	cli := fake.NewClientBuilder().WithScheme(getScheme()).Build()
+	fakeCtx := spi.NewFakeContext(cli, &vzapi.Verrazzano{}, nil, false)
+
+	err := createOrUpdateVZClusterUser(fakeCtx)
+	assert.NoError(t, err)
+
+	resource := &unstructured.Unstructured{}
+	resource.SetGroupVersionKind(GVKUser)
+	err = cli.Get(context.TODO(), types.NamespacedName{Name: UserVZMulticluster}, resource)
+	assert.NoError(t, err)
 }
 
 // getFakeRancherUser constructs a fake unstructured Rancher user object

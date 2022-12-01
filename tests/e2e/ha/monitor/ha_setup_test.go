@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/hashicorp/go-retryablehttp"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -28,7 +29,7 @@ type config struct {
 
 var web = config{}
 
-var _ = clusterDump.BeforeSuite(func() {
+var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	Expect(err).ShouldNot(HaveOccurred())
 	web.api = pkg.EventuallyGetAPIEndpoint(kubeconfigPath)
@@ -38,6 +39,7 @@ var _ = clusterDump.BeforeSuite(func() {
 	web.hosts.rancher = pkg.EventuallyGetURLForIngress(t.Logs, web.api, "cattle-system", "rancher", "https")
 	web.hosts.kiali = pkg.EventuallyGetKialiHost(clientset)
 })
+var _ = BeforeSuite(beforeSuite)
 
 // haCheckRetryRetryPolicy - wrap the default retry policy to retry on 401s in this case only
 // - workaround for case where we've had issues with Keycloak availability during cluster upgrade, even with HA configurations
