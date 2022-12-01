@@ -28,7 +28,7 @@ import (
 )
 
 // metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
-const metricsPrefix = "prom_alerts"
+const metricsPrefix = "prom_alert"
 
 var funcNewPsrClient = k8sclient.NewPsrClient
 
@@ -150,12 +150,12 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 			InvolvedObject: corev1.ObjectReference{
 				Namespace: config.PsrEnv.GetEnv(config.PsrWorkerNamespace),
 			},
-			Type: "Alert",
+			Type: "Warning",
 		}
 		if _, err = controllerutil.CreateOrUpdate(context.TODO(), c.CrtlRuntime, &event, func() error {
 			event.LastTimestamp = v1.Time{Time: time.Now()}
 			event.Message = string(bodyRaw)
-			event.Reason = alertStatus
+			event.Reason = "Alert " + alertStatus
 			return nil
 		}); err != nil {
 			log.Errorf("error generating alert event: %v", err)
