@@ -83,7 +83,7 @@ func TestFilterReportIssues(t *testing.T) {
 
 	var validIssues = make([]Issue, 3)
 	validIssues[0].Type = "ISSUE 1"
-	validIssues[0].Summary = "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer\n\tConsult https://verrazzano.io/v1.5/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip using supporting details identified in the report"
+	validIssues[0].Summary = "Test Summary 1"
 	validIssues[0].Actions = []Action{{Summary: "Test Summary 1", Links: []string{"l1", "l2"}, Steps: []string{"s1", "s2"}}}
 	validIssues[0].Source = "Test Source 1"
 	validIssues[0].Informational = false
@@ -91,7 +91,7 @@ func TestFilterReportIssues(t *testing.T) {
 	validIssues[0].Confidence = 10
 
 	validIssues[1].Type = "ISSUE 2"
-	validIssues[1].Summary = "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer\n\tConsult https://verrazzano.io/v1.5/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip using supporting details identified in the report"
+	validIssues[1].Summary = "Test Summary 2"
 	validIssues[1].Actions = []Action{{Summary: "Test Summary 2", Links: []string{"l1", "l2"}, Steps: []string{"s1", "s2"}}}
 	validIssues[1].Source = "Test Source 2"
 	validIssues[1].Informational = false
@@ -99,7 +99,7 @@ func TestFilterReportIssues(t *testing.T) {
 	validIssues[1].Confidence = 10
 
 	validIssues[2].Type = "ISSUE 2"
-	validIssues[2].Summary = "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer\n\tConsult https://verrazzano.io/v1.5/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip using supporting details identified in the report"
+	validIssues[2].Summary = "Test Summary 2"
 	validIssues[2].Actions = []Action{{Summary: "Test Summary 2", Links: []string{"l1", "l2"}, Steps: []string{"s1", "s2"}}}
 	validIssues[2].Source = "Test Source 2"
 	validIssues[2].Informational = false
