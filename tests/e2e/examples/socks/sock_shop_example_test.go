@@ -7,6 +7,7 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
@@ -46,11 +47,11 @@ var username, password string
 var (
 	t                  = framework.NewTestFramework("socks")
 	generatedNamespace = pkg.GenerateNamespace("sockshop")
-	clusterDump        = pkg.NewClusterDumpWrapper(generatedNamespace)
+	clusterDump        = dump.NewClusterDumpWrapper(t, generatedNamespace)
 )
 
 // creates the sockshop namespace and applies the components and application yaml
-var _ = clusterDump.BeforeSuite(func() {
+var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 	username = "username" + strconv.FormatInt(time.Now().Unix(), 10)
 	password = b64.StdEncoding.EncodeToString([]byte(time.Now().String()))
 	sockShop = NewSockShop(username, password, pkg.Ingress())
@@ -89,6 +90,8 @@ var _ = clusterDump.BeforeSuite(func() {
 	// checks that all pods are up and running
 	Eventually(sockshopPodsRunning, longWaitTimeout, pollingInterval).Should(BeTrue())
 })
+
+var _ = BeforeSuite(beforeSuite)
 
 // the list of expected pods
 var expectedPods = []string{
@@ -373,7 +376,7 @@ var _ = t.Describe("Sock Shop test", Label("f:app-lcm.oam",
 var _ = clusterDump.AfterEach(func() {})
 
 // undeploys the application, components, and namespace
-var _ = clusterDump.AfterSuite(func() {
+var afterSuite = clusterDump.AfterSuiteFunc(func() {
 	if !skipUndeploy {
 		start := time.Now()
 		variant := getVariant()
@@ -435,6 +438,8 @@ var _ = clusterDump.AfterSuite(func() {
 		metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 	}
 })
+
+var _ = AfterSuite(afterSuite)
 
 // sockshopPodsRunning checks whether the application pods are ready
 func sockshopPodsRunning() bool {

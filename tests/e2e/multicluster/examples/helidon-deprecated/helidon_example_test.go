@@ -5,6 +5,7 @@ package mchelidon
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"os"
 	"strconv"
 	"time"
@@ -325,7 +326,7 @@ var _ = t.Describe("Multi-cluster verify hello-helidon", func() {
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport(testNamespace)
+		dump.ExecuteBugReport(testNamespace)
 	}
 })
 

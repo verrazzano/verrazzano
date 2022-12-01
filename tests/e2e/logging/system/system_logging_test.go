@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"regexp"
 	"strings"
 	"time"
@@ -68,7 +69,7 @@ var _ = t.AfterEach(func() {
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed {
-		pkg.ExecuteBugReport()
+		dump.ExecuteBugReport()
 	}
 })
 

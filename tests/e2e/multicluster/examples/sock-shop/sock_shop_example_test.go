@@ -5,6 +5,7 @@ package sock_shop
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"os"
 	"strconv"
 	"time"
@@ -254,7 +255,7 @@ var _ = t.Describe("In Multi-cluster, verify sock-shop", Label("f:multicluster.m
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		err := pkg.ExecuteBugReport(testNamespace)
+		err := dump.ExecuteBugReport(testNamespace)
 		if err != nil {
 			return
 		}

@@ -1,11 +1,13 @@
 // Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package pkg
+package clusterdump
 
 import (
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -31,35 +33,39 @@ type ClusterDumpWrapper struct {
 	failed            bool
 	beforeSuitePassed bool
 	namespaces        []string
+	tf                *framework.TestFramework
 }
 
-func NewClusterDumpWrapper(ns ...string) *ClusterDumpWrapper {
-	clusterDump := ClusterDumpWrapper{namespaces: ns}
+func NewClusterDumpWrapper(tf *framework.TestFramework, ns ...string) *ClusterDumpWrapper {
+	clusterDump := ClusterDumpWrapper{
+		namespaces: ns,
+		tf:         tf,
+	}
 	return &clusterDump
 }
 
-func (c *ClusterDumpWrapper) BeforeSuite(body func()) bool {
-	return ginkgo.BeforeSuite(func() {
+func (c *ClusterDumpWrapper) BeforeSuiteFunc(body func()) func() {
+	return c.tf.BeforeSuiteFunc(func() {
 		body()
 		c.beforeSuitePassed = true
 	})
 }
 
 // AfterEach wraps ginkgo.AfterEach
-// usage: var _ = c.AfterEach(func() { ...after each logic... })
+// usage: var _ = c.AfterEach(t, func() { ...after each logic... })
 func (c *ClusterDumpWrapper) AfterEach(body func()) bool {
-	return ginkgo.AfterEach(func() {
+	return c.tf.AfterEach(func() {
 		c.failed = c.failed || ginkgo.CurrentSpecReport().Failed()
 		body()
 	})
 }
 
-// AfterSuite wraps ginkgo.AfterSuite
-// usage: var _ = c.AfterSuite(func() { ...after suite logic... })
-func (c *ClusterDumpWrapper) AfterSuite(body func()) bool {
+// AfterSuiteFunc wraps a function to emit a cluster dump if the suite failed
+// usage: var afterSuite = c.AfterSuiteFunc(t, func() { ...after suite logic... })
+func (c *ClusterDumpWrapper) AfterSuiteFunc(body func()) func() {
 	// Capture full cluster snapshot when environment variable CAPTURE_FULL_CLUSTER is set
 	isFullCapture := os.Getenv("CAPTURE_FULL_CLUSTER")
-	return ginkgo.AfterSuite(func() {
+	return c.tf.AfterSuiteFunc(func() {
 		if c.failed || !c.beforeSuitePassed {
 			dirSuffix := fmt.Sprintf("fail-%d", time.Now().Unix())
 			if strings.EqualFold(isFullCapture, "true") {
@@ -249,14 +255,14 @@ func CaptureContainerLogs(namespace string, podName string, containerName string
 	destDir := fmt.Sprintf("%s/%s/%s", directory, podName, containerName)
 
 	cmd := exec.Command("kubectl", "cp", containerPath, "-c", containerName, destDir)
-	Log(Info, fmt.Sprintf("kubectl command to capture %s logs: %s", podName, cmd.String()))
+	pkg.Log(pkg.Info, fmt.Sprintf("kubectl command to capture %s logs: %s", podName, cmd.String()))
 	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", kubeConfig))
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
-		Log(Info, fmt.Sprintf("Error START kubectl %s end log copy, err: %s", podName, err))
+		pkg.Log(pkg.Info, fmt.Sprintf("Error START kubectl %s end log copy, err: %s", podName, err))
 	}
 	if err := cmd.Wait(); err != nil {
-		Log(Info, fmt.Sprintf("Error WAIT kubectl %s end log copy, err: %s", podName, err))
+		pkg.Log(pkg.Info, fmt.Sprintf("Error WAIT kubectl %s end log copy, err: %s", podName, err))
 	}
 }
