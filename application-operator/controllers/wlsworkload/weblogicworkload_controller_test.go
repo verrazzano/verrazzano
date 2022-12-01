@@ -142,7 +142,7 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 }
 
 // TestReconcileCreateWebLogicDomain tests the basic happy path of reconciling a VerrazzanoWebLogicWorkload. We
-// expect to write out a WebLogic domain CR but we aren't adding logging or any other scopes or traits.
+// expect to write out a WebLogic domain CR, but we aren't adding logging or any other scopes or traits.
 // GIVEN a VerrazzanoWebLogicWorkload resource is created
 // WHEN the controller Reconcile function is called
 // THEN expect a WebLogic domain CR to be written
@@ -584,7 +584,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 			workload.Status.LastGeneration = "1"
 			workload.OwnerReferences = []metav1.OwnerReference{
 				{
-					UID: types.UID(namespace),
+					UID: namespace,
 				},
 			}
 			return nil
@@ -598,7 +598,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						OwnerReferences: []metav1.OwnerReference{
 							{
-								UID: types.UID(namespace),
+								UID: namespace,
 							},
 						},
 					},
@@ -801,7 +801,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 			workload.Status.LastGeneration = "1"
 			workload.OwnerReferences = []metav1.OwnerReference{
 				{
-					UID: types.UID(namespace),
+					UID: namespace,
 				},
 			}
 			return nil
@@ -815,7 +815,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 					ObjectMeta: metav1.ObjectMeta{
 						OwnerReferences: []metav1.OwnerReference{
 							{
-								UID: types.UID(namespace),
+								UID: namespace,
 							},
 						},
 					},
@@ -1010,7 +1010,7 @@ func TestReconcileCreateWebLogicDomainWithWDTConfigMap(t *testing.T) {
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "wdt-config-map"}, gomock.Any()).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, configMap *corev1.ConfigMap) error {
-			// setup a scaled down existing scrape config entry for cluster1
+			// set up a scaled down existing scrape config entry for cluster1
 			configMap.Data = map[string]string{
 				"resources": "test",
 			}
@@ -1382,12 +1382,12 @@ func TestCopyLabelsFailure(t *testing.T) {
 	//	mockStatus := mocks.NewMockStatusWriter(mocker)
 
 	// expect a call to fetch the VerrazzanoWebLogicWorkload - return a malformed WebLogic resource (spec should be an object
-	// so when we attempt to set the labels field inside spec it will fail) - this is a contrived example but it's the easiest
+	// so when we attempt to set the labels field inside spec it will fail) - this is a contrived example, but it's the easiest
 	// way to force error on copying labels
 	cli.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil())).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload) error {
-			json := `{"spec":27}`
+			json := `{27}`
 			workload.Spec.Template = buildTemplate(json)
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = "VerrazzanoWebLogicWorkload"
@@ -1907,10 +1907,10 @@ func TestReconcileStopDomain(t *testing.T) {
 
 			// make sure the restartVersion was added to the domain
 			policy, _, _ := unstructured.NestedString(u.Object, specServerStartPolicyFields...)
-			assert.Equal(Never, policy)
+			assert.Equal(NeverV8, policy)
 
 			annos, _, _ := unstructured.NestedStringMap(u.Object, metaAnnotationFields...)
-			assert.Equal(annos[lastServerStartPolicyAnnotation], IfNeeded)
+			assert.Equal(annos[lastServerStartPolicyAnnotation], IfNeededV8)
 			return nil
 		})
 
@@ -2040,7 +2040,7 @@ func TestReconcileStartDomain(t *testing.T) {
 
 			// make sure the restartVersion was added to the domain
 			policy, _, _ := unstructured.NestedString(u.Object, specServerStartPolicyFields...)
-			assert.Equal(IfNeeded, policy)
+			assert.Equal(IfNeededV8, policy)
 
 			return nil
 		})
@@ -2269,7 +2269,7 @@ func assertPathsStartWith(t *testing.T, envs []interface{}, name string, startsW
 	assert.Fail("Failed", "Unable to find env var named %s", name)
 }
 
-// assertVolumeMount asserts that the volume mount mount path is correct and is a prefix of the log path
+// assertVolumeMount asserts that the volume mount's mount path is correct and is a prefix of the log path
 func assertVolumeMount(t *testing.T, context string, mounts []interface{}, volumeName string, mountPath string, logPath string) {
 	assert := asserts.New(t)
 
