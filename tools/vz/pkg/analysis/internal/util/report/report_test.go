@@ -71,3 +71,41 @@ func TestInvalidIssues(t *testing.T) {
 	rc := help.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	assert.NoError(t, GenerateHumanReport(logger, "report", constants.SummaryReport, true, true, true, 11, 11, rc))
 }
+
+// We start with a custom issue which is created without being populated. This is
+// valid as there are a few fields which are required
+// this is mostly concerned for testing the de duplicates of issues
+// issue 2 and 3 are same and unlike to issue 1
+// filter issues must have 2 issues post filter
+
+func TestFilterReportIssues(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	var validIssues = make([]Issue, 3)
+	validIssues[0].Type = "ISSUE 1"
+	validIssues[0].Summary = "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer\n\tConsult https://verrazzano.io/v1.5/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip using supporting details identified in the report"
+	validIssues[0].Actions = []Action{{Summary: "Test Summary 1", Links: []string{"l1", "l2"}, Steps: []string{"s1", "s2"}}}
+	validIssues[0].Source = "Test Source 1"
+	validIssues[0].Informational = false
+	validIssues[0].Impact = 10
+	validIssues[0].Confidence = 10
+
+	validIssues[1].Type = "ISSUE 2"
+	validIssues[1].Summary = "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer\n\tConsult https://verrazzano.io/v1.5/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip using supporting details identified in the report"
+	validIssues[1].Actions = []Action{{Summary: "Test Summary 2", Links: []string{"l1", "l2"}, Steps: []string{"s1", "s2"}}}
+	validIssues[1].Source = "Test Source 2"
+	validIssues[1].Informational = false
+	validIssues[1].Impact = 10
+	validIssues[1].Confidence = 10
+
+	validIssues[2].Type = "ISSUE 2"
+	validIssues[2].Summary = "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer\n\tConsult https://verrazzano.io/v1.5/docs/troubleshooting/diagnostictools/analysisadvice/ingressnoloadbalancerip using supporting details identified in the report"
+	validIssues[2].Actions = []Action{{Summary: "Test Summary 2", Links: []string{"l1", "l2"}, Steps: []string{"s1", "s2"}}}
+	validIssues[2].Source = "Test Source 2"
+	validIssues[2].Informational = false
+	validIssues[2].Impact = 10
+	validIssues[2].Confidence = 10
+
+	filteredIssue := filterReportIssues(logger, validIssues, false, 7, 8)
+	assert.Len(t, filteredIssue, 2, "duplicate issues must be filtered out")
+}
