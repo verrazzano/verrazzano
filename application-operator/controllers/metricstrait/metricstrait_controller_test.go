@@ -1089,9 +1089,12 @@ func wlsWorkloadClient(deleting bool) client.WithWatch {
 				UID:       testWorkloadUID,
 			},
 			Spec: vzapi.VerrazzanoWebLogicWorkloadSpec{
-				Template: runtime.RawExtension{
-					Raw:    []byte(`{"metadata":{"name": "test-domain"}}`),
-					Object: &unstructured.Unstructured{},
+				Template: vzapi.VerrazzanoWebLogicWorkloadTemplate{
+					APIVersion: "weblogic.oracle/v8",
+					Metadata: runtime.RawExtension{
+						Raw:    []byte(`{"name": "test-domain"}`),
+						Object: &unstructured.Unstructured{},
+					},
 				},
 			},
 		},
