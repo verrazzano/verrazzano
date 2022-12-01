@@ -120,7 +120,7 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 		return ctx.Log().ErrorfNewErr("Failed to generate a password for the Verrazzano cluster user: %v", err)
 	}
 	reqURL = rc.BaseURL + usersPath
-	payload, err := constructVZUserJson(pass)
+	payload, err := constructVZUserJSON(pass)
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to construct the user %s JSON: %v", vzconst.VerrazzanoClusterRancherUsername)
 	}
@@ -153,7 +153,7 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func constructVZUserJson(pass string) ([]byte, error) {
+func constructVZUserJSON(pass string) ([]byte, error) {
 	userMap := map[string]interface{}{
 		"description":        "Verrazzano Cluster",
 		"enabled":            true,
