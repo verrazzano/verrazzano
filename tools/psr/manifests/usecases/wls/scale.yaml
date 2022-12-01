@@ -5,7 +5,7 @@
 global:
   envVars:
     PSR_WORKER_TYPE: wls-scale
-    # DOMAIN_UID, DOMAIN_NAMESPACE, MIN_REPLICA_COUNT and MAX_REPLICA_COUNT are required environment variables.
+    # DOMAIN_UID and DOMAIN_NAMESPACE are required environment variables.
     DOMAIN_UID:
     DOMAIN_NAMESPACE:
     MIN_REPLICA_COUNT: 2

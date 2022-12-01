@@ -117,8 +117,8 @@ func (w worker) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{
 		{Key: DomainUID, DefaultVal: "", Required: true},
 		{Key: DomainNamespace, DefaultVal: "", Required: true},
-		{Key: MinReplicaCount, DefaultVal: "", Required: true},
-		{Key: MaxReplicaCount, DefaultVal: "", Required: true},
+		{Key: MinReplicaCount, DefaultVal: "2", Required: true},
+		{Key: MaxReplicaCount, DefaultVal: "4", Required: true},
 	}
 }
 
