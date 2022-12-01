@@ -6,11 +6,13 @@ package vmc
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -78,7 +80,7 @@ func (r *VerrazzanoManagedClusterReconciler) getVZClusterUserID() (string, error
 		Version: APIGroupVersionRancherManagement,
 		Kind:    UserListKind,
 	})
-	err := r.Client.List(context.TODO(), &usersList)
+	err := r.Client.List(context.TODO(), &usersList, &client.ListOptions{})
 	if err != nil {
 		return "", r.log.ErrorfNewErr("Failed to list Rancher Users: %v", err)
 	}
