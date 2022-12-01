@@ -43,7 +43,7 @@ const (
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace = constants.MySQLOperatorNamespace
 
-	// ComponentJSONName is the json name of the component in the CRD
+	// ComponentJSONName is the JSON name of the component in the CRD
 	ComponentJSONName = "mySQLOperator"
 
 	// BackupContainerName is the name of the executable container in a backup job pod

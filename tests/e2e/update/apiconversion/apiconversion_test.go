@@ -44,7 +44,7 @@ var t = framework.NewTestFramework("apiconversion")
 
 var nodeCount uint32
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	nodeCount, err = pkg.GetNodeCount()
 	if err != nil {
@@ -52,13 +52,17 @@ var _ = t.BeforeSuite(func() {
 	}
 })
 
-var _ = t.AfterSuite(func() {
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	m := IngressNGINXDefaultModifierV1beta1{}
 	update.UpdateCRV1beta1WithRetries(m, pollingInterval, waitTimeout)
 	expectedRunning := uint32(2)
 	update.ValidatePods(ingressNGINXNameLabelValue, ingressNGINXNameLabelKey, constants.IngressNamespace, expectedRunning, false)
 
 })
+
+var _ = AfterSuite(afterSuite)
 
 func (u IngressNGINXBackendReplicasModifierV1beta1) ModifyCRV1beta1(cr *v1beta1.Verrazzano) {
 	if cr.Spec.Components.IngressNGINX == nil {

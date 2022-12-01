@@ -35,7 +35,7 @@ const (
 	ComponentName = "jaeger-operator"
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace = constants.VerrazzanoMonitoringNamespace
-	// ComponentJSONName is the json name of the component in the CRD
+	// ComponentJSONName is the JSON name of the component in the CRD
 	ComponentJSONName = "jaegerOperator"
 	// ChartDir is the relative directory path for Jaeger Operator chart
 	ChartDir = "jaegertracing/jaeger-operator"

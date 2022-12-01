@@ -6,6 +6,7 @@ package logging
 import (
 	"context"
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"os"
 	"time"
 
@@ -52,7 +53,7 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	compartmentID = os.Getenv(compartmentIDEnvVar)
 	logGroupID = os.Getenv(logGroupIDEnvVar)
 	nsLogID = os.Getenv(nsLogIDEnvVar)
@@ -68,9 +69,11 @@ var _ = t.BeforeSuite(func() {
 	beforeSuitePassed = true
 })
 
-var _ = t.AfterSuite(func() {
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport(springbootNamespace, helidonNamespace)
+		dump.ExecuteBugReport(springbootNamespace, helidonNamespace)
 	}
 	pkg.Concurrently(
 		func() {
@@ -85,6 +88,8 @@ var _ = t.AfterSuite(func() {
 		},
 	)
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.AfterEach(func() {})
 

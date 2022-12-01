@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/weblogic"
@@ -32,10 +33,10 @@ const (
 var (
 	t                  = framework.NewTestFramework("todo")
 	generatedNamespace = pkg.GenerateNamespace("todo-list")
-	clusterDump        = pkg.NewClusterDumpWrapper(generatedNamespace)
+	clusterDump        = dump.NewClusterDumpWrapper(t, generatedNamespace)
 )
 
-var _ = clusterDump.BeforeSuite(func() {
+var beforeSuite = clusterDump.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
 		deployToDoListExample(namespace)
@@ -57,12 +58,15 @@ var _ = clusterDump.BeforeSuite(func() {
 	}, longWaitTimeout, longPollingInterval).Should(BeTrue())
 })
 
-var _ = clusterDump.AfterEach(func() {}) // Dump cluster if spec fails
-var _ = clusterDump.AfterSuite(func() {  // Dump cluster if aftersuite fails
+var _ = clusterDump.AfterEach(func() {})             // Dump cluster if spec fails
+var afterSuite = clusterDump.AfterSuiteFunc(func() { // Dump cluster if aftersuite fails
 	if !skipUndeploy {
 		undeployToDoListExample()
 	}
 })
+
+var _ = BeforeSuite(beforeSuite)
+var _ = AfterSuite(afterSuite)
 
 func deployToDoListExample(namespace string) {
 	t.Logs.Info("Deploy ToDoList example")

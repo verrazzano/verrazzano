@@ -68,7 +68,7 @@ const (
 var clusterName = os.Getenv("CLUSTER_NAME")
 var kubeConfig = os.Getenv("KUBECONFIG")
 
-// will be initialized in BeforeSuite so that any log messages during init are available
+// will be initialized in BeforeSuiteFunc so that any log messages during init are available
 var clusterNameMetricsLabel = ""
 var isMinVersion110 bool
 
@@ -100,7 +100,7 @@ var excludePodsIstio = []string{
 
 var t = framework.NewTestFramework("syscomponents")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	present := false
 	var err error
 	adminKubeConfig, present = os.LookupEnv("ADMIN_KUBECONFIG")
@@ -122,9 +122,13 @@ var _ = t.BeforeSuite(func() {
 	if err != nil {
 		Fail(err.Error())
 	}
-
 })
-var _ = t.AfterSuite(func() {})
+
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {})
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.AfterEach(func() {})
 
@@ -162,10 +166,10 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 			eventuallyMetricsContainLabels("vpo_error_reconcile_counter", map[string]string{})
 		})
 		t.ItMinimumVersion("Verify VPO install metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsContainLabels("vz_nginx_install_duration_seconds", map[string]string{})
+			eventuallyMetricsContainLabels("vz_ingressNGINX_install_duration_seconds", map[string]string{})
 		})
 		t.ItMinimumVersion("Verify VPO upgrade counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsContainLabels("vz_nginx_upgrade_duration_seconds", map[string]string{})
+			eventuallyMetricsContainLabels("vz_ingressNGINX_upgrade_duration_seconds", map[string]string{})
 		})
 
 		t.ItMinimumVersion("Verify VMO function metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {

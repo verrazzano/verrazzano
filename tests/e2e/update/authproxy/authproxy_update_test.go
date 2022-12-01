@@ -127,7 +127,7 @@ var t = framework.NewTestFramework("update authproxy")
 
 var nodeCount uint32
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	nodeCount, err = pkg.GetNodeCount()
 	if err != nil {
@@ -135,7 +135,9 @@ var _ = t.BeforeSuite(func() {
 	}
 })
 
-var _ = t.AfterSuite(func() {
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	m := AuthProxyDefaultModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 
@@ -147,6 +149,8 @@ var _ = t.AfterSuite(func() {
 	update.ValidatePods(authProxyLabelValue, authProxyLabelKey, constants.VerrazzanoSystemNamespace, expectedRunning, false)
 
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Update authProxy", Label("f:platform-lcm.update"), func() {
 	t.Describe("verrazzano-authproxy verify", Label("f:platform-lcm.authproxy-verify"), func() {

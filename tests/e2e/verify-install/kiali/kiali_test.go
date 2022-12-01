@@ -33,11 +33,13 @@ var (
 
 var t = framework.NewTestFramework("kiali")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	client, kialiErr = k8sutil.GetKubernetesClientset()
 	Expect(kialiErr).ToNot(HaveOccurred())
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 })
+
+var _ = BeforeSuite(beforeSuite)
 
 // 'It' Wrapper to only run spec if Kiali is supported on the current Verrazzano installation
 func WhenKialiInstalledIt(description string, f interface{}) {

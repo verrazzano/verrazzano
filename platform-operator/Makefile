@@ -8,6 +8,13 @@ include ../make/retry.mk
 SCRIPT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../build
 TOOLS_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))/../tools
 
+# Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
+ifeq (,$(shell go env GOBIN))
+GOBIN=$(shell go env GOPATH)/bin
+else
+GOBIN=$(shell go env GOBIN)
+endif
+
 NAME:=verrazzano-platform-operator
 REPO_NAME:=verrazzano-platform-operator
 
@@ -56,7 +63,7 @@ endif
 DIST_DIR:=dist
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
-GO_BINDATA_VERSION ?= $(shell go list -m -f '{{.Version}}' 'github.com/go-bindata/go-bindata/v3' )
+GO_BINDATA_VERSION ?= v3.1.3
 
 CRD_PATH=helm_config/charts/verrazzano-platform-operator/crds
 
@@ -113,8 +120,7 @@ mock-gen:
 .PHONY: go-bindata
 go-bindata:
 ifeq (, $(shell command -v go-bindata))
-	$(GO) get github.com/go-bindata/go-bindata/v3/...@${GO_BINDATA_VERSION}
-	echo $(GOBIN)
+	$(GO) install github.com/go-bindata/go-bindata/v3/go-bindata@${GO_BINDATA_VERSION}
 	$(eval GO_BINDATA=$(GOBIN)/go-bindata)
 else
 	$(eval GO_BINDATA=$(shell command -v go-bindata))
@@ -124,6 +130,7 @@ endif
 	ACTUAL_GO_BINDATA_VERSION=$$(${GO_BINDATA} --version | head -1 | awk '{print $$2}') ; \
 	if [ "v$${ACTUAL_GO_BINDATA_VERSION}" != "${GO_BINDATA_VERSION}" ] ; then \
 		echo  "Bad go-bindata version $${ACTUAL_GO_BINDATA_VERSION}, please install ${GO_BINDATA_VERSION}" ; \
+		exit 1; \
 	fi ; \
 	}
 

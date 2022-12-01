@@ -6,6 +6,7 @@ package availability
 import (
 	"context"
 	"fmt"
+	. "github.com/onsi/ginkgo/v2"
 	"strconv"
 	"strings"
 	"time"
@@ -29,7 +30,8 @@ var (
 	clientset = k8sutil.GetKubernetesClientsetOrDie()
 )
 
-var _ = t.BeforeSuite(func() {})
+var beforeSuite = t.BeforeSuiteFunc(func() {})
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Status", func() {
 	// If a component is taken offline, the number of unavailable components should increase by 1

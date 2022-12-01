@@ -5,6 +5,7 @@ package metricsbinding
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -28,20 +29,20 @@ const (
 
 var (
 	t           = framework.NewTestFramework("deploymentworkload")
-	clusterDump = pkg.NewClusterDumpWrapper(deploymentNamespace, podNamespace, replicasetNamespace, statefulsetNamespace)
+	clusterDump = dump.NewClusterDumpWrapper(t, deploymentNamespace, podNamespace, replicasetNamespace, statefulsetNamespace)
 )
 
-var _ = clusterDump.BeforeSuite(func() {}) // Needed to initialize cluster dump flags
-var _ = clusterDump.AfterEach(func() {})   // Dump cluster if spec fails
-
-var _ = clusterDump.AfterSuite(func() {
+var beforeSuite = clusterDump.BeforeSuiteFunc(func() {}) // Needed to initialize cluster dump flags
+var _ = clusterDump.AfterEach(func() {})                 // Dump cluster if spec fails
+var afterSuite = clusterDump.AfterSuiteFunc(func() {
 	undeployApplication(deploymentNamespace, deploymentYaml, *t)
 	undeployApplication(podNamespace, podYaml, *t)
 	undeployApplication(replicasetNamespace, replicasetYaml, *t)
 	undeployApplication(statefulsetNamespace, statefulsetYaml, *t)
 })
 
-var _ = t.AfterEach(func() {})
+var _ = BeforeSuite(beforeSuite)
+var _ = AfterSuite(afterSuite)
 
 // 'It' Wrapper to only run spec if the Metrics Binding verification is supported
 func WhenMetricsBindingInstalledIt(description string, f func()) {

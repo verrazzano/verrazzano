@@ -104,7 +104,7 @@ var (
 	vzMonitoringVolumeClaims map[string]*corev1.PersistentVolumeClaim
 )
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
@@ -144,6 +144,8 @@ var _ = t.BeforeSuite(func() {
 	creds = pkg.EventuallyGetSystemVMICredentials()
 	elastic = vmi.GetOpensearch("system")
 })
+
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.AfterEach(func() {})
 

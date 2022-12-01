@@ -651,3 +651,11 @@ func appendDatabaseInitializationValues(compContext spi.ComponentContext, userPw
 func initUnitTesting() {
 	unitTesting = true
 }
+
+// postUninstall performs additional actions after the uninstall step
+func (c mysqlComponent) postUninstall(ctx spi.ComponentContext) error {
+	if err := c.repairICStuckDeleting(ctx); err != nil {
+		return err
+	}
+	return c.repairMySQLPodStuckDeleting(ctx)
+}

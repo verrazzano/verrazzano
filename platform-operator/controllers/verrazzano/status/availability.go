@@ -64,7 +64,8 @@ func (p *HealthChecker) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazza
 			return nil, nil
 		}
 		// determine a component's availability
-		if component.IsEnabled(ctx.EffectiveCR()) {
+		isEnabled := component.IsEnabled(ctx.EffectiveCR())
+		if isEnabled {
 			countEnabled++
 			// gets new availability for a given component
 			a := p.getComponentAvailability(component, componentStatus.State, ctx)
@@ -72,7 +73,7 @@ func (p *HealthChecker) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazza
 				countAvailable++
 			}
 			// update the component availability metric
-			err := metricsexporter.SetComponentAvailabilityMetric(component.Name(), a.available)
+			err := metricsexporter.SetComponentAvailabilityMetric(component.Name(), a.available, isEnabled)
 			if err != nil {
 				return nil, err
 			}

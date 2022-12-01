@@ -66,9 +66,11 @@ func TestHandlingKnownIssues(t *testing.T) {
 	assert.NotNil(t, issueB)
 	issueC := NewKnownIssueMessagesMatches(PodProblemsNotReported, rootDirectory, messages, matches)
 	assert.NotNil(t, issueC)
-	issueReporter.AddKnownIssueMessagesFiles(ImagePullBackOff, rootDirectory, messages, files)
-	issueReporter.AddKnownIssueSupportingData(InsufficientMemory, rootDirectory, supportingData)
-	issueReporter.AddKnownIssueMessagesMatches(PodProblemsNotReported, rootDirectory, messages, matches)
+	for i := 0; i < 2; i++ {
+		issueReporter.AddKnownIssueMessagesFiles(ImagePullBackOff, rootDirectory, messages, files)
+		issueReporter.AddKnownIssueSupportingData(InsufficientMemory, rootDirectory, supportingData)
+		issueReporter.AddKnownIssueMessagesMatches(PodProblemsNotReported, rootDirectory, messages, matches)
+	}
 }
 
 // TestMiscHelpers tests misc helpers
@@ -76,4 +78,33 @@ func TestMiscHelpers(t *testing.T) {
 	messages := SingleMessage("test message")
 	assert.NotNil(t, messages)
 	assert.True(t, len(messages) == 1)
+}
+
+func TestDeduplicateSupportingData(t *testing.T) {
+	var duplicateData = []SupportData{{Messages: []string{"data", "data"}}, {Messages: []string{"data", "data"}}}
+	assert.NotEmpty(t, DeduplicateSupportingData(duplicateData))
+}
+
+func TestEventPodRelatedUtilities(t *testing.T) {
+	var tests = []struct {
+		pod       string
+		service   string
+		namespace string
+		podlog    string
+	}{
+		{
+			"fluentd",
+			"open-search",
+			"verrazzano-system",
+			"namespaces/verrazzano-system/fluentd/operator",
+		},
+	}
+
+	for _, tt := range tests {
+		assert.NotEmpty(t, GetRelatedPodMessage(tt.pod, tt.namespace))
+		assert.NotEmpty(t, GetRelatedServiceMessage(tt.service, tt.namespace))
+		assert.NotEmpty(t, GetRelatedLogFromPodMessage(tt.podlog))
+		assert.NotEmpty(t, GetRelatedEventMessage(tt.namespace))
+		assert.NotEmpty(t, GetRelatedVZResourceMessage())
+	}
 }

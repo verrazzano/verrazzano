@@ -5,6 +5,7 @@ package weblogicworkload
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"os"
 	"time"
 
@@ -38,10 +39,12 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("weblogic-logging-trait")
 )
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	deployWebLogicApplication()
 	beforeSuitePassed = true
 })
+
+var _ = BeforeSuite(beforeSuite)
 
 var failed = false
 var beforeSuitePassed = false
@@ -50,12 +53,14 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport(namespace)
+		dump.ExecuteBugReport(namespace)
 	}
 	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName, t)
 })
+
+var _ = AfterSuite(afterSuite)
 
 func deployWebLogicApplication() {
 	t.Logs.Info("Deploy test application")
