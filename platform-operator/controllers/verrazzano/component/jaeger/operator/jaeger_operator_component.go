@@ -6,11 +6,10 @@ package operator
 import (
 	"context"
 	"fmt"
-	"path/filepath"
-
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"path/filepath"
 
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -223,10 +222,14 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if !installed && doDefaultJaegerInstanceDeploymentsExists(ctx) {
 		return ctx.Log().ErrorfNewErr("Conflicting Jaeger instance %s/%s exists! Either disable the Verrazzano's default Jaeger instance creation by overriding jaeger.create Helm value for Jaeger Operator component to false or delete and recreate the existing Jaeger deployment in a different namespace: %v", ComponentNamespace, globalconst.JaegerInstanceName, err)
 	}
-	err = removeOldJaegerResources(ctx)
-	if err != nil {
-		return err
+	//if installed is false then component is not installed by helm
+	if !installed {
+		err = removeOldJaegerResources(ctx)
+		if err != nil {
+			return err
+		}
 	}
+
 	createInstance, err := isCreateDefaultJaegerInstance(ctx)
 	if err != nil {
 		return err
