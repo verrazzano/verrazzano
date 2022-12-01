@@ -162,6 +162,7 @@ func Test_updateVZForAlertmanager(t *testing.T) {
 
 	log := vzlog.DefaultLogger()
 	conf, err := config.GetCommonConfig(log)
+	assert.NoError(t, err)
 	err = updateVZForAlertmanager(log, conf)
 	assert.NoError(t, err)
 
