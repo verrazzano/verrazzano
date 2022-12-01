@@ -99,7 +99,7 @@ type RancherRegistration struct {
 type ArgoCDRegistrationStatus string
 
 const (
-	RegistrationPendingRancher              ArgoCDRegistrationStatus = "PendingRancherClusterRegisteration"
+	RegistrationPendingRancher              ArgoCDRegistrationStatus = "PendingRancherClusterRegistration"
 	RegistrationMCResourceCreationCompleted ArgoCDRegistrationStatus = "MCResourceCreationCompleted"
 	UnregistrationCompleted                 ArgoCDRegistrationStatus = "MCUnregistered"
 	MCRegistrationCompleted                 ArgoCDRegistrationStatus = "Completed"
@@ -111,7 +111,7 @@ type ArgoCDRegistration struct {
 	// The status of the ArgoCD registration
 	Status ArgoCDRegistrationStatus `json:"status"`
 	// The timestamp of last status set
-	Timestamp string `json:"@timestamp"`
+	Timestamp string `json:"lastSetTimestamp"`
 	// Supporting message related to the Rancher registration status
 	// +optional
 	Message string `json:"message,omitempty"`
