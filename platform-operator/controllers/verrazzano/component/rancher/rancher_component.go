@@ -226,17 +226,11 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 		return kvs, ctx.Log().ErrorfNewErr("Failed to get the bom file for the Rancher image overrides: %v", err)
 	}
 
-	// Set the Rancher default registry, if registry overrides are not present
-	registry := os.Getenv(constants.RegistryOverrideEnvVar)
-	if registry == "" {
-		kvs = append(kvs, bom.KeyValue{Key: systemDefaultRegistryKey, Value: bomFile.GetRegistry()})
-	}
-
+	registryOverride := os.Getenv(constants.RegistryOverrideEnvVar)
 	subcomponent, err := bomFile.GetSubcomponent(rancherImageSubcomponent)
 	if err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed to get the subcomponent %s from the bom: %v", rancherImageSubcomponent, err)
 	}
-	repo := subcomponent.Repository
 	images := subcomponent.Images
 
 	var envList []envVar
@@ -246,7 +240,15 @@ func appendImageOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.K
 		if !ok {
 			continue
 		}
-		fullImageName := fmt.Sprintf("%s/%s", repo, image.ImageName)
+
+		// if there is a registry override set, it will be communicated to Rancher using the "systemDefaultRegistry" helm value,
+		// otherwise we prepend the image here with the registry value from the BOM
+		var registry = ""
+		if registryOverride == "" {
+			registry = bomFile.ResolveRegistry(subcomponent, image) + "/"
+		}
+
+		fullImageName := fmt.Sprintf("%s%s/%s", registry, subcomponent.Repository, image.ImageName)
 		// For the shell image, we need to combine to one env var
 		if image.ImageName == cattleShellImageName {
 			envList = append(envList, envVar{Name: imEnvVar, Value: fmt.Sprintf("%s:%s", fullImageName, image.ImageTag), SetString: false})
