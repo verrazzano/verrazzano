@@ -171,7 +171,7 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 			workload.Spec.Template = buildTemplate(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
-			workload.Kind = "VerrazzanoWebLogicWorkload"
+			workload.Kind = vzconst.VerrazzanoWebLogicWorkloadKind
 			workload.Namespace = namespace
 			workload.ObjectMeta.Generation = 2
 			workload.Status.LastGeneration = "1"
@@ -303,7 +303,7 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 			workload.Spec.Template = buildTemplate(weblogicDomainWithMonitoringExporter)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
-			workload.Kind = "VerrazzanoWebLogicWorkload"
+			workload.Kind = vzconst.VerrazzanoWebLogicWorkloadKind
 			workload.Namespace = namespace
 			workload.ObjectMeta.Generation = 2
 			workload.Status.LastGeneration = "1"
@@ -441,7 +441,7 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 			workload.Spec.Template = buildTemplate(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
-			workload.Kind = "VerrazzanoWebLogicWorkload"
+			workload.Kind = vzconst.VerrazzanoWebLogicWorkloadKind
 			workload.Namespace = namespace
 			workload.ObjectMeta.Generation = 2
 			workload.Status.LastGeneration = "1"
@@ -577,7 +577,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 			workload.Spec.Template = buildTemplate(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
-			workload.Kind = "VerrazzanoWebLogicWorkload"
+			workload.Kind = vzconst.VerrazzanoWebLogicWorkloadKind
 			workload.Namespace = namespace
 			workload.Name = workloadName
 			workload.ObjectMeta.Generation = 2
@@ -633,7 +633,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion:         "oam.verrazzano.io/v1alpha1",
-					Kind:               "VerrazzanoWebLogicWorkload",
+					Kind:               vzconst.VerrazzanoWebLogicWorkloadKind,
 					Name:               "unit-test-verrazzano-weblogic-workload",
 					UID:                "",
 					Controller:         newTrue(),
@@ -794,7 +794,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 			workload.Spec.Template = buildTemplate(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
-			workload.Kind = "VerrazzanoWebLogicWorkload"
+			workload.Kind = vzconst.VerrazzanoWebLogicWorkloadKind
 			workload.Namespace = namespace
 			workload.Name = workloadName
 			workload.ObjectMeta.Generation = 2
@@ -972,7 +972,7 @@ func TestReconcileCreateWebLogicDomainWithWDTConfigMap(t *testing.T) {
 			workload.Spec.Template = buildTemplate(weblogicDomainWithWDTConfigMap)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
-			workload.Kind = "VerrazzanoWebLogicWorkload"
+			workload.Kind = vzconst.VerrazzanoWebLogicWorkloadKind
 			workload.Namespace = namespace
 			workload.ObjectMeta.Generation = 2
 			workload.Status.LastGeneration = "1"
@@ -1097,7 +1097,7 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 			workload.Spec.Template = buildTemplate(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
-			workload.Kind = "VerrazzanoWebLogicWorkload"
+			workload.Kind = vzconst.VerrazzanoWebLogicWorkloadKind
 			workload.Namespace = namespace
 			workload.ObjectMeta.Generation = 2
 			workload.Status.LastGeneration = "1"
@@ -1233,7 +1233,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 			workload.Spec.Template = buildTemplate(weblogicDomain)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
-			workload.Kind = "VerrazzanoWebLogicWorkload"
+			workload.Kind = vzconst.VerrazzanoWebLogicWorkloadKind
 			workload.Namespace = namespace
 			workload.ObjectMeta.Generation = 2
 			workload.Status.LastGeneration = "1"
@@ -1390,7 +1390,7 @@ func TestCopyLabelsFailure(t *testing.T) {
 			json := `{27}`
 			workload.Spec.Template = buildTemplate(json)
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
-			workload.Kind = "VerrazzanoWebLogicWorkload"
+			workload.Kind = vzconst.VerrazzanoWebLogicWorkloadKind
 			workload.ObjectMeta.Generation = 2
 			workload.Status.LastGeneration = "1"
 			return nil
@@ -1696,7 +1696,7 @@ func TestReconcileRestart(t *testing.T) {
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
-			workload.Kind = "VerrazzanoWebLogicWorkload"
+			workload.Kind = vzconst.VerrazzanoWebLogicWorkloadKind
 			workload.Namespace = namespace
 			workload.ObjectMeta.Generation = 2
 			workload.Status.LastGeneration = "1"
@@ -1840,7 +1840,7 @@ func TestReconcileStopDomain(t *testing.T) {
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
-			workload.Kind = "VerrazzanoWebLogicWorkload"
+			workload.Kind = vzconst.VerrazzanoWebLogicWorkloadKind
 			workload.Namespace = namespace
 			workload.ObjectMeta.Generation = 2
 			workload.Status.LastGeneration = "1"
@@ -1973,7 +1973,7 @@ func TestReconcileStartDomain(t *testing.T) {
 			workload.ObjectMeta.Labels = labels
 			workload.ObjectMeta.Annotations = annotations
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
-			workload.Kind = "VerrazzanoWebLogicWorkload"
+			workload.Kind = vzconst.VerrazzanoWebLogicWorkloadKind
 			workload.Namespace = namespace
 			workload.ObjectMeta.Generation = 2
 			workload.Status.LastGeneration = "1"
@@ -2114,7 +2114,7 @@ func TestReconcileUserProvidedLogHome(t *testing.T) {
 			workload.Spec.Template = buildTemplate(weblogicDomainWithLogHome)
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
-			workload.Kind = "VerrazzanoWebLogicWorkload"
+			workload.Kind = vzconst.VerrazzanoWebLogicWorkloadKind
 			workload.Namespace = namespace
 			workload.ObjectMeta.Generation = 2
 			workload.Status.LastGeneration = "1"
