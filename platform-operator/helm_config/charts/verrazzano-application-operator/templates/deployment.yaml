@@ -36,11 +36,11 @@ spec:
               command:
                 - sh
                 - -c
-                - 'reply=$(curl -s -o /dev/null -w %{http_code} -o /dev/null -k -H "Content-Type: application/json"  https://{{ .Values.name }}-webhook.{{ .Values.namespace }}.svc:9443/validate-oam-verrazzano-io-v1alpha1-ingresstrait); if [ \"$reply\" -lt 200 -o \"$reply\" -ge 400 ]; then exit 1; fi;'
-            initialDelaySeconds: 5
+                - 'reply=$(curl -s -o /dev/null -w %{http_code} -o /dev/null -k -H "Content-Type: application/json"  https://{{ .Values.name }}-webhook.{{ .Values.namespace }}.svc:9443/validate-clusters-verrazzano-io-v1alpha1-multiclusterapplicationconfiguration); if [ \"$reply\" -lt 200 -o \"$reply\" -ge 400 ]; then exit 1; fi;'
+            initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
-            failureThreshold: 10
+            failureThreshold: 15
           resources:
             requests:
               memory: {{ .Values.requestMemory }}
