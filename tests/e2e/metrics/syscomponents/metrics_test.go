@@ -68,7 +68,7 @@ const (
 var clusterName = os.Getenv("CLUSTER_NAME")
 var kubeConfig = os.Getenv("KUBECONFIG")
 
-// will be initialized in BeforeSuite so that any log messages during init are available
+// will be initialized in BeforeSuiteFunc so that any log messages during init are available
 var clusterNameMetricsLabel = ""
 var isMinVersion110 bool
 

@@ -6,6 +6,7 @@ package verify
 import (
 	"context"
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -41,7 +42,7 @@ var _ = t.AfterEach(func() {
 var afterSuite = t.AfterSuiteFunc(func() {
 	start := time.Now()
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport()
+		dump.ExecuteBugReport()
 	}
 	metrics.Emit(t.Metrics.With("after_suite_elapsed_time", time.Since(start).Milliseconds()))
 })

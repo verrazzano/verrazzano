@@ -139,7 +139,7 @@ endif
 #
 .PHONY: unit-test
 unit-test: go-install
-	$(GO) test -v ./apis/... ./controllers/... ./internal/... ./mcagent/...
+	$(GO) test -v ./apis/... ./controllers/... ./internal/...
 
 #
 # Kubernetes-related tasks
