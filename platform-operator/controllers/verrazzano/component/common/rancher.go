@@ -32,6 +32,7 @@ const (
 )
 
 var GVKAuthConfig = GetRancherMgmtAPIGVKForKind("AuthConfig")
+var GVKSetting = GetRancherMgmtAPIGVKForKind("Setting")
 
 // GetAdminSecret fetches the Rancher admin secret
 func GetAdminSecret(c client.Reader) (string, error) {
@@ -85,7 +86,7 @@ func CertPool(certs ...[]byte) *x509.CertPool {
 	return certPool
 }
 
-//GetRancherMgmtAPIGVKForKind returns a management.cattle.io/v3 GroupVersionKind structure for specified kind
+// GetRancherMgmtAPIGVKForKind returns a management.cattle.io/v3 GroupVersionKind structure for specified kind
 func GetRancherMgmtAPIGVKForKind(kind string) schema.GroupVersionKind {
 	return schema.GroupVersionKind{
 		Group:   APIGroupRancherManagement,
@@ -94,7 +95,7 @@ func GetRancherMgmtAPIGVKForKind(kind string) schema.GroupVersionKind {
 	}
 }
 
-//UpdateKeycloakOIDCAuthConfig updates the keycloakoidc AuthConfig CR with specified attributes
+// UpdateKeycloakOIDCAuthConfig updates the keycloakoidc AuthConfig CR with specified attributes
 func UpdateKeycloakOIDCAuthConfig(ctx spi.ComponentContext, attributes map[string]interface{}) error {
 	log := ctx.Log()
 	c := ctx.Client()
