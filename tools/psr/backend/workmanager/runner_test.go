@@ -4,14 +4,15 @@
 package workmanager
 
 import (
+	"testing"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
-
-	"testing"
 )
 
 type fakeWorker struct {
@@ -81,9 +82,10 @@ func TestRunWorker(t *testing.T) {
 		name      string
 		loops     int64
 		expectErr bool
+		duration  time.Duration
 	}{
-		{name: "oneIter", loops: 1, expectErr: false},
-		{name: "tenIter", loops: 10, expectErr: false},
+		{name: "oneIter", loops: 1, duration: config.UnlimitedWorkerDuration, expectErr: false},
+		{name: "tenIter", loops: 10, duration: config.UnlimitedWorkerDuration, expectErr: false},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -94,13 +96,45 @@ func TestRunWorker(t *testing.T) {
 			assert.NoError(t, err)
 
 			err = r.RunWorker(config.CommonConfig{
-				WorkerType: "Fake",
-				NumLoops:   test.loops,
+				WorkerType:  "Fake",
+				PsrDuration: test.duration,
+				NumLoops:    test.loops,
 			}, log)
 
 			assert.NoError(t, err)
 			assert.Equal(t, test.loops, f.doWorkCount)
 			assert.Equal(t, test.loops, actualRunner.loopCount.Val)
+		})
+	}
+}
+
+// TestRunDuration tests the Runner.RunWorker method
+// GIVEN a Runner
+//
+//	WHEN RunWorker is called with different duration values
+//	THEN ensure that the worker is called without error
+func TestRunDuration(t *testing.T) {
+	var tests = []struct {
+		name      string
+		expectErr bool
+		duration  time.Duration
+	}{
+		{name: "oneS", duration: 1 * time.Second, expectErr: false},
+		{name: "fiveMs", duration: 5 * time.Millisecond, expectErr: false},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			log := vzlog.DefaultLogger()
+			f := fakeWorker{}
+			r, err := NewRunner(&f, config.CommonConfig{}, log)
+			assert.NoError(t, err)
+
+			err = r.RunWorker(config.CommonConfig{
+				WorkerType:  "Fake",
+				PsrDuration: test.duration,
+			}, log)
+
+			assert.NoError(t, err)
 		})
 	}
 }
