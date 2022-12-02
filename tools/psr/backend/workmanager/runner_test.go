@@ -95,9 +95,8 @@ func TestRunWorker(t *testing.T) {
 			assert.NoError(t, err)
 
 			err = r.RunWorker(config.CommonConfig{
-				WorkerType:  "Fake",
-				PsrDuration: test.duration,
-				NumLoops:    test.loops,
+				WorkerType: "Fake",
+				NumLoops:   test.loops,
 			}, log)
 
 			assert.NoError(t, err)
