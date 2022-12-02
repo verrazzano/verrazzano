@@ -410,6 +410,13 @@ pipeline {
                 sh """
                     # sleep for a period to ensure async deletion of Verrazzano components from uninstall above has completed
                     sleep 90
+                    # make sure ns exists
+                    ./tests/e2e/config/scripts/check_verrazzano_ns_exists.sh verrazzano-install
+
+                    # create secret in verrazzano-install ns
+                    ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+
+
                     ${GO_REPO_PATH}/vz install --filename ${INSTALL_CONFIG_FILE} --operator-file ${WORKSPACE}/acceptance-test-operator.yaml --timeout 30m
 
                     ${TEST_SCRIPTS_DIR}/common-test-setup-script.sh "${GO_REPO_PATH}" "${TEST_CONFIG_FILE}" "${env.DOCKER_REPO}" "${KUBECONFIG}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}" "default"
