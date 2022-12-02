@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"regexp"
 	"strings"
 
@@ -110,8 +111,13 @@ func postUninstall(ctx spi.ComponentContext) error {
 		return err
 	}
 
+	crds := getCRDList(ctx)
+
+	// Remove any Rancher custom resources that remain
+	//	removeCRs(ctx, crds)
+
 	// Remove any Rancher CRD finalizers that may be causing CRD deletion to hang
-	removeCRDFinalizers(ctx)
+	removeCRDFinalizers(ctx, crds)
 
 	return nil
 }
@@ -147,12 +153,44 @@ func deleteWebhooks(ctx spi.ComponentContext) error {
 	return nil
 }
 
-func removeCRDFinalizers(ctx spi.ComponentContext) {
-	crds := v1.CustomResourceDefinitionList{}
-	err := ctx.Client().List(context.TODO(), &crds)
+func getCRDList(ctx spi.ComponentContext) *v1.CustomResourceDefinitionList {
+	crds := &v1.CustomResourceDefinitionList{}
+	err := ctx.Client().List(context.TODO(), crds)
 	if err != nil {
 		ctx.Log().Errorf("Failed to list CRDs during uninstall: %v", err)
 	}
+
+	return crds
+}
+
+func removeCRs(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) {
+	for _, crd := range crds.Items {
+		if strings.HasSuffix(crd.Name, ".cattle.io") {
+			rancherCRs := unstructured.UnstructuredList{}
+			rancherCRs.SetGroupVersionKind(crd.GroupVersionKind())
+			err := ctx.Client().List(context.TODO(), &rancherCRs)
+			if err != nil {
+				ctx.Log().Errorf("Failed to list CustomResource %s during uninstall: %v", rancherCRs.GetKind(), err)
+				continue
+			}
+
+			for _, rancherCR := range rancherCRs.Items {
+				//				err := ctx.Client().Delete(context.TODO(), &rancherCr)
+				//				if err != nil {
+				//					ctx.Log().Errorf("Failed to delete the resource of type %s, named %s: %v", rancherCr.GetKind(), rancherCr.GetName(), err)
+				//				}
+				resource.Resource{
+					Name:   rancherCR.GetName(),
+					Client: ctx.Client(),
+					Object: &rancherCR,
+					Log:    ctx.Log(),
+				}.RemoveFinalizersAndDelete()
+			}
+		}
+	}
+}
+
+func removeCRDFinalizers(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) {
 	var rancherDeletedCRDs []v1.CustomResourceDefinition
 	for _, crd := range crds.Items {
 		if strings.HasSuffix(crd.Name, ".cattle.io") && crd.DeletionTimestamp != nil && !crd.DeletionTimestamp.IsZero() {
@@ -162,7 +200,7 @@ func removeCRDFinalizers(ctx spi.ComponentContext) {
 
 	for _, crd := range rancherDeletedCRDs {
 		ctx.Log().Infof("Removing finalizers from deleted Rancher CRD %s", crd.Name)
-		err = resource.Resource{
+		err := resource.Resource{
 			Name:   crd.Name,
 			Client: ctx.Client(),
 			Object: &v1.CustomResourceDefinition{},
