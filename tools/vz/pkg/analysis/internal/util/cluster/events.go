@@ -6,6 +6,7 @@ package cluster
 
 import (
 	encjson "encoding/json"
+	"fmt"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"go.uber.org/zap"
 	"io"
@@ -93,6 +94,19 @@ func GetEventsRelatedToService(log *zap.SugaredLogger, clusterRoot string, servi
 		}
 	}
 	return serviceEvents, nil
+}
+
+// CheckEventsForWarnings goes through the events list for a specific Component/Service/Pod
+// and checks if there exists an event with type Warning and returns the corresponding reason and message
+// as an additional supporting data
+func CheckEventsForWarnings(log *zap.SugaredLogger, events []corev1.Event, timeRange *files.TimeRange) (message []string, err error) {
+	log.Debugf("Seraching the events list for any addtional support data")
+	for _, event := range events {
+		if event.Type == "Warning" {
+			message = append(message, fmt.Sprintf("Reason: %s, Message: %s", event.Reason, event.Message))
+		}
+	}
+	return message, nil
 }
 
 func getEventListIfPresent(path string) (eventList *corev1.EventList) {
