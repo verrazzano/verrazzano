@@ -3,5 +3,5 @@
 
 global:
   envVars:
-    PSR_DURATION: 10s
+    PSR_DURATION: -1s
     PSR_LOOP_SLEEP: 100ms
