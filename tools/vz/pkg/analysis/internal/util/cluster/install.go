@@ -283,7 +283,6 @@ func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issu
 			log.Debugf("External IP located for service %s/%s, skipping issue report", service.ObjectMeta.Namespace, service.ObjectMeta.Name)
 			return
 		}
-		print(vpoErrorMessages)
 		for _, errorMsg := range vpoErrorMessages {
 			if noIPForIstioIngressReqExp.MatchString(errorMsg) {
 				// Populate the message from the matched error message
@@ -310,15 +309,16 @@ func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issu
 		if istioLoadBalancerCreationIssue.MatchString(event.Message) && !isIssueAlreadyExists {
 			isIssueAlreadyExists = true
 			serviceEvents = append(serviceEvents, event)
+			messages := make(StringSlice, 1)
+			//messages[0] = istioLoadBalancerCreationIssue.String()
+			messages[0] = event.Message
+			// Create the service message from the object metadata
+			servFiles := make(StringSlice, 1)
+			servFiles[0] = report.GetRelatedServiceMessage(serviceEvents[0].ObjectMeta.Name, istioSystem)
+			issueReporter.AddKnownIssueMessagesFiles(report.IstioIngressInstallFailure, clusterRoot, messages, servFiles)
 		}
 	}
-	messages := make(StringSlice, 1)
-	messages[0] = istioLoadBalancerCreationIssue.String()
-	// Create the service message from the object metadata
-	servFiles := make(StringSlice, 1)
-	servFiles[0] = report.GetRelatedServiceMessage(serviceEvents[0].ObjectMeta.Name, istioSystem)
-	fmt.Println(servFiles[0])
-	issueReporter.AddKnownIssueMessagesFiles(report.IstioIngressInstallFailure, clusterRoot, messages, servFiles)
+
 }
 
 // Read the Verrazzano resource and return the list of components which did not reach Ready state
