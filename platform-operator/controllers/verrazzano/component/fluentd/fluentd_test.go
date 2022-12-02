@@ -310,7 +310,7 @@ func TestLoggingPreInstallFluentdNotEnabled(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestCheckSecretExists tests the verrazzano-os-internal secret exists.
+// TestCheckSecretExists tests the verrazzano-es-internal secret exists.
 func TestCheckSecretExists(t *testing.T) {
 	var tests = []struct {
 		name   string
@@ -319,13 +319,13 @@ func TestCheckSecretExists(t *testing.T) {
 		err    error
 	}{
 		{
-			"should fail when verrazzano-os-internal secret does not exist and keycloak is enabled",
+			"should fail when verrazzano-es-internal secret does not exist and keycloak is enabled",
 			keycloakEnabledCR,
 			createFakeClient(),
 			ctrlerrors.RetryableError{Source: ComponentName},
 		},
 		{
-			"should pass when verrazzano-os-internal secret does exist and keycloak is enabled",
+			"should pass when verrazzano-es-internal secret does exist and keycloak is enabled",
 			keycloakEnabledCR,
 			createFakeClient(vzEsInternalSecret),
 			nil,

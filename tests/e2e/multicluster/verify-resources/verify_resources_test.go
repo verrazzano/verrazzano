@@ -25,8 +25,10 @@ const shortPollInterval = 5 * time.Second
 
 var t = framework.NewTestFramework("resources_test")
 
-var _ = t.AfterSuite(func() {})
-var _ = t.BeforeSuite(func() {})
+var afterSuite = t.AfterSuiteFunc(func() {})
+var _ = AfterSuite(afterSuite)
+var beforeSuite = t.BeforeSuiteFunc(func() {})
+var _ = BeforeSuite(beforeSuite)
 var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("Multi Cluster Verify Resources", Label("f:multicluster.register"), func() {

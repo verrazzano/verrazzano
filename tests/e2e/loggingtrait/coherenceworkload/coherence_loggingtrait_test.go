@@ -4,6 +4,7 @@
 package coherenceworkload
 
 import (
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
@@ -32,10 +33,12 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("sockshop-logging")
 )
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	loggingtrait.DeployApplication(namespace, istioInjection, componentsPath, applicationPath, applicationPodName, t)
 	beforeSuitePassed = true
 })
+
+var _ = BeforeSuite(beforeSuite)
 
 var failed = false
 var beforeSuitePassed = false
@@ -43,12 +46,14 @@ var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport(namespace)
+		dump.ExecuteBugReport(namespace)
 	}
 	loggingtrait.UndeployApplication(namespace, componentsPath, applicationPath, configMapName, t)
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Test coherence loggingtrait application", Label("f:app-lcm.oam",
 	"f:app-lcm.coherence-workload",

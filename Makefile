@@ -75,7 +75,7 @@ test-platform-operator-install-logs:
 	kubectl logs -f -n verrazzano-install $(shell kubectl get pods -n verrazzano-install --no-headers | grep "^verrazzano-platform-operator-" | cut -d ' ' -f 1)
 
 .PHONY: precommit
-precommit: precommit-check precommit-build unit-test-coverage get-unit-test-coverage-master-release
+precommit: precommit-check precommit-build unit-test-coverage
 
 .PHONY: precommit-nocover
 precommit-nocover: precommit-check precommit-build unit-test
@@ -92,8 +92,8 @@ unit-test-coverage: export COVERAGE_EXCLUSIONS ?= tests/e2e|tools/psr
 unit-test-coverage:
 	${SCRIPT_DIR}/coverage.sh html
 
-.PHONY: get-unit-test-coverage-master-release
-get-unit-test-coverage-master-release:
+.PHONY: unit-test-coverage-ratcheting
+unit-test-coverage-ratcheting:
 	${SCRIPT_DIR}/coverage-number-comparison.sh
 
 .PHONY: unit-test

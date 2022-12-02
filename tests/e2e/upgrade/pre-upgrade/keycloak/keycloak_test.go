@@ -5,6 +5,7 @@ package keycloak
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"os/exec"
@@ -28,7 +29,7 @@ var testKeycloakVerrazzanoUserID = ""
 
 var t = framework.NewTestFramework("keycloak")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
 	beforeSuitePassed = true
 
@@ -69,6 +70,8 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("before_suite_elapsed_time", time.Since(start).Milliseconds()))
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var failed = false
 var beforeSuitePassed = false
 
@@ -76,14 +79,16 @@ var _ = t.AfterEach(func() {
 	failed = failed || framework.VzCurrentGinkgoTestDescription().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	start := time.Now()
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport()
+		dump.ExecuteBugReport()
 	}
 	createConfigMap()
 	metrics.Emit(t.Metrics.With("after_suite_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Create users in Keycloak", Label("f:platform-lcm.install"), func() {
 	t.It("Creating user in master realm", func() {

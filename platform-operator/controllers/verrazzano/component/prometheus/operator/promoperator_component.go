@@ -34,7 +34,7 @@ const ComponentName = "prometheus-operator"
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = constants.VerrazzanoMonitoringNamespace
 
-// ComponentJSONName is the json name of the component in the CRD
+// ComponentJSONName is the JSON name of the component in the CRD
 const ComponentJSONName = "prometheusOperator"
 
 const chartDir = "prometheus-community/kube-prometheus-stack"

@@ -146,7 +146,7 @@ func WhenPromStackInstalledIt(description string, f func()) {
 	}
 }
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
@@ -157,6 +157,8 @@ var _ = t.BeforeSuite(func() {
 		Fail(err.Error())
 	}
 })
+
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 	t.Context("after successful installation", func() {

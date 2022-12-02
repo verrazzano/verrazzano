@@ -33,22 +33,24 @@ var (
 	defLogID = "my-defLog-" + tempuuid
 )
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	pkg.DeleteSecret(pcons.VerrazzanoInstallNamespace, extEsSec)
 	pkg.DeleteSecret(pcons.VerrazzanoInstallNamespace, wrongSec)
 	start := time.Now()
 	gomega.Eventually(func() bool {
-		return ValidateDaemonset(pkg.VmiOSURL, pkg.VmiOSInternalSecret, "")
-	}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiOSURL, time.Since(start)))
+		return ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
+	}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 	t.Describe("fluentd verify", Label("f:platform-lcm.fluentd-verify"), func() {
 		t.It("fluentd default config", func() {
 			start := time.Now()
 			gomega.Eventually(func() bool {
-				return ValidateDaemonset(pkg.VmiOSURL, pkg.VmiOSInternalSecret, "")
-			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiOSURL, time.Since(start)))
+				return ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
+			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
 		})
 	})
 
@@ -149,8 +151,8 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 
 			start := time.Now()
 			gomega.Eventually(func() bool {
-				return ValidateDaemonset(pkg.VmiOSURL, pkg.VmiOSInternalSecret, "", vm)
-			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiOSURL, time.Since(start)))
+				return ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "", vm)
+			}, longWait, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
 		})
 	})
 })

@@ -29,7 +29,7 @@ import (
 const (
 	shortWaitTimeout       = 10 * time.Minute
 	shortPollingInterval   = 10 * time.Second
-	waitTimeout            = 15 * time.Minute
+	waitTimeout            = 20 * time.Minute
 	pollingInterval        = 30 * time.Second
 	mysqlPvcPrefix         = "datadir-mysql"
 	mysqlChartName         = "mysql"
@@ -41,7 +41,7 @@ var keycloakNamespacePods = []string{"keycloak", "mysql"}
 var mysqlPods = []string{"mysql"}
 var keycloakPods = []string{"keycloak"}
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
 	common.GatherInfo()
 	file, err := os.CreateTemp("", "mysql-values-")
@@ -54,12 +54,16 @@ var _ = t.BeforeSuite(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = t.AfterSuite(func() {
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	start := time.Now()
 	cleanUpVelero()
 	os.Remove(common.MySQLBackupHelmFileName)
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = AfterSuite(afterSuite)
 
 var t = framework.NewTestFramework("mysql-backup")
 

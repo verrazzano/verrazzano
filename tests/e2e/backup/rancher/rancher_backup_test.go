@@ -30,7 +30,7 @@ import (
 const (
 	shortWaitTimeout     = 10 * time.Minute
 	shortPollingInterval = 10 * time.Second
-	waitTimeout          = 15 * time.Minute
+	waitTimeout          = 20 * time.Minute
 	pollingInterval      = 30 * time.Second
 	rancherPassword      = "rancher@newstack"
 	rancherUserPrefix    = "thor"
@@ -38,18 +38,22 @@ const (
 
 var rancherPods = []string{"rancher"}
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
 	common.GatherInfo()
 	backupPrerequisites()
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 })
 
-var _ = t.AfterSuite(func() {
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
 	start := time.Now()
 	cleanUpRancher()
 	metrics.Emit(t.Metrics.With("undeployment_elapsed_time", time.Since(start).Milliseconds()))
 })
+
+var _ = AfterSuite(afterSuite)
 
 var t = framework.NewTestFramework("rancher-backup-operator")
 

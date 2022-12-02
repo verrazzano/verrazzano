@@ -25,6 +25,9 @@ import (
 // ComponentName is the name of the component
 const ComponentName = "external-dns"
 
+// ComponentJSONName is the JSON name of the verrazzano component in CRD
+const ComponentJSONName = "dns"
+
 // ComponentNamespace is the namespace of the component
 const ComponentNamespace = "cert-manager"
 
@@ -38,6 +41,7 @@ var _ spi.Component = externalDNSComponent{}
 func NewComponent() spi.Component {
 	return externalDNSComponent{
 		helm.HelmComponent{
+			JSONName:                  ComponentJSONName,
 			ReleaseName:               ComponentName,
 			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:            ComponentNamespace,
