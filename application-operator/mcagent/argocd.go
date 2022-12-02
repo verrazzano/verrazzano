@@ -20,13 +20,12 @@ const (
 )
 
 func (s *Syncer) createArgoCDServiceAccount() error {
-	serviceAccount := corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceAccountName,
-			Namespace: kubeSystemNamespace,
-		},
-	}
+	var serviceAccount corev1.ServiceAccount
+	serviceAccount.Name = serviceAccountName
+	serviceAccount.Namespace = kubeSystemNamespace
+
 	_, err := controllerruntime.CreateOrUpdate(s.Context, s.LocalClient, &serviceAccount, func() error {
+		mutateServiceAccount(serviceAccount)
 		s.Log.Infof("createArgoCDServiceAccount: ArgoCD ServiceAccount created successfully")
 		return nil
 	})
@@ -34,21 +33,13 @@ func (s *Syncer) createArgoCDServiceAccount() error {
 }
 
 func (s *Syncer) createArgoCDSecret(secretData []byte) error {
-	secret := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: kubeSystemNamespace,
-		},
-	}
-	secret.Type = corev1.SecretTypeServiceAccountToken
-	secret.Annotations = map[string]string{
-		corev1.ServiceAccountNameKey: serviceAccountName,
-	}
+	var secret corev1.Secret
+	secret.Name = secretName
+	secret.Namespace = kubeSystemNamespace
+
+	// Create or update on the local cluster
 	_, err := controllerruntime.CreateOrUpdate(s.Context, s.LocalClient, &secret, func() error {
-		if secret.Data == nil {
-			secret.Data = make(map[string][]byte)
-		}
-		secret.Data[caCrtKey] = secretData
+		mutateArgoCDSecret(secret, secretData)
 		s.Log.Infof("createArgoCDSecret: ArgoCD secret created successfully")
 		return nil
 	})
@@ -56,12 +47,10 @@ func (s *Syncer) createArgoCDSecret(secretData []byte) error {
 }
 
 func (s *Syncer) createArgoCDRole() error {
-	role := rbacv1.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: clusterRoleName,
-		},
-	}
+	role := rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: clusterRoleName}}
+
 	_, err := controllerruntime.CreateOrUpdate(s.Context, s.LocalClient, &role, func() error {
+		mutateClusterRole(role)
 		s.Log.Infof("createArgoCDRole: ArgoCD Role created successfully")
 		return nil
 	})
@@ -69,26 +58,58 @@ func (s *Syncer) createArgoCDRole() error {
 }
 
 func (s *Syncer) createArgoCDRoleBinding() error {
-	roleBinding := rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: clusterRoleBindingName,
-		},
-		RoleRef: rbacv1.RoleRef{
-			APIGroup: rbacv1.GroupName,
-			Kind:     "ClusterRole",
-			Name:     clusterRoleName,
-		},
-		Subjects: []rbacv1.Subject{{
-			Kind:      "ServiceAccount",
-			Name:      serviceAccountName,
-			Namespace: kubeSystemNamespace,
-		}},
-	}
-	_, err := controllerruntime.CreateOrUpdate(s.Context, s.LocalClient, &roleBinding, func() error {
+	binding := rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: clusterRoleBindingName}}
+
+	_, err := controllerruntime.CreateOrUpdate(s.Context, s.LocalClient, &binding, func() error {
+		mutateRoleBinding(binding)
 		s.Log.Infof("createArgoCDRoleBinding: ArgoCD Rolebinding created successfully")
 		return nil
 	})
 	return err
+}
+
+func mutateServiceAccount(sa corev1.ServiceAccount) {
+	sa.Secrets = []corev1.ObjectReference{
+		{
+			Name: secretName,
+		},
+	}
+}
+
+func mutateArgoCDSecret(secret corev1.Secret, secretData []byte) {
+	if secret.Data == nil {
+		secret.Data = make(map[string][]byte)
+	}
+	secret.Type = corev1.SecretTypeServiceAccountToken
+	secret.Data[caCrtKey] = secretData
+	secret.Annotations = map[string]string{
+		corev1.ServiceAccountNameKey: serviceAccountName,
+	}
+}
+
+func mutateClusterRole(role rbacv1.ClusterRole) {
+	role.Rules = []rbacv1.PolicyRule{
+		{
+			APIGroups: []string{"*"},
+			Resources: []string{"*"},
+			Verbs:     []string{"*"},
+		},
+	}
+}
+
+func mutateRoleBinding(binding rbacv1.ClusterRoleBinding) {
+	binding.RoleRef = rbacv1.RoleRef{
+		APIGroup: rbacv1.GroupName,
+		Kind:     "ClusterRole",
+		Name:     clusterRoleName,
+	}
+	binding.Subjects = []rbacv1.Subject{
+		{
+			Kind:      "ServiceAccount",
+			Name:      serviceAccountName,
+			Namespace: kubeSystemNamespace,
+		},
+	}
 }
 
 func (s *Syncer) createArgocdResources(secretData []byte) error {
