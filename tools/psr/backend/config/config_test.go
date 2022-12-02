@@ -4,11 +4,12 @@
 package config
 
 import (
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
-	"testing"
-	"time"
 )
 
 type fakeEnv struct {
