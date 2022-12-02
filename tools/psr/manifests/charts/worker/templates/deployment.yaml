@@ -16,7 +16,7 @@ spec:
     metadata:
       labels:
         psr.verrazzano.io/worker: {{ template "worker.fullName" .}}
-        app: psr-{{ .Values.global.envVars.PSR_WORKER_TYPE }}
+        app: psr-worker
         version: v1
     spec:
       serviceAccountName: {{ template "worker.fullName" .}}

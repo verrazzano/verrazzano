@@ -15,6 +15,7 @@ spec:
       name: {{ template "worker.fullName" .}}
       namespace: {{ .Release.Namespace }}
       labels:
+        psr.verrazzano.io/worker: {{ template "worker.fullName" .}}
         app: psr-worker
         version: v1
     spec:

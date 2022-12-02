@@ -4,7 +4,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ template "worker.fullName" .}}-{{ .Release.Namespace }}-master-netpol
+  name: {{ template "worker.fullName" .}}-{{ .Release.Namespace }}-master
   namespace: verrazzano-system
 spec:
   podSelector:
@@ -24,7 +24,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ template "worker.fullName" .}}-{{ .Release.Namespace }}-ingest-netpol
+  name: {{ template "worker.fullName" .}}-{{ .Release.Namespace }}-ingest
   namespace: verrazzano-system
 spec:
   podSelector:
