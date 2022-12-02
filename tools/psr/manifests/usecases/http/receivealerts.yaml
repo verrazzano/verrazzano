@@ -3,6 +3,4 @@
 
 global:
   envVars:
-    PSR_WORKER_TYPE: ops-restart
-    OPENSEARCH_TIER: master
-    PSR_LOOP_SLEEP: 30s
+    PSR_WORKER_TYPE: http-alerts

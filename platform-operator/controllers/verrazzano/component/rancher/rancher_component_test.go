@@ -72,10 +72,10 @@ func TestAppendRegistryOverrides(t *testing.T) {
 	registry := "foobar"
 	imageRepo := "barfoo"
 	kvs, _ := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 29, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart + RancherImage Overrides
+	assert.Equal(t, 28, len(kvs)) // should only have LetsEncrypt + useBundledSystemChart + RancherImage Overrides
 	_ = os.Setenv(constants.RegistryOverrideEnvVar, registry)
 	kvs, _ = AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
-	assert.Equal(t, 29, len(kvs))
+	assert.Equal(t, 29, len(kvs)) // one extra for the systemDefaultRegistry override
 	v, ok := getValue(kvs, systemDefaultRegistryKey)
 	assert.True(t, ok)
 	assert.Equal(t, registry, v)
@@ -90,8 +90,9 @@ func TestAppendRegistryOverrides(t *testing.T) {
 
 // TestAppendImageOverrides verifies that Rancher image overrides are added
 // GIVEN a Verrazzano CR
+// AND  there is no registry override
 // WHEN appendImageOverrides is called
-// THEN appendImageOverrides should add the image overrides
+// THEN appendImageOverrides should add the image overrides with the registry prepended
 func TestAppendImageOverrides(t *testing.T) {
 	a := assert.New(t)
 	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzapi.Verrazzano{}, nil, false)
@@ -106,7 +107,55 @@ func TestAppendImageOverrides(t *testing.T) {
 
 	kvs, err := appendImageOverrides(ctx, []bom.KeyValue{})
 	a.Nil(err)
-	a.Equal(21, len(kvs))
+	a.Equal(20, len(kvs))
+	for _, kv := range kvs {
+		// special exception for the extra arguments
+		if kv.Value == "true" {
+			continue
+		}
+		if regexp.MustCompile(`extraEnv\[\d+]\.name`).Match([]byte(kv.Key)) {
+			a.NotEmpty(kv.Value)
+			continue
+		}
+		// catch image tags and ignore them
+		if regexp.MustCompile(`^v\d+.\d+.\d+-\d+-\w+`).Match([]byte(kv.Value)) {
+			continue
+		}
+		if strings.Contains(kv.Value, cattleShellImageName) {
+			expectedImages[cattleShellImageName] = true
+			continue
+		}
+		splitImage := strings.Split(kv.Value, "/")
+		expectedImages[splitImage[len(splitImage)-1]] = true
+		a.Equal(splitImage[0], "ghcr.io", "Expected image to have the ghcr.io prefix")
+	}
+
+	for key, val := range expectedImages {
+		a.True(val, fmt.Sprintf("Image %s was not found in the key value arguments:\n%v", key, expectedImages))
+	}
+}
+
+// TestAppendImageOverrides verifies that Rancher image overrides are added
+// GIVEN a Verrazzano CR
+// AND  there a registry override
+// WHEN appendImageOverrides is called
+// THEN appendImageOverrides should add the image overrides without the registry prepended
+func TestAppendImageOverridesWithRegistryOverride(t *testing.T) {
+	a := assert.New(t)
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().WithScheme(getScheme()).Build(), &vzapi.Verrazzano{}, nil, false)
+	config.SetDefaultBomFilePath(testBomFilePath)
+	err := os.Setenv(constants.RegistryOverrideEnvVar, "my-private-reg")
+	a.NoError(err)
+
+	// construct an expected image list
+	expectedImages := map[string]bool{}
+	for key := range imageEnvVars {
+		expectedImages[key] = false
+	}
+
+	kvs, err := appendImageOverrides(ctx, []bom.KeyValue{})
+	a.Nil(err)
+	a.Equal(20, len(kvs))
 	for _, kv := range kvs {
 		// special exception for the extra arguments
 		if kv.Value == "true" || kv.Value == "ghcr.io" {
@@ -126,6 +175,7 @@ func TestAppendImageOverrides(t *testing.T) {
 		}
 		splitImage := strings.Split(kv.Value, "/")
 		expectedImages[splitImage[len(splitImage)-1]] = true
+		a.NotEqual(splitImage[0], "ghcr.io", "Did not expect image to have the ghcr.io prefix")
 	}
 
 	for key, val := range expectedImages {
