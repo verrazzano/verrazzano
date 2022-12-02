@@ -37,7 +37,7 @@ func TestMetricDesc(t *testing.T) {
 
 	// Make sure each Metric Desc is expected
 	mList := r.GetMetricList()
-	var mdList2 []prometheus.Desc
+	mdList2 := []prometheus.Desc{}
 	for i := range mList {
 		mdList2 = append(mdList2, *mList[i].Desc())
 	}
@@ -82,7 +82,6 @@ func TestRunWorker(t *testing.T) {
 		name      string
 		loops     int64
 		expectErr bool
-		duration  time.Duration
 	}{
 		{name: "oneIter", loops: 1, expectErr: false},
 		{name: "tenIter", loops: 10, expectErr: false},
