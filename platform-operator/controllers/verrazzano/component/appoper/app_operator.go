@@ -158,7 +158,6 @@ func labelAnnotateWorkloadDefinitions(c client.Client) error {
 		"coherences.coherence.oracle.com",
 		"deployments.apps",
 		"domains.weblogic.oracle",
-		"clusters.weblogic.oracle",
 		"verrazzanocoherenceworkloads.oam.verrazzano.io",
 		"verrazzanohelidonworkloads.oam.verrazzano.io",
 		"verrazzanoweblogicworkloads.oam.verrazzano.io",
