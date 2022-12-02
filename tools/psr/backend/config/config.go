@@ -94,8 +94,8 @@ func GetCommonConfig(log vzlog.VerrazzanoLogger) (CommonConfig, error) {
 		return CommonConfig{}, log.ErrorfNewErr("Error parsing worker duration: %v", err)
 	}
 	// Negative values are not allowed, -1s represents no duration timeout
-	if duration < (-1 * time.Second) {
-		duration = -1 * time.Second
+	if duration < (UnlimitedWorkerDuration) {
+		duration = UnlimitedWorkerDuration
 	}
 
 	sleepDuration, err := time.ParseDuration(PsrEnv.GetEnv(PsrLoopSleep))
