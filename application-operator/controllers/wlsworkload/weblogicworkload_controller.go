@@ -61,9 +61,9 @@ const (
 	controllerName                        = "weblogicworkload"
 	DomainKind                            = "Domain"
 	ClusterKind                           = "Cluster"
-	ApiVersionV8                          = "weblogic.oracle/v8"
-	ApiVersionV9                          = "weblogic.oracle/v9"
-	ApiVersionV1                          = "weblogic.oracle/v1"
+	APIVersionV8                          = "weblogic.oracle/v8"
+	APIVersionV9                          = "weblogic.oracle/v9"
+	APIVersionV1                          = "weblogic.oracle/v1"
 )
 
 const defaultMonitoringExporterTemplate = `
@@ -368,8 +368,8 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload *vzapi.Verrazzano
 	}
 
 	// Create or update Cluster resources
-	for _, cu := range *cus {
-		if err = r.createOrUpdateResource(ctx, workload, log, &cu, func(_ interface{}) error {
+	for i := range *cus {
+		if err = r.createOrUpdateResource(ctx, workload, log, &((*cus)[i]), func(_ interface{}) error {
 			return nil
 		}); err != nil {
 			log.Errorf("Failed creating or updating WebLogic CR: %v", err)
@@ -413,7 +413,7 @@ func (r *Reconciler) initializeDomain(workload *vzapi.VerrazzanoWebLogicWorkload
 	}
 
 	if u.GetAPIVersion() == "" {
-		u.SetAPIVersion(ApiVersionV8)
+		u.SetAPIVersion(APIVersionV8)
 	}
 	u.SetKind(DomainKind)
 
@@ -422,15 +422,15 @@ func (r *Reconciler) initializeDomain(workload *vzapi.VerrazzanoWebLogicWorkload
 
 func (r *Reconciler) initializeClusters(workload *vzapi.VerrazzanoWebLogicWorkload, log vzlog.VerrazzanoLogger) (*[]unstructured.Unstructured, error) {
 	var clus []unstructured.Unstructured
-	for _, c := range workload.Spec.Clusters {
+	for i := range workload.Spec.Clusters {
 		var u unstructured.Unstructured
-		err := r.initializeResource(&u, workload, &c, log)
+		err := r.initializeResource(&u, workload, &workload.Spec.Clusters[i], log)
 		if err != nil {
 			return nil, err
 		}
 
 		if u.GetAPIVersion() == "" {
-			u.SetAPIVersion(ApiVersionV1)
+			u.SetAPIVersion(APIVersionV1)
 		}
 		u.SetKind(ClusterKind)
 		clus = append(clus, u)
@@ -552,7 +552,7 @@ func (r *Reconciler) isOkToRestartWebLogic(wl *vzapi.VerrazzanoWebLogicWorkload)
 }
 
 func isV8(weblogic *unstructured.Unstructured) bool {
-	return weblogic.GetAPIVersion() == ApiVersionV8
+	return weblogic.GetAPIVersion() == APIVersionV8
 }
 
 // copyLabels copies specific labels from the Verrazzano workload to the contained WebLogic resource

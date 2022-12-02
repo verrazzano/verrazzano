@@ -108,7 +108,7 @@ const loggingTrait = `
 `
 
 func buildTemplate(spec string) vzapi.VerrazzanoWebLogicWorkloadTemplate {
-	return vzapi.VerrazzanoWebLogicWorkloadTemplate{APIVersion: ApiVersionV8, Metadata: runtime.RawExtension{Raw: []byte(commonMetadata)}, Spec: runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(spec, " ", ""), "\n", ""))}}
+	return vzapi.VerrazzanoWebLogicWorkloadTemplate{APIVersion: APIVersionV8, Metadata: runtime.RawExtension{Raw: []byte(commonMetadata)}, Spec: runtime.RawExtension{Raw: []byte(strings.ReplaceAll(strings.ReplaceAll(spec, " ", ""), "\n", ""))}}
 }
 
 // TestReconcilerSetupWithManager test the creation of the VerrazzanoWebLogicWorkload reconciler.
@@ -229,7 +229,7 @@ func TestReconcileCreateWebLogicDomain(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(APIVersionV8, u.GetAPIVersion())
 			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
@@ -360,7 +360,7 @@ func TestReconcileCreateWebLogicDomainWithMonitoringExporter(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(APIVersionV8, u.GetAPIVersion())
 			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
@@ -498,7 +498,7 @@ func TestReconcileCreateWebLogicDomainWithLogging(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(APIVersionV8, u.GetAPIVersion())
 			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
@@ -714,7 +714,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLogging(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(APIVersionV8, u.GetAPIVersion())
 			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
@@ -897,7 +897,7 @@ func TestReconcileCreateWebLogicDomainWithCustomLoggingConfigMapExists(t *testin
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(APIVersionV8, u.GetAPIVersion())
 			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied
@@ -1159,7 +1159,7 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(APIVersionV8, u.GetAPIVersion())
 			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied and the WebLogic type lobel applied
@@ -1290,7 +1290,7 @@ func TestReconcileErrorOnCreate(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(APIVersionV8, u.GetAPIVersion())
 			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the restartVersion is empty
@@ -1758,7 +1758,7 @@ func TestReconcileRestart(t *testing.T) {
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.UpdateOption) error {
-			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(APIVersionV8, u.GetAPIVersion())
 			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the OAM component and app name labels were copied and the WebLogic type lobel applied
@@ -1902,7 +1902,7 @@ func TestReconcileStopDomain(t *testing.T) {
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(APIVersionV8, u.GetAPIVersion())
 			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the restartVersion was added to the domain
@@ -2035,7 +2035,7 @@ func TestReconcileStartDomain(t *testing.T) {
 	cli.EXPECT().
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(APIVersionV8, u.GetAPIVersion())
 			assert.Equal(DomainKind, u.GetKind())
 
 			// make sure the restartVersion was added to the domain
@@ -2171,7 +2171,7 @@ func TestReconcileUserProvidedLogHome(t *testing.T) {
 	cli.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, u *unstructured.Unstructured, opts ...client.CreateOption) error {
-			assert.Equal(ApiVersionV8, u.GetAPIVersion())
+			assert.Equal(APIVersionV8, u.GetAPIVersion())
 			assert.Equal(DomainKind, u.GetKind())
 
 			const (
