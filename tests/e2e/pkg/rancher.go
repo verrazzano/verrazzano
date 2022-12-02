@@ -57,7 +57,7 @@ func GetURLForIngress(log *zap.SugaredLogger, api *APIEndpoint, namespace string
 	return ingressURL, err
 }
 
-func GetRancherAdminToken(log *zap.SugaredLogger, httpClient *retryablehttp.Client, rancherURL string) string {
+func eventuallyGetRancherAdminPassword(log *zap.SugaredLogger) (string, error) {
 	var err error
 	var secret *corev1.Secret
 	gomega.Eventually(func() error {
@@ -68,25 +68,48 @@ func GetRancherAdminToken(log *zap.SugaredLogger, httpClient *retryablehttp.Clie
 		return err
 	}, waitTimeout, pollingInterval).Should(gomega.BeNil())
 
+	if secret == nil {
+		return "", fmt.Errorf("Unable to get rancher admin secret")
+	}
+
 	var rancherAdminPassword []byte
 	var ok bool
 	if rancherAdminPassword, ok = secret.Data["password"]; !ok {
-		log.Error(fmt.Sprintf("Error getting rancher admin credentials: %v", err))
+		return "", fmt.Errorf("Error getting rancher admin credentials")
+	}
+
+	return string(rancherAdminPassword), nil
+}
+
+func GetRancherAdminToken(log *zap.SugaredLogger, httpClient *retryablehttp.Client, rancherURL string) string {
+	rancherAdminPassword, err := eventuallyGetRancherAdminPassword(log)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error getting rancher admin password: %v", err))
 		return ""
 	}
 
+	token, err := getRancherUserToken(log, httpClient, rancherURL, "admin", string(rancherAdminPassword))
+	if err != nil {
+		log.Error(fmt.Sprintf("Error getting user token from rancher: %v", err))
+		return ""
+	}
+
+	return token
+}
+
+func getRancherUserToken(log *zap.SugaredLogger, httpClient *retryablehttp.Client, rancherURL string, username string, password string) (string, error) {
 	rancherLoginURL := fmt.Sprintf("%s/%s", rancherURL, "v3-public/localProviders/local?action=login")
-	payload := `{"Username": "admin", "Password": "` + string(rancherAdminPassword) + `"}`
+	payload := `{"Username": "` + username + `", "Password": "` + password + `"}`
 	response, err := httpClient.Post(rancherLoginURL, "application/json", strings.NewReader(payload))
 	if err != nil {
 		log.Error(fmt.Sprintf("Error getting rancher admin token: %v", err))
-		return ""
+		return "", err
 	}
 
 	err = httputil.ValidateResponseCode(response, http.StatusCreated)
 	if err != nil {
 		log.Errorf("Invalid response code when fetching Rancher token: %v", err)
-		return ""
+		return "", err
 	}
 
 	defer response.Body.Close()
@@ -95,16 +118,16 @@ func GetRancherAdminToken(log *zap.SugaredLogger, httpClient *retryablehttp.Clie
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Errorf("Failed to read Rancher token response: %v", err)
-		return ""
+		return "", err
 	}
 
 	token, err := httputil.ExtractFieldFromResponseBodyOrReturnError(string(body), "token", "unable to find token in Rancher response")
 	if err != nil {
 		log.Errorf("Failed to extra token from Rancher response: %v", err)
-		return ""
+		return "", err
 	}
 
-	return token
+	return token, nil
 }
 
 // VerifyRancherAccess verifies that Rancher is accessible.
@@ -234,6 +257,14 @@ func EventuallyGetRancherHost(log *zap.SugaredLogger, api *APIEndpoint) (string,
 }
 
 func CreateNewRancherConfig(log *zap.SugaredLogger, kubeconfigPath string) (*rancherutil.RancherConfig, error) {
+	rancherAdminPassword, err := eventuallyGetRancherAdminPassword(log)
+	if err != nil {
+		return nil, err
+	}
+	return CreateNewRancherConfigForUser(log, kubeconfigPath, "admin", rancherAdminPassword)
+}
+
+func CreateNewRancherConfigForUser(log *zap.SugaredLogger, kubeconfigPath string, username string, password string) (*rancherutil.RancherConfig, error) {
 	apiEndpoint := EventuallyGetAPIEndpoint(kubeconfigPath)
 	rancherHost, err := EventuallyGetRancherHost(log, apiEndpoint)
 	if err != nil {
@@ -252,14 +283,50 @@ func CreateNewRancherConfig(log *zap.SugaredLogger, kubeconfigPath string) (*ran
 	if err != nil {
 		return nil, err
 	}
-	adminToken := GetRancherAdminToken(log, httpClient, rancherURL)
+	token, err := getRancherUserToken(log, httpClient, rancherURL, username, password)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user token from Rancher: %v", err)
+	}
+
 	rc := rancherutil.RancherConfig{
 		// populate Rancher config from the functions available in this file,adding as necessary
 		BaseURL:                  rancherURL,
 		Host:                     rancherHost,
-		APIAccessToken:           adminToken,
+		APIAccessToken:           token,
 		CertificateAuthorityData: caCert,
 		AdditionalCA:             additionalCA,
 	}
 	return &rc, nil
+}
+
+func GetClusterKubeconfig(log *zap.SugaredLogger, httpClient *retryablehttp.Client, rc *rancherutil.RancherConfig, clusterID string) (string, error) {
+	reqURL := rc.BaseURL + "/v3/clusters/" + clusterID + "?action=generateKubeconfig"
+	req, err := retryablehttp.NewRequest("POST", reqURL, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+rc.APIAccessToken)
+
+	response, err := httpClient.Do(req)
+	if err != nil {
+		log.Error(fmt.Sprintf("Error getting managed cluster kubeconfig: %v", err))
+		return "", err
+	}
+
+	err = httputil.ValidateResponseCode(response, http.StatusOK)
+	if err != nil {
+		log.Errorf("Invalid response code when fetching cluster kubeconfig: %v", err)
+		return "", err
+	}
+
+	defer response.Body.Close()
+
+	// extract the response body
+	responseBody, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Errorf("Failed to read Rancher kubeconfig response: %v", err)
+		return "", err
+	}
+
+	return httputil.ExtractFieldFromResponseBodyOrReturnError(string(responseBody), "config", "")
 }
