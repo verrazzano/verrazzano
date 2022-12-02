@@ -84,8 +84,8 @@ func TestRunWorker(t *testing.T) {
 		expectErr bool
 		duration  time.Duration
 	}{
-		{name: "oneIter", loops: 1, duration: config.UnlimitedWorkerDuration, expectErr: false},
-		{name: "tenIter", loops: 10, duration: config.UnlimitedWorkerDuration, expectErr: false},
+		{name: "oneIter", loops: 1, expectErr: false},
+		{name: "tenIter", loops: 10, expectErr: false},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

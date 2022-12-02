@@ -51,7 +51,7 @@ func StartWorkerRunners(log vzlog.VerrazzanoLogger) error {
 
 	// start metrics server as go routine
 	log.Info("Starting metrics server")
-	var mProviders []spi.WorkerMetricsProvider
+	mProviders := []spi.WorkerMetricsProvider{}
 	mProviders = append(mProviders, runner)
 	mProviders = append(mProviders, worker)
 	go startMetricsFunc(mProviders)
@@ -112,6 +112,6 @@ func getWorker(wt string) (spi.Worker, error) {
 	case config.WorkerTypeReceiveAlerts:
 		return alerts.NewAlertsWorker()
 	default:
-		return nil, fmt.Errorf("failed, invalid worker type '%s'", wt)
+		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}
 }

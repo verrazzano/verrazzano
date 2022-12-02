@@ -138,11 +138,11 @@ func (r workerRunner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLo
 		}
 		duration, _ := time.ParseDuration(strconv.FormatInt(durationSecondsTotal, 10) + "s")
 		if duration >= conf.PsrDuration && conf.PsrDuration != config.UnlimitedWorkerDuration {
-			log.Infof("Worker has reached its' run duration of %s", conf.PsrDuration)
+			log.Infof("Worker has reached its run duration of %s", conf.PsrDuration)
 			return nil
 		}
 		if loopCount == conf.NumLoops && conf.NumLoops != config.UnlimitedWorkerLoops {
-			log.Infof("Worker has reached its' number of %s loops", conf.NumLoops)
+			log.Infof("Worker has reached its number of %s loops", conf.NumLoops)
 			return nil
 		}
 		if err = sleepWithJitters(conf.LoopSleepNanos); err != nil {

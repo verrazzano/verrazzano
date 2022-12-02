@@ -53,7 +53,7 @@ func (e *envData) addItemConfig(c EnvVarDesc) error {
 	val := GetEnvFunc(c.Key)
 	if len(val) == 0 {
 		if c.Required {
-			return fmt.Errorf("failed, missing required Env var %s", c.Key)
+			return fmt.Errorf("Failed, missing required Env var %s", c.Key)
 		}
 		val = c.DefaultVal
 	}
