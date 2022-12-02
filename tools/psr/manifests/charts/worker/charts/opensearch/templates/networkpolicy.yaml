@@ -4,7 +4,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: psr-os-master
+  name: {{ template "worker.fullName" .}}-{{ .Release.Namespace }}-master-netpol
   namespace: verrazzano-system
 spec:
   podSelector:
@@ -14,14 +14,17 @@ spec:
     - Ingress
   ingress:
     - from:
-        - podSelector:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Release.Namespace }}
+          podSelector:
             matchLabels:
               app: psr-worker
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: psr-os-ingest
+  name: {{ template "worker.fullName" .}}-{{ .Release.Namespace }}-ingest-netpol
   namespace: verrazzano-system
 spec:
   podSelector:
@@ -31,6 +34,9 @@ spec:
     - Ingress
   ingress:
     - from:
-        - podSelector:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Release.Namespace }}
+          podSelector:
             matchLabels:
               app: psr-worker
