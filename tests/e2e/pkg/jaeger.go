@@ -250,9 +250,6 @@ func ListJaegerTracesWithTags(kubeconfigPath string, start time.Time, serviceNam
 	for _, traceObj := range jaegerTraceDataWrapper.Data {
 		traces = append(traces, traceObj.TraceID)
 	}
-	Log(Info, fmt.Sprintf("res.Body length = %v", len(resp.Body)))
-	Log(Info, fmt.Sprintf("jaegerTraceDataWrapper = %+v", jaegerTraceDataWrapper))
-	Log(Info, fmt.Sprintf("traces = %v", traces))
 	Log(Info, fmt.Sprintf("Found %d traces for service %s", len(traces), serviceName))
 	return traces
 }
