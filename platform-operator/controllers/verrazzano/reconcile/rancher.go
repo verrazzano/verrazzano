@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -15,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // createRancherIngressAndCertCopies - creates copies of Rancher ingress and cert secret if
@@ -33,6 +35,9 @@ func (r *Reconciler) createRancherIngressAndCertCopies(ctx spi.ComponentContext)
 			if !errors.IsNotFound(err) {
 				ctx.Log().Infof("Cannot make a copy of Rancher ingress %s/%s - get ingress failed: %v", ingressName.Namespace, ingressName.Name, err)
 			}
+			continue
+		}
+		if r.ingressCopyExists(ctx, ing) {
 			continue
 		}
 		newIngressTLSList := r.createIngressCertSecretCopies(ctx, ing)
@@ -82,6 +87,45 @@ func (r *Reconciler) createIngressCertSecretCopies(ctx spi.ComponentContext, ing
 		}
 	}
 	return newIngressTLSList
+}
+
+func (r *Reconciler) ingressCopyExists(ctx spi.ComponentContext, ingress netv1.Ingress) bool {
+	ingList := netv1.IngressList{}
+	err := r.List(context.TODO(), &ingList, client.InNamespace(common.CattleSystem))
+	if err != nil {
+		ctx.Log().Errorf("Could not list ingresses in Rancher namespace: %v", err)
+		return false
+	}
+	rancherIngressNameLen := len(ingress.Name)
+	for _, ing := range ingList.Items {
+		if ing.Name[0:(rancherIngressNameLen)] == ingress.Name+"-" {
+			if haveSameHosts(ing.Spec, ingress.Spec) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func haveSameHosts(spec1 netv1.IngressSpec, spec2 netv1.IngressSpec) bool {
+	if len(spec1.Rules) != len(spec2.Rules) {
+		return false
+	}
+	for _, rule := range spec1.Rules {
+		if !hasHost(spec2.Rules, rule.Host) {
+			return false
+		}
+	}
+	return true
+}
+
+func hasHost(rules []netv1.IngressRule, host string) bool {
+	for _, rule := range rules {
+		if rule.Host == host {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *Reconciler) createSecretCopy(newName types.NamespacedName, existingSecret corev1.Secret) error {
