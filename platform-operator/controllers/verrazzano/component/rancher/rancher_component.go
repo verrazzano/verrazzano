@@ -512,10 +512,6 @@ func ConfigureAuthProviders(ctx spi.ComponentContext) error {
 			return err
 		}
 
-		if err := createOrUpdateVZClusterUser(ctx); err != nil {
-			return err
-		}
-
 		if err := createOrUpdateRoleTemplates(ctx); err != nil {
 			return err
 		}
@@ -531,7 +527,7 @@ func ConfigureAuthProviders(ctx spi.ComponentContext) error {
 	return nil
 }
 
-// createOrUpdateRoleTemplates creates or updates the verrazzano-admin, verrazzano-monitor, and verrazzano-cluster-user RoleTemplates
+// createOrUpdateRoleTemplates creates or updates the verrazzano-admin and verrazzano-monitor RoleTemplates
 func createOrUpdateRoleTemplates(ctx spi.ComponentContext) error {
 	if err := CreateOrUpdateRoleTemplate(ctx, VerrazzanoAdminRoleName); err != nil {
 		return err
