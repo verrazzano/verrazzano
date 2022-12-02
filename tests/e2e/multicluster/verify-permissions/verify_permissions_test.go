@@ -799,6 +799,9 @@ func isStatusAsExpected(status clustersv1alpha1.MultiClusterResourceStatus,
 	return matchingConditionCount >= 1 && matchingClusterStatusCount == 1
 }
 
+// getUserKubeconfigForManagedCluster calls the Rancher API and downloads a kubeconfig configured to access
+// the managed cluster using the Verrazzano cluster user. That user has a very limited set of roles (the roles
+// needed to push managed cluster resources). This function returns the file path to the kubeconfig file on success.
 func getUserKubeconfigForManagedCluster(httpClient *retryablehttp.Client) (string, error) {
 	// get the Rancher cluster id from the VMC status
 	client, err := pkg.GetClusterOperatorClientset(adminKubeconfig)
@@ -825,7 +828,6 @@ func getUserKubeconfigForManagedCluster(httpClient *retryablehttp.Client) (strin
 
 	// get the managed cluster kubeconfig configured for the user from Rancher
 	kubeconfig, err := pkg.GetClusterKubeconfig(t.Logs, httpClient, config, vmc.Status.RancherRegistration.ClusterID)
-	Expect(err).ShouldNot(HaveOccurred())
 	if err != nil {
 		return "", err
 	}
