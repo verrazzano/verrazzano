@@ -817,11 +817,11 @@ func getUserKubeconfigForManagedCluster(httpClient *retryablehttp.Client) (strin
 	}
 
 	// get the Verrazzano cluster user password from the secret and create a Rancher config with a bearer token for the user
-	secret, err := pkg.GetSecretInCluster(constants.VerrazzanoMultiClusterNamespace, "verrazzano-cluster-user", adminKubeconfig)
+	secret, err := pkg.GetSecretInCluster(constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoClusterRancherName, adminKubeconfig)
 	if err != nil {
 		return "", err
 	}
-	config, err := pkg.CreateNewRancherConfigForUser(t.Logs, adminKubeconfig, "verrazzanocluster", string(secret.Data["password"]))
+	config, err := pkg.CreateNewRancherConfigForUser(t.Logs, adminKubeconfig, constants.VerrazzanoClusterRancherUsername, string(secret.Data["password"]))
 	if err != nil {
 		return "", err
 	}
