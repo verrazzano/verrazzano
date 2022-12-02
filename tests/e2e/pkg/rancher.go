@@ -299,7 +299,7 @@ func CreateNewRancherConfigForUser(log *zap.SugaredLogger, kubeconfigPath string
 	return &rc, nil
 }
 
-func GetClusterKubeconfig(log *zap.SugaredLogger, httpClient *retryablehttp.Client, rc *vmc.RancherConfig, clusterID string) (string, error) {
+func GetClusterKubeconfig(log *zap.SugaredLogger, httpClient *retryablehttp.Client, rc *rancherutil.RancherConfig, clusterID string) (string, error) {
 	reqURL := rc.BaseURL + "/v3/clusters/" + clusterID + "?action=generateKubeconfig"
 	req, err := retryablehttp.NewRequest("POST", reqURL, nil)
 	if err != nil {
