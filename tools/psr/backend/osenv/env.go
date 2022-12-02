@@ -31,7 +31,7 @@ func NewEnv() Environment {
 	return &envData{envVars: make(map[string]string)}
 }
 
-// LoadFromEnv get environment vars specified by the from EnvVarDesc list and loads them into a map
+// LoadFromEnv get environment vars specified from the EnvVarDesc list and loads them into a map
 func (e *envData) LoadFromEnv(cc []EnvVarDesc) error {
 	for _, c := range cc {
 		if err := e.addItemConfig(c); err != nil {
@@ -53,7 +53,7 @@ func (e *envData) addItemConfig(c EnvVarDesc) error {
 	val := GetEnvFunc(c.Key)
 	if len(val) == 0 {
 		if c.Required {
-			return fmt.Errorf("Failed, missing required Env var %s", c.Key)
+			return fmt.Errorf("failed, missing required Env var %s", c.Key)
 		}
 		val = c.DefaultVal
 	}

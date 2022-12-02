@@ -36,7 +36,7 @@ func TestMetricDesc(t *testing.T) {
 
 	// Make sure each Metric Desc is expected
 	mList := r.GetMetricList()
-	mdList2 := []prometheus.Desc{}
+	var mdList2 []prometheus.Desc
 	for i := range mList {
 		mdList2 = append(mdList2, *mList[i].Desc())
 	}
@@ -134,7 +134,7 @@ func (w fakeWorker) PreconditionsMet() (bool, error) {
 	return true, nil
 }
 
-func (w *fakeWorker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+func (w *fakeWorker) DoWork(config.CommonConfig, vzlog.VerrazzanoLogger) error {
 	w.doWorkCount = w.doWorkCount + 1
 	return nil
 }

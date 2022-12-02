@@ -4,6 +4,7 @@
 package workmanager
 
 import (
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 
 // WorkerRunner interface specifies a workerRunner that loops calling a worker
 type WorkerRunner interface {
-	// StartWorkerRunners runs the worker use case in a loop
+	// RunWorker runs the worker use case in a loop
 	RunWorker(config.CommonConfig, vzlog.VerrazzanoLogger) error
 
 	// WorkerMetricsProvider is an interface to get prometheus metrics information for the worker to do work
@@ -91,7 +92,7 @@ func (r workerRunner) GetMetricList() []prometheus.Metric {
 	}
 }
 
-// StartWorkerRunners runs the worker in a loop
+// RunWorker runs the worker in a loop
 func (r workerRunner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	if conf.NumLoops == 0 {
 		return nil
@@ -110,7 +111,7 @@ func (r workerRunner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLo
 			log.ErrorfThrottled("Failed calling %s to do work: %v", r.Worker.GetWorkerDesc().WorkerType, err)
 		} else {
 			if r.prevWorkFailed {
-				// If we had a failure on the prev call then log success so you can tell
+				// If we had a failure on the prev call then log success, so you can tell
 				// get is working just be looking at the pod log.
 				log.Info("Next call to DoWork from workerRunner successful after previous DoWork failed")
 			}
@@ -119,14 +120,21 @@ func (r workerRunner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLo
 			}
 			r.prevWorkFailed = false
 		}
-		log.GetZapLogger().Sync()
+		_ = log.GetZapLogger().Sync()
+
 		durationSecondsTotal := time.Now().Unix() - startTimeSecs
 		atomic.StoreInt64(&r.runnerMetrics.workerLoopNanoSeconds.Val, time.Now().UnixNano()-startLoop)
 		atomic.StoreInt64(&r.runnerMetrics.workerDurationTotalSeconds.Val, durationSecondsTotal)
 		if r.Worker.WantLoopInfoLogged() {
 			log.Infof("Loop Count: %v, Total seconds from start of the first worker loop until now: %v", loopCount, durationSecondsTotal)
 		}
+		duration, _ := time.ParseDuration(strconv.FormatInt(durationSecondsTotal, 10) + "s")
+		if duration >= conf.PsrDuration && conf.PsrDuration != config.UnlimitedWorkerDuration {
+			log.Infof("Worker has reached its' run duration of %s", conf.PsrDuration)
+			return nil
+		}
 		if loopCount == conf.NumLoops && conf.NumLoops != config.UnlimitedWorkerLoops {
+			log.Infof("Worker has reached its' number of %s loops", conf.NumLoops)
 			return nil
 		}
 		time.Sleep(conf.LoopSleepNanos)
