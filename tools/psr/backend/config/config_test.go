@@ -90,7 +90,7 @@ func TestDuration(t *testing.T) {
 		duration  time.Duration
 		expectErr bool
 	}{
-		{name: "DefaultSleep",
+		{name: "DefaultDuration",
 			duration:  UnlimitedWorkerDuration,
 			expectErr: false,
 			envMap: map[string]string{

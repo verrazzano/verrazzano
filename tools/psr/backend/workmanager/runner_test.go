@@ -80,6 +80,7 @@ func assertMetricDescList(t *testing.T, mdList []prometheus.Desc) {
 func TestRunWorker(t *testing.T) {
 	var tests = []struct {
 		name      string
+		duration  time.Duration
 		loops     int64
 		expectErr bool
 	}{
@@ -95,8 +96,9 @@ func TestRunWorker(t *testing.T) {
 			assert.NoError(t, err)
 
 			err = r.RunWorker(config.CommonConfig{
-				WorkerType: "Fake",
-				NumLoops:   test.loops,
+				WorkerType:  "Fake",
+				NumLoops:    test.loops,
+				PsrDuration: config.UnlimitedWorkerDuration,
 			}, log)
 
 			assert.NoError(t, err)
