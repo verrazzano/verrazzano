@@ -77,19 +77,23 @@ function downloadSourceCode() {
 
   # Fail when the property for the component is not defined in REPO_URL_PROPS
   if [ "${keyFound}" == false ]; then
+    #if [ "$DRY_RUN" == true ]; then
     echo "The repository URL for the component ${compKey} is missing from file ${REPO_URL_PROPS}"
     exit 1
+    #else
+    #  continue
+    #fi
   fi
 
   # When DRY_RUN is set to true, do not download the source
   if [ "$DRY_RUN" == true ] ; then
-    return
+    continue
   fi
 
   # Consider the value SKIP_GIT_CLONE for a property, to ignore cloning the repository
   # Also skip when there is no property defined for the compKey.
   if [ "${repoUrl}" = "SKIP_GIT_CLONE" ] || [ "${repoUrl}" = "" ]; then
-    return
+    continue
   fi
 
   cd "${SAVE_DIR}"

@@ -1,0 +1,124 @@
+// Copyright (c) 2022, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+pipeline {
+    options {
+        skipDefaultCheckout true
+        timestamps ()
+    }
+
+    agent {
+       docker {
+            image "${RELEASE_RUNNER_IMAGE}"
+            args "${RELEASE_RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+            label "internal"
+        }
+    }
+
+    parameters {
+        string (description: 'The release branch', name: 'RELEASE_BRANCH', defaultValue: 'NONE', trim: true)
+        string (description: 'The source commit for the release (required for full release)', name: 'COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
+        string (description: 'The release version (major.minor.patch format, e.g. 1.0.1)', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
+    }
+
+    environment {
+        OCR_CREDS = credentials('ocr-pull-and-push-account')
+        NETRC_FILE = credentials('netrc')
+        DOCKER_CREDS = credentials('github-packages-credentials-rw')
+        DOCKER_REPO = 'ghcr.io'
+
+        OBJECT_STORAGE_NS = credentials('oci-os-namespace')
+        OBJECT_STORAGE_BUCKET="verrazzano-builds"
+        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        OCI_REGION="us-phoenix-1"
+        OCI_CLI_AUTH="api_key"
+        OCI_CLI_TENANCY = credentials('oci-tenancy')
+        OCI_CLI_USER = credentials('oci-user-ocid')
+        OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
+        OCI_CLI_KEY_FILE = credentials('oci-api-key')
+
+        RELEASE_VERSION = "${params.RELEASE_VERSION}"
+        TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+    }
+
+    stages {
+        stage('Clean workspace and checkout') {
+            steps {
+                sh """
+                    echo "${NODE_LABELS}"
+                """
+                script {
+                    if (params.COMMIT_TO_USE == "NONE") {
+                        echo "Specific GIT commit was not specified, use current head"
+                        def scmInfo = checkout scm
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                    } else {
+                        echo "SCM checkout of ${params.COMMIT_TO_USE}"
+                        def scmInfo = checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: params.COMMIT_TO_USE]],
+                            doGenerateSubmoduleConfigurations: false,
+                            extensions: [],
+                            submoduleCfg: [],
+                            userRemoteConfigs: [[url: env.SCM_VERRAZZANO_GIT_URL]]])
+                        env.GIT_COMMIT = scmInfo.GIT_COMMIT
+                        env.GIT_BRANCH = scmInfo.GIT_BRANCH
+                        // If the commit we were handed is not what the SCM says we are using, fail
+                        if (!env.GIT_COMMIT.equals(params.COMMIT_TO_USE)) {
+                            echo "SCM didn't checkout the commit we expected. Expected: ${params.COMMIT_TO_USE}, Found: ${env.GIT_COMMIT}"
+                            sh "exit 1"
+                        }
+                    }
+                    echo "SCM checkout of ${env.GIT_BRANCH} at ${env.GIT_COMMIT}"
+                }
+
+                script {
+                    def props = readProperties file: '.verrazzano-development-version'
+                    VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
+                    TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+                    SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                    // update the description with some meaningful info
+                    currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.COMMIT_TO_USE
+                }
+            }
+        }
+
+        stage('Download Scripts') {
+            steps {
+                script {
+                    sh """
+                        cd ${WORKSPACE}
+                        echo "Downloading verrazzano_images.txt from object storage"
+                        oci --region us-phoenix-1 os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name master/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt --file ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt
+                        oci --region us-phoenix-1 os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${env.BRANCH_NAME}/repo_urls.properties --file ${WORKSPACE}/repo_urls.properties
+                        ls
+                    """
+                }
+            }
+        }
+
+        stage('Download Source') {
+            steps {
+                script {
+                    sh """
+                        mkdir -p ${WORKSPACE}/downloaded_source
+                        ${WORKSPACE}/release/scripts/download_source_prt.sh ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt ${WORKSPACE}/repo_urls.properties ${WORKSPACE}/downloaded_source
+                        ls ${WORKSPACE}/downloaded_source
+                        mkdir -p ${WORKSPACE}/archive_dir
+                        ${WORKSPACE}/release/scripts/archive_source_prt.sh ${WORKSPACE}/archive_dir ${WORKSPACE}/downloaded_source ${params.RELEASE_VERSION}
+                        ls ${WORKSPACE}/archive_dir
+                    """
+                }
+            }
+        }
+    }
+    post {
+        cleanup {
+            deleteDir()
+        }
+    }
+}
+
