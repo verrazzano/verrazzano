@@ -86,7 +86,7 @@ func TestReconciler_createRancherIngressAndCertCopies(t *testing.T) {
 			asserts.Equal(t, len(rancherIngress.Spec.TLS), len(ing.Spec.TLS))
 			for i, tls := range rancherIngress.Spec.TLS {
 				asserts.Equal(t, tls.Hosts, ing.Spec.TLS[i].Hosts)
-				asserts.Contains(t, ing.Spec.TLS[i].SecretName, tls.SecretName+"-")
+				asserts.Equal(t, ing.Spec.TLS[i].SecretName, "vz-"+tls.SecretName)
 			}
 		}
 	}

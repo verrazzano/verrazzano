@@ -5,18 +5,19 @@ package reconcile
 
 import (
 	"context"
+	"strings"
 
-	"github.com/google/uuid"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // createRancherIngressAndCertCopies - creates copies of Rancher ingress and cert secret if
@@ -28,6 +29,13 @@ func (r *Reconciler) createRancherIngressAndCertCopies(ctx spi.ComponentContext)
 	if !ok {
 		return
 	}
+
+	dnsSuffix := getDNSSuffix(ctx.EffectiveCR())
+	if dnsSuffix == "" {
+		ctx.Log().Debug("Empty DNS suffix, skipping Rancher ingress copy")
+		return
+	}
+
 	for _, ingressName := range rancherComp.GetIngressNames(ctx) {
 		ing := netv1.Ingress{}
 		err := r.Get(context.TODO(), ingressName, &ing)
@@ -37,13 +45,17 @@ func (r *Reconciler) createRancherIngressAndCertCopies(ctx spi.ComponentContext)
 			}
 			continue
 		}
-		if r.ingressCopyExists(ctx, ing) {
+
+		if len(ing.Spec.TLS) == 0 || len(ing.Spec.TLS[0].Hosts) == 0 {
 			continue
 		}
+		if strings.HasSuffix(ing.Spec.TLS[0].Hosts[0], dnsSuffix) {
+			ctx.Log().Debugf("Rancher ingress host %s has DNS suffix %s, skipping copy", ing.Spec.TLS[0].Hosts[0], dnsSuffix)
+			continue
+		}
+
 		newIngressTLSList := r.createIngressCertSecretCopies(ctx, ing)
-		// generate a new name for the ingress copy
-		newIngName := generateNewName(ingressName.Name)
-		newIngressNSN := types.NamespacedName{Name: newIngName, Namespace: ingressName.Namespace}
+		newIngressNSN := types.NamespacedName{Name: "vz-" + ing.Name, Namespace: ingressName.Namespace}
 		err = r.createIngressCopy(newIngressNSN, ing, newIngressTLSList)
 		if err != nil {
 			ctx.Log().Infof("Failed to create a copy of Rancher ingress %s/%s - create ingress failed: %v", ingressName.Namespace, ingressName.Name, err)
@@ -54,18 +66,20 @@ func (r *Reconciler) createRancherIngressAndCertCopies(ctx spi.ComponentContext)
 }
 
 func (r *Reconciler) createIngressCopy(newIngressName types.NamespacedName, existingIngress netv1.Ingress, newIngressTLSList []netv1.IngressTLS) error {
-	newIngSpec := existingIngress.Spec.DeepCopy()
-	newIngSpec.TLS = newIngressTLSList
-	newIng := netv1.Ingress{
+	ingress := &netv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   newIngressName.Namespace,
-			Name:        newIngressName.Name,
-			Labels:      existingIngress.Labels,
-			Annotations: existingIngress.Annotations,
+			Name:      newIngressName.Name,
+			Namespace: newIngressName.Namespace,
 		},
-		Spec: *newIngSpec,
 	}
-	return r.Create(context.TODO(), &newIng)
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, ingress, func() error {
+		ingress.Labels = existingIngress.Labels
+		ingress.Annotations = existingIngress.Annotations
+		ingress.Spec = *existingIngress.Spec.DeepCopy()
+		ingress.Spec.TLS = newIngressTLSList
+		return nil
+	})
+	return err
 }
 
 func (r *Reconciler) createIngressCertSecretCopies(ctx spi.ComponentContext, ing netv1.Ingress) []netv1.IngressTLS {
@@ -76,7 +90,7 @@ func (r *Reconciler) createIngressCertSecretCopies(ctx spi.ComponentContext, ing
 			tlsSecretName := types.NamespacedName{Namespace: ing.Namespace, Name: ingTLS.SecretName}
 			err := r.Get(context.TODO(), tlsSecretName, &tlsSecret)
 			if err == nil {
-				newSecretNSN := types.NamespacedName{Name: generateNewName(tlsSecret.Name), Namespace: tlsSecret.Namespace}
+				newSecretNSN := types.NamespacedName{Name: "vz-" + tlsSecret.Name, Namespace: tlsSecret.Namespace}
 				if err := r.createSecretCopy(newSecretNSN, tlsSecret); err != nil {
 					ctx.Log().Infof("Failed to create copy %v of Rancher TLS secret %v", newSecretNSN, tlsSecretName)
 				}
@@ -89,58 +103,32 @@ func (r *Reconciler) createIngressCertSecretCopies(ctx spi.ComponentContext, ing
 	return newIngressTLSList
 }
 
-func (r *Reconciler) ingressCopyExists(ctx spi.ComponentContext, ingress netv1.Ingress) bool {
-	ingList := netv1.IngressList{}
-	err := r.List(context.TODO(), &ingList, client.InNamespace(common.CattleSystem))
-	if err != nil {
-		ctx.Log().Errorf("Could not list ingresses in Rancher namespace: %v", err)
-		return false
-	}
-	rancherIngressNameLen := len(ingress.Name)
-	for _, ing := range ingList.Items {
-		if ing.Name[0:(rancherIngressNameLen)] == ingress.Name+"-" {
-			if haveSameHosts(ing.Spec, ingress.Spec) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func haveSameHosts(spec1 netv1.IngressSpec, spec2 netv1.IngressSpec) bool {
-	if len(spec1.Rules) != len(spec2.Rules) {
-		return false
-	}
-	for _, rule := range spec1.Rules {
-		if !hasHost(spec2.Rules, rule.Host) {
-			return false
-		}
-	}
-	return true
-}
-
-func hasHost(rules []netv1.IngressRule, host string) bool {
-	for _, rule := range rules {
-		if rule.Host == host {
-			return true
-		}
-	}
-	return false
-}
-
 func (r *Reconciler) createSecretCopy(newName types.NamespacedName, existingSecret corev1.Secret) error {
-	newSecret := corev1.Secret{
+	newSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   newName.Namespace,
-			Name:        newName.Name,
-			Labels:      existingSecret.Labels,
-			Annotations: existingSecret.Annotations,
+			Namespace: newName.Namespace,
+			Name:      newName.Name,
 		},
-		Data: existingSecret.Data,
 	}
-	return r.Create(context.TODO(), &newSecret)
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, newSecret, func() error {
+		newSecret.Labels = existingSecret.Labels
+		newSecret.Annotations = existingSecret.Annotations
+		newSecret.Data = existingSecret.Data
+		return nil
+	})
+	return err
 }
 
-func generateNewName(existingName string) string {
-	return existingName + "-" + uuid.NewString()[:7]
+func getDNSSuffix(effectiveCR *v1alpha1.Verrazzano) string {
+	var dnsSuffix string
+
+	if effectiveCR.Spec.Components.DNS == nil || effectiveCR.Spec.Components.DNS.Wildcard != nil {
+		dnsSuffix = vzconfig.GetWildcardDomain(effectiveCR.Spec.Components.DNS)
+	} else if effectiveCR.Spec.Components.DNS.OCI != nil {
+		dnsSuffix = effectiveCR.Spec.Components.DNS.OCI.DNSZoneName
+	} else if effectiveCR.Spec.Components.DNS.External != nil {
+		dnsSuffix = effectiveCR.Spec.Components.DNS.External.Suffix
+	}
+
+	return dnsSuffix
 }
