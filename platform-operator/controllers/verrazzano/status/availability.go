@@ -59,7 +59,7 @@ func (p *HealthChecker) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazza
 	}
 	for _, component := range components {
 		// If status is not fully initialized, do not check availability
-		componentStatus, ok := vz.Status.Components[component.Name()]
+		componentStatus, ok := vz.Status.Components[component.GetJSONName()]
 		if !ok {
 			return nil, nil
 		}
@@ -73,7 +73,7 @@ func (p *HealthChecker) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazza
 				countAvailable++
 			}
 			// update the component availability metric
-			err := metricsexporter.SetComponentAvailabilityMetric(component.Name(), a.available, isEnabled)
+			err := metricsexporter.SetComponentAvailabilityMetric(component.GetJSONName(), a.available, isEnabled)
 			if err != nil {
 				return nil, err
 			}
@@ -114,7 +114,7 @@ func (p *HealthChecker) sendStatus(status *AvailabilityStatus) {
 
 // getComponentAvailability calculates componentAvailability for a given Verrazzano component
 func (p *HealthChecker) getComponentAvailability(component spi.Component, componentState vzapi.CompStateType, ctx spi.ComponentContext) componentAvailability {
-	name := component.Name()
+	name := component.GetJSONName()
 	ctx.Init(name)
 	var available vzapi.ComponentAvailability = vzapi.ComponentAvailable
 	var reason string
