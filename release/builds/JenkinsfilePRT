@@ -103,7 +103,7 @@ pipeline {
         stage('Download Source') {
             steps {
                 script {
-                    withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials')]) {
+                    withCredentials([gitUsernamePassword(credentialsId: 'gitlab_rw', gitToolName: 'git-tool')]) {
                         sh """
                             mkdir -p ${WORKSPACE}/downloaded_source
                             ${WORKSPACE}/release/scripts/download_source_prt.sh ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt ${WORKSPACE}/repo_urls.properties ${WORKSPACE}/downloaded_source
