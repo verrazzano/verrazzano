@@ -167,6 +167,12 @@ const MysqlBackupMutatingWebhookName = "verrazzano-mysql-backup"
 // MysqlBackupMutatingWebhookPath specifies the path of mysql webhook.
 const MysqlBackupMutatingWebhookPath = "/mysql-backup-job-annotate"
 
+// VerrazzanoClusterRancherName is the name for the Rancher cluster role and secret used to grant permissions to the Verrazzano cluster user
+const VerrazzanoClusterRancherName = "verrazzano-cluster-user"
+
+// VerrazzanoClusterRancherUsername is the username in Rancher used to identify the Verrazzano cluster user
+const VerrazzanoClusterRancherUsername = "verrazzanocluster"
+
 // Components Names
 const (
 	OamKubernetesRuntime          = "oam-kubernetes-runtime"

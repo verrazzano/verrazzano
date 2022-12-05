@@ -216,6 +216,7 @@ var devAllDisabledOverride = v1alpha1.Verrazzano{
 	Spec: v1alpha1.VerrazzanoSpec{
 		Profile: "dev",
 		Components: v1alpha1.ComponentSpec{
+			ClusterOperator:   &v1alpha1.ClusterOperatorComponent{Enabled: &falseValue},
 			Console:           &v1alpha1.ConsoleComponent{Enabled: &falseValue},
 			CoherenceOperator: &v1alpha1.CoherenceOperatorComponent{Enabled: &falseValue},
 			Elasticsearch:     &v1alpha1.ElasticsearchComponent{Enabled: &falseValue},
