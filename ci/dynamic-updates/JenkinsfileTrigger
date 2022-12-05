@@ -114,41 +114,41 @@ pipeline {
         stage ('Run Jaeger Update Test a bunch of times') {
             parallel (
                 // Running 30 parallel builds
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
+                stage (Jaeger Run 1) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 2) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 3) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 4) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 5) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
 
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
+                stage (Jaeger Run 6) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 7) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 8) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 9 { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 10) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
 
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
+                stage (Jaeger Run 11) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 12) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 13) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 14) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 15) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
 
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
+                stage (Jaeger Run 16) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 17) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 18) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 19) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 20) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
 
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
+                stage (Jaeger Run 21) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 22) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 23) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 24) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 25) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
 
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])},
-                {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])}
+                stage (Jaeger Run 26) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 27) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 28) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 29) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } },
+                stage (Jaeger Run 30) { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } }
             )
         }
     }
