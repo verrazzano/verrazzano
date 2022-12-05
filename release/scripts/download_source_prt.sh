@@ -29,9 +29,6 @@ REPO_URL_PROPS=$2
 SAVE_DIR=$3
 DRY_RUN=${4:-false}
 
-# A file to capture the console output of the script
-LOG_FILE=${SCRIPT_DIR}/archive_source.out
-
 # Verrazzano repository, which is prefix for each of the entries in IMAGES_TO_PUBLISH
 VZ_REPO_PREFIX="verrazzano/"
 
@@ -46,12 +43,12 @@ function processImagesToPublish() {
       case $key in
        ''|\#*) continue ;;
       esac
-
       key=$(echo $key | tr '.' '_')
       key=${key#$VZ_REPO_PREFIX}
 
       # Remove till last - from value to get the short commit
       value=${value##*-}
+
       downloadSourceCode "$key" "${value}"
     done < "${imagesToPublish}"
   else
@@ -77,45 +74,58 @@ function downloadSourceCode() {
 
   # Fail when the property for the component is not defined in REPO_URL_PROPS
   if [ "${keyFound}" == false ]; then
-    echo "The repository URL for the component ${compKey} is missing from file ${REPO_URL_PROPS}"
-    exit 1
+    if [ "$DRY_RUN" == true ]; then
+      echo "The repository URL for the component ${compKey} is missing from file ${REPO_URL_PROPS}"
+      exit 1
+    else
+      continue
+    fi
   fi
 
   # When DRY_RUN is set to true, do not download the source
   if [ "$DRY_RUN" == true ] ; then
-    return
+    continue
   fi
 
-  # Consider the value SKIP_GIT_CLONE for a property, to ignore cloning the repository
+  # Consider the value SKIP_CLONE for a property, to ignore cloning the repository
   # Also skip when there is no property defined for the compKey.
-  if [ "${repoUrl}" = "SKIP_GIT_CLONE" ] || [ "${repoUrl}" = "" ]; then
-    return
+  if [ "${repoUrl}" = "SKIP_CLONE" ] || [ "${repoUrl}" = "" ]; then
+    continue
   fi
 
   cd "${SAVE_DIR}"
-  git clone "${value}"
+
+  # Create a blobless clone, downloads all reachable commits and trees while fetching blobs on-demand.
+  git clone --filter=blob:none "${value}"
 
   # In most of the cases, we should be able to cd ${key}, find change dir only when previous cd fails
   # Something like cd "${key}" || { changeDir=$(getChangeDir "${value}") cd "${changeDir} }
   # But need to find a way to avoid the error message when cd "${key}" fails
   changeDir=$(getChangeDir "${value}")
   cd "${changeDir}"
+
   # -c advice.detachedHead=false is used to avoid the Git message for the detached HEAD
   git -c advice.detachedHead=false checkout "${shortCommit}"
 
   # Remove git history and other files
-  rm -rf .git .gitignore .github .gitattributes || true
+  rm -rf .git .gitignore .github .gitattributes
   printf "\n"
 }
 
 # Handle the examples repository as a special case and get the source from master/main branch
 function downloadSourceExamples() {
+  if [ "$DRY_RUN" == true ]; then
+    return
+  fi
   local repoUrl=$(getRepoUrl "examples")
+  if [ "${repoUrl}" = "" ]; then
+    return
+  fi
   cd "${SAVE_DIR}"
   git clone "${repoUrl}"
   cd examples
   # Remove git history and other files
-  rm -rf .git .gitignore .github .gitattributes || true
+  rm -rf .git .gitignore .github .gitattributes
   printf "\n"
 }
 
@@ -133,24 +143,13 @@ function getChangeDir() {
 }
 
 # If SAVE_DIR exists, fail if it has files / directories
-if [[ ! -d "${SAVE_DIR}" ]]; then
+if [[ ! -d "${SAVE_DIR}" ]] && [[ "$DRY_RUN" == false ]]; then
   mkdir -p ${SAVE_DIR}
-fi
-
-if [[ -n "$(ls -A "${SAVE_DIR}")" ]]; then
-   echo "Input directory ${SAVE_DIR} in not empty"
-   exit 1
 fi
 
 if [[ ! -f "${REPO_URL_PROPS}" ]]; then
   echo "Input file ${REPO_URL_PROPS} doesn't exist"
   exit 1
-fi
-
-# Log the console output of the script to a file
-if [ "$DRY_RUN" == false ] ; then
-   [ -e "${LOG_FILE}" ] && rm "${LOG_FILE}"
-  exec > >(tee "${LOG_FILE}") 2>&1
 fi
 
 processImagesToPublish "${IMAGES_TO_PUBLISH}"
@@ -160,5 +159,4 @@ if [ "$DRY_RUN" == true ] ; then
    echo "Completed running the script with DRY_RUN = true"
 else
   echo "Completed archiving source code, take a look at the contents of ${SAVE_DIR}"
-  echo "The output of the script is logged to ${LOG_FILE}"
 fi
