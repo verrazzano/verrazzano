@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"context"
+	"fmt"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"regexp"
 	"strings"
@@ -56,7 +57,7 @@ var rancherSystemNS = []string{
 
 // postUninstall removes the objects after the Helm uninstall process finishes
 func postUninstall(ctx spi.ComponentContext) error {
-	ctx.Log().Infof("Running the Rancher uninstall system tool")
+	ctx.Log().Oncef("Running the Rancher uninstall system tool")
 
 	// List all the namespaces that need to be cleaned from Rancher components
 	nsList := corev1.NamespaceList{}
@@ -164,33 +165,26 @@ func getCRDList(ctx spi.ComponentContext) *v1.CustomResourceDefinitionList {
 }
 
 func removeCRs(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) {
-	ctx.Log().Infof("Removing Rancher custom resources")
-	ctx.Log().Infof("Count of CRDs: %d", len(crds.Items))
+	ctx.Log().Oncef("Removing Rancher custom resources")
 	for _, crd := range crds.Items {
-		ctx.Log().Infof("CRD %s with kind %v", crd.Name, crd.Kind)
 		if strings.HasSuffix(crd.Name, ".cattle.io") {
 			rancherCRs := unstructured.UnstructuredList{}
-			rancherCRs.SetAPIVersion(crd.APIVersion)
-			rancherCRs.SetKind(crd.Kind)
+			rancherCRs.SetAPIVersion(fmt.Sprintf("%s/%s", crd.Spec.Group, crd.Spec.Versions[0].Name))
+			rancherCRs.SetKind(crd.Spec.Names.Kind)
 			err := ctx.Client().List(context.TODO(), &rancherCRs)
 			if err != nil {
 				ctx.Log().Errorf("Failed to list CustomResource %s during uninstall: %v", rancherCRs.GetKind(), err)
 				continue
 			}
 
-			//			for _, rancherCR := range rancherCRs.Items {
-			//				ctx.Log().Infof("Found %s for %s", rancherCR.GetName(), crd.GetName())
-			//				err := ctx.Client().Delete(context.TODO(), &rancherCr)
-			//				if err != nil {
-			//					ctx.Log().Errorf("Failed to delete the resource of type %s, named %s: %v", rancherCr.GetKind(), rancherCr.GetName(), err)
-			//				}
-			// resource.Resource{
-			//	Name:   rancherCR.GetName(),
-			//	Client: ctx.Client(),
-			//	Object: &rancherCR,
-			//	Log:    ctx.Log(),
-			// }.RemoveFinalizersAndDelete()
-			//			}
+			for _, rancherCR := range rancherCRs.Items {
+				resource.Resource{
+					Name:   rancherCR.GetName(),
+					Client: ctx.Client(),
+					Object: &rancherCR,
+					Log:    ctx.Log(),
+				}.RemoveFinalizersAndDelete()
+			}
 		}
 	}
 }
