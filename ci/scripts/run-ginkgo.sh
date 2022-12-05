@@ -10,6 +10,7 @@ if [ -z "${TEST_SUITES}" ]; then
   exit 0
 fi
 
+TEST_ROOT=${TEST_ROOT:-"${GOPATH}/src/github.com/verrazzano"}
 TEST_DUMP_ROOT=${TEST_DUMP_ROOT:-"."}
 SEQUENTIAL_SUITES=${SEQUENTIAL_SUITES:-false}
 
