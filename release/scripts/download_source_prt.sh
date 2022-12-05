@@ -30,7 +30,7 @@ SAVE_DIR=$3
 DRY_RUN=${4:-false}
 
 # A file to capture the console output of the script
-LOG_FILE=${SCRIPT_DIR}/archive_source.out
+#LOG_FILE=${SCRIPT_DIR}/archive_source.out
 
 # Verrazzano repository, which is prefix for each of the entries in IMAGES_TO_PUBLISH
 VZ_REPO_PREFIX="verrazzano/"
@@ -46,12 +46,12 @@ function processImagesToPublish() {
       case $key in
        ''|\#*) continue ;;
       esac
-
       key=$(echo $key | tr '.' '_')
       key=${key#$VZ_REPO_PREFIX}
 
       # Remove till last - from value to get the short commit
       value=${value##*-}
+
       downloadSourceCode "$key" "${value}"
     done < "${imagesToPublish}"
   else
@@ -115,6 +115,9 @@ function downloadSourceCode() {
 # Handle the examples repository as a special case and get the source from master/main branch
 function downloadSourceExamples() {
   local repoUrl=$(getRepoUrl "examples")
+  if [ "${repoUrl}" = "" ]; then
+    return
+  fi
   cd "${SAVE_DIR}"
   git clone "${repoUrl}"
   cd examples
@@ -152,10 +155,10 @@ if [[ ! -f "${REPO_URL_PROPS}" ]]; then
 fi
 
 # Log the console output of the script to a file
-if [ "$DRY_RUN" == false ] ; then
-   [ -e "${LOG_FILE}" ] && rm "${LOG_FILE}"
-  exec > >(tee "${LOG_FILE}") 2>&1
-fi
+#if [ "$DRY_RUN" == false ] ; then
+#   [ -e "${LOG_FILE}" ] && rm "${LOG_FILE}"
+#  exec > >(tee "${LOG_FILE}") 2>&1
+#fi
 
 processImagesToPublish "${IMAGES_TO_PUBLISH}"
 downloadSourceExamples
@@ -164,5 +167,5 @@ if [ "$DRY_RUN" == true ] ; then
    echo "Completed running the script with DRY_RUN = true"
 else
   echo "Completed archiving source code, take a look at the contents of ${SAVE_DIR}"
-  echo "The output of the script is logged to ${LOG_FILE}"
+  # echo "The output of the script is logged to ${LOG_FILE}"
 fi
