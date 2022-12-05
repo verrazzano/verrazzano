@@ -67,9 +67,6 @@ var _ = t.Describe("Update admin-cluster cert-manager", Label("f:platform-lcm.up
 		t.It("admin-cluster cert-manager custom CA", func() {
 			start := time.Now()
 			oldIngressCaCrt := updateAdminClusterCA()
-			// reapply registration for managed cluster - for self-signed certs, this manual step
-			// is expected of users so that the admin kubeconfig used by the managed cluster can be
-			// reliably updated to use the new CA cert, or intermittent timing related failures may occur
 			reapplyManagedClusterRegManifest()
 			verifyCaSync(oldIngressCaCrt)
 			// verify new logs are flowing after updating admin cert
@@ -80,6 +77,7 @@ var _ = t.Describe("Update admin-cluster cert-manager", Label("f:platform-lcm.up
 		t.It("admin-cluster cert-manager revert to default self-signed CA", func() {
 			start := time.Now()
 			oldIngressCaCrt := revertToDefaultCertManager()
+			reapplyManagedClusterRegManifest()
 			verifyCaSync(oldIngressCaCrt)
 			verifyManagedFluentd(start)
 		})
@@ -214,6 +212,10 @@ func verifyRegistration() {
 	}
 }
 
+// reapplyManagedClusterRegManifest reapplies the registration manifest on managed clusters. For
+// self-signed certs, this manual step is expected of users so that the admin kubeconfig used by the
+// managed clusters can be reliably updated to use the new CA cert. Otherwise intermittent timing
+// related failures may occur
 func reapplyManagedClusterRegManifest() {
 	for _, managedCluster := range managedClusters {
 		reg, err := adminCluster.GetManifest(managedCluster.Name)
