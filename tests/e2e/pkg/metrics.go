@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	promoperapi "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	vaoClient "github.com/verrazzano/verrazzano/application-operator/clientset/versioned"
@@ -26,6 +27,32 @@ func QueryMetricWithLabel(metricsName string, kubeconfigPath string, label strin
 	metricsURL := fmt.Sprintf("https://%s/api/v1/query?query=%s{%s=\"%s\"}", GetPrometheusIngressHost(kubeconfigPath), metricsName,
 		label, labelValue)
 
+	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
+	if err != nil {
+		return "", err
+	}
+	resp, err := GetWebPageWithBasicAuth(metricsURL, "", "verrazzano", password, kubeconfigPath)
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("error retrieving metric %s, status %d", metricsName, resp.StatusCode)
+	}
+	Log(Info, fmt.Sprintf("metric: %s", resp.Body))
+	return string(resp.Body), nil
+}
+
+// QueryMetricRange queries a metric from the Prometheus host over a specified range, derived from the kubeconfig
+//
+// Parameters:
+// - metricsName The name of the metric being queried
+// - start The start time for the range
+// - end The end time for the range
+// - stepDuration Query resolution step width
+func QueryMetricRange(metricsName string, start *time.Time, end *time.Time, stepSeconds int64, kubeconfigPath string) (string, error) {
+	start.Unix()
+	metricsURL := fmt.Sprintf("https://%s/api/v1/query_range?query=%s&start=%v&end=%v&step=%v", GetPrometheusIngressHost(kubeconfigPath), metricsName,
+		start.Unix(), end.Unix(), stepSeconds)
 	password, err := GetVerrazzanoPasswordInCluster(kubeconfigPath)
 	if err != nil {
 		return "", err
@@ -84,7 +111,7 @@ func MetricsExistInCluster(metricsName string, keyMap map[string]string, kubecon
 	}
 	metrics := JTq(metric, "data", "result").([]interface{})
 	if metrics != nil {
-		return findMetric(metrics, keyMap)
+		return FindMetric(metrics, keyMap)
 	}
 	return false
 }
@@ -112,8 +139,8 @@ func JTq(jtext string, path ...string) interface{} {
 	return Jq(j, path...)
 }
 
-// findMetric parses a Prometheus response to find a specified set of metric values
-func findMetric(metrics []interface{}, keyMap map[string]string) bool {
+// FindMetric parses a Prometheus response to find a specified set of metric values
+func FindMetric(metrics []interface{}, keyMap map[string]string) bool {
 	for _, metric := range metrics {
 
 		// allExist only remains true if all metrics are found in a given JSON response
