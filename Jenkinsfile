@@ -265,24 +265,33 @@ pipeline {
                     when { not { buildingTag() } }
                     steps {
                         sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    make precommit
-                    make unit-test-coverage-ratcheting
-                """
+                            cd ${GO_REPO_PATH}/verrazzano
+                            make precommit
+                            make unit-test-coverage-ratcheting
+                        """
                     }
                     post {
                         failure {
+                            publishChecks name: 'verrazzano-quality', title: 'Verrazzano quality checks', summary: 'Quality, Compliance Checks, and Unit Tests',
+			        text: 'Quality, Compliance Checks, and Unit Tests have failed',
+			        detailsURL: "${env.BUILD_URL}", conclusion: "FAILURE"
+
                             script {
                                 SKIP_TRIGGERED_TESTS = true
                             }
                         }
+                        success {
+                            publishChecks name: 'verrazzano-quality', title: 'Verrazzano quality checks', summary: 'Quality, Compliance Checks, and Unit Tests',
+			        text: 'Quality, Compliance Checks, and Unit Tests have passed',
+			        detailsURL: "${env.BUILD_URL}", conclusion: "SUCCESS"
+                        }
                         always {
                             sh """
-                        cd ${GO_REPO_PATH}/verrazzano
-                        cp coverage.html ${WORKSPACE}
-                        cp coverage.xml ${WORKSPACE}
-                        build/copy-junit-output.sh ${WORKSPACE}
-                    """
+                                cd ${GO_REPO_PATH}/verrazzano
+                                cp coverage.html ${WORKSPACE}
+                                cp coverage.xml ${WORKSPACE}
+                                build/copy-junit-output.sh ${WORKSPACE}
+                            """
                             archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
                             junit testResults: '**/*test-result.xml', allowEmptyResults: true
                             cobertura(coberturaReportFile: 'coverage.xml',
