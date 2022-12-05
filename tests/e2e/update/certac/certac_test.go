@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Jeffail/gabs/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	aocnst "github.com/verrazzano/verrazzano/application-operator/constants"
@@ -20,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -55,7 +57,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
-	//verifyManagedClustersFluentdConnection()
+	// verifyManagedClustersFluentdConnection()
 })
 
 var _ = AfterSuite(afterSuite)
@@ -132,10 +134,36 @@ func verifyAdminClusterIngressCA(oldIngressCaCrt string) string {
 func verifyCaSyncToManagedClusters(admCaCrt string) {
 	for _, managedCluster := range managedClusters {
 		verifyManagedClusterRegistration(managedCluster, admCaCrt, mcconstants.AdminCaBundleKey)
+		verifyManagedClusterKubeconfig(managedCluster, admCaCrt, mcconstants.KubeconfigKey)
 		if isDefaultFluentd(originalFluentd) {
 			verifyManagedClusterRegistration(managedCluster, admCaCrt, mcconstants.ESCaBundleKey)
 		}
 	}
+}
+
+func verifyManagedClusterKubeconfig(managedCluster *multicluster.Cluster, admCaCrt string, kubeconfigKey string) {
+	start := time.Now()
+	gomega.Eventually(func() bool {
+		newKubeconfig := managedCluster.
+			GetSecretDataAsString(constants.VerrazzanoSystemNamespace, aocnst.MCAgentSecret, kubeconfigKey)
+		jsonKubeconfig, err := yaml.YAMLToJSON([]byte(newKubeconfig))
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Failed converting admin kubeconfig to JSON: %v", err))
+			return false
+		}
+		parsedKubeconfig, err := gabs.ParseJSON(jsonKubeconfig)
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Failed parsing admin kubeconfig JSON: %v", err))
+			return false
+		}
+		newCaCrt := parsedKubeconfig.Path("certificate-authority-data").Data().(string)
+		if newCaCrt == admCaCrt {
+			pkg.Log(pkg.Error, fmt.Sprintf("%v of %v took %v updated", aocnst.MCAgentSecret, managedCluster.Name, time.Since(start)))
+		} else {
+			pkg.Log(pkg.Error, fmt.Sprintf("%v of %v is not updated", aocnst.MCAgentSecret, managedCluster.Name))
+		}
+		return admCaCrt == newCaCrt
+	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Sync CA %v", managedCluster.Name))
 }
 
 func verifyManagedClusterRegistration(managedCluster *multicluster.Cluster, admCaCrt, cakey string) {
