@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	aocnst "github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -158,7 +159,7 @@ func verifyManagedClusterAdminKubeconfig(managedCluster *multicluster.Cluster, a
 			pkg.Log(pkg.Error, fmt.Sprintf("Failed parsing admin kubeconfig JSON: %v", err))
 			return false
 		}
-		newCaCrt := parsedKubeconfig.Search("clusters", "cluster", 0, "certificate-authority-data").Data().(string)
+		newCaCrt := parsedKubeconfig.Search("clusters", "cluster", "0", "certificate-authority-data").Data().(string)
 		if newCaCrt == admCaCrt {
 			pkg.Log(pkg.Error, fmt.Sprintf("%v of %v took %v updated", aocnst.MCAgentSecret, managedCluster.Name, time.Since(start)))
 		} else {
@@ -217,12 +218,42 @@ func verifyRegistration() {
 // managed clusters can be reliably updated to use the new CA cert. Otherwise intermittent timing
 // related failures may occur
 func reapplyManagedClusterRegManifest() {
+	CAUpdateTime := time.Now()
 	for _, managedCluster := range managedClusters {
-		reg, err := adminCluster.GetManifest(managedCluster.Name)
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("could not get manifest for managed cluster %v error: %v", managedCluster.Name, err))
-		}
-		pkg.Log(pkg.Info, fmt.Sprintf("Reapplying registration manifest for managed cluster %s", managedCluster.Name))
-		managedCluster.Apply(reg)
+		waitForVMCReadyAfterTime(managedCluster.Name, CAUpdateTime)
+		gomega.Eventually(func() error {
+			reg, err := adminCluster.GetManifest(managedCluster.Name)
+			if err != nil {
+				pkg.Log(pkg.Error, fmt.Sprintf("could not get manifest for managed cluster %v error: %v", managedCluster.Name, err))
+				return err
+			}
+			pkg.Log(pkg.Info, fmt.Sprintf("Reapplying registration manifest for managed cluster %s", managedCluster.Name))
+			managedCluster.Apply(reg)
+			return nil
+		}, waitTimeout, pollingInterval).Should(gomega.BeNil(), fmt.Sprintf("Reapply registration manifest failed for cluster %s", managedCluster.Name))
 	}
+}
+
+func waitForVMCReadyAfterTime(managedClusterName string, afterTime time.Time) {
+	gomega.Eventually(func() bool {
+		vmc, err := adminCluster.GetVMC(managedClusterName)
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Failed getting VMC for %s: %v", managedClusterName, err))
+			return false
+		}
+		readyCond := findStatusCondition(vmc.Status.Conditions, v1alpha1.ConditionReady)
+		if !readyCond.LastTransitionTime.After(afterTime) {
+			return false
+		}
+		return true
+	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("VMC ready condition for %s not updated after CA change", managedClusterName))
+}
+
+func findStatusCondition(conditions []v1alpha1.Condition, condType v1alpha1.ConditionType) *v1alpha1.Condition {
+	for _, cond := range conditions {
+		if cond.Type == condType {
+			return &cond
+		}
+	}
+	return nil
 }

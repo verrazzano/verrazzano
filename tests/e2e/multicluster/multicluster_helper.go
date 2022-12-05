@@ -273,6 +273,7 @@ func getCluster(name, kcfgDir string, count int) *Cluster {
 	if _, err := os.Stat(kcfgPath); errs.Is(err, os.ErrNotExist) {
 		return nil
 	}
+
 	return newCluster(name, kcfgPath)
 }
 
@@ -480,6 +481,15 @@ func (c *Cluster) Register(managed *Cluster) error {
 	}
 	managed.Apply(reg)
 	return nil
+}
+
+func (c *Cluster) GetVMC(name string) (*mcapi.VerrazzanoManagedCluster, error) {
+	mcCli, err := mcClient.NewForConfig(c.restConfig)
+	if err != nil {
+		return nil, err
+	}
+	return mcCli.ClustersV1alpha1().
+		VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 func (c *Cluster) GetManifest(name string) ([]byte, error) {
