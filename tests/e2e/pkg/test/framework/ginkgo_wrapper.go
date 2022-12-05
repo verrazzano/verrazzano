@@ -89,7 +89,7 @@ func (t *TestFramework) ItMinimumVersion(text string, version string, kubeconfig
 }
 
 func (t *TestFramework) makeItArgs(args ...interface{}) []interface{} {
-	body := getFunctionBody(args...)
+	body := getFunctionBodyPos(len(args)-1, args...)
 	f := func() {
 		metrics.Emit(t.Metrics) // Starting point metric
 		reflect.ValueOf(body).Call([]reflect.Value{})
@@ -102,7 +102,7 @@ func (t *TestFramework) makeItArgs(args ...interface{}) []interface{} {
 
 // Describe wraps Ginkgo Describe to emit a metric
 func (t *TestFramework) Describe(text string, args ...interface{}) bool {
-	body := getFunctionBody(args...)
+	body := getFunctionBodyPos(len(args)-1, args...)
 	f := func() {
 		metrics.Emit(t.Metrics)
 		reflect.ValueOf(body).Call([]reflect.Value{})
@@ -228,11 +228,15 @@ func failIfNotFunction(body interface{}) {
 	}
 }
 
-func getFunctionBody(args ...interface{}) interface{} {
+func getFunctionBodyPos(pos int, args ...interface{}) interface{} {
 	if args == nil {
 		ginkgo.Fail("Unsupported args type - expected non-nil")
 	}
-	body := args[len(args)-1]
+	body := args[pos]
 	failIfNotFunction(body)
 	return body
+}
+
+func getFunctionBody(args ...interface{}) interface{} {
+	return getFunctionBodyPos(0, args...)
 }
