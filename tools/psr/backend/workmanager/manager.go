@@ -5,8 +5,6 @@ package workmanager
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/restart"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/promtheus/alerts"
 	"sync"
 	"time"
 
@@ -18,8 +16,10 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/http/get"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/getlogs"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/postlogs"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/restart"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/scale"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/writelogs"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/promtheus/alerts"
 )
 
 var startMetricsFunc = metrics2.StartMetricsServerOrDie
@@ -68,7 +68,7 @@ func StartWorkerRunners(log vzlog.VerrazzanoLogger) error {
 		log.Infof("Running worker %s in thread %v", wt, i)
 		go func() {
 			defer wg.Done()
-			runner.RunWorker(conf, log)
+			_ = runner.RunWorker(conf, log)
 		}()
 	}
 	wg.Wait()
