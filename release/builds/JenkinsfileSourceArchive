@@ -24,11 +24,6 @@ pipeline {
     }
 
     environment {
-        OCR_CREDS = credentials('ocr-pull-and-push-account')
-        NETRC_FILE = credentials('netrc')
-        DOCKER_CREDS = credentials('github-packages-credentials-rw')
-        DOCKER_REPO = 'ghcr.io'
-
         OBJECT_STORAGE_NS = credentials('oci-os-namespace')
         OBJECT_STORAGE_BUCKET="verrazzano-builds"
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
