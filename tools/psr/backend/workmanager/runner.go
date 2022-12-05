@@ -6,7 +6,6 @@ package workmanager
 import (
 	"crypto/rand"
 	"math/big"
-	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -136,8 +135,7 @@ func (r workerRunner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLo
 		if r.Worker.WantLoopInfoLogged() {
 			log.Infof("Loop Count: %v, Total seconds from start of the first worker loop until now: %v", loopCount, durationSecondsTotal)
 		}
-		duration, _ := time.ParseDuration(strconv.FormatInt(durationSecondsTotal, 10) + "s")
-		if duration >= conf.PsrDuration && conf.PsrDuration != config.UnlimitedWorkerDuration {
+		if time.Duration(durationSecondsTotal) > conf.PsrDuration*time.Second && conf.PsrDuration != config.UnlimitedWorkerDuration {
 			log.Infof("Worker has reached its run duration of %s", conf.PsrDuration)
 			return nil
 		}
