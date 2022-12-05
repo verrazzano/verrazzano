@@ -87,9 +87,9 @@ function downloadSourceCode() {
     continue
   fi
 
-  # Consider the value SKIP_GIT_CLONE for a property, to ignore cloning the repository
+  # Consider the value SKIP_CLONE for a property, to ignore cloning the repository
   # Also skip when there is no property defined for the compKey.
-  if [ "${repoUrl}" = "SKIP_GIT_CLONE" ] || [ "${repoUrl}" = "" ]; then
+  if [ "${repoUrl}" = "SKIP_CLONE" ] || [ "${repoUrl}" = "" ]; then
     continue
   fi
 

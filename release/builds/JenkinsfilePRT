@@ -99,7 +99,6 @@ pipeline {
                         echo "Downloading verrazzano_images.txt from object storage"
                         oci --region us-phoenix-1 os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name master/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt --file ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt
                         oci --region us-phoenix-1 os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${env.BRANCH_NAME}/${REPO_URLS_PROPS} --file ${WORKSPACE}/${REPO_URLS_PROPS}
-                        ls
                     """
                 }
             }
