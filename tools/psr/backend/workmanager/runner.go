@@ -127,7 +127,7 @@ func (r workerRunner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLo
 			}
 			r.prevWorkFailed = false
 		}
-		_ = log.GetZapLogger().Sync()
+		log.GetZapLogger().Sync()
 
 		durationSecondsTotal := time.Now().Unix() - startTimeSecs
 		atomic.StoreInt64(&r.runnerMetrics.workerLoopNanoSeconds.Val, time.Now().UnixNano()-startLoop)
