@@ -6,15 +6,14 @@ package rancher
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/os"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	osexec "os/exec"
 	"regexp"
 	"strings"
 
-	osexec "os/exec"
-
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	"github.com/verrazzano/verrazzano/pkg/os"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	admv1 "k8s.io/api/admissionregistration/v1"
@@ -57,8 +56,6 @@ var rancherSystemNS = []string{
 
 // postUninstall removes the objects after the Helm uninstall process finishes
 func postUninstall(ctx spi.ComponentContext) error {
-	ctx.Log().Oncef("Running the Rancher uninstall system tool")
-
 	// List all the namespaces that need to be cleaned from Rancher components
 	nsList := corev1.NamespaceList{}
 	err := ctx.Client().List(context.TODO(), &nsList)
@@ -69,6 +66,7 @@ func postUninstall(ctx spi.ComponentContext) error {
 	// For Rancher namespaces, run the system tools uninstaller
 	for i, ns := range nsList.Items {
 		if isRancherNamespace(&nsList.Items[i]) {
+			ctx.Log().Infof("Running the Rancher uninstall system tool for namespace %s", ns.Name)
 			args := []string{"remove", "-c", "/home/verrazzano/kubeconfig", "--namespace", ns.Name, "--force"}
 			cmd := osexec.Command(rancherSystemTool, args...) //nolint:gosec //#nosec G204
 			_, stdErr, err := os.DefaultRunner{}.Run(cmd)
@@ -154,6 +152,7 @@ func deleteWebhooks(ctx spi.ComponentContext) error {
 	return nil
 }
 
+// getCRDList returns the list of CRDs in the cluster
 func getCRDList(ctx spi.ComponentContext) *v1.CustomResourceDefinitionList {
 	crds := &v1.CustomResourceDefinitionList{}
 	err := ctx.Client().List(context.TODO(), crds)
@@ -164,10 +163,11 @@ func getCRDList(ctx spi.ComponentContext) *v1.CustomResourceDefinitionList {
 	return crds
 }
 
+// removeCRs deletes any remaining Rancher cattle.io custom resources
 func removeCRs(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) {
 	ctx.Log().Oncef("Removing Rancher custom resources")
 	for _, crd := range crds.Items {
-		if strings.HasSuffix(crd.Name, ".cattle.io") {
+		if strings.HasSuffix(crd.Name, ".cattle.io") && crd.Spec.Scope == v1.ClusterScoped {
 			rancherCRs := unstructured.UnstructuredList{}
 			rancherCRs.SetAPIVersion(fmt.Sprintf("%s/%s", crd.Spec.Group, crd.Spec.Versions[0].Name))
 			rancherCRs.SetKind(crd.Spec.Names.Kind)
@@ -179,12 +179,20 @@ func removeCRs(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) 
 
 			for _, rancherCR := range rancherCRs.Items {
 				cr := rancherCR
+				/*				ctx.Log().Oncef("Remove RancherCR %s/%s, APIVersion: %s, Kind: %s", cr.GetNamespace(), cr.GetName(), cr.GetAPIVersion(), cr.GetKind())
+								err := ctx.Client().Delete(context.TODO(), &cr)
+								if err != nil {
+									ctx.Log().Errorf("Failed to delete %v during uninstall: %s", cr, err.Error())
+								}
+
+				*/
 				resource.Resource{
-					Name:   rancherCR.GetName(),
+					Name:   cr.GetName(),
 					Client: ctx.Client(),
 					Object: &cr,
 					Log:    ctx.Log(),
 				}.RemoveFinalizersAndDelete()
+
 			}
 		}
 	}
