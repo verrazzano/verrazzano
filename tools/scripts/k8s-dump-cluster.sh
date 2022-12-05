@@ -228,6 +228,7 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get orders.acme.cert-manager.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/acme-orders.json || true
         kubectl --insecure-skip-tls-verify get statefulsets -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/statefulsets.json || true
         kubectl --insecure-skip-tls-verify get secrets -n $NAMESPACE -o json |jq 'del(.items[].data)' 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/secrets.json || true
+        kubectl --insecure-skip-tls-verify get serviceaccounts -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/serviceaccounts.json || true
         kubectl --insecure-skip-tls-verify get certificates -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/certificates.json || true
         kubectl --insecure-skip-tls-verify get MetricsTrait -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/metrics-traits.json || true
         kubectl --insecure-skip-tls-verify get servicemonitor -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/service-monitors.json || true

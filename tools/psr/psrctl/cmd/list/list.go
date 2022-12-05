@@ -4,6 +4,7 @@
 package list
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
@@ -26,6 +27,7 @@ psrctl list -n foo
 var scenarioID string
 var namespace string
 var allNamepaces bool
+var outputFormat string
 
 func NewCmdList(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -38,6 +40,8 @@ func NewCmdList(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().StringVarP(&scenarioID, constants.FlagScenario, constants.FlagsScenarioShort, "", constants.FlagScenarioHelp)
 	cmd.PersistentFlags().StringVarP(&namespace, constants.FlagNamespace, constants.FlagNamespaceShort, "default", constants.FlagNamespaceHelp)
 	cmd.PersistentFlags().BoolVarP(&allNamepaces, constants.FlagAll, constants.FlagAllShort, false, constants.FlagAllHelp)
+	cmd.PersistentFlags().StringVarP(&outputFormat, constants.OutputFormatName, constants.OutputFormatNameShort, "text", constants.OutputFormatHelp)
+	cmd.PersistentFlags().MarkHidden(constants.OutputFormatName)
 
 	return cmd
 }
@@ -63,6 +67,15 @@ func RunCmdList(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		} else {
 			fmt.Printf("There are no scenarios running in namespace %s\n", namespace)
 		}
+		return nil
+	}
+
+	if outputFormat == "json" {
+		jsonOut, err := json.Marshal(scenarios)
+		if err != nil {
+			return err
+		}
+		fmt.Print(string(jsonOut))
 		return nil
 	}
 
