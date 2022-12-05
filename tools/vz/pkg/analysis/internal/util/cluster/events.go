@@ -100,13 +100,43 @@ func GetEventsRelatedToService(log *zap.SugaredLogger, clusterRoot string, servi
 // and checks if there exists an event with type Warning and returns the corresponding reason and message
 // as an additional supporting data
 func CheckEventsForWarnings(log *zap.SugaredLogger, events []corev1.Event, timeRange *files.TimeRange) (message []string, err error) {
-	log.Debugf("Seraching the events list for any addtional support data")
+	log.Debugf("Searching the events list for any additional support data")
+	var finalEventList []corev1.Event
 	for _, event := range events {
+		for index, previousEvent := range finalEventList {
+			// If we already iterated through an event for the same involved object with type Warning
+			// And that event occurred before this current event, replace it accordingly
+			// i.e. if the event recovered from type Warning to Normal, remove it from the finalEventList
+			// else replace the previously iterated event with current event
+			if IsInvolvedObjectSame(event, previousEvent) &&
+				event.LastTimestamp.Time.After(previousEvent.LastTimestamp.Time) {
+				if event.Type == "Warning" {
+					previousEvent = event
+				} else {
+					// If the event type is Normal, the involved object has recovered from the previous Warning
+					// Remove it from the final list
+					finalEventList = append(finalEventList[:index], finalEventList[index+1:]...)
+				}
+			}
+		}
+		// No previous event for this specific involved object
+		// If the type is warning, add to the finalEventList
 		if event.Type == "Warning" {
-			message = append(message, fmt.Sprintf("Reason: %s, Message: %s", event.Reason, event.Message))
+			finalEventList = append(finalEventList, event)
 		}
 	}
+
+	for _, event := range finalEventList {
+		message = append(message, fmt.Sprintf("Reason: %s, Message: %s", event.Reason, event.Message))
+	}
+
 	return message, nil
+}
+
+func IsInvolvedObjectSame(eventA corev1.Event, eventB corev1.Event) bool {
+	return eventA.InvolvedObject.Kind == eventB.InvolvedObject.Kind &&
+		eventA.InvolvedObject.Name == eventB.InvolvedObject.Name &&
+		eventA.InvolvedObject.Namespace == eventB.InvolvedObject.Namespace
 }
 
 func getEventListIfPresent(path string) (eventList *corev1.EventList) {

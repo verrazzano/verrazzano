@@ -245,6 +245,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		messages[0] = fmt.Sprintf("Namespace %s, Pod %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 		// TODO: Time correlation on error search here
 
+		// Look through the events to see if we can find any Warning messages as additional supporting data
 		messages.addMessages(CheckEventsForWarnings(log, events, nil))
 
 		fileName := files.FindFileInClusterRoot(clusterRoot, ingressNginx)
