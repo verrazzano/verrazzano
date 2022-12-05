@@ -218,8 +218,9 @@ func reapplyManagedClusterRegManifest() {
 	for _, managedCluster := range managedClusters {
 		reg, err := adminCluster.GetManifest(managedCluster.Name)
 		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("manifest %v error: %v", managedCluster.Name, err))
+			pkg.Log(pkg.Error, fmt.Sprintf("could not get manifest for managed cluster %v error: %v", managedCluster.Name, err))
 		}
+		pkg.Log(pkg.Info, fmt.Sprintf("Reapplying registration manifest for managed cluster %s", managedCluster.Name))
 		managedCluster.Apply(reg)
 	}
 }
