@@ -43,7 +43,9 @@ pipeline {
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
 
         GITLAB_URL_PREFIX = credentials('gitlab-url-prefix')
-        REPO_URLS_PROPS = "repo_urls.properties"
+        REPO_URLS_PROPS = "vzsource_repo_urls.properties"
+        REPO_URLS1_PROPS = "vzsource_repo_urls_1.properties"
+        REPO_URLS2_PROPS = "vzsource_repo_urls_2.properties"
     }
 
     stages {
@@ -108,33 +110,29 @@ pipeline {
                 script {
                     sh """
                             mkdir -p ${WORKSPACE}/downloaded_source
-                            grep -v ${GITLAB_URL_PREFIX} ${WORKSPACE}/${REPO_URLS_PROPS} > ${WORKSPACE}/repo_urls_1.properties
-                            grep -F -x -v -f ${WORKSPACE}/repo_urls_1.properties ${WORKSPACE}/${REPO_URLS_PROPS} > ${WORKSPACE}/repo_urls_2.properties
-                            echo "# URLs end here" >> ${WORKSPACE}/repo_urls_2.properties
-                            echo "repo_urls_1.properties starts here"
-                            cat ${WORKSPACE}/repo_urls_1.properties
-                            echo "repo_urls_2.properties starts here"
-                            cat ${WORKSPACE}/repo_urls_2.properties
+                            grep -v ${GITLAB_URL_PREFIX} ${WORKSPACE}/${REPO_URLS_PROPS} > ${WORKSPACE}/${REPO_URLS1_PROPS}
+                            grep -F -x -v -f ${WORKSPACE}/${REPO_URLS1_PROPS} ${WORKSPACE}/${REPO_URLS_PROPS} > ${WORKSPACE}/${REPO_URLS2_PROPS}
+                            echo "# URLs end here" >> ${WORKSPACE}/${REPO_URLS2_PROPS}
                     """
 
                     withCredentials([gitUsernamePassword(credentialsId: 'gitlab_rw', gitToolName: 'git-tool')]) {
                         sh """
-                            ${WORKSPACE}/release/scripts/download_source_prt.sh ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt ${WORKSPACE}/repo_urls_2.properties  ${WORKSPACE}/downloaded_source
+                            ${WORKSPACE}/release/scripts/download_source_prt.sh ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt ${WORKSPACE}/${REPO_URLS2_PROPS} ${WORKSPACE}/downloaded_source
                             ls ${WORKSPACE}/downloaded_source
                         """
                     }
 
                     withCredentials([gitUsernamePassword(credentialsId: 'github_rw', gitToolName: 'git-tool')]) {
                         sh """
-                                ${WORKSPACE}/release/scripts/download_source_prt.sh ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt ${WORKSPACE}/repo_urls_1.properties  ${WORKSPACE}/downloaded_source
-                                ls ${WORKSPACE}/downloaded_source
-                                mkdir -p ${WORKSPACE}/archive_dir
-                                if [[ ${BRANCH_NAME} ==~ "release-.*" ]]; then
-                                    ${WORKSPACE}/release/scripts/archive_source_prt.sh ${WORKSPACE}/archive_dir ${WORKSPACE}/downloaded_source ${params.RELEASE_VERSION}
-                                else
-                                    ${WORKSPACE}/release/scripts/archive_source_prt.sh ${WORKSPACE}/archive_dir ${WORKSPACE}/downloaded_source ${params.RELEASE_VERSION}
-                                fi
-                                ls ${WORKSPACE}/archive_dir
+                            ${WORKSPACE}/release/scripts/download_source_prt.sh ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt ${WORKSPACE}/${REPO_URLS1_PROPS} ${WORKSPACE}/downloaded_source
+                            ls ${WORKSPACE}/downloaded_source
+                            mkdir -p ${WORKSPACE}/archive_dir
+                            if [[ ${BRANCH_NAME} ==~ "release-.*" ]]; then
+                                ${WORKSPACE}/release/scripts/archive_source_prt.sh ${WORKSPACE}/archive_dir ${WORKSPACE}/downloaded_source ${params.RELEASE_VERSION}
+                            else
+                                ${WORKSPACE}/release/scripts/archive_source_prt.sh ${WORKSPACE}/archive_dir ${WORKSPACE}/downloaded_source ${params.RELEASE_VERSION}
+                            fi
+                            ls ${WORKSPACE}/archive_dir
                         """
                     }
                 }
@@ -147,4 +145,3 @@ pipeline {
         }
     }
 }
-

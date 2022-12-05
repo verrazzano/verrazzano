@@ -94,18 +94,21 @@ function downloadSourceCode() {
   fi
 
   cd "${SAVE_DIR}"
-  git clone "${value}"
+
+  # Create a blobless clone, downloads all reachable commits and trees while fetching blobs on-demand.
+  git clone --filter=blob:none "${value}"
 
   # In most of the cases, we should be able to cd ${key}, find change dir only when previous cd fails
   # Something like cd "${key}" || { changeDir=$(getChangeDir "${value}") cd "${changeDir} }
   # But need to find a way to avoid the error message when cd "${key}" fails
   changeDir=$(getChangeDir "${value}")
   cd "${changeDir}"
+
   # -c advice.detachedHead=false is used to avoid the Git message for the detached HEAD
   git -c advice.detachedHead=false checkout "${shortCommit}"
 
   # Remove git history and other files
-  rm -rf .git .gitignore .github .gitattributes || true
+  rm -rf .git .gitignore .github .gitattributes
   printf "\n"
 }
 
@@ -119,7 +122,7 @@ function downloadSourceExamples() {
   git clone "${repoUrl}"
   cd examples
   # Remove git history and other files
-  rm -rf .git .gitignore .github .gitattributes || true
+  rm -rf .git .gitignore .github .gitattributes
   printf "\n"
 }
 
