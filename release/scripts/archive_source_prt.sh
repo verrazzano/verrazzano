@@ -52,7 +52,11 @@ function splitSourceArchive() {
       # Create sha256 for all the parts
       ${SHA256_CMD} ${i} > ${i}.sha256
 
-      # Upload the file and the SHA to Object Storage
+      # Upload the file and the SHA to Object Storage for release branches
+      if [[ "${BRANCH_NAME}" == "release-"* ]];then
+          oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OBJECT_STORAGE_BUCKET} --name ${BRANCH_NAME}/${i} --file ${i}
+          oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OBJECT_STORAGE_BUCKET} --name ${BRANCH_NAME}/${i}.sha256 --file ${i}.sha256
+      fi
       split_count=$(($split_count+1))
     done
     echo "The source archive is split into ${split_count} files, make sure that they can be combined to form a .tar.gz file, which can be extracted"
@@ -60,7 +64,11 @@ function splitSourceArchive() {
   else
     echo "Created source archive ${ARCHIVE_DIR}/${SOURCE_ARCHIVE}"
     sha256sum ${SOURCE_ARCHIVE} > ${SOURCE_ARCHIVE}.sha256
-    # Upload the file and the SHA to Object Storage
+    # Upload the file and the SHA to Object Storage for release branches
+    if [[ "${BRANCH_NAME}" == "release-"* ]];then
+          oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OBJECT_STORAGE_BUCKET} --name ${BRANCH_NAME}/${SOURCE_ARCHIVE} --file ${SOURCE_ARCHIVE}
+          oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OBJECT_STORAGE_BUCKET} --name ${BRANCH_NAME}/${SOURCE_ARCHIVE}.sha256 --file ${SOURCE_ARCHIVE}.sha256
+    fi
   fi
 }
 
@@ -76,6 +84,14 @@ MAX_FILE_SIZE=4294967296
 # Create ARCHIVE_DIR, if it is not there already
 if [[ ! -d "${ARCHIVE_DIR}" ]]; then
   mkdir -p ${ARCHIVE_DIR}
+fi
+
+# For release-* branch, check for environment variables required to upload the objects to store
+if [[ "${BRANCH_NAME}" == "release-"* ]];then
+  if [ -z "$OCI_OS_REGION" ] || [ -z "$OCI_OS_NAMESPACE" ] || [ -z "$OBJECT_STORAGE_BUCKET" ]; then
+    echo "This script requires environment variables - OCI_OS_REGION, OCI_OS_NAMESPACE, and OBJECT_STORAGE_BUCKET"
+    exit 1
+  fi
 fi
 
 createSourceArchive

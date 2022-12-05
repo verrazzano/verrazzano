@@ -41,6 +41,9 @@ pipeline {
 
         RELEASE_VERSION = "${params.RELEASE_VERSION}"
         TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
+
+        GITLAB_URL_PREFIX = credentials('gitlab-url-prefix')
+        REPO_URLS_PROPS = "repo_urls.properties"
     }
 
     stages {
@@ -93,7 +96,7 @@ pipeline {
                         cd ${WORKSPACE}
                         echo "Downloading verrazzano_images.txt from object storage"
                         oci --region us-phoenix-1 os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name master/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt --file ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt
-                        oci --region us-phoenix-1 os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${env.BRANCH_NAME}/repo_urls.properties --file ${WORKSPACE}/repo_urls.properties
+                        oci --region us-phoenix-1 os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${env.BRANCH_NAME}/${REPO_URLS_PROPS} --file ${WORKSPACE}/${REPO_URLS_PROPS}
                         ls
                     """
                 }
@@ -103,16 +106,31 @@ pipeline {
         stage('Download Source') {
             steps {
                 script {
+                    sh """
+                            mkdir -p ${WORKSPACE}/downloaded_source
+                            grep -v ${GITLAB_URL_PREFIX} ${WORKSPACE}/${REPO_URLS_PROPS} > ${WORKSPACE}/repo_urls_1.properties
+                            diff --new-line-format="" --unchanged-line-format="" <(sort ${WORKSPACE}/${REPO_URLS_PROPS}) <(sort "${WORKSPACE}/repo_urls_1.properties") > ${WORKSPACE}/repo_urls_2.properties
+                            echo " " >> ${WORKSPACE}/repo_urls_2.properties
+                    """
+
                     withCredentials([gitUsernamePassword(credentialsId: 'gitlab_rw', gitToolName: 'git-tool')]) {
                         sh """
-                            mkdir -p ${WORKSPACE}/downloaded_source
-                            ${WORKSPACE}/release/scripts/download_source_prt.sh ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt ${WORKSPACE}/repo_urls.properties ${WORKSPACE}/downloaded_source
+                            ${WORKSPACE}/release/scripts/download_source_prt.sh ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt ${WORKSPACE}/repo_urls_2.properties  ${WORKSPACE}/downloaded_source
                             ls ${WORKSPACE}/downloaded_source
-                            mkdir -p ${WORKSPACE}/archive_dir
-                            ${WORKSPACE}/release/scripts/archive_source_prt.sh ${WORKSPACE}/archive_dir ${WORKSPACE}/downloaded_source ${params.RELEASE_VERSION}
-                            ls ${WORKSPACE}/archive_dir
                         """
                     }
+
+                    sh """
+                            ${WORKSPACE}/release/scripts/download_source_prt.sh ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt ${WORKSPACE}/repo_urls_1.properties  ${WORKSPACE}/downloaded_source
+                            ls ${WORKSPACE}/downloaded_source
+                            mkdir -p ${WORKSPACE}/archive_dir
+                            if [[ ${BRANCH_NAME} ==~ "release-.*" ]]; then
+                                ${WORKSPACE}/release/scripts/archive_source_prt.sh ${WORKSPACE}/archive_dir ${WORKSPACE}/downloaded_source ${params.RELEASE_VERSION}
+                            else
+                                ${WORKSPACE}/release/scripts/archive_source_prt.sh ${WORKSPACE}/archive_dir ${WORKSPACE}/downloaded_source ${params.RELEASE_VERSION}
+                            fi
+                            ls ${WORKSPACE}/archive_dir
+                    """
                 }
             }
         }

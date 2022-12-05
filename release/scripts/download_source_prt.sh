@@ -77,12 +77,12 @@ function downloadSourceCode() {
 
   # Fail when the property for the component is not defined in REPO_URL_PROPS
   if [ "${keyFound}" == false ]; then
-    #if [ "$DRY_RUN" == true ]; then
-    echo "The repository URL for the component ${compKey} is missing from file ${REPO_URL_PROPS}"
-    exit 1
-    #else
-    #  continue
-    #fi
+    if [ "$DRY_RUN" == true ]; then
+      echo "The repository URL for the component ${compKey} is missing from file ${REPO_URL_PROPS}"
+      exit 1
+    else
+      continue
+    fi
   fi
 
   # When DRY_RUN is set to true, do not download the source
@@ -137,14 +137,14 @@ function getChangeDir() {
 }
 
 # If SAVE_DIR exists, fail if it has files / directories
-if [[ ! -d "${SAVE_DIR}" ]]; then
+if [[ ! -d "${SAVE_DIR}" ]] && [[ "$DRY_RUN" == false ]]; then
   mkdir -p ${SAVE_DIR}
 fi
 
-if [[ -n "$(ls -A "${SAVE_DIR}")" ]]; then
-   echo "Input directory ${SAVE_DIR} in not empty"
-   exit 1
-fi
+#if [[ -n "$(ls -A "${SAVE_DIR}")" ]]; then
+#   echo "Input directory ${SAVE_DIR} in not empty"
+#   exit 1
+#fi
 
 if [[ ! -f "${REPO_URL_PROPS}" ]]; then
   echo "Input file ${REPO_URL_PROPS} doesn't exist"
