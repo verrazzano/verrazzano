@@ -178,10 +178,11 @@ func removeCRs(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) 
 			}
 
 			for _, rancherCR := range rancherCRs.Items {
+				cr := rancherCR
 				resource.Resource{
 					Name:   rancherCR.GetName(),
 					Client: ctx.Client(),
-					Object: &rancherCR,
+					Object: &cr,
 					Log:    ctx.Log(),
 				}.RemoveFinalizersAndDelete()
 			}

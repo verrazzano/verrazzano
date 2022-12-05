@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"testing"
 	"time"
 
@@ -152,6 +153,17 @@ func TestPostUninstall(t *testing.T) {
 			Finalizers:        []string{"somefinalizer"},
 			DeletionTimestamp: &delTimestamp,
 		},
+		Spec: v12.CustomResourceDefinitionSpec{
+			Group: "management.cattle.io",
+			Names: v12.CustomResourceDefinitionNames{
+				Kind: "Setting",
+			},
+			Versions: []v12.CustomResourceDefinitionVersion{
+				{
+					Name: "v3",
+				},
+			},
+		},
 	}
 	nonRancherCRD := v12.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
@@ -168,6 +180,15 @@ func TestPostUninstall(t *testing.T) {
 			Versions:              nil,
 			Conversion:            nil,
 			PreserveUnknownFields: false,
+		},
+	}
+	settingCR := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "management.cattle.io/v3",
+			"kind":       "Setting",
+			"metadata": map[string]interface{}{
+				"name": "setting-name",
+			},
 		},
 	}
 	tests := []struct {
@@ -300,12 +321,14 @@ func TestPostUninstall(t *testing.T) {
 		{
 			name: "test CRD finalizer cleanup",
 			objects: []clipkg.Object{
-				&nonRancherNs,
-				&rancherNs,
-				&rancherNs2,
-				&mutWebhook,
-				&valWebhook,
 				&rancherCRD,
+			},
+		},
+		{
+			name: "test Rancher CR cleanup",
+			objects: []clipkg.Object{
+				&rancherCRD,
+				&settingCR,
 			},
 		},
 	}
