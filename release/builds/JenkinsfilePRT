@@ -124,17 +124,19 @@ pipeline {
                         """
                     }
 
-                    sh """
-                            ${WORKSPACE}/release/scripts/download_source_prt.sh ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt ${WORKSPACE}/repo_urls_1.properties  ${WORKSPACE}/downloaded_source
-                            ls ${WORKSPACE}/downloaded_source
-                            mkdir -p ${WORKSPACE}/archive_dir
-                            if [[ ${BRANCH_NAME} ==~ "release-.*" ]]; then
-                                ${WORKSPACE}/release/scripts/archive_source_prt.sh ${WORKSPACE}/archive_dir ${WORKSPACE}/downloaded_source ${params.RELEASE_VERSION}
-                            else
-                                ${WORKSPACE}/release/scripts/archive_source_prt.sh ${WORKSPACE}/archive_dir ${WORKSPACE}/downloaded_source ${params.RELEASE_VERSION}
-                            fi
-                            ls ${WORKSPACE}/archive_dir
-                    """
+                    withCredentials([gitUsernamePassword(credentialsId: 'github_rw', gitToolName: 'git-tool')]) {
+                        sh """
+                                ${WORKSPACE}/release/scripts/download_source_prt.sh ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt ${WORKSPACE}/repo_urls_1.properties  ${WORKSPACE}/downloaded_source
+                                ls ${WORKSPACE}/downloaded_source
+                                mkdir -p ${WORKSPACE}/archive_dir
+                                if [[ ${BRANCH_NAME} ==~ "release-.*" ]]; then
+                                    ${WORKSPACE}/release/scripts/archive_source_prt.sh ${WORKSPACE}/archive_dir ${WORKSPACE}/downloaded_source ${params.RELEASE_VERSION}
+                                else
+                                    ${WORKSPACE}/release/scripts/archive_source_prt.sh ${WORKSPACE}/archive_dir ${WORKSPACE}/downloaded_source ${params.RELEASE_VERSION}
+                                fi
+                                ls ${WORKSPACE}/archive_dir
+                        """
+                    }
                 }
             }
         }

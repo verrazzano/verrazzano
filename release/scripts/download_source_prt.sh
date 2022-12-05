@@ -29,9 +29,6 @@ REPO_URL_PROPS=$2
 SAVE_DIR=$3
 DRY_RUN=${4:-false}
 
-# A file to capture the console output of the script
-#LOG_FILE=${SCRIPT_DIR}/archive_source.out
-
 # Verrazzano repository, which is prefix for each of the entries in IMAGES_TO_PUBLISH
 VZ_REPO_PREFIX="verrazzano/"
 
@@ -144,21 +141,10 @@ if [[ ! -d "${SAVE_DIR}" ]] && [[ "$DRY_RUN" == false ]]; then
   mkdir -p ${SAVE_DIR}
 fi
 
-#if [[ -n "$(ls -A "${SAVE_DIR}")" ]]; then
-#   echo "Input directory ${SAVE_DIR} in not empty"
-#   exit 1
-#fi
-
 if [[ ! -f "${REPO_URL_PROPS}" ]]; then
   echo "Input file ${REPO_URL_PROPS} doesn't exist"
   exit 1
 fi
-
-# Log the console output of the script to a file
-#if [ "$DRY_RUN" == false ] ; then
-#   [ -e "${LOG_FILE}" ] && rm "${LOG_FILE}"
-#  exec > >(tee "${LOG_FILE}") 2>&1
-#fi
 
 processImagesToPublish "${IMAGES_TO_PUBLISH}"
 downloadSourceExamples
@@ -167,5 +153,4 @@ if [ "$DRY_RUN" == true ] ; then
    echo "Completed running the script with DRY_RUN = true"
 else
   echo "Completed archiving source code, take a look at the contents of ${SAVE_DIR}"
-  # echo "The output of the script is logged to ${LOG_FILE}"
 fi
