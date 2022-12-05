@@ -32,13 +32,6 @@ test: export IMAGE_PULL_SECRET ?= verrazzano-container-registry
 test: export DOCKER_REGISTRY ?= ghcr.io
 .PHONY: test
 test: run-test-parallel
-#	kubectl create ns ${TEST_NAMESPACE} || true
-#	kubectl label ns --overwrite=true ${TEST_NAMESPACE} verrazzano-managed=true istio-injection=enabled
-#	${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "${TEST_NAMESPACE}"
-#	${PSR_COMMAND} start -s ops-s2 -n psrtest
-#	sleep 120
-#	${PSR_COMMAND} stop -s ops-s2 -n psrtest
-#	@echo "Testing complete"
 
 # Executes an upgrade to a new Verrazzano version from the initially installed version
 .PHONY: cleanup

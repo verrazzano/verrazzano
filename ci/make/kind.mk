@@ -13,7 +13,6 @@ setup-kind: export KUBERNETES_CLUSTER_VERSION ?= 1.24
 setup-kind:
 	@echo "Setup KIND cluster"
 	${CI_SCRIPTS_DIR}/setup_kind.sh ${CREATE_CLUSTER_USE_CALICO}
-#	${CI_SCRIPTS_DIR}/prepare_jenkins_at_environment.sh ${CREATE_CLUSTER_USE_CALICO} ${WILDCARD_DNS_DOMAIN} ${USE_DB_FOR_GRAFANA}
 
 #clean-kind: export KUBECONFIG ?= "${WORKSPACE}/test_kubeconfig"
 .PHONY: clean-kind

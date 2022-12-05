@@ -296,7 +296,7 @@ pipeline {
             }
         }
 
-        stage('Smoke Test') {
+        stage('Scenario Tests') {
             environment {
                 DOCKER_REPO="${env.DOCKER_REGISTRY}"
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"

@@ -1,6 +1,8 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+# Template env vars file for running make commands locally
+
 # Set WORKSPACE where you want all temporary test files to go, etc
 # - default is ${HOME}/verrazzano-workspace
 #export WORKSPACE=
@@ -12,11 +14,6 @@
 export DOCKER_CREDS_USR=my-github-user
 export DOCKER_CREDS_PSW=$(cat ~/.github_token)
 export DOCKER_REPO=ghcr.io
-
-# Set these variables to set the Oracle Container Registry (OCR) secrets, typically your Oracle SSO
-#export OCR_REPO=container-registry.oracle.com
-#export OCR_CREDS_USR=me@oracle.com
-#export OCR_CREDS_PSW=$(cat ~/.oracle_sso)
 
 # Override where the Kubeconfig for the cluster is stored
 #export KUBECONFIG= # Default is ${WORKSPACE}/test_kubeconfig

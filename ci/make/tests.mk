@@ -27,19 +27,4 @@ run-test: export TEST_REPORT_DIR ?= "${WORKSPACE}/tests/e2e"
 run-test:
 	${CI_SCRIPTS_DIR}/run-ginkgo.sh
 
-#.PHONY: dumplogs
-#dumplogs:
-#	${CI_SCRIPTS_DIR}/dumpRunLogs.sh ${DUMP_ROOT_DIRECTORY}
-
-#test-reports: export TEST_REPORT ?= "test-report.xml"
-#test-reports: export TEST_REPORT_DIR ?= "${WORKSPACE}/tests/e2e"
-#.PHONY: test-reports
-#test-reports:
-#	# Copy the generated test reports to WORKSPACE to archive them
-#	mkdir -p ${TEST_REPORT_DIR}
-#	cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-#	find . -name "${TEST_REPORT}" | cpio -pdm ${TEST_REPORT_DIR}
-#
-##.PHONY: pipeline-artifacts
-##pipeline-artifacts: dumplogs test-reports
 
