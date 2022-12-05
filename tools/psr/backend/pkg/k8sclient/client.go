@@ -8,6 +8,7 @@ import (
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	k8sapiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/client-go/dynamic"
 
 	vpoClient "github.com/verrazzano/verrazzano/platform-operator/clientset/versioned"
 	controllerruntime "sigs.k8s.io/controller-runtime"
@@ -18,6 +19,11 @@ import (
 type PsrClient struct {
 	CrtlRuntime client.Client
 	VzInstall   vpoClient.Interface
+	DynClient   dynamic.Interface
+}
+
+type DynamicClient struct {
+	DynClient dynamic.Interface
 }
 
 // NewPsrClient returns the set of clients used by PSR
@@ -43,5 +49,19 @@ func NewPsrClient() (PsrClient, error) {
 	if err != nil {
 		return PsrClient{}, err
 	}
+	p.DynClient, err = dynamic.NewForConfig(cfg)
+	if err != nil {
+		return PsrClient{}, err
+	}
 	return p, nil
+}
+
+func NewDynamicClient() (DynamicClient, error) {
+	d := DynamicClient{}
+	cfg, err := controllerruntime.GetConfig()
+	if err != nil {
+		return DynamicClient{}, fmt.Errorf("Failed to get controller-runtime config %v", err)
+	}
+	d.DynClient, err = dynamic.NewForConfig(cfg)
+	return d, nil
 }

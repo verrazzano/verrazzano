@@ -5,6 +5,8 @@ package scale
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/k8sclient"
+	controllerruntime "sigs.k8s.io/controller-runtime"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -17,7 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/weblogic"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 	"k8s.io/client-go/dynamic"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 )
 
 const (
@@ -40,9 +41,21 @@ const (
 	metricsPrefix = "weblogic_scaling"
 )
 
+var funcNewPsrClient = k8sclient.NewPsrClient
+var funcNewDynClient = k8sclient.NewDynamicClient
+
 type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetrics
+	psrClient k8sclient.PsrClient
+	dynClient k8sclient.DynamicClient
+	*state
+	log vzlog.VerrazzanoLogger
+}
+
+type state struct {
+	startScaleTime int64
+	directionOut   bool
 }
 
 var _ spi.Worker = worker{}
@@ -56,28 +69,41 @@ type workerMetrics struct {
 }
 
 func NewScaleWorker() (spi.Worker, error) {
-	w := worker{workerMetrics: &workerMetrics{
-		scaleUpDomainCountTotal: metrics.MetricItem{
-			Name: "scale_up_domain_count_total",
-			Help: "The total number of successful scale up domain requests",
-			Type: prometheus.CounterValue,
-		},
-		scaleDownDomainCountTotal: metrics.MetricItem{
-			Name: "scale_down_domain_count_total",
-			Help: "The total number of failed scale down domain requests",
-			Type: prometheus.CounterValue,
-		},
-		scaleUpSeconds: metrics.MetricItem{
-			Name: "scale_up_seconds",
-			Help: "The total number of seconds elapsed to scale up the domain",
-			Type: prometheus.GaugeValue,
-		},
-		scaleDownSeconds: metrics.MetricItem{
-			Name: "scale_down_seconds",
-			Help: "The total number of seconds elapsed to scale down the domain",
-			Type: prometheus.GaugeValue,
-		},
-	}}
+	c, err := funcNewPsrClient()
+	if err != nil {
+		return nil, err
+	}
+	d, err := funcNewDynClient()
+	if err != nil {
+		return nil, err
+	}
+	w := worker{
+		psrClient: c,
+		log:       vzlog.DefaultLogger(),
+		state:     &state{},
+		dynClient: d,
+		workerMetrics: &workerMetrics{
+			scaleUpDomainCountTotal: metrics.MetricItem{
+				Name: "scale_up_domain_count_total",
+				Help: "The total number of successful scale up domain requests",
+				Type: prometheus.CounterValue,
+			},
+			scaleDownDomainCountTotal: metrics.MetricItem{
+				Name: "scale_down_domain_count_total",
+				Help: "The total number of failed scale down domain requests",
+				Type: prometheus.CounterValue,
+			},
+			scaleUpSeconds: metrics.MetricItem{
+				Name: "scale_up_seconds",
+				Help: "The total number of seconds elapsed to scale up the domain",
+				Type: prometheus.GaugeValue,
+			},
+			scaleDownSeconds: metrics.MetricItem{
+				Name: "scale_down_seconds",
+				Help: "The total number of seconds elapsed to scale down the domain",
+				Type: prometheus.GaugeValue,
+			},
+		}}
 
 	w.metricDescList = []prometheus.Desc{
 		*w.scaleUpDomainCountTotal.BuildMetricDesc(w.GetWorkerDesc().MetricsPrefix),
@@ -145,7 +171,6 @@ func (w worker) PreconditionsMet() (bool, error) {
 
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	var replicas int64
-	var scaleUp bool
 	max, err := strconv.ParseInt(config.PsrEnv.GetEnv(MaxReplicaCount), 10, 64)
 	if err != nil {
 		return fmt.Errorf("MaxReplicaCount can not be parsed to an integer: %v", err)
@@ -157,7 +182,8 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 	domainNamespace := config.PsrEnv.GetEnv(DomainNamespace)
 	domainUID := config.PsrEnv.GetEnv(DomainUID)
 
-	client, err := w.createClient()
+	// client := w.psrClient.DynClient
+	client := w.dynClient.DynClient
 	if err != nil {
 		return log.ErrorfNewErr("Failed to get client: %v", err)
 	}
@@ -171,22 +197,22 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 	// set replicas to scale based on current replicas
 	if currentReplicas > min {
 		replicas = min
-		scaleUp = false
+		w.state.directionOut = false
 	} else {
 		replicas = max
-		scaleUp = true
+		w.state.directionOut = true
 	}
-	timeBeforeScaling := time.Now().UnixNano()
+	w.state.startScaleTime = time.Now().UnixNano()
 	err = weblogic.PatchReplicas(client, domainNamespace, domainUID, replicas)
 	if err != nil {
 		return log.ErrorfNewErr("Failed to patch the replicas: %v", err)
 	}
 	err = w.waitForReadyReplicas(client, domainNamespace, domainUID, replicas)
-	elapsedSecs := time.Now().UnixNano() - timeBeforeScaling
+	elapsedSecs := time.Now().UnixNano() - w.state.startScaleTime
 	if err != nil {
 		return log.ErrorfNewErr("Failed to get the ready replicas: %v", err)
 	}
-	if scaleUp {
+	if w.state.directionOut {
 		atomic.StoreInt64(&w.workerMetrics.scaleUpSeconds.Val, elapsedSecs)
 		atomic.AddInt64(&w.workerMetrics.scaleUpDomainCountTotal.Val, 1)
 	} else {
@@ -195,14 +221,6 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 	}
 
 	return nil
-}
-
-func (w worker) createClient() (dynamic.Interface, error) {
-	cfg, err := controllerruntime.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get controller-runtime config %v", err)
-	}
-	return dynamic.NewForConfig(cfg)
 }
 
 func (w worker) waitForReadyReplicas(client dynamic.Interface, namespace string, name string, readyReplicas int64) error {
@@ -217,4 +235,12 @@ func (w worker) waitForReadyReplicas(client dynamic.Interface, namespace string,
 		time.Sleep(1 * time.Second)
 	}
 	return nil
+}
+
+func (w worker) createNewDynamicClient() (dynamic.Interface, error) {
+	cfg, err := controllerruntime.GetConfig()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get controller-runtime config %v", err)
+	}
+	return dynamic.NewForConfig(cfg)
 }
