@@ -158,7 +158,7 @@ func verifyManagedClusterAdminKubeconfig(managedCluster *multicluster.Cluster, a
 			pkg.Log(pkg.Error, fmt.Sprintf("Failed parsing admin kubeconfig JSON: %v", err))
 			return false
 		}
-		newCaCrt := parsedKubeconfig.Path("certificate-authority-data").Data().(string)
+		newCaCrt := parsedKubeconfig.Search("clusters", "cluster", 0, "certificate-authority-data").Data().(string)
 		if newCaCrt == admCaCrt {
 			pkg.Log(pkg.Error, fmt.Sprintf("%v of %v took %v updated", aocnst.MCAgentSecret, managedCluster.Name, time.Since(start)))
 		} else {
