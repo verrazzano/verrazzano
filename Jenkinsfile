@@ -272,18 +272,21 @@ pipeline {
                     }
                     post {
                         failure {
-                            publishChecks name: 'verrazzano-quality', title: 'Verrazzano quality checks', summary: 'Quality, Compliance Checks, and Unit Tests',
-			        text: 'Quality, Compliance Checks, and Unit Tests have failed',
-			        detailsURL: "${env.BUILD_URL}", conclusion: "FAILURE"
-
+                            withChecks(name: 'verrazzano-quality') {
+                                publishChecks name: 'verrazzano-quality', title: 'Verrazzano quality checks', summary: 'Quality, Compliance Checks, and Unit Tests',
+			            text: 'Quality, Compliance Checks, and Unit Tests have failed',
+			            detailsURL: "${env.BUILD_URL}", conclusion: "FAILURE"
+                            }
                             script {
                                 SKIP_TRIGGERED_TESTS = true
                             }
                         }
                         success {
-                            publishChecks name: 'verrazzano-quality', title: 'Verrazzano quality checks', summary: 'Quality, Compliance Checks, and Unit Tests',
-			        text: 'Quality, Compliance Checks, and Unit Tests have passed',
-			        detailsURL: "${env.BUILD_URL}", conclusion: "SUCCESS"
+                            withChecks(name: 'verrazzano-quality') {
+                                publishChecks name: 'verrazzano-quality', title: 'Verrazzano quality checks', summary: 'Quality, Compliance Checks, and Unit Tests',
+                                    text: 'Quality, Compliance Checks, and Unit Tests have passed',
+			            detailsURL: "${env.BUILD_URL}", conclusion: "SUCCESS"
+                            }
                         }
                         always {
                             sh """
