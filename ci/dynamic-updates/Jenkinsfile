@@ -814,7 +814,7 @@ def runGinkgo(testSuitePath, dumpDir = '', kubeconfig = '') {
                 export KUBECONFIG="${kubeConfig}"
             fi
             cd ${GO_REPO_PATH}/verrazzano/tests/e2e
-            ginkgo -v --race --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
+            ginkgo -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
         """
     }
 }
