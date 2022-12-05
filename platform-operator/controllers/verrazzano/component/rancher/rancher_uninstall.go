@@ -179,13 +179,6 @@ func removeCRs(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) 
 
 			for _, rancherCR := range rancherCRs.Items {
 				cr := rancherCR
-				/*				ctx.Log().Oncef("Remove RancherCR %s/%s, APIVersion: %s, Kind: %s", cr.GetNamespace(), cr.GetName(), cr.GetAPIVersion(), cr.GetKind())
-								err := ctx.Client().Delete(context.TODO(), &cr)
-								if err != nil {
-									ctx.Log().Errorf("Failed to delete %v during uninstall: %s", cr, err.Error())
-								}
-
-				*/
 				resource.Resource{
 					Name:   cr.GetName(),
 					Client: ctx.Client(),

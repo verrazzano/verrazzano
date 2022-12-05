@@ -158,6 +158,7 @@ func TestPostUninstall(t *testing.T) {
 			Names: v12.CustomResourceDefinitionNames{
 				Kind: "Setting",
 			},
+			Scope: "Cluster",
 			Versions: []v12.CustomResourceDefinitionVersion{
 				{
 					Name: "v3",
@@ -187,7 +188,7 @@ func TestPostUninstall(t *testing.T) {
 			"apiVersion": "management.cattle.io/v3",
 			"kind":       "Setting",
 			"metadata": map[string]interface{}{
-				"name": "setting-name",
+				"name": "cr-name",
 			},
 		},
 	}
