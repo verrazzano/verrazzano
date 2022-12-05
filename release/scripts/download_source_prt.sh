@@ -114,6 +114,9 @@ function downloadSourceCode() {
 
 # Handle the examples repository as a special case and get the source from master/main branch
 function downloadSourceExamples() {
+  if [ "$DRY_RUN" == true ]; then
+    return
+  fi
   local repoUrl=$(getRepoUrl "examples")
   if [ "${repoUrl}" = "" ]; then
     return
