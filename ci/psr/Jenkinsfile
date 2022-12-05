@@ -32,6 +32,7 @@ pipeline {
         string (name: 'VZ_BRANCH_TO_USE', defaultValue: 'CURRENT', trim: true, description: 'This is the name of the Verrazzano product branch to use for testing the PSR tooling; CURRENT means using the working branch')
         string (name: 'VERRAZZANO_OPERATOR_IMAGE', defaultValue: 'NONE', trim: true, description: 'Uses a specific Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the latest operator.yaml from related Verrazzano repo branch will be used to create Verrazzano platform operator manifest')
         string (name: 'KIND_NODE_COUNT', defaultValue: '3', trim: true, description: 'Number of nodes for the KIND cluster for smoke testing')
+        booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to capture full cluster snapshot on test failure', name: 'CAPTURE_FULL_CLUSTER', defaultValue: false)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
 
@@ -304,6 +305,7 @@ pipeline {
                 OCI_OS_LOCATION="${env.VZ_TEST_BRANCH}"
                 KIND_NODE_COUNT="${env.KIND_NODE_COUNT}"
                 PSR_COMMAND="${env.PSR_COMMAND}"
+                CREATE_CLUSTER_USE_CALICO="${params.CREATE_CLUSTER_USE_CALICO}"
             }
             steps {
                 script {
