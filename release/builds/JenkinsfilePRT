@@ -109,8 +109,12 @@ pipeline {
                     sh """
                             mkdir -p ${WORKSPACE}/downloaded_source
                             grep -v ${GITLAB_URL_PREFIX} ${WORKSPACE}/${REPO_URLS_PROPS} > ${WORKSPACE}/repo_urls_1.properties
-                            diff --new-line-format="" --unchanged-line-format="" <(sort ${WORKSPACE}/${REPO_URLS_PROPS}) <(sort "${WORKSPACE}/repo_urls_1.properties") > ${WORKSPACE}/repo_urls_2.properties
-                            echo " " >> ${WORKSPACE}/repo_urls_2.properties
+                            grep -F -x -v -f ${WORKSPACE}/repo_urls_1.properties ${WORKSPACE}/${REPO_URLS_PROPS} > ${WORKSPACE}/repo_urls_2.properties
+                            echo "# URLs end here" >> ${WORKSPACE}/repo_urls_2.properties
+                            echo "repo_urls_1.properties starts here"
+                            cat ${WORKSPACE}/repo_urls_1.properties
+                            echo "repo_urls_2.properties starts here"
+                            cat ${WORKSPACE}/repo_urls_2.properties
                     """
 
                     withCredentials([gitUsernamePassword(credentialsId: 'gitlab_rw', gitToolName: 'git-tool')]) {
