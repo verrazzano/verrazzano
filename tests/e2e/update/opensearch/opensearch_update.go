@@ -4,6 +4,7 @@
 package opensearch
 
 import (
+	"github.com/onsi/ginkgo/v2"
 	"time"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -154,7 +155,9 @@ func newResources(requestMemory string) *corev1.ResourceRequirements {
 // Initialize the Test Framework
 var t = framework.NewTestFramework("update opensearch")
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	m := OpensearchAllNodeRolesModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 })
+
+var _ = ginkgo.AfterSuite(afterSuite)

@@ -114,12 +114,14 @@ run-cli:
 # install the CLI
 #
 .PHONY: install-cli
-install-cli:
-	$(GO) install -ldflags "${CLI_GO_LDFLAGS}" ./...
+install-cli: docker-build
+	$(GO) install -ldflags "${CLI_GO_LDFLAGS}" ./psrctl/...
 
 .PHONY: unit-test
 unit-test:
 	$(GO) test -v  ${TEST_PATHS}
 
+psr-quality: export FAIL_IF_COVERAGE_DECREASED ?= false
+psr-quality: export UPLOAD_UNIT_TEST_COVERAGE ?= false
 .PHONY: psr-quality
 psr-quality: golangci-lint word-linter coverage

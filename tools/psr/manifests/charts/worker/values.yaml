@@ -12,6 +12,7 @@ replicas: 1
 global:
   envVars:
     PSR_WORKER_TYPE: example
+    PSR_DURATION: -1s
     PSR_LOOP_SLEEP: 1s
     PSR_WORKER_THREAD_COUNT: 1
 
@@ -19,5 +20,5 @@ global:
 appType: oam
 
 # Each worker that has a subchart needs to override this property
-opensearch-authpol:
+opensearch:
   enabled: false

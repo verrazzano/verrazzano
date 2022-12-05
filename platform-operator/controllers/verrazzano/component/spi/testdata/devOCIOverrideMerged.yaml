@@ -66,6 +66,8 @@ spec:
                             app: webhook
                         topologyKey: kubernetes.io/hostname
                       weight: 100
+    clusterOperator:
+      enabled: true
     coherenceOperator:
       enabled: true
     console:
@@ -101,7 +103,7 @@ spec:
     fluentd:
       enabled: true
       elasticsearchURL: "http://verrazzano-authproxy-opensearch:8775"
-      elasticsearchSecret: verrazzano-os-internal
+      elasticsearchSecret: verrazzano-es-internal
     grafana:
       enabled: true
     ingress:

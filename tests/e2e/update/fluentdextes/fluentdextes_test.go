@@ -32,7 +32,7 @@ var (
 	pollingInterval  = 5 * time.Second
 )
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	cr := update.GetCR()
 	orignalFluentd = cr.Spec.Components.Fluentd
 	if orignalFluentd != nil { //External Collector is enabled
@@ -43,14 +43,18 @@ var _ = t.BeforeSuite(func() {
 	managedClusters = multicluster.ManagedClusters()
 })
 
-var _ = t.AfterSuite(func() {
-	if extOpensearchURL != "" && extOpensearchURL != pkg.VmiOSURL && extOpensearchSec != "" {
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
+	if extOpensearchURL != "" && extOpensearchURL != pkg.VmiESURL && extOpensearchSec != "" {
 		start := time.Now()
 		gomega.Eventually(func() bool {
 			return fluentd.ValidateDaemonset(extOpensearchURL, extOpensearchSec, "")
 		}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", extOpensearchURL, time.Since(start)))
 	}
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 	t.Describe("Update to default Opensearch", Label("f:platform-lcm.fluentd-default-opensearch"), func() {
@@ -62,8 +66,8 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 				fluentd.ValidateUpdate(m, "")
 
 				gomega.Eventually(func() bool {
-					return fluentd.ValidateDaemonset(pkg.VmiOSURL, pkg.VmiOSInternalSecret, "")
-				}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiOSURL, time.Since(start)))
+					return fluentd.ValidateDaemonset(pkg.VmiESURL, pkg.VmiESInternalSecret, "")
+				}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("DaemonSet %s is not ready for %v", pkg.VmiESURL, time.Since(start)))
 			}
 		})
 	})
@@ -91,7 +95,7 @@ var _ = t.Describe("Update Fluentd", Label("f:platform-lcm.update"), func() {
 
 func verifyCaSync(esSec string) {
 	extEsCa := ""
-	if esSec != "" && esSec != pkg.VmiOSInternalSecret {
+	if esSec != "" && esSec != pkg.VmiESInternalSecret {
 		bytes, _ := adminCluster.GetSecretData(poconst.VerrazzanoInstallNamespace, esSec, mcconst.FluentdESCaBundleKey)
 		if len(bytes) > 0 {
 			extEsCa = string(bytes)

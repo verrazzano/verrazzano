@@ -7,6 +7,7 @@ import (
 	goerrors "errors"
 	"fmt"
 
+	"github.com/hashicorp/go-retryablehttp"
 	v1alpha12 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
@@ -22,12 +23,15 @@ import (
 	. "github.com/onsi/gomega"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -42,21 +46,38 @@ const permissionTest2Namespace = "permissions-test2-ns"
 var managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 var adminKubeconfig = os.Getenv("ADMIN_KUBECONFIG")
 var managedKubeconfig = os.Getenv("MANAGED_KUBECONFIG")
+var rancherProxyKubeconfig string
 
 const vpTest1 = "permissions-test1"
 const vpTest2 = "permissions-test2"
 
 var t = framework.NewTestFramework("permissions_test")
 
-var _ = t.BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	// Do set up for multi cluster tests
 	deployTestResources()
+
+	httpClient := pkg.EventuallyVerrazzanoRetryableHTTPClient()
+
+	Eventually(func() error {
+		var err error
+		rancherProxyKubeconfig, err = getUserKubeconfigForManagedCluster(httpClient)
+		return err
+	}).WithPolling(pollingInterval).WithTimeout(time.Minute).ShouldNot(HaveOccurred())
 })
 
-var _ = t.AfterSuite(func() {
+var _ = BeforeSuite(beforeSuite)
+
+var afterSuite = t.AfterSuiteFunc(func() {
+	if len(rancherProxyKubeconfig) > 0 {
+		os.Remove(rancherProxyKubeconfig)
+	}
+
 	// Do set up for multi cluster tests
 	undeployTestResources()
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.AfterEach(func() {})
 
@@ -350,7 +371,7 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 		})
 
 		// VZ-2336: NOT be able to read other resources such as config maps in the admin cluster
-		t.It("cannot access resources in other namespaaces", func() {
+		t.It("cannot access resources in other namespaces", func() {
 			Eventually(func() (bool, error) {
 				err := listResource("verrazzano-system", &v1.ConfigMapList{})
 				// if we didn't get an error, return false to retry
@@ -375,6 +396,26 @@ var _ = t.Describe("Multi Cluster Verify Kubeconfig Permissions", Label("f:multi
 				}
 				return errors.IsForbidden(err), nil
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected to get a forbidden error")
+		})
+	})
+
+	t.When("the Rancher MC user accesses Kubernetes resources on the managed cluster", func() {
+		var clientset *kubernetes.Clientset
+		t.BeforeEach(func() {
+			var err error
+			clientset, err = pkg.GetKubernetesClientsetForCluster(rancherProxyKubeconfig)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		t.It("should be able to list secrets", func() {
+			Eventually(func() (*v1.SecretList, error) {
+				return clientset.CoreV1().Secrets(constants.VerrazzanoSystemNamespace).List(context.TODO(), metav1.ListOptions{})
+			}).WithPolling(pollingInterval).WithTimeout(time.Minute).ShouldNot(BeNil())
+		})
+
+		t.It("should not be able to list pods", func() {
+			_, err := clientset.CoreV1().Pods(constants.VerrazzanoSystemNamespace).List(context.TODO(), metav1.ListOptions{})
+			Expect(errors.IsForbidden(err)).To(BeTrue(), "Expected forbidden error", err)
 		})
 	})
 })
@@ -756,4 +797,51 @@ func isStatusAsExpected(status clustersv1alpha1.MultiClusterResourceStatus,
 		}
 	}
 	return matchingConditionCount >= 1 && matchingClusterStatusCount == 1
+}
+
+// getUserKubeconfigForManagedCluster calls the Rancher API and downloads a kubeconfig configured to access
+// the managed cluster using the Verrazzano cluster user. That user has a very limited set of roles (the roles
+// needed to push managed cluster resources). This function returns the file path to the kubeconfig file on success.
+func getUserKubeconfigForManagedCluster(httpClient *retryablehttp.Client) (string, error) {
+	// get the Rancher cluster id from the VMC status
+	client, err := pkg.GetClusterOperatorClientset(adminKubeconfig)
+	if err != nil {
+		return "", err
+	}
+	vmc, err := client.ClustersV1alpha1().VerrazzanoManagedClusters(constants.VerrazzanoMultiClusterNamespace).Get(context.TODO(), managedClusterName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	if vmc.Status.RancherRegistration.ClusterID == "" {
+		return "", fmt.Errorf("Rancher status cluster id is empty")
+	}
+
+	// get the Verrazzano cluster user password from the secret and create a Rancher config with a bearer token for the user
+	secret, err := pkg.GetSecretInCluster(constants.VerrazzanoMultiClusterNamespace, constants.VerrazzanoClusterRancherName, adminKubeconfig)
+	if err != nil {
+		return "", err
+	}
+	config, err := pkg.CreateNewRancherConfigForUser(t.Logs, adminKubeconfig, constants.VerrazzanoClusterRancherUsername, string(secret.Data["password"]))
+	if err != nil {
+		return "", err
+	}
+
+	// get the managed cluster kubeconfig configured for the user from Rancher
+	kubeconfig, err := pkg.GetClusterKubeconfig(t.Logs, httpClient, config, vmc.Status.RancherRegistration.ClusterID)
+	if err != nil {
+		return "", err
+	}
+
+	// write the kubeconfig contents to a temp file
+	tmpFile, err := os.CreateTemp("", "")
+	if err != nil {
+		return "", err
+	}
+	defer tmpFile.Close()
+	_, err = tmpFile.WriteString(kubeconfig)
+	if err != nil {
+		return "", err
+	}
+
+	return tmpFile.Name(), nil
 }

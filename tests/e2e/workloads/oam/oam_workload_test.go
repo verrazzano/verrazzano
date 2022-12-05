@@ -4,6 +4,7 @@
 package oam
 
 import (
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -34,7 +35,7 @@ var (
 	generatedNamespace = pkg.GenerateNamespace("oam-workloads")
 )
 
-var _ = BeforeSuite(func() {
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	if !skipDeploy {
 		start := time.Now()
 		deployOAMApp()
@@ -43,20 +44,24 @@ var _ = BeforeSuite(func() {
 	beforeSuitePassed = true
 })
 
+var _ = BeforeSuite(beforeSuite)
+
 var failed = false
 var beforeSuitePassed = false
 var _ = t.AfterEach(func() {
 	failed = failed || CurrentSpecReport().Failed()
 })
 
-var _ = t.AfterSuite(func() {
+var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport(namespace)
+		dump.ExecuteBugReport(namespace)
 	}
 	if !skipUndeploy {
 		undeployOAMApp()
 	}
 })
+
+var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("An OAM application is deployed", Label("f:app-lcm.oam"), func() {
 	t.Context("Check for created resources", func() {

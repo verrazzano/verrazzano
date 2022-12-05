@@ -4,9 +4,11 @@ package oam
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	appsv1 "k8s.io/api/apps/v1"
@@ -192,4 +194,37 @@ func TestEnsureClusterRoles(t *testing.T) {
 	assert.Equal(t, 1, len(clusterRole.Rules))
 	assert.Equal(t, 1, len(clusterRole.Rules[0].Resources))
 	assert.Equal(t, "persistentvolumeclaims", clusterRole.Rules[0].Resources[0])
+}
+
+// TestDeleteOAMClusterRoles tests the deleteOAMClusterRoles function
+// GIVEN a call to deleteOAMClusterRoles
+//
+//	WHEN the OAM ClusterRoles are found and deleted
+//	THEN no error is returned and all OAM ClusterRoles are deleted
+func TestDeleteOAMClusterRoles(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, nil, nil, false)
+	ensureClusterRoles(ctx)
+
+	err := deleteOAMClusterRoles(client, vzlog.DefaultLogger())
+	assert.NoError(t, err)
+	var clusterRole rbacv1.ClusterRole
+	err = client.Get(context.TODO(), types.NamespacedName{Name: pvcClusterRoleName}, &clusterRole)
+	assert.True(t, errors.IsNotFound(err))
+	err = client.Get(context.TODO(), types.NamespacedName{Name: istioClusterRoleName}, &clusterRole)
+	assert.True(t, errors.IsNotFound(err))
+	err = client.Get(context.TODO(), types.NamespacedName{Name: certClusterRoleName}, &clusterRole)
+	assert.True(t, errors.IsNotFound(err))
+}
+
+// TestDeleteOAMClusterRolesNotFound tests the deleteOAMClusterRoles function
+// GIVEN a call to deleteOAMClusterRoles
+//
+//	WHEN the OAM ClusterRoles are not found
+//	THEN no error is returned
+func TestDeleteOAMClusterRolesNotFound(t *testing.T) {
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+
+	err := deleteOAMClusterRoles(client, vzlog.DefaultLogger())
+	assert.NoError(t, err)
 }
