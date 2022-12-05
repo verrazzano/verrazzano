@@ -7,6 +7,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -74,6 +75,7 @@ func (r *Reconciler) createIngressCopy(newIngressName types.NamespacedName, exis
 	}
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, ingress, func() error {
 		ingress.Labels = existingIngress.Labels
+		ingress.Labels[constants.VerrazzanoManagedLabelKey] = "true"
 		ingress.Annotations = existingIngress.Annotations
 		ingress.Spec = *existingIngress.Spec.DeepCopy()
 		ingress.Spec.TLS = newIngressTLSList
