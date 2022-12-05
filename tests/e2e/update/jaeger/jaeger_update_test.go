@@ -4,13 +4,13 @@
 package jaeger
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
@@ -31,20 +31,18 @@ var (
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	m := JaegerOperatorEnabledModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+
+	// GIVEN a VZ custom resource in dev profile,
+	// WHEN Jaeger operator is enabled,
+	// THEN Jaeger operator and pods for jaeger-collector and jaeger-query components gets created.
+	update.ValidatePods(jaegerOperatorLabelValue, jaegerComponentLabel, constants.VerrazzanoMonitoringNamespace, 1, false)
+	update.ValidatePods(jaegerCollectorLabelValue, jaegerComponentLabel, constants.VerrazzanoMonitoringNamespace, 1, false)
+	update.ValidatePods(jaegerQueryLabelValue, jaegerComponentLabel, constants.VerrazzanoMonitoringNamespace, 1, false)
 })
 
 var _ = BeforeSuite(beforeSuite)
 
 var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
-
-	// GIVEN a VZ custom resource in dev profile,
-	// WHEN Jaeger operator is enabled,
-	// THEN Jaeger operator and pods for jaeger-collector and jaeger-query components gets created.
-	t.It("Jaeger enable post install", func() {
-		update.ValidatePods(jaegerOperatorLabelValue, jaegerComponentLabel, constants.VerrazzanoMonitoringNamespace, 1, false)
-		update.ValidatePods(jaegerCollectorLabelValue, jaegerComponentLabel, constants.VerrazzanoMonitoringNamespace, 1, false)
-		update.ValidatePods(jaegerQueryLabelValue, jaegerComponentLabel, constants.VerrazzanoMonitoringNamespace, 1, false)
-	})
 
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN Jaeger operator is enabled,
