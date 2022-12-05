@@ -4,6 +4,8 @@
 package workmanager
 
 import (
+	"crypto/rand"
+	"math/big"
 	"sync/atomic"
 	"time"
 
@@ -98,6 +100,12 @@ func (r workerRunner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLo
 	}
 
 	r.incThreadCount()
+
+	// sleep before calling DoWork the first time
+	if err := sleepWithJitters(time.Millisecond * 100); err != nil {
+		return err
+	}
+
 	startTimeSecs := time.Now().Unix()
 	for {
 		loopCount := atomic.AddInt64(&r.runnerMetrics.loopCount.Val, 1)
@@ -129,10 +137,23 @@ func (r workerRunner) RunWorker(conf config.CommonConfig, log vzlog.VerrazzanoLo
 		if loopCount == conf.NumLoops && conf.NumLoops != config.UnlimitedWorkerLoops {
 			return nil
 		}
-		time.Sleep(conf.LoopSleepNanos)
+		if err = sleepWithJitters(conf.LoopSleepNanos); err != nil {
+			return err
+		}
 	}
 }
 
 func (r workerRunner) incThreadCount() {
 	atomic.AddInt64(&r.runnerMetrics.workerThreadCount.Val, 1)
+}
+
+func sleepWithJitters(duration time.Duration) error {
+	num, err := rand.Int(rand.Reader, big.NewInt(int64(20)))
+	if err != nil {
+		return err
+	}
+	// add between a -10% amd 10% jitter
+	jitter := (duration.Nanoseconds() / 100) * (num.Int64() - 10)
+	time.Sleep(duration + time.Duration(jitter))
+	return nil
 }
