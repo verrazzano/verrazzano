@@ -75,6 +75,9 @@ func (r *Reconciler) createIngressCopy(newIngressName types.NamespacedName, exis
 	}
 	_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, ingress, func() error {
 		ingress.Labels = existingIngress.Labels
+		if ingress.Labels == nil {
+			ingress.Labels = map[string]string{}
+		}
 		ingress.Labels[constants.VerrazzanoManagedLabelKey] = "true"
 		ingress.Annotations = existingIngress.Annotations
 		ingress.Spec = *existingIngress.Spec.DeepCopy()

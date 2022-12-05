@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	asserts "github.com/stretchr/testify/assert"
+	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -73,13 +74,18 @@ func TestReconciler_createRancherIngressAndCertCopies(t *testing.T) {
 	asserts.NoError(t, err)
 	asserts.Equal(t, 2, len(ingressList.Items))
 
+	expectedLabels := rancherIngress.Labels
+	if expectedLabels == nil {
+		expectedLabels = map[string]string{}
+	}
+	expectedLabels[constants2.VerrazzanoManagedLabelKey] = "true"
 	for _, ing := range ingressList.Items {
 		if ing.Name == rancherIngress.Name {
 			asserts.Equal(t, rancherIngress, ing)
 		} else {
 			asserts.Equal(t, rancherIngress.Namespace, ing.Namespace)
 			asserts.Equal(t, rancherIngress.Annotations, ing.Annotations)
-			asserts.Equal(t, rancherIngress.Labels, ing.Labels)
+			asserts.Equal(t, expectedLabels, ing.Labels)
 			asserts.Equal(t, rancherIngress.Spec.Rules, ing.Spec.Rules)
 
 			// should have same number of TLS entries but with different content
