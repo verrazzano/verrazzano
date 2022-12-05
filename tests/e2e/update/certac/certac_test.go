@@ -67,7 +67,10 @@ var _ = t.Describe("Update admin-cluster cert-manager", Label("f:platform-lcm.up
 		t.It("admin-cluster cert-manager custom CA", func() {
 			start := time.Now()
 			oldIngressCaCrt := updateAdminClusterCA()
-			// TODO DEVA reapply registration for managed cluster
+			// reapply registration for managed cluster - for self-signed certs, this manual step
+			// is expected of users so that the admin kubeconfig used by the managed cluster can be
+			// reliably updated to use the new CA cert, or intermittent timing related failures may occur
+			reapplyManagedClusterRegManifest()
 			verifyCaSync(oldIngressCaCrt)
 			// verify new logs are flowing after updating admin cert
 			verifyManagedFluentd(start)
@@ -135,14 +138,14 @@ func verifyAdminClusterIngressCA(oldIngressCaCrt string) string {
 func verifyCaSyncToManagedClusters(admCaCrt string) {
 	for _, managedCluster := range managedClusters {
 		verifyManagedClusterRegistration(managedCluster, admCaCrt, mcconstants.AdminCaBundleKey)
-		verifyManagedClusterKubeconfig(managedCluster, admCaCrt, mcconstants.KubeconfigKey)
+		verifyManagedClusterAdminKubeconfig(managedCluster, admCaCrt, mcconstants.KubeconfigKey)
 		if isDefaultFluentd(originalFluentd) {
 			verifyManagedClusterRegistration(managedCluster, admCaCrt, mcconstants.ESCaBundleKey)
 		}
 	}
 }
 
-func verifyManagedClusterKubeconfig(managedCluster *multicluster.Cluster, admCaCrt, kubeconfigKey string) {
+func verifyManagedClusterAdminKubeconfig(managedCluster *multicluster.Cluster, admCaCrt, kubeconfigKey string) {
 	start := time.Now()
 	gomega.Eventually(func() bool {
 		newKubeconfig := managedCluster.
@@ -208,5 +211,15 @@ func verifyRegistration() {
 				return reg != nil && err == nil
 			}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("%s is not registered", managedCluster.Name))
 		}
+	}
+}
+
+func reapplyManagedClusterRegManifest() {
+	for _, managedCluster := range managedClusters {
+		reg, err := adminCluster.GetManifest(managedCluster.Name)
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("manifest %v error: %v", managedCluster.Name, err))
+		}
+		managedCluster.Apply(reg)
 	}
 }

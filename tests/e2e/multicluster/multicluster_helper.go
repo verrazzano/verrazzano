@@ -405,7 +405,7 @@ func (c *Cluster) getCacrt() ([]byte, error) {
 	return c.GetSecretData(constants.VerrazzanoSystemNamespace, "verrazzano-tls", "ca.crt")
 }
 
-func (c *Cluster) apply(data []byte) {
+func (c *Cluster) Apply(data []byte) {
 	gomega.Eventually(func() bool {
 		err := apply(data, c.restConfig)
 		if err != nil {
@@ -478,7 +478,7 @@ func (c *Cluster) Register(managed *Cluster) error {
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("manifest %v error: %v", managed.Name, err))
 	}
-	managed.apply(reg)
+	managed.Apply(reg)
 	return nil
 }
 
@@ -542,7 +542,7 @@ spec:
 `
 	caname := fmt.Sprintf("gen-ca-%v", uuid.NewString()[:7])
 	cacert := fmt.Sprintf(caCertTemp, caname, caname, caname)
-	c.apply([]byte(cacert))
+	c.Apply([]byte(cacert))
 	gomega.Eventually(func() bool {
 		casec, err := c.GetSecret(constants.CertManagerNamespace, caname)
 		if err != nil || errors.IsNotFound(err) || casec == nil {
