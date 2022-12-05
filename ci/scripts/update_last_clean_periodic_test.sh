@@ -23,6 +23,7 @@ cd $WORKSPACE
 
 # Update the clean periodic commit
 echo "git-commit=${GIT_COMMIT_USED}" > commit-that-passed.txt
+cat commit-that-passed.txt
 oci --region ${OCI_OS_REGION} os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}-last-clean-periodic-test/verrazzano_periodic-commit.txt --file commit-that-passed.txt
 
 # Update the artifacts
