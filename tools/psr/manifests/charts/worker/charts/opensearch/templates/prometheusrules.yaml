@@ -12,7 +12,7 @@ spec:
   groups:
     - name: psr
       rules:
-        - alert: LowOpenSearchStorageAvailability
+        - alert: LowOpenSearchAvailableStorage
           expr: es_fs_total_available_bytes/es_fs_total_total_bytes < 0.2
           for: 1m
           labels:

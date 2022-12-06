@@ -180,7 +180,7 @@ func Test_updateVZForAlertmanager(t *testing.T) {
   config:
     receivers:
     - webhook_configs:
-      - url: http://test-alerts-http-alerts.test-psr:9090/alerts
+      - url: http://test-alerts-prom-alerts.test-psr:9090/alerts
       name: webhook
     route:
       group_by:
