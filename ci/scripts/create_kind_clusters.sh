@@ -16,7 +16,9 @@ SETUP_CALICO=${8:-false}
 KIND_AT_CACHE_NAME=${9:-"NONE"}
 NODE_COUNT=${10:-1}
 CALICO_SUFFIX=""
-K8S_VERSION=${K8S_VERSION:-1.21}
+K8S_VERSION=${K8S_VERSION:-1.24}
+
+KIND_API_SERVER_ADDRESS=${KIND_API_SERVER_ADDRESS:-127.0.0.1}
 
 if [ -z "$TEST_SCRIPTS_DIR" ]; then
   echo "TEST_SCRIPTS_DIR must be set to the E2E test script directory location"
@@ -61,6 +63,9 @@ create_kind_cluster() {
   touch -f $KUBECONFIG
 
   echo "KIND Image : ${KIND_IMAGE}"
+
+  # Set up a copy of the desired KIND config in the WORKSPACE before massaging it to avoid
+  # doing a local edit in the repo branch
   KIND_CONFIG_FILE_NAME=kind-config${CALICO_SUFFIX}.yaml
   SOURCE_KIND_CONFIG_FILE=${TEST_SCRIPTS_DIR}/${KIND_CONFIG_FILE_NAME}
   KIND_CONFIG_FILE=${WORKSPACE}/${KIND_CONFIG_FILE_NAME}
@@ -71,13 +76,20 @@ create_kind_cluster() {
       KIND_CONFIG_FILE_NAME=kind-config-ci${CALICO_SUFFIX}_${KIND_AT_CACHE_NAME}.yaml
       KIND_CONFIG_FILE=${WORKSPACE}/${KIND_CONFIG_FILE_NAME}
       SOURCE_KIND_CONFIG_FILE=${TEST_SCRIPTS_DIR}/${KIND_CONFIG_FILE_NAME}
-      sed "s;v8o_cache/at_tests;v8o_cache/${KIND_AT_CACHE_NAME};g" ${SOURCE_KIND_CONFIG_FILE} > ${KIND_CONFIG_FILE}
     else
       # If no cache name specified use at_tests cache
       SOURCE_KIND_CONFIG_FILE=${TEST_SCRIPTS_DIR}/kind-config-ci${CALICO_SUFFIX}.yaml
     fi
   fi
   cp -v ${SOURCE_KIND_CONFIG_FILE} ${KIND_CONFIG_FILE}
+
+  # Update the caching configuration if necessary
+  if [ ${KIND_AT_CACHE} == true ]; then
+    if [ ${KIND_AT_CACHE_NAME} != "NONE" ]; then
+      sed -i "s;v8o_cache/at_tests;v8o_cache/${KIND_AT_CACHE_NAME};g" ${KIND_CONFIG_FILE}
+    fi
+  fi
+
 
   # List the permissions of /dev/null.  We have seen a failure where `docker ps` gets an operation not permitted error.
   # Listing the permissions will help to analyze what is wrong, if we see the failure again.
@@ -90,6 +102,11 @@ create_kind_cluster() {
     echo "    image: kindest/node:KIND_IMAGE" >> ${KIND_CONFIG_FILE}
   done
   sed -i -e "s/KIND_IMAGE/${KIND_IMAGE}/g" ${KIND_CONFIG_FILE}
+
+  # Use a custom API server address if specified; defaults to 127.0.0.1
+  echo "Setting the cluster API server address to ${KIND_API_SERVER_ADDRESS}"
+  yq -i eval '.networking.apiServerAddress=strenv(KIND_API_SERVER_ADDRESS)' ${KIND_CONFIG_FILE}
+
   cat ${KIND_CONFIG_FILE}
   HTTP_PROXY="" HTTPS_PROXY="" http_proxy="" https_proxy="" time kind create cluster --retain -v 1 --name ${CLUSTER_NAME} \
     --config=${KIND_CONFIG_FILE}
