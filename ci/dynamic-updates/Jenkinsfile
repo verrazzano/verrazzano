@@ -75,7 +75,6 @@ pipeline {
         booleanParam (description: 'Whether to run Opensearch Update Tests', name: 'RUN_OPENSEARCH', defaultValue: false)
         booleanParam (description: 'Whether to run Jaeger Update Tests', name: 'RUN_JAEGER', defaultValue: false)
         booleanParam (description: 'Whether to run Post-install overrides Tests', name: 'RUN_POST_INSTALL_OVERRIDES', defaultValue: false)
-        string (name: 'OTHER', defaultValue: '', description: 'dummy parameter', trim: true)
     }
 
     environment {

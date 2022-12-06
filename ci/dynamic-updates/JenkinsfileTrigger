@@ -111,44 +111,43 @@ pipeline {
             }
         }
 
-        stage ('Run Jaeger Update Test a bunch of times') {
+        stage ('Kick off dynamic update tests') {
             parallel {
-                // Running 30 parallel builds
-                stage ('Jaeger Run 1') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '1')])} } }
-                stage ('Jaeger Run 2') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '2')])} } }
-                stage ('Jaeger Run 3') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '3')])} } }
-                stage ('Jaeger Run 4') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '4')])} } }
-                stage ('Jaeger Run 5') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '5')])} } }
-
-                stage ('Jaeger Run 6') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '6')])} } }
-                stage ('Jaeger Run 7') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '7')])} } }
-                stage ('Jaeger Run 8') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '8')])} } }
-                stage ('Jaeger Run 9') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '9')])} } }
-                stage ('Jaeger Run 10') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '10')])} } }
-
-                stage ('Jaeger Run 11') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '11')])} } }
-                stage ('Jaeger Run 12') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '12')])} } }
-                stage ('Jaeger Run 13') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '13')])} } }
-                stage ('Jaeger Run 14') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '14')])} } }
-                stage ('Jaeger Run 15') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '15')])} } }
-
-                stage ('Jaeger Run 16') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '16')])} } }
-                stage ('Jaeger Run 17') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '17')])} } }
-                stage ('Jaeger Run 18') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '18')])} } }
-                stage ('Jaeger Run 19') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '19')])} } }
-                stage ('Jaeger Run 20') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '20')])} } }
-
-                stage ('Jaeger Run 21') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '21')])} } }
-                stage ('Jaeger Run 22') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '22')])} } }
-                stage ('Jaeger Run 23') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '23')])} } }
-                stage ('Jaeger Run 24') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '24')])} } }
-                stage ('Jaeger Run 25') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '25')])} } }
-
-                stage ('Jaeger Run 26') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '26')])} } }
-                stage ('Jaeger Run 27') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '27')])} } }
-                stage ('Jaeger Run 28') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '28')])} } }
-                stage ('Jaeger Run 29') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '29')])} } }
-                stage ('Jaeger Run 30') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true), string(name: 'OTHER', value: '30')])} } }
+                stage ('Post-Update1, Post-Update2, and Nginx/Istio Update Tests') {
+                    steps {
+                        retry (count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                startBuildJob([booleanParam(name: 'RUN_POST_UPDATE1', value: true),
+                                               booleanParam(name: 'RUN_POST_UPDATE2', value: true),
+                                               booleanParam(name: 'RUN_NGINX_ISTIO', value: true)])
+                            }
+                        }
+                    }
+                }
+                stage ('Availability Status, AuthProxy, CertManager, and Fluentd Update Tests') {
+                    steps {
+                        retry (count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                startBuildJob([booleanParam(name: 'RUN_AVAILABILITY_STATUS', value: true),
+                                               booleanParam(name: 'RUN_AUTHPROXY', value: true),
+                                               booleanParam(name: 'RUN_CERT_MANAGER', value: true),
+                                               booleanParam(name: 'RUN_FLUENTD', value: true)])
+                            }
+                        }
+                    }
+                }
+                stage ('API Conversion Udpate, Opensearch Update, Jaeger Update, and Post-install Overrides Tests') {
+                    steps {
+                        retry (count: JOB_PROMOTION_RETRIES) {
+                            script {
+                                startBuildJob([booleanParam(name: 'RUN_API_CONVERSION', value: true),
+                                               booleanParam(name: 'RUN_OPENSEARCH', value: true),
+                                               booleanParam(name: 'RUN_JAEGER', value: true),
+                                               booleanParam(name: 'RUN_POST_INSTALL_OVERRIDES', value: true)])
+                            }
+                        }
+                    }
+                }
             }
         }
     }
