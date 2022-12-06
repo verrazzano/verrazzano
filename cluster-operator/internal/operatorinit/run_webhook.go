@@ -90,6 +90,8 @@ func StartWebhookServer(metricsAddr string, probeAddr string, enableLeaderElecti
 		os.Exit(1)
 	}
 
+	mgr.GetWebhookServer().CertDir = certDir
+
 	log.Info("Starting manager")
 	if err = mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		log.Errorf("Failed to run manager: %v", err)
