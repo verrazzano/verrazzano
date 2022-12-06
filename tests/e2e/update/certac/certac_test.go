@@ -7,16 +7,13 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"os"
 	"reflect"
 	"strings"
-	"testing"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	asserts "github.com/stretchr/testify/assert"
 	aocnst "github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -179,12 +176,6 @@ func verifyManagedClusterAdminKubeconfig(managedCluster *multicluster.Cluster, a
 		}
 		pkg.Log(pkg.Error, fmt.Sprintf("%v of %v is not updated", aocnst.MCAgentSecret, managedCluster.Name))
 		return false
-		/*if kubeconfigContainsCACert(parsedKubeconfig, admCaCrt) {
-			pkg.Log(pkg.Error, fmt.Sprintf("%v of %v took %v updated", aocnst.MCAgentSecret, managedCluster.Name, time.Since(start)))
-			return true
-		}
-		pkg.Log(pkg.Error, fmt.Sprintf("%v of %v is not updated", aocnst.MCAgentSecret, managedCluster.Name))
-		return false*/
 	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Sync admin-kubeconfig %v", managedCluster.Name))
 }
 
@@ -305,124 +296,3 @@ func kubeconfigContainsCACert(encodedKubeconfigData *gabs.Container, newCACert s
 	encodedCACert := base64.StdEncoding.EncodeToString([]byte(newCACert))
 	return strings.Contains(string(kubeconfig), encodedCACert)
 }
-
-func Test_mytest2(t *testing.T) {
-	start := time.Now()
-	managedClusterName := "managed1"
-	manifestBytes, err := os.ReadFile("/Users/desagar/tmp/VZ-7637/manifest.yaml")
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Could not get manifest secret for managed cluster %s: %v", managedClusterName, err))
-
-	}
-	matchCACert, err := os.ReadFile("/Users/desagar/tmp/VZ-7637/newCACert.crt")
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Could not get ca cert %v", err))
-	}
-	yamlDocs := bytes.Split(manifestBytes, []byte("---\n"))
-	var agentSecret *gabs.Container
-	for _, yamlDoc := range yamlDocs {
-		jsonDoc, err := yaml.YAMLToJSON(yamlDoc)
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Could not parse YAML in manifest to JSON %v", err))
-		}
-		resourceContainer, err := gabs.ParseJSON(jsonDoc)
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Could not parse JSON manifest secret: %v", err))
-		}
-		if resourceContainer.Search("metadata", "name").Data() == pocnst.MCAgentSecret {
-			agentSecret = resourceContainer
-			break
-		}
-	}
-	asserts.NotNil(t, agentSecret)
-	newKubeconfig, err := base64.StdEncoding.DecodeString(agentSecret.Search("data", mcconstants.KubeconfigKey).Data().(string))
-	asserts.NotNil(t, err)
-	jsonKubeconfig, err := yaml.YAMLToJSON([]byte(newKubeconfig))
-	asserts.NotNil(t, err, fmt.Sprintf("Failed converting admin kubeconfig to JSON: %v", err))
-
-	parsedKubeconfig, err := gabs.ParseJSON(jsonKubeconfig)
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Failed parsing admin kubeconfig JSON: %v", err))
-	}
-
-	// TODO DEVA on this line:  interface conversion: interface {} is nil, not string
-	newCaCrt := parsedKubeconfig.Search("clusters", "0", "cluster", "certificate-authority-data").Data().(string)
-	if string(matchCACert) == newCaCrt {
-		pkg.Log(pkg.Error, fmt.Sprintf("%v of %v took %v updated", aocnst.MCAgentSecret, managedClusterName, time.Since(start)))
-	}
-	pkg.Log(pkg.Error, fmt.Sprintf("%v of %v is not updated", aocnst.MCAgentSecret, managedClusterName))
-	/*
-		newKubeconfig := managedCluster.
-			GetSecretDataAsString(constants.VerrazzanoSystemNamespace, aocnst.MCAgentSecret, kubeconfigKey)
-		jsonKubeconfig, err := yaml.YAMLToJSON([]byte(newKubeconfig))
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Failed converting admin kubeconfig to JSON: %v", err))
-			return false
-		}
-		parsedKubeconfig, err := gabs.ParseJSON(jsonKubeconfig)
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Failed parsing admin kubeconfig JSON: %v", err))
-			return false
-		}
-		if kubeconfigContainsCACert(parsedKubeconfig, admCaCrt) {
-			pkg.Log(pkg.Error, fmt.Sprintf("%v of %v took %v updated", aocnst.MCAgentSecret, managedCluster.Name, time.Since(start)))
-		}
-		pkg.Log(pkg.Error, fmt.Sprintf("%v of %v is not updated", aocnst.MCAgentSecret, managedCluster.Name))
-
-	*/
-}
-func Test_mytest(t *testing.T) {
-	managedClusterName := "managed1"
-	manifestBytes, err := os.ReadFile("/Users/desagar/tmp/VZ-7637/manifest.yaml")
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Could not get manifest secret for managed cluster %s: %v", managedClusterName, err))
-	}
-	newCACertBytes, err := os.ReadFile("/Users/desagar/tmp/VZ-7637/newCACert.crt")
-	if err != nil {
-		pkg.Log(pkg.Error, fmt.Sprintf("Could not get ca cert %v", err))
-	}
-	newCACert := string(newCACertBytes)
-	yamlDocs := bytes.Split(manifestBytes, []byte("---\n"))
-	for _, yamlDoc := range yamlDocs {
-		jsonDoc, err := yaml.YAMLToJSON(yamlDoc)
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Could not parse YAML in manifest to JSON %v", err))
-		}
-		resourceContainer, err := gabs.ParseJSON(jsonDoc)
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Could not parse JSON manifest secret: %v", err))
-		}
-		if resourceContainer.Search("metadata", "name").Data() == pocnst.MCAgentSecret {
-			kubeconfigData := resourceContainer.Search("data", mcconstants.KubeconfigKey)
-			asserts.True(t, kubeconfigContainsCACert(kubeconfigData, newCACert))
-			return
-		}
-	}
-	asserts.Fail(t, "did not find it")
-}
-
-/*
-func waitForVMCReadyAfterTime(managedClusterName string, afterTime time.Time) {
-	gomega.Eventually(func() bool {
-		vmc, err := adminCluster.GetVMC(managedClusterName)
-		if err != nil {
-			pkg.Log(pkg.Error, fmt.Sprintf("Failed getting VMC for %s: %v", managedClusterName, err))
-			return false
-		}
-		readyCond := findStatusCondition(vmc.Status.Conditions, v1alpha1.ConditionReady)
-		if readyCond.LastTransitionTime.After(afterTime) {
-			return true
-		}
-		return false
-	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("VMC ready condition for %s not updated after CA change at %v", managedClusterName, afterTime))
-}
-
-
-func findStatusCondition(conditions []v1alpha1.Condition, condType v1alpha1.ConditionType) *v1alpha1.Condition {
-	for _, cond := range conditions {
-		if cond.Type == condType {
-			return &cond
-		}
-	}
-	return nil
-}*/
