@@ -29,7 +29,7 @@ pipeline {
 
     parameters {
         choice (name: 'KUBERNETES_CLUSTER_VERSION', description: 'Kubernetes Version for KinD Cluster', choices: [ "1.24", "1.23", "1.22", "1.21" ])
-        string (name: 'VZ_BRANCH_TO_USE', defaultValue: 'CURRENT', trim: true, description: 'This is the name of the Verrazzano product branch to use for testing the PSR tooling; CURRENT means using the working branch')
+        string (name: 'VZ_BRANCH_TO_USE', defaultValue: 'master', trim: true, description: 'This is the name of the Verrazzano product branch to use for testing the PSR tooling; CURRENT means using the working branch')
         string (name: 'VERRAZZANO_OPERATOR_IMAGE', defaultValue: 'NONE', trim: true, description: 'Uses a specific Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the latest operator.yaml from related Verrazzano repo branch will be used to create Verrazzano platform operator manifest')
         string (name: 'KIND_NODE_COUNT', defaultValue: '3', trim: true, description: 'Number of nodes for the KIND cluster for smoke testing')
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
@@ -402,30 +402,6 @@ def saveCLIExecutables() {
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/psrctl-linux-amd64.tar.gz.sha256 --file $WORKSPACE/psrctl-linux-amd64.tar.gz.sha256
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/psrctl-linux-amd64.tar.gz.sha256 --file $WORKSPACE/psrctl-linux-amd64.tar.gz.sha256
     """
-}
-
-// Called in many parallel stages of Stage Run Acceptance Tests
-def runGinkgoRandomize(testSuitePath) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            cd ${VZ_ROOT}/tests/e2e
-            if [ -d "${testSuitePath}" ]; then
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-            fi
-            ../../build/copy-junit-output.sh ${WORKSPACE}
-        """
-    }
-}
-
-// Called in many parallel stages of Stage Run Acceptance Tests
-def runGinkgo(testSuitePath) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            cd ${VZ_ROOT}/tests/e2e
-            ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-            ../../build/copy-junit-output.sh ${WORKSPACE}
-        """
-    }
 }
 
 def dumpK8sCluster(dumpDirectory) {
