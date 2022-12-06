@@ -46,7 +46,7 @@ func TestPatchArgoCDSecret(t *testing.T) {
 			Namespace: constants.ArgoCDNamespace,
 		},
 		Data: map[string][]byte{
-			"oidc.keycloak.clientSecret": []byte("foobar"),
+			"oidc.keycloak.clientSecret": []byte("blah"),
 		},
 	}
 
@@ -55,7 +55,7 @@ func TestPatchArgoCDSecret(t *testing.T) {
 
 	component := NewComponent().(argoCDComponent)
 	component.ArgoClientSecretProvider = FakeArgoClientSecretProvider{}
-	assert.NoError(t, component.patchArgoCDSecret(ctx))
+	assert.NoError(t, patchArgoCDSecret(component, ctx))
 	patchedSecret := &corev1.Secret{}
 	err := fakeClient.Get(context.TODO(), types.NamespacedName{
 		Name:      "argocd-secret",

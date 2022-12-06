@@ -58,3 +58,6 @@ console:
 
 velero:
   enabled: false
+
+argocd:
+  enabled: false

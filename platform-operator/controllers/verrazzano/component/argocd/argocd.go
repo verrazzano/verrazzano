@@ -18,7 +18,6 @@ import (
 const (
 	defaultSecretNamespace = "cert-manager"
 	defaultVerrazzanoName  = "verrazzano-ca-certificate-secret"
-	argoCDServerPort       = "8080"
 )
 
 // GetOverrides returns the install overrides from v1beta1.Verrazzano CR

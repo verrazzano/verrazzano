@@ -311,6 +311,8 @@ spec:
       app: cattle-cluster-agent
   policyTypes:
     - Ingress
+{{- end }}
+{{- if .Values.argocd.enabled}}
 ---
 # Network policy for ArgoCD UI/API
 # Ingress: allow nginx ingress

@@ -27,7 +27,7 @@ type chartValues struct {
 	Prometheus          *prometheusValues        `json:"prometheus,omitempty"`
 	Rancher             *rancherValues           `json:"rancher,omitempty"`
 	Velero              *veleroValues            `json:"velero,omitempty"`
-	ArgoCD              *argoCDValues            `json:"argoCD,omitempty"`
+	ArgoCD              *argoCDValues            `json:"argocd,omitempty"`
 }
 
 type authproxyValues struct {

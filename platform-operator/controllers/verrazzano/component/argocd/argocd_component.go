@@ -165,38 +165,38 @@ func (c argoCDComponent) PostInstall(ctx spi.ComponentContext) error {
 		return log.ErrorfThrottledNewErr("Failed retrieving ArgoCD post install component: %s", err.Error())
 	}
 
-	if err := c.configureKeycloakOIDC(ctx); err != nil {
-		return log.ErrorfThrottledNewErr("failed configuring ArgoCD keycloak oidc provider: %s", err.Error())
-	}
-
 	return nil
 }
 
-// configureKeycloakOIDC
+// ConfigureKeycloakOIDC
 // +configures Keycloak as OIDC provider for ArgoCD.
 // - Patch argocd-secret with the keycloak client secret.
 // - Patch argocd-cm with the oidc configuration to enable keycloak authentication.
 // - Patch argocd-rbac-cm by providing role admin to verrazzano-admins group
-func (c argoCDComponent) configureKeycloakOIDC(ctx spi.ComponentContext) error {
+func ConfigureKeycloakOIDC(ctx spi.ComponentContext) error {
 	log := ctx.Log()
-	if vzcr.IsKeycloakEnabled(ctx.ActualCR()) {
-		if err := c.patchArgoCDSecret(ctx); err != nil {
+
+	if vzcr.IsKeycloakEnabled(ctx.EffectiveCR()) && vzcr.IsArgoCDEnabled(ctx.EffectiveCR()) {
+
+		ctx.Log().Oncef("Configuring Keycloak as a ArgoCD authentication provider")
+		component := NewComponent().(argoCDComponent)
+		if err := patchArgoCDSecret(component, ctx); err != nil {
 			return log.ErrorfThrottledNewErr("Failed patching ArgoCD secret: %s", err.Error())
 		}
 		log.Debugf("Patched ArgoCD secret")
 
 		if err := patchArgoCDConfigMap(ctx); err != nil {
-			return log.ErrorfThrottledNewErr("Failed patching ArgoCD configmap: %s", err.Error())
+			return err
 		}
 		log.Debugf("Patched ArgoCD configmap")
 
 		if err := patchArgoCDRbacConfigMap(ctx); err != nil {
-			return log.ErrorfThrottledNewErr("Failed patching ArgoCD Rbac configmap: %s", err.Error())
+			return err
 		}
 		log.Debugf("Patched ArgoCD RBac configmap")
 
 		if err := restartArgoCDServerDeploy(ctx); err != nil {
-			return log.ErrorfThrottledNewErr("Failed restarting the ArgoCD Server Deployment: %s", err.Error())
+			return err
 		}
 	}
 

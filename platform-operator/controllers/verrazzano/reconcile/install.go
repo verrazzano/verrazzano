@@ -5,6 +5,7 @@ package reconcile
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
@@ -145,6 +146,9 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 		case vzStatePostInstall:
 			if !preUpgrade {
 				if err := rancher.ConfigureAuthProviders(spiCtx); err != nil {
+					return ctrl.Result{Requeue: true}, err
+				}
+				if err := argocd.ConfigureKeycloakOIDC(spiCtx); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
 			}
