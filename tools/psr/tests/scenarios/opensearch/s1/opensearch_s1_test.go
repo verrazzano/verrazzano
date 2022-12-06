@@ -4,7 +4,6 @@
 package s1
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -15,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"github.com/verrazzano/verrazzano/tools/psr/tests/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/psr/tests/scenarios/common"
 )
 
@@ -46,7 +44,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	vmiCredentials = pkg.EventuallyGetSystemVMICredentials()
 
 	// Start the scenario if necessary
-	common.InitScenario(t, log, scenarioID, namespace, kubeconfig, skipStopScenario)
+	common.InitScenario(t, log, scenarioID, namespace, kubeconfig, skipStartScenario)
 })
 
 var afterSuite = t.AfterSuiteFunc(func() {
@@ -94,18 +92,18 @@ var _ = t.Describe("ops-s1", Label("f:psr-ops-s1"), func() {
 	// GIVEN a Verrazzano installation
 	// WHEN  all opensearch PSR workers are running
 	// THEN  metrics can be found for all opensearch PSR workers
-	t.DescribeTable("Verify Opensearch ops-s1 Worker Metrics",
-		func(metricName string) {
-			Eventually(func() bool {
-				return pkg.MetricsExistInCluster(metricName, common.GetMetricLabels(""), kubeconfig)
-			}, waitTimeout, pollingInterval).Should(BeTrue(),
-				fmt.Sprintf("No metrics found for %s", metricName))
-		},
-		Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsLoggedCharsTotal), constants.WriteLogsLoggedCharsTotal),
-		Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsLoggedLinesTotalCountMetric), constants.WriteLogsLoggedLinesTotalCountMetric),
-		Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsLoopCountTotalMetric), constants.WriteLogsLoopCountTotalMetric),
-		Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsWorkerLastLoopNanosMetric), constants.WriteLogsWorkerLastLoopNanosMetric),
-		Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsWorkerRunningSecondsTotalMetric), constants.WriteLogsWorkerRunningSecondsTotalMetric),
-		Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsWorkerThreadCountTotalMetric), constants.WriteLogsWorkerThreadCountTotalMetric),
-	)
+	//t.DescribeTable("Verify Opensearch ops-s1 Worker Metrics",
+	//	func(metricName string) {
+	//		Eventually(func() bool {
+	//			return pkg.MetricsExistInCluster(metricName, common.GetMetricLabels(""), kubeconfig)
+	//		}, waitTimeout, pollingInterval).Should(BeTrue(),
+	//			fmt.Sprintf("No metrics found for %s", metricName))
+	//	},
+	//	Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsLoggedCharsTotal), constants.WriteLogsLoggedCharsTotal),
+	//	Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsLoggedLinesTotalCountMetric), constants.WriteLogsLoggedLinesTotalCountMetric),
+	//	Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsLoopCountTotalMetric), constants.WriteLogsLoopCountTotalMetric),
+	//	Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsWorkerLastLoopNanosMetric), constants.WriteLogsWorkerLastLoopNanosMetric),
+	//	Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsWorkerRunningSecondsTotalMetric), constants.WriteLogsWorkerRunningSecondsTotalMetric),
+	//	Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsWorkerThreadCountTotalMetric), constants.WriteLogsWorkerThreadCountTotalMetric),
+	//)
 })
