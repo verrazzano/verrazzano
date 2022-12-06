@@ -55,6 +55,7 @@ fi
 RELEASE_BINARIES_DIR=${4}
 
 function verify_vz_release_artifacts_exist() {
+    echo "Verifying release artifacts exist"
     if [ $# -ne 1 ] && [ $# -ne 2 ]; then
       echo "Usage: ${FUNCNAME[0]} commit release_bundle"
       return 1
@@ -87,6 +88,7 @@ function get_vz_release_artifacts() {
       return 1
     fi
 
+    echo "Getting release artifacts"
     cd $RELEASE_BINARIES_DIR
     local _folder="$1"
     local _file="$2"

@@ -138,8 +138,8 @@ pipeline {
                         cd ${WORKSPACE}
                         echo "Ensuring release artifacts exist for the specified commit id."
                         echo "The commit here should correspond to the commit id from a successful periodic test run which produced artifacts which can be released"
-                        ./release/scripts/get_release_artifacts.sh ${CLEAN_BRANCH_NAME} ${SHORT_COMMIT_HASH} ${VERRAZZANO_FULL_BUNDLE} ${VZ_FULL} VERIFY-ONLY
-                        ./release/scripts/get_release_artifacts.sh ${CLEAN_BRANCH_NAME} ${SHORT_COMMIT_HASH} ${VERRAZZANO_LITE_BUNDLE} ${VZ_LITE} VERIFY-ONLY
+                        ./release/scripts/get_release_artifacts.sh ${CLEAN_BRANCH_NAME} ${SHORT_COMMIT_HASH} ${VERRAZZANO_FULL_BUNDLE} ${VZ_FULL} "VERIFY-ONLY"
+                        ./release/scripts/get_release_artifacts.sh ${CLEAN_BRANCH_NAME} ${SHORT_COMMIT_HASH} ${VERRAZZANO_LITE_BUNDLE} ${VZ_LITE} "VERIFY-ONLY"
                     """
 
                     sh """
