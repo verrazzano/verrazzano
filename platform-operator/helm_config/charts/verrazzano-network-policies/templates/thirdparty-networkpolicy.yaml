@@ -311,40 +311,6 @@ spec:
       app: cattle-cluster-agent
   policyTypes:
     - Ingress
-{{- end }}
-{{- if .Values.argocd.enabled}}
----
-# Network policy for ArgoCD UI/API
-# Ingress: allow nginx ingress
-# Egress: allow all
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: argocd-netpolicy
-  namespace: argocd
-spec:
-  podSelector:
-    matchLabels:
-      app.kubernetes.io/name: argocd-server
-  policyTypes:
-    - Ingress
-  ingress:
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: argocd
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              verrazzano.io/namespace: ingress-nginx
-        - podSelector:
-            matchLabels:
-              app.kubernetes.io/instance: ingress-controller
-      ports:
-        - protocol: TCP
-          port: 443
-        - protocol: TCP
-          port: 8080
 ---
 # Network policy for Rancher UI/API
 # Ingress: allow nginx ingress
@@ -396,6 +362,40 @@ spec:
     - ports:
         - port: 9443
           protocol: TCP
+{{- end }}
+{{- if .Values.argocd.enabled}}
+---
+# Network policy for ArgoCD UI/API
+# Ingress: allow nginx ingress
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: argocd-netpolicy
+  namespace: argocd
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-server
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: argocd
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: ingress-nginx
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: ingress-controller
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 8080
 {{- end }}
 {{- if .Values.ingressNGINX.enabled }}
 ---
