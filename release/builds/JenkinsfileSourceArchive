@@ -165,6 +165,9 @@ pipeline {
         }
     }
     post {
+        always {
+            archiveArtifacts artifacts: "**/vzsource*.properties,**/verrazzano_*.txt", allowEmptyArchive: true
+        }
         cleanup {
             deleteDir()
         }
