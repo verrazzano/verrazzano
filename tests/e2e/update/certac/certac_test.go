@@ -60,7 +60,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
-	// verifyManagedClustersFluentdConnection()
 })
 
 var _ = AfterSuite(afterSuite)
@@ -227,10 +226,8 @@ func verifyRegistration() {
 // managed clusters can be reliably updated to use the new CA cert. Otherwise intermittent timing
 // related failures may occur
 func reapplyManagedClusterRegManifest(newCACert string) {
-	// CAUpdateTime := time.Now()
 	for _, managedCluster := range managedClusters {
 		waitForManifestSecretUpdated(managedCluster.Name, newCACert)
-		// waitForVMCReadyAfterTime(managedCluster.Name, CAUpdateTime)
 		gomega.Eventually(func() error {
 			reg, err := adminCluster.GetManifest(managedCluster.Name)
 			if err != nil {
@@ -240,7 +237,7 @@ func reapplyManagedClusterRegManifest(newCACert string) {
 			pkg.Log(pkg.Info, fmt.Sprintf("Reapplying registration manifest for managed cluster %s", managedCluster.Name))
 			managedCluster.Apply(reg)
 			return nil
-		}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(gomega.BeNil(), fmt.Sprintf("Reapply registration manifest failed for cluster %s", managedCluster.Name))
+		}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(gomega.Not(gomega.HaveOccurred()), fmt.Sprintf("Reapply registration manifest failed for cluster %s", managedCluster.Name))
 	}
 }
 
