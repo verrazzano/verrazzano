@@ -6,7 +6,6 @@ package authz
 import (
 	"fmt"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	"net/http"
 	"time"
 
@@ -43,21 +42,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	deployBarApplication()
 	deployNoIstioApplication()
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
-
-	//Resources for application bar
-	update.ValidatePods(sleepWorkloadName, labelPodName, barNamespace, 1, false)
-	update.ValidatePods(springFrontWorkloadName, labelPodName, barNamespace, 1, false)
-	update.ValidatePods(springBackWorkloadName, labelPodName, barNamespace, 1, false)
-
-	//Resources for application foo
-	update.ValidatePods(sleepWorkloadName, labelPodName, fooNamespace, 1, false)
-	update.ValidatePods(springFrontWorkloadName, labelPodName, fooNamespace, 1, false)
-	update.ValidatePods(springBackWorkloadName, labelPodName, fooNamespace, 1, false)
-
-	//Resources for application noIstio
-	update.ValidatePods(sleepWorkloadName, "app", noIstioNamespace, 1, false)
-	update.ValidatePods(springFrontWorkloadName, labelPodName, noIstioNamespace, 1, false)
-	update.ValidatePods(springBackWorkloadName, labelPodName, noIstioNamespace, 1, false)
 	beforeSuitePassed = true
 })
 
