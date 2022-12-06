@@ -122,3 +122,7 @@ func writeDirDeep(destDir string, embeddedParent string) error {
 	}
 	return nil
 }
+
+func ResetManifests() {
+	Manifests = nil
+}

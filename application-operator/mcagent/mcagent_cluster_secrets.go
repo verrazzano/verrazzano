@@ -33,6 +33,33 @@ func (s *Syncer) syncClusterCAs() (controllerutil.OperationResult, error) {
 	return managedClusterResult, nil
 }
 
+// syncAgentSecretFromAdminCluster - synchronize the agent secret from admin cluster including
+// kubeconfig, cluster name -- update local agent secret if any of those change
+func (s *Syncer) syncAgentSecretFromAdminCluster() (controllerutil.OperationResult, error) {
+	opResult := controllerutil.OperationResultNone
+
+	// Get the managed cluster registration secret for THIS managed cluster, from the admin cluster.
+	// This will be used to sync registration information here on the managed cluster.
+	adminAgentSecret := corev1.Secret{}
+	err := s.AdminClient.Get(s.Context, client.ObjectKey{
+		Namespace: constants.VerrazzanoMultiClusterNamespace,
+		Name:      getAgentSecretName(s.ManagedClusterName),
+	}, &adminAgentSecret)
+	if err != nil {
+		return opResult, err
+	}
+
+	agentSecret := corev1.Secret{}
+	agentSecret.Name = constants.MCAgentSecret
+	agentSecret.Namespace = constants.VerrazzanoSystemNamespace
+	return controllerutil.CreateOrUpdate(s.Context, s.LocalClient, &agentSecret, func() error {
+		// Set info from admin agent secret
+		agentSecret.Data[mcconstants.KubeconfigKey] = adminAgentSecret.Data[mcconstants.KubeconfigKey]
+		agentSecret.Data[mcconstants.ManagedClusterNameKey] = adminAgentSecret.Data[mcconstants.ManagedClusterNameKey]
+		return nil
+	})
+}
+
 // syncRegistrationFromAdminCluster - synchronize the admin cluster registration info including
 // CA cert, URLs and credentials -- update local registration if any of those change
 func (s *Syncer) syncRegistrationFromAdminCluster() (controllerutil.OperationResult, error) {
@@ -214,4 +241,11 @@ func generateManagedResourceName(clusterName string) string {
 func getRegistrationSecretName(clusterName string) string {
 	const registrationSecretSuffix = "-registration"
 	return generateManagedResourceName(clusterName) + registrationSecretSuffix
+}
+
+// getAgentSecretName returns the agent secret name for a managed cluster on the admin
+// cluster
+func getAgentSecretName(clusterName string) string {
+	const suffix = "-agent"
+	return generateManagedResourceName(clusterName) + suffix
 }
