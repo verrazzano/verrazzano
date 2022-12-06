@@ -39,11 +39,11 @@ fi
 if [ -n "${SKIP_UNDEPLOY}" ]; then
   TEST_ARGS="${TEST_ARGS} --skip-undeploy=${SKIP_UNDEPLOY}"
 fi
-set -x
 
 if [ -n "${TEST_ARGS}" ]; then
   TEST_ARGS="-- ${TEST_ARGS}"
 fi
 
-cd ${TEST_ROOT}
+set -x
+cd "${TEST_ROOT}"
 ginkgo ${GINGKO_ARGS} ${TEST_SUITES} ${TEST_ARGS}
