@@ -7,13 +7,16 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
+	"testing"
 	"time"
 
 	"github.com/Jeffail/gabs/v2"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	asserts "github.com/stretchr/testify/assert"
 	aocnst "github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
@@ -160,13 +163,12 @@ func verifyManagedClusterAdminKubeconfig(managedCluster *multicluster.Cluster, a
 			pkg.Log(pkg.Error, fmt.Sprintf("Failed parsing admin kubeconfig JSON: %v", err))
 			return false
 		}
-		newCaCrt := parsedKubeconfig.Search("clusters", "cluster", "0", "certificate-authority-data").Data().(string)
-		if newCaCrt == admCaCrt {
+		if kubeconfigContainsCACert(parsedKubeconfig, admCaCrt) {
 			pkg.Log(pkg.Error, fmt.Sprintf("%v of %v took %v updated", aocnst.MCAgentSecret, managedCluster.Name, time.Since(start)))
-		} else {
-			pkg.Log(pkg.Error, fmt.Sprintf("%v of %v is not updated", aocnst.MCAgentSecret, managedCluster.Name))
+			return true
 		}
-		return admCaCrt == newCaCrt
+		pkg.Log(pkg.Error, fmt.Sprintf("%v of %v is not updated", aocnst.MCAgentSecret, managedCluster.Name))
+		return false
 	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("Sync admin-kubeconfig %v", managedCluster.Name))
 }
 
@@ -277,9 +279,17 @@ func kubeconfigContainsCACert(kubeconfigData *gabs.Container, newCACert string) 
 	}
 	encodedCACert := base64.StdEncoding.EncodeToString([]byte(newCACert))
 	return strings.Contains(string(kubeconfig), encodedCACert)
+	// TODO DEVA on this line:  interface conversion: interface {} is nil, not string
+	/*newCaCrt := parsedKubeconfig.Search("clusters", "cluster", "0", "certificate-authority-data").Data().(string)
+	if newCaCrt == encodedCACert {
+		pkg.Log(pkg.Error, fmt.Sprintf("%v of %v took %v updated", aocnst.MCAgentSecret, managedCluster.Name, time.Since(start)))
+	} else {
+		pkg.Log(pkg.Error, fmt.Sprintf("%v of %v is not updated", aocnst.MCAgentSecret, managedCluster.Name))
+	}
+	return admCaCrt == newCaCrt*/
 }
 
-/*func Test_mytest(t *testing.T) {
+func Test_mytest(t *testing.T) {
 	managedClusterName := "managed1"
 	manifestBytes, err := os.ReadFile("/Users/desagar/tmp/VZ-7637/manifest.yaml")
 	if err != nil {
@@ -307,7 +317,7 @@ func kubeconfigContainsCACert(kubeconfigData *gabs.Container, newCACert string) 
 		}
 	}
 	asserts.Fail(t, "did not find it")
-}*/
+}
 
 /*
 func waitForVMCReadyAfterTime(managedClusterName string, afterTime time.Time) {
