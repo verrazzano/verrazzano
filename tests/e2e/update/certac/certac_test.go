@@ -242,11 +242,11 @@ func waitForVMCReadyAfterTime(managedClusterName string, afterTime time.Time) {
 			return false
 		}
 		readyCond := findStatusCondition(vmc.Status.Conditions, v1alpha1.ConditionReady)
-		if !readyCond.LastTransitionTime.After(afterTime) {
-			return false
+		if readyCond.LastTransitionTime.After(afterTime) {
+			return true
 		}
-		return true
-	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("VMC ready condition for %s not updated after CA change", managedClusterName))
+		return false
+	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("VMC ready condition for %s not updated after CA change at %v", managedClusterName, afterTime))
 }
 
 func findStatusCondition(conditions []v1alpha1.Condition, condType v1alpha1.ConditionType) *v1alpha1.Condition {
