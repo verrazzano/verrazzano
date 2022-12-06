@@ -5,4 +5,4 @@ global:
   envVars:
     PSR_WORKER_TYPE: ops-restart
     OPENSEARCH_TIER: data
-    PSR_LOOP_SLEEP: 30s
+    PSR_LOOP_SLEEP: 5s

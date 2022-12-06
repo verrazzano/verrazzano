@@ -3,6 +3,6 @@
 
 global:
   envVars:
-    PSR_WORKER_TYPE: ops-scale
+    PSR_WORKER_TYPE: ops-restart
     OPENSEARCH_TIER: ingest
     PSR_LOOP_SLEEP: 30s
