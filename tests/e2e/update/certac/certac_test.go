@@ -18,6 +18,7 @@ import (
 	"github.com/onsi/gomega"
 	asserts "github.com/stretchr/testify/assert"
 	aocnst "github.com/verrazzano/verrazzano/application-operator/constants"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -238,6 +239,8 @@ func reapplyManagedClusterRegManifest(newCACert string) {
 }
 
 func waitForManifestSecretUpdated(managedClusterName string, newCACert string) {
+	start := time.Now()
+	manifestSecretName := vmc.GetManifestSecretName(managedClusterName)
 	gomega.Eventually(func() bool {
 		manifestBytes, err := adminCluster.GetManifest(managedClusterName)
 		if err != nil {
@@ -256,12 +259,18 @@ func waitForManifestSecretUpdated(managedClusterName string, newCACert string) {
 				pkg.Log(pkg.Error, fmt.Sprintf("Could not parse JSON manifest secret: %v", err))
 				return false
 			}
-			pkg.Log(pkg.Info, fmt.Sprintf("Waiting for %s to contain updated admin kubeconfig for %s", pocnst.MCAgentSecret, managedClusterName))
 			if resourceContainer.Search("metadata", "name").Data() == pocnst.MCAgentSecret {
 				kubeconfigData := resourceContainer.Search("data", mcconstants.KubeconfigKey)
-				return kubeconfigContainsCACert(kubeconfigData, newCACert)
+				updated := kubeconfigContainsCACert(kubeconfigData, newCACert)
+				if updated {
+					pkg.Log(pkg.Info, fmt.Sprintf("%s took %v updated", manifestSecretName, time.Since(start)))
+				} else {
+					pkg.Log(pkg.Info, fmt.Sprintf("%s not updated", manifestSecretName))
+				}
+				return updated
 			}
 		}
+		pkg.Log(pkg.Info, fmt.Sprintf("%s does not contain %s", manifestSecretName, pocnst.MCAgentSecret))
 		return false
 	}, waitTimeout, pollingInterval).
 		Should(gomega.BeTrue(), fmt.Sprintf("Manifest secret for cluster %s not updated with new CA cert", managedClusterName))
