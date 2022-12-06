@@ -81,7 +81,6 @@ var _ = t.Describe("Update admin-cluster cert-manager", Label("f:platform-lcm.up
 		t.It("admin-cluster cert-manager revert to default self-signed CA", func() {
 			start := time.Now()
 			oldIngressCaCrt := revertToDefaultCertManager()
-			reapplyManagedClusterRegManifest(oldIngressCaCrt)
 			verifyCaSync(oldIngressCaCrt)
 			verifyManagedFluentd(start)
 		})
