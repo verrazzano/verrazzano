@@ -4,6 +4,8 @@
 package certac
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
 	"reflect"
 	"strings"
@@ -13,7 +15,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	aocnst "github.com/verrazzano/verrazzano/application-operator/constants"
-	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -68,7 +69,6 @@ var _ = t.Describe("Update admin-cluster cert-manager", Label("f:platform-lcm.up
 		t.It("admin-cluster cert-manager custom CA", func() {
 			start := time.Now()
 			oldIngressCaCrt := updateAdminClusterCA()
-			reapplyManagedClusterRegManifest()
 			verifyCaSync(oldIngressCaCrt)
 			// verify new logs are flowing after updating admin cert
 			verifyManagedFluentd(start)
@@ -78,7 +78,7 @@ var _ = t.Describe("Update admin-cluster cert-manager", Label("f:platform-lcm.up
 		t.It("admin-cluster cert-manager revert to default self-signed CA", func() {
 			start := time.Now()
 			oldIngressCaCrt := revertToDefaultCertManager()
-			reapplyManagedClusterRegManifest()
+			reapplyManagedClusterRegManifest("")
 			verifyCaSync(oldIngressCaCrt)
 			verifyManagedFluentd(start)
 		})
@@ -115,6 +115,7 @@ func revertToDefaultCertManager() string {
 
 func verifyCaSync(oldIngressCaCrt string) {
 	newIngressCaCrt := verifyAdminClusterIngressCA(oldIngressCaCrt)
+	reapplyManagedClusterRegManifest(newIngressCaCrt)
 	verifyCaSyncToManagedClusters(newIngressCaCrt)
 }
 
@@ -217,10 +218,11 @@ func verifyRegistration() {
 // self-signed certs, this manual step is expected of users so that the admin kubeconfig used by the
 // managed clusters can be reliably updated to use the new CA cert. Otherwise intermittent timing
 // related failures may occur
-func reapplyManagedClusterRegManifest() {
-	CAUpdateTime := time.Now()
+func reapplyManagedClusterRegManifest(newCACert string) {
+	// CAUpdateTime := time.Now()
 	for _, managedCluster := range managedClusters {
-		waitForVMCReadyAfterTime(managedCluster.Name, CAUpdateTime)
+		waitForManifestSecretUpdated(managedCluster.Name, newCACert)
+		// waitForVMCReadyAfterTime(managedCluster.Name, CAUpdateTime)
 		gomega.Eventually(func() error {
 			reg, err := adminCluster.GetManifest(managedCluster.Name)
 			if err != nil {
@@ -234,6 +236,49 @@ func reapplyManagedClusterRegManifest() {
 	}
 }
 
+func waitForManifestSecretUpdated(managedClusterName string, newCACert string) {
+	gomega.Eventually(func() bool {
+		manifestBytes, err := adminCluster.GetManifest(managedClusterName)
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Could not get manifest secret for managed cluster %s: %v", managedClusterName, err))
+			return false
+		}
+		yamlDocs := bytes.Split(manifestBytes, []byte("---\n"))
+		for _, yamlDoc := range yamlDocs {
+			jsonDoc, err := yaml.YAMLToJSON(yamlDoc)
+			if err != nil {
+				pkg.Log(pkg.Error, fmt.Sprintf("Could not parse YAML in manifest to JSON %v", err))
+				return false
+			}
+			resourceContainer, err := gabs.ParseJSON(jsonDoc)
+			if err != nil {
+				pkg.Log(pkg.Error, fmt.Sprintf("Could not parse JSON manifest secret: %v", err))
+			}
+			if resourceContainer.Search("metadata", "name").String() == pocnst.MCAgentSecret {
+				kubeconfigData := resourceContainer.Search("data", mcconstants.KubeconfigKey)
+				return kubeconfigContainsCACert(kubeconfigData, newCACert)
+			}
+		}
+		return false
+	}, waitTimeout, pollingInterval).
+		Should(gomega.BeTrue(), fmt.Sprintf("Manifest secret for cluster %s not updated with new CA cert", managedClusterName))
+}
+
+func kubeconfigContainsCACert(kubeconfigData *gabs.Container, newCACert string) bool {
+	if kubeconfigData == nil {
+		pkg.Log(pkg.Error, "Could not find admin kubeconfig data in manifest")
+		return false
+	}
+	kubeconfig, err := base64.StdEncoding.DecodeString(kubeconfigData.String())
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not base64 decode kubeconfig in manifest: %v", err))
+		return false
+	}
+	encodedCACert := base64.StdEncoding.EncodeToString([]byte(newCACert))
+	return strings.Contains(string(kubeconfig), encodedCACert)
+}
+
+/*
 func waitForVMCReadyAfterTime(managedClusterName string, afterTime time.Time) {
 	gomega.Eventually(func() bool {
 		vmc, err := adminCluster.GetVMC(managedClusterName)
@@ -249,6 +294,7 @@ func waitForVMCReadyAfterTime(managedClusterName string, afterTime time.Time) {
 	}, waitTimeout, pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("VMC ready condition for %s not updated after CA change at %v", managedClusterName, afterTime))
 }
 
+
 func findStatusCondition(conditions []v1alpha1.Condition, condType v1alpha1.ConditionType) *v1alpha1.Condition {
 	for _, cond := range conditions {
 		if cond.Type == condType {
@@ -256,4 +302,4 @@ func findStatusCondition(conditions []v1alpha1.Condition, condType v1alpha1.Cond
 		}
 	}
 	return nil
-}
+}*/
