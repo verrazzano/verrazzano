@@ -11,7 +11,7 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	rancherutil "github.com/verrazzano/verrazzano/pkg/rancher"
+	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	vzpassword "github.com/verrazzano/verrazzano/pkg/security/password"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -86,7 +86,7 @@ func (c clusterOperatorComponent) postInstallUpgrade(ctx spi.ComponentContext) e
 
 // createVZClusterUser creates the Verrazzano cluster user in Rancher using the Rancher API
 func createVZClusterUser(ctx spi.ComponentContext) error {
-	rc, err := rancherutil.NewRancherConfig(ctx.Client(), true, ctx.Log())
+	rc, err := rancherutil.NewAdminRancherConfig(ctx.Client(), ctx.Log())
 	if err != nil {
 		return err
 	}
