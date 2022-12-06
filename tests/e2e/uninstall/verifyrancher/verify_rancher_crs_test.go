@@ -31,8 +31,8 @@ var (
 
 var t = framework.NewTestFramework("uninstall verify Rancher CRs")
 
-// This test verifies that Rancher cluster scoped custom resources have been deleted from the cluster.
-var _ = t.Describe("Verify Rancher cluster scoped resources", Label("f:platform-lcm.unnstall"), func() {
+// This test verifies that Rancher custom resources have been deleted from the cluster.
+var _ = t.Describe("Verify Rancher custom resources", Label("f:platform-lcm.unnstall"), func() {
 	t.It("Check for unexpected Rancher custom resources", func() {
 		Eventually(func() (*apiextv1.CustomResourceDefinitionList, error) {
 			var err error
@@ -52,7 +52,7 @@ var _ = t.Describe("Verify Rancher cluster scoped resources", Label("f:platform-
 		unexpectedCRs := false
 
 		for _, crd := range crds.Items {
-			if strings.HasSuffix(crd.Name, ".cattle.io") && crd.Spec.Scope == apiextv1.ClusterScoped {
+			if strings.HasSuffix(crd.Name, ".cattle.io") {
 				for _, version := range crd.Spec.Versions {
 					rancherCRs, err := clientset.Resource(schema.GroupVersionResource{
 						Group:    crd.Spec.Group,
@@ -66,7 +66,7 @@ var _ = t.Describe("Verify Rancher cluster scoped resources", Label("f:platform-
 						continue
 					}
 					for _, rancherCR := range rancherCRs.Items {
-						pkg.Log(pkg.Error, fmt.Sprintf("Unexpected custom resource %s was found for %s.%s/%s", rancherCR.GetName(), crd.Spec.Names.Singular, crd.Spec.Group, version.Name))
+						pkg.Log(pkg.Error, fmt.Sprintf("Unexpected custom resource %s/%s was found for %s.%s/%s", rancherCR.GetNamespace(), rancherCR.GetName(), crd.Spec.Names.Singular, crd.Spec.Group, version.Name))
 						unexpectedCRs = true
 					}
 				}
