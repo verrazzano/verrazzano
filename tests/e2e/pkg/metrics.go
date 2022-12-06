@@ -103,7 +103,7 @@ func GetPrometheusIngressHost(kubeconfigPath string) string {
 	return ""
 }
 
-// MetricsExist validates the availability of a given metric in the given cluster
+// MetricsExistInCluster validates the availability of a given metric in the given cluster
 func MetricsExistInCluster(metricsName string, keyMap map[string]string, kubeconfigPath string) bool {
 	metric, err := QueryMetric(metricsName, kubeconfigPath)
 	if err != nil {
