@@ -24,9 +24,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/batch/v1"
-
+        appsv1 "k8s.io/api/apps/v1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
