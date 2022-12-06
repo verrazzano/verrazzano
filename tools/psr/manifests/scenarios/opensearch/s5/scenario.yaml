@@ -1,11 +1,10 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-name: opensearch-s5
 ID: ops-s5
+name: opensearch-s5
 description: |
-  This is a scenario that combines the writelogs, getlogs, and putlogs use cases while scaling all OpenSearch tiers
-  Namespace needs to be labeled with istio-injection=enabled
+  This is a scenario that scales pods on all 3 OpenSearch tiers simultaneously
 usecases:
   - usecasePath: opensearch/scale.yaml
     overrideFile: scale-master.yaml
@@ -16,12 +15,3 @@ usecases:
   - usecasePath: opensearch/scale.yaml
     overrideFile: scale-ingest.yaml
     description: scales ingest nodes
-  - usecasePath: opensearch/getlogs.yaml
-    overrideFile: getlogs-fast.yaml
-    description: getlogs from Opensearch 1000 times a second
-  - usecasePath: opensearch/writelogs.yaml
-    overrideFile: writelogs-fast.yaml
-    description: write logs to STDOUT 1000 times a second
-  - usecasePath: opensearch/postlogs.yaml
-    overrideFile: postlogs-fast.yaml
-    description: postlogs to Opensearch 1000 times a second
