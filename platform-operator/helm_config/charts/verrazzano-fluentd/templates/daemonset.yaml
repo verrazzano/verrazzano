@@ -133,7 +133,6 @@ spec:
         - hostPath:
             path: /var/log
             type: ""
-            readOnly: false
           name: varlog
         - hostPath:
             path: /var/lib
