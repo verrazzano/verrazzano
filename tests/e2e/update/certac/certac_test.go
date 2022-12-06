@@ -256,6 +256,7 @@ func waitForManifestSecretUpdated(managedClusterName string, newCACert string) {
 				pkg.Log(pkg.Error, fmt.Sprintf("Could not parse JSON manifest secret: %v", err))
 				return false
 			}
+			pkg.Log(pkg.Info, fmt.Sprintf("Waiting for %s to contain updated admin kubeconfig for %s", pocnst.MCAgentSecret, managedClusterName))
 			if resourceContainer.Search("metadata", "name").Data() == pocnst.MCAgentSecret {
 				kubeconfigData := resourceContainer.Search("data", mcconstants.KubeconfigKey)
 				return kubeconfigContainsCACert(kubeconfigData, newCACert)
