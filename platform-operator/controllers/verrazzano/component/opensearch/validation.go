@@ -73,7 +73,7 @@ func GetNodesNumber(opensearch *v1beta1.OpenSearchComponent) (map[vmov1.NodeRole
 		return numberNodes, errors.New("Number of master nodes should be atleast 3")
 	}
 	if numberNodes["data"] < 2 {
-		return numberNodes, errors.New("Number of master nodes should be atleast 2")
+		return numberNodes, errors.New("Number of data nodes should be atleast 2")
 	}
 	if numberNodes["ingest"] < 1 {
 		return numberNodes, errors.New("Number of ingest nodes should be atleast 1")
