@@ -266,10 +266,9 @@ func waitForManifestSecretUpdated(managedClusterName string, newCACert string) {
 		if updated {
 			pkg.Log(pkg.Info, fmt.Sprintf("%s took %v updated", manifestSecretName, time.Since(start)))
 			return nil
-		} else {
-			pkg.Log(pkg.Info, fmt.Sprintf("%s not updated", manifestSecretName))
-			return fmt.Errorf("manifest secret for cluster %s not updated with new CA cert", managedClusterName)
 		}
+		pkg.Log(pkg.Info, fmt.Sprintf("%s not updated", manifestSecretName))
+		return fmt.Errorf("manifest secret for cluster %s not updated with new CA cert", managedClusterName)
 	}).WithTimeout(waitTimeout).WithPolling(pollingInterval).
 		Should(gomega.Not(gomega.HaveOccurred()))
 }
