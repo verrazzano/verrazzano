@@ -137,7 +137,6 @@ function downloadSourceCode() {
   cd "${SAVE_DIR}"
   changeDir=$(getChangeDir "${repoUrl}")
   if [ -d "${SAVE_DIR}/${changeDir}" ]; then
-    echo "Directory ${SAVE_DIR}/${changeDir} exists, continue"
     continue
   fi
 
