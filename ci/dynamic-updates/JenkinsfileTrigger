@@ -112,7 +112,7 @@ pipeline {
         }
 
         stage ('Run Jaeger Update Test a bunch of times') {
-            parallel (
+            parallel {
                 // Running 30 parallel builds
                 stage ('Jaeger Run 1') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } }
                 stage ('Jaeger Run 2') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } }
@@ -149,7 +149,7 @@ pipeline {
                 stage ('Jaeger Run 28') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } }
                 stage ('Jaeger Run 29') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } }
                 stage ('Jaeger Run 30') { steps { script {startBuildJob([booleanParam(name: 'RUN_JAEGER', value: true)])} } }
-            )
+            }
         }
     }
     post {
