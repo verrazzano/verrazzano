@@ -134,7 +134,7 @@ func TestSetAvailabilityFields(t *testing.T) {
 			}
 			for _, component := range tt.components {
 				if component.IsEnabled(nil) {
-					vz.Status.Components[component.GetJSONName()] = &vzapi.ComponentStatusDetails{
+					vz.Status.Components[component.Name()] = &vzapi.ComponentStatusDetails{
 						State: vzapi.CompStateReady,
 					}
 				}
