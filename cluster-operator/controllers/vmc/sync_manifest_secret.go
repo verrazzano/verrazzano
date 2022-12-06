@@ -11,7 +11,7 @@ import (
 	clusterapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/rancher"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
-	rancherutil "github.com/verrazzano/verrazzano/pkg/rancher"
+	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -68,7 +68,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 		// Rancher YAML is applied on the managed cluster
 		// NOTE: If this errors we log it and do not fail the reconcile
 		var clusterID string
-		rc, err := rancherutil.NewRancherConfig(r.Client, true, r.log)
+		rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.log)
 		if err != nil {
 			msg := "Failed to create Rancher API client"
 			r.log.Infof("Unable to connect to Rancher API on admin cluster, manifest secret will not contain Rancher YAML: %v", err)
@@ -128,7 +128,7 @@ func (r *VerrazzanoManagedClusterReconciler) syncCACertSecret(vmc *clusterapi.Ve
 	if len(vmc.Spec.CASecret) > 0 {
 		return false, nil
 	}
-	rc, err := rancherutil.NewRancherConfig(r.Client, true, r.log)
+	rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.log)
 	if err != nil {
 		return false, err
 	}

@@ -40,7 +40,7 @@ func (r *VerrazzanoManagedClusterReconciler) updateRancherClusterRoleBindingTemp
 
 	clusterID := vmc.Status.RancherRegistration.ClusterID
 	if len(clusterID) == 0 {
-		r.log.Debugf("Waiting to create ClusterRoleBindingTemplate for cluster %s, Rancher ClusterID not found in the VMC status", vmc.GetName())
+		r.log.Progressf("Waiting to create ClusterRoleBindingTemplate for cluster %s, Rancher ClusterID not found in the VMC status", vmc.GetName())
 		return nil
 	}
 
