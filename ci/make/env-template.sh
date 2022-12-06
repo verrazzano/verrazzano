@@ -18,6 +18,10 @@ export DOCKER_REPO=ghcr.io
 # Override where the Kubeconfig for the cluster is stored
 #export KUBECONFIG= # Default is ${WORKSPACE}/test_kubeconfig
 
+#### Custom MetalLB settings
+#
+#METALLB_ADDRESS_RANGE=  # Set this to override the default MetalLB address rainge for KIND
+
 #### Platform Operator Settings 
 #
 # The following env vars control how the Platform Operator manifest is obtained
