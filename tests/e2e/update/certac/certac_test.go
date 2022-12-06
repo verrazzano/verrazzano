@@ -253,8 +253,9 @@ func waitForManifestSecretUpdated(managedClusterName string, newCACert string) {
 			resourceContainer, err := gabs.ParseJSON(jsonDoc)
 			if err != nil {
 				pkg.Log(pkg.Error, fmt.Sprintf("Could not parse JSON manifest secret: %v", err))
+				return false
 			}
-			if resourceContainer.Search("metadata", "name").String() == pocnst.MCAgentSecret {
+			if resourceContainer.Search("metadata", "name").Data() == pocnst.MCAgentSecret {
 				kubeconfigData := resourceContainer.Search("data", mcconstants.KubeconfigKey)
 				return kubeconfigContainsCACert(kubeconfigData, newCACert)
 			}
@@ -269,7 +270,7 @@ func kubeconfigContainsCACert(kubeconfigData *gabs.Container, newCACert string) 
 		pkg.Log(pkg.Error, "Could not find admin kubeconfig data in manifest")
 		return false
 	}
-	kubeconfig, err := base64.StdEncoding.DecodeString(kubeconfigData.String())
+	kubeconfig, err := base64.StdEncoding.DecodeString(kubeconfigData.Data().(string))
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Could not base64 decode kubeconfig in manifest: %v", err))
 		return false
@@ -277,6 +278,36 @@ func kubeconfigContainsCACert(kubeconfigData *gabs.Container, newCACert string) 
 	encodedCACert := base64.StdEncoding.EncodeToString([]byte(newCACert))
 	return strings.Contains(string(kubeconfig), encodedCACert)
 }
+
+/*func Test_mytest(t *testing.T) {
+	managedClusterName := "managed1"
+	manifestBytes, err := os.ReadFile("/Users/desagar/tmp/VZ-7637/manifest.yaml")
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not get manifest secret for managed cluster %s: %v", managedClusterName, err))
+	}
+	newCACertBytes, err := os.ReadFile("/Users/desagar/tmp/VZ-7637/newCACert.crt")
+	if err != nil {
+		pkg.Log(pkg.Error, fmt.Sprintf("Could not get ca cert %v", err))
+	}
+	newCACert := string(newCACertBytes)
+	yamlDocs := bytes.Split(manifestBytes, []byte("---\n"))
+	for _, yamlDoc := range yamlDocs {
+		jsonDoc, err := yaml.YAMLToJSON(yamlDoc)
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Could not parse YAML in manifest to JSON %v", err))
+		}
+		resourceContainer, err := gabs.ParseJSON(jsonDoc)
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Could not parse JSON manifest secret: %v", err))
+		}
+		if resourceContainer.Search("metadata", "name").Data() == pocnst.MCAgentSecret {
+			kubeconfigData := resourceContainer.Search("data", mcconstants.KubeconfigKey)
+			asserts.True(t, kubeconfigContainsCACert(kubeconfigData, newCACert))
+			return
+		}
+	}
+	asserts.Fail(t, "did not find it")
+}*/
 
 /*
 func waitForVMCReadyAfterTime(managedClusterName string, afterTime time.Time) {
