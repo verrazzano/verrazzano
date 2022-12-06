@@ -60,6 +60,8 @@ function verify_vz_release_artifacts_exist() {
       return 1
     fi
 
+    local _folder="$1"
+    local _file="$2"
     oci --region ${OCI_REGION} os object head \
             --namespace ${OBJECT_STORAGE_NS} \
             --bucket-name ${OCI_OS_COMMIT_BUCKET} \
