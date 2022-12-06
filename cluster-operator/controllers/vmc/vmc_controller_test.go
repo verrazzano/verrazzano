@@ -80,14 +80,9 @@ type secretAssertFn func(secret *corev1.Secret) error
 // TestCreateVMC tests the Reconcile method for the following use case
 // GIVEN a request to reconcile an VerrazzanoManagedCluster resource
 // WHEN a VerrazzanoManagedCluster resource has been applied in a cluster where Rancher is enabled
-// THEN ensure all the objects are created correctly (USES feature flag rancherBasedKubeconfigEnabled)
+// THEN ensure all the objects are created correctly
 func TestCreateVMCRancherEnabled(t *testing.T) {
 	// with feature flag disabled (which triggers different asserts/mocks from enabled)
-	doTestCreateVMC(t, true)
-
-	// with feature flag enabled
-	rancherBasedKubeConfigEnabled = true
-	defer func() { rancherBasedKubeConfigEnabled = false }()
 	doTestCreateVMC(t, true)
 }
 
@@ -1713,26 +1708,25 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string, rancherE
 			})
 	}
 
-	// ONLY if the rancherBasedKubeconfig feature flag is enabled - Expect a call to list Verrazzanos
-	// and return a Verrazzano that has Rancher URL in status only if rancherEnabled is true
-	if rancherBasedKubeConfigEnabled {
-		mock.EXPECT().
-			List(gomock.Any(), &v1beta1.VerrazzanoList{}, gomock.Not(gomock.Nil())).
-			DoAndReturn(func(ctx context.Context, list *v1beta1.VerrazzanoList, opts ...client.ListOption) error {
-				var status v1beta1.VerrazzanoStatus
-				if rancherEnabled {
-					status = v1beta1.VerrazzanoStatus{
-						VerrazzanoInstance: &v1beta1.InstanceInfo{RancherURL: &rancherURL},
-					}
+	// Expect a call to list Verrazzanos and return a Verrazzano that has Rancher URL in status only
+	// if rancherEnabled is true
+	mock.EXPECT().
+		List(gomock.Any(), &v1beta1.VerrazzanoList{}, gomock.Not(gomock.Nil())).
+		DoAndReturn(func(ctx context.Context, list *v1beta1.VerrazzanoList, opts ...client.ListOption) error {
+			var status v1beta1.VerrazzanoStatus
+			if rancherEnabled {
+				status = v1beta1.VerrazzanoStatus{
+					VerrazzanoInstance: &v1beta1.InstanceInfo{RancherURL: &rancherURL},
 				}
-				vz := v1beta1.Verrazzano{
-					Spec:   v1beta1.VerrazzanoSpec{},
-					Status: status,
-				}
-				list.Items = append(list.Items, vz)
-				return nil
-			})
-	}
+			}
+			vz := v1beta1.Verrazzano{
+				Spec:   v1beta1.VerrazzanoSpec{},
+				Status: status,
+			}
+			list.Items = append(list.Items, vz)
+			return nil
+		})
+
 	// Expect a call to get the service token secret, return the secret with the token
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoMultiClusterNamespace, Name: saSecretName}, gomock.Not(gomock.Nil())).
@@ -1743,7 +1737,7 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string, rancherE
 			return nil
 		})
 
-	if rancherEnabled && rancherBasedKubeConfigEnabled {
+	if rancherEnabled {
 		// Expect a call to get the tls-ca-additional secret, return the secret as not found
 		mock.EXPECT().
 			Get(gomock.Any(), types.NamespacedName{Namespace: constants.RancherSystemNamespace, Name: constants.AdditionalTLS}, gomock.Not(gomock.Nil())).
@@ -1780,7 +1774,7 @@ func expectSyncAgent(t *testing.T, mock *mocks.MockClient, name string, rancherE
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.CreateOption) error {
 			adminKubeconfig := string(secret.Data[mcconstants.KubeconfigKey])
-			if rancherEnabled && rancherBasedKubeConfigEnabled {
+			if rancherEnabled {
 				assert.Contains(t, adminKubeconfig, "server: "+rancherURL)
 			} else {
 				assert.Contains(t, adminKubeconfig, "server: "+userAPIServerURL)
