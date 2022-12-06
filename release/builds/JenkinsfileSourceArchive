@@ -46,6 +46,7 @@ pipeline {
         REPO_URLS_PROPS = "vzsource_repo_urls.properties"
         REPO_URLS1_PROPS = "vzsource_repo_urls_1.properties"
         REPO_URLS2_PROPS = "vzsource_repo_urls_2.properties"
+        REPO_URLS3_PROPS = "vzsource_repo_urls_3.properties
     }
 
     stages {
@@ -103,9 +104,18 @@ pipeline {
                         oci --region ${OCI_REGION} os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OCI_OS_SHARED_BUCKET} --name ${params.VERRAZZANO_HELPER_BRANCH}/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
                         chmod uog+x ${WORKSPACE}/verrazzano-helper
 
-                        # Redirect the output of verrazzano-helper get repo-urls to a file
-                        ${WORKSPACE}/verrazzano-helper get repo-urls > ${WORKSPACE}/${REPO_URLS_PROPS}
+                        # Redirect the output of verrazzano-helper get repo-urls to files
+                        ${WORKSPACE}/verrazzano-helper get repo-urls all > ${WORKSPACE}/${REPO_URLS_PROPS}
                         echo "# URLs end here" >> ${WORKSPACE}/${REPO_URLS_PROPS}
+
+                        ${WORKSPACE}/verrazzano-helper get repo-urls public_repos > ${WORKSPACE}/${REPO_URLS1_PROPS}
+                        echo "# URLs end here" >> ${WORKSPACE}/${REPO_URLS1_PROPS}
+
+                        ${WORKSPACE}/verrazzano-helper get repo-urls internal_repos > ${WORKSPACE}/${REPO_URLS2_PROPS}
+                        echo "# URLs end here" >> ${WORKSPACE}/${REPO_URLS2_PROPS}
+
+                        ${WORKSPACE}/verrazzano-helper get repo-urls additional_repos > ${WORKSPACE}/${REPO_URLS3_PROPS}
+                        echo "# URLs end here" >> ${WORKSPACE}/${REPO_URLS3_PROPS}
                     """
                 }
             }
@@ -130,7 +140,7 @@ pipeline {
                 script {
                     sh """
                         # Dry run to ensure REPO_URLS_PROPS contains the URLs for all the images listed in verrazzano-images.txt
-                        ${WORKSPACE}/release/scripts/download_source_prt.sh ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt ${WORKSPACE}/${REPO_URLS_PROPS} ${WORKSPACE}/downloaded_source true
+                        ${WORKSPACE}/release/scripts/download_source_prt.sh -i ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt -r ${WORKSPACE}/${REPO_URLS_PROPS} -s ${WORKSPACE}/downloaded_source -d true
                     """
                 }
             }
@@ -139,26 +149,32 @@ pipeline {
         stage('Download Source') {
             steps {
                 script {
-                    sh """
-                        mkdir -p ${WORKSPACE}/downloaded_source
-                        grep -v ${GITLAB_URL_PREFIX} ${WORKSPACE}/${REPO_URLS_PROPS} > ${WORKSPACE}/${REPO_URLS1_PROPS}
-                        grep -F -x -v -f ${WORKSPACE}/${REPO_URLS1_PROPS} ${WORKSPACE}/${REPO_URLS_PROPS} > ${WORKSPACE}/${REPO_URLS2_PROPS}
-                        echo "# URLs end here" >> ${WORKSPACE}/${REPO_URLS2_PROPS}
-                    """
-
                     withCredentials([gitUsernamePassword(credentialsId: 'gitlab_rw', gitToolName: 'git-tool')]) {
                         sh """
-                            ${WORKSPACE}/release/scripts/download_source_prt.sh ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt ${WORKSPACE}/${REPO_URLS2_PROPS} ${WORKSPACE}/downloaded_source
+                            ${WORKSPACE}/release/scripts/download_source_prt.sh -i ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt -r ${WORKSPACE}/${REPO_URLS2_PROPS} -s ${WORKSPACE}/downloaded_source -c true
+                            ${WORKSPACE}/release/scripts/download_source_prt.sh -i ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt -r ${WORKSPACE}/${REPO_URLS3_PROPS} -s ${WORKSPACE}/downloaded_source
                         """
                     }
 
                     withCredentials([gitUsernamePassword(credentialsId: 'github_rw', gitToolName: 'git-tool')]) {
                         sh """
-                            ${WORKSPACE}/release/scripts/download_source_prt.sh ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt ${WORKSPACE}/${REPO_URLS1_PROPS} ${WORKSPACE}/downloaded_source
+                            ${WORKSPACE}/release/scripts/download_source_prt.sh -i ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt -r ${WORKSPACE}/${REPO_URLS1_PROPS} -s ${WORKSPACE}/downloaded_source
                             mkdir -p ${WORKSPACE}/archive_dir
                             ${WORKSPACE}/release/scripts/archive_source_prt.sh ${WORKSPACE}/downloaded_source ${WORKSPACE}/archive_dir ${params.RELEASE_VERSION}
                         """
                     }
+                }
+            }
+        }
+        stage('Create Source Archive') {
+            steps {
+                script {
+                    sh """
+                        mkdir -p ${WORKSPACE}/archive_dir
+                        ${WORKSPACE}/release/scripts/archive_source_prt.sh ${WORKSPACE}/downloaded_source ${WORKSPACE}/archive_dir ${params.RELEASE_VERSION}
+                        ls ${WORKSPACE}/archive_dir
+                        ls ${WORKSPACE}/downloaded_source
+                    """
                 }
             }
         }
