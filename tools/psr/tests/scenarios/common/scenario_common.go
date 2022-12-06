@@ -8,16 +8,22 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	"github.com/verrazzano/verrazzano/tools/psr/tests/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/psr/tests/pkg/psrctlcli"
 	"github.com/verrazzano/verrazzano/tools/psr/tests/pkg/secrets"
+)
+
+var (
+	NamespaceLabels = map[string]string{
+		"istio-injection":    "enabled",
+		"verrazzano-managed": "true",
+	}
 )
 
 // InitScenario Starts a PSR scenario in the specified namespace; if skipStartScenario is true, the scenario start is skipped
 // - Creates and labels and the namespace if necessary
 // - If the env var IMAGE_PULL_SECRET is defined, we attempt to create the image pull secret in the target namespace
 func InitScenario(t *framework.TestFramework, log vzlog.VerrazzanoLogger, scenarioID string, namespace string, kubeconfig string, skipStartScenario bool) {
-	_, err := pkg.CreateOrUpdateNamespace(namespace, constants.NamespaceLabels, nil)
+	_, err := pkg.CreateOrUpdateNamespace(namespace, NamespaceLabels, nil)
 	gomega.Expect(err).To(gomega.Not(gomega.HaveOccurred()))
 
 	err = secrets.CreateOrUpdatePipelineImagePullSecret(log, namespace, kubeconfig)
