@@ -14,7 +14,7 @@ const (
 	kubeSystemNamespace    = "kube-system"
 	caCrtKey               = "ca.crt"
 	serviceAccountName     = "argocd-manager"
-	secretName             = "argocd-manager-token"
+	secName                = "argocd-manager-token"
 	clusterRoleName        = "argocd-manager-role"
 	clusterRoleBindingName = "argocd-manager-role-binding"
 )
@@ -34,7 +34,7 @@ func (s *Syncer) createArgoCDServiceAccount() error {
 
 func (s *Syncer) createArgoCDSecret(secretData []byte) error {
 	var secret corev1.Secret
-	secret.Name = secretName
+	secret.Name = secName
 	secret.Namespace = kubeSystemNamespace
 
 	// Create or update on the local cluster
@@ -71,7 +71,7 @@ func (s *Syncer) createArgoCDRoleBinding() error {
 func mutateServiceAccount(sa corev1.ServiceAccount) {
 	sa.Secrets = []corev1.ObjectReference{
 		{
-			Name: secretName,
+			Name: secName,
 		},
 	}
 }

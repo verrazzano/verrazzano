@@ -51,7 +51,7 @@ func TestCreateArgoCDResources(t *testing.T) {
 	err := s.LocalClient.Get(s.Context, types.NamespacedName{Name: serviceAccountName, Namespace: kubeSystemNamespace}, &corev1.ServiceAccount{})
 	assert.NoError(t, err)
 
-	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: secretName, Namespace: kubeSystemNamespace}, &corev1.Secret{})
+	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: secName, Namespace: kubeSystemNamespace}, &corev1.Secret{})
 	assert.NoError(t, err)
 
 	err = s.LocalClient.Get(s.Context, types.NamespacedName{Name: clusterRoleName}, &rbacv1.ClusterRole{})

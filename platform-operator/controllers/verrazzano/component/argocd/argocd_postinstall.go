@@ -8,17 +8,14 @@ import (
 	"fmt"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 	"time"
 )
@@ -66,19 +63,11 @@ func patchArgoCDSecret(component argoCDComponent, ctx spi.ComponentContext) erro
 
 // patchArgoCDConfigMap
 func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
-	/*dnsSubDomain, err := getDNSDomain(ctx.Client(), ctx.EffectiveCR())
-	if err != nil {
-		ctx.Log().ErrorfNewErr("Component ArgoCD failed retrieving DNS sub domain: %v", err)
-		return err
-	}*/
 	c := ctx.Client()
-	//log := ctx.Log()
-	keycloakIngress, err := k8sutil.GetURLForIngress(c, "keycloak", "keycloak", "https")
+	keycloakIngress, _ := k8sutil.GetURLForIngress(c, "keycloak", "keycloak", "https")
 
-	argoCDURL, err := k8sutil.GetURLForIngress(c, "argocd-server", "argocd", "https")
+	argoCDURL, _ := k8sutil.GetURLForIngress(c, "argocd-server", "argocd", "https")
 
-	//keycloakHost := "keycloak." + dnsSubDomain
-	//argocdHost := "argocd." + dnsSubDomain
 	keycloakURL := fmt.Sprintf("%s/%s", keycloakIngress, "auth/realms/verrazzano-system")
 
 	ctx.Log().Debugf("Getting ArgoCD TLS root CA")
@@ -119,7 +108,7 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 		if cm.Data == nil {
 			cm.Data = make(map[string]string)
 		}
-		cm.Data["url"] = fmt.Sprintf("%s", argoCDURL)
+		cm.Data["url"] = argoCDURL
 		cm.Data["oidc.config"] = string(data)
 
 		return nil
@@ -195,16 +184,6 @@ func GetRootCA(ctx spi.ComponentContext) ([]byte, error) {
 	}
 
 	return secret.Data[common.ArgoCDCACert], nil
-}
-
-// getDNSDomain returns the DNS Domain
-func getDNSDomain(c client.Client, vz *vzapi.Verrazzano) (string, error) {
-	dnsSuffix, err := vzconfig.GetDNSSuffix(c, vz)
-	if err != nil {
-		return "", err
-	}
-	dnsDomain := fmt.Sprintf("%s.%s", vz.Spec.EnvironmentName, dnsSuffix)
-	return dnsDomain, nil
 }
 
 // Use the CR generation so that we only restart the workloads once
