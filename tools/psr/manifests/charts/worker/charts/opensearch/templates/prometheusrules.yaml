@@ -1,0 +1,19 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    release: prometheus-operator
+  name: psr-{{ template "worker.fullName" .}}-opensearch
+  namespace: {{ .Release.Namespace }}
+spec:
+  groups:
+    - name: psr
+      rules:
+        - alert: LowOpenSearchAvailableStorage
+          expr: es_fs_total_available_bytes/es_fs_total_total_bytes < 0.2
+          for: 1m
+          labels:
+            severity: warning

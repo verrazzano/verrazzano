@@ -1,18 +1,17 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-name: opensearch-s4
 ID: ops-s4
+name: opensearch-s4
 description: |
-  This is a scenario that combines the writelogs, getlogs, and postlogs use cases
-  Namespace needs to be labeled with istio-injection=enabled
+  This is a scenario that restarts pods on all 3 OpenSearch tiers simultaneously
 usecases:
-  - usecasePath: opensearch/getlogs.yaml
-    overrideFile: getlogs-fast.yaml
-    description: getlogs from Opensearch 1000 times a second
-  - usecasePath: opensearch/writelogs.yaml
-    overrideFile: writelogs-fast.yaml
-    description: write logs to STDOUT 1000 times a second
-  - usecasePath: opensearch/postlogs.yaml
-    overrideFile: postlogs-fast.yaml
-    description: postlogs to Opensearch 1000 times a second
+  - usecasePath: opensearch/restart.yaml
+    overrideFile: restart-master.yaml
+    description: restarts master nodes
+  - usecasePath: opensearch/restart.yaml
+    overrideFile: restart-data.yaml
+    description: restarts data nodes
+  - usecasePath: opensearch/restart.yaml
+    overrideFile: restart-ingest.yaml
+    description: restarts ingest nodes
