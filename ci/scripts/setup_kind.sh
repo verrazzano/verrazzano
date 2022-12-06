@@ -83,6 +83,7 @@ echo "Listing pods in kube-system namespace ..."
 kubectl get pods -n kube-system
 
 echo "Install metallb"
-${TEST_SCRIPTS_DIR}/install-metallb.sh
+METALLB_ADDRESS_RANGE=${METALLB_ADDRESS_RANGE:-"172.18.0.230-172.18.0.254"}
+${TEST_SCRIPTS_DIR}/install-metallb.sh "${METALLB_ADDRESS_RANGE}"
 
 exit 0
