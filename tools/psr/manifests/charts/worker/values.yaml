@@ -25,3 +25,6 @@ istioInject: false
 # Each worker that has a subchart needs to override this property
 opensearch:
   enabled: false
+
+prometheus:
+  enabled: false
