@@ -46,7 +46,7 @@ pipeline {
         REPO_URLS_PROPS = "vzsource_repo_urls.properties"
         REPO_URLS1_PROPS = "vzsource_repo_urls_1.properties"
         REPO_URLS2_PROPS = "vzsource_repo_urls_2.properties"
-        REPO_URLS3_PROPS = "vzsource_repo_urls_3.properties
+        REPO_URLS3_PROPS = "vzsource_repo_urls_3.properties"
     }
 
     stages {
