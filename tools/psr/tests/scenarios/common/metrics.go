@@ -60,9 +60,6 @@ func CheckPrometheusEndpoint(t *framework.TestFramework) {
 // CheckScenarioMetricsExist Verifies the Prometheus endpoint is available in the target cluster and verifies that the specified
 // scenario metrics exist in it
 func CheckScenarioMetricsExist(t *framework.TestFramework, metrics []string, kubeconfigPath string) {
-	// Verify the Prometheus endpoint is available
-	CheckPrometheusEndpoint(t)
-
 	testfunc := func(getMetricName func() string) {
 		metricName := getMetricName()
 		gomega.Eventually(func() bool {

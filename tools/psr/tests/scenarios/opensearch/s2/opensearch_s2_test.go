@@ -17,6 +17,7 @@ const (
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
+	// Start the scenario if necessary
 	kubeconfig, _ := k8sutil.GetKubeConfigLocation()
 	common.InitScenario(t, log, scenarioID, namespace, kubeconfig, skipStopScenario)
 })
@@ -40,6 +41,9 @@ var scenarioPods = [][]string{
 var _ = t.Describe("ops-s2", Label("f:psr-ops-s2"), func() {
 	// Verify the Scenario pods are up and running
 	common.CheckScenarioPods(t, log, namespace, scenarioPods)
+
+	// Verify the Prometheus endpoint is available
+	common.CheckPrometheusEndpoint(t)
 
 	// Check that the metrics exist for the scenario
 	kubeconfig, _ := k8sutil.GetKubeConfigLocation()
