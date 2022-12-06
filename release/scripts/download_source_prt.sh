@@ -109,6 +109,9 @@ function downloadSourceCode() {
 
   # Remove git history and other files
   rm -rf .git .gitignore .github .gitattributes
+  echo "------------------------------------------"
+  ls -a
+  echo "------------------------------------------"
   printf "\n"
 }
 

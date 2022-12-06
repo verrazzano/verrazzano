@@ -21,12 +21,17 @@ pipeline {
         string (description: 'The release branch', name: 'RELEASE_BRANCH', defaultValue: 'NONE', trim: true)
         string (description: 'The source commit for the release (required for full release)', name: 'COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
         string (description: 'The release version (major.minor.patch format, e.g. 1.5.0)', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
+        string (description: 'verrazzano-helper branch, user branch name is used when testing verrazzano-helper changes', name: 'VERRAZZANO_HELPER_BRANCH',
+                defaultValue: 'master', trim: true)
+        string (description: 'verrazzano-examples branch, user branch name is used for testing purpose only', name: 'VERRAZZANO_EXAMPLES_BRANCH',
+                defaultValue: 'master', trim: true)
     }
 
     environment {
         OBJECT_STORAGE_NS = credentials('oci-os-namespace')
         OBJECT_STORAGE_BUCKET="verrazzano-builds"
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        OCI_OS_SHARED_BUCKET="build-shared-files"
         OCI_REGION="us-phoenix-1"
         OCI_CLI_AUTH="api_key"
         OCI_CLI_TENANCY = credentials('oci-tenancy')
@@ -83,17 +88,49 @@ pipeline {
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.COMMIT_TO_USE
                 }
+
             }
         }
 
-        stage('Download Scripts') {
+        stage('Download Repo URLs') {
+            environment {
+                GITHUB_AUTH_TOKEN = credentials('github-api-token-release-process')
+            }
+            steps {
+                script {
+                    sh """
+                        echo "Downloading verrazzano-helper from object storage"
+                        oci --region ${OCI_REGION} os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OCI_OS_SHARED_BUCKET} --name ${params.VERRAZZANO_HELPER_BRANCH}/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
+                        chmod uog+x ${WORKSPACE}/verrazzano-helper
+
+                        # Redirect the output of verrazzano-helper get repo-urls to a file
+                        ${WORKSPACE}/verrazzano-helper get repo-urls > ${WORKSPACE}/${REPO_URLS_PROPS}
+                        echo "# URLs end here" >> ${WORKSPACE}/${REPO_URLS_PROPS}
+                    """
+                }
+            }
+        }
+
+        stage('Download Image List') {
             steps {
                 script {
                     sh """
                         cd ${WORKSPACE}
                         echo "Downloading verrazzano_images.txt from object storage"
-                        oci --region us-phoenix-1 os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name master/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt --file ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt
-                        oci --region us-phoenix-1 os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${env.BRANCH_NAME}/${REPO_URLS_PROPS} --file ${WORKSPACE}/${REPO_URLS_PROPS}
+
+                        # Get from master only for non-release branches
+                        oci --region ${OCI_REGION} os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.VERRAZZANO_EXAMPLES_BRANCH}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt --file ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt
+                    """
+                }
+            }
+        }
+
+        stage('Validate Repo URLs') {
+            steps {
+                script {
+                    sh """
+                        # Dry run to ensure REPO_URLS_PROPS contains the URLs for all the images listed in verrazzano-images.txt
+                        ${WORKSPACE}/release/scripts/download_source_prt.sh ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt ${WORKSPACE}/${REPO_URLS_PROPS} ${WORKSPACE}/downloaded_source true
                     """
                 }
             }
@@ -103,10 +140,10 @@ pipeline {
             steps {
                 script {
                     sh """
-                            mkdir -p ${WORKSPACE}/downloaded_source
-                            grep -v ${GITLAB_URL_PREFIX} ${WORKSPACE}/${REPO_URLS_PROPS} > ${WORKSPACE}/${REPO_URLS1_PROPS}
-                            grep -F -x -v -f ${WORKSPACE}/${REPO_URLS1_PROPS} ${WORKSPACE}/${REPO_URLS_PROPS} > ${WORKSPACE}/${REPO_URLS2_PROPS}
-                            echo "# URLs end here" >> ${WORKSPACE}/${REPO_URLS2_PROPS}
+                        mkdir -p ${WORKSPACE}/downloaded_source
+                        grep -v ${GITLAB_URL_PREFIX} ${WORKSPACE}/${REPO_URLS_PROPS} > ${WORKSPACE}/${REPO_URLS1_PROPS}
+                        grep -F -x -v -f ${WORKSPACE}/${REPO_URLS1_PROPS} ${WORKSPACE}/${REPO_URLS_PROPS} > ${WORKSPACE}/${REPO_URLS2_PROPS}
+                        echo "# URLs end here" >> ${WORKSPACE}/${REPO_URLS2_PROPS}
                     """
 
                     withCredentials([gitUsernamePassword(credentialsId: 'gitlab_rw', gitToolName: 'git-tool')]) {
