@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	pkgconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	"github.com/verrazzano/verrazzano/pkg/test/mockmatchers"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
@@ -35,16 +36,16 @@ func TestPushManifestObjects(t *testing.T) {
 	a := asserts.New(t)
 	c := generateClientObjects()
 
-	savedRancherHTTPClient := rancherHTTPClient
+	savedRancherHTTPClient := rancherutil.RancherHTTPClient
 	defer func() {
-		rancherHTTPClient = savedRancherHTTPClient
+		rancherutil.RancherHTTPClient = savedRancherHTTPClient
 	}()
 
-	savedRetry := defaultRetry
+	savedRetry := rancherutil.DefaultRetry
 	defer func() {
-		defaultRetry = savedRetry
+		rancherutil.DefaultRetry = savedRetry
 	}()
-	defaultRetry = wait.Backoff{
+	rancherutil.DefaultRetry = wait.Backoff{
 		Steps:    1,
 		Duration: 1 * time.Millisecond,
 		Factor:   1.0,
@@ -96,7 +97,7 @@ func TestPushManifestObjects(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rancherHTTPClient = tt.mock
+			rancherutil.RancherHTTPClient = tt.mock
 			updated, err := r.pushManifestObjects(tt.vmc)
 			a.Equal(tt.updated, updated)
 			a.NoError(err)
@@ -139,8 +140,8 @@ func generateClientObjects() client.WithWatch {
 		},
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: rancherNamespace,
-				Name:      rancherAdminSecret,
+				Namespace: constants.VerrazzanoMultiClusterNamespace,
+				Name:      pkgconst.VerrazzanoClusterRancherName,
 			},
 			Data: map[string][]byte{
 				"password": []byte(""),

@@ -13,6 +13,7 @@ import (
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -173,6 +174,13 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		if syncedCert {
 			r.setStatusConditionManagedCARetrieved(vmc, corev1.ConditionTrue, "Managed cluster CA cert retrieved successfully")
 		}
+	}
+
+	log.Debugf("Updating Rancher ClusterRoleBindingTemplate for VMC %s", vmc.Name)
+	err = r.updateRancherClusterRoleBindingTemplate(vmc)
+	if err != nil {
+		r.handleError(ctx, vmc, "Failed to update Rancher ClusterRoleBindingTemplate", err, log)
+		return newRequeueWithDelay(), err
 	}
 
 	log.Debugf("Pushing the Manifest objects for VMC %s", vmc.Name)
@@ -337,7 +345,7 @@ func (r *VerrazzanoManagedClusterReconciler) deleteClusterFromRancher(ctx contex
 		return nil
 	}
 
-	rc, err := newRancherConfig(r.Client, r.log)
+	rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.log)
 	if err != nil {
 		msg := "Failed to create Rancher API client"
 		r.updateRancherStatus(ctx, vmc, clustersv1alpha1.DeleteFailed, clusterID, msg)

@@ -5,6 +5,8 @@ global:
   envVars:
     PSR_WORKER_TYPE: ops-getlogs
 
+istioInject: true
+
 # activate subchart
 opensearch:
   enabled: true
