@@ -5,12 +5,12 @@ package common
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 	"io"
 	"net/http"
 
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tools/psr/tests/pkg/constants"

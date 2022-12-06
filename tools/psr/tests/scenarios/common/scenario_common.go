@@ -4,7 +4,7 @@
 package common
 
 import (
-	"fmt"
+	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -17,37 +17,32 @@ import (
 // - Creates and labels and the namespace if necessary
 // - If the env var IMAGE_PULL_SECRET is defined, we attempt to create the image pull secret in the target namespace
 func InitScenario(t *framework.TestFramework, log vzlog.VerrazzanoLogger, scenarioID string, namespace string, kubeconfig string, skipStartScenario bool) {
-	if _, err := pkg.CreateOrUpdateNamespace(namespace, constants.NamespaceLabels, nil); err != nil {
-		t.Fail(fmt.Sprintf("Error creating or updating namespace %s: %s", namespace, err.Error()))
-		return
-	}
+	_, err := pkg.CreateOrUpdateNamespace(namespace, constants.NamespaceLabels, nil)
+	gomega.Expect(err).To(gomega.Not(gomega.HaveOccurred()))
 
-	if err := secrets.CreateOrUpdatePipelineImagePullSecret(log, namespace, kubeconfig); err != nil {
-		t.Fail(fmt.Sprintf("Error creating creating image pull secret for tests suite: %s", err.Error()))
-		return
-	}
+	err = secrets.CreateOrUpdatePipelineImagePullSecret(log, namespace, kubeconfig)
+	gomega.Expect(err).To(gomega.Not(gomega.HaveOccurred()))
 
 	if skipStartScenario {
 		return
 	}
 
 	if !psrctlcli.IsScenarioRunning(log, scenarioID, namespace) {
-		_, stderr, err := psrctlcli.StartScenario(log, scenarioID, namespace)
-		if err != nil {
-			t.Fail(fmt.Sprintf("Error starting scenario: %s", err.Error()))
-			log.Error(string(stderr))
-			return
-		}
+		stdout, stderr, err := psrctlcli.StartScenario(log, scenarioID, namespace)
+		t.Logs.Infof("StartScenario %s/%s, stdout: %s, stderr: %s", namespace, scenarioID, stdout, stderr)
+		gomega.Expect(err).To(gomega.Not(gomega.HaveOccurred()))
 	}
 }
 
 // StopScenario - Stops a scenario if it is running in the specified namespace; if skipStopScenario is true, we don't shut it down
 func StopScenario(t *framework.TestFramework, log vzlog.VerrazzanoLogger, scenarioID string, namespace string, skipStopScenario bool) {
-	if !skipStopScenario && psrctlcli.IsScenarioRunning(log, scenarioID, namespace) {
-		_, stderr, err := psrctlcli.StopScenario(log, scenarioID, namespace)
-		if err != nil {
-			log.Errorf("Error starting scenario: %s", err.Error())
-			log.Error(string(stderr))
-		}
+	if skipStopScenario {
+		t.Logs.Info("Skip stop scenario")
+		return
+	}
+	if psrctlcli.IsScenarioRunning(log, scenarioID, namespace) {
+		stdout, stderr, err := psrctlcli.StopScenario(log, scenarioID, namespace)
+		t.Logs.Infof("StopScenario %s/%s, stdout: %s, stderr: %s", namespace, scenarioID, stdout, stderr)
+		gomega.Expect(err).To(gomega.Not(gomega.HaveOccurred()))
 	}
 }
