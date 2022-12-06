@@ -3,4 +3,4 @@
 
 global:
   envVars:
-    PSR_WORKER_TYPE: http-alerts
+    PSR_WORKER_TYPE: prom-alerts
