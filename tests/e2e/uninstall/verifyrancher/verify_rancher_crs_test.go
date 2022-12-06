@@ -11,10 +11,22 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
-	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"strings"
+	"time"
+)
+
+const (
+	waitTimeout     = 2 * time.Minute
+	pollingInterval = 5 * time.Second
+)
+
+var (
+	crds      *apiextv1.CustomResourceDefinitionList
+	clientset dynamic.Interface
 )
 
 var t = framework.NewTestFramework("uninstall verify Rancher CRs")
@@ -22,26 +34,25 @@ var t = framework.NewTestFramework("uninstall verify Rancher CRs")
 // This test verifies that Rancher cluster scoped custom resources have been deleted from the cluster.
 var _ = t.Describe("Verify Rancher cluster scoped resources", Label("f:platform-lcm.unnstall"), func() {
 	t.It("Check for unexpected Rancher custom resources", func() {
-		crds, err := pkg.ListCRDs()
-		if err != nil {
-			Expect(err).To(Not(HaveOccurred()))
-		}
+		Eventually(func() (*apiextv1.CustomResourceDefinitionList, error) {
+			var err error
+			crds, err = pkg.ListCRDs()
+			return crds, err
+		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
-		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-		if err != nil {
-			Expect(err).To(Not(HaveOccurred()), "Failed getting kubeconfig")
-		}
-
-		// Get the Dynamic clientset
-		clientset, err := pkg.GetDynamicClientInCluster(kubeconfigPath)
-		if err != nil {
-			Expect(err).To(Not(HaveOccurred()), "Failed getting Kubernetes clientset")
-		}
+		Eventually(func() (dynamic.Interface, error) {
+			kubePath, err := k8sutil.GetKubeConfigLocation()
+			if err != nil {
+				return nil, err
+			}
+			clientset, err = pkg.GetDynamicClientInCluster(kubePath)
+			return clientset, err
+		}, waitTimeout, pollingInterval).ShouldNot(BeNil())
 
 		unexpectedCRs := false
 
 		for _, crd := range crds.Items {
-			if strings.HasSuffix(crd.Name, ".cattle.io") && crd.Spec.Scope == v1.ClusterScoped {
+			if strings.HasSuffix(crd.Name, ".cattle.io") && crd.Spec.Scope == apiextv1.ClusterScoped {
 				for _, version := range crd.Spec.Versions {
 					rancherCRs, err := clientset.Resource(schema.GroupVersionResource{
 						Group:    crd.Spec.Group,
