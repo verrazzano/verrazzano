@@ -56,6 +56,10 @@ var OpensearchWritelogsMetrics = []string{
 	"psr_opensearch_writelogs_worker_thread_count_total",
 }
 
+func GetOpsS1Metrics() []string {
+	return OpensearchWritelogsMetrics
+}
+
 func GetOpsS2Metrics() []string {
 	metrics := OpensearchGetLogsMetrics
 	metrics = append(metrics, OpensearchWritelogsMetrics...)
