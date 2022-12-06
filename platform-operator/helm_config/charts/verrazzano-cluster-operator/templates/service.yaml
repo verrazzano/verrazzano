@@ -25,7 +25,7 @@ metadata:
     app: {{ .Values.name }}-webhook
 spec:
   ports:
-    - name: webhook
+    - name: https-webhook
       port: 443
       targetPort: 9443
   selector:
