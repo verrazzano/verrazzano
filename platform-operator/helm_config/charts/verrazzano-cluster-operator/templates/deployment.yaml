@@ -95,7 +95,7 @@ spec:
               memory: 72Mi
           volumeMounts:
             - name: webhook-certs
-              mountPath: /etc/webhook/certs
+              mountPath: /etc/certs
       containers:
         - name: webhook-run
           image: {{ .Values.image }}
@@ -105,7 +105,7 @@ spec:
             - --run-webhooks=true
           volumeMounts:
             - name: webhook-certs
-              mountPath: /etc/webhook/certs
+              mountPath: /etc/certs
           resources:
             requests:
               memory: 72Mi
