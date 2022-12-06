@@ -6,7 +6,7 @@ package clusteroperator
 import (
 	"context"
 	"github.com/golang/mock/gomock"
-	rancherutil "github.com/verrazzano/verrazzano/pkg/rancher"
+	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"net/http"
