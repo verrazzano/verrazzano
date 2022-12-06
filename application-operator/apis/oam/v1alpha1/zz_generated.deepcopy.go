@@ -9,7 +9,7 @@
 package v1alpha1
 
 import (
-	corev1alpha1 "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	"github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -316,7 +316,7 @@ func (in *IngressTraitStatus) DeepCopyInto(out *IngressTraitStatus) {
 	in.ConditionedStatus.DeepCopyInto(&out.ConditionedStatus)
 	if in.Resources != nil {
 		in, out := &in.Resources, &out.Resources
-		*out = make([]corev1alpha1.TypedReference, len(*in))
+		*out = make([]v1.TypedReference, len(*in))
 		copy(*out, *in)
 	}
 }
@@ -412,7 +412,7 @@ func (in *LoggingTraitStatus) DeepCopyInto(out *LoggingTraitStatus) {
 	in.ConditionedStatus.DeepCopyInto(&out.ConditionedStatus)
 	if in.Resources != nil {
 		in, out := &in.Resources, &out.Resources
-		*out = make([]corev1alpha1.TypedReference, len(*in))
+		*out = make([]v1.TypedReference, len(*in))
 		copy(*out, *in)
 	}
 }
