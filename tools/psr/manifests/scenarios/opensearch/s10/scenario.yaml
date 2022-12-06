@@ -1,8 +1,8 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-name: opensearch-combine-all-scenarios
-ID: ops-cas
+name: opensearch-s10
+ID: ops-s10
 description: |
   This is a scenario that combines all of the existing OpenSearch use cases
   Namespace needs to be labeled with istio-injection=enabled

@@ -1,8 +1,8 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-name: opensearch-scale-restart-all-tiers
-ID: ops-srat
+name: opensearch-s9
+ID: ops-s9
 description: |
   This is a scenario that scales and restarts pods on all 3 OpenSearch tiers simultaneously
 usecases:
