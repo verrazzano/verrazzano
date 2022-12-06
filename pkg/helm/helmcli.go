@@ -31,12 +31,26 @@ const ChartStatusFailed = "failed"
 // ChartStatusFnType - Package-level var and functions to allow overriding GetChartStatus for unit test purposes
 type ChartStatusFnType func(releaseName string, namespace string) (string, error)
 
+type UpgradeFnType func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []HelmOverrides) (stdout []byte, stderr []byte, err error)
+
 // HelmOverrides contains all of the overrides that gets passed to the helm cli runner
 type HelmOverrides struct {
 	SetOverrides       string // for --set
 	SetStringOverrides string // for --set-string
 	SetFileOverrides   string // for --set-file
 	FileOverride       string // for -f
+}
+
+var upgradeFn UpgradeFnType = Upgrade
+
+// SetChartStatusFunction Override the chart status function for unit testing
+func SetUpgradeFunction(f UpgradeFnType) {
+	upgradeFn = f
+}
+
+// SetDefaultChartStatusFunction Reset the chart status function
+func SetDefaultUpgradeFunction() {
+	upgradeFn = Upgrade
 }
 
 var chartStatusFn ChartStatusFnType = getChartStatus
