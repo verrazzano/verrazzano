@@ -198,7 +198,7 @@ func verifyManagedFluentd(since time.Time) {
 			logs := managedCluster.FluentdLogs(5, since)
 			ok := checkFluentdLogs(logs)
 			if !ok {
-				pkg.Log(pkg.Error, fmt.Sprintf("%v Fluentd is not read: \n%v\n", managedCluster.Name, logs))
+				pkg.Log(pkg.Error, fmt.Sprintf("%v Fluentd is not ready: \n%v\n", managedCluster.Name, logs))
 			}
 			return ok
 		}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(gomega.BeTrue(), fmt.Sprintf("scrape target of %s is not ready", managedCluster.Name))
