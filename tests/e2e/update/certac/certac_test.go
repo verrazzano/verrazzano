@@ -168,7 +168,12 @@ func verifyManagedClusterAdminKubeconfig(managedCluster *multicluster.Cluster, a
 			pkg.Log(pkg.Error, fmt.Sprintf("Kubeconfig in %s of %s has nil clusters[0].cluster.certificate-authority-data", aocnst.MCAgentSecret, managedCluster.Name))
 			return false
 		}
-		if admCaCrt == newCaCrtData.(string) {
+		newCaCrt, err := base64.StdEncoding.DecodeString(newCaCrtData.(string))
+		if err != nil {
+			pkg.Log(pkg.Error, fmt.Sprintf("Could not decode certificate-authority-data in the kubeconfig in %s: %v", aocnst.MCAgentSecret, err))
+			return false
+		}
+		if admCaCrt == string(newCaCrt) {
 			pkg.Log(pkg.Info, fmt.Sprintf("%v of %v took %v updated", aocnst.MCAgentSecret, managedCluster.Name, time.Since(start)))
 			return true
 		}
