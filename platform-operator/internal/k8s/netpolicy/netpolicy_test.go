@@ -20,8 +20,10 @@ import (
 )
 
 const (
-	apiServerIP   = "1.2.3.4"
-	apiServerPort = 6443
+	apiServerIP          = "1.2.3.4"
+	apiServerPort        = 6443
+	apiServerServiceIP   = "10.96.0.1"
+	apiServerServicePort = 443
 )
 
 // TestCreateNetworkPolicies tests creating network policies for the operator.
@@ -33,7 +35,38 @@ func TestCreateNetworkPolicies(t *testing.T) {
 	mockClient := ctrlfake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	// mock the clientset with a kubernetes API server endpoint
-	mockClientset := k8sfake.NewSimpleClientset(makeKubeAPIServerEndpoint())
+	mockClientset := k8sfake.NewSimpleClientset(
+		&corev1.Endpoints{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      apiServerEndpointName,
+				Namespace: corev1.NamespaceDefault,
+			},
+			Subsets: []corev1.EndpointSubset{
+				{
+					Addresses: []corev1.EndpointAddress{
+						{
+							IP: apiServerIP,
+						},
+					},
+					Ports: []corev1.EndpointPort{
+						{
+							Port: apiServerPort,
+						},
+					},
+				},
+			},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      apiServerServiceName,
+				Namespace: corev1.NamespaceDefault,
+			},
+			Spec: corev1.ServiceSpec{
+				Ports:      []corev1.ServicePort{{Port: apiServerServicePort}},
+				ClusterIPs: []string{apiServerServiceIP},
+				ClusterIP:  apiServerServiceIP,
+			},
+		})
 
 	// create the network policy
 	opResult, errors := CreateOrUpdateNetworkPolicies(mockClientset, mockClient)
@@ -45,7 +78,7 @@ func TestCreateNetworkPolicies(t *testing.T) {
 	err := mockClient.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoInstallNamespace, Name: networkPolicyPodName}, netPolicy)
 	asserts.NoError(err)
 
-	expectedNetPolicies := newNetworkPolicies(apiServerIP, apiServerPort)
+	expectedNetPolicies := newNetworkPolicies(apiServerIP, apiServerPort, apiServerServiceIP, apiServerServicePort)
 	var expectedSpecs []netv1.NetworkPolicySpec
 	for _, netpol := range expectedNetPolicies {
 		expectedSpecs = append(expectedSpecs, netpol.Spec)
@@ -62,10 +95,41 @@ func TestUpdateNetworkPolicies(t *testing.T) {
 	mockClient := ctrlfake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 
 	// mock the clientset with a kubernetes API server endpoint
-	mockClientset := k8sfake.NewSimpleClientset(makeKubeAPIServerEndpoint())
+	mockClientset := k8sfake.NewSimpleClientset(
+		&corev1.Endpoints{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      apiServerEndpointName,
+				Namespace: corev1.NamespaceDefault,
+			},
+			Subsets: []corev1.EndpointSubset{
+				{
+					Addresses: []corev1.EndpointAddress{
+						{
+							IP: apiServerIP,
+						},
+					},
+					Ports: []corev1.EndpointPort{
+						{
+							Port: apiServerPort,
+						},
+					},
+				},
+			},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      apiServerServiceName,
+				Namespace: corev1.NamespaceDefault,
+			},
+			Spec: corev1.ServiceSpec{
+				Ports:      []corev1.ServicePort{{Port: apiServerServicePort}},
+				ClusterIPs: []string{apiServerServiceIP},
+				ClusterIP:  apiServerServiceIP,
+			},
+		})
 
 	// make an existing network policy and change the API server IP
-	existingNetPolicies := newNetworkPolicies("1.1.1.1", apiServerPort)
+	existingNetPolicies := newNetworkPolicies("1.1.1.1", apiServerPort, "10.10.0.1", apiServerServicePort)
 	for _, netpol := range existingNetPolicies {
 		err := mockClient.Create(context.TODO(), netpol)
 		if err != nil {
@@ -83,7 +147,7 @@ func TestUpdateNetworkPolicies(t *testing.T) {
 	err := mockClient.Get(context.TODO(), client.ObjectKey{Namespace: constants.VerrazzanoInstallNamespace, Name: networkPolicyPodName}, netPolicy)
 	asserts.NoError(err)
 
-	expectedNetPolicies := newNetworkPolicies(apiServerIP, apiServerPort)
+	expectedNetPolicies := newNetworkPolicies(apiServerIP, apiServerPort, apiServerServiceIP, apiServerServicePort)
 	var expectedSpecs []netv1.NetworkPolicySpec
 	for _, netpol := range expectedNetPolicies {
 		expectedSpecs = append(expectedSpecs, netpol.Spec)
@@ -127,29 +191,5 @@ func TestNetworkPoliciesFailures(t *testing.T) {
 	_, errors = CreateOrUpdateNetworkPolicies(mockClientset, mockClient)
 	for _, err := range errors {
 		asserts.Error(err)
-	}
-}
-
-// makeKubeAPIServerEndpoint returns a populated corev1.Endpoints struct with the kubernetes API server IP and port
-func makeKubeAPIServerEndpoint() *corev1.Endpoints {
-	return &corev1.Endpoints{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      apiServerEndpointName,
-			Namespace: corev1.NamespaceDefault,
-		},
-		Subsets: []corev1.EndpointSubset{
-			{
-				Addresses: []corev1.EndpointAddress{
-					{
-						IP: apiServerIP,
-					},
-				},
-				Ports: []corev1.EndpointPort{
-					{
-						Port: apiServerPort,
-					},
-				},
-			},
-		},
 	}
 }

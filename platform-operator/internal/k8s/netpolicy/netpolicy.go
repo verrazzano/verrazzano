@@ -33,6 +33,7 @@ const (
 	appInstanceLabel         = "app.kubernetes.io/instance"
 	appNameLabel             = "app.kubernetes.io/name"
 	apiServerEndpointName    = "kubernetes"
+	apiServerServiceName     = "kubernetes"
 	kubernetesNamespaceLabel = "kubernetes.io/metadata.name"
 )
 
@@ -48,7 +49,14 @@ func CreateOrUpdateNetworkPolicies(clientset kubernetes.Interface, client client
 		return opResults, errors
 	}
 
-	netPolicies := newNetworkPolicies(ip, port)
+	serviceIP, servicePort, err := getAPIServerServiceIPAndPort(clientset)
+	if err != nil {
+		opResults = append(opResults, controllerutil.OperationResultNone)
+		errors = append(errors, err)
+		return opResults, errors
+	}
+
+	netPolicies := newNetworkPolicies(ip, port, serviceIP, servicePort)
 	for _, netPolicy := range netPolicies {
 		objKey := &netv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: netPolicy.ObjectMeta.Name, Namespace: netPolicy.ObjectMeta.Namespace}}
 
@@ -66,6 +74,20 @@ func CreateOrUpdateNetworkPolicies(clientset kubernetes.Interface, client client
 	return opResults, errors
 }
 
+// getAPIServerServiceIPAndPort returns the IP address and port of the Kubernetes API server service.
+func getAPIServerServiceIPAndPort(clientset kubernetes.Interface) (string, int32, error) {
+	services, err := clientset.CoreV1().Services(corev1.NamespaceDefault).Get(context.TODO(), apiServerServiceName, metav1.GetOptions{})
+	if err != nil {
+		return "", 0, err
+	}
+
+	if len(services.Spec.Ports) > 0 && len(services.Spec.ClusterIPs) > 0 {
+		return services.Spec.ClusterIPs[0], services.Spec.Ports[0].Port, nil
+	}
+
+	return "", 0, fmt.Errorf("unable to find a host and port for the kubernetes API server service")
+}
+
 // getAPIServerIPAndPort returns the IP address and port of the Kubernetes API server.
 func getAPIServerIPAndPort(clientset kubernetes.Interface) (string, int32, error) {
 	endpoints, err := clientset.CoreV1().Endpoints(corev1.NamespaceDefault).Get(context.TODO(), apiServerEndpointName, metav1.GetOptions{})
@@ -81,7 +103,7 @@ func getAPIServerIPAndPort(clientset kubernetes.Interface) (string, int32, error
 }
 
 // newNetworkPolicy returns a populated NetworkPolicy with ingress and egress rules for this operator.
-func newNetworkPolicies(apiServerIP string, apiServerPort int32) []*netv1.NetworkPolicy {
+func newNetworkPolicies(apiServerIP string, apiServerPort int32, apiServerServiceIP string, apiServerServicePort int32) []*netv1.NetworkPolicy {
 	tcpProtocol := corev1.ProtocolTCP
 	udpProtocol := corev1.ProtocolUDP
 	dnsPort := intstr.FromInt(53)
@@ -90,6 +112,8 @@ func newNetworkPolicies(apiServerIP string, apiServerPort int32) []*netv1.Networ
 	metricsPort := intstr.FromInt(9100)
 	apiPort := intstr.FromInt(int(apiServerPort))
 	apiServerCidr := apiServerIP + "/32"
+	apiServicePort := intstr.FromInt(int(apiServerServicePort))
+	apiServiceCidr := apiServerServiceIP + "/32"
 	vponetpol := &netv1.NetworkPolicy{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: networkPolicyAPIVersion,
@@ -291,6 +315,22 @@ func newNetworkPolicies(apiServerIP string, apiServerPort int32) []*netv1.Networ
 					},
 				},
 				{
+					// egress to the kubernetes API server
+					Ports: []netv1.NetworkPolicyPort{
+						{
+							Protocol: &tcpProtocol,
+							Port:     &apiServicePort,
+						},
+					},
+					To: []netv1.NetworkPolicyPeer{
+						{
+							IPBlock: &netv1.IPBlock{
+								CIDR: apiServiceCidr,
+							},
+						},
+					},
+				},
+				{
 					// egress to the Nginx ingress controller (so we can register the cluster with Rancher)
 					Ports: []netv1.NetworkPolicyPort{
 						{
@@ -316,7 +356,7 @@ func newNetworkPolicies(apiServerIP string, apiServerPort int32) []*netv1.Networ
 			},
 			Ingress: []netv1.NetworkPolicyIngressRule{
 				{
-					// ingress from kubernetes API server for webhooks
+					// ingress from the kubernetes API server and other services
 					Ports: []netv1.NetworkPolicyPort{
 						{
 							Protocol: &tcpProtocol,

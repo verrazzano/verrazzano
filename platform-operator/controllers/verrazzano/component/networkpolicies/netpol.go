@@ -54,6 +54,7 @@ var netpolNamespaceNames = []types.NamespacedName{
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "verrazzano-authproxy"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "verrazzano-console"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "verrazzano-application-operator"},
+	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "verrazzano-application-operator-webhook"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "oam-kubernetes-runtime"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-es-master"},
 	{Namespace: vzconst.VerrazzanoSystemNamespace, Name: "vmi-system-es-data"},

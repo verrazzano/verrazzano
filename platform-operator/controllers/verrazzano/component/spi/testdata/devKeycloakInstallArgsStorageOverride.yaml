@@ -73,6 +73,8 @@ spec:
                             app: webhook
                         topologyKey: kubernetes.io/hostname
                       weight: 100
+    clusterOperator:
+      enabled: true
     coherenceOperator:
       enabled: true
     console:

@@ -35,6 +35,10 @@ const (
 	ImageNameKey        = "imageName"
 	ImagePullSecKey     = "imagePullSecrets[0].name"
 	ImagePullSecDefault = "verrazzano-container-registry"
+
+	OutputFormatName      = "output"
+	OutputFormatNameShort = "o"
+	OutputFormatHelp      = "Output format, can be one of \"json\" or \"text\", defaults to \"text\""
 )
 
 var defaultWorkerImage string
