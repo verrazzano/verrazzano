@@ -150,9 +150,6 @@ function downloadSourceCode() {
 
   # Remove git history and other files
   rm -rf .git .gitignore .github .gitattributes
-  echo "------------------------------------------"
-  ls -a
-  echo "------------------------------------------"
   printf "\n"
 }
 
@@ -166,6 +163,10 @@ function downloadSourceExamples() {
     return
   fi
   cd "${SAVE_DIR}"
+  if [ -d "${SAVE_DIR}/examples" ]; then
+    continue
+  fi
+
   git clone "${repoUrl}"
   cd examples
   # Remove git history and other files
@@ -198,7 +199,6 @@ function downloadAdditionalSource() {
        ''|\#*) continue ;;
       esac
       key=$(echo $key | tr '.' '_')
-
       url=$(echo "${value}"|cut -d':' -f2-)
       branchInfo=$(echo "${value}"|cut -d':' -f1)
       downloadSourceCode "$key" ${branchInfo} "${url}"
