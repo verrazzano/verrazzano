@@ -259,6 +259,9 @@ func waitForManifestSecretUpdated(managedClusterName string, newCACert string) {
 		}
 
 		encodedKubeconfigData := resourceContainer.Search("data", mcconstants.KubeconfigKey)
+		if encodedKubeconfigData == nil {
+			return fmt.Errorf("could not find admin kubeconfig data in manifest")
+		}
 		updated := kubeconfigContainsCACert(encodedKubeconfigData, newCACert)
 		if updated {
 			pkg.Log(pkg.Info, fmt.Sprintf("%s took %v updated", manifestSecretName, time.Since(start)))
@@ -285,17 +288,13 @@ func extractResourceFromManifestYAML(manifestBytes []byte, resourceName string) 
 			return nil, err
 		}
 		if resourceContainer.Search("metadata", "name").Data() == resourceName {
-			return nil, err
+			return resourceContainer, nil
 		}
 	}
 	return nil, fmt.Errorf("resource %s not found in manifest", resourceName)
 }
 
 func kubeconfigContainsCACert(encodedKubeconfigData *gabs.Container, newCACert string) bool {
-	if encodedKubeconfigData == nil {
-		pkg.Log(pkg.Error, "Could not find admin kubeconfig data in manifest")
-		return false
-	}
 	kubeconfig, err := base64.StdEncoding.DecodeString(encodedKubeconfigData.Data().(string))
 	if err != nil {
 		pkg.Log(pkg.Error, fmt.Sprintf("Could not base64 decode kubeconfig in manifest: %v", err))
