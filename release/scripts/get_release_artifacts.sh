@@ -64,11 +64,19 @@ function verify_vz_release_artifacts_exist() {
             --namespace ${OBJECT_STORAGE_NS} \
             --bucket-name ${OCI_OS_COMMIT_BUCKET} \
             --name "${_folder}/${_file}"
+    if [ $? -ne 0 ]; then
+        echo "${_folder}/${_file} was not found"
+        exit 1
+    fi
 
     oci --region ${OCI_REGION} os object head \
             --namespace ${OBJECT_STORAGE_NS} \
             --bucket-name ${OCI_OS_COMMIT_BUCKET} \
             --name "${_folder}/${_file}.sha256"
+    if [ $? -ne 0 ]; then
+        echo "${_folder}/${_file}.sha256 was not found"
+        exit 1
+    fi
 }
 
 function get_vz_release_artifacts() {
