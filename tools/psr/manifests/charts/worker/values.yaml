@@ -19,6 +19,9 @@ global:
 # appType can be either oam or k8s, which are just Kubernetes deployments
 appType: oam
 
+# whether the pod should be injected with an istio envoy proxy sidecar
+istioInject: false
+
 # Each worker that has a subchart needs to override this property
 opensearch:
   enabled: false
