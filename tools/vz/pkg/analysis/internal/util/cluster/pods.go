@@ -422,7 +422,7 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 			}
 		}
 	}
-	messages = CheckIfHelmPodsAdded(messages)
+	messages = checkIfHelmPodsAdded(messages)
 	supportingData := make([]report.SupportData, 1)
 	supportingData[0] = report.SupportData{
 		Messages:    messages,
@@ -438,7 +438,12 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 		}
 	}
 }
-func CheckIfHelmPodsAdded(messages []string) []string {
+
+// checkIfHelmPodsAdded tries to assess whether there is an issue with helm and rancher pods or not
+// in cattle-system namespace
+// if the helm pods are not fine and rancher pods are working, then it deletes the issues related to helm operation pods in cattle-system
+// it edits the message array to remove the messages related to helm-operation pods and returns the modified message array
+func checkIfHelmPodsAdded(messages []string) []string {
 	isHelm := false
 	isRancher := false
 	var indices []int
