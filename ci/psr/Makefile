@@ -31,7 +31,7 @@ test: export TEST_NAMESPACE ?= psrtest
 test: export IMAGE_PULL_SECRET ?= verrazzano-container-registry
 test: export DOCKER_REGISTRY ?= ghcr.io
 .PHONY: test
-test: run-test-sequential
+test: run-test-parallel
 
 # Executes an upgrade to a new Verrazzano version from the initially installed version
 .PHONY: cleanup
