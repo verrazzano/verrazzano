@@ -4,6 +4,7 @@
 package envdnscm
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -19,6 +20,10 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
+	"go.uber.org/zap"
+	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -89,7 +94,8 @@ var afterSuite = t.AfterSuiteFunc(func() {
 var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Test updates to environment name, dns domain and cert-manager CA certificates", func() {
-	t.It("Verify the current environment name", func() {
+
+	t.Context("Verify the current environment name", func() {
 		cr := update.GetCR()
 		currentEnvironmentName = pkg.GetEnvironmentName(cr)
 		currentDNSDomain = pkg.GetDNS(cr)
@@ -97,27 +103,23 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 		validateVirtualServiceList(currentDNSDomain)
 	})
 
-	t.It("Update and verify environment name", func() {
+	t.Context("Update and verify environment name", func() {
 		m := EnvironmentNameModifier{testEnvironmentName}
 		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 		validateIngressList(testEnvironmentName, currentDNSDomain)
 		validateVirtualServiceList(currentDNSDomain)
-		pkg.VerifyKeycloakAccess(t.Logs)
-		pkg.VerifyRancherAccess(t.Logs)
-		pkg.VerifyRancherKeycloakAuthConfig(t.Logs)
+		verifyIngressAccess(t.Logs)
 	})
 
-	t.It("Update and verify dns domain", func() {
+	t.Context("Update and verify dns domain", func() {
 		m := WildcardDNSModifier{testDNSDomain}
 		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 		validateIngressList(testEnvironmentName, testDNSDomain)
 		validateVirtualServiceList(testDNSDomain)
-		pkg.VerifyKeycloakAccess(t.Logs)
-		pkg.VerifyRancherAccess(t.Logs)
-		pkg.VerifyRancherKeycloakAuthConfig(t.Logs)
+		verifyIngressAccess(t.Logs)
 	})
 
-	t.It("Update and verify CA certificate", func() {
+	t.Context("Update and verify CA certificate", func() {
 		createCustomCACertificate(testCertName, testCertSecretNamespace, testCertSecretName)
 		m := CustomCACertificateModifier{testCertSecretNamespace, testCertSecretName}
 		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
@@ -127,62 +129,70 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 })
 
 func validateIngressList(environmentName string, domain string) {
-	log.Printf("Validating the ingresses")
-	Eventually(func() bool {
-		// Fetch the ingresses for the Verrazzano components
-		ingressList, err := pkg.GetIngressList("")
-		if err != nil {
-			log.Fatalf("Error while fetching IngressList\n%s", err)
-		}
-		// Verify that the ingresses contain the expected environment name and domain name
-		for _, ingress := range ingressList.Items {
-			if ingress.Namespace == constants.RancherSystemNamespace && ingress.Name == "vz-"+constants2.RancherIngress {
-				// If this is the copy of the Rancher ingress that VZ makes in order to retain access for the managed clusters
-				// until DNS updates have been pushed out to them, this ingress should have the old DNS. Skip this ingress when
-				// verifying that DNS was updated.
-				continue
-			}
-			hostname := ingress.Spec.Rules[0].Host
-			if !strings.Contains(hostname, environmentName) {
-				log.Printf("Ingress %s in namespace %s with hostname %s must contain %s", ingress.Name, ingress.Namespace, hostname, environmentName)
-				return false
-			}
-			if !strings.Contains(hostname, domain) {
-				log.Printf("Ingress %s in namespace %s with hostname %s must contain %s", ingress.Name, ingress.Namespace, hostname, domain)
-				return false
-			}
-		}
-		return true
-	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the ingress hosts contain the expected environment and domain names")
+	ingressList, err := pkg.GetIngressList("")
+	Expect(err).ToNot(HaveOccurred())
+
+	for _, ingress := range ingressList.Items {
+		t.It(fmt.Sprintf("For Ingress %s", ingress.GetName()), func() {
+			Eventually(func() error {
+				return validateIngress(environmentName, domain, &ingress)
+			}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
+		})
+	}
+}
+
+func validateIngress(environmentName string, domain string, ingress *netv1.Ingress) error {
+	// Verify that the ingress contains the expected environment name and domain name
+	if ingress.Namespace == constants.RancherSystemNamespace && ingress.Name == "vz-"+constants2.RancherIngress {
+		// If this is the copy of the Rancher ingress that VZ makes in order to retain access for the managed clusters
+		// until DNS updates have been pushed out to them, this ingress should have the old DNS. Skip this ingress when
+		// verifying that DNS was updated.
+		return nil
+	}
+	hostname := ingress.Spec.Rules[0].Host
+	if !strings.Contains(hostname, environmentName) {
+		return fmt.Errorf("Ingress %s in namespace %s with hostname %s must contain %s", ingress.Name, ingress.Namespace, hostname, environmentName)
+	}
+	if !strings.Contains(hostname, domain) {
+		return fmt.Errorf("Ingress %s in namespace %s with hostname %s must contain %s", ingress.Name, ingress.Namespace, hostname, domain)
+	}
+	return nil
 }
 
 func validateVirtualServiceList(domain string) {
-	log.Printf("Validating the virtual services")
-	Eventually(func() bool {
-		// Fetch the virtual services for the deployed applications
-		virtualServiceList, err := pkg.GetVirtualServiceList("")
-		if err != nil {
-			log.Fatalf("Error while fetching VirtualServiceList\n%s", err)
-		}
-		// Verify that the virtual services contain the expected environment name and domain nameƒ
-		for _, virtualService := range virtualServiceList.Items {
-			hostname := virtualService.Spec.Hosts[0]
-			if !strings.Contains(hostname, domain) {
-				log.Printf("Virtual Service %s in namespace %s with hostname %s must contain %s\n", virtualService.Name, virtualService.Namespace, hostname, domain)
-				return false
-			}
-		}
-		return true
-	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the application virtual service hosts contain the expected domain name")
+	// Fetch the virtual services for the deployed applications
+	virtualServiceList, err := pkg.GetVirtualServiceList("")
+	if err != nil {
+		log.Fatalf("Error while fetching VirtualServiceList\n%s", err)
+	}
+
+	// Verify that the virtual services contain the expected environment name and domain name
+	for _, virtualService := range virtualServiceList.Items {
+		t.It(fmt.Sprintf("For VirtualService %s", virtualService.GetName()), func() {
+			Eventually(func() string {
+				return virtualService.Spec.Hosts[0]
+			}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(Equal(domain))
+		})
+	}
+}
+
+func verifyIngressAccess(log *zap.SugaredLogger) {
+	t.DescribeTable("Access Ingresses",
+		func(access func() error) {
+			Eventually(func() error {
+				return access()
+			}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
+		},
+		Entry("Access Keycloak", pkg.VerifyKeycloakAccess(log)),
+		Entry("Access Rancher", pkg.VerifyRancherAccess(log)),
+		Entry("Access Rancher with Keycloak", pkg.VerifyRancherKeycloakAuthConfig(log)),
+	)
 }
 
 func createCustomCACertificate(certName string, secretNamespace string, secretName string) {
 	log.Printf("Creating custom CA certificate")
 	output, err := exec.Command("/bin/sh", "create-custom-ca.sh", "-k", "-c", certName, "-s", secretName, "-n", secretNamespace).Output()
-	if err != nil {
-		log.Println("Error in creating custom CA secret using the script create-custom-ca.sh")
-		log.Fatalf("Arguments:\n\t Certificate name: %s\n\t Secret name: %s\n\t Secret namespace: %s\n", certName, secretName, secretNamespace)
-	}
+	Expect(err).ToNot(HaveOccurred())
 	log.Println(string(output))
 }
 
@@ -191,9 +201,7 @@ func fetchCACertificatesFromIssuer(certIssuer string) []certmanagerv1.Certificat
 	var certificates []certmanagerv1.Certificate
 	// Fetch the certificates for the deployed applications
 	certificateList, err := pkg.GetCertificateList("")
-	if err != nil {
-		log.Fatalf("Error while fetching CertificateList\n%s", err)
-	}
+	Expect(err).ToNot(HaveOccurred())
 	// Filter out the certificates that are issued by the given issuer
 	for _, certificate := range certificateList.Items {
 		if certificate.Spec.IssuerRef.Name == certIssuer {
@@ -204,68 +212,57 @@ func fetchCACertificatesFromIssuer(certIssuer string) []certmanagerv1.Certificat
 }
 
 func validateCACertificateIssuer() {
-	log.Printf("Validating the CA certificates")
-	Eventually(func() bool {
-		// Fetch the certificates
-		var certificates []certmanagerv1.Certificate = fetchCACertificatesFromIssuer(testCertIssuerName)
-		// Verify that the certificate is issued by the right cluster issuer
-		for _, certificate := range certificates {
-			if certificate.Spec.IssuerRef.Name != testCertIssuerName {
-				log.Printf("Issuer for the certificate %s in namespace %s is %s; expected is %s\n", certificate.Name, certificate.Namespace, certificate.Spec.IssuerRef.Name, testCertIssuerName)
-				return false
-			}
-		}
-		return true
-	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the certificates have a valid issuer")
+	// Fetch the certificates
+	var certificates = fetchCACertificatesFromIssuer(currentCertIssuerName)
+	for _, certificate := range certificates {
+		t.It(fmt.Sprintf("Validating CA certificate %s cleanup", certificate.GetName()), func() {
+			Eventually(func() string {
+				return certificate.Spec.IssuerRef.Name
+			}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(Equal(testCertIssuerName))
+		})
+	}
 }
 
 func validateCertManagerResourcesCleanup() {
-	log.Printf("Validating CA certificate resource cleanup")
-	Eventually(func() bool {
-		// Fetch the certificates
-		var certificates []certmanagerv1.Certificate = fetchCACertificatesFromIssuer(currentCertIssuerName)
-		for _, certificate := range certificates {
-			if certificate.Name == currentCertName {
-				log.Printf("Certificate %s should NOT exist in the namespace %s\n", currentCertName, currentCertNamespace)
-				return false
-			}
-		}
-		// Verify that the certificate issuer has been removed
-		issuerList, err := pkg.GetIssuerList(currentCertIssuerNamespace)
-		if err != nil {
-			log.Fatalf("Error while fetching IssuerList\n%s", err)
-		}
-		for _, issuer := range issuerList.Items {
-			if issuer.Name == currentCertIssuerName {
-				log.Printf("Issuer %s should NOT exist in the namespace %s\n", currentCertIssuerName, currentCertIssuerNamespace)
-				return false
-			}
-		}
-		// Verify that the secret used for the default certificate has been removed
-		_, err = pkg.GetSecret(currentCertSecretNamespace, currentCertSecretName)
-		if err != nil {
-			log.Printf("Expected that the secret %s should NOT exist in the namespace %s", currentCertSecretName, currentCertSecretNamespace)
-		} else {
-			log.Printf("Secret %s should NOT exist in the namespace %s\n", currentCertSecretName, currentCertSecretNamespace)
-			return false
-		}
-		return true
-	}, waitTimeout, pollingInterval).Should(BeTrue(), "Expected that the default CA resources should be cleaned up")
+	// Fetch the certificates
+	var certificates = fetchCACertificatesFromIssuer(currentCertIssuerName)
+	for _, certificate := range certificates {
+		t.It(fmt.Sprintf("Validating CA certificate %s cleanup", certificate.GetName()), func() {
+			Eventually(func() string {
+				return certificate.Name
+			}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(Equal(currentCertName))
+		})
+	}
+
+	// Verify that the certificate issuer has been removed
+	issuerList, err := pkg.GetIssuerList(currentCertIssuerNamespace)
+	Expect(err).ToNot(HaveOccurred())
+	for _, issuer := range issuerList.Items {
+		t.It(fmt.Sprintf("Validating Issuer %s cleanup", issuer.GetName()), func() {
+			Eventually(func() string {
+				return issuer.Name
+			}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(Equal(currentCertIssuerName))
+		})
+	}
+
+	// Verify that the secret used for the default certificate has been removed
+	t.It("Validating secret does not exist", func() {
+		Eventually(func() (*corev1.Secret, error) {
+			secret, err := pkg.GetSecret(currentCertSecretNamespace, currentCertSecretName)
+			return secret, client.IgnoreNotFound(err)
+		}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(BeNil())
+	})
 }
 
-func cleanupTemporaryFiles(files []string) error {
+func cleanupTemporaryFiles(files []string) {
 	log.Printf("Cleaning up temporary files")
-	var err error
 	for _, file := range files {
-		_, err = os.Stat(file)
+		_, err := os.Stat(file)
 		if os.IsNotExist(err) {
 			log.Printf("File %s does not exist", file)
 			continue
 		}
 		err = os.Remove(file)
-		if err != nil {
-			log.Fatalf("Error while cleaning up temporary file %s\n%s", file, err)
-		}
+		Expect(err).ToNot(HaveOccurred())
 	}
-	return err
 }
