@@ -6,7 +6,6 @@ package scale
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/pkg/k8sclient"
-	controllerruntime "sigs.k8s.io/controller-runtime"
 	"strconv"
 	"sync/atomic"
 	"time"
@@ -42,13 +41,14 @@ const (
 )
 
 var funcNewPsrClient = k8sclient.NewPsrClient
-var funcNewDynClient = k8sclient.NewDynamicClient
+
+//var funcNewDynClient = k8sclient.NewDynamicClient
 
 type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetrics
 	psrClient k8sclient.PsrClient
-	dynClient k8sclient.DynamicClient
+	//dynClient k8sclient.DynamicClient
 	*state
 	log vzlog.VerrazzanoLogger
 }
@@ -73,7 +73,7 @@ func NewScaleWorker() (spi.Worker, error) {
 	if err != nil {
 		return nil, err
 	}
-	d, err := funcNewDynClient()
+	//d, err := funcNewDynClient()
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func NewScaleWorker() (spi.Worker, error) {
 		psrClient: c,
 		log:       vzlog.DefaultLogger(),
 		state:     &state{},
-		dynClient: d,
+		//dynClient: d,
 		workerMetrics: &workerMetrics{
 			scaleUpDomainCountTotal: metrics.MetricItem{
 				Name: "scale_up_domain_count_total",
@@ -182,8 +182,8 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 	domainNamespace := config.PsrEnv.GetEnv(DomainNamespace)
 	domainUID := config.PsrEnv.GetEnv(DomainUID)
 
-	// client := w.psrClient.DynClient
-	client := w.dynClient.DynClient
+	client := w.psrClient.DynClient
+	// client := w.dynClient.DynClient
 	if err != nil {
 		return log.ErrorfNewErr("Failed to get client: %v", err)
 	}
@@ -235,12 +235,4 @@ func (w worker) waitForReadyReplicas(client dynamic.Interface, namespace string,
 		time.Sleep(1 * time.Second)
 	}
 	return nil
-}
-
-func (w worker) createNewDynamicClient() (dynamic.Interface, error) {
-	cfg, err := controllerruntime.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get controller-runtime config %v", err)
-	}
-	return dynamic.NewForConfig(cfg)
 }

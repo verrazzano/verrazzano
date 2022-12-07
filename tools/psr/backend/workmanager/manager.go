@@ -19,7 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/postlogs"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/scale"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/writelogs"
-	wlsscale "github.com/verrazzano/verrazzano/tools/psr/backend/workers/wls/scale"
+	wlsscale "github.com/verrazzano/verrazzano/tools/psr/backend/workers/weblogic/scale"
 )
 
 var startMetricsFunc = metrics2.StartMetricsServerOrDie

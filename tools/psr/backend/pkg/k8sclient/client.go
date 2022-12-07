@@ -22,10 +22,6 @@ type PsrClient struct {
 	DynClient   dynamic.Interface
 }
 
-type DynamicClient struct {
-	DynClient dynamic.Interface
-}
-
 // NewPsrClient returns the set of clients used by PSR
 func NewPsrClient() (PsrClient, error) {
 	p := PsrClient{}
@@ -54,14 +50,4 @@ func NewPsrClient() (PsrClient, error) {
 		return PsrClient{}, err
 	}
 	return p, nil
-}
-
-func NewDynamicClient() (DynamicClient, error) {
-	d := DynamicClient{}
-	cfg, err := controllerruntime.GetConfig()
-	if err != nil {
-		return DynamicClient{}, fmt.Errorf("Failed to get controller-runtime config %v", err)
-	}
-	d.DynClient, err = dynamic.NewForConfig(cfg)
-	return d, nil
 }
