@@ -75,13 +75,13 @@ func RunCmdUpdate(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("Failed to create scenario ScenarioMananger %v", err)
 	}
 
-	fmt.Printf("Updating scenario %s\n", scenarioID)
-	msg, err := m.UpdateScenario(manifestMan, scenarioMan)
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Updating scenario %s\n", scenarioID))
+	msg, err := m.UpdateScenario(manifestMan, scenarioMan, vzHelper)
 	if err != nil {
 		// Cobra will display failure message
 		return fmt.Errorf("Failed to update scenario %s/%s: %v\n%s", namespace, scenarioID, err, msg)
 	}
-	fmt.Printf("Scenario %s successfully updated\n", scenarioID)
+	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Scenario %s successfully updated\n", scenarioID))
 
 	return nil
 }

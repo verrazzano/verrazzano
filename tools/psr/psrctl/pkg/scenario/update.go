@@ -7,6 +7,7 @@ import (
 	"fmt"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/manifest"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"os"
 	"path/filepath"
 )
@@ -18,7 +19,7 @@ var GetValuesFunc = helmcli.GetValues
 // The scenario manifest directory can be different that the one used to start the
 // scenario.  However, the scenario.yaml must be identical.  In fact, the scenario.yaml
 // is ignored during update, the code uses the scenario YAML information stored in the ConfigMap.
-func (m ScenarioMananger) UpdateScenario(manifestMan manifest.ManifestManager, scman *manifest.ScenarioManifest) (string, error) {
+func (m ScenarioMananger) UpdateScenario(manifestMan manifest.ManifestManager, scman *manifest.ScenarioManifest, vzHelper helpers.VZHelper) (string, error) {
 	// Make sure the scenario is running
 	scenario, err := m.FindRunningScenarioByID(scman.ID)
 	if err != nil {
@@ -27,7 +28,7 @@ func (m ScenarioMananger) UpdateScenario(manifestMan manifest.ManifestManager, s
 
 	// Helm upgrade each use case
 	for _, hr := range scenario.HelmReleases {
-		stderr, err := m.doHelmUpgrade(manifestMan, scman, hr)
+		stderr, err := m.doHelmUpgrade(manifestMan, scman, hr, vzHelper)
 		if err != nil {
 			return stderr, err
 		}
@@ -36,7 +37,7 @@ func (m ScenarioMananger) UpdateScenario(manifestMan manifest.ManifestManager, s
 }
 
 // doHelmUpgrade runs the Helm upgrade command, applying helm overrides.
-func (m ScenarioMananger) doHelmUpgrade(manifestMan manifest.ManifestManager, scman *manifest.ScenarioManifest, hr HelmRelease) (string, error) {
+func (m ScenarioMananger) doHelmUpgrade(manifestMan manifest.ManifestManager, scman *manifest.ScenarioManifest, hr HelmRelease, vzHelper helpers.VZHelper) (string, error) {
 	// Create the set of HelmOverrides, initialized from the manager settings
 	helmOverrides := m.HelmOverrides
 
@@ -62,7 +63,7 @@ func (m ScenarioMananger) doHelmUpgrade(manifestMan manifest.ManifestManager, sc
 	helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: scOverride})
 
 	if m.Verbose {
-		fmt.Printf("Updating use case %s for Helm release %s/%s\n", hr.Usecase.UsecasePath, hr.Namespace, hr.Name)
+		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Updating use case %s for Helm release %s/%s\n", hr.Usecase.UsecasePath, hr.Namespace, hr.Name))
 	}
 	_, stderr, err := UpgradeFunc(m.Log, hr.Name, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 	if err != nil {
