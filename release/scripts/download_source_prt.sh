@@ -39,7 +39,7 @@ Options:
 -i Verrazzano image list
 -r File containing the repository URLs to download the source
 -a Addition source repository URLs
--s An empty directory to download the source
+-s Directory to download the source
 -d Dry run to ensure file specified by -r flag contains the URLs for all the images listed in the file specified by -i flag
 -c Clean the directory to download the source
 
