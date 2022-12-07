@@ -1,13 +1,7 @@
 # Copyright (c) 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
-
-global:
-  envVars:
-    PSR_WORKER_TYPE: ops-postlogs
-    LOG_ENTRIES: 1
-    LOG_LENGTH: 1
-
-# activate subchart
-opensearch:
-  enabled: true
-
+apiVersion: v1
+description: A Helm chart for the Prometheus related resources
+name: prometheus
+version: 0.1.0
+appVersion: 0.1.0
