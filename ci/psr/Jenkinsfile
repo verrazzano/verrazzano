@@ -89,11 +89,15 @@ pipeline {
         OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
         DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
 
+        //VZ_TEST_BRANCH = "${params.VZ_BRANCH_TO_USE}"
+
         // Environment variable for Verrazzano CLI executable
         VZ_COMMAND="${WORKSPACE}/vz"
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
+        GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
+        TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
 
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
