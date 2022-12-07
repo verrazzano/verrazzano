@@ -151,10 +151,11 @@ func newLogger(vz *vzapi.Verrazzano) (vzlog.VerrazzanoLogger, error) {
 	if err != nil {
 		return nil, err
 	}
+	// The ID below needs to be different from the main thread, so add a suffix"
 	return vzlog.ForZapLogger(&vzlog.ResourceConfig{
 		Name:           vz.Name,
 		Namespace:      vz.Namespace,
-		ID:             string(vz.UID),
+		ID:             string(vz.UID) + "health",
 		Generation:     vz.Generation,
 		ControllerName: "availability",
 	}, zaplog), nil

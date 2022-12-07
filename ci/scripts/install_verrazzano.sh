@@ -21,22 +21,6 @@
 #
 set -o pipefail
 
-is_macos () {
-	if [[ "${OSTYPE}" == "darwin"** ]]
-	then
-		return 0
-	fi
-	return 1
-}
-
-get_arch_type() {
-  local os=linux
-  if is_macos ; then
-    os=darwin
-  fi
-  echo $os
-}
-
 if [ -z "$GO_REPO_PATH" ] ; then
   echo "GO_REPO_PATH must be set"
   exit 1
@@ -59,6 +43,44 @@ if [ -z "$INSTALL_CONFIG_FILE_KIND" ]; then
 fi
 
 scriptHome=$(dirname ${BASH_SOURCE[0]})
+
+is_macos () {
+	if [[ "${OSTYPE}" == "darwin"** ]]
+	then
+		return 0
+	fi
+	return 1
+}
+
+get_arch_type() {
+  local os=linux
+  if is_macos ; then
+    os=darwin
+  fi
+  echo $os
+}
+
+setup_overrides() {
+  # We should make this optional
+  TEST_OVERRIDE_CONFIGMAP_FILE="${TEST_SCRIPTS_DIR}/pre-install-overrides/test-overrides-configmap.yaml"
+  TEST_OVERRIDE_SECRET_FILE="${TEST_SCRIPTS_DIR}/pre-install-overrides/test-overrides-secret.yaml"
+
+  echo "Creating Override ConfigMap"
+  if ! kubectl get cm test-overrides 2>&1 > /dev/null; then
+    if ! kubectl create cm test-overrides --from-file="${TEST_OVERRIDE_CONFIGMAP_FILE}" ; then
+      echo "Could not create Override ConfigMap"
+      exit 1
+    fi
+  fi
+
+  echo "Creating Override Secret"
+  if ! kubectl get secret test-overrides 2>&1 > /dev/null; then
+    if ! kubectl create secret generic test-overrides --from-file="${TEST_OVERRIDE_SECRET_FILE}" ; then
+      echo "Could not create Override Secret"
+      exit 1
+    fi
+  fi
+}
 
 set -e
 if [ -n "${VZ_TEST_DEBUG}" ]; then
@@ -153,25 +175,7 @@ if [ $USE_DB_FOR_GRAFANA == true ]; then
 fi
 cp -v ${INSTALL_CONFIG_FILE_KIND} ${VZ_INSTALL_FILE}
 
-if [ "${CREATE_TEST_OVERRIDES}" == "true" ]; then
-  TEST_OVERRIDE_CONFIGMAP_FILE="${TEST_SCRIPTS_DIR}/pre-install-overrides/test-overrides-configmap.yaml"
-  TEST_OVERRIDE_SECRET_FILE="${TEST_SCRIPTS_DIR}/pre-install-overrides/test-overrides-secret.yaml"
-
-  echo "Creating Override ConfigMap"
-  kubectl create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
-  if [ $? -ne 0 ]; then
-    echo "Could not create Override ConfigMap"
-    exit 1
-  fi
-
-  echo "Creating Override Secret"
-  kubectl create secret generic test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
-  if [ $? -ne 0 ]; then
-    echo "Could not create Override Secret"
-    exit 1
-  fi
-
-fi
+setup_overrides
 
 if [[ -n "${OCI_OS_LOCATION}" ]]; then
   ARCHTYPE=$(get_arch_type)

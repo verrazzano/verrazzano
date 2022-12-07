@@ -29,7 +29,7 @@ pipeline {
 
     parameters {
         choice (name: 'KUBERNETES_CLUSTER_VERSION', description: 'Kubernetes Version for KinD Cluster', choices: [ "1.24", "1.23", "1.22", "1.21" ])
-        string (name: 'VZ_BRANCH_TO_USE', defaultValue: 'CURRENT', trim: true, description: 'This is the name of the Verrazzano product branch to use for testing the PSR tooling; CURRENT means using the working branch')
+        string (name: 'VZ_BRANCH_TO_USE', defaultValue: 'master', trim: true, description: 'This is the name of the Verrazzano product branch to use for testing the PSR tooling; CURRENT means using the working branch')
         string (name: 'VERRAZZANO_OPERATOR_IMAGE', defaultValue: 'NONE', trim: true, description: 'Uses a specific Verrazzano platform operator image name (in ghcr.io repo).  If not specified, the latest operator.yaml from related Verrazzano repo branch will be used to create Verrazzano platform operator manifest')
         string (name: 'KIND_NODE_COUNT', defaultValue: '3', trim: true, description: 'Number of nodes for the KIND cluster for smoke testing')
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
@@ -81,7 +81,6 @@ pipeline {
         OCI_OS_REGION="us-phoenix-1"
 
         // used to emit metrics
-        PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
 
         OCIR_SCAN_COMPARTMENT = credentials('ocir-scan-compartment')
@@ -217,22 +216,7 @@ pipeline {
                     }
                     steps {
                         script {
-                            VZ_BUILD_METRIC = metricJobName('psrbuild')
-                            metricTimerStart("${VZ_BUILD_METRIC}")
                             buildImages("${DOCKER_IMAGE_TAG}")
-                        }
-                    }
-                    post {
-                        failure {
-                            script {
-                                METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '0')
-                            }
-                        }
-                        success {
-                            echo "Saving generated files"
-                            script {
-                                METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
-                            }
                         }
                     }
                 }
@@ -360,7 +344,6 @@ pipeline {
             }
         }
         cleanup {
-            metricBuildDuration()
             deleteDir()
         }
     }
@@ -402,30 +385,6 @@ def saveCLIExecutables() {
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${env.BRANCH_NAME}/psrctl-linux-amd64.tar.gz.sha256 --file $WORKSPACE/psrctl-linux-amd64.tar.gz.sha256
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/psrctl-linux-amd64.tar.gz.sha256 --file $WORKSPACE/psrctl-linux-amd64.tar.gz.sha256
     """
-}
-
-// Called in many parallel stages of Stage Run Acceptance Tests
-def runGinkgoRandomize(testSuitePath) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            cd ${VZ_ROOT}/tests/e2e
-            if [ -d "${testSuitePath}" ]; then
-                ginkgo -p --randomize-all -v --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-            fi
-            ../../build/copy-junit-output.sh ${WORKSPACE}
-        """
-    }
-}
-
-// Called in many parallel stages of Stage Run Acceptance Tests
-def runGinkgo(testSuitePath) {
-    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-        sh """
-            cd ${VZ_ROOT}/tests/e2e
-            ginkgo -v -keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" ${testSuitePath}/...
-            ../../build/copy-junit-output.sh ${WORKSPACE}
-        """
-    }
 }
 
 def dumpK8sCluster(dumpDirectory) {
@@ -593,73 +552,4 @@ def getSuspectList(commitList, userMappings) {
     }
     echo "returning suspect list: ${retValue}"
     return retValue
-}
-
-def metricJobName(stageName) {
-    job = env.JOB_NAME.split("/")[0]
-    job = '_' + job.replaceAll('-','_')
-    if (stageName) {
-        job = job + '_' + stageName
-    }
-    return job
-}
-
-def metricTimerStart(metricName) {
-    def timerStartName = "${metricName}_START"
-    env."${timerStartName}" = sh(returnStdout: true, script: "date +%s").trim()
-}
-
-// Construct the set of labels/dimensions for the metrics
-def getMetricLabels() {
-    def buildNumber = String.format("%010d", env.BUILD_NUMBER.toInteger())
-    labels = 'build_number=\\"' + "${buildNumber}"+'\\",' +
-             'jenkins_build_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
-             'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
-             'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\"'
-    return labels
-}
-
-def metricTimerEnd(metricName, status) {
-    def timerStartName = "${metricName}_START"
-    def timerEndName   = "${metricName}_END"
-    env."${timerEndName}" = sh(returnStdout: true, script: "date +%s").trim()
-    if (params.EMIT_METRICS) {
-        long x = env."${timerStartName}" as long;
-        long y = env."${timerEndName}" as long;
-        def dur = (y-x)
-        labels = getMetricLabels()
-        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
-            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.GIT_BRANCH} $labels ${status} ${dur}")
-            echo "emit prometheus metrics: $EMIT"
-            return EMIT
-        }
-    } else {
-        return ''
-    }
-}
-
-// Emit the metrics indicating the duration and result of the build
-def metricBuildDuration() {
-    def status = "${currentBuild.currentResult}".trim()
-    long duration = "${currentBuild.duration}" as long;
-    long durationInSec = (duration/1000)
-    testMetric = metricJobName('')
-    def metricValue = "-1"
-    statusLabel = status.substring(0,1)
-    if (status.equals("SUCCESS")) {
-        metricValue = "1"
-    } else if (status.equals("FAILURE")) {
-        metricValue = "0"
-    } else {
-        // Consider every other status as a single label
-        statusLabel = "A"
-    }
-    if (params.EMIT_METRICS) {
-        labels = getMetricLabels()
-        labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
-        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
-            echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
-        }
-    }
 }

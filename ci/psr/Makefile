@@ -25,13 +25,13 @@ install:
 
 # Executes test suite(s) against the target Verrazzano install
 test: export TEST_ROOT = ${PSR_PATH}/tests
-test: export TEST_SUITES ?= opensearch/...
+test: export TEST_SUITES ?= ${TEST_ROOT}/...
 test: export PSR_COMMAND ?= psrctl
 test: export TEST_NAMESPACE ?= psrtest
 test: export IMAGE_PULL_SECRET ?= verrazzano-container-registry
 test: export DOCKER_REGISTRY ?= ghcr.io
 .PHONY: test
-test: run-test-parallel
+test: run-test-sequential
 
 # Executes an upgrade to a new Verrazzano version from the initially installed version
 .PHONY: cleanup

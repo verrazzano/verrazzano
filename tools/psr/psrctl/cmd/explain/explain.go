@@ -59,8 +59,9 @@ func RunCmdExplain(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 			continue
 		}
 		fmt.Println("----------------")
-		fmt.Printf("Name: %s\n", sc.Name)
+		fmt.Println()
 		fmt.Printf("ID: %s\n", sc.ID)
+		fmt.Printf("Name: %s\n", sc.Name)
 		fmt.Printf("Description: %s\n", sc.Description)
 
 		// If verbose
