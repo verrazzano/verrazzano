@@ -44,6 +44,22 @@ fi
 
 scriptHome=$(dirname ${BASH_SOURCE[0]})
 
+set -e
+if [ -n "${VZ_TEST_DEBUG}" ]; then
+  set -xv
+fi
+
+INSTALL_TIMEOUT_VALUE=${INSTALL_TIMEOUT_VALUE:-30m}
+WILDCARD_DNS_DOMAIN=${WILDCARD_DNS_DOMAIN:-""}
+ENABLE_API_ENVOY_LOGGING=${ENABLE_API_ENVOY_LOGGING:-false}
+CREATE_TEST_OVERRIDES=${CREATE_TEST_OVERRIDES:-true}
+USE_DB_FOR_GRAFANA=${USE_DB_FOR_GRAFANA:-false}
+
+INSTALL_PROFILE=${INSTALL_PROFILE:-"dev"}
+VERRAZZANO_INSTALL_LOGS_DIR=${VERRAZZANO_INSTALL_LOGS_DIR:-${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs}
+
+VERRAZZANO_INSTALL_LOGS_DIR=${VERRAZZANO_INSTALL_LOGS_DIR:-${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs}
+
 is_macos () {
 	if [[ "${OSTYPE}" == "darwin"** ]]
 	then
@@ -82,70 +98,54 @@ setup_overrides() {
   fi
 }
 
-set -e
-if [ -n "${VZ_TEST_DEBUG}" ]; then
-  set -xv
-fi
-
-INSTALL_TIMEOUT_VALUE=${INSTALL_TIMEOUT_VALUE:-30m}
-WILDCARD_DNS_DOMAIN=${WILDCARD_DNS_DOMAIN:-""}
-ENABLE_API_ENVOY_LOGGING=${ENABLE_API_ENVOY_LOGGING:-false}
-CREATE_TEST_OVERRIDES=${CREATE_TEST_OVERRIDES:-true}
-USE_DB_FOR_GRAFANA=${USE_DB_FOR_GRAFANA:-false}
-
-echo "Create Image Pull Secrets"
-${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-# REVIEW: Do we need github-packages still?
-${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-if [ -n "${OCR_REPO}" ] && [ -n "${OCR_CREDS_USR}" ] && [ -n "${OCR_CREDS_PSW}" ]; then
-  echo "Creating Oracle Container Registry pull secret"
-  ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
-fi
-
-# Create the verrazzano-install namespace
-kubectl create namespace verrazzano-install || true
-
-# create secret in verrazzano-install ns
-${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
-
-# optionally create a cluster dump snapshot for verifying uninstalls
-if [ -n "${CLUSTER_SNAPSHOT_DIR}" ]; then
-  ${TEST_SCRIPTS_DIR}/looping-test/dump_cluster.sh ${CLUSTER_SNAPSHOT_DIR}
-fi
-
-INSTALL_PROFILE=${INSTALL_PROFILE:-"dev"}
-VERRAZZANO_INSTALL_LOGS_DIR=${VERRAZZANO_INSTALL_LOGS_DIR:-${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs}
-
-echo "Determine which yaml file to use to install the Verrazzano Platform Operator"
-cd ${GO_REPO_PATH}/verrazzano
-
-TARGET_OPERATOR_FILE=${TARGET_OPERATOR_FILE:-"${WORKSPACE}/acceptance-test-operator.yaml"}
-if [ -z "$OPERATOR_YAML" ]; then
-  # Derive the name of the operator.yaml file, copy or generate the file, then install
-  if [ -z "${VERRAZZANO_OPERATOR_IMAGE}" ] || [ "NONE" == "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
-      echo "Using operator.yaml from object storage"
-      oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
-      cp -v ${WORKSPACE}/downloaded-operator.yaml ${TARGET_OPERATOR_FILE}
-  else
-      echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
-      env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${TARGET_OPERATOR_FILE}
+setup_pull_secrets() {
+  echo "Create Image Pull Secrets"
+  ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+  # REVIEW: Do we need github-packages still?
+  ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
+  if [ -n "${OCR_REPO}" ] && [ -n "${OCR_CREDS_USR}" ] && [ -n "${OCR_CREDS_PSW}" ]; then
+    echo "Creating Oracle Container Registry pull secret"
+    ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
   fi
-else
-  # The operator.yaml filename was provided, install using that file.
-  echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
-  TARGET_OPERATOR_FILE=${OPERATOR_YAML}
-fi
 
-# if enabled, deploy the Grafana MySQL instance and create the Grafana DB secret
-if [ $USE_DB_FOR_GRAFANA == true ]; then
-  # create the necessary secrets
-  MYSQL_ROOT_PASSWORD=$(openssl rand -base64 12)
-  MYSQL_PASSWORD=$(openssl rand -base64 12)
-  ROOT_SECRET=$(echo -n $MYSQL_ROOT_PASSWORD | base64)
-  USER_SECRET=$(echo -n $MYSQL_PASSWORD | base64)
-  USER=$(echo -n "grafana" | base64)
+  # Create the verrazzano-install namespace
+  kubectl create namespace verrazzano-install || true
 
-  kubectl apply -f - <<-EOF
+  # create secret in verrazzano-install ns
+  ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
+}
+
+setup_operator_yaml() {
+  echo "Determine which yaml file to use to install the Verrazzano Platform Operator"
+  TARGET_OPERATOR_FILE=${TARGET_OPERATOR_FILE:-"${WORKSPACE}/acceptance-test-operator.yaml"}
+  if [ -z "$OPERATOR_YAML" ]; then
+    # Derive the name of the operator.yaml file, copy or generate the file, then install
+    if  [ -z "${VERRAZZANO_OPERATOR_IMAGE}" ] || [ "NONE" == "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
+        echo "Using operator.yaml from object storage"
+        oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
+        cp -v ${WORKSPACE}/downloaded-operator.yaml ${TARGET_OPERATOR_FILE}
+    else
+        echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
+        env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ./tools/scripts/generate_operator_yaml.sh > ${TARGET_OPERATOR_FILE}
+    fi
+  else
+    # The operator.yaml filename was provided, install using that file.
+    echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
+    TARGET_OPERATOR_FILE=${OPERATOR_YAML}
+  fi
+}
+
+setup_grafana_mysql() {
+  # if enabled, deploy the Grafana MySQL instance and create the Grafana DB secret
+  if [ $USE_DB_FOR_GRAFANA == true ]; then
+    # create the necessary secrets
+    MYSQL_ROOT_PASSWORD=$(openssl rand -base64 12)
+    MYSQL_PASSWORD=$(openssl rand -base64 12)
+    ROOT_SECRET=$(echo -n $MYSQL_ROOT_PASSWORD | base64)
+    USER_SECRET=$(echo -n $MYSQL_PASSWORD | base64)
+    USER=$(echo -n "grafana" | base64)
+
+    kubectl apply -f - <<-EOF
 apiVersion: v1
 kind: Secret
 metadata:
@@ -155,49 +155,63 @@ type: Opaque
 data:
   root-password: $ROOT_SECRET
   username: $USER
-  password: $USER_SECRET
+    password: $USER_SECRET
 EOF
-  # deploy MySQL instance
-  kubectl apply -f $WORKSPACE/tests/testdata/grafana/grafana-mysql.yaml
-fi
+    # deploy MySQL instance
+    kubectl apply -f $WORKSPACE/tests/testdata/grafana/grafana-mysql.yaml
+  fi
+}
+
+create_install_file() {
+  # Configure the custom resource to install Verrazzano on Kind
+  VZ_INSTALL_FILE=${VZ_INSTALL_FILE:-"${WORKSPACE}/acceptance-test-config.yaml"}
+  ./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
+  # If grafana is using a DB add the database configuration to the VZ file
+  if [ $USE_DB_FOR_GRAFANA == true ]; then
+    ./tests/e2e/config/scripts/process_grafana_db_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND}
+  fi
+  cp -v ${INSTALL_CONFIG_FILE_KIND} ${VZ_INSTALL_FILE}
+
+  setup_overrides
+}
+
+install_verrazzano() {
+  if [[ -n "${OCI_OS_LOCATION}" ]]; then
+    ARCHTYPE=$(get_arch_type)
+    VZ_CLI_TARGZ="vz-${ARCHTYPE}-amd64.tar.gz"
+    echo "Downloading VZ CLI from object storage"
+    oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/$VZ_CLI_TARGZ --file ${WORKSPACE}/$VZ_CLI_TARGZ
+    tar xzf "$WORKSPACE"/$VZ_CLI_TARGZ -C "$WORKSPACE"
+  fi
+
+  echo "Installing Verrazzano on Kind"
+  if [ -f "$WORKSPACE/vz" ]; then
+    cd $WORKSPACE
+    ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
+  else
+    cd ${GO_REPO_PATH}/verrazzano/tools/vz
+    GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${VZ_INSTALL_FILE} --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
+  fi
+
+  result=$?
+  if [[ $result -ne 0 ]]; then
+    exit 1
+  fi
+}
+
+cd ${GO_REPO_PATH}/verrazzano
+
+setup_pull_secrets
+setup_operator_yaml
+setup_grafana_mysql
 
 # optionally create a cluster dump snapshot for verifying uninstalls
 if [ -n "${CLUSTER_SNAPSHOT_DIR}" ]; then
   ./tests/e2e/config/scripts/looping-test/dump_cluster.sh ${CLUSTER_SNAPSHOT_DIR}
 fi
 
-# Configure the custom resource to install Verrazzano on Kind
-VZ_INSTALL_FILE=${VZ_INSTALL_FILE:-"${WORKSPACE}/acceptance-test-config.yaml"}
-./tests/e2e/config/scripts/process_kind_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND} ${WILDCARD_DNS_DOMAIN}
-# If grafana is using a DB add the database configuration to the VZ file
-if [ $USE_DB_FOR_GRAFANA == true ]; then
-  ./tests/e2e/config/scripts/process_grafana_db_install_yaml.sh ${INSTALL_CONFIG_FILE_KIND}
-fi
-cp -v ${INSTALL_CONFIG_FILE_KIND} ${VZ_INSTALL_FILE}
-
-setup_overrides
-
-if [[ -n "${OCI_OS_LOCATION}" ]]; then
-  ARCHTYPE=$(get_arch_type)
-  VZ_CLI_TARGZ="vz-${ARCHTYPE}-amd64.tar.gz"
-  echo "Downloading VZ CLI from object storage"
-  oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/$VZ_CLI_TARGZ --file ${WORKSPACE}/$VZ_CLI_TARGZ
-  tar xzf "$WORKSPACE"/$VZ_CLI_TARGZ -C "$WORKSPACE"
-fi
-
-echo "Installing Verrazzano on Kind"
-if [ -f "$WORKSPACE/vz" ]; then
-  cd $WORKSPACE
-  ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
-else
-  cd ${GO_REPO_PATH}/verrazzano/tools/vz
-  GO111MODULE=on GOPRIVATE=github.com/verrazzano go run main.go install --filename ${VZ_INSTALL_FILE} --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
-fi
-
-result=$?
-if [[ $result -ne 0 ]]; then
-  exit 1
-fi
+create_install_file
+install_verrazzano
 
 exit 0
 
