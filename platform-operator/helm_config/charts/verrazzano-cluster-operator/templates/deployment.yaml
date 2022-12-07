@@ -16,6 +16,8 @@ spec:
     metadata:
       labels:
         app: {{ .Values.name }}
+      annotations:
+        verrazzano.io/checksum: {{ tpl (toYaml .Values) . | sha256sum }}
     spec:
       containers:
       - name: {{ .Values.name }}
