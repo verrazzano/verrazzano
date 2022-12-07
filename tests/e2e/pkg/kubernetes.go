@@ -704,6 +704,19 @@ func IsCoherenceOperatorEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.CoherenceOperator.Enabled
 }
 
+// IsCertManagerEnabled returns true if the Cert Manager component is not set, or the value of its Enabled field otherwise
+func IsCertManagerEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return true
+	}
+	if vz.Spec.Components.CertManager == nil || vz.Spec.Components.CertManager.Enabled == nil {
+		return true
+	}
+	return *vz.Spec.Components.CertManager.Enabled
+}
+
 // IsWebLogicOperatorEnabled returns true if the WKO operator component is not set, or the value of its Enabled field otherwise
 func IsWebLogicOperatorEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)

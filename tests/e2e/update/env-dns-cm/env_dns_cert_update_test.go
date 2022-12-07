@@ -5,6 +5,7 @@ package envdnscm
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"log"
 	"os"
 	"os/exec"
@@ -86,11 +87,21 @@ var (
 	currentCertSecretName = "verrazzano-ca-certificate-secret"
 )
 
+var beforeSuite = t.BeforeSuiteFunc(func() {
+	kubeConfigPath, err := k8sutil.GetKubeConfigLocation()
+	Expect(err).ToNot(HaveOccurred())
+
+	if !pkg.IsCertManagerEnabled(kubeConfigPath) {
+		Skip("CertManager is not enabled, skipping test")
+	}
+})
+
 var afterSuite = t.AfterSuiteFunc(func() {
 	files := []string{testCertName + ".crt", testCertName + ".key"}
 	cleanupTemporaryFiles(files)
 })
 
+var _ = BeforeSuite(beforeSuite)
 var _ = AfterSuite(afterSuite)
 
 var _ = t.Describe("Test updates to environment name, dns domain and cert-manager CA certificates", func() {
