@@ -45,4 +45,4 @@ spec:
         rollover:
           minIndexAge: "1d"
     jaegerOperator:
-      enabled: true
+      enabled: false
