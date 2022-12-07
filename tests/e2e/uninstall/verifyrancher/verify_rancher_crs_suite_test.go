@@ -5,10 +5,11 @@ package verifyrancher
 
 import (
 	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
 	"testing"
 )
 
 func TestVerifyRancherCRs(test *testing.T) {
-	t.RegisterFailHandler()
+	gomega.RegisterFailHandler(ginkgo.Fail)
 	ginkgo.RunSpecs(test, "Verify Rancher CRs After Uninstall Suite")
 }
