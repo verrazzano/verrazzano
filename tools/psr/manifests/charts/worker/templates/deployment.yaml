@@ -19,9 +19,6 @@ spec:
         app: psr-worker
         psr.verrazzano.io/worker-type: {{ .Values.global.envVars.PSR_WORKER_TYPE }}
         version: v1
-        {{- if not .Values.istioInject }}
-        sidecar.istio.io/inject: "false"
-        {{- end }}
     spec:
       serviceAccountName: {{ template "worker.fullName" .}}
     {{- if .Values.imagePullSecrets }}
