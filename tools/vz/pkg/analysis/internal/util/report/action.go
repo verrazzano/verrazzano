@@ -57,6 +57,7 @@ var RunbookLinks = map[string][]string{
 	IstioIngressNoIP:           {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/istioingressgatewaynoloadbalancerip"},
 	IngressShapeInvalid:        {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/ingressinvalidshape"},
 	IstioIngressInstallFailure: {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/istioloadbalancercreation"},
+	NginxIngressInstallFailure: {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/nginxloadbalancercreation"},
 }
 
 // KnownActions are Standard Action types

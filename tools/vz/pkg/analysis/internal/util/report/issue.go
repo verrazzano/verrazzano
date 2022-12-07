@@ -113,6 +113,7 @@ const (
 	IstioIngressNoIP           = "IstioIngressNoIP"
 	IngressShapeInvalid        = "IngressShapeInvalid"
 	IstioIngressInstallFailure = "IstioIngressInstallFailure"
+	NginxIngressInstallFailure = "NginxIngressInstallFailure"
 )
 
 // NOTE: How we are handling the issues/actions/reporting is still very much evolving here. Currently supplying some
@@ -138,6 +139,7 @@ var knownIssues = map[string]Issue{
 	IstioIngressNoIP:           {Type: IstioIngressNoIP, Summary: "Verrazzano install failed as no IP found for service istio-ingressgateway with type LoadBalancer", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IstioIngressNoIP]}},
 	IngressShapeInvalid:        {Type: IngressShapeInvalid, Summary: "Verrazzano install failed as the shape provided for NGINX Ingress Controller is invalid", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressShapeInvalid]}},
 	IstioIngressInstallFailure: {Type: IstioIngressInstallFailure, Summary: "Failed to create LoadBalancer for Istio Ingress Gateway", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IstioIngressInstallFailure]}},
+	NginxIngressInstallFailure: {Type: NginxIngressInstallFailure, Summary: "Failed to create LoadBalancer for Nginx Ingress Controller", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[NginxIngressInstallFailure]}},
 }
 
 // NewKnownIssueSupportingData adds a known issue

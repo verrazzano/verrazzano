@@ -32,7 +32,7 @@ var ephemeralIPLimitReachedRe = regexp.MustCompile(`.*Limit for non-ephemeral re
 var lbServiceLimitReachedRe = regexp.MustCompile(`.*The following service limits were exceeded: lb-.*`)
 var failedToEnsureLoadBalancer = regexp.MustCompile(`.*failed to ensure load balancer: awaiting load balancer.*`)
 var invalidLoadBalancerParameter = regexp.MustCompile(`.*Service error:InvalidParameter. Limits-Service returned 400.*Invalid service/quota load-balancer.*`)
-var istioLoadBalancerCreationIssue = regexp.MustCompile(`.*failed to ensure load balancer: creating load balancer.*`)
+var loadBalancerCreationIssue = regexp.MustCompile(`.*failed to ensure load balancer: creating load balancer.*`)
 var vpoErrorMessages []string
 
 const logLevelError = "error"
@@ -158,6 +158,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		lbServiceLimitReachedCheck := false
 		errorSyncingLoadBalancerCheck := false
 		invalidLBShapeCheck := false
+		loadBalancerCheck := false
 
 		var reportPodIssue string
 		var reportEvent string
@@ -209,6 +210,13 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 				issueReporter.AddKnownIssueMessagesFiles(report.IngressShapeInvalid, clusterRoot, messages, files)
 				issueDetected = true
 				invalidLBShapeCheck = true
+				issueReporter.Contribute(log, clusterRoot)
+			} else if loadBalancerCreationIssue.MatchString(event.Message) && !loadBalancerCheck {
+				messages := make(StringSlice, 1)
+				messages[0] = event.Message
+				issueReporter.AddKnownIssueMessagesFiles(report.NginxIngressInstallFailure, clusterRoot, messages, files)
+				issueDetected = true
+				loadBalancerCheck = true
 				issueReporter.Contribute(log, clusterRoot)
 			}
 		}
@@ -306,11 +314,10 @@ func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issu
 	serviceEvents := make([]corev1.Event, 0, 1)
 	isIssueAlreadyExists := false
 	for _, event := range eventsList.Items {
-		if istioLoadBalancerCreationIssue.MatchString(event.Message) && !isIssueAlreadyExists {
+		if loadBalancerCreationIssue.MatchString(event.Message) && !isIssueAlreadyExists {
 			isIssueAlreadyExists = true
 			serviceEvents = append(serviceEvents, event)
 			messages := make(StringSlice, 1)
-			//messages[0] = istioLoadBalancerCreationIssue.String()
 			messages[0] = event.Message
 			// Create the service message from the object metadata
 			servFiles := make(StringSlice, 1)
