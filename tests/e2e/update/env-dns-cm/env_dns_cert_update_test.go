@@ -129,16 +129,23 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 })
 
 func validateIngressList(environmentName string, domain string) {
-	ingressList, err := pkg.GetIngressList("")
-	Expect(err).ToNot(HaveOccurred())
+	t.It("Expect Ingresses to contain the correct hostname and domain", func() {
+		Eventually(func() error {
+			ingressList, err := pkg.GetIngressList("")
+			if err != nil {
+				return err
+			}
 
-	for _, ingress := range ingressList.Items {
-		t.It(fmt.Sprintf("For Ingress %s", ingress.GetName()), func() {
-			Eventually(func() error {
-				return validateIngress(environmentName, domain, &ingress)
-			}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
-		})
-	}
+			// Verify that the ingresses contain the expected environment name and domain name
+			for _, ingress := range ingressList.Items {
+				err := validateIngress(environmentName, domain, &ingress)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
+	})
 }
 
 func validateIngress(environmentName string, domain string, ingress *netv1.Ingress) error {
@@ -161,19 +168,23 @@ func validateIngress(environmentName string, domain string, ingress *netv1.Ingre
 
 func validateVirtualServiceList(domain string) {
 	// Fetch the virtual services for the deployed applications
-	virtualServiceList, err := pkg.GetVirtualServiceList("")
-	if err != nil {
-		log.Fatalf("Error while fetching VirtualServiceList\n%s", err)
-	}
+	t.It("Expect VirtualServices to contain the expected environment and domain name", func() {
+		Eventually(func() error {
+			virtualServiceList, err := pkg.GetVirtualServiceList("")
+			if err != nil {
+				return err
+			}
 
-	// Verify that the virtual services contain the expected environment name and domain name
-	for _, virtualService := range virtualServiceList.Items {
-		t.It(fmt.Sprintf("For VirtualService %s", virtualService.GetName()), func() {
-			Eventually(func() string {
-				return virtualService.Spec.Hosts[0]
-			}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(Equal(domain))
-		})
-	}
+			// Verify that the virtual services contain the expected environment name and domain name
+			for _, virtualService := range virtualServiceList.Items {
+				hostname := virtualService.Spec.Hosts[0]
+				if !strings.Contains(hostname, domain) {
+					return fmt.Errorf("Virtual Service %s in namespace %s with hostname %s must contain %s\n", virtualService.Name, virtualService.Namespace, hostname, domain)
+				}
+			}
+			return nil
+		}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
+	})
 }
 
 func verifyIngressAccess(log *zap.SugaredLogger) {
@@ -196,54 +207,79 @@ func createCustomCACertificate(certName string, secretNamespace string, secretNa
 	log.Println(string(output))
 }
 
-func fetchCACertificatesFromIssuer(certIssuer string) []certmanagerv1.Certificate {
+func fetchCACertificatesFromIssuer(certIssuer string) ([]certmanagerv1.Certificate, error) {
 	// Reintialize the certificate list
 	var certificates []certmanagerv1.Certificate
 	// Fetch the certificates for the deployed applications
 	certificateList, err := pkg.GetCertificateList("")
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		return certificates, err
+	}
+
 	// Filter out the certificates that are issued by the given issuer
 	for _, certificate := range certificateList.Items {
 		if certificate.Spec.IssuerRef.Name == certIssuer {
 			certificates = append(certificates, certificate)
 		}
 	}
-	return certificates
+	return certificates, nil
 }
 
 func validateCACertificateIssuer() {
-	// Fetch the certificates
-	var certificates = fetchCACertificatesFromIssuer(currentCertIssuerName)
-	for _, certificate := range certificates {
-		t.It(fmt.Sprintf("Validating CA certificate %s cleanup", certificate.GetName()), func() {
-			Eventually(func() string {
-				return certificate.Spec.IssuerRef.Name
-			}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(Equal(testCertIssuerName))
-		})
-	}
+	t.It("Validate CA Certificate Issuer is listed Certificates", func() {
+		Eventually(func() error {
+			// Fetch the certificates
+			certificates, err := fetchCACertificatesFromIssuer(testCertIssuerName)
+			if err != nil {
+				return err
+			}
+			// Verify that the certificate is issued by the right cluster issuer
+			for _, certificate := range certificates {
+				if certificate.Spec.IssuerRef.Name != testCertIssuerName {
+					return fmt.Errorf("Issuer for the certificate %s in namespace %s is %s; expected is %s\n", certificate.Name, certificate.Namespace, certificate.Spec.IssuerRef.Name, testCertIssuerName)
+				}
+			}
+			return nil
+		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	})
 }
 
 func validateCertManagerResourcesCleanup() {
-	// Fetch the certificates
-	var certificates = fetchCACertificatesFromIssuer(currentCertIssuerName)
-	for _, certificate := range certificates {
-		t.It(fmt.Sprintf("Validating CA certificate %s cleanup", certificate.GetName()), func() {
-			Eventually(func() string {
-				return certificate.Name
-			}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(Equal(currentCertName))
-		})
-	}
+	// Verify that the certificates have been removed
+	t.It("Validate Certificate cleanup", func() {
+		Eventually(func() error {
+			// Fetch the certificates
+			certificates, err := fetchCACertificatesFromIssuer(testCertIssuerName)
+			if err != nil {
+				return err
+			}
+			// Verify that the certificate is issued by the right cluster issuer
+			for _, certificate := range certificates {
+				if certificate.Name != currentCertName {
+					return fmt.Errorf("Certificate %s should NOT exist in the namespace %s\n", currentCertName, currentCertNamespace)
+				}
+			}
+			return nil
+		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	})
 
 	// Verify that the certificate issuer has been removed
-	issuerList, err := pkg.GetIssuerList(currentCertIssuerNamespace)
-	Expect(err).ToNot(HaveOccurred())
-	for _, issuer := range issuerList.Items {
-		t.It(fmt.Sprintf("Validating Issuer %s cleanup", issuer.GetName()), func() {
-			Eventually(func() string {
-				return issuer.Name
-			}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(Equal(currentCertIssuerName))
-		})
-	}
+	t.It("Validate Issuer cleanup", func() {
+		Eventually(func() error {
+			// Fetch the certificates
+			issuerList, err := pkg.GetIssuerList(currentCertIssuerNamespace)
+			if err != nil {
+				return err
+			}
+			// Verify that the certificate is issued by the right cluster issuer
+			for _, issuer := range issuerList.Items {
+				if issuer.Name != currentCertIssuerName {
+					return fmt.Errorf("Issuer %s should NOT exist in the namespace %s\n", currentCertIssuerName, currentCertIssuerNamespace)
+				}
+			}
+			return nil
+		}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
+	})
 
 	// Verify that the secret used for the default certificate has been removed
 	t.It("Validating secret does not exist", func() {
