@@ -155,10 +155,10 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 
 func constructVZUserJSON(pass string) ([]byte, error) {
 	userMap := map[string]interface{}{
-		"description":        "Verrazzano Cluster",
+		"description":        "Verrazzano Cluster Registrar grants permissions to transfer resources to managed clusters",
 		"enabled":            true,
 		"mustChangePassword": false,
-		"name":               vzconst.VerrazzanoClusterRancherUsername,
+		"name":               "Verrazzano Cluster Registrar",
 		"password":           pass,
 		"username":           vzconst.VerrazzanoClusterRancherUsername,
 	}
