@@ -4,11 +4,12 @@
 package config
 
 import (
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
-	"testing"
-	"time"
 )
 
 type fakeEnv struct {
@@ -71,6 +72,79 @@ func TestWorkerType(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, test.workerType, cc.WorkerType)
+			}
+		})
+	}
+}
+
+// TestDuration tests the Config interface
+// GIVEN a config map with environment vars PsrDuration
+//
+//	WHEN the GetCommonConfig is called
+//	THEN ensure that the resulting configuration is correct
+func TestDuration(t *testing.T) {
+	var tests = []struct {
+		name      string
+		envMap    map[string]string
+		envKey    string
+		duration  time.Duration
+		expectErr bool
+	}{
+		{name: "DefaultDuration",
+			duration:  UnlimitedWorkerDuration,
+			expectErr: false,
+			envMap: map[string]string{
+				PsrWorkerType: WorkerTypeOpsWriteLogs,
+			},
+		},
+		{name: "OneSecDuration",
+			duration:  1 * time.Second,
+			expectErr: false,
+			envMap: map[string]string{
+				PsrWorkerType: WorkerTypeOpsWriteLogs,
+				PsrDuration:   "1s",
+			},
+		},
+		{name: "OneMinDuration",
+			duration:  1 * time.Minute,
+			expectErr: false,
+			envMap: map[string]string{
+				PsrWorkerType: WorkerTypeOpsWriteLogs,
+				PsrDuration:   "1m",
+			},
+		},
+		{name: "NegativeDuration",
+			duration:  UnlimitedWorkerDuration,
+			expectErr: false,
+			envMap: map[string]string{
+				PsrWorkerType: WorkerTypeOpsWriteLogs,
+				PsrDuration:   "-3s",
+			},
+		},
+		{name: "BadNumericStringFormat",
+			expectErr: true,
+			envMap: map[string]string{
+				PsrWorkerType: WorkerTypeOpsWriteLogs,
+				PsrDuration:   "10xyz",
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			// Load the fake env
+			f := fakeEnv{data: test.envMap}
+			saveEnv := osenv.GetEnvFunc
+			osenv.GetEnvFunc = f.GetEnv
+			defer func() {
+				osenv.GetEnvFunc = saveEnv
+			}()
+
+			cc, err := GetCommonConfig(vzlog.DefaultLogger())
+			if test.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.duration, cc.PsrDuration)
 			}
 		})
 	}

@@ -4,7 +4,6 @@
 package envdnscm
 
 import (
-	. "github.com/onsi/ginkgo/v2"
 	"log"
 	"os"
 	"os/exec"
@@ -12,8 +11,11 @@ import (
 	"time"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	constants2 "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
@@ -134,6 +136,12 @@ func validateIngressList(environmentName string, domain string) {
 		}
 		// Verify that the ingresses contain the expected environment name and domain name
 		for _, ingress := range ingressList.Items {
+			if ingress.Namespace == constants.RancherSystemNamespace && ingress.Name == "vz-"+constants2.RancherIngress {
+				// If this is the copy of the Rancher ingress that VZ makes in order to retain access for the managed clusters
+				// until DNS updates have been pushed out to them, this ingress should have the old DNS. Skip this ingress when
+				// verifying that DNS was updated.
+				continue
+			}
 			hostname := ingress.Spec.Rules[0].Host
 			if !strings.Contains(hostname, environmentName) {
 				log.Printf("Ingress %s in namespace %s with hostname %s must contain %s", ingress.Name, ingress.Namespace, hostname, environmentName)

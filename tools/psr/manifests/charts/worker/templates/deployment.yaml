@@ -16,8 +16,12 @@ spec:
     metadata:
       labels:
         psr.verrazzano.io/worker: {{ template "worker.fullName" .}}
-        app: psr-{{ .Values.global.envVars.PSR_WORKER_TYPE }}
+        app: psr-worker
+        psr.verrazzano.io/worker-type: {{ .Values.global.envVars.PSR_WORKER_TYPE }}
         version: v1
+        {{- if not .Values.istioInject }}
+        sidecar.istio.io/inject: "false"
+        {{- end }}
     spec:
       serviceAccountName: {{ template "worker.fullName" .}}
     {{- if .Values.imagePullSecrets }}
@@ -32,12 +36,12 @@ spec:
             {{- range $key, $val := .Values.global.envVars }}
             - name: {{ $key }}
               value: {{ $val | quote}}
-              {{- end }}
+            {{- end }}
             - name: NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
+              value: {{ .Release.Namespace }}
+            - name: RELEASE_NAME
+              value: {{ .Release.Name }}
           ports:
-            - containerPort: 8080
+            - containerPort: 9090
               name: backend
 {{- end }}

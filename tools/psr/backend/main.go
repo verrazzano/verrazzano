@@ -4,11 +4,10 @@
 package main
 
 import (
-	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
-
 	vzlog2 "github.com/verrazzano/verrazzano/pkg/log"
-	vzlog "github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workmanager"
+	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func main() {
@@ -22,4 +21,6 @@ func main() {
 		log.Error("Failed running worker: %v", err)
 	}
 	log.Info("Stopping PSR backend")
+	// Sleep forever after work is completed
+	select {}
 }
