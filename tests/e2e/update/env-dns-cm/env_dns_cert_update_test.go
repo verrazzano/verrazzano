@@ -149,7 +149,7 @@ func validateIngressList(environmentName string, domain string) {
 
 			// Verify that the ingresses contain the expected environment name and domain name
 			for _, ingress := range ingressList.Items {
-				err := validateIngress(environmentName, domain, &ingress)
+				err := validateIngress(environmentName, domain, ingress)
 				if err != nil {
 					return err
 				}
@@ -159,7 +159,7 @@ func validateIngressList(environmentName string, domain string) {
 	})
 }
 
-func validateIngress(environmentName string, domain string, ingress *netv1.Ingress) error {
+func validateIngress(environmentName string, domain string, ingress netv1.Ingress) error {
 	// Verify that the ingress contains the expected environment name and domain name
 	if ingress.Namespace == constants.RancherSystemNamespace && ingress.Name == "vz-"+constants2.RancherIngress {
 		// If this is the copy of the Rancher ingress that VZ makes in order to retain access for the managed clusters
@@ -169,10 +169,10 @@ func validateIngress(environmentName string, domain string, ingress *netv1.Ingre
 	}
 	hostname := ingress.Spec.Rules[0].Host
 	if !strings.Contains(hostname, environmentName) {
-		return fmt.Errorf("Ingress %s in namespace %s with hostname %s must contain %s", ingress.Name, ingress.Namespace, hostname, environmentName)
+		return fmt.Errorf("ingress %s in namespace %s with hostname %s must contain %s", ingress.Name, ingress.Namespace, hostname, environmentName)
 	}
 	if !strings.Contains(hostname, domain) {
-		return fmt.Errorf("Ingress %s in namespace %s with hostname %s must contain %s", ingress.Name, ingress.Namespace, hostname, domain)
+		return fmt.Errorf("ingress %s in namespace %s with hostname %s must contain %s", ingress.Name, ingress.Namespace, hostname, domain)
 	}
 	return nil
 }
@@ -190,7 +190,7 @@ func validateVirtualServiceList(domain string) {
 			for _, virtualService := range virtualServiceList.Items {
 				hostname := virtualService.Spec.Hosts[0]
 				if !strings.Contains(hostname, domain) {
-					return fmt.Errorf("Virtual Service %s in namespace %s with hostname %s must contain %s\n", virtualService.Name, virtualService.Namespace, hostname, domain)
+					return fmt.Errorf("virtual service %s in namespace %s with hostname %s must contain %s\n", virtualService.Name, virtualService.Namespace, hostname, domain)
 				}
 			}
 			return nil
@@ -247,7 +247,7 @@ func validateCACertificateIssuer() {
 			// Verify that the certificate is issued by the right cluster issuer
 			for _, certificate := range certificates {
 				if certificate.Spec.IssuerRef.Name != testCertIssuerName {
-					return fmt.Errorf("Issuer for the certificate %s in namespace %s is %s; expected is %s\n", certificate.Name, certificate.Namespace, certificate.Spec.IssuerRef.Name, testCertIssuerName)
+					return fmt.Errorf("issuer for the certificate %s in namespace %s is %s; expected is %s\n", certificate.Name, certificate.Namespace, certificate.Spec.IssuerRef.Name, testCertIssuerName)
 				}
 			}
 			return nil
@@ -267,7 +267,7 @@ func validateCertManagerResourcesCleanup() {
 			// Verify that the certificate is issued by the right cluster issuer
 			for _, certificate := range certificates {
 				if certificate.Name != currentCertName {
-					return fmt.Errorf("Certificate %s should NOT exist in the namespace %s\n", currentCertName, currentCertNamespace)
+					return fmt.Errorf("certificate %s should NOT exist in the namespace %s\n", currentCertName, currentCertNamespace)
 				}
 			}
 			return nil
@@ -285,7 +285,7 @@ func validateCertManagerResourcesCleanup() {
 			// Verify that the certificate is issued by the right cluster issuer
 			for _, issuer := range issuerList.Items {
 				if issuer.Name != currentCertIssuerName {
-					return fmt.Errorf("Issuer %s should NOT exist in the namespace %s\n", currentCertIssuerName, currentCertIssuerNamespace)
+					return fmt.Errorf("issuer %s should NOT exist in the namespace %s\n", currentCertIssuerName, currentCertIssuerNamespace)
 				}
 			}
 			return nil
