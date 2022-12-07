@@ -6,12 +6,12 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -132,7 +132,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 		case vzStateRestartApps:
 			if vzcr.IsApplicationOperatorEnabled(cr) && vzcr.IsIstioEnabled(cr) {
 				log.Once("Doing Verrazzano post-upgrade application restarts if needed")
-				err := istio.RestartApps(log, r.Client, cr.Generation)
+				err := restart.RestartApps(log, r.Client, cr.Generation)
 				if err != nil {
 					log.Errorf("Error running Verrazzano post-upgrade application restarts")
 					return newRequeueWithDelay(), err
@@ -229,7 +229,7 @@ func postVerrazzanoUpgrade(spiCtx spi.ComponentContext) error {
 		return err
 	}
 	log.Oncef("Checking if any pods with Istio sidecars need to be restarted to pick up the new version of the Istio proxy")
-	if err := istio.RestartComponents(log, config.GetInjectedSystemNamespaces(), spiCtx.ActualCR().Generation, istio.DoesPodContainOldIstioSidecar); err != nil {
+	if err := restart.RestartComponents(log, config.GetInjectedSystemNamespaces(), spiCtx.ActualCR().Generation, restart.DoesPodContainOldIstioSidecar); err != nil {
 		return err
 	}
 	log.Oncef("MySQL post-upgrade cleanup")

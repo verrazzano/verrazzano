@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package istio
+package restart
 
 import (
 	"context"
@@ -158,7 +158,7 @@ func getIstioProxyImageFromBom() (string, error) {
 	if err != nil {
 		return "", errors.New("Failed to get access to the BOM")
 	}
-	images, err := bomFile.GetImageNameList(subcompIstiod)
+	images, err := bomFile.GetImageNameList("istiod")
 	if err != nil {
 		return "", errors.New("Failed to get the images for Istiod")
 	}
