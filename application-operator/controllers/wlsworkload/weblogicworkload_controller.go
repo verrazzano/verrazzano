@@ -391,6 +391,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, workload *vzapi.Verrazzano
 				return err
 			}
 		}
+
 		return nil
 	}); err != nil {
 		log.Errorf("Failed creating or updating WebLogic CR: %v", err)
@@ -491,6 +492,12 @@ func (r *Reconciler) createOrUpdateResource(ctx context.Context, workload *vzapi
 	if err = controllerutil.SetControllerReference(workload, u, r.Scheme); err != nil {
 		log.Errorf("Failed to set controller ref: %v", err)
 		return err
+	}
+
+	if y, err := yaml.Marshal(u); err != nil {
+		log.Debugf("Resource in raw format: %s ", u)
+	} else {
+		log.Debugf("Resource in YAML format: %s", string(y))
 	}
 
 	// write out the WebLogic resource

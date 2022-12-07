@@ -173,19 +173,17 @@ spec:
     kind: VerrazzanoWebLogicWorkload
     spec:
       template:
+        apiVersion: weblogic.oracle/v9
         metadata:
           name: bobbys-front-end
           labels:
-            weblogic.resourceVersion: domain-v8
+            weblogic.resourceVersion: domain-v9
             weblogic.domainUID: bobbys-front-end
         spec:
           adminServer:
             adminChannelPortForwardingEnabled: true
           domainUID: bobbys-front-end
           domainHome: /u01/oracle/user_projects/domains/bobbys-front-end
-          auxiliaryImageVolumes:
-            - name: auxiliaryImageVolume1
-              mountPath: /auxiliary
           image: container-registry.oracle.com/middleware/weblogic:12.2.1.4
           imagePullSecrets:
             - name: bobs-books-repo-credentials
@@ -195,12 +193,12 @@ spec:
           webLogicCredentialsSecret:
             name: bobbys-front-end-weblogic-credentials
           clusters:
-            - clusterName: cluster-1
+            - name: bobbys-front-end-cluster-1
           configuration:
             introspectorJobActiveDeadlineSeconds: 600
             model:
-              wdtInstallHome: /auxiliary/weblogic-deploy
-              modelHome: /auxiliary/models
+              auxiliaryImages:
+                - image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:1.0.0-1-20220608153526-843e168
               runtimeEncryptionSecret: bobbys-front-end-runtime-encrypt-secret
           monitoringExporter:
             imagePullPolicy: IfNotPresent
@@ -229,9 +227,6 @@ spec:
             labels:
               app: bobbys-front-end
               version: v1
-            auxiliaryImages:
-              - image: container-registry.oracle.com/verrazzano/example-bobbys-front-end:1.0.0-1-20220608153526-843e168
-                volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS
                 value: "-Dweblogic.StdoutDebugEnabled=false"
@@ -245,6 +240,16 @@ spec:
                 value: /u01/oracle/wlserver
               - name: MW_HOME
                 value: /u01/oracle
+      clusters:
+        - apiVersion: weblogic.oracle/v1
+          metadata:
+            name: bobbys-front-end-cluster-1
+            labels:
+              weblogic.resourceVersion: domain-v1
+              weblogic.domainUID: bobbys-front-end
+          spec:
+            clusterName: cluster-1
+
 ---
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
@@ -423,6 +428,7 @@ spec:
     kind: VerrazzanoWebLogicWorkload
     spec:
       template:
+        apiVersion: weblogic.oracle/v9
         metadata:
           name: bobs-orders-wls
           labels:
@@ -434,9 +440,6 @@ spec:
           domainUID: bobs-bookstore
           domainHome: /u01/oracle/user_projects/domains/bobs-bookstore
           domainHomeSourceType: FromModel
-          auxiliaryImageVolumes:
-            - name: auxiliaryImageVolume1
-              mountPath: /auxiliary
           image: container-registry.oracle.com/middleware/weblogic:12.2.1.4
           includeServerOutInPodLog: true
           replicas: 1
@@ -445,13 +448,13 @@ spec:
           imagePullSecrets:
             - name: bobs-books-repo-credentials
           clusters:
-            - clusterName: cluster-1
+            - name: bobs-orders-wls-cluster-1
           configuration:
             introspectorJobActiveDeadlineSeconds: 600
             model:
+              auxiliaryImages:
+                - image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:1.0.0-1-20220608153526-843e168
               configMap: bobs-bookstore-wdt-config-map
-              wdtInstallHome: /auxiliary/weblogic-deploy
-              modelHome: /auxiliary/models
               runtimeEncryptionSecret: bobs-bookstore-runtime-encrypt-secret
             secrets:
               - mysql-credentials
@@ -482,9 +485,6 @@ spec:
             labels:
               app: bobs-orders-wls
               version: v1
-            auxiliaryImages:
-              - image: container-registry.oracle.com/verrazzano/example-bobs-books-order-manager:1.0.0-1-20220608153526-843e168
-                volume: auxiliaryImageVolume1
             env:
               - name: JAVA_OPTIONS
                 value: "-Dweblogic.StdoutDebugEnabled=false"
@@ -494,3 +494,12 @@ spec:
                 value: /u01/oracle/wlserver
               - name: MW_HOME
                 value: /u01/oracle
+      clusters:
+        - apiVersion: weblogic.oracle/v1
+          metadata:
+            name: bobs-orders-wls-cluster-1
+            labels:
+              weblogic.resourceVersion: domain-v1
+              weblogic.domainUID: bobs-orders-wls
+          spec:
+            clusterName: cluster-1
