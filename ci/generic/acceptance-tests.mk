@@ -29,10 +29,6 @@ verify-infra-all: verify-install verify-scripts verify-infra verify-security-rba
 verify-install:
 	TEST_SUITES=verify-install/... make test
 
-.PHONY: jobmetrics
-jobmetrics:
-	TEST_SUITES=jobmetrics/... make test
-
 .PHONY: verify-scripts
 verify-scripts:
 	TEST_SUITES=scripts/... make test
