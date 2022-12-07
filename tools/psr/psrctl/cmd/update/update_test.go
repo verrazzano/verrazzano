@@ -25,9 +25,8 @@ import (
 
 const psrRoot = "../../.."
 
-// TestVersionCmd - check that command reports not implemented yet
+// TestUpdateCmd tests that the psrctl command works correctly
 func TestUpdateCmd(t *testing.T) {
-
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:        psrRoot,
 		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
@@ -107,4 +106,35 @@ Usecases:
 	assert.Contains(t, buf.String(), "Updating scenario")
 	assert.Contains(t, buf.String(), "Updating use case")
 	assert.Contains(t, buf.String(), "successfully updated")
+}
+
+func TestUpdateNoConfigmap(t *testing.T) {
+	manifest.Manifests = &manifest.PsrManifests{
+		RootTmpDir:        psrRoot,
+		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
+		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
+		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
+	}
+
+	defer manifest.ResetManifests()
+
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+	k8sutil.GetCoreV1Func = func(log ...vzlog.VerrazzanoLogger) (corev1cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset().CoreV1(), nil
+	}
+
+	// Send the command output to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+
+	cmd := NewCmdUpdate(rc)
+	assert.NotNil(t, cmd)
+
+	cmd.PersistentFlags().Set(constants.FlagScenario, "ops-s1")
+	cmd.PersistentFlags().Set(constants.FlagNamespace, "psr")
+	cmd.PersistentFlags().Set(constants.ImageNameKey, "worker-image")
+
+	err := cmd.Execute()
+	assert.Error(t, err)
 }
