@@ -42,20 +42,19 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 	//Resources for application bar
-	update.ValidatePods("sleep-workload", "sleep", "bar", 1, false)
-	update.ValidatePods("springboot-frontend-workload", "springboot-frontend", "bar", 1, false)
-	update.ValidatePods("springboot-backend-workload", "springboot-backend", "bar", 1, false)
+	update.ValidatePods("sleep", "app", "bar", 1, false)
+	update.ValidatePods("springboot-frontend", "app", "bar", 1, false)
+	update.ValidatePods("springboot-backend", "app", "bar", 1, false)
 
 	//Resources for application foo
-	update.ValidatePods("sleep-workload", "sleep", "foo", 1, false)
-	update.ValidatePods("springboot-frontend-workload", "springboot-frontend", "foo", 1, false)
-	update.ValidatePods("springboot-backend-workload", "springboot-backend", "foo", 1, false)
+	update.ValidatePods("sleep", "app", "foo", 1, false)
+	update.ValidatePods("springboot-frontend", "app", "foo", 1, false)
+	update.ValidatePods("springboot-backend", "app", "foo", 1, false)
 
 	//Resources for application noIstio
-	update.ValidatePods("sleep-workload", "sleep", "noistio", 1, false)
-	update.ValidatePods("springboot-frontend-workload", "springboot-frontend", "noistio", 1, false)
-	update.ValidatePods("springboot-backend-workload", "springboot-backend", "noistio", 1, false)
-
+	update.ValidatePods("sleep", "app", "noistio", 1, false)
+	update.ValidatePods("springboot-frontend", "app", "noistio", 1, false)
+	update.ValidatePods("springboot-backend", "app", "noistio", 1, false)
 	beforeSuitePassed = true
 })
 
