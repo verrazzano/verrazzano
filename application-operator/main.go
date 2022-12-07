@@ -94,7 +94,6 @@ func main() {
 		exitErr = operatorinit.StartApplicationOperator(metricsAddr, enableLeaderElection, defaultMetricsScraper, log, scheme)
 	}
 	if exitErr != nil {
-		log.Errorf("Error occurred during execution: %v", exitErr)
 		os.Exit(1)
 	}
 }
