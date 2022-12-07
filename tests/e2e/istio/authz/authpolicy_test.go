@@ -39,7 +39,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	deployFooApplication()
 	deployBarApplication()
 	deployNoIstioApplication()
-	beforeSuitePassed = true
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 	//Resources for application bar
@@ -56,6 +55,8 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	update.ValidatePods("sleep-workload", "sleep", "noistio", 1, false)
 	update.ValidatePods("springboot-frontend-workload", "springboot-frontend", "noistio", 1, false)
 	update.ValidatePods("springboot-backend-workload", "springboot-backend", "noistio", 1, false)
+
+	beforeSuitePassed = true
 })
 
 var _ = BeforeSuite(beforeSuite)
