@@ -21,12 +21,17 @@ pipeline {
         string (description: 'The release branch', name: 'RELEASE_BRANCH', defaultValue: 'NONE', trim: true)
         string (description: 'The source commit for the release (required for full release)', name: 'COMMIT_TO_USE', defaultValue: 'NONE', trim: true )
         string (description: 'The release version (major.minor.patch format, e.g. 1.5.0)', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
+        string (description: 'verrazzano-helper branch, user branch name is used when testing verrazzano-helper changes', name: 'VERRAZZANO_HELPER_BRANCH',
+                defaultValue: 'master', trim: true)
+        string (description: 'verrazzano-examples branch, user branch name is used for testing purpose only', name: 'VERRAZZANO_EXAMPLES_BRANCH',
+                defaultValue: 'master', trim: true)
     }
 
     environment {
         OBJECT_STORAGE_NS = credentials('oci-os-namespace')
         OBJECT_STORAGE_BUCKET="verrazzano-builds"
         OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        OCI_OS_SHARED_BUCKET="build-shared-files"
         OCI_REGION="us-phoenix-1"
         OCI_CLI_AUTH="api_key"
         OCI_CLI_TENANCY = credentials('oci-tenancy')
@@ -41,6 +46,7 @@ pipeline {
         REPO_URLS_PROPS = "vzsource_repo_urls.properties"
         REPO_URLS1_PROPS = "vzsource_repo_urls_1.properties"
         REPO_URLS2_PROPS = "vzsource_repo_urls_2.properties"
+        REPO_URLS3_PROPS = "vzsource_repo_urls_3.properties"
     }
 
     stages {
@@ -83,17 +89,47 @@ pipeline {
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.COMMIT_TO_USE
                 }
+
             }
         }
 
-        stage('Download Scripts') {
+        stage('Download Repo URLs') {
+            environment {
+                GITHUB_AUTH_TOKEN = credentials('github-api-token-release-process')
+            }
+            steps {
+                script {
+                    sh """
+                        oci --region ${OCI_REGION} os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OCI_OS_SHARED_BUCKET} --name ${params.VERRAZZANO_HELPER_BRANCH}/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
+                        chmod uog+x ${WORKSPACE}/verrazzano-helper
+
+                        # Redirect the output of verrazzano-helper get repo-urls to files
+                        ${WORKSPACE}/verrazzano-helper get repo-urls all > ${WORKSPACE}/${REPO_URLS_PROPS}
+                        ${WORKSPACE}/verrazzano-helper get repo-urls public_repos > ${WORKSPACE}/${REPO_URLS1_PROPS}
+                        ${WORKSPACE}/verrazzano-helper get repo-urls internal_repos > ${WORKSPACE}/${REPO_URLS2_PROPS}
+                        ${WORKSPACE}/verrazzano-helper get repo-urls additional_repos > ${WORKSPACE}/${REPO_URLS3_PROPS}
+                    """
+                }
+            }
+        }
+
+        stage('Download Image List') {
             steps {
                 script {
                     sh """
                         cd ${WORKSPACE}
-                        echo "Downloading verrazzano_images.txt from object storage"
-                        oci --region us-phoenix-1 os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name master/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt --file ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt
-                        oci --region us-phoenix-1 os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${env.BRANCH_NAME}/${REPO_URLS_PROPS} --file ${WORKSPACE}/${REPO_URLS_PROPS}
+                        oci --region ${OCI_REGION} os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.VERRAZZANO_EXAMPLES_BRANCH}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt --file ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt
+                    """
+                }
+            }
+        }
+
+        stage('Validate Repo URLs') {
+            steps {
+                script {
+                    sh """
+                        # Dry run to ensure REPO_URLS_PROPS contains the URLs for all the images listed in verrazzano-images.txt
+                        ${WORKSPACE}/release/scripts/download_source_prt.sh -i ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt -r ${WORKSPACE}/${REPO_URLS_PROPS} -s ${WORKSPACE}/downloaded_source -d true
                     """
                 }
             }
@@ -102,31 +138,36 @@ pipeline {
         stage('Download Source') {
             steps {
                 script {
-                    sh """
-                            mkdir -p ${WORKSPACE}/downloaded_source
-                            grep -v ${GITLAB_URL_PREFIX} ${WORKSPACE}/${REPO_URLS_PROPS} > ${WORKSPACE}/${REPO_URLS1_PROPS}
-                            grep -F -x -v -f ${WORKSPACE}/${REPO_URLS1_PROPS} ${WORKSPACE}/${REPO_URLS_PROPS} > ${WORKSPACE}/${REPO_URLS2_PROPS}
-                            echo "# URLs end here" >> ${WORKSPACE}/${REPO_URLS2_PROPS}
-                    """
-
                     withCredentials([gitUsernamePassword(credentialsId: 'gitlab_rw', gitToolName: 'git-tool')]) {
                         sh """
-                            ${WORKSPACE}/release/scripts/download_source_prt.sh ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt ${WORKSPACE}/${REPO_URLS2_PROPS} ${WORKSPACE}/downloaded_source
+                            ${WORKSPACE}/release/scripts/download_source_prt.sh -i ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt -r ${WORKSPACE}/${REPO_URLS2_PROPS} -s ${WORKSPACE}/downloaded_source -c true
+                            ${WORKSPACE}/release/scripts/download_source_prt.sh -a ${WORKSPACE}/${REPO_URLS3_PROPS} -s ${WORKSPACE}/downloaded_source
                         """
                     }
 
                     withCredentials([gitUsernamePassword(credentialsId: 'github_rw', gitToolName: 'git-tool')]) {
                         sh """
-                            ${WORKSPACE}/release/scripts/download_source_prt.sh ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt ${WORKSPACE}/${REPO_URLS1_PROPS} ${WORKSPACE}/downloaded_source
-                            mkdir -p ${WORKSPACE}/archive_dir
-                            ${WORKSPACE}/release/scripts/archive_source_prt.sh ${WORKSPACE}/downloaded_source ${WORKSPACE}/archive_dir ${params.RELEASE_VERSION}
+                            ${WORKSPACE}/release/scripts/download_source_prt.sh -i ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt -r ${WORKSPACE}/${REPO_URLS1_PROPS} -s ${WORKSPACE}/downloaded_source
                         """
                     }
                 }
             }
         }
+        stage('Create Source Archive') {
+            steps {
+                script {
+                    sh """
+                        mkdir -p ${WORKSPACE}/archive_dir
+                        ${WORKSPACE}/release/scripts/archive_source_prt.sh ${WORKSPACE}/downloaded_source ${WORKSPACE}/archive_dir ${params.RELEASE_VERSION}
+                    """
+                }
+            }
+        }
     }
     post {
+        always {
+            archiveArtifacts artifacts: "**/vzsource*.properties,**/verrazzano_*.txt", allowEmptyArchive: true
+        }
         cleanup {
             deleteDir()
         }
