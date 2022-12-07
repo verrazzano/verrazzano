@@ -4,7 +4,6 @@
 package operatorinit
 
 import (
-	"fmt"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/appconfig"
@@ -41,7 +40,8 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		LeaderElectionID:   "5df248b3.verrazzano.io",
 	})
 	if err != nil {
-		return fmt.Errorf("Failed to start manager: %v", err)
+		log.Errorf("Failed to start manager: %v", err)
+		return err
 	}
 
 	if err = (&ingresstrait.Reconciler{
@@ -49,7 +49,8 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		Log:    log,
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("Failed to create IngressTrait controller: %v", err)
+		log.Errorf("Failed to create IngressTrait controller: %v", err)
+		return err
 	}
 	metricsReconciler := &metricstrait.Reconciler{
 		Client:  mgr.GetClient(),
@@ -59,12 +60,14 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 	}
 
 	if err = metricsReconciler.SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("Failed to create MetricsTrait controller: %v", err)
+		log.Errorf("Failed to create MetricsTrait controller: %v", err)
+		return err
 	}
 
 	logger, err := vzlog.BuildZapInfoLogger(0)
 	if err != nil {
-		return fmt.Errorf("Failed to create ApplicationConfiguration logger: %v", err)
+		log.Errorf("Failed to create ApplicationConfiguration logger: %v", err)
+		return err
 	}
 	if err = (&cohworkload.Reconciler{
 		Client:  mgr.GetClient(),
@@ -72,7 +75,8 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		Scheme:  mgr.GetScheme(),
 		Metrics: metricsReconciler,
 	}).SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("Failed to create VerrazzanoCoherenceWorkload controller: %v", err)
+		log.Errorf("Failed to create VerrazzanoCoherenceWorkload controller: %v", err)
+		return err
 	}
 	wlsWorkloadReconciler := &wlsworkload.Reconciler{
 		Client:  mgr.GetClient(),
@@ -81,7 +85,8 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		Metrics: metricsReconciler,
 	}
 	if err = wlsWorkloadReconciler.SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("Failed to create VerrazzanoWeblogicWorkload controller %v", err)
+		log.Errorf("Failed to create VerrazzanoWeblogicWorkload controller %v", err)
+		return err
 	}
 	if err = (&helidonworkload.Reconciler{
 		Client:  mgr.GetClient(),
@@ -89,11 +94,13 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		Scheme:  mgr.GetScheme(),
 		Metrics: metricsReconciler,
 	}).SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("Failed to create VerrazzanoHelidonWorkload controller: %v", err)
+		log.Errorf("Failed to create VerrazzanoHelidonWorkload controller: %v", err)
+		return err
 	}
 	// Setup the namespace reconciler
 	if _, err := namespace.NewNamespaceController(mgr, log.With("controller", "VerrazzanoNamespaceController")); err != nil {
-		return fmt.Errorf("Failed to create VerrazzanoNamespaceController controller: %v", err)
+		log.Errorf("Failed to create VerrazzanoNamespaceController controller: %v", err)
+		return err
 	}
 
 	// Create a buffered channel of size 10 for the multi cluster agent to receive messages
@@ -101,7 +108,8 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 
 	// Initialize the metricsExporter
 	if err := metricsexporter.StartMetricsServer(); err != nil {
-		return fmt.Errorf("Failed to create metrics exporter: %v", err)
+		log.Errorf("Failed to create metrics exporter: %v", err)
+		return err
 	}
 
 	if err = (&multiclustersecret.Reconciler{
@@ -110,7 +118,8 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("Failed to create %s controller: %v", clustersv1alpha1.MultiClusterSecretKind, err)
+		log.Errorf("Failed to create %s controller: %v", clustersv1alpha1.MultiClusterSecretKind, err)
+		return err
 	}
 	if err = (&multiclustercomponent.Reconciler{
 		Client:       mgr.GetClient(),
@@ -118,7 +127,8 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("Failed to create %s controller: %v", clustersv1alpha1.MultiClusterComponentKind, err)
+		log.Errorf("Failed to create %s controller: %v", clustersv1alpha1.MultiClusterComponentKind, err)
+		return err
 	}
 	if err = (&multiclusterconfigmap.Reconciler{
 		Client:       mgr.GetClient(),
@@ -126,7 +136,8 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("Failed to create %s controller %v", clustersv1alpha1.MultiClusterConfigMapKind, err)
+		log.Errorf("Failed to create %s controller %v", clustersv1alpha1.MultiClusterConfigMapKind, err)
+		return err
 	}
 	if err = (&multiclusterapplicationconfiguration.Reconciler{
 		Client:       mgr.GetClient(),
@@ -134,7 +145,8 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		Scheme:       mgr.GetScheme(),
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("Failed to create %s controller: %v", clustersv1alpha1.MultiClusterAppConfigKind, err)
+		log.Errorf("Failed to create %s controller: %v", clustersv1alpha1.MultiClusterAppConfigKind, err)
+		return err
 	}
 	scheme = mgr.GetScheme()
 	vmcclient.AddToScheme(scheme)
@@ -144,28 +156,32 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		Scheme:       scheme,
 		AgentChannel: agentChannel,
 	}).SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("Failed to create %s controller %v", clustersv1alpha1.VerrazzanoProjectKind, err)
+		log.Errorf("Failed to create %s controller %v", clustersv1alpha1.VerrazzanoProjectKind, err)
+		return err
 	}
 	if err = (&loggingtrait.LoggingTraitReconciler{
 		Client: mgr.GetClient(),
 		Log:    log,
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("Failed to create LoggingTrait controller: %v", err)
+		log.Errorf("Failed to create LoggingTrait controller: %v", err)
+		return err
 	}
 	if err = (&appconfig.Reconciler{
 		Client: mgr.GetClient(),
 		Log:    logger,
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("Failed to create ApplicationConfiguration controller: %v", err)
+		log.Errorf("Failed to create ApplicationConfiguration controller: %v", err)
+		return err
 	}
 	if err = (&containerizedworkload.Reconciler{
 		Client: mgr.GetClient(),
 		Log:    logger,
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("Failed to create ContainerizedWorkload controller: %v", err)
+		log.Errorf("Failed to create ContainerizedWorkload controller: %v", err)
+		return err
 	}
 	// Register the metrics workload controller
 	if err = (&metricsbinding.Reconciler{
@@ -173,7 +189,8 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 		Log:    logger,
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		return fmt.Errorf("Failed to create MetricsBinding controller: %v", err)
+		log.Errorf("Failed to create MetricsBinding controller: %v", err)
+		return err
 	}
 
 	// +kubebuilder:scaffold:builder
@@ -183,7 +200,8 @@ func StartApplicationOperator(metricsAddr string, enableLeaderElection bool, def
 
 	log.Info("Starting manager")
 	if err = mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		return fmt.Errorf("Failed to run manager: %v", err)
+		log.Errorf("Failed to run manager: %v", err)
+		return err
 	}
 	return err
 }
