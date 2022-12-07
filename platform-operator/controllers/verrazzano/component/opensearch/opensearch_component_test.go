@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -119,7 +120,7 @@ func TestGetMinVerrazzanoVersion(t *testing.T) {
 //	THEN a string containing JSONName is returned
 func TestGetJSONName(t *testing.T) {
 	jsonName := NewComponent().GetJSONName()
-	assert.Equal(t, jsonName, ComponentJSONName)
+	assert.Equal(t, jsonName, "opensearch")
 
 }
 
@@ -248,7 +249,7 @@ func TestValidateInstallV1Beta1(t *testing.T) {
 					createNG("master", 3, nil),
 				},
 			}),
-			true,
+			false,
 		},
 	}
 
@@ -1095,4 +1096,87 @@ func TestValidateUpdate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateInstallCR(t *testing.T) {
+	trueVal := true
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Elasticsearch: &vzapi.ElasticsearchComponent{
+					Enabled: &(trueVal),
+					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+				},
+			},
+		},
+	}
+	err := NewComponent().ValidateInstall(vz)
+	assert.NoError(t, err)
+
+	vz = &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Elasticsearch: &vzapi.ElasticsearchComponent{
+					Enabled: &(trueVal),
+					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 0, Roles: []vmov1.NodeRole{"ingest"}}},
+				},
+			},
+		},
+	}
+	err = NewComponent().ValidateInstall(vz)
+	assert.Error(t, err)
+
+	vz = &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Elasticsearch: &vzapi.ElasticsearchComponent{
+					Enabled: &(trueVal),
+					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{"ingest"}}},
+				},
+			},
+		},
+	}
+	err = NewComponent().ValidateInstall(vz)
+	assert.NoError(t, err)
+}
+
+func TestValidateUpdateCR(t *testing.T) {
+	trueVal := true
+	oldvz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Elasticsearch: &vzapi.ElasticsearchComponent{
+					Enabled: &(trueVal),
+					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 5, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{"ingest"}}},
+				},
+			},
+		},
+	}
+
+	newvz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Elasticsearch: &vzapi.ElasticsearchComponent{
+					Enabled: &(trueVal),
+					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 3, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+				},
+			},
+		},
+	}
+	err := NewComponent().ValidateUpdate(oldvz, newvz)
+	assert.NoError(t, err)
+
+	newvz = &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Elasticsearch: &vzapi.ElasticsearchComponent{
+					Enabled: &(trueVal),
+					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+				},
+			},
+		},
+	}
+	err = NewComponent().ValidateUpdate(oldvz, newvz)
+	assert.Error(t, err)
+
 }

@@ -4,8 +4,10 @@
 package opensearch
 
 import (
+	"errors"
 	"fmt"
 
+	//vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
@@ -30,7 +32,7 @@ const (
 	osCertificateName = "system-tls-os-ingest"
 )
 
-// ComponentJSONName is the JSON name of the opensearch component in CRD
+// ComponentJSONName is the josn name of the opensearch component in CRD
 const ComponentJSONName = "opensearch"
 
 type opensearchComponent struct{}
@@ -203,6 +205,26 @@ func (o opensearchComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzan
 	if err := common.CompareStorageOverridesV1Beta1(old, new, ComponentJSONName); err != nil {
 		return err
 	}
+	if old.Spec.Components.OpenSearch == nil {
+		return nil
+	}
+	opensearchOld := old.Spec.Components.OpenSearch
+	if new.Spec.Components.OpenSearch == nil {
+		return nil
+	}
+	opensearchNew := new.Spec.Components.OpenSearch
+
+	numNodesold, _ := GetNodesNumber(opensearchOld)
+	numNodesnew, _ := GetNodesNumber(opensearchNew)
+
+	for role, replicas := range numNodesold {
+
+		if role != "ingest" && replicas-numNodesnew[role] > numNodesnew[role] {
+			return errors.New("The number of nodes can't be scaled by more than half")
+
+		}
+
+	}
 	// Reject edits that duplicate names of install args or node groups
 	return validateNoDuplicatedConfiguration(new)
 }
@@ -220,7 +242,7 @@ func (o opensearchComponent) Name() string {
 func (o opensearchComponent) isOpenSearchEnabled(old *installv1beta1.Verrazzano, new *installv1beta1.Verrazzano) error {
 	// Do not allow disabling of any component post-install for now
 	if vzcr.IsOpenSearchEnabled(old) && !vzcr.IsOpenSearchEnabled(new) {
-		return fmt.Errorf("Disabling component %s not allowed", ComponentJSONName)
+		return fmt.Errorf("Disabling component OpenSearch not allowed")
 	}
 	return nil
 }
