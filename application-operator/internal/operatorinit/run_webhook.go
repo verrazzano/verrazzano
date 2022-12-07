@@ -4,6 +4,7 @@
 package operatorinit
 
 import (
+	"fmt"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
 	"github.com/verrazzano/verrazzano/application-operator/internal/certificates"
@@ -41,7 +42,7 @@ func WebhookInit(certDir string, log *zap.SugaredLogger) error {
 func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeaderElection bool, certDir string, scheme *runtime.Scheme) error {
 	config, err := ctrl.GetConfig()
 	if err != nil {
-		log.Errorf("Failed to get kubeconfig: %v", err)
+		return fmt.Errorf("Failed to get kubeconfig: %v", err)
 	}
 
 	mgr, err := ctrl.NewManager(config, ctrl.Options{
@@ -52,62 +53,62 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 		LeaderElectionID:   "5df248b4.verrazzano.io",
 	})
 	if err != nil {
-		log.Errorf("Failed to start manager: %v", err)
+		return fmt.Errorf("Failed to start manager: %v", err)
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		log.Errorf("Failed to get clientset", err)
+		return fmt.Errorf("Failed to get clientset", err)
 	}
 
 	log.Debug("Setting up certificates for webhook")
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.IngressTraitValidatingWebhookName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.IngressTraitValidatingWebhookName, err)
+		return fmt.Errorf("Failed to update %s: %v", certificates.IngressTraitValidatingWebhookName, err)
 	}
 
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.MultiClusterSecretName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.MultiClusterSecretName, err)
+		return fmt.Errorf("Failed to update %s: %v", certificates.MultiClusterSecretName, err)
 	}
 
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.MultiClusterComponentName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.MultiClusterComponentName, err)
+		return fmt.Errorf("Failed to update %s: %v", certificates.MultiClusterComponentName, err)
 	}
 
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.MultiClusterConfigMapName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.MultiClusterConfigMapName, err)
+		return fmt.Errorf("Failed to update %s: %v", certificates.MultiClusterConfigMapName, err)
 	}
 
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.MultiClusterApplicationConfigurationName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.MultiClusterApplicationConfigurationName, err)
+		return fmt.Errorf("Failed to update %s: %v", certificates.MultiClusterApplicationConfigurationName, err)
 	}
 
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.VerrazzanoProjectValidatingWebhookName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.VerrazzanoProjectValidatingWebhookName, err)
+		return fmt.Errorf("Failed to update %s: %v", certificates.VerrazzanoProjectValidatingWebhookName, err)
 	}
 
 	err = updateMutatingWebhookConfiguration(kubeClient, certificates.IstioMutatingWebhookName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.IstioMutatingWebhookName, err)
+		return fmt.Errorf("Failed to update %s: %v", certificates.IstioMutatingWebhookName, err)
 	}
 
 	err = updateMutatingWebhookConfiguration(kubeClient, certificates.AppConfigMutatingWebhookName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.AppConfigMutatingWebhookName, err)
+		return fmt.Errorf("Failed to update %s: %v", certificates.AppConfigMutatingWebhookName, err)
 	}
 
 	err = updateMutatingWebhookConfiguration(kubeClient, certificates.MetricsBindingWebhookName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.MetricsBindingWebhookName, err)
+		return fmt.Errorf("Failed to update %s: %v", certificates.MetricsBindingWebhookName, err)
 	}
 
 	if err = (&vzapi.IngressTrait{}).SetupWebhookWithManager(mgr); err != nil {
-		log.Errorf("Failed to create IngressTrait webhook: %v", err)
+		return fmt.Errorf("Failed to create IngressTrait webhook: %v", err)
 	}
 
 	// VerrazzanoProject validating webhook
@@ -117,12 +118,12 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
-		log.Errorf("Failed to create Kubernetes dynamic client: %v", err)
+		return fmt.Errorf("Failed to create Kubernetes dynamic client: %v", err)
 	}
 
 	istioClientSet, err := istioversionedclient.NewForConfig(config)
 	if err != nil {
-		log.Errorf("Failed to create istio client: %v", err)
+		return fmt.Errorf("Failed to create istio client: %v", err)
 	}
 
 	// Register a webhook that listens on pods that are running in a istio enabled namespace.
@@ -197,8 +198,7 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 
 	log.Info("Starting manager")
 	if err = mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		log.Errorf("Failed to run manager: %v", err)
+		return fmt.Errorf("Failed to run manager: %v", err)
 	}
-
 	return err
 }
