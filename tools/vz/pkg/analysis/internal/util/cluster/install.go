@@ -274,12 +274,8 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) {
 	istioServicesFile := files.FindFileInNamespace(clusterRoot, istioSystem, servicesJSON)
 	serviceList, err := GetServiceList(log, istioServicesFile)
-	if err != nil {
-		log.Debugf("Failed to get the list of services for the given service file %s, skipping", serviceList)
-		return
-	}
-	if serviceList == nil {
-		log.Debugf("No service was returned, skipping")
+	if err != nil || serviceList == nil {
+		log.Debugf("Failed to get the list of services for the given service file %s, or no service was returned, skipping", serviceList)
 		return
 	}
 	for _, service := range serviceList.Items {
@@ -305,27 +301,7 @@ func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issu
 			}
 		}
 	}
-	eventsList, e := GetEventList(log, files.FindFileInNamespace(clusterRoot, istioSystem, eventsJSON))
-	if e != nil {
-		log.Debugf("Failed to get events file %s", eventsJSON)
-		return
-	}
-	log.Debugf("Found %d events in events file", len(eventsList.Items))
-	serviceEvents := make([]corev1.Event, 0, 1)
-	isIssueAlreadyExists := false
-	for _, event := range eventsList.Items {
-		if loadBalancerCreationIssue.MatchString(event.Message) && !isIssueAlreadyExists {
-			isIssueAlreadyExists = true
-			serviceEvents = append(serviceEvents, event)
-			messages := make(StringSlice, 1)
-			messages[0] = event.Message
-			// Create the service message from the object metadata
-			servFiles := make(StringSlice, 1)
-			servFiles[0] = report.GetRelatedServiceMessage(serviceEvents[0].ObjectMeta.Name, istioSystem)
-			issueReporter.AddKnownIssueMessagesFiles(report.IstioIngressInstallFailure, clusterRoot, messages, servFiles)
-		}
-	}
-
+	analyzeIstioLoadBalancerIssue(log, clusterRoot, issueReporter)
 }
 
 // Read the Verrazzano resource and return the list of components which did not reach Ready state
@@ -440,4 +416,27 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 	files[1] = reportVpoLog
 	issueReporter.AddKnownIssueMessagesFiles(report.ComponentsNotReady, clusterRoot, messages, files)
 	return nil
+}
+
+func analyzeIstioLoadBalancerIssue(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) {
+	eventsList, e := GetEventList(log, files.FindFileInNamespace(clusterRoot, istioSystem, eventsJSON))
+	if e != nil {
+		log.Debugf("Failed to get events file %s", eventsJSON)
+		return
+	}
+	log.Debugf("Found %d events in events file", len(eventsList.Items))
+	serviceEvents := make([]corev1.Event, 0, 1)
+	isIssueAlreadyExists := false
+	for _, event := range eventsList.Items {
+		if loadBalancerCreationIssue.MatchString(event.Message) && !isIssueAlreadyExists {
+			isIssueAlreadyExists = true
+			serviceEvents = append(serviceEvents, event)
+			messages := make(StringSlice, 1)
+			messages[0] = event.Message
+			// Create the service message from the object metadata
+			servFiles := make(StringSlice, 1)
+			servFiles[0] = report.GetRelatedServiceMessage(serviceEvents[0].ObjectMeta.Name, istioSystem)
+			issueReporter.AddKnownIssueMessagesFiles(report.IstioIngressInstallFailure, clusterRoot, messages, servFiles)
+		}
+	}
 }
