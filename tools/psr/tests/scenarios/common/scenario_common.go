@@ -4,7 +4,7 @@
 package common
 
 import (
-	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
@@ -24,10 +24,10 @@ var (
 // - If the env var IMAGE_PULL_SECRET is defined, we attempt to create the image pull secret in the target namespace
 func InitScenario(t *framework.TestFramework, log vzlog.VerrazzanoLogger, scenarioID string, namespace string, kubeconfig string, skipStartScenario bool) {
 	_, err := pkg.CreateOrUpdateNamespace(namespace, NamespaceLabels, nil)
-	Expect(err).To(Not(HaveOccurred()))
+	gomega.Expect(err).To(gomega.Not(gomega.HaveOccurred()))
 
 	err = secrets.CreateOrUpdatePipelineImagePullSecret(log, namespace, kubeconfig)
-	Expect(err).To(Not(HaveOccurred()))
+	gomega.Expect(err).To(gomega.Not(gomega.HaveOccurred()))
 
 	if skipStartScenario {
 		return
@@ -36,7 +36,7 @@ func InitScenario(t *framework.TestFramework, log vzlog.VerrazzanoLogger, scenar
 	if !psrctlcli.IsScenarioRunning(log, scenarioID, namespace) {
 		stdout, stderr, err := psrctlcli.StartScenario(log, scenarioID, namespace)
 		t.Logs.Infof("StartScenario %s/%s, stdout: %s, stderr: %s", namespace, scenarioID, stdout, stderr)
-		Expect(err).To(Not(HaveOccurred()))
+		gomega.Expect(err).To(gomega.Not(gomega.HaveOccurred()))
 	}
 }
 
@@ -49,6 +49,6 @@ func StopScenario(t *framework.TestFramework, log vzlog.VerrazzanoLogger, scenar
 	if psrctlcli.IsScenarioRunning(log, scenarioID, namespace) {
 		stdout, stderr, err := psrctlcli.StopScenario(log, scenarioID, namespace)
 		t.Logs.Infof("StopScenario %s/%s, stdout: %s, stderr: %s", namespace, scenarioID, stdout, stderr)
-		Expect(err).To(Not(HaveOccurred()))
+		gomega.Expect(err).To(gomega.Not(gomega.HaveOccurred()))
 	}
 }
