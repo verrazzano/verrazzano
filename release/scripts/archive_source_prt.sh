@@ -86,6 +86,13 @@ if [[ ! -d "${ARCHIVE_DIR}" ]]; then
   mkdir -p ${ARCHIVE_DIR}
 fi
 
+if [ -d ${ARCHIVE_DIR} ]; then
+    if [ "$(ls -A ${ARCHIVE_DIR})" ]; then
+      echo "The directory ${ARCHIVE_DIR} to create the archive is not empty"
+      exit 1
+    fi
+fi
+
 # For release-* branch, check for environment variables required to upload the objects to store
 if [[ "${BRANCH_NAME}" == "release-"* ]];then
   if [ -z "$OCI_REGION" ] || [ -z "$OBJECT_STORAGE_NS" ] || [ -z "$OBJECT_STORAGE_BUCKET" ]; then

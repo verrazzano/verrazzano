@@ -5,6 +5,7 @@
 #
 # A script to download the source code for the images build from source.
 
+set -e
 set -o pipefail
 set -o errtrace
 
@@ -39,7 +40,7 @@ Options:
 -i Verrazzano image list
 -r File containing the repository URLs to download the source
 -a Addition source repository URLs
--s Directory to download the source
+-s An empty directory to download the source
 -d Dry run to ensure file specified by -r flag contains the URLs for all the images listed in the file specified by -i flag
 -c Clean the directory to download the source
 
@@ -64,9 +65,11 @@ function validateFlags() {
     fi
   fi
 
-  if [ "${SAVE_DIR}" == "" ]; then
-    echo "The directory to save the source is required, but not specified by flag -s"
-    usage 1
+  if [ "${DRY_RUN}" == false ]; then
+    if [ "${SAVE_DIR}" == "" ]; then
+      echo "The directory to save the source is required, but not specified by flag -s"
+      usage 1
+    fi
   fi
 }
 
