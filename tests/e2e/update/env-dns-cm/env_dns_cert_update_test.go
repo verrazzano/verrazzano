@@ -190,7 +190,7 @@ func validateVirtualServiceList(domain string) {
 			for _, virtualService := range virtualServiceList.Items {
 				hostname := virtualService.Spec.Hosts[0]
 				if !strings.Contains(hostname, domain) {
-					return fmt.Errorf("virtual service %s in namespace %s with hostname %s must contain %s\n", virtualService.Name, virtualService.Namespace, hostname, domain)
+					return fmt.Errorf("virtual service %s in namespace %s with hostname %s must contain %s", virtualService.Name, virtualService.Namespace, hostname, domain)
 				}
 			}
 			return nil
@@ -247,7 +247,7 @@ func validateCACertificateIssuer() {
 			// Verify that the certificate is issued by the right cluster issuer
 			for _, certificate := range certificates {
 				if certificate.Spec.IssuerRef.Name != testCertIssuerName {
-					return fmt.Errorf("issuer for the certificate %s in namespace %s is %s; expected is %s\n", certificate.Name, certificate.Namespace, certificate.Spec.IssuerRef.Name, testCertIssuerName)
+					return fmt.Errorf("issuer for the certificate %s in namespace %s is %s; expected is %s", certificate.Name, certificate.Namespace, certificate.Spec.IssuerRef.Name, testCertIssuerName)
 				}
 			}
 			return nil
@@ -267,7 +267,7 @@ func validateCertManagerResourcesCleanup() {
 			// Verify that the certificate is issued by the right cluster issuer
 			for _, certificate := range certificates {
 				if certificate.Name != currentCertName {
-					return fmt.Errorf("certificate %s should NOT exist in the namespace %s\n", currentCertName, currentCertNamespace)
+					return fmt.Errorf("certificate %s should NOT exist in the namespace %s", currentCertName, currentCertNamespace)
 				}
 			}
 			return nil
@@ -285,7 +285,7 @@ func validateCertManagerResourcesCleanup() {
 			// Verify that the certificate is issued by the right cluster issuer
 			for _, issuer := range issuerList.Items {
 				if issuer.Name != currentCertIssuerName {
-					return fmt.Errorf("issuer %s should NOT exist in the namespace %s\n", currentCertIssuerName, currentCertIssuerNamespace)
+					return fmt.Errorf("issuer %s should NOT exist in the namespace %s", currentCertIssuerName, currentCertIssuerNamespace)
 				}
 			}
 			return nil
