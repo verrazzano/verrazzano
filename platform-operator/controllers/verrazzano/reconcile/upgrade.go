@@ -229,7 +229,7 @@ func postVerrazzanoUpgrade(spiCtx spi.ComponentContext) error {
 		return err
 	}
 	log.Oncef("Checking if any pods with Istio sidecars need to be restarted to pick up the new version of the Istio proxy")
-	if err := restart.RestartComponents(log, config.GetInjectedSystemNamespaces(), spiCtx.ActualCR().Generation, restart.DoesPodContainOldIstioSidecar); err != nil {
+	if err := restart.RestartComponents(log, config.GetInjectedSystemNamespaces(), spiCtx.ActualCR().Generation, &restart.OutdatedSidecarMatcher{}); err != nil {
 		return err
 	}
 	log.Oncef("MySQL post-upgrade cleanup")

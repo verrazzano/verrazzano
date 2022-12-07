@@ -254,7 +254,7 @@ func (i istioComponent) PreInstall(compContext spi.ComponentContext) error {
 func (i istioComponent) PostInstall(compContext spi.ComponentContext) error {
 	// During install there is a window where the Istio envoy sidecar container is not included in a pod.
 	// Restart system components that are missing the sidecar.
-	if err := restart.RestartComponents(compContext.Log(), config.GetInjectedSystemNamespaces(), compContext.ActualCR().Generation, restart.DoesPodContainNoIstioSidecar); err != nil {
+	if err := restart.RestartComponents(compContext.Log(), config.GetInjectedSystemNamespaces(), compContext.ActualCR().Generation, &restart.NoIstioSidecarMatcher{}); err != nil {
 		return err
 	}
 	if err := createPeerAuthentication(compContext); err != nil {

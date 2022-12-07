@@ -35,7 +35,7 @@ func RestartApps(log vzlog.VerrazzanoLogger, client clipkg.Client, generation in
 	}
 
 	// Rolling restart Weblogic domain pods if the Istio version skew is 2 minor versions max
-	if err := RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions(log, client, restartVersion); err != nil {
+	if err := RestartDomainsIfOutdatedSidecars(log, client, restartVersion); err != nil {
 		return err
 	}
 
@@ -75,12 +75,11 @@ func StopDomainsUsingOldEnvoy(log vzlog.VerrazzanoLogger, client clipkg.Client) 
 	return nil
 }
 
-// RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions Rolling restart all the WebLogic domains using old istio version where skew is 2 minor versions max.
-func RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVersion string) error {
-	// Get the latest Istio proxy image name from the bom
-	istioProxyImage, err := getIstioProxyImageFromBom()
-	if err != nil {
-		return log.ErrorfNewErr("Failed, RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions cannot find Istio proxy image in BOM: %v", err)
+// RestartDomainsIfOutdatedSidecars Rolling restart all the WebLogic domains that have outdated sidecars
+func RestartDomainsIfOutdatedSidecars(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVersion string) error {
+	podMatcher := &WKOMatcher{}
+	if err := podMatcher.ReInit(); err != nil {
+		return err
 	}
 
 	// get all the app configs
@@ -94,7 +93,7 @@ func RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions(log vzlog.VerrazzanoLogg
 		log.Debugf("RestartWebLogicApps: found appConfig %s", appConfig.Name)
 		for _, wl := range appConfig.Status.Workloads {
 			if wl.Reference.Kind == vzconst.VerrazzanoWebLogicWorkloadKind {
-				if err := restartDomainIfNeeded(log, client, appConfig, wl.Reference.Name, istioProxyImage, restartVersion); err != nil {
+				if err := restartDomainIfNeeded(log, client, appConfig, wl.Reference.Name, restartVersion, podMatcher); err != nil {
 					return err
 				}
 			}
@@ -136,7 +135,7 @@ func stopDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appCon
 }
 
 // Determine if the WebLogic domain needs to be restarted
-func restartDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appConfig oam.ApplicationConfiguration, wlName string, istioProxyImage string, restartVersion string) error {
+func restartDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, appConfig oam.ApplicationConfiguration, wlName string, restartVersion string, podMatcher PodMatcher) error {
 	log.Progressf("RestartWebLogicApps: checking if domain for workload %s needs to be restarted", wlName)
 
 	// Get the go client so we can bypass the cache and get directly from etcd
@@ -158,13 +157,13 @@ func restartDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, app
 		return log.ErrorfNewErr("Failed to list pods for Domain %s/%s: %v", appConfig.Namespace, wlName, err)
 	}
 
-	// Check if weblogic domain pods contain the old Istio proxy image where skew is 2 minor versions at max.
-	found := !DoesPodContainOldIstioSidecarSkewGreaterThanTwoMinorVersion(log, podList, "OAM WebLogic Domain", wlName, istioProxyImage)
+	// Check if weblogic domain pods contain out of date sidecars.
+	found := podMatcher.Matches(log, podList, "OAM Weblogic Domain", wlName)
 	if !found {
 		return nil
 	}
 
-	return restartDomain(log, client, appConfig.Namespace, wlName, restartVersion)
+	return restartDomain(client, appConfig.Namespace, wlName, restartVersion)
 }
 
 // Stop the WebLogic domain
@@ -184,7 +183,7 @@ func stopDomain(client clipkg.Client, wlNamespace string, wlName string) error {
 }
 
 // Restart the WebLogic domain
-func restartDomain(log vzlog.VerrazzanoLogger, client clipkg.Client, wlNamespace string, wlName string, restartVersion string) error {
+func restartDomain(client clipkg.Client, wlNamespace string, wlName string, restartVersion string) error {
 	var wl vzapp.VerrazzanoWebLogicWorkload
 	wl.Namespace = wlNamespace
 	wl.Name = wlName

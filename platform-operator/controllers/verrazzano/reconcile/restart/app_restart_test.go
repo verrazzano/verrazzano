@@ -105,7 +105,7 @@ func TestWebLogicStopStart(t *testing.T) {
 			expectGetAndUpdate:     true,
 			initialLifeCycleAction: "",
 			f: func(mock *mocks.MockClient) error {
-				return RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions(vzlog.DefaultLogger(), mock, "1")
+				return RestartDomainsIfOutdatedSidecars(vzlog.DefaultLogger(), mock, "1")
 			},
 		},
 
@@ -116,7 +116,7 @@ func TestWebLogicStopStart(t *testing.T) {
 			expectGetAndUpdate:     false,
 			initialLifeCycleAction: "",
 			f: func(mock *mocks.MockClient) error {
-				return RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions(vzlog.DefaultLogger(), mock, "1")
+				return RestartDomainsIfOutdatedSidecars(vzlog.DefaultLogger(), mock, "1")
 			},
 		},
 	}
