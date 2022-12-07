@@ -25,7 +25,7 @@ install:
 
 # Executes test suite(s) against the target Verrazzano install
 test: export TEST_ROOT = ${PSR_PATH}/tests
-test: export TEST_SUITES ?= scenarios/opensearch/...
+test: export TEST_SUITES ?= ${TEST_ROOT}/...
 test: export PSR_COMMAND ?= psrctl
 test: export TEST_NAMESPACE ?= psrtest
 test: export IMAGE_PULL_SECRET ?= verrazzano-container-registry
