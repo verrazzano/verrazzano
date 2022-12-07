@@ -44,18 +44,25 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	vmiCredentials = pkg.EventuallyGetSystemVMICredentials()
+})
 
+func sbsFunc() []byte {
 	// Start the scenario if necessary
+	kubeconfig, _ = k8sutil.GetKubeConfigLocation()
 	common.InitScenario(t, log, scenarioID, namespace, kubeconfig, skipStartScenario)
+	return []byte{}
+}
+
+var _ = SynchronizedBeforeSuite(sbsFunc, func(bytes []byte) {
+	beforeSuite()
 })
 
-var afterSuite = t.AfterSuiteFunc(func() {
+func sasFunc() {
+	// Stop the scenario if necessary
 	common.StopScenario(t, log, scenarioID, namespace, skipStopScenario)
-})
+}
 
-var _ = BeforeSuite(beforeSuite)
-
-var _ = AfterSuite(afterSuite)
+var _ = SynchronizedAfterSuite(func() {}, sasFunc)
 
 var log = vzlog.DefaultLogger()
 
