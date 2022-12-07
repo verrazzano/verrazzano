@@ -5,7 +5,6 @@
 #
 # A script to download the source code for the images build from source.
 
-set -e
 set -o pipefail
 set -o errtrace
 
