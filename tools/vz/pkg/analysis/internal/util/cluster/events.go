@@ -124,7 +124,7 @@ func GetEventsRelatedToComponentNamespace(log *zap.SugaredLogger, clusterRoot st
 // CheckEventsForWarnings goes through the events list for a specific Component/Service/Pod
 // and checks if there exists an event with type Warning and returns the corresponding reason and message
 // as an additional supporting data
-func CheckEventsForWarnings(log *zap.SugaredLogger, events []corev1.Event, timeRange *files.TimeRange) (message []string, err error) {
+func CheckEventsForWarnings(log *zap.SugaredLogger, events []corev1.Event, eventType string, timeRange *files.TimeRange) (message []string, err error) {
 	log.Debugf("Searching the events list for any additional support data")
 	var finalEventList []corev1.Event
 	for _, event := range events {
@@ -136,7 +136,7 @@ func CheckEventsForWarnings(log *zap.SugaredLogger, events []corev1.Event, timeR
 				foundInvolvedObject = true
 				// Remove the previous event from the final list
 				finalEventList = append(finalEventList[:index], finalEventList[index+1:]...)
-				if event.Type == "Warning" {
+				if event.Type == eventType {
 					finalEventList = append(finalEventList, event)
 				}
 				break
