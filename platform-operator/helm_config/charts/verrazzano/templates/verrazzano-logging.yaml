@@ -205,7 +205,7 @@ data:
       @type tail
       # @id in_tail
       path /var/log/containers/*.log
-      pos_file /tmp/fluentd-containers.log.pos
+      pos_file /var/log/vz-fluentd-containers.log.pos
       # Exclude the log of the Fluentd daemonset itself
       exclude_path ["/var/log/containers/fluentd*_verrazzano-system_fluentd*.log"]
       tag kubernetes.*
@@ -1176,7 +1176,7 @@ spec:
               readOnly: true
             - mountPath: /var/log
               name: varlog
-              readOnly: true
+              readOnly: false
             - mountPath: /var/lib
               name: varlib
               readOnly: true
