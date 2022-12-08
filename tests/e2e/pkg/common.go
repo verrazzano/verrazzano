@@ -7,19 +7,21 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"io"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"net/http"
 	neturl "net/url"
 	"os"
 	"reflect"
 	"regexp"
-	"sigs.k8s.io/yaml"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"sigs.k8s.io/yaml"
 
 	v12 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 
@@ -732,4 +734,11 @@ func CreateOverridesOrDie(yamlString string) []v1beta1.Overrides {
 			},
 		},
 	}
+}
+
+func IsVerrazzanoManaged(labels map[string]string) bool {
+	if val, ok := labels[constants.VerrazzanoManagedLabelKey]; ok {
+		return val == "true"
+	}
+	return false
 }

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -174,7 +175,12 @@ func CreateDockerSecret(namespace string, name string, server string, username s
 	}
 	scr, err := clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("CreateDockerSecret %v error: %v", name, err))
+		if !errors.IsAlreadyExists(err) {
+			Log(Error, fmt.Sprintf("CreateDockerSecret %v error: %v", name, err))
+			return nil, err
+		}
+		Log(Info, fmt.Sprintf("Secret %s/%s already exists, updating", namespace, name))
+		return clientset.CoreV1().Secrets(namespace).Update(context.TODO(), secret, metav1.UpdateOptions{})
 	}
 	return scr, err
 }
@@ -202,7 +208,12 @@ func CreateDockerSecretInCluster(namespace string, name string, server string, u
 	}
 	scr, err := clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, metav1.CreateOptions{})
 	if err != nil {
-		Log(Error, fmt.Sprintf("CreateDockerSecret %v error: %v", name, err))
+		if !errors.IsAlreadyExists(err) {
+			Log(Error, fmt.Sprintf("CreateDockerSecretInCluster %v error: %v", name, err))
+			return nil, err
+		}
+		Log(Info, fmt.Sprintf("CreateDockerSecretInCluster secret %s/%s already exists, updating", namespace, name))
+		return clientset.CoreV1().Secrets(namespace).Update(context.TODO(), secret, metav1.UpdateOptions{})
 	}
 	return scr, err
 }

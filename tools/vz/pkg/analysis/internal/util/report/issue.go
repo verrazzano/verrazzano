@@ -112,6 +112,8 @@ const (
 	IngressNoIPFound          = "IngressNoIPFound"
 	IstioIngressNoIP          = "IstioIngressNoIP"
 	IngressShapeInvalid       = "IngressShapeInvalid"
+	IstioIngressPrivateSubnet = "IstioIngressPrivateSubnet"
+	NginxIngressPrivateSubnet = "NginxIngressPrivateSubnet"
 )
 
 // NOTE: How we are handling the issues/actions/reporting is still very much evolving here. Currently supplying some
@@ -136,6 +138,8 @@ var knownIssues = map[string]Issue{
 	IngressNoIPFound:          {Type: IngressNoIPFound, Summary: "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressNoIPFound]}},
 	IstioIngressNoIP:          {Type: IstioIngressNoIP, Summary: "Verrazzano install failed as no IP found for service istio-ingressgateway with type LoadBalancer", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IstioIngressNoIP]}},
 	IngressShapeInvalid:       {Type: IngressShapeInvalid, Summary: "Verrazzano install failed as the shape provided for NGINX Ingress Controller is invalid", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressShapeInvalid]}},
+	IstioIngressPrivateSubnet: {Type: IstioIngressPrivateSubnet, Summary: "Failed to create LoadBalancer for Istio Ingress Gateway", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IstioIngressPrivateSubnet]}},
+	NginxIngressPrivateSubnet: {Type: NginxIngressPrivateSubnet, Summary: "Failed to create LoadBalancer for Nginx Ingress Controller", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[NginxIngressPrivateSubnet]}},
 }
 
 // NewKnownIssueSupportingData adds a known issue

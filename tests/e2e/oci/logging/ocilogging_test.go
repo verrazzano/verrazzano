@@ -6,6 +6,7 @@ package logging
 import (
 	"context"
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"os"
 	"time"
 
@@ -72,7 +73,7 @@ var _ = BeforeSuite(beforeSuite)
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport(springbootNamespace, helidonNamespace)
+		dump.ExecuteBugReport(springbootNamespace, helidonNamespace)
 	}
 	pkg.Concurrently(
 		func() {
