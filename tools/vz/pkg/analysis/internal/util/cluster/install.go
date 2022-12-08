@@ -7,6 +7,7 @@ package cluster
 import (
 	encjson "encoding/json"
 	"fmt"
+	pkgconst "github.com/verrazzano/verrazzano/pkg/constants"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -153,6 +154,9 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 			log.Debugf("Failed to get events related to the NGINX ingress controller service", err)
 			return err
 		}
+		//messages := make(StringSlice, 1)
+		//messages.addMessages(CheckEventsForWarnings(log, events, nil))
+
 		//flags to make sure we're not capturing the same event message repeatedly
 		ephemeralIPLimitReachedCheck := false
 		lbServiceLimitReachedCheck := false
@@ -398,10 +402,22 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 		}
 	}
 
-	// Create a a single message to display the list of components without specific error in the platform operator
+	// Create a single message to display the list of components without specific error in the platform operator
 	if len(compsNoMessages) > 0 {
 		errorMessage := "\t " + installErrorNotFound + strings.Join(compsNoMessages[:], ", ")
 		messages = append(messages, errorMessage)
+	}
+
+	// Get unique namespaces associated with the components with no error messages
+	namespacesCompNoMsg := getUniqueNamespaces(log, compsNoMessages)
+
+	// Check the events related to failed components namespace to provide additional support data
+	for namespace := range namespacesCompNoMsg {
+		eventList, err := GetEventsRelatedToComponentNs(log, clusterRoot, namespace, nil)
+		if err != nil {
+
+		}
+		messages.addMessages(CheckEventsForWarnings(log, eventList, nil))
 	}
 
 	reportVzResource := ""
@@ -442,4 +458,20 @@ func analyzeIstioLoadBalancerIssue(log *zap.SugaredLogger, clusterRoot string, i
 			issueReporter.AddKnownIssueMessagesFiles(report.IstioIngressPrivateSubnet, clusterRoot, messages, servFiles)
 		}
 	}
+}
+
+func getUniqueNamespaces(log *zap.SugaredLogger, compsNoMessages []string) map[string]bool {
+	uniqueNamespaces := make(map[string]bool)
+
+	for _, comp := range compsNoMessages {
+		componentNamespaces, ok := pkgconst.ComponentNameToNamespacesMap[comp]
+		if !ok {
+			log.Debugf("Couldn't find the namespace related to %s component", comp)
+			continue
+		}
+		// Only Rancher component has multiple namespaces, for now only searching in cattle-system namespace for Rancher
+		componentNamespace := componentNamespaces[0]
+		uniqueNamespaces[componentNamespace] = true
+	}
+	return uniqueNamespaces
 }
