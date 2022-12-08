@@ -22,7 +22,7 @@ run-test-randomize: export RUN_PARALLEL = true
 run-test-randomize: run-test
 
 .PHONY: run-test
-run-test: export TEST_REPORT ?= "test-report.xml"
-run-test: export TEST_REPORT_DIR ?= "${WORKSPACE}/tests/e2e"
+run-test: export TEST_REPORT ?= test-report.xml
+run-test: export TEST_REPORT_DIR ?= ${WORKSPACE}/tests/e2e
 run-test:
 	${CI_SCRIPTS_DIR}/run-ginkgo.sh
