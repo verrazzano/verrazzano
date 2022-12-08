@@ -22,9 +22,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	"go.uber.org/zap"
-	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -199,15 +197,19 @@ func validateVirtualServiceList(domain string) {
 }
 
 func verifyIngressAccess(log *zap.SugaredLogger) {
+	if log == nil {
+		log = zap.S()
+	}
+
 	t.DescribeTable("Access Ingresses",
 		func(access func() error) {
 			Eventually(func() error {
 				return access()
 			}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
 		},
-		Entry("Access Keycloak", pkg.VerifyKeycloakAccess(log)),
-		Entry("Access Rancher", pkg.VerifyRancherAccess(log)),
-		Entry("Access Rancher with Keycloak", pkg.VerifyRancherKeycloakAuthConfig(log)),
+		Entry("Access Keycloak", func() error { return pkg.VerifyKeycloakAccess(log) }),
+		Entry("Access Rancher", func() error { return pkg.VerifyRancherAccess(log) }),
+		Entry("Access Rancher with Keycloak", func() error { return pkg.VerifyRancherKeycloakAuthConfig(log) }),
 	)
 }
 
@@ -294,10 +296,10 @@ func validateCertManagerResourcesCleanup() {
 
 	// Verify that the secret used for the default certificate has been removed
 	t.It("Validating secret does not exist", func() {
-		Eventually(func() (*corev1.Secret, error) {
-			secret, err := pkg.GetSecret(currentCertSecretNamespace, currentCertSecretName)
-			return secret, client.IgnoreNotFound(err)
-		}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(BeNil())
+		Eventually(func() error {
+			_, err := pkg.GetSecret(currentCertSecretNamespace, currentCertSecretName)
+			return err
+		}).WithTimeout(waitTimeout).WithPolling(pollingInterval).Should(HaveOccurred())
 	})
 }
 
