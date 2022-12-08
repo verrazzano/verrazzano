@@ -2,6 +2,7 @@
 Fixes:
 
 - Fixed a bug that resulted in user applications restarting during upgrade from a previous Verrazzano release.
+- Fixed Fluentd configuration to prevent duplication of logs in OpenSearch on Fluentd restarts or upgrade.
 
 ### v1.4.2
 Fixes:

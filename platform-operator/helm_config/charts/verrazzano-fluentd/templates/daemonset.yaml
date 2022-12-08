@@ -105,7 +105,7 @@ spec:
               readOnly: true
             - mountPath: /var/log
               name: varlog
-              readOnly: true
+              readOnly: false
             - mountPath: /var/lib
               name: varlib
               readOnly: true
