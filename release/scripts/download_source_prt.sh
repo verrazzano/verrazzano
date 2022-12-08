@@ -64,9 +64,11 @@ function validateFlags() {
     fi
   fi
 
-  if [ "${SAVE_DIR}" == "" ]; then
-    echo "The directory to save the source is required, but not specified by flag -s"
-    usage 1
+  if [ "${DRY_RUN}" == false ]; then
+    if [ "${SAVE_DIR}" == "" ]; then
+      echo "The directory to save the source is required, but not specified by flag -s"
+      usage 1
+    fi
   fi
 }
 

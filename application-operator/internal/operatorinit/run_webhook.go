@@ -22,19 +22,21 @@ func WebhookInit(certDir string, log *zap.SugaredLogger) error {
 
 	conf, err := ctrl.GetConfig()
 	if err != nil {
+		log.Errorf("Failed to get config: %v", err)
 		return err
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(conf)
 	if err != nil {
+		log.Errorf("Failed to get kubernetes client: %v", err)
 		return err
 	}
 
 	// Create the webhook certificates and secrets
 	if err := certificates.CreateWebhookCertificates(log, kubeClient, certDir); err != nil {
+		log.Errorf("Failed to create webhook certificates and secrets: %v", err)
 		return err
 	}
-
 	return nil
 }
 
@@ -42,6 +44,7 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 	config, err := ctrl.GetConfig()
 	if err != nil {
 		log.Errorf("Failed to get kubeconfig: %v", err)
+		return err
 	}
 
 	mgr, err := ctrl.NewManager(config, ctrl.Options{
@@ -53,61 +56,73 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 	})
 	if err != nil {
 		log.Errorf("Failed to start manager: %v", err)
+		return err
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		log.Errorf("Failed to get clientset", err)
+		return err
 	}
 
 	log.Debug("Setting up certificates for webhook")
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.IngressTraitValidatingWebhookName)
 	if err != nil {
 		log.Errorf("Failed to update %s: %v", certificates.IngressTraitValidatingWebhookName, err)
+		return err
 	}
 
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.MultiClusterSecretName)
 	if err != nil {
 		log.Errorf("Failed to update %s: %v", certificates.MultiClusterSecretName, err)
+		return err
 	}
 
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.MultiClusterComponentName)
 	if err != nil {
 		log.Errorf("Failed to update %s: %v", certificates.MultiClusterComponentName, err)
+		return err
 	}
 
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.MultiClusterConfigMapName)
 	if err != nil {
 		log.Errorf("Failed to update %s: %v", certificates.MultiClusterConfigMapName, err)
+		return err
 	}
 
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.MultiClusterApplicationConfigurationName)
 	if err != nil {
 		log.Errorf("Failed to update %s: %v", certificates.MultiClusterApplicationConfigurationName, err)
+		return err
 	}
 
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.VerrazzanoProjectValidatingWebhookName)
 	if err != nil {
 		log.Errorf("Failed to update %s: %v", certificates.VerrazzanoProjectValidatingWebhookName, err)
+		return err
 	}
 
 	err = updateMutatingWebhookConfiguration(kubeClient, certificates.IstioMutatingWebhookName)
 	if err != nil {
 		log.Errorf("Failed to update %s: %v", certificates.IstioMutatingWebhookName, err)
+		return err
 	}
 
 	err = updateMutatingWebhookConfiguration(kubeClient, certificates.AppConfigMutatingWebhookName)
 	if err != nil {
 		log.Errorf("Failed to update %s: %v", certificates.AppConfigMutatingWebhookName, err)
+		return err
 	}
 
 	err = updateMutatingWebhookConfiguration(kubeClient, certificates.MetricsBindingWebhookName)
 	if err != nil {
 		log.Errorf("Failed to update %s: %v", certificates.MetricsBindingWebhookName, err)
+		return err
 	}
 
 	if err = (&vzapi.IngressTrait{}).SetupWebhookWithManager(mgr); err != nil {
 		log.Errorf("Failed to create IngressTrait webhook: %v", err)
+		return err
 	}
 
 	// VerrazzanoProject validating webhook
@@ -118,11 +133,13 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
 		log.Errorf("Failed to create Kubernetes dynamic client: %v", err)
+		return err
 	}
 
 	istioClientSet, err := istioversionedclient.NewForConfig(config)
 	if err != nil {
 		log.Errorf("Failed to create istio client: %v", err)
+		return err
 	}
 
 	// Register a webhook that listens on pods that are running in a istio enabled namespace.
@@ -198,7 +215,7 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 	log.Info("Starting manager")
 	if err = mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		log.Errorf("Failed to run manager: %v", err)
+		return err
 	}
-
 	return err
 }

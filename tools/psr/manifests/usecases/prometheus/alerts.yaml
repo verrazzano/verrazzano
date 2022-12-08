@@ -4,3 +4,7 @@
 global:
   envVars:
     PSR_WORKER_TYPE: prom-alerts
+
+# activate subchart
+prometheus:
+  enabled: true

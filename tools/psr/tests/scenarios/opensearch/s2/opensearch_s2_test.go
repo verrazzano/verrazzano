@@ -44,18 +44,28 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 
 	httpClient = pkg.EventuallyVerrazzanoRetryableHTTPClient()
 	vmiCredentials = pkg.EventuallyGetSystemVMICredentials()
+})
 
+func sbsFunc() []byte {
 	// Start the scenario if necessary
+	kubeconfig, _ = k8sutil.GetKubeConfigLocation()
 	common.InitScenario(t, log, scenarioID, namespace, kubeconfig, skipStartScenario)
+	return []byte{}
+}
+
+var _ = SynchronizedBeforeSuite(sbsFunc, func(bytes []byte) {
+	// Called for all processes, set up the other initialization
+	beforeSuite()
 })
 
-var afterSuite = t.AfterSuiteFunc(func() {
+func sasFunc() {
+	// Stop the scenario if necessary
 	common.StopScenario(t, log, scenarioID, namespace, skipStopScenario)
-})
+}
 
-var _ = BeforeSuite(beforeSuite)
-
-var _ = AfterSuite(afterSuite)
+var _ = SynchronizedAfterSuite(func() {
+	// Do nothing, no work for all processes before process1 callback
+}, sasFunc)
 
 var log = vzlog.DefaultLogger()
 
@@ -113,11 +123,11 @@ var _ = t.Describe("ops-s2", Label("f:psr-ops-s2"), func() {
 		Entry(fmt.Sprintf("Verify metric %s", constants.GetLogsWorkerRunningSecondsTotalMetric), constants.GetLogsWorkerRunningSecondsTotalMetric),
 		Entry(fmt.Sprintf("Verify metric %s", constants.GetLogsWorkerThreadCountTotalMetric), constants.GetLogsWorkerThreadCountTotalMetric),
 
-		//Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsLoggedCharsTotal), constants.WriteLogsLoggedCharsTotal),
-		//Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsLoggedLinesTotalCountMetric), constants.WriteLogsLoggedLinesTotalCountMetric),
-		//Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsLoopCountTotalMetric), constants.WriteLogsLoopCountTotalMetric),
-		//Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsWorkerLastLoopNanosMetric), constants.WriteLogsWorkerLastLoopNanosMetric),
-		//Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsWorkerRunningSecondsTotalMetric), constants.WriteLogsWorkerRunningSecondsTotalMetric),
-		//Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsWorkerThreadCountTotalMetric), constants.WriteLogsWorkerThreadCountTotalMetric),
+		Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsLoggedCharsTotal), constants.WriteLogsLoggedCharsTotal),
+		Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsLoggedLinesTotalCountMetric), constants.WriteLogsLoggedLinesTotalCountMetric),
+		Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsLoopCountTotalMetric), constants.WriteLogsLoopCountTotalMetric),
+		Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsWorkerLastLoopNanosMetric), constants.WriteLogsWorkerLastLoopNanosMetric),
+		Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsWorkerRunningSecondsTotalMetric), constants.WriteLogsWorkerRunningSecondsTotalMetric),
+		Entry(fmt.Sprintf("Verify metric %s", constants.WriteLogsWorkerThreadCountTotalMetric), constants.WriteLogsWorkerThreadCountTotalMetric),
 	)
 })
