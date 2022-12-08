@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/cluster-api/util/secret"
 
 	"io/fs"
 	"os"
@@ -292,15 +295,15 @@ func getAuthproxyManagedResources() []common.HelmManagedResource {
 }
 
 func removeDeprecatedAuthProxyESServiceIfExists(ctx spi.ComponentContext) {
-	svc := &corev1.Service{}
-	namespacedName := types.NamespacedName{Namespace: ComponentNamespace, Name: "verrazzano-authproxy-elasticsearch"}
-	ctx.Log().Info("----------------Inside func removeDeprecatedAuthProxyESServiceIfExists")
-	if err := ctx.Client().Get(context.TODO(), namespacedName, svc); err != nil {
-		ctx.Log().Debugf("Unable to retrieve deprecated authproxy ES service: %s, %v", svc.Name, err)
-	} else {
-		ctx.Log().Debugf("Deleting the deprecated authproxy service: %s", svc.Name)
-		if err = ctx.Client().Delete(context.TODO(), svc); err != nil {
-			ctx.Log().Errorf("Unable to Delete deprecated authproxy ES service: %s, %v", svc.Name, err)
-		}
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: ComponentNamespace,
+			Name:      "verrazzano-authproxy-elasticsearch",
+		},
 	}
+	ctx.Log().Debugf("Deleting the deprecated ES service: %s", service.Name)
+	if err := ctx.Client().Delete(context.TODO(), service); err != nil && !apierrors.IsNotFound(err) {
+		ctx.Log().Errorf("Unable to delete deprecated ES service: %s, %v", secret.Name, err)
+	}
+
 }
