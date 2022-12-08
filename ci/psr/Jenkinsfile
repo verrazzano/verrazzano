@@ -250,8 +250,8 @@ pipeline {
                                     lineCoverageTargets: '68, 68, 68',
                                     packageCoverageTargets: '100, 0, 0',
                             )
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/*${TEST_REPORT}', allowEmptyArchive: true
+                            junit testResults: '**/*${TEST_REPORT}', allowEmptyResults: true
                         }
                     }
                 }
@@ -272,7 +272,7 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '**/scanning-report*.json', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/scanning-report*.json,**/*${TEST_REPORT}', allowEmptyArchive: true
                }
             }
         }
@@ -322,7 +322,7 @@ pipeline {
     post {
         always {
             archiveArtifacts artifacts: "**/scanning-report*.json,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
-            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+            junit testResults: '**/*${TEST_REPORT}', allowEmptyResults: true
         }
         failure {
             sh """
@@ -393,7 +393,7 @@ def postFailureProcessing() {
     sh """
         curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
     """
-    archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
+    archiveArtifacts artifacts: '**/build-console-output.log,**/*${TEST_REPORT}', allowEmptyArchive: true
     sh """
         curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip
