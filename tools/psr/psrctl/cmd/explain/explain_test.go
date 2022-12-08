@@ -23,9 +23,11 @@ import (
 const psrRoot = "../../.."
 
 var (
-	expectedName        = "opensearch-s1"
 	expectedId          = "ops-s1"
+	expectedName        = "opensearch-s1"
 	expectedDescription = "This is a scenario that writes logs to STDOUT and gets logs from OpenSearch at a moderated rate."
+	expectedUseCase     = "Usecase path opensearch/writelogs.yaml:  Description: write logs to STDOUT 10 times a second"
+
 	// ConfigMap for the ops-s1 scenario
 	cm = &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -39,7 +41,7 @@ var (
 		Data: map[string]string{
 			"scenario": base64.StdEncoding.EncodeToString([]byte(`Description: "This is a scenario that writes logs to STDOUT and gets logs from OpenSearch
   at a moderated rate. \nThe purpose of the scenario is to test a moderate load on
-  both Fluend and OpenSearch by logging records.\n"
+  both Fluentd and OpenSearch by logging records.\n"
 HelmReleases:
 - Description: write logs to STDOUT 10 times a second
   Name: psr-ops-s1-writelogs-0
@@ -48,7 +50,7 @@ HelmReleases:
   UsecasePath: opensearch/writelogs.yaml
 ID: ops-s1
 Name: opensearch-s1
-Namespace: default
+Namespace: psr
 ScenarioUsecaseOverridesAbsDir: temp-dir
 Usecases:
 - Description: write logs to STDOUT 10 times a second
@@ -92,15 +94,15 @@ func TestExplainScenario(t *testing.T) {
 	err := explainCmd.Execute()
 	assert.NoError(t, err)
 	result := buf.String()
-	assert.Contains(t, fmt.Sprintf("Name: %s", expectedName), result)
 	assert.Contains(t, fmt.Sprintf("ID: %s", expectedId), result)
+	assert.Contains(t, fmt.Sprintf("Name: %s", expectedName), result)
 	assert.Contains(t, fmt.Sprintf("Description: %s", expectedDescription), result)
 }
 
 // TestExplainScenarioVerbose tests the NewCmdExplain and RunCmdExplain functions
 //
 //	WHEN 'psr explain -s ops-s2 -v' is called
-//	THEN ensure the output is correct for that scenario
+//	THEN ensure the output includes the verbose usecases
 func TestExplainScenarioVerbose(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:        psrRoot,
@@ -131,15 +133,45 @@ func TestExplainScenarioVerbose(t *testing.T) {
 	err := explainCmd.Execute()
 	assert.NoError(t, err)
 	result := buf.String()
-	assert.Contains(t, fmt.Sprintf("Name: %s", expectedName), result)
 	assert.Contains(t, fmt.Sprintf("ID: %s", expectedId), result)
+	assert.Contains(t, fmt.Sprintf("Name: %s", expectedName), result)
 	assert.Contains(t, fmt.Sprintf("Description: %s", expectedDescription), result)
+	assert.Contains(t, fmt.Sprintf("Use cases: %s", expectedUseCase), result)
 }
 
 // TestExplainNoScenario tests the NewCmdExplain and RunCmdExplain functions
 //
 //	WHEN 'psr explain' is called
-//	THEN ensure the output is correct for all listed scenarios
+//	THEN ensure the output correctly lists all scenarios
 func TestExplainNoScenario(t *testing.T) {
+	manifest.Manifests = &manifest.PsrManifests{
+		RootTmpDir:        psrRoot,
+		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
+		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
+		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
+	}
 
+	defer manifest.ResetManifests()
+
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+	k8sutil.GetCoreV1Func = func(log ...vzlog.VerrazzanoLogger) (corev1cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset().CoreV1(), nil
+	}
+
+	// Send the command output to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+
+	explainCmd := NewCmdExplain(rc)
+	assert.NotNil(t, explainCmd)
+
+	// Run explain command, check for all scenarios to be listed
+	err := explainCmd.Execute()
+	assert.NoError(t, err)
+	result := buf.String()
+	assert.Contains(t, "ID: ops-s9", result)
+	assert.Contains(t, "Name: opensearch-s9", result)
+	assert.Contains(t, "Description: This is a scenario that combines all of the existing OpenSearch use cases", result)
+	assert.Contains(t, "Namespace needs to be labeled with istio-injection=enabled", result)
 }
