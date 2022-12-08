@@ -32,7 +32,7 @@ var ephemeralIPLimitReachedRe = regexp.MustCompile(`.*Limit for non-ephemeral re
 var lbServiceLimitReachedRe = regexp.MustCompile(`.*The following service limits were exceeded: lb-.*`)
 var failedToEnsureLoadBalancer = regexp.MustCompile(`.*failed to ensure load balancer: awaiting load balancer.*`)
 var invalidLoadBalancerParameter = regexp.MustCompile(`.*Service error:InvalidParameter. Limits-Service returned 400.*Invalid service/quota load-balancer.*`)
-var loadBalancerCreationIssue = regexp.MustCompile(`.*Private subnet .* is not allowed in a public loadbalancer.*`)
+var loadBalancerCreationIssue = regexp.MustCompile(`.*Private subnet.* is not allowed in a public loadbalancer.*`)
 var vpoErrorMessages []string
 
 const logLevelError = "error"

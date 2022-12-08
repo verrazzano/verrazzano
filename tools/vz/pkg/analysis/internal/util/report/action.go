@@ -78,6 +78,7 @@ var KnownActions = map[string]Action{
 	IstioIngressNoIP:           {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IstioIngressNoIP][0])},
 	IngressShapeInvalid:        {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IngressShapeInvalid][0])},
 	IstioIngressInstallFailure: {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[IstioIngressInstallFailure][0])},
+	NginxIngressInstallFailure: {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[NginxIngressInstallFailure][0])},
 }
 
 func getConsultRunbookAction(summaryF string, runbookLink string) string {
