@@ -26,6 +26,7 @@ Fixes:
 
 - Updated base and other images for bugs and security.
 - Rancher upgrade intermittently fails with errors stating that the available chart version is less than the minimum chart version for Rancher system charts.
+- Fixed Fluentd configuration to prevent duplication of logs in OpenSearch on Fluentd restarts or upgrade.
 
 
 ### v1.4.0
