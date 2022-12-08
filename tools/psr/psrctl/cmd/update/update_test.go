@@ -26,12 +26,11 @@ import (
 
 const psrRoot = "../../.."
 
-// TestVersionCmd - check that command reports not implemented yet
+// TestUpdateCmd tests that the psrctl command works correctly
 func TestUpdateCmd(t *testing.T) {
-
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:        psrRoot,
-		WorkerChartAbsDir: psrRoot + "/manifests/charts",
+		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
 		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
 		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
 	}
@@ -55,7 +54,7 @@ func TestUpdateCmd(t *testing.T) {
 HelmReleases:
 - Description: write logs to STDOUT 10 times a second
   Name: psr-ops-s1-writelogs-0
-  Namespace: default
+  Namespace: psr
   OverrideFile: writelogs.yaml
   UsecasePath: opensearch/writelogs.yaml
 ID: ops-s1
@@ -77,11 +76,17 @@ Usecases:
 
 	defer func() { scenario.GetValuesFunc = helmcli.GetValues }()
 	scenario.GetValuesFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string) ([]byte, error) {
-		return nil, nil
+		assert.Equal(t, "psr-ops-s1-writelogs-0", releaseName)
+		assert.Equal(t, "psr", namespace)
+		return []byte("old-values"), nil
 	}
 
 	defer func() { scenario.UpgradeFunc = helmcli.Upgrade }()
 	scenario.UpgradeFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+		assert.Equal(t, 3, len(overrides))
+		assert.Equal(t, "psr-ops-s1-writelogs-0", releaseName)
+		assert.Equal(t, "psr", namespace)
+		assert.Contains(t, chartDir, "manifests/charts/worker")
 		return nil, nil, nil
 	}
 
@@ -95,7 +100,42 @@ Usecases:
 
 	cmd.PersistentFlags().Set(constants.FlagScenario, "ops-s1")
 	cmd.PersistentFlags().Set(constants.FlagNamespace, "psr")
+	cmd.PersistentFlags().Set(constants.ImageNameKey, "worker-image")
 
 	err := cmd.Execute()
 	assert.NoError(t, err)
+	assert.Contains(t, buf.String(), "Updating scenario")
+	assert.Contains(t, buf.String(), "Updating use case")
+	assert.Contains(t, buf.String(), "successfully updated")
+}
+
+func TestUpdateNoConfigmap(t *testing.T) {
+	manifest.Manifests = &manifest.PsrManifests{
+		RootTmpDir:        psrRoot,
+		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
+		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
+		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
+	}
+
+	defer manifest.ResetManifests()
+
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+	k8sutil.GetCoreV1Func = func(log ...vzlog.VerrazzanoLogger) (corev1cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset().CoreV1(), nil
+	}
+
+	// Send the command output to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+
+	cmd := NewCmdUpdate(rc)
+	assert.NotNil(t, cmd)
+
+	cmd.PersistentFlags().Set(constants.FlagScenario, "ops-s1")
+	cmd.PersistentFlags().Set(constants.FlagNamespace, "psr")
+	cmd.PersistentFlags().Set(constants.ImageNameKey, "worker-image")
+
+	err := cmd.Execute()
+	assert.Error(t, err)
 }
