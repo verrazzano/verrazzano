@@ -346,7 +346,7 @@ func TestIstioIngressInstallFailure(t *testing.T) {
 	assert.True(t, len(reportedIssues) > 0)
 	problemsFound := 0
 	for _, issue := range reportedIssues {
-		if issue.Type == report.IstioIngressInstallFailure {
+		if issue.Type == report.IstioIngressPrivateSubnet {
 			problemsFound++
 		}
 	}

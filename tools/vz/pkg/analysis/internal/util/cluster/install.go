@@ -214,7 +214,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 			} else if loadBalancerCreationIssue.MatchString(event.Message) && !loadBalancerCheck {
 				messages := make(StringSlice, 1)
 				messages[0] = event.Message
-				issueReporter.AddKnownIssueMessagesFiles(report.NginxIngressInstallFailure, clusterRoot, messages, files)
+				issueReporter.AddKnownIssueMessagesFiles(report.NginxIngressPrivateSubnet, clusterRoot, messages, files)
 				issueDetected = true
 				loadBalancerCheck = true
 				issueReporter.Contribute(log, clusterRoot)
@@ -436,7 +436,7 @@ func analyzeIstioLoadBalancerIssue(log *zap.SugaredLogger, clusterRoot string, i
 			// Create the service message from the object metadata
 			servFiles := make(StringSlice, 1)
 			servFiles[0] = report.GetRelatedServiceMessage(serviceEvents[0].ObjectMeta.Name, istioSystem)
-			issueReporter.AddKnownIssueMessagesFiles(report.IstioIngressInstallFailure, clusterRoot, messages, servFiles)
+			issueReporter.AddKnownIssueMessagesFiles(report.IstioIngressPrivateSubnet, clusterRoot, messages, servFiles)
 		}
 	}
 }
