@@ -55,16 +55,18 @@ func (v *MysqlValuesValidatorV1alpha1) validateMysqlValuesV1alpha1(log *zap.Suga
 	versionToCompare := getVersion(oldVz.Status.Version, newVz.Spec.Version, v.BomVersion)
 	log.Debugf("Min version required %s, version to compare: %s", MinVersion, versionToCompare)
 	if isMinVersion(versionToCompare, MinVersion) {
+		log.Info("Validating v1alpha1 MySQL values")
 		if newVz.Spec.Components.Keycloak != nil {
 			// compare overrides from current and previous VZ
 			newMySQLOverrides := newVz.Spec.Components.Keycloak.MySQL.ValueOverrides
 			for _, override := range newMySQLOverrides {
 				var err error
-				hasWarning, warning, err := inspectOverride(override.Values)
+				warning, err := inspectOverride(override.Values)
 				if err != nil {
 					return admission.Errored(http.StatusBadRequest, err)
 				}
-				if hasWarning {
+				if len(warning) > 0 {
+					log.Warnf(warning)
 					response = admission.Allowed("").WithWarnings(warning)
 				}
 			}
