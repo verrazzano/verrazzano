@@ -292,6 +292,7 @@ func getAuthproxyManagedResources() []common.HelmManagedResource {
 	}
 }
 
+// removeDeprecatedAuthProxyESServiceIfExists removes the deprecated authproxy ES service.
 func removeDeprecatedAuthProxyESServiceIfExists(ctx spi.ComponentContext) {
 	service := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
