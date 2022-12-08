@@ -1,0 +1,28 @@
+# Copyright (c) 2022, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+==== START logs for container helm of pod cattle-system/helm-operation-s5stv ====
+helm upgrade --history-max=5 --install=true --namespace=cattle-system --reset-values=true --timeout=5m0s --values=/home/shell/helm/values-rancher-webhook-1.0.4-up0.2.5.yaml --version=1.0.4+up0.2.5 --wait=true rancher-webhook /home/shell/helm/rancher-webhook-1.0.4-up0.2.5.tgz
+Release "rancher-webhook" does not exist. Installing it now.
+creating 6 resource(s)
+beginning wait for 6 resources with timeout of 5m0s
+Deployment is not ready: cattle-system/rancher-webhook. 0 out of 1 expected pods are ready
+Deployment is not ready: cattle-system/rancher-webhook. 0 out of 1 expected pods are ready
+Deployment is not ready: cattle-system/rancher-webhook. 0 out of 1 expected pods are ready
+Deployment is not ready: cattle-system/rancher-webhook. 0 out of 1 expected pods are ready
+Deployment is not ready: cattle-system/rancher-webhook. 0 out of 1 expected pods are ready
+NAME: rancher-webhook
+LAST DEPLOYED: Thu Jun 16 10:27:10 2022
+NAMESPACE: cattle-system
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+
+---------------------------------------------------------------------
+SUCCESS: helm upgrade --history-max=5 --install=true --namespace=cattle-system --reset-values=true --timeout=5m0s --values=/home/shell/helm/values-rancher-webhook-1.0.4-up0.2.5.yaml --version=1.0.4+up0.2.5 --wait=true rancher-webhook /home/shell/helm/rancher-webhook-1.0.4-up0.2.5.tgz
+---------------------------------------------------------------------
+==== END logs for container helm of pod cattle-system/helm-operation-s5stv ====
+==== START logs for container proxy of pod cattle-system/helm-operation-s5stv ====
+W0616 10:27:09.247910       7 proxy.go:162] Request filter disabled, your proxy is vulnerable to XSRF attacks, please be cautious
+Starting to serve on REDACTED-IP4-ADDRESS:8001
+Terminated
+==== END logs for container proxy of pod cattle-system/helm-operation-s5stv ====
