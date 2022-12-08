@@ -274,7 +274,7 @@ func validateCertManagerResourcesCleanup() {
 			}
 			// Verify that the certificate is issued by the right cluster issuer
 			for _, certificate := range certificates {
-				if certificate.Name != currentCertName {
+				if certificate.Name == currentCertName {
 					return fmt.Errorf("certificate %s should NOT exist in the namespace %s", currentCertName, currentCertNamespace)
 				}
 			}
