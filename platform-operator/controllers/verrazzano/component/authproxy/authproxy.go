@@ -294,6 +294,7 @@ func getAuthproxyManagedResources() []common.HelmManagedResource {
 func removeDeprecatedAuthProxyESServiceIfExists(ctx spi.ComponentContext) {
 	svc := &corev1.Service{}
 	namespacedName := types.NamespacedName{Namespace: ComponentNamespace, Name: "verrazzano-authproxy-elasticsearch"}
+	ctx.Log().Info("----------------Inside func removeDeprecatedAuthProxyESServiceIfExists")
 	if err := ctx.Client().Get(context.TODO(), namespacedName, svc); err != nil {
 		ctx.Log().Debugf("Unable to retrieve deprecated authproxy ES service: %s, %v", svc.Name, err)
 	} else {
