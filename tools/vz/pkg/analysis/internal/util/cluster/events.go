@@ -96,8 +96,8 @@ func GetEventsRelatedToService(log *zap.SugaredLogger, clusterRoot string, servi
 	return serviceEvents, nil
 }
 
-// GetEventsRelatedToComponentNs gets events related to a component
-func GetEventsRelatedToComponentNs(log *zap.SugaredLogger, clusterRoot string, componentNamespace string, timeRange *files.TimeRange) (componentEvents []corev1.Event, err error) {
+// GetEventsRelatedToComponentNamespace gets events related to a component namespace
+func GetEventsRelatedToComponentNamespace(log *zap.SugaredLogger, clusterRoot string, componentNamespace string, timeRange *files.TimeRange) (componentEvents []corev1.Event, err error) {
 	log.Debugf("GetEventsRelatedToComponentNs called for component in namespace %s", componentNamespace)
 
 	podFile := files.FindFileInNamespace(clusterRoot, componentNamespace, podsJSON)

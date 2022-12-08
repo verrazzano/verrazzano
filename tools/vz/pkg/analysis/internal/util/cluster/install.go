@@ -154,9 +154,6 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 			log.Debugf("Failed to get events related to the NGINX ingress controller service", err)
 			return err
 		}
-		//messages := make(StringSlice, 1)
-		//messages.addMessages(CheckEventsForWarnings(log, events, nil))
-
 		//flags to make sure we're not capturing the same event message repeatedly
 		ephemeralIPLimitReachedCheck := false
 		lbServiceLimitReachedCheck := false
@@ -248,9 +245,6 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		messages := make(StringSlice, 1)
 		messages[0] = fmt.Sprintf("Namespace %s, Pod %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 		// TODO: Time correlation on error search here
-
-		// Look through the events to see if we can find any Warning messages as additional supporting data
-		messages.addMessages(CheckEventsForWarnings(log, events, nil))
 
 		fileName := files.FindFileInClusterRoot(clusterRoot, ingressNginx)
 		nginxPodErrors, err := files.FindFilesAndSearch(log, fileName, LogFilesMatchRe, WideErrorSearchRe, nil)
@@ -413,7 +407,7 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 
 	// Check the events related to failed components namespace to provide additional support data
 	for namespace := range namespacesCompNoMsg {
-		eventList, err := GetEventsRelatedToComponentNs(log, clusterRoot, namespace, nil)
+		eventList, err := GetEventsRelatedToComponentNamespace(log, clusterRoot, namespace, nil)
 		if err != nil {
 
 		}
