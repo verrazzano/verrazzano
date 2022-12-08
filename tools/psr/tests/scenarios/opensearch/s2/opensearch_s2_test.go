@@ -54,6 +54,7 @@ func sbsFunc() []byte {
 }
 
 var _ = SynchronizedBeforeSuite(sbsFunc, func(bytes []byte) {
+	// Called for all processes, set up the other initialization
 	beforeSuite()
 })
 
@@ -62,7 +63,9 @@ func sasFunc() {
 	common.StopScenario(t, log, scenarioID, namespace, skipStopScenario)
 }
 
-var _ = SynchronizedAfterSuite(func() {}, sasFunc)
+var _ = SynchronizedAfterSuite(func() {
+	// Do nothing, no work for all processes before process1 callback
+}, sasFunc)
 
 var log = vzlog.DefaultLogger()
 
