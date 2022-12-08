@@ -9,7 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/client-go/rest"
-	"strings"
 )
 
 const (
@@ -94,23 +93,6 @@ func (j *mysqlPodSpecUpdater) HandleWarningHeader(code int, agent string, text s
 	j.warnings = append(j.warnings, warningInfo{code: code, agent: agent, text: text})
 }
 
-func (j *mysqlPodSpecUpdater) hasWarnings() bool {
-	return j.numWarnings() > 0
-}
-
-func (j *mysqlPodSpecUpdater) numWarnings() int {
-	return len(j.warnings)
-}
-
-func (j *mysqlPodSpecUpdater) hasWarningText(substring string) bool {
-	for _, warning := range j.warnings {
-		if strings.Contains(warning.text, substring) {
-			return true
-		}
-	}
-	return false
-}
-
 var _ update.CRModifier = &mysqlPodSpecUpdater{}
 var _ update.CRModifierV1beta1 = &mysqlPodSpecUpdater{}
 var _ rest.WarningHandler = &mysqlPodSpecUpdater{}
@@ -136,21 +118,21 @@ func runMySQLPodspecEditWarningTestV1Alpha1() {
 }
 
 func checkExpectations(err error, updater *mysqlPodSpecUpdater) {
-	Eventually(func() bool {
+	Eventually(func() []string {
 		t.Logs.Infof("Verifies that an update to the MySQL overrides containing a podSpec value issues a warning to " +
 			"the user; also makes an illegal edit to avoid mutating the system but also generate the warning")
 		if err == nil {
 			t.Logs.Info("Did not get an error on illegal update")
-			return false
+			return []string{}
 		}
 		if err != nil {
 			t.Logs.Infof("Update error: %s", err.Error())
 		}
-		if updater.hasWarnings() {
-			for _, warning := range updater.warnings {
-				t.Logs.Infof("Warning: %v", warning)
-			}
+		var warningText []string
+		for _, warning := range updater.warnings {
+			warningText = append(warningText, warning.text)
+			t.Logs.Infof("Warning: %v", warning)
 		}
-		return updater.hasWarnings() && updater.hasWarningText(warningSubstring)
-	}, waitTimeout, pollingInterval).Should(BeTrue())
+		return warningText
+	}, waitTimeout, pollingInterval).Should(ContainElements(ContainSubstring(warningSubstring)))
 }

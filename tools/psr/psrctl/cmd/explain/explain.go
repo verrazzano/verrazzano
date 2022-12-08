@@ -34,7 +34,7 @@ func NewCmdExplain(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.Example = helpExample
 
 	cmd.PersistentFlags().StringVarP(&scenarioID, constants.FlagScenario, constants.FlagsScenarioShort, "", constants.FlagScenarioHelp)
-	cmd.PersistentFlags().BoolVarP(&verbose, constants.FlagVerbose, constants.FlagVerboseShort, true, constants.FlagVerboseHelp)
+	cmd.PersistentFlags().BoolVarP(&verbose, constants.FlagVerbose, constants.FlagVerboseShort, false, constants.FlagVerboseHelp)
 
 	return cmd
 }
@@ -68,7 +68,7 @@ func RunCmdExplain(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		if verbose {
 			fmt.Println("Use cases:")
 			for _, uc := range sc.Usecases {
-				fmt.Printf("Usecase path %s :  Description: %s\n", uc.UsecasePath, uc.Description)
+				fmt.Printf("Usecase path %s:  Description: %s\n", uc.UsecasePath, uc.Description)
 			}
 		}
 		if len(scenarioID) > 0 && sc.ID == scenarioID {
