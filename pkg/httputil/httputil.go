@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package httputil
@@ -20,6 +20,10 @@ func ExtractFieldFromResponseBodyOrReturnError(responseBody string, field string
 
 	if token, ok := jsonString.Path(field).Data().(string); ok {
 		return token, nil
+	}
+
+	if toString := jsonString.Path(field).String(); toString != "null" {
+		return toString, nil
 	}
 
 	errorString := "unable to find token in response"

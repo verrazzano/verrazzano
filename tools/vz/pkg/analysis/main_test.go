@@ -33,6 +33,24 @@ func TestExecuteAnalysisBadArgs(t *testing.T) {
 	// TODO: Check error message is what we expected here
 
 }
+func TestProblemPodsInCattleSystem(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	err := Analyze(logger, "cluster", "test/cluster/testCattleSystempods")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.Nil(t, reportedIssues)
+	assert.False(t, len(reportedIssues) > 0)
+	problemPodsFound := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.PodProblemsNotReported {
+			problemPodsFound++
+		}
+
+	}
+	assert.True(t, problemPodsFound == 0)
+}
 
 // TestImagePullCase1 Tests that analysis of a cluster dump with image pull issues is handled
 // GIVEN a call to analyze a cluster-snapshot

@@ -5,6 +5,7 @@ package overrides
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"strings"
 	"time"
 
@@ -139,7 +140,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 	_ = update.GetCR()
 	if failed {
-		pkg.ExecuteBugReport()
+		dump.ExecuteBugReport()
 	}
 })
 

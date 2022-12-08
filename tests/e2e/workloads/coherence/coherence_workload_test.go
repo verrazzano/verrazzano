@@ -5,6 +5,7 @@ package coherence
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"net/http"
 	"time"
 
@@ -85,7 +86,7 @@ var _ = t.AfterEach(func() {
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		pkg.ExecuteBugReport(namespace)
+		dump.ExecuteBugReport(namespace)
 	}
 	if !skipUndeploy {
 		undeployCoherenceApp()

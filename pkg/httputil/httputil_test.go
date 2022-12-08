@@ -1,4 +1,4 @@
-// Copyright (c) 2021, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package httputil_test
 
@@ -24,6 +24,12 @@ func TestExtractTokenFromResponseBody(t *testing.T) {
 	token, err = httputil.ExtractFieldFromResponseBodyOrReturnError(body, "token")
 	asserts.NoError(err)
 	asserts.Equal("abcd", token)
+
+	// Valid non-string response
+	body = `{"token": [{"abcd": "efgh"}]}`
+	token, err = httputil.ExtractFieldFromResponseBodyOrReturnError(body, "token")
+	asserts.NoError(err)
+	asserts.Equal(`[{"abcd":"efgh"}]`, token)
 
 	// Expected error message
 	body = `{"notoken": "yes"}`

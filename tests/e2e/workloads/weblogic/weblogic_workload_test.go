@@ -5,6 +5,7 @@ package weblogic
 
 import (
 	"fmt"
+	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"net/http"
 	"time"
 
@@ -87,8 +88,8 @@ var _ = t.AfterEach(func() {
 
 var afterSuite = t.AfterSuiteFunc(func() {
 	if failed || !beforeSuitePassed {
-		pkg.CaptureContainerLogs(namespace, wlsAdminServer, "weblogic-server", "/scratch/logs/hello-domain")
-		pkg.ExecuteBugReport(namespace)
+		dump.CaptureContainerLogs(namespace, wlsAdminServer, "weblogic-server", "/scratch/logs/hello-domain")
+		dump.ExecuteBugReport(namespace)
 	}
 	if !skipUndeploy {
 		undeployWebLogicApp()
