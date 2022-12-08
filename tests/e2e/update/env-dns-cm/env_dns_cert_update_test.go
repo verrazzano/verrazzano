@@ -114,7 +114,7 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 
 	t.Context("Update and verify environment name", func() {
 		m := EnvironmentNameModifier{testEnvironmentName}
-		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+		updateCR(m)
 		validateIngressList(testEnvironmentName, currentDNSDomain)
 		validateVirtualServiceList(currentDNSDomain)
 		verifyIngressAccess(t.Logs)
@@ -122,7 +122,7 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 
 	t.Context("Update and verify dns domain", func() {
 		m := WildcardDNSModifier{testDNSDomain}
-		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+		updateCR(m)
 		validateIngressList(testEnvironmentName, testDNSDomain)
 		validateVirtualServiceList(testDNSDomain)
 		verifyIngressAccess(t.Logs)
@@ -131,11 +131,17 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 	t.Context("Update and verify CA certificate", func() {
 		createCustomCACertificate(testCertName, testCertSecretNamespace, testCertSecretName)
 		m := CustomCACertificateModifier{testCertSecretNamespace, testCertSecretName}
-		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+		updateCR(m)
 		validateCertManagerResourcesCleanup()
 		validateCACertificateIssuer()
 	})
 })
+
+func updateCR(m update.CRModifier) {
+	t.It("Update the Verrazzano CR", func() {
+		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+	})
+}
 
 func validateIngressList(environmentName string, domain string) {
 	t.It("Expect Ingresses to contain the correct hostname and domain", func() {
