@@ -32,7 +32,6 @@ pipeline {
                         defaultValue: 'nip.io',
                         description: 'This is the wildcard DNS domain',
                         trim: true)
-        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
@@ -55,7 +54,6 @@ pipeline {
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         GOPATH = '/home/opc/go'
         GO_REPO_PATH = "${GOPATH}/src/github.com/verrazzano"
-        PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
         OCI_CLI_AUTH="instance_principal"
@@ -130,7 +128,6 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
                                         string(name: 'CHAOS_TEST_TYPE', value: 'vpo.killed')
                                     ], wait: true
                             }
@@ -149,7 +146,6 @@ pipeline {
                                             string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                             string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                             string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
                                             string(name: 'CHAOS_TEST_TYPE', value: 'ephemeral.storage.upgrade')
                                     ], wait: true
                             }
@@ -168,7 +164,6 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
                                         string(name: 'CHAOS_TEST_TYPE', value: 'helm.chart.corrupted')
                                 ], wait: true
                             }
@@ -187,7 +182,6 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
                                         string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.failed.upgrade')
                                 ], wait: true
                             }
@@ -206,7 +200,6 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
                                         string(name: 'CHAOS_TEST_TYPE', value: 'upgrade.failed.upgrade')
                                 ], wait: true
                             }
@@ -225,7 +218,6 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
                                         string(name: 'CHAOS_TEST_TYPE', value: 'upgrade.failing.upgrade')
                                 ], wait: true
                             }
@@ -245,9 +237,6 @@ pipeline {
                     slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                 }
             }
-        }
-        cleanup {
-            metricBuildDuration()
         }
     }
 }
@@ -376,51 +365,6 @@ def getSuspectList(commitList, userMappings) {
     }
     echo "returning suspect list: ${retValue}"
     return retValue
-}
-
-def metricJobName(stageName) {
-    job = env.JOB_NAME.split("/")[0]
-    job = '_' + job.replaceAll('-','_')
-    if (stageName) {
-        job = job + '_' + stageName
-    }
-    return job
-}
-
-// Construct the set of labels/dimensions for the metrics
-def getMetricLabels() {
-    def buildNumber = String.format("%010d", env.BUILD_NUMBER.toInteger())
-    labels = 'build_number=\\"' + "${buildNumber}"+'\\",' +
-             'jenkins_build_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
-             'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
-             'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\"'
-    return labels
-}
-
-// Emit the metrics indicating the duration and result of the build
-def metricBuildDuration() {
-    def status = "${currentBuild.currentResult}".trim()
-    long duration = "${currentBuild.duration}" as long;
-    long durationInSec = (duration/1000)
-    testMetric = metricJobName('')
-    def metricValue = "-1"
-    statusLabel = status.substring(0,1)
-    if (status.equals("SUCCESS")) {
-        metricValue = "1"
-    } else if (status.equals("FAILURE")) {
-        metricValue = "0"
-    } else {
-        // Consider every other status as a single label
-        statusLabel = "A"
-    }
-    if (params.EMIT_METRICS) {
-        labels = getMetricLabels()
-        labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
-        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
-            echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
-        }
-    }
 }
 
 def getCronSchedule() {
