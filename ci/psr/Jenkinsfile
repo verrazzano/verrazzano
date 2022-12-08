@@ -251,7 +251,7 @@ pipeline {
                                     packageCoverageTargets: '100, 0, 0',
                             )
                             archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/*${TEST_REPORT}', allowEmptyArchive: true
-                            junit testResults: '**/*${TEST_REPORT}', allowEmptyResults: true
+                            junit testResults: 'tests/**/*.xml', allowEmptyResults: true
                         }
                     }
                 }
@@ -322,7 +322,7 @@ pipeline {
     post {
         always {
             archiveArtifacts artifacts: "**/scanning-report*.json,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
-            junit testResults: '**/*${TEST_REPORT}', allowEmptyResults: true
+            junit testResults: 'tests/**/*.xml', allowEmptyResults: true
         }
         failure {
             sh """
