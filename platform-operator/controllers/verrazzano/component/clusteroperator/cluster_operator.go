@@ -7,6 +7,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
+	"os"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
@@ -22,10 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"net/http"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"strings"
 )
 
 const (
@@ -95,7 +96,7 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 	}
 
 	// Send a request to see if the user exists
-	reqURL := rc.BaseURL + usersByNamePath + strings.Replace(clusterRegName, " ", "%20", -1)
+	reqURL := rc.BaseURL + usersByNamePath + url.PathEscape(clusterRegName)
 	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
 	response, body, err := rancherutil.SendRequest(http.MethodGet, reqURL, headers, "", rc, ctx.Log())
 	if err != nil {
