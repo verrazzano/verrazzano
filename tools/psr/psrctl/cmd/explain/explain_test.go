@@ -100,6 +100,8 @@ func TestExplainScenario(t *testing.T) {
 	assert.Contains(t, fmt.Sprintf("ID: %s", expectedId), result)
 	assert.Contains(t, fmt.Sprintf("Name: %s", expectedName), result)
 	assert.Contains(t, fmt.Sprintf("Description: %s", expectedDescription), result)
+	assert.NotContains(t, result, "ID: ops-s9")
+	assert.NotContains(t, result, fmt.Sprintf("Use cases: %s", expectedUseCase))
 }
 
 // TestExplainScenarioVerbose tests the NewCmdExplain and RunCmdExplain functions
@@ -140,6 +142,7 @@ func TestExplainScenarioVerbose(t *testing.T) {
 	assert.Contains(t, fmt.Sprintf("Name: %s", expectedName), result)
 	assert.Contains(t, fmt.Sprintf("Description: %s", expectedDescription), result)
 	assert.Contains(t, fmt.Sprintf("Use cases: %s", expectedUseCase), result)
+	assert.NotContains(t, result, "ID: ops-s9")
 }
 
 // TestExplainNoScenario tests the NewCmdExplain and RunCmdExplain functions
@@ -177,4 +180,5 @@ func TestExplainNoScenario(t *testing.T) {
 	assert.Contains(t, "Name: opensearch-s9", result)
 	assert.Contains(t, "Description: This is a scenario that combines all of the existing OpenSearch use cases", result)
 	assert.Contains(t, "Namespace needs to be labeled with istio-injection=enabled", result)
+	assert.NotContains(t, result, fmt.Sprintf("Use cases: %s", expectedUseCase))
 }
