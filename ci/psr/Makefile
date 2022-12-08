@@ -8,13 +8,11 @@ export TEST_REPORT_DIR ?= ${WORKSPACE}/tests/psr
 
 include ../make/kind.mk
 include ../make/install.mk
-include ../make/cleanup.mk
 include ../make/tests.mk
 
 .PHONY: all
 all: setup install test
 
-setup: export K8S_VERSION = 1.24
 .PHONY: setup
 setup:
 	@echo "Running test setup"
