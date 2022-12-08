@@ -37,10 +37,10 @@ pipeline {
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
 
         booleanParam (name: 'PERFORM_SCAN', defaultValue: false, description: 'Whether to perform a scan of the built images')
-        booleanParam (name: 'EMIT_METRICS', defaultValue: false, description: 'Whether to emit metrics from the pipeline')
         booleanParam (name: 'FAIL_IF_COVERAGE_DECREASED', defaultValue: false, description: 'Whether to fail build if UT coverage number decreases lower than its release-* coverage from object storage. This defaults to true, meaning Any non release-*/master branch will fail if its coverage is lower. This can be disabled so that jobs only WARN when coverage drops but not fail.')
         booleanParam (name: 'UPLOAD_UNIT_TEST_COVERAGE', defaultValue: false, description: 'Whether to write the UT coverage number to object storage. This always occurs for release-*/master branches. Defaults to true, but it can be disabled to not always upload.')
         booleanParam (name: 'SKIP_BUILD', defaultValue: false, description: "Skip the PSR tool and Worker builds")
+        booleanParam (name: 'SKIP_TEST', defaultValue: false, description: "Skip the psrctl scenario validation tests")
         booleanParam (name: 'VZ_TEST_DEBUG', defaultValue: true, description: "Enables debug of Verrazzano installation scripts")
         string (name: 'TAGGED_TESTS', defaultValue: '', trim: true, description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:')
         string (name: 'INCLUDED_TESTS', defaultValue: '.*', description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*', trim: true)
@@ -278,6 +278,12 @@ pipeline {
         }
 
         stage('Scenario Tests') {
+            when {
+                allOf {
+                    expression {params.SKIP_BUILD == false}
+                    expression {params.SKIP_TEST == false}
+                }
+            }
             environment {
                 DOCKER_REPO="${env.DOCKER_REGISTRY}"
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
@@ -295,8 +301,6 @@ pipeline {
             post {
                 success {
                     script {
-                        VZ_TEST_METRIC = metricJobName('psr-smoke-test')
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster('psr-tests-success-cluster-snapshot')
                         }
@@ -304,8 +308,6 @@ pipeline {
                 }
                 failure {
                     script {
-                        VZ_TEST_METRIC = metricJobName('psr-smoke-test')
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('psr-tests-failure-cluster-snapshot')
                         }
