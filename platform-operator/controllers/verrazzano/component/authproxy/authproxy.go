@@ -305,5 +305,4 @@ func removeDeprecatedAuthProxyESServiceIfExists(ctx spi.ComponentContext) {
 	if err := ctx.Client().Delete(context.TODO(), service); err != nil && !apierrors.IsNotFound(err) {
 		ctx.Log().Errorf("Unable to delete deprecated ES service: %s, %v", secret.Name, err)
 	}
-
 }
