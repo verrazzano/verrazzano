@@ -295,8 +295,6 @@ pipeline {
             post {
                 success {
                     script {
-                        VZ_TEST_METRIC = metricJobName('psr-smoke-test')
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster('psr-tests-success-cluster-snapshot')
                         }
@@ -304,8 +302,6 @@ pipeline {
                 }
                 failure {
                     script {
-                        VZ_TEST_METRIC = metricJobName('psr-smoke-test')
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('psr-tests-failure-cluster-snapshot')
                         }
