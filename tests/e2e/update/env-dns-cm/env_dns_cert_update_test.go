@@ -108,42 +108,42 @@ var _ = t.Describe("Test updates to environment name, dns domain and cert-manage
 		cr := update.GetCR()
 		currentEnvironmentName = pkg.GetEnvironmentName(cr)
 		currentDNSDomain = pkg.GetDNS(cr)
-		validateIngressList(currentEnvironmentName, currentDNSDomain)
-		validateVirtualServiceList(currentDNSDomain)
+		ItvalidateIngressList(currentEnvironmentName, currentDNSDomain)
+		ItvalidateVirtualServiceList(currentDNSDomain)
 	})
 
 	t.Context("Update and verify environment name", func() {
 		m := EnvironmentNameModifier{testEnvironmentName}
-		updateCR(m)
-		validateIngressList(testEnvironmentName, currentDNSDomain)
-		validateVirtualServiceList(currentDNSDomain)
-		verifyIngressAccess(t.Logs)
+		ItupdateCR(m)
+		ItvalidateIngressList(testEnvironmentName, currentDNSDomain)
+		ItvalidateVirtualServiceList(currentDNSDomain)
+		ItverifyIngressAccess(t.Logs)
 	})
 
 	t.Context("Update and verify dns domain", func() {
 		m := WildcardDNSModifier{testDNSDomain}
-		updateCR(m)
-		validateIngressList(testEnvironmentName, testDNSDomain)
-		validateVirtualServiceList(testDNSDomain)
-		verifyIngressAccess(t.Logs)
+		ItupdateCR(m)
+		ItvalidateIngressList(testEnvironmentName, testDNSDomain)
+		ItvalidateVirtualServiceList(testDNSDomain)
+		ItverifyIngressAccess(t.Logs)
 	})
 
 	t.Context("Update and verify CA certificate", func() {
 		createCustomCACertificate(testCertName, testCertSecretNamespace, testCertSecretName)
 		m := CustomCACertificateModifier{testCertSecretNamespace, testCertSecretName}
-		updateCR(m)
-		validateCertManagerResourcesCleanup()
-		validateCACertificateIssuer()
+		ItupdateCR(m)
+		ItvalidateCertManagerResourcesCleanup()
+		ItvalidateCACertificateIssuer()
 	})
 })
 
-func updateCR(m update.CRModifier) {
+func ItupdateCR(m update.CRModifier) {
 	t.It("Update the Verrazzano CR", func() {
 		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 	})
 }
 
-func validateIngressList(environmentName string, domain string) {
+func ItvalidateIngressList(environmentName string, domain string) {
 	t.It("Expect Ingresses to contain the correct hostname and domain", func() {
 		Eventually(func() error {
 			ingressList, err := pkg.GetIngressList("")
@@ -181,7 +181,7 @@ func validateIngress(environmentName string, domain string, ingress netv1.Ingres
 	return nil
 }
 
-func validateVirtualServiceList(domain string) {
+func ItvalidateVirtualServiceList(domain string) {
 	// Fetch the virtual services for the deployed applications
 	t.It("Expect VirtualServices to contain the expected environment and domain name", func() {
 		Eventually(func() error {
@@ -202,16 +202,14 @@ func validateVirtualServiceList(domain string) {
 	})
 }
 
-func verifyIngressAccess(log *zap.SugaredLogger) {
+func ItverifyIngressAccess(log *zap.SugaredLogger) {
 	if log == nil {
 		log = zap.S()
 	}
 
 	t.DescribeTable("Access Ingresses",
 		func(access func() error) {
-			Eventually(func() error {
-				return access()
-			}).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
+			Eventually(access).WithTimeout(waitTimeout).WithPolling(pollingInterval).ShouldNot(HaveOccurred())
 		},
 		Entry("Access Keycloak", func() error { return pkg.VerifyKeycloakAccess(log) }),
 		Entry("Access Rancher", func() error { return pkg.VerifyRancherAccess(log) }),
@@ -244,7 +242,7 @@ func fetchCACertificatesFromIssuer(certIssuer string) ([]certmanagerv1.Certifica
 	return certificates, nil
 }
 
-func validateCACertificateIssuer() {
+func ItvalidateCACertificateIssuer() {
 	t.It("Validate CA Certificate Issuer is listed Certificates", func() {
 		Eventually(func() error {
 			// Fetch the certificates
@@ -263,7 +261,7 @@ func validateCACertificateIssuer() {
 	})
 }
 
-func validateCertManagerResourcesCleanup() {
+func ItvalidateCertManagerResourcesCleanup() {
 	// Verify that the certificates have been removed
 	t.It("Validate Certificate cleanup", func() {
 		Eventually(func() error {
