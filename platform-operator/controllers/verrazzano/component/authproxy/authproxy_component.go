@@ -169,15 +169,12 @@ func (c authProxyComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := authproxyPreHelmOps(ctx); err != nil {
 		return err
 	}
-	ctx.Log().Info("----------------In PreUpgrade")
 	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // PostUpgrade performs any required post upgrade operations
 func (c authProxyComponent) PostUpgrade(ctx spi.ComponentContext) error {
-	ctx.Log().Info("----------------Before calling removeDeprecatedAuthProxyESServiceIfExists")
 	removeDeprecatedAuthProxyESServiceIfExists(ctx)
-	ctx.Log().Info("----------------After calling removeDeprecatedAuthProxyESServiceIfExists")
 	return c.HelmComponent.PostUpgrade(ctx)
 }
 
