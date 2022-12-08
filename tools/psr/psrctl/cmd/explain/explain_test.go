@@ -5,7 +5,6 @@ package explain
 
 import (
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"os"
 	"testing"
@@ -16,8 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/manifest"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	corev1cli "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -30,38 +27,6 @@ var (
 	expectedName        = "opensearch-s1"
 	expectedDescription = "This is a scenario that writes logs to STDOUT and gets logs from OpenSearch at a moderated rate."
 	expectedUseCase     = "Usecase path opensearch/writelogs.yaml:  Description: write logs to STDOUT 10 times a second"
-
-	// ConfigMap for the ops-s1 scenario
-	cm = &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "psr-ops-s1",
-			Namespace: "psr",
-			Labels: map[string]string{
-				"psr.verrazzano.io/scenario":    "true",
-				"psr.verrazzano.io/scenario-id": "ops-s1",
-			},
-		},
-		Data: map[string]string{
-			"scenario": base64.StdEncoding.EncodeToString([]byte(`Description: "This is a scenario that writes logs to STDOUT and gets logs from OpenSearch
-  at a moderated rate. \nThe purpose of the scenario is to test a moderate load on
-  both Fluentd and OpenSearch by logging records.\n"
-HelmReleases:
-- Description: write logs to STDOUT 10 times a second
-  Name: psr-ops-s1-writelogs-0
-  Namespace: psr
-  OverrideFile: writelogs.yaml
-  UsecasePath: opensearch/writelogs.yaml
-ID: ops-s1
-Name: opensearch-s1
-Namespace: psr
-ScenarioUsecaseOverridesAbsDir: temp-dir
-Usecases:
-- Description: write logs to STDOUT 10 times a second
-  OverrideFile: writelogs.yaml
-  UsecasePath: opensearch/writelogs.yaml
-`)),
-		},
-	}
 )
 
 // TestExplainScenario tests the NewCmdExplain and RunCmdExplain functions
@@ -80,7 +45,7 @@ func TestExplainScenario(t *testing.T) {
 
 	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 	k8sutil.GetCoreV1Func = func(log ...vzlog.VerrazzanoLogger) (corev1cli.CoreV1Interface, error) {
-		return k8sfake.NewSimpleClientset(cm).CoreV1(), nil
+		return k8sfake.NewSimpleClientset().CoreV1(), nil
 	}
 
 	// Send the command output to a byte buffer
@@ -120,7 +85,7 @@ func TestExplainScenarioVerbose(t *testing.T) {
 
 	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 	k8sutil.GetCoreV1Func = func(log ...vzlog.VerrazzanoLogger) (corev1cli.CoreV1Interface, error) {
-		return k8sfake.NewSimpleClientset(cm).CoreV1(), nil
+		return k8sfake.NewSimpleClientset().CoreV1(), nil
 	}
 
 	// Send the command output to a byte buffer
