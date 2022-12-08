@@ -8,7 +8,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"strings"
 	"time"
 )
 
@@ -58,26 +57,24 @@ var _ update.CRModifierV1beta1 = jaegerIllegalUpdater{}
 
 // runValidatorTestV1Beta1 Attempt to use an illegal overrides value on the Jaeger operator configuration using the v1beta1 API
 func runValidatorTestV1Beta1() {
-	Eventually(func() bool {
+	Eventually(func() string {
 		err := update.UpdateCRV1beta1(jaegerIllegalUpdater{})
 		if err == nil {
-			t.Logs.Info("Did not get an error on illegal update")
-			return false
+			return "Did not get an error on illegal update"
 		}
 		t.Logs.Infof("Update error: %s", err.Error())
-		return strings.Contains(err.Error(), expectedJaegerErrorMessage)
-	}, waitTimeout, pollingInterval).Should(BeTrue())
+		return err.Error()
+	}, waitTimeout, pollingInterval).Should(ContainSubstring(expectedJaegerErrorMessage))
 }
 
 // runValidatorTestV1Alpha1 Attempt to use an illegal overrides value on the Jaeger operator configuration using the v1alpha1 API
 func runValidatorTestV1Alpha1() {
-	Eventually(func() bool {
-		err := update.UpdateCR(jaegerIllegalUpdater{})
+	Eventually(func() string {
+		err := update.UpdateCRV1beta1(jaegerIllegalUpdater{})
 		if err == nil {
-			t.Logs.Info("Did not get an error on illegal update")
-			return false
+			return "Did not get an error on illegal update"
 		}
 		t.Logs.Infof("Update error: %s", err.Error())
-		return strings.Contains(err.Error(), expectedJaegerErrorMessage)
-	}, waitTimeout, pollingInterval).Should(BeTrue())
+		return err.Error()
+	}, waitTimeout, pollingInterval).Should(ContainSubstring(expectedJaegerErrorMessage))
 }
