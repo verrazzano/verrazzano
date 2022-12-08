@@ -41,7 +41,7 @@ spec:
                   destination:
                     host: bobbys-front-end-cluster-cluster-1
                     port: 8001
-    - componentName: bobs-orders-wls
+    - componentName: bobs-bookstore
       traits:
         - trait:
             apiVersion: oam.verrazzano.io/v1alpha1

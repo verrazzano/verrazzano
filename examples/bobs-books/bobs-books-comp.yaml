@@ -421,7 +421,7 @@ spec:
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
-  name: bobs-orders-wls
+  name: bobs-bookstore
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
@@ -430,9 +430,9 @@ spec:
       template:
         apiVersion: weblogic.oracle/v9
         metadata:
-          name: bobs-orders-wls
+          name: bobs-bookstore
           labels:
-            weblogic.resourceVersion: domain-v8
+            weblogic.resourceVersion: domain-v9
             weblogic.domainUID: bobs-bookstore
         spec:
           adminServer:
@@ -448,7 +448,7 @@ spec:
           imagePullSecrets:
             - name: bobs-books-repo-credentials
           clusters:
-            - name: bobs-orders-wls-cluster-1
+            - name: bobs-bookstore-cluster-1
           configuration:
             introspectorJobActiveDeadlineSeconds: 600
             model:
@@ -483,7 +483,7 @@ spec:
                     key: name
           serverPod:
             labels:
-              app: bobs-orders-wls
+              app: bobs-bookstore
               version: v1
             env:
               - name: JAVA_OPTIONS
@@ -497,9 +497,9 @@ spec:
       clusters:
         - apiVersion: weblogic.oracle/v1
           metadata:
-            name: bobs-orders-wls-cluster-1
+            name: bobs-bookstore-cluster-1
             labels:
               weblogic.resourceVersion: domain-v1
-              weblogic.domainUID: bobs-orders-wls
+              weblogic.domainUID: bobs-bookstore
           spec:
             clusterName: cluster-1
