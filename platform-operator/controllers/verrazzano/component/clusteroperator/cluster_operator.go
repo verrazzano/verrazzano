@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"os"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"strings"
 )
 
 const (
@@ -33,6 +34,8 @@ const (
 
 	dataField     = "data"
 	passwordField = "password"
+
+	clusterRegName = "Verrazzano Cluster Registrar"
 )
 
 // AppendOverrides appends any additional overrides needed by the Cluster Operator component
@@ -92,7 +95,7 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 	}
 
 	// Send a request to see if the user exists
-	reqURL := rc.BaseURL + usersByNamePath + vzconst.VerrazzanoClusterRancherUsername
+	reqURL := rc.BaseURL + usersByNamePath + strings.Replace(clusterRegName, " ", "%20", -1)
 	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
 	response, body, err := rancherutil.SendRequest(http.MethodGet, reqURL, headers, "", rc, ctx.Log())
 	if err != nil {
@@ -158,7 +161,7 @@ func constructVZUserJSON(pass string) ([]byte, error) {
 		"description":        "Verrazzano Cluster Registrar grants permissions to transfer resources to managed clusters",
 		"enabled":            true,
 		"mustChangePassword": false,
-		"name":               "Verrazzano Cluster Registrar",
+		"name":               clusterRegName,
 		"password":           pass,
 		"username":           vzconst.VerrazzanoClusterRancherUsername,
 	}
