@@ -23,7 +23,7 @@ import (
 const psrRoot = "../../.."
 
 var (
-	expectedId          = "ops-s1"
+	expectedID          = "ops-s1"
 	expectedName        = "opensearch-s1"
 	expectedDescription = "This is a scenario that writes logs to STDOUT and gets logs from OpenSearch at a moderated rate."
 	expectedUseCase     = "Usecase path opensearch/writelogs.yaml:  Description: write logs to STDOUT 10 times a second"
@@ -62,7 +62,7 @@ func TestExplainScenario(t *testing.T) {
 	err := explainCmd.Execute()
 	assert.NoError(t, err)
 	result := buf.String()
-	assert.Contains(t, fmt.Sprintf("ID: %s", expectedId), result)
+	assert.Contains(t, fmt.Sprintf("ID: %s", expectedID), result)
 	assert.Contains(t, fmt.Sprintf("Name: %s", expectedName), result)
 	assert.Contains(t, fmt.Sprintf("Description: %s", expectedDescription), result)
 	assert.NotContains(t, result, "ID: ops-s9")
@@ -103,7 +103,7 @@ func TestExplainScenarioVerbose(t *testing.T) {
 	err := explainCmd.Execute()
 	assert.NoError(t, err)
 	result := buf.String()
-	assert.Contains(t, fmt.Sprintf("ID: %s", expectedId), result)
+	assert.Contains(t, fmt.Sprintf("ID: %s", expectedID), result)
 	assert.Contains(t, fmt.Sprintf("Name: %s", expectedName), result)
 	assert.Contains(t, fmt.Sprintf("Description: %s", expectedDescription), result)
 	assert.Contains(t, fmt.Sprintf("Use cases: %s", expectedUseCase), result)
