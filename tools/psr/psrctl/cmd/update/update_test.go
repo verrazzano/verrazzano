@@ -6,6 +6,9 @@ package update
 import (
 	"bytes"
 	"encoding/base64"
+	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -19,8 +22,6 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	corev1cli "k8s.io/client-go/kubernetes/typed/core/v1"
-	"os"
-	"testing"
 )
 
 const psrRoot = "../../.."
