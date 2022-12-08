@@ -8,11 +8,9 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"io/fs"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/cluster-api/util/secret"
-
-	"io/fs"
 	"os"
 
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -303,6 +301,6 @@ func removeDeprecatedAuthProxyESServiceIfExists(ctx spi.ComponentContext) {
 	}
 	ctx.Log().Debugf("Deleting the deprecated ES service: %s", service.Name)
 	if err := ctx.Client().Delete(context.TODO(), service); err != nil && !apierrors.IsNotFound(err) {
-		ctx.Log().Errorf("Unable to delete deprecated ES service: %s, %v", secret.Name, err)
+		ctx.Log().Errorf("Unable to delete deprecated ES service: %s, %v", service.Name, err)
 	}
 }
