@@ -21,13 +21,33 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
+// PodMatcher implementations returns true/false if a given podList
+// match the defined conditions.
 type PodMatcher interface {
 	ReInit() error
 	Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType, workloadName string) bool
 }
 
-// RestartCheckFunc is the function used to check if a pod needs to be restarted
-type RestartCheckFunc func(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadNmae string, istioProxyImageName string) bool
+// WKOPodMatcher matches pods with an out of date Envoy, Fluentd, or WKO Exporter sidecar.
+type WKOPodMatcher struct {
+	istioProxyImage  string
+	wkoExporterImage string
+	fluentdImage     string
+}
+
+// OutdatedSidecarPodMatcher matches pods with an out of date Envoy or Fluentd sidecar.
+type OutdatedSidecarPodMatcher struct {
+	fluentdImage    string
+	istioProxyImage string
+}
+
+// EnvoyOlderThanTwoVersionsPodMatcher matches pods with Envoy images two minor versions or older
+type EnvoyOlderThanTwoVersionsPodMatcher struct {
+	istioProxyImage string
+}
+
+// NoIstioSidecarMatcher matches pods without an Envoy sidecar
+type NoIstioSidecarMatcher struct{}
 
 // RestartComponents restarts all the deployments, StatefulSets, and DaemonSets
 // in all of the Istio injected system namespaces
@@ -57,7 +77,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 		log.Oncef("Checking sidecars for Deployment %s", deployment.Name)
 
 		// Get the pods for this deployment
-		podList, err := getMatchingPods(log, goClient, deployment.Namespace, deployment.Spec.Selector)
+		podList, err := getPodsForSelector(log, goClient, deployment.Namespace, deployment.Spec.Selector)
 		if err != nil {
 			return err
 		}
@@ -96,7 +116,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 		log.Oncef("Checking sidecars for StatefulSet %s", sts.Name)
 
 		// Get the pods for this StatefulSet
-		podList, err := getMatchingPods(log, goClient, sts.Namespace, sts.Spec.Selector)
+		podList, err := getPodsForSelector(log, goClient, sts.Namespace, sts.Spec.Selector)
 		if err != nil {
 			return err
 		}
@@ -131,7 +151,7 @@ func RestartComponents(log vzlog.VerrazzanoLogger, namespaces []string, generati
 		log.Oncef("Checking sidecars for DaemonSet %s", daemonSet.Name)
 
 		// Get the pods for this DaemonSet
-		podList, err := getMatchingPods(log, goClient, daemonSet.Namespace, daemonSet.Spec.Selector)
+		podList, err := getPodsForSelector(log, goClient, daemonSet.Namespace, daemonSet.Spec.Selector)
 		if err != nil {
 			return err
 		}
@@ -172,13 +192,7 @@ func getIstioProxyImageFromBom() (string, error) {
 	return "", errors.New("Failed to find Istio proxy image in the BOM for Istiod")
 }
 
-// OutdatedSidecarMatcher checks if istiod/proxyv2 or fluentd sidecar images are out of date
-type OutdatedSidecarMatcher struct {
-	fluentdImage    string
-	istioProxyImage string
-}
-
-func (o *OutdatedSidecarMatcher) ReInit() error {
+func (o *OutdatedSidecarPodMatcher) ReInit() error {
 	images, err := getImages(istioSubcomponent, proxyv2ImageName,
 		verrazzanoSubcomponent, fluentdImageName)
 	if err != nil {
@@ -190,13 +204,13 @@ func (o *OutdatedSidecarMatcher) ReInit() error {
 }
 
 // Matches when a pod has an outdated istiod/proxyv2 image, or an outdate fluentd image
-func (o *OutdatedSidecarMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType, workloadName string) bool {
+func (o *OutdatedSidecarPodMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType, workloadName string) bool {
 	for _, pod := range podList.Items {
 		for _, c := range pod.Spec.Containers {
-			if matchesImageAndOutOfDate(log, proxyv2ImageName, c.Image, o.istioProxyImage, workloadType, workloadName) {
+			if isImageOutOfDate(log, proxyv2ImageName, c.Image, o.istioProxyImage, workloadType, workloadName) {
 				return true
 			}
-			if matchesImageAndOutOfDate(log, fluentdImageName, c.Image, o.fluentdImage, workloadType, workloadName) {
+			if isImageOutOfDate(log, fluentdImageName, c.Image, o.fluentdImage, workloadType, workloadName) {
 				return true
 			}
 		}
@@ -204,13 +218,7 @@ func (o *OutdatedSidecarMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1
 	return false
 }
 
-type WKOMatcher struct {
-	istioProxyImage  string
-	wkoExporterImage string
-	fluentdImage     string
-}
-
-func (w *WKOMatcher) ReInit() error {
+func (w *WKOPodMatcher) ReInit() error {
 	images, err := getImages(istioSubcomponent, proxyv2ImageName,
 		verrazzanoSubcomponent, fluentdImageName,
 		wkoSubcomponent, wkoExporterImageName)
@@ -225,17 +233,17 @@ func (w *WKOMatcher) ReInit() error {
 
 // Matches when the pod has out of date fluentd, wko exporter, or istio envoy sidecars. The envoy sidecars must be 2 or more
 // minor versions out of date.
-func (w *WKOMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType, workloadName string) bool {
+func (w *WKOPodMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType, workloadName string) bool {
 	istioProxyImageVersionArray := getImageVersionArray(w.istioProxyImage)
 	for _, pod := range podList.Items {
 		for _, c := range pod.Spec.Containers {
-			if matchesImageAndOutOfDate(log, fluentdImageName, c.Image, w.fluentdImage, workloadType, workloadName) {
+			if isImageOutOfDate(log, fluentdImageName, c.Image, w.fluentdImage, workloadType, workloadName) {
 				return true
 			}
-			if matchesImageAndOutOfDate(log, wkoExporterImageName, c.Image, w.wkoExporterImage, workloadType, workloadName) {
+			if isImageOutOfDate(log, wkoExporterImageName, c.Image, w.wkoExporterImage, workloadType, workloadName) {
 				return true
 			}
-			if istioProxyOlderThanTwoMinorVersions(log, istioProxyImageVersionArray, c.Image, workloadType, workloadName) {
+			if !istioProxyOlderThanTwoMinorVersions(log, istioProxyImageVersionArray, c.Image, workloadType, workloadName) {
 				return true
 			}
 		}
@@ -243,16 +251,7 @@ func (w *WKOMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList, wo
 	return false
 }
 
-func getImageVersionArray(image string) []string {
-	imageSplitArray := strings.SplitN(image, ":", 2)
-	return strings.Split(imageSplitArray[1], ".")
-}
-
-type EnvoyOlderThanTwoVersionsMatcher struct {
-	istioProxyImage string
-}
-
-func (e *EnvoyOlderThanTwoVersionsMatcher) ReInit() error {
+func (e *EnvoyOlderThanTwoVersionsPodMatcher) ReInit() error {
 	images, err := getImages(istioSubcomponent, proxyv2ImageName)
 	if err != nil {
 		return err
@@ -262,7 +261,7 @@ func (e *EnvoyOlderThanTwoVersionsMatcher) ReInit() error {
 }
 
 // Matches when Envoy container is two or more versions out of date
-func (e *EnvoyOlderThanTwoVersionsMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType, workloadName string) bool {
+func (e *EnvoyOlderThanTwoVersionsPodMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType, workloadName string) bool {
 	istioProxyImageVersionArray := getImageVersionArray(e.istioProxyImage)
 	for _, pod := range podList.Items {
 		for _, container := range pod.Spec.Containers {
@@ -277,8 +276,7 @@ func (e *EnvoyOlderThanTwoVersionsMatcher) Matches(log vzlog.VerrazzanoLogger, p
 func istioProxyOlderThanTwoMinorVersions(log vzlog.VerrazzanoLogger, imageVersions []string, containerImage, workloadType, workloadName string) bool {
 	if strings.Contains(containerImage, proxyv2ImageName) {
 		// Container contains the proxy2 image (Envoy Proxy).
-		containerImageSplit := strings.SplitN(containerImage, ":", 2)
-		containerImageVersionArray := strings.Split(containerImageSplit[1], ".")
+		containerImageVersionArray := getImageVersionArray(containerImage)
 		istioMinorVersion, _ := strconv.Atoi(imageVersions[1])
 		containerImageMinorVersion, _ := strconv.Atoi(containerImageVersionArray[1])
 		minorVersionDiff := istioMinorVersion - containerImageMinorVersion
@@ -293,8 +291,6 @@ func istioProxyOlderThanTwoMinorVersions(log vzlog.VerrazzanoLogger, imageVersio
 	}
 	return false
 }
-
-type NoIstioSidecarMatcher struct{}
 
 func (n *NoIstioSidecarMatcher) ReInit() error {
 	return nil
@@ -329,8 +325,8 @@ func (n *NoIstioSidecarMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.
 	return false
 }
 
-// Get the matching pods in namespace given a selector
-func getMatchingPods(log vzlog.VerrazzanoLogger, client kubernetes.Interface, ns string, labelSelector *metav1.LabelSelector) (*v1.PodList, error) {
+// getPodsForSelector gets pods for a namespace matching a selector
+func getPodsForSelector(log vzlog.VerrazzanoLogger, client kubernetes.Interface, ns string, labelSelector *metav1.LabelSelector) (*v1.PodList, error) {
 	// Conver the resource labelselector to a go-client label selector
 	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
 	if err != nil {
@@ -349,13 +345,19 @@ func buildRestartAnnotationString(generation int64) string {
 	return strconv.Itoa(int(generation))
 }
 
-// matchesImageAndOutOfDate returns true if the container image is not as expected (out of date)
-func matchesImageAndOutOfDate(log vzlog.VerrazzanoLogger, imageName, containerImage, expectedImage, workloadType, workloadName string) bool {
-	if strings.Contains(containerImage, imageName) {
-		if 0 != strings.Compare(containerImage, expectedImage) {
-			log.Oncef("Restarting %s %s which has a pod with an old Istio proxy %s", workloadType, workloadName, containerImage)
+// isImageOutOfDate returns true if the container image is not as expected (out of date)
+func isImageOutOfDate(log vzlog.VerrazzanoLogger, imageName, actualImage, expectedImage, workloadType, workloadName string) bool {
+	if strings.Contains(actualImage, imageName) {
+		if 0 != strings.Compare(actualImage, expectedImage) {
+			log.Oncef("Restarting %s %s which has a pod with an old Istio proxy %s", workloadType, workloadName, actualImage)
 			return true
 		}
 	}
 	return false
+}
+
+// getImageVersionArray splits a container image string into an array of version numbers from its semantic version
+func getImageVersionArray(image string) []string {
+	imageSplitArray := strings.SplitN(image, ":", 2)
+	return strings.Split(imageSplitArray[1], ".")
 }

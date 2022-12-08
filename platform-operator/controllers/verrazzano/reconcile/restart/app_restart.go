@@ -50,7 +50,7 @@ func RestartApps(log vzlog.VerrazzanoLogger, client clipkg.Client, generation in
 // StopDomainsUsingOldEnvoy stops all the WebLogic domains that have the old Envoy sidecar where istio version skew is more than 2 minor versions.
 func StopDomainsUsingOldEnvoy(log vzlog.VerrazzanoLogger, client clipkg.Client) error {
 	// Get the latest Istio proxy image name from the bom
-	oldEnvoyMatcher := &EnvoyOlderThanTwoVersionsMatcher{}
+	oldEnvoyMatcher := &EnvoyOlderThanTwoVersionsPodMatcher{}
 	if err := oldEnvoyMatcher.ReInit(); err != nil {
 		return log.ErrorfNewErr("Failed, StopDomainsUsingOldEnvoy cannot find Istio proxy image in BOM: %v", err)
 	}
@@ -77,7 +77,7 @@ func StopDomainsUsingOldEnvoy(log vzlog.VerrazzanoLogger, client clipkg.Client) 
 
 // RestartDomainsIfOutdatedSidecars Rolling restart all the WebLogic domains that have outdated sidecars
 func RestartDomainsIfOutdatedSidecars(log vzlog.VerrazzanoLogger, client clipkg.Client, restartVersion string) error {
-	podMatcher := &WKOMatcher{}
+	podMatcher := &WKOPodMatcher{}
 	if err := podMatcher.ReInit(); err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func restartDomainIfNeeded(log vzlog.VerrazzanoLogger, client clipkg.Client, app
 
 	// Check if weblogic domain pods contain out of date sidecars.
 	found := podMatcher.Matches(log, podList, "OAM Weblogic Domain", wlName)
-	if found {
+	if !found {
 		return nil
 	}
 
