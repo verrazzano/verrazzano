@@ -228,7 +228,7 @@ func postVerrazzanoUpgrade(spiCtx spi.ComponentContext) error {
 	if err := rancher.ConfigureAuthProviders(spiCtx); err != nil {
 		return err
 	}
-	log.Oncef("Checking if any pods with Istio sidecars need to be restarted to pick up the new version of the Istio proxy")
+	log.Oncef("Checking if any pods with outdated sidecars need to be restarted to pick up new container images")
 	if err := restart.RestartComponents(log, config.GetInjectedSystemNamespaces(), spiCtx.ActualCR().Generation, &restart.OutdatedSidecarPodMatcher{}); err != nil {
 		return err
 	}
