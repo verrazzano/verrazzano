@@ -44,7 +44,7 @@ func (b *bomTool) getImage(subComponent, imageName string) (string, error) {
 			return images[i], nil
 		}
 	}
-	return "", fmt.Errorf("failed to find %s/%s image in the BOM.", subComponent, imageName)
+	return "", fmt.Errorf("failed to find %s/%s image in the BOM", subComponent, imageName)
 }
 
 func getImages(kvs ...string) (map[string]string, error) {
