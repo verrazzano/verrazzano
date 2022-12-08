@@ -43,7 +43,7 @@ func TestRestartAllWorkloadTypesWithOldProxy(t *testing.T) {
 	k8sutil.SetFakeClient(clientSet)
 
 	namespaces := []string{constants.VerrazzanoSystemNamespace}
-	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, DoesPodHaveOutdatedImages)
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, &OutdatedSidecarMatcher{})
 
 	// Validate the results
 	asserts.NoError(err)
@@ -79,7 +79,7 @@ func TestNoRestartAllWorkloadTypesWithNoProxy(t *testing.T) {
 	k8sutil.SetFakeClient(clientSet)
 
 	namespaces := []string{constants.VerrazzanoSystemNamespace}
-	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, DoesPodContainNoIstioSidecar)
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, &NoIstioSidecarMatcher{})
 
 	// Validate the results
 	asserts.NoError(err)
@@ -115,7 +115,7 @@ func TestNoRestartAllWorkloadTypesNoOldProxy(t *testing.T) {
 	k8sutil.SetFakeClient(clientSet)
 
 	namespaces := []string{constants.VerrazzanoSystemNamespace}
-	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, DoesPodHaveOutdatedImages)
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, &OutdatedSidecarMatcher{})
 
 	// Validate the results
 	asserts.NoError(err)
@@ -148,7 +148,7 @@ func TestNoRestartAllWorkloadTypesWithProxy(t *testing.T) {
 	k8sutil.SetFakeClient(clientSet)
 
 	namespaces := []string{constants.VerrazzanoSystemNamespace}
-	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, DoesPodContainNoIstioSidecar)
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, &NoIstioSidecarMatcher{})
 
 	// Validate the results
 	asserts.NoError(err)
@@ -193,7 +193,7 @@ func TestNoRestartAllWorkloadTypesWithOAMPod(t *testing.T) {
 	k8sutil.SetFakeClient(clientSet)
 
 	namespaces := []string{constants.VerrazzanoSystemNamespace}
-	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, DoesPodContainNoIstioSidecar)
+	err := RestartComponents(vzlog.DefaultLogger(), namespaces, 1, &NoIstioSidecarMatcher{})
 
 	// Validate the results
 	asserts.NoError(err)

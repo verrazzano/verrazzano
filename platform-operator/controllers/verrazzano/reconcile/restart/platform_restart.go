@@ -204,16 +204,6 @@ func (o *OutdatedSidecarMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1
 	return false
 }
 
-func matchesImageAndOutOfDate(log vzlog.VerrazzanoLogger, imageName, containerImage, expectedImage, workloadType, workloadName string) bool {
-	if strings.Contains(containerImage, imageName) {
-		if 0 != strings.Compare(containerImage, expectedImage) {
-			log.Oncef("Restarting %s %s which has a pod with an old Istio proxy %s", workloadType, workloadName, containerImage)
-			return true
-		}
-	}
-	return false
-}
-
 type WKOMatcher struct {
 	istioProxyImage  string
 	wkoExporterImage string
@@ -258,10 +248,35 @@ func getImageVersionArray(image string) []string {
 	return strings.Split(imageSplitArray[1], ".")
 }
 
+type EnvoyOlderThanTwoVersionsMatcher struct {
+	istioProxyImage string
+}
+
+func (e *EnvoyOlderThanTwoVersionsMatcher) ReInit() error {
+	images, err := getImages(istioSubcomponent, proxyv2ImageName)
+	if err != nil {
+		return err
+	}
+	e.istioProxyImage = images[proxyv2ImageName]
+	return nil
+}
+
+// Matches when Envoy container is two or more versions out of date
+func (e *EnvoyOlderThanTwoVersionsMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType, workloadName string) bool {
+	istioProxyImageVersionArray := getImageVersionArray(e.istioProxyImage)
+	for _, pod := range podList.Items {
+		for _, container := range pod.Spec.Containers {
+			if istioProxyOlderThanTwoMinorVersions(log, istioProxyImageVersionArray, container.Image, workloadType, workloadName) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func istioProxyOlderThanTwoMinorVersions(log vzlog.VerrazzanoLogger, imageVersions []string, containerImage, workloadType, workloadName string) bool {
 	if strings.Contains(containerImage, proxyv2ImageName) {
 		// Container contains the proxy2 image (Envoy Proxy).
-
 		containerImageSplit := strings.SplitN(containerImage, ":", 2)
 		containerImageVersionArray := strings.Split(containerImageSplit[1], ".")
 		istioMinorVersion, _ := strconv.Atoi(imageVersions[1])
@@ -279,26 +294,13 @@ func istioProxyOlderThanTwoMinorVersions(log vzlog.VerrazzanoLogger, imageVersio
 	return false
 }
 
-// DoesPodContainOldIstioSidecarSkewGreaterThanTwoMinorVersion returns true if weblogic domain pods contain old istio sidecar where skew is more than 2 minor versions/skew is 1 major version
-func DoesPodContainOldIstioSidecarSkewGreaterThanTwoMinorVersion(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType string, workloadName string, istioProxyImageName string) bool {
-	istioProxyImageVersionArray := getImageVersionArray(istioProxyImageName)
-	for _, pod := range podList.Items {
-		for _, container := range pod.Spec.Containers {
-			if istioProxyOlderThanTwoMinorVersions(log, istioProxyImageVersionArray, container.Image, workloadType, workloadName) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 type NoIstioSidecarMatcher struct{}
 
 func (n *NoIstioSidecarMatcher) ReInit() error {
 	return nil
 }
 
-// Matches when if any pods don't have an Istio proxy sidecar
+// Matches when if any pods don't have an Envoy sidecar
 func (n *NoIstioSidecarMatcher) Matches(log vzlog.VerrazzanoLogger, podList *v1.PodList, workloadType, workloadName string) bool {
 	for _, pod := range podList.Items {
 		// Ignore pods that are not expected to have Istio injected
@@ -345,4 +347,15 @@ func getMatchingPods(log vzlog.VerrazzanoLogger, client kubernetes.Interface, ns
 // Use the CR generation so that we only restart the workloads once
 func buildRestartAnnotationString(generation int64) string {
 	return strconv.Itoa(int(generation))
+}
+
+// matchesImageAndOutOfDate returns true if the container image is not as expected (out of date)
+func matchesImageAndOutOfDate(log vzlog.VerrazzanoLogger, imageName, containerImage, expectedImage, workloadType, workloadName string) bool {
+	if strings.Contains(containerImage, imageName) {
+		if 0 != strings.Compare(containerImage, expectedImage) {
+			log.Oncef("Restarting %s %s which has a pod with an old Istio proxy %s", workloadType, workloadName, containerImage)
+			return true
+		}
+	}
+	return false
 }
