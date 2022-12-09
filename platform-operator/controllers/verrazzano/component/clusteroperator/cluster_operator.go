@@ -130,7 +130,12 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 	}
 
 	headers["Content-Type"] = "application/json"
-	ctx.Log().Infof("Sending request message: Type: %s, URL: %s, headers: %v, payload %s", http.MethodPost, reqURL, headers, payload)
+
+	logMsg := fmt.Sprintf("Sending request message: Type: %s, URL: %s, headers: %v, payload %s", http.MethodPost, reqURL, headers, payload)
+	// Mask the bearer token in the log message
+	logMsg = vzpassword.MaskFunction("Authorization:Bearer ")(logMsg)
+	ctx.Log().Infof(logMsg)
+
 	response, _, err = rancherutil.SendRequest(http.MethodPost, reqURL, headers, string(payload), rc, ctx.Log())
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to create the Verrazzano cluster user in Rancher: %v", err)
