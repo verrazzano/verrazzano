@@ -150,7 +150,7 @@ func CheckEventsForWarnings(log *zap.SugaredLogger, events []corev1.Event, event
 	}
 
 	for _, event := range finalEventList {
-		message = append(message, fmt.Sprintf("Reosurce: %s %s, Namespace: %s, Reason: %s, Message: %s", event.InvolvedObject.Kind, event.InvolvedObject.Name, event.InvolvedObject.Namespace, event.Reason, event.Message))
+		message = append(message, fmt.Sprintf("Namespace: %s, %s %s, Message: %s, Reason: %s", event.InvolvedObject.Namespace, event.InvolvedObject.Kind, event.InvolvedObject.Name, event.Message, event.Reason))
 	}
 
 	return message, nil

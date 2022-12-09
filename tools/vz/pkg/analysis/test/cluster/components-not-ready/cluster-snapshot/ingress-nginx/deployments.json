@@ -1,0 +1,102 @@
+{
+  "metadata": {
+    "resourceVersion": "8681"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller",
+        "namespace": "ingress-nginx",
+        "uid": "7ddb9497-ceb7-4cd5-aa3a-e768680a1990",
+        "resourceVersion": "8415",
+        "generation": 1,
+        "creationTimestamp": "2022-12-05T05:30:51Z",
+        "labels": {
+          "app.kubernetes.io/component": "controller",
+          "app.kubernetes.io/instance": "ingress-controller",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "ingress-nginx",
+          "app.kubernetes.io/version": "0.46.0",
+          "helm.sh/chart": "ingress-nginx-3.30.0"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/revision": "1",
+          "meta.helm.sh/release-name": "ingress-controller",
+          "meta.helm.sh/release-namespace": "ingress-nginx"
+        }
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 1,
+        "updatedReplicas": 1,
+        "unavailableReplicas": 1,
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "False",
+            "lastUpdateTime": "2022-12-05T05:30:51Z",
+            "lastTransitionTime": "2022-12-05T05:30:51Z",
+            "reason": "MinimumReplicasUnavailable",
+            "message": "Deployment does not have minimum availability."
+          },
+          {
+            "type": "Progressing",
+            "status": "False",
+            "lastUpdateTime": "2022-12-05T06:02:58Z",
+            "lastTransitionTime": "2022-12-05T06:02:58Z",
+            "reason": "ProgressDeadlineExceeded",
+            "message": "ReplicaSet \"ingress-controller-ingress-nginx-controller-5fbb974589\" has timed out progressing."
+          }
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-defaultbackend",
+        "namespace": "ingress-nginx",
+        "uid": "493b6468-f68b-4e78-869f-ca9046f4ae8c",
+        "resourceVersion": "7877",
+        "generation": 1,
+        "creationTimestamp": "2022-12-05T05:30:51Z",
+        "labels": {
+          "app.kubernetes.io/component": "default-backend",
+          "app.kubernetes.io/instance": "ingress-controller",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "ingress-nginx",
+          "app.kubernetes.io/version": "0.46.0",
+          "helm.sh/chart": "ingress-nginx-3.30.0"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/revision": "1",
+          "meta.helm.sh/release-name": "ingress-controller",
+          "meta.helm.sh/release-namespace": "ingress-nginx"
+        }
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 1,
+        "updatedReplicas": 1,
+        "readyReplicas": 1,
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "True",
+            "lastUpdateTime": "2022-12-05T06:00:35Z",
+            "lastTransitionTime": "2022-12-05T06:00:35Z",
+            "reason": "MinimumReplicasAvailable",
+            "message": "Deployment has minimum availability."
+          },
+          {
+            "type": "Progressing",
+            "status": "True",
+            "lastUpdateTime": "2022-12-05T06:00:35Z",
+            "lastTransitionTime": "2022-12-05T05:52:57Z",
+            "reason": "NewReplicaSetAvailable",
+            "message": "ReplicaSet \"ingress-controller-ingress-nginx-defaultbackend-7c64b98b75\" has successfully progressed."
+          }
+        ]
+      }
+    }
+  ]
+}
