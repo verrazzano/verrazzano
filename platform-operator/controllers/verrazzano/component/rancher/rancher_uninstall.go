@@ -6,11 +6,13 @@ package rancher
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/os"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	osexec "os/exec"
 	"regexp"
 	"strings"
+
+	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/os"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -52,6 +54,58 @@ var rancherSystemNS = []string{
 	"fleet-default",
 	"fleet-local",
 	"local",
+}
+
+// postUninstallRoutineParams - Used to pass args to the postUninstall goroutine
+type postUninstallRoutineParams struct {
+	overrides     string
+	// TODO: fill in fields/parameters
+}
+
+// uninstallMonitor - Represents a monitor object used by the component to monitor a background goroutine used for running
+// rancher uninstall operations asynchronously.
+type postUninstallMonitor interface {
+	// checkResult - Checks for a result from the install goroutine; returns either the result of the operation, or an error indicating
+	// the install is still in progress
+	checkResult() (bool, error)
+	// reset - Resets the monitor and closes any open channels
+	reset()
+	// isRunning - returns true of the monitor/goroutine are active
+	isRunning() bool
+	// run - Run the install with the specified args
+	run(args postUninstallRoutineParams)
+}
+
+type postUninstallMonitorType struct {
+	running  bool
+	resultCh chan bool
+	inputCh  chan postUninstallRoutineParams
+}
+
+// checkResult - checks for a result from the goroutine
+// - returns false and a retry error if it's still running, or the result from the channel and nil if an answer was received
+func (m *postUninstallMonitorType) checkResult() (bool, error) {
+	select {
+	case result := <-m.resultCh:
+		return result, nil
+	default:
+		return false, ctrlerrors.RetryableError{Source: ComponentName}
+	}
+	// FIXME: verify this is correct
+}
+
+// reset - reset the monitor and close the channel
+func (m *postUninstallMonitorType) reset() {
+	m.running = false
+	close(m.resultCh)
+	close(m.inputCh)
+	// FIXME: verify this is correct
+}
+
+// isRunning - returns true of the monitor/goroutine are active
+func (m *postUninstallMonitorType) isRunning() bool {
+	return m.running
+	// FIXME: verify this is correct
 }
 
 // postUninstall removes the objects after the Helm uninstall process finishes
@@ -119,6 +173,18 @@ func postUninstall(ctx spi.ComponentContext) error {
 	removeCRDFinalizers(ctx, crds)
 
 	return nil
+}
+
+func forkPostUninstall() error {
+	// TODO: write this. Including input parameters
+	// will call monitor.run() at some point
+	return nil
+}
+
+func (m *postUninstallMonitorType) run(args postUninstallRoutineParams) {
+	// TODO: write this.
+	// will call something in another goroutine at some point.
+	return
 }
 
 // deleteWebhooks takes care of deleting the Webhook resources from Rancher
