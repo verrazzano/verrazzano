@@ -25,9 +25,12 @@ import (
 const fooNamespace string = "foo"
 const barNamespace string = "bar"
 const noIstioNamespace string = "noistio"
+const labelPodName string = "app"
+const sleepWorkloadName = "sleep"
+const springFrontWorkloadName = "springboot-frontend"
+const springBackWorkloadName = "springboot-backend"
 
-var expectedPodsFoo = []string{"sleep-workload", "springboot-frontend-workload", "springboot-backend-workload"}
-var expectedPodsBar = []string{"sleep-workload", "springboot-frontend-workload", "springboot-backend-workload"}
+var expectedPods = []string{"sleep-workload", "springboot-frontend-workload", "springboot-backend-workload"}
 var waitTimeout = 15 * time.Minute
 var pollingInterval = 30 * time.Second
 var shortPollingInterval = 10 * time.Second
@@ -42,19 +45,19 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 	//Resources for application bar
-	update.ValidatePods("sleep", "app", "bar", 1, false)
-	update.ValidatePods("springboot-frontend", "app", "bar", 1, false)
-	update.ValidatePods("springboot-backend", "app", "bar", 1, false)
+	update.ValidatePods(sleepWorkloadName, labelPodName, barNamespace, 1, false)
+	update.ValidatePods(springFrontWorkloadName, labelPodName, barNamespace, 1, false)
+	update.ValidatePods(springBackWorkloadName, labelPodName, barNamespace, 1, false)
 
 	//Resources for application foo
-	update.ValidatePods("sleep", "app", "foo", 1, false)
-	update.ValidatePods("springboot-frontend", "app", "foo", 1, false)
-	update.ValidatePods("springboot-backend", "app", "foo", 1, false)
+	update.ValidatePods(sleepWorkloadName, labelPodName, fooNamespace, 1, false)
+	update.ValidatePods(springFrontWorkloadName, labelPodName, fooNamespace, 1, false)
+	update.ValidatePods(springBackWorkloadName, labelPodName, fooNamespace, 1, false)
 
 	//Resources for application noIstio
-	update.ValidatePods("sleep", "app", "noistio", 1, false)
-	update.ValidatePods("springboot-frontend", "app", "noistio", 1, false)
-	update.ValidatePods("springboot-backend", "app", "noistio", 1, false)
+	update.ValidatePods(sleepWorkloadName, "app", noIstioNamespace, 1, false)
+	update.ValidatePods(springFrontWorkloadName, labelPodName, noIstioNamespace, 1, false)
+	update.ValidatePods(springBackWorkloadName, labelPodName, noIstioNamespace, 1, false)
 	beforeSuitePassed = true
 })
 
@@ -256,7 +259,7 @@ func undeployFooApplication() {
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() (bool, error) {
-		return pkg.PodsNotRunning(fooNamespace, expectedPodsFoo)
+		return pkg.PodsNotRunning(fooNamespace, expectedPods)
 	}, waitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", fooNamespace))
 
 	t.Logs.Info("Delete namespace")
@@ -308,7 +311,7 @@ func undeployBarApplication() {
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() (bool, error) {
-		return pkg.PodsNotRunning(barNamespace, expectedPodsBar)
+		return pkg.PodsNotRunning(barNamespace, expectedPods)
 	}, waitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", barNamespace))
 
 	t.Logs.Info("Delete namespace")
@@ -360,7 +363,7 @@ func undeployNoIstioApplication() {
 	}, waitTimeout, shortPollingInterval).ShouldNot(HaveOccurred())
 
 	Eventually(func() (bool, error) {
-		return pkg.PodsNotRunning(noIstioNamespace, expectedPodsBar)
+		return pkg.PodsNotRunning(noIstioNamespace, expectedPods)
 	}, waitTimeout, shortPollingInterval).Should(BeTrue(), fmt.Sprintf("Pods in namespace %s stuck terminating!", noIstioNamespace))
 
 	t.Logs.Info("Delete namespace")
@@ -383,7 +386,7 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 	t.Context("check app deployment", func() {
 		t.It("in foo namespace", func() {
 			Eventually(func() bool {
-				return checkPodsRunning(fooNamespace, expectedPodsFoo)
+				return checkPodsRunning(fooNamespace, expectedPods)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", fooNamespace))
 		})
 	})
@@ -391,7 +394,7 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 	t.Context("check app deployment", func() {
 		t.It("in bar namespace", func() {
 			Eventually(func() bool {
-				return checkPodsRunning(barNamespace, expectedPodsBar)
+				return checkPodsRunning(barNamespace, expectedPods)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", barNamespace))
 		})
 	})
@@ -399,7 +402,7 @@ var _ = t.Describe("AuthPolicy test,", Label("f:security.authpol",
 	t.Context("check app deployment", func() {
 		t.It("in noistio namespace", func() {
 			Eventually(func() bool {
-				return checkPodsRunning(noIstioNamespace, expectedPodsBar)
+				return checkPodsRunning(noIstioNamespace, expectedPods)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", noIstioNamespace))
 		})
 	})
@@ -576,7 +579,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	t.Context("Deployment.", func() {
 		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
-				return checkPodsRunning(fooNamespace, expectedPodsFoo)
+				return checkPodsRunning(fooNamespace, expectedPods)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", fooNamespace))
 		})
 	})
@@ -584,7 +587,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	t.Context("Deployment.", func() {
 		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
-				return checkPodsRunning(barNamespace, expectedPodsBar)
+				return checkPodsRunning(barNamespace, expectedPods)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", barNamespace))
 		})
 	})
@@ -592,7 +595,7 @@ var _ = t.Describe("Verify Auth Policy Prometheus Scrape Targets", func() {
 	t.Context("Deployment.", func() {
 		t.It("and waiting for expected pods must be running", func() {
 			Eventually(func() bool {
-				return checkPodsRunning(noIstioNamespace, expectedPodsBar)
+				return checkPodsRunning(noIstioNamespace, expectedPods)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), fmt.Sprintf("Auth Policy Application failed to start in %s", noIstioNamespace))
 		})
 	})
