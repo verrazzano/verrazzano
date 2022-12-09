@@ -6,6 +6,10 @@ kind: IstioOperator
 spec:
   profile: default
   components:
+    cni:
+      enabled: true
+      hub: docker.io/istio
+      tag: 1.15.1
     egressGateways:
       - name: istio-egressgateway
         enabled: true
