@@ -44,7 +44,7 @@ func (f fakeComponent) GetJSONName() string {
 }
 
 func newFakeComponent(name string, JSONname string, available vzapi.ComponentAvailability, enabled bool) fakeComponent {
-	return fakeComponent{name: name, JSONName: name, available: available, enabled: enabled}
+	return fakeComponent{name: name, JSONName: JSONname, available: available, enabled: enabled}
 }
 
 func newTestHealthCheck(objs ...client.Object) *HealthChecker {
