@@ -818,7 +818,8 @@ func validateVerrazzanoSystemServicePorts() {
 			if checkName {
 				hasPrefix := false
 				if strings.Compare(port.Name, "http") == 0 || strings.Compare(port.Name, "https") == 0 ||
-					strings.HasPrefix(port.Name, "http-") || strings.HasPrefix(port.Name, "https-") {
+					strings.HasPrefix(port.Name, "http-") || strings.HasPrefix(port.Name, "https-") ||
+					(port.AppProtocol != nil && (strings.Compare(*port.AppProtocol, "http") == 0 || strings.Compare(*port.AppProtocol, "https") == 0)) {
 					hasPrefix = true
 				}
 				Expect(hasPrefix).Should(BeTrue(), fmt.Sprintf("Service \"%s\" port name \"%s\" is not a valid port name", service.Name, port.Name))

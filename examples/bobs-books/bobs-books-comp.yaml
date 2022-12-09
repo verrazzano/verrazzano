@@ -421,7 +421,7 @@ spec:
 apiVersion: core.oam.dev/v1alpha2
 kind: Component
 metadata:
-  name: bobs-bookstore
+  name: bobs-orders-wls
 spec:
   workload:
     apiVersion: oam.verrazzano.io/v1alpha1
