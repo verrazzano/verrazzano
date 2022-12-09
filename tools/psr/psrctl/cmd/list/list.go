@@ -6,6 +6,7 @@ package list
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
@@ -63,9 +64,9 @@ func RunCmdList(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 	if len(scenarios) == 0 {
 		if len(namespace) == 0 {
-			fmt.Println("There are no scenarios running in the cluster")
+			fmt.Fprintln(vzHelper.GetOutputStream(), "There are no scenarios running in the cluster")
 		} else {
-			fmt.Printf("There are no scenarios running in namespace %s\n", namespace)
+			fmt.Fprintf(vzHelper.GetOutputStream(), "There are no scenarios running in namespace %s\n", namespace)
 		}
 		return nil
 	}
@@ -75,27 +76,27 @@ func RunCmdList(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		if err != nil {
 			return err
 		}
-		fmt.Print(string(jsonOut))
+		fmt.Fprint(vzHelper.GetOutputStream(), string(jsonOut))
 		return nil
 	}
 
 	fmt.Println()
 	if len(namespace) > 0 {
-		fmt.Printf("Scenarios running in namespace %s\n", namespace)
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Scenarios running in namespace %s\n", namespace)
 	} else {
-		fmt.Println("Scenarios running in the cluster")
+		fmt.Fprintln(vzHelper.GetOutputStream(), "Scenarios running in the cluster")
 	}
 
 	for _, sc := range scenarios {
-		fmt.Println("----------------")
-		fmt.Printf("Namespace: %s\n", sc.Namespace)
-		fmt.Printf("%s %s\n", "ID: ", sc.ID)
-		fmt.Printf("%s %s\n", "Description: ", sc.Description)
-		fmt.Println("Helm releases:")
+		fmt.Fprintln(vzHelper.GetOutputStream(), "----------------")
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Namespace: %s\n", sc.Namespace)
+		fmt.Fprintf(vzHelper.GetOutputStream(), "%s %s\n", "ID: ", sc.ID)
+		fmt.Fprintf(vzHelper.GetOutputStream(), "%s %s\n", "Description: ", sc.Description)
+		fmt.Fprintln(vzHelper.GetOutputStream(), "Helm releases:")
 		for _, h := range sc.HelmReleases {
-			fmt.Printf("%s/%s\n", h.Namespace, h.Name)
+			fmt.Fprintf(vzHelper.GetOutputStream(), "%s/%s\n", h.Namespace, h.Name)
 		}
-		fmt.Println()
+		fmt.Fprintln(vzHelper.GetOutputStream())
 	}
 
 	return nil
