@@ -1,11 +1,11 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package explain
+package list
 
 import (
 	"bytes"
-	"fmt"
+	"encoding/base64"
 	"os"
 	"testing"
 
@@ -15,25 +15,26 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/manifest"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	corev1cli "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
-const psrRoot = "../../.."
-
 var (
 	expectedID          = "ops-s1"
-	expectedName        = "opensearch-s1"
 	expectedDescription = "This is a scenario that writes logs to STDOUT and gets logs from OpenSearch at a moderated rate."
-	expectedUseCase     = "Usecase path opensearch/writelogs.yaml:  Description: write logs to STDOUT 10 times a second"
+	expectedRelease     = "psr-ops-s1-writelogs-0"
 )
 
-// TestExplainScenario tests the NewCmdExplain and RunCmdExplain functions
+const psrRoot = "../../.."
+
+// TestList tests the NewCmdList and RunCmdList functions
 //
-//	WHEN 'psrctl explain -s ops-s1' is called
-//	THEN ensure the output is correct for that scenario
-func TestExplainScenario(t *testing.T) {
+//	WHEN 'psrctl list -n psr' is called
+//	THEN ensure the output correctly shows running scenarios
+func TestList(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:        psrRoot,
 		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
@@ -43,9 +44,41 @@ func TestExplainScenario(t *testing.T) {
 
 	defer manifest.ResetManifests()
 
+	// create scenario ConfigMap
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "psr-ops-s1",
+			Namespace: "psr",
+			Labels: map[string]string{
+				"psr.verrazzano.io/scenario":    "true",
+				"psr.verrazzano.io/scenario-id": "ops-s1",
+			},
+		},
+		Data: map[string]string{
+			"scenario": base64.StdEncoding.EncodeToString([]byte(`Description: "This is a scenario that writes logs to STDOUT and gets logs from OpenSearch
+  at a moderated rate. \nThe purpose of the scenario is to test a moderate load on
+  both Fluend and OpenSearch by logging records.\n"
+HelmReleases:
+- Description: write logs to STDOUT 10 times a second
+  Name: psr-ops-s1-writelogs-0
+  Namespace: psr
+  OverrideFile: writelogs.yaml
+  UsecasePath: opensearch/writelogs.yaml
+ID: ops-s1
+Name: opensearch-s1
+Namespace: default
+ScenarioUsecaseOverridesAbsDir: temp-dir
+Usecases:
+- Description: write logs to STDOUT 10 times a second
+  OverrideFile: writelogs.yaml
+  UsecasePath: opensearch/writelogs.yaml
+`)),
+		},
+	}
+
 	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 	k8sutil.GetCoreV1Func = func(log ...vzlog.VerrazzanoLogger) (corev1cli.CoreV1Interface, error) {
-		return k8sfake.NewSimpleClientset().CoreV1(), nil
+		return k8sfake.NewSimpleClientset(cm).CoreV1(), nil
 	}
 
 	// Send the command output to a byte buffer
@@ -53,27 +86,24 @@ func TestExplainScenario(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 
-	explainCmd := NewCmdExplain(rc)
-	explainCmd.PersistentFlags().Set(constants.FlagScenario, "ops-s1")
-	explainCmd.PersistentFlags().Set(constants.FlagNamespace, "psr")
-	assert.NotNil(t, explainCmd)
+	cmd := NewCmdList(rc)
+	cmd.PersistentFlags().Set(constants.FlagNamespace, "psr")
+	assert.NotNil(t, cmd)
 
-	// Run explain command, check for the expected status results to be displayed
-	err := explainCmd.Execute()
+	err := cmd.Execute()
 	assert.NoError(t, err)
 	result := buf.String()
-	assert.Contains(t, result, fmt.Sprintf("ID: %s", expectedID))
-	assert.Contains(t, result, fmt.Sprintf("Name: %s", expectedName))
-	assert.Contains(t, result, fmt.Sprintf("Description: %s", expectedDescription))
-	assert.NotContains(t, result, "ID: ops-s9")
-	assert.NotContains(t, result, fmt.Sprintf("Use cases: %s", expectedUseCase))
+	assert.Contains(t, result, "Scenarios running in namespace psr")
+	assert.Contains(t, result, expectedID)
+	assert.Contains(t, result, expectedDescription)
+	assert.Contains(t, result, expectedRelease)
 }
 
-// TestExplainScenarioVerbose tests the NewCmdExplain and RunCmdExplain functions
+// TestEmptyListDefault tests the NewCmdList and RunCmdList functions
 //
-//	WHEN 'psrctl explain -s ops-s1 -v' is called
-//	THEN ensure the output includes the verbose usecases
-func TestExplainScenarioVerbose(t *testing.T) {
+//	WHEN 'psrctl list' is called
+//	THEN ensure the output correctly shows no running scenarios
+func TestEmptyListDefault(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:        psrRoot,
 		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
@@ -93,28 +123,21 @@ func TestExplainScenarioVerbose(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 
-	explainCmd := NewCmdExplain(rc)
-	explainCmd.PersistentFlags().Set(constants.FlagScenario, "ops-s1")
-	explainCmd.PersistentFlags().Set(constants.FlagNamespace, "psr")
-	explainCmd.PersistentFlags().Set(constants.FlagVerbose, "true")
-	assert.NotNil(t, explainCmd)
+	cmd := NewCmdList(rc)
+	assert.NotNil(t, cmd)
 
-	// Run explain command, check for the expected status results to be displayed
-	err := explainCmd.Execute()
+	// Run list command, check for no scenarios to be running
+	err := cmd.Execute()
 	assert.NoError(t, err)
 	result := buf.String()
-	assert.Contains(t, result, fmt.Sprintf("ID: %s", expectedID))
-	assert.Contains(t, result, fmt.Sprintf("Name: %s", expectedName))
-	assert.Contains(t, result, fmt.Sprintf("Description: %s", expectedDescription))
-	assert.Contains(t, result, fmt.Sprintf("Use cases:\n%s", expectedUseCase))
-	assert.NotContains(t, result, "ID: ops-s9")
+	assert.Contains(t, result, "There are no scenarios running in namespace default")
 }
 
-// TestExplainNoScenario tests the NewCmdExplain and RunCmdExplain functions
+// TestEmptyListCluster tests the NewCmdList and RunCmdList functions
 //
-//	WHEN 'psrctl explain' is called
-//	THEN ensure the output correctly lists all scenarios
-func TestExplainNoScenario(t *testing.T) {
+//	WHEN 'psrctl list -A' is called
+//	THEN ensure the output correctly shows no running scenarios
+func TestEmptyListCluster(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:        psrRoot,
 		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
@@ -134,16 +157,13 @@ func TestExplainNoScenario(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 
-	explainCmd := NewCmdExplain(rc)
-	assert.NotNil(t, explainCmd)
+	cmd := NewCmdList(rc)
+	cmd.PersistentFlags().Set(constants.FlagAll, "true")
+	assert.NotNil(t, cmd)
 
-	// Run explain command, check for all scenarios to be listed
-	err := explainCmd.Execute()
+	// Run list command, check for no scenarios to be running
+	err := cmd.Execute()
 	assert.NoError(t, err)
 	result := buf.String()
-	assert.Contains(t, result, "ID: ops-s9")
-	assert.Contains(t, result, "Name: opensearch-s9")
-	assert.Contains(t, result, "Description: This is a scenario that combines all of the existing OpenSearch use cases")
-	assert.Contains(t, result, "Namespace needs to be labeled with istio-injection=enabled")
-	assert.NotContains(t, result, fmt.Sprintf("Use cases: %s", expectedUseCase))
+	assert.Contains(t, result, "There are no scenarios running in the cluster")
 }
