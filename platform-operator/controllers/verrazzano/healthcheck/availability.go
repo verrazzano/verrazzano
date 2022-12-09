@@ -73,7 +73,7 @@ func (p *HealthChecker) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazza
 				countAvailable++
 			}
 			// update the component availability metric
-			err := metricsexporter.SetComponentAvailabilityMetric(component.Name(), a.available, isEnabled)
+			err := metricsexporter.SetComponentAvailabilityMetric(component.GetJSONName(), a.available, isEnabled)
 			if err != nil {
 				return nil, err
 			}

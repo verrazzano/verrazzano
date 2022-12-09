@@ -21,6 +21,7 @@ const reldir = "../../../manifests/profiles"
 
 type fakeComponent struct {
 	name      string
+	JSONName  string
 	available vzapi.ComponentAvailability
 	enabled   bool
 	helm.HelmComponent
@@ -38,8 +39,12 @@ func (f fakeComponent) Name() string {
 	return f.name
 }
 
-func newFakeComponent(name string, available vzapi.ComponentAvailability, enabled bool) fakeComponent {
-	return fakeComponent{name: name, available: available, enabled: enabled}
+func (f fakeComponent) GetJSONName() string {
+	return f.JSONName
+}
+
+func newFakeComponent(name string, JSONname string, available vzapi.ComponentAvailability, enabled bool) fakeComponent {
+	return fakeComponent{name: name, JSONName: JSONname, available: available, enabled: enabled}
 }
 
 func newTestHealthCheck(objs ...client.Object) *HealthChecker {
@@ -57,17 +62,17 @@ func TestGetComponentAvailability(t *testing.T) {
 		available vzapi.ComponentAvailability
 	}{
 		{
-			newFakeComponent("availableComponent", vzapi.ComponentAvailable, true),
+			newFakeComponent("availableComponent", "JSONName", vzapi.ComponentAvailable, true),
 			vzapi.CompStateReady,
 			vzapi.ComponentAvailable,
 		},
 		{
-			newFakeComponent("unreadyComponent", vzapi.ComponentAvailable, true),
+			newFakeComponent("unreadyComponent", "JSONName", vzapi.ComponentAvailable, true),
 			vzapi.CompStateInstalling,
 			vzapi.ComponentUnavailable,
 		},
 		{
-			newFakeComponent("unavailableComponent", vzapi.ComponentUnavailable, true),
+			newFakeComponent("unavailableComponent", "JSONName", vzapi.ComponentUnavailable, true),
 			vzapi.CompStateReady,
 			vzapi.ComponentUnavailable,
 		},
@@ -104,20 +109,20 @@ func TestSetAvailabilityFields(t *testing.T) {
 		},
 		{
 			"enabled but not available",
-			[]spi.Component{newFakeComponent(rancher, vzapi.ComponentUnavailable, true)},
+			[]spi.Component{newFakeComponent(rancher, rancher, vzapi.ComponentUnavailable, true)},
 			"0/1",
 		},
 		{
 			"enabled and available",
-			[]spi.Component{newFakeComponent(rancher, vzapi.ComponentAvailable, true)},
+			[]spi.Component{newFakeComponent(rancher, rancher, vzapi.ComponentAvailable, true)},
 			"1/1",
 		},
 		{
 			"multiple components",
 			[]spi.Component{
-				newFakeComponent(rancher, vzapi.ComponentAvailable, true),
-				newFakeComponent(opensearch, vzapi.ComponentAvailable, true),
-				newFakeComponent(grafana, vzapi.ComponentUnavailable, true),
+				newFakeComponent(rancher, rancher, vzapi.ComponentAvailable, true),
+				newFakeComponent(opensearch, opensearch, vzapi.ComponentAvailable, true),
+				newFakeComponent(grafana, grafana, vzapi.ComponentUnavailable, true),
 			},
 			"2/3",
 		},
