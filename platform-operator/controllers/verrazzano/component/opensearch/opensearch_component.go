@@ -215,10 +215,10 @@ func (o opensearchComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzan
 
 	numNodesold, _ := GetNodesNumber(opensearchOld)
 	numNodesnew, _ := GetNodesNumber(opensearchNew)
-
+	sum := numNodesnew["master"] + numNodesnew["data"] + numNodesnew["ingest"]
 	for role, replicas := range numNodesold {
 
-		if role != "ingest" && replicas-numNodesnew[role] > numNodesnew[role] {
+		if role != "ingest" && replicas-numNodesnew[role] > numNodesnew[role] && sum > 1 {
 			return errors.New("The number of nodes can't be scaled by more than half")
 
 		}

@@ -1179,4 +1179,17 @@ func TestValidateUpdateCR(t *testing.T) {
 	err = NewComponent().ValidateUpdate(oldvz, newvz)
 	assert.Error(t, err)
 
+	newvz = &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Components: vzapi.ComponentSpec{
+				Elasticsearch: &vzapi.ElasticsearchComponent{
+					Enabled: &(trueVal),
+					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"master"}}},
+				},
+			},
+		},
+	}
+	err = NewComponent().ValidateUpdate(oldvz, newvz)
+	assert.NoError(t, err)
+
 }
