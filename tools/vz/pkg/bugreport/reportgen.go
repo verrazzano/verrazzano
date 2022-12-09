@@ -107,8 +107,11 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 		pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the Verrazzano resources: %s", err.Error()))
 	}
 
-	for _, err := range vzchecks.PrerequisiteCheck(client, vzchecks.ProfileType(vz.Items[0].Spec.Profile)) {
-		fmt.Fprintf(vzHelper.GetOutputStream(), err.Error())
+	errs := vzchecks.PrerequisiteCheck(client, vzchecks.ProfileType(vz.Items[0].Spec.Profile))
+	fmt.Fprintf(vzHelper.GetOutputStream(), "hahaha the cluster ...\n")
+	fmt.Println("vzzz analyze ", errs)
+	for _, e := range errs {
+		fmt.Fprintf(vzHelper.GetOutputStream(), e.Error())
 	}
 
 	// Capture OAM resources from the namespaces specified using --include-namespaces
