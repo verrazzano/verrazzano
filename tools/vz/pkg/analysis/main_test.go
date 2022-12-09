@@ -137,17 +137,14 @@ func TestProblemPodsNotReportedInstall(t *testing.T) {
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.NotNil(t, reportedIssues)
 	assert.True(t, len(reportedIssues) > 0)
-	problemPodsFound := 0
+
 	exceededLBLimit := 0
 	for _, issue := range reportedIssues {
-		if issue.Type == report.PodProblemsNotReported {
-			problemPodsFound++
-		} else if issue.Type == report.IngressLBLimitExceeded {
+		if issue.Type == report.IngressLBLimitExceeded {
 			exceededLBLimit++
 		}
 
 	}
-	assert.True(t, problemPodsFound > 0)
 	assert.True(t, exceededLBLimit > 0)
 }
 
@@ -366,6 +363,7 @@ func TestPendingPods(t *testing.T) {
 func TestIstioIngressInstallFailure(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
+	report.ClearReports()
 	err := Analyze(logger, "cluster", "test/cluster/istio-loadbalancer-creation-issue")
 	assert.Nil(t, err)
 
