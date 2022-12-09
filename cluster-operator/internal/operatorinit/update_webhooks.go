@@ -7,22 +7,9 @@ import (
 	"context"
 
 	"github.com/verrazzano/verrazzano/cluster-operator/internal/certificate"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
-
-// deleteValidatingWebhookConfiguration deletes a validating webhook configuration
-func deleteValidatingWebhookConfiguration(kubeClient kubernetes.Interface, name string) error {
-	_, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
-		return err
-	}
-	return kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Delete(context.TODO(), name, metav1.DeleteOptions{})
-}
 
 // updateValidatingWebhookConfiguration sets the CABundle
 func updateValidatingWebhookConfiguration(kubeClient kubernetes.Interface, name string) error {
