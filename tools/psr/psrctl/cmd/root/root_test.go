@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -55,7 +54,9 @@ func TestNewRootCmd(t *testing.T) {
 	rootCmd.SetArgs([]string{fmt.Sprintf("--%s", constants.GlobalFlagHelp)})
 	err := rootCmd.Execute()
 	assert.NoError(t, err)
-	assert.True(t, strings.Contains(buf.String(), "Usage:"))
-	assert.True(t, strings.Contains(buf.String(), "Available Commands:"))
-	assert.True(t, strings.Contains(buf.String(), "Flags:"))
+
+	result := buf.String()
+	assert.Contains(t, result, "Usage:")
+	assert.Contains(t, result, "Available Commands:")
+	assert.Contains(t, result, "Flags:")
 }
