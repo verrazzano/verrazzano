@@ -50,8 +50,8 @@ func TestCreateWebhookCertificates(t *testing.T) {
 
 	// Verify generated secrets
 	var secret *corev1.Secret
-	secret, err = client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
-	_, err2 := client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
+	secret, err = client.CoreV1().Secrets(WebhookNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+	_, err2 := client.CoreV1().Secrets(WebhookNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
 	asserts.Nil(err, "error should not be returned setting up certificates")
 	asserts.Nil(err2, "error should not be returned setting up certificates")
 	asserts.NotEmpty(string(secret.Data[CertKey]))
@@ -90,7 +90,7 @@ func TestCreateWebhookCertificatesRaceCondition(t *testing.T) {
 	asserts := assert.New(t)
 	client := fake.NewSimpleClientset()
 
-	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)
+	commonName := fmt.Sprintf("%s.%s.svc", WebhookName, WebhookNamespace)
 
 	log := zap.S()
 
@@ -100,13 +100,13 @@ func TestCreateWebhookCertificatesRaceCondition(t *testing.T) {
 	// Create the CA cert and key, and verify the secret is tracked in the fake client
 	ca, caKey, err := createCACert(log, client, commonName)
 	asserts.Nil(err)
-	_, err = client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
+	_, err = client.CoreV1().Secrets(WebhookNamespace).Get(context.TODO(), OperatorCA, metav1.GetOptions{})
 	asserts.Nil(err)
 
 	// Create the TLS cert and key, and verify the secret is tracked in the fake client
 	serverPEM, serverKeyPEM, err := createTLSCert(log, client, commonName, ca, caKey)
 	asserts.Nil(err)
-	_, err = client.CoreV1().Secrets(OperatorNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
+	_, err = client.CoreV1().Secrets(WebhookNamespace).Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
 	asserts.Nil(err)
 
 	// create temp dir for certs

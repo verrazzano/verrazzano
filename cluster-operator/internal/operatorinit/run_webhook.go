@@ -66,7 +66,7 @@ func StartWebhookServer(metricsAddr string, probeAddr string, enableLeaderElecti
 
 	log.Debug("Updating webhook configuration")
 	// VMC validating webhook
-	err = updateValidatingWebhookConfiguration(kubeClient, certificate.OperatorName)
+	err = updateValidatingWebhookConfiguration(kubeClient, certificate.WebhookName)
 	if err != nil {
 		log.Errorf("Failed to update VerrazzanoManagedCluster validation webhook configuration: %v", err)
 		os.Exit(1)

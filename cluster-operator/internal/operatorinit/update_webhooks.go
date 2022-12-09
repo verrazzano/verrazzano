@@ -17,7 +17,7 @@ func updateValidatingWebhookConfiguration(kubeClient kubernetes.Interface, name 
 	if err != nil {
 		return err
 	}
-	caSecret, errX := kubeClient.CoreV1().Secrets(certificate.OperatorNamespace).Get(context.TODO(), certificate.OperatorCA, metav1.GetOptions{})
+	caSecret, errX := kubeClient.CoreV1().Secrets(certificate.WebhookNamespace).Get(context.TODO(), certificate.OperatorCA, metav1.GetOptions{})
 	if errX != nil {
 		return errX
 	}

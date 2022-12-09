@@ -25,13 +25,13 @@ import (
 )
 
 const (
-	// OperatorName is the resource name for the Verrazzano cluster operator
-	OperatorName = "verrazzano-cluster-operator-webhook"
-	OperatorCA   = "verrazzano-cluster-operator-ca"
-	OperatorTLS  = "verrazzano-cluster-operator-tls"
+	// WebhookName is the resource name for the Verrazzano cluster operator webhook
+	WebhookName = "verrazzano-cluster-operator-webhook"
+	OperatorCA  = "verrazzano-cluster-operator-ca"
+	OperatorTLS = "verrazzano-cluster-operator-tls"
 
-	// OperatorNamespace is the resource namespace for the Verrazzano cluster operator
-	OperatorNamespace = "verrazzano-system"
+	// WebhookNamespace is the resource namespace for the Verrazzano cluster operator webhook
+	WebhookNamespace = "verrazzano-system"
 
 	CertKey = "tls.crt"
 	PrivKey = "tls.key"
@@ -41,7 +41,7 @@ const (
 
 // CreateWebhookCertificates creates the needed certificates for the validating webhook
 func CreateWebhookCertificates(log *zap.SugaredLogger, kubeClient kubernetes.Interface, certDir string) error {
-	commonName := fmt.Sprintf("%s.%s.svc", OperatorName, OperatorNamespace)
+	commonName := fmt.Sprintf("%s.%s.svc", WebhookName, WebhookNamespace)
 	ca, caKey, err := createCACert(log, kubeClient, commonName)
 	if err != nil {
 		return err
@@ -72,7 +72,7 @@ func CreateWebhookCertificates(log *zap.SugaredLogger, kubeClient kubernetes.Int
 }
 
 func createTLSCert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commonName string, ca *x509.Certificate, caKey *rsa.PrivateKey) ([]byte, []byte, error) {
-	secretsClient := kubeClient.CoreV1().Secrets(OperatorNamespace)
+	secretsClient := kubeClient.CoreV1().Secrets(WebhookNamespace)
 	existingSecret, err := secretsClient.Get(context.TODO(), OperatorTLS, metav1.GetOptions{})
 	if err == nil {
 		log.Infof("Secret %s exists, using...", OperatorTLS)
@@ -138,7 +138,7 @@ func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.
 	serverKeyPEMBytes := serverKeyPEM.Bytes()
 
 	var webhookCrt v1.Secret
-	webhookCrt.Namespace = OperatorNamespace
+	webhookCrt.Namespace = WebhookNamespace
 	webhookCrt.Name = OperatorTLS
 	webhookCrt.Type = v1.SecretTypeTLS
 	webhookCrt.Data = make(map[string][]byte)
@@ -163,7 +163,7 @@ func createTLSCertSecretIfNecesary(log *zap.SugaredLogger, secretsClient corev1.
 }
 
 func createCACert(log *zap.SugaredLogger, kubeClient kubernetes.Interface, commonName string) (*x509.Certificate, *rsa.PrivateKey, error) {
-	secretsClient := kubeClient.CoreV1().Secrets(OperatorNamespace)
+	secretsClient := kubeClient.CoreV1().Secrets(WebhookNamespace)
 	existingSecret, err := secretsClient.Get(context.TODO(), OperatorCA, metav1.GetOptions{})
 	if err == nil {
 		log.Infof("CA secret %s exists, using...", OperatorCA)
@@ -214,7 +214,7 @@ func createCACertSecretIfNecessary(log *zap.SugaredLogger, secretsClient corev1.
 	caPEMBytes, caKeyPEMBytes := encodeCABytes(caBytes, caPrivKey)
 
 	webhookCA := v1.Secret{}
-	webhookCA.Namespace = OperatorNamespace
+	webhookCA.Namespace = WebhookNamespace
 	webhookCA.Name = OperatorCA
 	webhookCA.Type = v1.SecretTypeTLS
 

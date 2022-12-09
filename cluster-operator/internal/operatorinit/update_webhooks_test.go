@@ -35,11 +35,11 @@ func TestUpdateValidatingnWebhookConfiguration(t *testing.T) {
 	_, caCert, err := createExpectedCASecret(kubeClient)
 	asserts.Nilf(err, "Unexpected error creating expected CA secret", err)
 
-	wh, err := createExpectedValidatingWebhook(kubeClient, certificate.OperatorName)
+	wh, err := createExpectedValidatingWebhook(kubeClient, certificate.WebhookName)
 	asserts.Nilf(err, "error should not be returned creating validation webhook configuration: %v", err)
 	asserts.NotEmpty(wh)
 
-	err = updateValidatingWebhookConfiguration(kubeClient, certificate.OperatorName)
+	err = updateValidatingWebhookConfiguration(kubeClient, certificate.WebhookName)
 	asserts.Nilf(err, "error should not be returned updating validation webhook configuration: %v", err)
 
 	updatedWebhook, _ := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), "verrazzano-cluster-operator-webhook", metav1.GetOptions{})
@@ -60,10 +60,10 @@ func TestUpdateValidatingnWebhookConfigurationFail(t *testing.T) {
 	_, _, err := createExpectedCASecret(kubeClient)
 	asserts.Nilf(err, "Unexpected error creating expected CA secret", err)
 
-	_, err = createInvalidExpectedValidatingWebhook(kubeClient, certificate.OperatorName)
+	_, err = createInvalidExpectedValidatingWebhook(kubeClient, certificate.WebhookName)
 	asserts.Nil(err, "error should not be returned creating validation webhook configuration")
 
-	err = updateValidatingWebhookConfiguration(kubeClient, certificate.OperatorName)
+	err = updateValidatingWebhookConfiguration(kubeClient, certificate.WebhookName)
 	asserts.Error(err, "error should be returned updating validation webhook configuration")
 }
 
@@ -128,12 +128,12 @@ func createExpectedCASecret(kubeClient *fake.Clientset) (*v1.Secret, bytes.Buffe
 	caSecret := v1.Secret{}
 	caSecret.Name = certificate.OperatorCA
 	caSecret.Type = v1.SecretTypeTLS
-	caSecret.Namespace = certificate.OperatorNamespace
+	caSecret.Namespace = certificate.WebhookNamespace
 	caSecret.Data = make(map[string][]byte)
 	caSecret.Data[certificate.CertKey] = caCert.Bytes()
 	caSecret.Data[certificate.PrivKey] = caCert.Bytes()
 
-	newSecret, err := kubeClient.CoreV1().Secrets(certificate.OperatorNamespace).Create(context.TODO(), &caSecret, metav1.CreateOptions{})
+	newSecret, err := kubeClient.CoreV1().Secrets(certificate.WebhookNamespace).Create(context.TODO(), &caSecret, metav1.CreateOptions{})
 	return newSecret, caCert, err
 }
 
@@ -141,7 +141,7 @@ func createExpectedValidatingWebhook(kubeClient *fake.Clientset, whName string) 
 	pathInstall := "/validate-clusters-verrazzano-io-v1alpha1-verrazzanomanagedcluster"
 	serviceInstall := adminv1.ServiceReference{
 		Name:      whName,
-		Namespace: certificate.OperatorNamespace,
+		Namespace: certificate.WebhookNamespace,
 		Path:      &pathInstall,
 	}
 
@@ -172,7 +172,7 @@ func createInvalidExpectedValidatingWebhook(kubeClient *fake.Clientset, whName s
 	path := "/validate-clusters-verrazzano-io-v1alpha1-verrazzanomanagedcluster"
 	service := adminv1.ServiceReference{
 		Name:      whName,
-		Namespace: certificate.OperatorNamespace,
+		Namespace: certificate.WebhookNamespace,
 		Path:      &path,
 	}
 	webhook := adminv1.ValidatingWebhookConfiguration{
