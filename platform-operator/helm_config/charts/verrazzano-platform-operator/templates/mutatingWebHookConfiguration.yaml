@@ -4,7 +4,7 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: verrazzano-mysql-backup
+  name: verrazzano-mysql
   labels:
     app: verrazzano-mysql-backup
 webhooks:
