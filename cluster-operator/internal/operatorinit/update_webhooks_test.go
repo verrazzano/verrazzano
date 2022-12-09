@@ -6,19 +6,14 @@ package operatorinit
 import (
 	"bytes"
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/cluster-operator/internal/certificate"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/core/v1"
-	errors2 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
-	fake2 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1/fake"
-	testing2 "k8s.io/client-go/testing"
 )
 
 // TestUpdateValidatingnWebhookConfiguration tests that the CA Bundle is updated in the verrazzano-cluster-operator
@@ -65,60 +60,6 @@ func TestUpdateValidatingnWebhookConfigurationFail(t *testing.T) {
 
 	err = updateValidatingWebhookConfiguration(kubeClient, certificate.WebhookName)
 	asserts.Error(err, "error should be returned updating validation webhook configuration")
-}
-
-// TestDeleteValidatingWebhookConfiguration tests that
-// GIVEN a call to deleteValidatingWebhookConfiguration
-//
-//	WHEN the webhook does exist
-//	THEN no error is returned
-func TestDeleteValidatingWebhookConfiguration(t *testing.T) {
-	asserts := assert.New(t)
-
-	kubeClient := fake.NewSimpleClientset()
-
-	const webhookName = "foo"
-	_, err := createExpectedValidatingWebhook(kubeClient, webhookName)
-	asserts.Nilf(err, "Unexpected error creating expected webhook configuration")
-
-	err = deleteValidatingWebhookConfiguration(kubeClient, webhookName)
-	asserts.Nilf(err, "Unexpected error when deleting webhook", err)
-
-	wh, err := kubeClient.AdmissionregistrationV1().ValidatingWebhookConfigurations().Get(context.TODO(), webhookName, metav1.GetOptions{})
-	asserts.NotNil(err, "Did not get expected error after delete")
-	asserts.True(errors2.IsNotFound(err), "Did not get IsNotFound error after delete")
-	asserts.Nilf(wh, "Webhook reference should be nil after delete")
-}
-
-// TestDeleteValidatingWebhookConfigurationDoesNotExist tests that
-// GIVEN a call to deleteValidatingWebhookConfiguration
-//
-//	WHEN the webhook does NOT exist
-//	THEN no error is returned
-func TestDeleteValidatingWebhookConfigurationDoesNotExist(t *testing.T) {
-	asserts := assert.New(t)
-	kubeClient := fake.NewSimpleClientset()
-	err := deleteValidatingWebhookConfiguration(kubeClient, "foo")
-	asserts.Nilf(err, "Unexpected error when deleting webhook that does not exist", err)
-}
-
-// TestDeleteValidatingWebhookConfigurationErrorOnGet tests that
-// GIVEN a call to deleteValidatingWebhookConfiguration
-//
-//	WHEN the webhook Get() operation returns an unexpected error
-//	THEN that error is returned
-func TestDeleteValidatingWebhookConfigurationErrorOnGet(t *testing.T) {
-	asserts := assert.New(t)
-
-	kubeClient := fake.NewSimpleClientset()
-	kubeClient.AdmissionregistrationV1().(*fake2.FakeAdmissionregistrationV1).
-		PrependReactor("get", "validatingwebhookconfigurations",
-			func(action testing2.Action) (handled bool, ret runtime.Object, err error) {
-				return true, nil, errors.New("error deleting validating webhook")
-			})
-
-	err := deleteValidatingWebhookConfiguration(kubeClient, "foo")
-	asserts.NotNilf(err, "No expected error returned when deleting webhook", err)
 }
 
 func createExpectedCASecret(kubeClient *fake.Clientset) (*v1.Secret, bytes.Buffer, error) {
