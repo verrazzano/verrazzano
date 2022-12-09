@@ -62,7 +62,7 @@ func (v *MysqlValuesValidatorV1beta1) validateMysqlValuesV1beta1(log *zap.Sugare
 	versionToCompare := getVersion(oldVz.Status.Version, newVz.Spec.Version, v.BomVersion)
 	log.Debugf("Min version required %s, version to compare: %s", MinVersion, versionToCompare)
 	if isMinVersion(versionToCompare, MinVersion) {
-		log.Info("Validating v1alpha1 MySQL values")
+		log.Info("Validating v1beta1 MySQL values")
 		if newVz.Spec.Components.Keycloak != nil {
 			newMySQLOverrides := newVz.Spec.Components.Keycloak.MySQL.ValueOverrides
 			for _, override := range newMySQLOverrides {
