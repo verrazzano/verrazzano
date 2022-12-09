@@ -136,6 +136,20 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 			},
 		},
 	)
+
+	// register MySQL statefulset mutating webhook
+	mgr.GetWebhookServer().Register(
+		constants.MysqlStatefulSetMutatingWebhookPath,
+		&webhook.Admission{
+			Handler: &webhooks.MySQLStatefulSetWebhook{
+				Client:        mgr.GetClient(),
+				KubeClient:    kubeClient,
+				DynamicClient: dynamicClient,
+				Defaulters:    []webhooks.MySQLDefaulter{},
+			},
+		},
+	)
+
 	// register requirements validator webhooks
 	mgr.GetWebhookServer().Register(webhooks.RequirementsV1beta1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1beta1{}})
 	mgr.GetWebhookServer().Register(webhooks.RequirementsV1alpha1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1alpha1{}})
