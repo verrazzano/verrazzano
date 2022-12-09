@@ -76,7 +76,7 @@ func ensureClusterRoles(ctx spi.ComponentContext) error {
 		istioClusterRole.Labels[aggregateToControllerLabel] = "true"
 		istioClusterRole.Rules = []rbacv1.PolicyRule{
 			{
-				APIGroups: []string{"networking.istio.io", "install.istio.io", "security.istio.io", "telemetry.istio.io", "leases.coordination.k8s.io"},
+				APIGroups: []string{"networking.istio.io", "install.istio.io", "security.istio.io", "telemetry.istio.io", "coordination.k8s.io"},
 				Resources: []string{"*"},
 				Verbs: []string{
 					"create",
