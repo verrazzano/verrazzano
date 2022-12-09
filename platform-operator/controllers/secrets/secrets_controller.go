@@ -5,7 +5,7 @@ package secrets
 
 import (
 	"context"
-	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
