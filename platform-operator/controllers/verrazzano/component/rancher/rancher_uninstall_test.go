@@ -5,9 +5,10 @@ package rancher
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"testing"
 	"time"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -375,7 +376,8 @@ func TestPostUninstall(t *testing.T) {
 			crd1 := v12.CustomResourceDefinition{}
 			c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
 
-			err := postUninstall(ctx)
+			monitor := &postUninstallMonitorType{}
+			err := postUninstall(ctx, monitor)
 			assert.NoError(err)
 
 			// MutatingWebhookConfigurations should not exist

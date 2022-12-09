@@ -58,8 +58,7 @@ var rancherSystemNS = []string{
 
 // postUninstallRoutineParams - Used to pass args to the postUninstall goroutine
 type postUninstallRoutineParams struct {
-	overrides     string
-	// TODO: fill in fields/parameters
+	ctx spi.ComponentContext
 }
 
 // uninstallMonitor - Represents a monitor object used by the component to monitor a background goroutine used for running
@@ -91,7 +90,6 @@ func (m *postUninstallMonitorType) checkResult() (bool, error) {
 	default:
 		return false, ctrlerrors.RetryableError{Source: ComponentName}
 	}
-	// FIXME: verify this is correct
 }
 
 // reset - reset the monitor and close the channel
@@ -99,92 +97,138 @@ func (m *postUninstallMonitorType) reset() {
 	m.running = false
 	close(m.resultCh)
 	close(m.inputCh)
-	// FIXME: verify this is correct
 }
 
 // isRunning - returns true of the monitor/goroutine are active
 func (m *postUninstallMonitorType) isRunning() bool {
 	return m.running
-	// FIXME: verify this is correct
 }
 
 // postUninstall removes the objects after the Helm uninstall process finishes
-func postUninstall(ctx spi.ComponentContext) error {
-	// List all the namespaces that need to be cleaned from Rancher components
-	nsList := corev1.NamespaceList{}
-	err := ctx.Client().List(context.TODO(), &nsList)
-	if err != nil {
-		return ctx.Log().ErrorfNewErr("Failed to list the Rancher namespaces: %v", err)
-	}
-
-	// For Rancher namespaces, run the system tools uninstaller
-	for i, ns := range nsList.Items {
-		if isRancherNamespace(&nsList.Items[i]) {
-			ctx.Log().Infof("Running the Rancher uninstall system tool for namespace %s", ns.Name)
-			args := []string{"remove", "-c", "/home/verrazzano/kubeconfig", "--namespace", ns.Name, "--force"}
-			cmd := osexec.Command(rancherSystemTool, args...) //nolint:gosec //#nosec G204
-			_, stdErr, err := os.DefaultRunner{}.Run(cmd)
-			if err != nil {
-				return ctx.Log().ErrorNewErr("Failed to run system tools for Rancher deletion: %s: %v", stdErr, err)
-			}
+func postUninstall(ctx spi.ComponentContext, monitor postUninstallMonitor) error {
+	if monitor.isRunning() {
+		// Check the result
+		succeeded, err := monitor.checkResult()
+		if err != nil {
+			// Not finished yet, requeue
+			ctx.Log().Progress("Component Rancher waiting to finish post-uninstall in the background")
+			return err
 		}
+		// reset on success or failure
+		monitor.reset()
+		// If it's not finished running, requeue
+		if succeeded {
+			return nil
+		}
+		// if we were unsuccessful, reset and drop through to try again
+		ctx.Log().Debug("Error during rancher post-uninstall, retrying")
 	}
 
-	// Remove the Rancher webhooks
-	err = deleteWebhooks(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Delete the Rancher resources that need to be matched by a string
-	err = deleteMatchingResources(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Delete the remaining Rancher ConfigMaps
-	err = resource.Resource{
-		Name:      controllerCMName,
-		Namespace: constants.KubeSystem,
-		Client:    ctx.Client(),
-		Object:    &corev1.ConfigMap{},
-		Log:       ctx.Log(),
-	}.Delete()
-	if err != nil {
-		return err
-	}
-	err = resource.Resource{
-		Name:      lockCMName,
-		Namespace: constants.KubeSystem,
-		Client:    ctx.Client(),
-		Object:    &corev1.ConfigMap{},
-		Log:       ctx.Log(),
-	}.Delete()
-	if err != nil {
-		return err
-	}
-
-	crds := getCRDList(ctx)
-
-	// Remove any Rancher custom resources that remain
-	removeCRs(ctx, crds)
-
-	// Remove any Rancher CRD finalizers that may be causing CRD deletion to hang
-	removeCRDFinalizers(ctx, crds)
-
-	return nil
+	return forkPostUninstall(ctx, monitor)
 }
 
-func forkPostUninstall() error {
-	// TODO: write this. Including input parameters
-	// will call monitor.run() at some point
-	return nil
+func forkPostUninstall(ctx spi.ComponentContext, monitor postUninstallMonitor) error {
+	log := ctx.Log()
+	log.Debugf("Creating background post-uninstall goroutine for Rancher")
+
+	// clone zap logger
+	clone := log.GetZapLogger().With()
+	log.SetZapLogger(clone)
+
+	monitor.run(
+		postUninstallRoutineParams{
+			ctx: ctx,
+		},
+	)
+
+	return ctrlerrors.RetryableError{Source: ComponentName}
 }
 
 func (m *postUninstallMonitorType) run(args postUninstallRoutineParams) {
-	// TODO: write this.
-	// will call something in another goroutine at some point.
-	return
+	m.running = true
+	m.resultCh = make(chan bool, 2)
+	m.inputCh = make(chan postUninstallRoutineParams, 2)
+
+	go func(inputCh chan postUninstallRoutineParams, outputCh chan bool) {
+		// The function will execute once, sending true on success, false on failure to the channel reader
+		// Read inputs
+		args := <-inputCh
+		ctx := args.ctx
+
+		// List all the namespaces that need to be cleaned from Rancher components
+		nsList := corev1.NamespaceList{}
+		err := ctx.Client().List(context.TODO(), &nsList)
+		if err != nil {
+			ctx.Log().ErrorfNewErr("Failed to list the Rancher namespaces: %v", err)
+			outputCh <- false
+			return
+		}
+
+		// For Rancher namespaces, run the system tools uninstaller
+		for i, ns := range nsList.Items {
+			if isRancherNamespace(&nsList.Items[i]) {
+				ctx.Log().Infof("Running the Rancher uninstall system tool for namespace %s", ns.Name)
+				args := []string{"remove", "-c", "/home/verrazzano/kubeconfig", "--namespace", ns.Name, "--force"}
+				cmd := osexec.Command(rancherSystemTool, args...) //nolint:gosec //#nosec G204
+				_, stdErr, err := os.DefaultRunner{}.Run(cmd)
+				if err != nil {
+					ctx.Log().ErrorNewErr("Failed to run system tools for Rancher deletion: %s: %v", stdErr, err)
+					outputCh <- false
+					return
+				}
+			}
+		}
+
+		// Remove the Rancher webhooks
+		err = deleteWebhooks(ctx)
+		if err != nil {
+			outputCh <- false
+			return
+		}
+
+		// Delete the Rancher resources that need to be matched by a string
+		err = deleteMatchingResources(ctx)
+		if err != nil {
+			outputCh <- false
+			return
+		}
+
+		// Delete the remaining Rancher ConfigMaps
+		err = resource.Resource{
+			Name:      controllerCMName,
+			Namespace: constants.KubeSystem,
+			Client:    ctx.Client(),
+			Object:    &corev1.ConfigMap{},
+			Log:       ctx.Log(),
+		}.Delete()
+		if err != nil {
+			outputCh <- false
+			return
+		}
+		err = resource.Resource{
+			Name:      lockCMName,
+			Namespace: constants.KubeSystem,
+			Client:    ctx.Client(),
+			Object:    &corev1.ConfigMap{},
+			Log:       ctx.Log(),
+		}.Delete()
+		if err != nil {
+			outputCh <- false
+			return
+		}
+
+		crds := getCRDList(ctx)
+
+		// Remove any Rancher custom resources that remain
+		removeCRs(ctx, crds)
+
+		// Remove any Rancher CRD finalizers that may be causing CRD deletion to hang
+		removeCRDFinalizers(ctx, crds)
+
+		outputCh <- true
+	}(m.inputCh, m.resultCh)
+
+	m.inputCh <- args
 }
 
 // deleteWebhooks takes care of deleting the Webhook resources from Rancher
