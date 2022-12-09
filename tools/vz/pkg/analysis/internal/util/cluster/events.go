@@ -130,7 +130,7 @@ func CheckEventsForWarnings(log *zap.SugaredLogger, events []corev1.Event, event
 	for _, event := range events {
 		foundInvolvedObject := false
 		for index, previousEvent := range finalEventList {
-			// If we already iterated through an event for the same involved object with type Warning
+			// If we already iterated through an event for the same involved object with given eventType
 			// And that event occurred before this current event, replace it accordingly
 			if IsInvolvedObjectSame(event, previousEvent) && event.LastTimestamp.Time.After(previousEvent.LastTimestamp.Time) {
 				foundInvolvedObject = true
@@ -143,8 +143,8 @@ func CheckEventsForWarnings(log *zap.SugaredLogger, events []corev1.Event, event
 			}
 		}
 		// No previous event for this specific involved object
-		// If the type is warning, add to the finalEventList
-		if !foundInvolvedObject && event.Type == "Warning" {
+		// Add to the finalEventList, if event type matches
+		if !foundInvolvedObject && event.Type == eventType {
 			finalEventList = append(finalEventList, event)
 		}
 	}
