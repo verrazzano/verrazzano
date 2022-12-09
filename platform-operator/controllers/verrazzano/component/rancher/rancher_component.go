@@ -73,6 +73,9 @@ type envVar struct {
 
 type rancherComponent struct {
 	helm.HelmComponent
+
+	// internal monitor object for running the Rancher uninstall tool in the background
+	monitor postUninstallMonitor
 }
 
 var certificates = []types.NamespacedName{
