@@ -160,7 +160,7 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 		},
 		LabelerPodHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_labelerPod_handle__total",
+				Name: "vao_labelerPod_handle_total",
 				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
 		},
 		LabelerPodHandleError: {
@@ -222,7 +222,7 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 		},
 		VzProjHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vao_vzproj_handle__total",
+				Name: "vao_vzproj_handle_total",
 				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
 		},
 		VzProjHandleError: {
