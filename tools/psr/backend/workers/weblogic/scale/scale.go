@@ -81,7 +81,6 @@ func NewScaleWorker() (spi.Worker, error) {
 		psrClient: c,
 		log:       vzlog.DefaultLogger(),
 		state:     &state{},
-		//dynClient: d,
 		workerMetrics: &workerMetrics{
 			scaleUpDomainCountTotal: metrics.MetricItem{
 				Name: "scale_up_domain_count_total",
@@ -181,17 +180,12 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 	}
 	domainNamespace := config.PsrEnv.GetEnv(DomainNamespace)
 	domainUID := config.PsrEnv.GetEnv(DomainUID)
-
 	client := w.psrClient.DynClient
-	// client := w.dynClient.DynClient
-	if err != nil {
-		return log.ErrorfNewErr("Failed to get client: %v", err)
-	}
 
 	// get current replicas at /spec/replicas
 	currentReplicas, err := weblogic.GetCurrentReplicas(client, domainNamespace, domainUID)
 	if err != nil {
-		return log.ErrorfNewErr("Failed to get current replicas: %v", err)
+		return fmt.Errorf("failed to get current replicas: %v", err)
 	}
 
 	// set replicas to scale based on current replicas
@@ -205,13 +199,13 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 	w.state.startScaleTime = time.Now().UnixNano()
 	err = weblogic.PatchReplicas(client, domainNamespace, domainUID, replicas)
 	if err != nil {
-		return log.ErrorfNewErr("Failed to patch the replicas: %v", err)
+		return fmt.Errorf("failed to patch the replicas: %v", err)
 	}
 	err = w.waitForReadyReplicas(client, domainNamespace, domainUID, replicas)
-	elapsedSecs := time.Now().UnixNano() - w.state.startScaleTime
 	if err != nil {
-		return log.ErrorfNewErr("Failed to get the ready replicas: %v", err)
+		return fmt.Errorf("failed to get the ready replicas: %v", err)
 	}
+	elapsedSecs := time.Now().UnixNano() - w.state.startScaleTime
 	if w.state.directionOut {
 		atomic.StoreInt64(&w.workerMetrics.scaleUpSeconds.Val, elapsedSecs)
 		atomic.AddInt64(&w.workerMetrics.scaleUpDomainCountTotal.Val, 1)
@@ -232,6 +226,7 @@ func (w worker) waitForReadyReplicas(client dynamic.Interface, namespace string,
 		if rr == readyReplicas {
 			break
 		}
+		w.log.Progressf("Waiting for ReadyReplicas to be %v", readyReplicas)
 		time.Sleep(1 * time.Second)
 	}
 	return nil
