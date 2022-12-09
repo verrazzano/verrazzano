@@ -289,4 +289,33 @@ spec:
       ports:
         - port: 8080
           protocol: TCP
+---
+# Network policy for Verrazzano cluster operator webhooks
+# Ingress: allow access to API port, allow metrics scraping by Prometheus on port 9100
+# Egress: allow all
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: verrazzano-cluster-operator-webhook
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      app: verrazzano-cluster-operator-webhook
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: 9443
+          protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              verrazzano.io/namespace: verrazzano-monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - port: 9100
+          protocol: TCP
 {{- end }}
