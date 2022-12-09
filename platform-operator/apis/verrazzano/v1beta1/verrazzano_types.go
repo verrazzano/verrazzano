@@ -426,7 +426,7 @@ type OpenSearchComponent struct {
 	Policies []vmov1.IndexManagementPolicy `json:"policies,omitempty"`
 	// Enable to add 3rd Party / Custom plugins not offered in the default OpenSearch image
 	// +optional
-	Plugins vmov1.Plugins `json:"plugins,omitempty"`
+	Plugins vmov1.OpenSearchPlugins `json:"plugins,omitempty"`
 }
 
 // OpenSearchNode specifies a node group in the OpenSearch cluster.
@@ -461,7 +461,7 @@ type OpenSearchDashboardsComponent struct {
 	Replicas *int32 `json:"replicas,omitempty"`
 	// Enable to add 3rd Party / Custom plugins not offered in the default OpenSearch-Dashboard image
 	// +optional
-	Plugins vmov1.Plugins `json:"plugins,omitempty"`
+	Plugins vmov1.OpenSearchDashboardsPlugins `json:"plugins,omitempty"`
 }
 
 // KubeStateMetricsComponent specifies the kube-state-metrics configuration.
