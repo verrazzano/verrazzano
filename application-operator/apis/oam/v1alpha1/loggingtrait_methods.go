@@ -4,7 +4,7 @@
 package v1alpha1
 
 import (
-	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
+	oamrt "github.com/crossplane/crossplane-runtime/apis/common/v1"
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 )
 
