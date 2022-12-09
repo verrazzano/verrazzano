@@ -10,7 +10,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 
-	oamrt "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
