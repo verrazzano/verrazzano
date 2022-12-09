@@ -1,21 +1,30 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  {{- with (mergeOverwrite (deepCopy .Values.global.deploymentAnnotations) .Values.repoServer.deploymentAnnotations) }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
   name: {{ template "argo-cd.repoServer.fullname" . }}
   labels:
     {{- include "argo-cd.labels" (dict "context" . "component" .Values.repoServer.name "name" .Values.repoServer.name) | nindent 4 }}
 spec:
+  {{- if not .Values.repoServer.autoscaling.enabled }}
+  replicas: {{ .Values.repoServer.replicas }}
+  {{- end }}
+  revisionHistoryLimit: {{ .Values.global.revisionHistoryLimit }}
   selector:
     matchLabels:
       {{- include "argo-cd.selectorLabels" (dict "context" . "name" .Values.repoServer.name) | nindent 6 }}
-  revisionHistoryLimit: 5
-  {{- if (ne .Values.repoServer.autoscaling.enabled true) }}
-  replicas: {{ .Values.repoServer.replicas }}
-  {{- end }}
   template:
     metadata:
       annotations:
         checksum/cmd-params: {{ include (print $.Template.BasePath "/argocd-configs/argocd-cmd-params-cm.yaml") . | sha256sum }}
+        {{- if .Values.repoServer.certificateSecret.enabled }}
+        checksum/repo-server-tls: {{ include (print $.Template.BasePath "/argocd-configs/argocd-repo-server-tls-secret.yaml") . | sha256sum }}
+        {{- end }}
         {{- with (mergeOverwrite (deepCopy .Values.global.podAnnotations) .Values.repoServer.podAnnotations) }}
         {{- range $key, $value := . }}
         {{ $key }}: {{ $value | quote }}
@@ -54,10 +63,6 @@ spec:
         {{- end }}
         {{- with .Values.repoServer.extraArgs }}
           {{- toYaml . | nindent 8 }}
-        {{- end }}
-        {{- with .Values.repoServer.containerSecurityContext }}
-        securityContext:
-          {{- toYaml . | nindent 10 }}
         {{- end }}
         env:
           {{- with .Values.repoServer.env }}
@@ -254,10 +259,10 @@ spec:
           timeoutSeconds: {{ .Values.repoServer.readinessProbe.timeoutSeconds }}
           successThreshold: {{ .Values.repoServer.readinessProbe.successThreshold }}
           failureThreshold: {{ .Values.repoServer.readinessProbe.failureThreshold }}
-        {{- with .Values.repoServer.resources }}
         resources:
-          {{- toYaml . | nindent 10 }}
-        {{- end }}
+          {{- toYaml .Values.repoServer.resources | nindent 10 }}
+        securityContext:
+          {{- toYaml .Values.repoServer.containerSecurityContext | nindent 10 }}
       {{- with .Values.repoServer.extraContainers }}
         {{- toYaml . | nindent 6 }}
       {{- end }}

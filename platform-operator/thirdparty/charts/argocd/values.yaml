@@ -46,6 +46,9 @@ global:
   additionalLabels: {}
     # app: argo-cd
 
+  # -- Number of old deployment ReplicaSets to retain. The rest will be garbage collected.
+  revisionHistoryLimit: 3
+
   # Default image used by all components
   image:
     # -- If defined, a repository applied to all Argo CD deployments
@@ -64,6 +67,12 @@ global:
     format: text
     # -- Set the global logging level. One of: `debug`, `info`, `warn` or `error`
     level: info
+
+  # -- Annotations for the all deployed Statefulsets
+  statefulsetAnnotations: {}
+
+  # -- Annotations for the all deployed Deployments
+  deploymentAnnotations: {}
 
   # -- Annotations for the all deployed pods
   podAnnotations: {}
@@ -95,7 +104,7 @@ configs:
   # General Argo CD configuration
   ## Ref: https://github.com/argoproj/argo-cd/blob/master/docs/operator-manual/argocd-cm.yaml
   cm:
-    # -- Create the argocd-cm configmap for [Declarative setup]
+    # -- Create the argocd-cm configmap for [declarative setup]
     create: true
 
     # -- Annotations to be added to argocd-cm configmap
@@ -231,6 +240,22 @@ configs:
     # The scope value can be a string, or a list of strings.
     scopes: "[groups]"
 
+  # GnuPG public keys for commit verification
+  ## Ref: https://argo-cd.readthedocs.io/en/stable/user-guide/gpg-verification/
+  gpg:
+    # -- Annotations to be added to argocd-gpg-keys-cm configmap
+    annotations: {}
+
+    # -- [GnuPG] public keys to add to the keyring
+    # @default -- `{}` (See [values.yaml])
+    ## Note: Public keys should be exported with `gpg --export --armor <KEY>`
+    keys: {}
+      # 4AEE18F83AFDEB23: |
+      #   -----BEGIN PGP PUBLIC KEY BLOCK-----
+      #   ...
+      #   -----END PGP PUBLIC KEY BLOCK-----
+
+
   # -- Provide one or multiple [external cluster credentials]
   # @default -- `[]` (See [values.yaml])
   ## Ref:
@@ -257,30 +282,6 @@ configs:
     #     tlsClientConfig:
     #       insecure: false
     #       caData: "<base64 encoded certificate>"
-
-  # -- GnuPG key ring annotations
-  gpgKeysAnnotations: {}
-  # -- [GnuPG](https://argo-cd.readthedocs.io/en/stable/user-guide/gpg-verification/) keys to add to the key ring
-  # @default -- `{}` (See [values.yaml])
-  gpgKeys: {}
-    # 4AEE18F83AFDEB23: |
-    #     -----BEGIN PGP PUBLIC KEY BLOCK-----
-    #
-    #     mQENBFmUaEEBCACzXTDt6ZnyaVtueZASBzgnAmK13q9Urgch+sKYeIhdymjuMQta
-    #     x15OklctmrZtqre5kwPUosG3/B2/ikuPYElcHgGPL4uL5Em6S5C/oozfkYzhwRrT
-    #     SQzvYjsE4I34To4UdE9KA97wrQjGoz2Bx72WDLyWwctD3DKQtYeHXswXXtXwKfjQ
-    #     7Fy4+Bf5IPh76dA8NJ6UtjjLIDlKqdxLW4atHe6xWFaJ+XdLUtsAroZcXBeWDCPa
-    #     buXCDscJcLJRKZVc62gOZXXtPfoHqvUPp3nuLA4YjH9bphbrMWMf810Wxz9JTd3v
-    #     yWgGqNY0zbBqeZoGv+TuExlRHT8ASGFS9SVDABEBAAG0NUdpdEh1YiAod2ViLWZs
-    #     b3cgY29tbWl0IHNpZ25pbmcpIDxub3JlcGx5QGdpdGh1Yi5jb20+iQEiBBMBCAAW
-    #     BQJZlGhBCRBK7hj4Ov3rIwIbAwIZAQAAmQEH/iATWFmi2oxlBh3wAsySNCNV4IPf
-    #     DDMeh6j80WT7cgoX7V7xqJOxrfrqPEthQ3hgHIm7b5MPQlUr2q+UPL22t/I+ESF6
-    #     9b0QWLFSMJbMSk+BXkvSjH9q8jAO0986/pShPV5DU2sMxnx4LfLfHNhTzjXKokws
-    #     +8ptJ8uhMNIDXfXuzkZHIxoXk3rNcjDN5c5X+sK8UBRH092BIJWCOfaQt7v7wig5
-    #     4Ra28pM9GbHKXVNxmdLpCFyzvyMuCmINYYADsC848QQFFwnd4EQnupo6QvhEVx1O
-    #     j7wDwvuH5dCrLuLwtwXaQh0onG4583p0LGms2Mf5F+Ick6o/4peOlBoZz48=
-    #     =Bvzs
-    #     -----END PGP PUBLIC KEY BLOCK-----
 
   # -- Known Hosts configmap annotations
   knownHostsAnnotations: {}
@@ -415,16 +416,10 @@ configs:
       # LDAP_PASSWORD: "mypassword"
 
     # -- Argo TLS Data
-    argocdServerTlsConfig:
-      {}
-      # key:
-      # crt: |
-      #   -----BEGIN CERTIFICATE-----
-      #   <cert data>
-      #   -----END CERTIFICATE-----
-      #   -----BEGIN CERTIFICATE-----
-      #   <ca cert data>
-      #   -----END CERTIFICATE-----
+    # DEPRECATED - Use server.certificate or server.certificateSecret
+    # argocdServerTlsConfig:
+    #  key: ''
+    #  crt: ''
 
     # -- Bcrypt hashed admin password
     ## Argo expects the password in the secret to be bcrypt hashed. You can create this hash with
@@ -551,6 +546,9 @@ controller:
   # - secretRef:
   #     name: secret-name
 
+  # -- Annotations for the application controller StatefulSet
+  statefulsetAnnotations: {}
+
   # -- Annotations to be added to application controller pods
   podAnnotations: {}
 
@@ -558,13 +556,16 @@ controller:
   podLabels: {}
 
   # -- Application controller container-level security context
+  # @default -- See [values.yaml]
   containerSecurityContext:
-    {}
-    # capabilities:
-    #   drop:
-    #     - all
-    # readOnlyRootFilesystem: true
-    # runAsNonRoot: true
+    runAsNonRoot: true
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    seccompProfile:
+      type: RuntimeDefault
+    capabilities:
+      drop:
+      - ALL
 
   # -- Application controller listening port
   containerPort: 8082
@@ -805,7 +806,7 @@ dex:
     # -- Dex image repository
     repository: ghcr.io/dexidp/dex
     # -- Dex image tag
-    tag: v2.35.3-distroless
+    tag: v2.35.3
     # -- Dex imagePullPolicy
     # @default -- `""` (defaults to global.image.imagePullPolicy)
     imagePullPolicy: ""
@@ -814,6 +815,7 @@ dex:
   # @default -- `[]` (defaults to global.imagePullSecrets)
   imagePullSecrets: []
 
+  # Argo CD init image that creates Dex config
   initImage:
     # -- Argo CD init image repository
     # @default -- `""` (defaults to global.image.repository)
@@ -836,11 +838,43 @@ dex:
   # - secretRef:
   #     name: secret-name
 
+  # TLS certificate configuration via Secret
+  ## Ref: https://argo-cd.readthedocs.io/en/stable/operator-manual/tls/#configuring-tls-to-argocd-dex-server
+  ## Note: Issuing certificates via cert-manager in not supported right now because it's not possible to restart Dex automatically without extra controllers.
+  certificateSecret:
+    # -- Create argocd-dex-server-tls secret
+    enabled: false
+    # -- Labels to be added to argocd-dex-server-tls secret
+    labels: {}
+    # -- Annotations to be added to argocd-dex-server-tls secret
+    annotations: {}
+    # -- Certificate authority. Required for self-signed certificates.
+    ca: ''
+    # -- Certificate private key
+    key: ''
+    # -- Certificate data. Must contain SANs of Dex service (ie: argocd-dex-server, argocd-dex-server.argo-cd.svc)
+    crt: ''
+
+  # -- Annotations to be added to the Dex server Deployment
+  deploymentAnnotations: {}
+
   # -- Annotations to be added to the Dex server pods
   podAnnotations: {}
 
   # -- Labels to be added to the Dex server pods
   podLabels: {}
+
+  # -- Dex container-level security context
+  # @default -- See [values.yaml]
+  containerSecurityContext:
+    runAsNonRoot: true
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    seccompProfile:
+      type: RuntimeDefault
+    capabilities:
+      drop:
+      - ALL
 
   ## Probes for Dex server
   ## Supported from Dex >= 2.28.0
@@ -921,14 +955,6 @@ dex:
 
   # -- Priority class for dex
   priorityClassName: ""
-
-  # -- Dex container-level security context
-  containerSecurityContext:
-    {}
-    # capabilities:
-    #   drop:
-    #     - all
-    # readOnlyRootFilesystem: true
 
   # -- Resource limits and requests for dex
   resources: {}
@@ -1015,11 +1041,30 @@ redis:
   # - secretRef:
   #     name: secret-name
 
+  # -- Annotations to be added to the Redis server Deployment
+  deploymentAnnotations: {}
+
   # -- Annotations to be added to the Redis server pods
   podAnnotations: {}
 
   # -- Labels to be added to the Redis server pods
   podLabels: {}
+
+  # -- Redis pod-level security context
+  # @default -- See [values.yaml]
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 999
+    seccompProfile:
+      type: RuntimeDefault
+
+  # -- Redis container-level security context
+  # @default -- See [values.yaml]
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
 
   # -- [Node selector]
   nodeSelector: {}
@@ -1038,19 +1083,6 @@ redis:
 
   # -- Priority class for redis
   priorityClassName: ""
-
-  # -- Redis container-level security context
-  containerSecurityContext:
-    {}
-    # capabilities:
-    #   drop:
-    #     - all
-    # readOnlyRootFilesystem: true
-
-  # -- Redis pod-level security context
-  securityContext:
-    runAsNonRoot: true
-    runAsUser: 999
 
   serviceAccount:
     # -- Create a service account for the redis pod
@@ -1113,6 +1145,19 @@ redis:
       imagePullPolicy: IfNotPresent
     # -- Port to use for redis-exporter sidecar
     containerPort: 9121
+
+    # -- Redis exporter security context
+    # @default -- See [values.yaml]
+    containerSecurityContext:
+      runAsNonRoot: true
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      seccompProfile:
+        type: RuntimeDefault
+      capabilities:
+        drop:
+        - ALL
+
     # -- Resource limits and requests for redis-exporter sidecar
     resources: {}
       # limits:
@@ -1313,6 +1358,9 @@ server:
   # @default -- `""` (defaults to global.logging.level)
   # logLevel: ""
 
+  # -- Annotations to be added to server Deployment
+  deploymentAnnotations: {}
+
   # -- Annotations to be added to server pods
   podAnnotations: {}
 
@@ -1371,13 +1419,17 @@ server:
   # -- Priority class for the Argo CD server
   priorityClassName: ""
 
-  # -- Servers container-level security context
+  # -- Server container-level security context
+  # @default -- See [values.yaml]
   containerSecurityContext:
-    {}
-    # capabilities:
-    #   drop:
-    #     - all
-    # readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    seccompProfile:
+      type: RuntimeDefault
+    capabilities:
+      drop:
+      - ALL
 
   # -- Resource limits and requests for the Argo CD server
   resources: {}
@@ -1388,16 +1440,34 @@ server:
   #    cpu: 50m
   #    memory: 64Mi
 
-  ## Certificate configuration
+  # TLS certificate configuration via cert-manager
+  ## Ref: https://argo-cd.readthedocs.io/en/stable/operator-manual/tls/#tls-certificates-used-by-argocd-server
   certificate:
     # -- Deploy a Certificate resource (requires cert-manager)
     enabled: false
+    # -- The name of the Secret that will be automatically created and managed by this Certificate resource
+    secretName: argocd-server-tls
     # -- Certificate primary domain (commonName)
     domain: argocd.example.com
-    # -- The requested 'duration' (i.e. lifetime) of the Certificate. Value must be in units accepted by Go time.ParseDuration
+    # -- Certificate Subject Alternate Names (SANs)
+    additionalHosts: []
+    # -- The requested 'duration' (i.e. lifetime) of the certificate.
+    # @default -- `""` (defaults to 2160h = 90d if not specified)
+    ## Ref: https://cert-manager.io/docs/usage/certificate/#renewal
     duration: ""
-    # -- How long before the currently issued certificate's expiry cert-manager should renew the certificate. Value must be in units accepted by Go time.ParseDuration
+    # -- How long before the expiry a certificate should be renewed.
+    # @default -- `""` (defaults to 360h = 15d if not specified)
+    ## Ref: https://cert-manager.io/docs/usage/certificate/#renewal
     renewBefore: ""
+    # Certificate issuer
+    ## Ref: https://cert-manager.io/docs/concepts/issuer
+    issuer:
+      # -- Certificate issuer group. Set if using an external issuer. Eg. `cert-manager.io`
+      group: ""
+      # -- Certificate issuer kind. Either `Issuer` or `ClusterIssuer`
+      kind: ""
+      # -- Certificate isser name. Eg. `letsencrypt`
+      name: ""
     # Private key of the certificate
     privateKey:
       # -- Rotation policy of private key when certificate is re-issued. Either: `Never` or `Always`
@@ -1408,17 +1478,20 @@ server:
       algorithm: RSA
       # -- Key bit size of the private key. If algorithm is set to `Ed25519`, size is ignored.
       size: 2048
-    issuer:
-      # -- Certificate issuer group. Set if using an external issuer. Eg. `cert-manager.io`
-      group: ""
-      # -- Certificate issuer kind. Either `Issuer` or `ClusterIssuer`
-      kind: ""
-      # -- Certificate isser name. Eg. `letsencrypt`
-      name: ""
-    # -- Certificate manager additional hosts
-    additionalHosts: []
-    # -- The name of the Secret that will be automatically created and managed by this Certificate resource
-    secretName: argocd-server-tls
+
+  # TLS certificate configuration via Secret
+  ## Ref: https://argo-cd.readthedocs.io/en/stable/operator-manual/tls/#tls-certificates-used-by-argocd-server
+  certificateSecret:
+    # -- Create argocd-server-tls secret
+    enabled: false
+    # -- Annotations to be added to argocd-server-tls secret
+    annotations: {}
+    # -- Labels to be added to argocd-server-tls secret
+    labels: {}
+    # -- Private Key of the certificate
+    key: ''
+    # -- Certificate data
+    crt: ''
 
   ## Server service configuration
   service:
@@ -1546,7 +1619,7 @@ server:
     # -- Ingress TLS configuration
     tls:
       []
-      # - secretName: argocd-tls-certificate
+      # - secretName: your-certificate-name
       #   hosts:
       #     - argocd.example.com
 
@@ -1612,7 +1685,7 @@ server:
     # -- Ingress TLS configuration for dedicated [gRPC-ingress]
     tls:
       []
-      # - secretName: argocd-tls-certificate
+      # - secretName: your-certificate-name
       #   hosts:
       #     - argocd.example.com
 
@@ -1732,6 +1805,18 @@ server:
       # -- Image pull policy for extensions
       imagePullPolicy: IfNotPresent
 
+    # -- Server UI extensions container-level security context
+    # @default -- See [values.yaml]
+    containerSecurityContext:
+      runAsNonRoot: true
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      seccompProfile:
+        type: RuntimeDefault
+      capabilities:
+        drop:
+        - ALL
+
     # -- Resource limits and requests for the argocd-extensions container
     resources: {}
     #  limits:
@@ -1831,6 +1916,9 @@ repoServer:
   # @default -- `""` (defaults to global.logging.format)
   # logLevel: ""
 
+  # -- Annotations to be added to repo server Deployment
+  deploymentAnnotations: {}
+
   # -- Annotations to be added to repo server pods
   podAnnotations: {}
 
@@ -1895,12 +1983,16 @@ repoServer:
   priorityClassName: ""
 
   # -- Repo server container-level security context
+  # @default -- See [values.yaml]
   containerSecurityContext:
-    {}
-    # capabilities:
-    #   drop:
-    #     - all
-    # readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    seccompProfile:
+      type: RuntimeDefault
+    capabilities:
+      drop:
+      - ALL
 
   # -- Resource limits and requests for the repo server pods
   resources: {}
@@ -1910,6 +2002,23 @@ repoServer:
   #  requests:
   #    cpu: 10m
   #    memory: 64Mi
+
+  # TLS certificate configuration via Secret
+  ## Ref: https://argo-cd.readthedocs.io/en/stable/operator-manual/tls/#configuring-tls-to-argocd-repo-server
+  ## Note: Issuing certificates via cert-manager in not supported right now because it's not possible to restart repo server automatically without extra controllers.
+  certificateSecret:
+    # -- Create argocd-repo-server-tls secret
+    enabled: false
+    # -- Annotations to be added to argocd-repo-server-tls secret
+    annotations: {}
+    # -- Labels to be added to argocd-repo-server-tls secret
+    labels: {}
+    # -- Certificate authority. Required for self-signed certificates.
+    ca: ''
+    # -- Certificate private key
+    key: ''
+    # -- Certificate data. Must contain SANs of Repo service (ie: argocd-repo-server, argocd-repo-server.argo-cd.svc)
+    crt: ''
 
   ## Repo server service configuration
   service:
@@ -2065,12 +2174,8 @@ applicationSet:
     metricsAddr: :8080
     # -- The default health check port
     probeBindAddr: :8081
-    # -- The default leader election setting
-    enableLeaderElection: false
     # -- How application is synced between the generator and the cluster
     policy: sync
-    # -- Print debug logs
-    debug: false
     # -- Enable dry run mode
     dryRun: false
 
@@ -2143,24 +2248,26 @@ applicationSet:
     # If not set and create is true, a name is generated using the fullname template
     name: ""
 
+  # -- Annotations to be added to ApplicationSet controller Deployment
+  deploymentAnnotations: {}
+
   # -- Annotations for the controller pods
   podAnnotations: {}
 
   # -- Labels for the controller pods
   podLabels: {}
 
-  # -- Pod Security Context
-  podSecurityContext: {}
-    # fsGroup: 2000
-
-  # -- Security Context
-  securityContext: {}
-    # capabilities:
-    #   drop:
-    #   - ALL
-    # readOnlyRootFilesystem: true
-    # runAsNonRoot: true
-    # runAsUser: 1000
+  # -- ApplicationSet controller container-level security context
+  # @default -- See [values.yaml]
+  containerSecurityContext:
+    runAsNonRoot: true
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    seccompProfile:
+      type: RuntimeDefault
+    capabilities:
+      drop:
+      - ALL
 
   ## Probes for ApplicationSet controller (optional)
   ## Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/
@@ -2434,14 +2541,26 @@ notifications:
     # service.slack: |
     #   token: $slack-token
 
+  # -- Annotations to be applied to the notifications controller Deployment
+  deploymentAnnotations: {}
+
   # -- Annotations to be applied to the controller Pods
   podAnnotations: {}
 
   # -- Labels to be applied to the controller Pods
   podLabels: {}
 
-  # -- Container Security Context
-  containerSecurityContext: {}
+  # -- Notification controller container-level security Context
+  # @default -- See [values.yaml]
+  containerSecurityContext:
+    runAsNonRoot: true
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    seccompProfile:
+      type: RuntimeDefault
+    capabilities:
+      drop:
+      - ALL
 
   # -- Priority class for the controller pods
   priorityClassName: ""
@@ -2755,10 +2874,6 @@ notifications:
       ## You have to set secret.notifiers.slack.signingSecret
       enabled: false
 
-      # -- The deployment strategy to use to replace existing pods with new ones
-      updateStrategy:
-        type: Recreate
-
       ## Slack bot Pod Disruption Budget
       ## Ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/
       pdb:
@@ -2775,7 +2890,7 @@ notifications:
         ## Has higher precedence over `notifications.bots.slack.pdb.minAvailable`
         maxUnavailable: ""
 
-      ## Slack bot imabe
+      ## Slack bot image
       image:
         # -- Repository to use for the Slack bot
         # @default -- `""` (defaults to global.image.repository)
@@ -2810,12 +2925,17 @@ notifications:
         # -- Annotations applied to created service account
         annotations: {}
 
-      # -- Pod Security Context
-      securityContext:
+      # -- Slack bot container-level security Context
+      # @default -- See [values.yaml]
+      containerSecurityContext:
         runAsNonRoot: true
-
-      # -- Container Security Context
-      containerSecurityContext: {}
+        readOnlyRootFilesystem: true
+        allowPrivilegeEscalation: false
+        seccompProfile:
+          type: RuntimeDefault
+        capabilities:
+          drop:
+          - ALL
 
       # -- Resource limits and requests for the Slack bot
       resources: {}
