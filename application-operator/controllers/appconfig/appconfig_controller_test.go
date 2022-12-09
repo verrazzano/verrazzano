@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"testing"
 
-	oamrt "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"

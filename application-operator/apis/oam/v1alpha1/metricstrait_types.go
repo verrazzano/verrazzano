@@ -4,7 +4,7 @@
 package v1alpha1
 
 import (
-	oamrt "github.com/crossplane/crossplane-runtime/apis/common/v1"
+	oamrt "github.com/crossplane/crossplane-runtime/apis/core/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
