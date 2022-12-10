@@ -27,7 +27,7 @@ func TestAddStatus(t *testing.T) {
 	p.Pause()
 
 	vz.Status.Components = map[string]*vzapi.ComponentStatusDetails{}
-	for _, component := range registry.GetComponents() {
+	for _, component := range registry.GetMetricComponents() {
 		vz.Status.Components[component.Name()] = &vzapi.ComponentStatusDetails{}
 	}
 	p = newTestHealthCheck(vz)

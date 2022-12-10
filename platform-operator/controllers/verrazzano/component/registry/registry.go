@@ -106,6 +106,29 @@ func getComponents() []spi.Component {
 	return componentsRegistry
 }
 
+func GetMetricComponents() []spi.Component {
+	return []spi.Component{
+		authproxy.NewComponent(),
+		istio.NewComponent(),
+		nginx.NewComponent(),
+		certmanager.NewComponent(),
+		externaldns.NewComponent(),
+		opensearch.NewComponent(),
+		opensearchdashboards.NewComponent(),
+		grafana.NewComponent(),
+		mysql.NewComponent(),
+		keycloak.NewComponent(),
+		kiali.NewComponent(),
+		promoperator.NewComponent(),
+		promadapter.NewComponent(),
+		kubestatemetrics.NewComponent(),
+		jaegeroperator.NewComponent(),
+		fluentd.NewComponent(),
+		velero.NewComponent(),
+		rancherbackup.NewComponent(),
+	}
+}
+
 func FindComponent(componentName string) (bool, spi.Component) {
 	for _, comp := range GetComponents() {
 		if comp.Name() == componentName {
