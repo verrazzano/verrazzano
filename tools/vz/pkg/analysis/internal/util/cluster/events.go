@@ -132,7 +132,7 @@ func CheckEventsForWarnings(log *zap.SugaredLogger, events []corev1.Event, event
 		for index, previousEvent := range finalEventList {
 			// If we already iterated through an event for the same involved object with given eventType
 			// And that event occurred before this current event, replace it accordingly
-			if IsInvolvedObjectSame(event, previousEvent) && event.LastTimestamp.Time.After(previousEvent.LastTimestamp.Time) {
+			if isInvolvedObjectSame(event, previousEvent) && event.LastTimestamp.Time.After(previousEvent.LastTimestamp.Time) {
 				foundInvolvedObject = true
 				// Remove the previous event from the final list
 				finalEventList = append(finalEventList[:index], finalEventList[index+1:]...)
@@ -150,13 +150,16 @@ func CheckEventsForWarnings(log *zap.SugaredLogger, events []corev1.Event, event
 	}
 
 	for _, event := range finalEventList {
+		if len(event.Message) == 0 {
+			continue
+		}
 		message = append(message, fmt.Sprintf("Namespace: %s, %s %s, Message: %s, Reason: %s", event.InvolvedObject.Namespace, event.InvolvedObject.Kind, event.InvolvedObject.Name, event.Message, event.Reason))
 	}
 
 	return message, nil
 }
 
-func IsInvolvedObjectSame(eventA corev1.Event, eventB corev1.Event) bool {
+func isInvolvedObjectSame(eventA corev1.Event, eventB corev1.Event) bool {
 	return eventA.InvolvedObject.Kind == eventB.InvolvedObject.Kind &&
 		(eventA.InvolvedObject.Name == eventB.InvolvedObject.Name) &&
 		eventA.InvolvedObject.Namespace == eventB.InvolvedObject.Namespace
