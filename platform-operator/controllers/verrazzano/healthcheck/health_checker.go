@@ -60,7 +60,7 @@ func (p *HealthChecker) Start() {
 			select {
 			case <-ticker.C:
 				// timer event causes availability update
-				err := p.updateAvailability(registry.GetComponents())
+				err := p.updateAvailability(registry.GetMetricComponents())
 				if err != nil {
 					p.logger.Errorf("%v", err)
 				}

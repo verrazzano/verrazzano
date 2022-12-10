@@ -14,12 +14,9 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
@@ -28,23 +25,14 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
 	promadapter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/adapter"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/kubestatemetrics"
-	promnodeexporter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/nodeexporter"
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/pushgateway"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancherbackup"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/velero"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -54,42 +42,42 @@ var MetricsExp MetricsExporter
 type metricName string
 
 const (
-	ReconcileCounter               metricName = "reconcile counter"
-	ReconcileError                 metricName = "reconcile error"
-	ReconcileDuration              metricName = "reconcile duration"
-	AvailableComponents            metricName = "available components"
-	EnabledComponents              metricName = "enabled components"
-	authproxyMetricName            metricName = authproxy.ComponentJSONName
-	oamMetricName                  metricName = oam.ComponentJSONName
-	appoperMetricName              metricName = appoper.ComponentJSONName
-	istioMetricName                metricName = istio.ComponentJSONName
-	weblogicMetricName             metricName = weblogic.ComponentJSONName
-	nginxMetricName                metricName = nginx.ComponentJSONName
-	certmanagerMetricName          metricName = certmanager.ComponentJSONName
-	clusterOperatorMetricName      metricName = clusteroperator.ComponentJSONName
-	externaldnsMetricName          metricName = externaldns.ComponentJSONName
-	rancherMetricName              metricName = rancher.ComponentJSONName
-	verrazzanoMetricName           metricName = verrazzano.ComponentJSONName
-	vmoMetricName                  metricName = vmo.ComponentJSONName
+	ReconcileCounter    metricName = "reconcile counter"
+	ReconcileError      metricName = "reconcile error"
+	ReconcileDuration   metricName = "reconcile duration"
+	AvailableComponents metricName = "available components"
+	EnabledComponents   metricName = "enabled components"
+	authproxyMetricName metricName = authproxy.ComponentJSONName
+	//oamMetricName                  metricName = oam.ComponentJSONName
+	//appoperMetricName              metricName = appoper.ComponentJSONName
+	istioMetricName metricName = istio.ComponentJSONName
+	//weblogicMetricName             metricName = weblogic.ComponentJSONName
+	nginxMetricName       metricName = nginx.ComponentJSONName
+	certmanagerMetricName metricName = certmanager.ComponentJSONName
+	//clusterOperatorMetricName      metricName = clusteroperator.ComponentJSONName
+	externaldnsMetricName metricName = externaldns.ComponentJSONName
+	//rancherMetricName              metricName = rancher.ComponentJSONName
+	//verrazzanoMetricName           metricName = verrazzano.ComponentJSONName
+	//vmoMetricName                  metricName = vmo.ComponentJSONName
 	opensearchMetricName           metricName = opensearch.ComponentJSONName
 	opensearchdashboardsMetricName metricName = opensearchdashboards.ComponentJSONName
 	grafanaMetricName              metricName = grafana.ComponentJSONName
 	coherenceMetricName            metricName = coherence.ComponentJSONName
 	mysqlMetricName                metricName = mysql.ComponentJSONName
-	mysqlOperatorMetricName        metricName = mysqloperator.ComponentJSONName
-	keycloakMetricname             metricName = keycloak.ComponentJSONName
-	kialiMetricName                metricName = kiali.ComponentJSONName
-	promoperatorMetricname         metricName = promoperator.ComponentJSONName
-	promadapterMetricname          metricName = promadapter.ComponentJSONName
-	kubestatemmetricsMetricName    metricName = kubestatemetrics.ComponentJSONName
-	pushgatewayMetricName          metricName = pushgateway.ComponentJSONName
-	promnodeexporterMetricname     metricName = promnodeexporter.ComponentJSONName
-	jaegeroperatorMetricName       metricName = jaegeroperator.ComponentJSONName
-	consoleMetricName              metricName = console.ComponentJSONName
-	fluentdMetricName              metricName = fluentd.ComponentJSONName
-	veleroMetricName               metricName = velero.ComponentJSONName
-	rancherBackupMetricName        metricName = rancherbackup.ComponentJSONName
-	networkpoliciesMetricName      metricName = networkpolicies.ComponentJSONName
+	//mysqlOperatorMetricName        metricName = mysqloperator.ComponentJSONName
+	keycloakMetricname          metricName = keycloak.ComponentJSONName
+	kialiMetricName             metricName = kiali.ComponentJSONName
+	promoperatorMetricname      metricName = promoperator.ComponentJSONName
+	promadapterMetricname       metricName = promadapter.ComponentJSONName
+	kubestatemmetricsMetricName metricName = kubestatemetrics.ComponentJSONName
+	//pushgatewayMetricName       metricName = pushgateway.ComponentJSONName
+	//promnodeexporterMetricname  metricName = promnodeexporter.ComponentJSONName
+	jaegeroperatorMetricName metricName = jaegeroperator.ComponentJSONName
+	//consoleMetricName           metricName = console.ComponentJSONName
+	fluentdMetricName       metricName = fluentd.ComponentJSONName
+	veleroMetricName        metricName = velero.ComponentJSONName
+	rancherBackupMetricName metricName = rancherbackup.ComponentJSONName
+	//networkpoliciesMetricName   metricName = networkpolicies.ComponentJSONName
 )
 
 func init() {
