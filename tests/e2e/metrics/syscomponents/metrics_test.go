@@ -90,6 +90,7 @@ var excludePodsVS = []string{
 	"verrazzano-monitoring-operator",
 	"verrazzano-cluster-operator",
 	"verrazzano-operator",
+	"weblogic-operator-webhook",
 }
 
 // List of pods to be excluded from istio-system namespace for envoy-stats as they do not have envoy
