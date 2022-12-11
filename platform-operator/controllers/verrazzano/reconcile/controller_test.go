@@ -17,7 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	vzContext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
-	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	v1 "k8s.io/api/batch/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/event"

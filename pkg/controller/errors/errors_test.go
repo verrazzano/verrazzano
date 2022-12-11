@@ -3,6 +3,7 @@
 package spi
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -83,6 +84,50 @@ func TestRetryableError(t *testing.T) {
 		} else {
 			assert.False(err.HasCause(), "HasCause should return false")
 		}
+	}
+}
+
+func TestRetryableErrorFmt(t *testing.T) {
+	var tests = []struct {
+		name string
+		err  RetryableError
+		msg  string
+	}{
+		{
+			"empty error",
+			RetryableError{},
+			"Retryable error",
+		},
+		{
+			"error with operation",
+			RetryableError{
+				Operation: "foobar",
+			},
+			"Retryable error, operation: foobar",
+		},
+		{
+			"error with source and cause",
+			RetryableError{
+				Source: "foo",
+				Cause:  errors.New("bar"),
+			},
+			"Retryable error, source: foo, cause: bar",
+		},
+		{
+			"error with source, operation and cause",
+			RetryableError{
+				Source:    "src",
+				Operation: "oper",
+				Cause:     errors.New("c"),
+			},
+			"Retryable error, source: src, operation: oper, cause: c",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.msg, tt.err.Error())
+		})
 	}
 }
 

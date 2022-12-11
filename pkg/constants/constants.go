@@ -168,10 +168,10 @@ const MysqlBackupMutatingWebhookName = "verrazzano-mysql-backup"
 const MysqlBackupMutatingWebhookPath = "/mysql-backup-job-annotate"
 
 // VerrazzanoClusterRancherName is the name for the Rancher cluster role and secret used to grant permissions to the Verrazzano cluster user
-const VerrazzanoClusterRancherName = "verrazzano-cluster-user"
+const VerrazzanoClusterRancherName = "verrazzano-cluster-registrar"
 
 // VerrazzanoClusterRancherUsername is the username in Rancher used to identify the Verrazzano cluster user
-const VerrazzanoClusterRancherUsername = "verrazzanocluster"
+const VerrazzanoClusterRancherUsername = "vz-cluster-reg"
 
 // Components Names
 const (

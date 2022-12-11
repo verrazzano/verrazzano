@@ -19,7 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/restart"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/scale"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/writelogs"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/promtheus/alerts"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/prometheus/alerts"
 )
 
 var startMetricsFunc = metrics2.StartMetricsServerOrDie

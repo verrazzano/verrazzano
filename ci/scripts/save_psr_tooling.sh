@@ -25,10 +25,10 @@ if [ -z "$JENKINS_URL" ] || [ -z "${PSR_PATH}" ] || [ -z "$WORKSPACE" ] || [ -z 
 fi
 
 cd ${PSR_PATH}/out
-tar -czf ${WORKSPACE}/psrctl-linux-amd64.tar.gz -C linux_amd64 .
-tar -czf ${WORKSPACE}/psrctl-linux-arm64.tar.gz -C linux_arm64 .
-tar -czf ${WORKSPACE}/psrctl-darwin-amd64.tar.gz -C darwin_amd64 .
-tar -czf ${WORKSPACE}/psrctl-darwin-arm64.tar.gz -C darwin_arm64 .
+tar -czf ${WORKSPACE}/psrctl-linux-amd64.tar.gz -C linux_amd64 ./psrctl
+tar -czf ${WORKSPACE}/psrctl-linux-arm64.tar.gz -C linux_arm64 ./psrctl
+tar -czf ${WORKSPACE}/psrctl-darwin-amd64.tar.gz -C darwin_amd64 ./psrctl
+tar -czf ${WORKSPACE}/psrctl-darwin-arm64.tar.gz -C darwin_arm64 ./psrctl
 
 cd ${WORKSPACE}
 sha256sum psrctl-linux-amd64.tar.gz > psrctl-linux-amd64.tar.gz.sha256

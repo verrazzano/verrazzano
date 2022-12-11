@@ -5,6 +5,7 @@ package explain
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
@@ -34,15 +35,15 @@ func NewCmdExplain(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.Example = helpExample
 
 	cmd.PersistentFlags().StringVarP(&scenarioID, constants.FlagScenario, constants.FlagsScenarioShort, "", constants.FlagScenarioHelp)
-	cmd.PersistentFlags().BoolVarP(&verbose, constants.FlagVerbose, constants.FlagVerboseShort, true, constants.FlagVerboseHelp)
+	cmd.PersistentFlags().BoolVarP(&verbose, constants.FlagVerbose, constants.FlagVerboseShort, false, constants.FlagVerboseHelp)
 
 	return cmd
 }
 
 // RunCmdExplain - explain the "psrctl explain" command
 func RunCmdExplain(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	fmt.Println()
-	fmt.Println("Listing available scenarios ...")
+	fmt.Fprintln(vzHelper.GetOutputStream())
+	fmt.Fprintln(vzHelper.GetOutputStream(), "Listing available scenarios ...")
 
 	m := manifest.ManifestManager{
 		Log:      vzlog.DefaultLogger(),
@@ -51,23 +52,23 @@ func RunCmdExplain(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 
 	scs, err := m.ListScenarioManifests()
 	if err != nil {
-		fmt.Printf("%v", err)
-		return err
+		return fmt.Errorf("Failed to list scenario manifests: %s", err)
 	}
 	for _, sc := range scs {
 		if len(scenarioID) > 0 && sc.ID != scenarioID {
 			continue
 		}
-		fmt.Println("----------------")
-		fmt.Printf("Name: %s\n", sc.Name)
-		fmt.Printf("ID: %s\n", sc.ID)
-		fmt.Printf("Description: %s\n", sc.Description)
+		fmt.Fprintln(vzHelper.GetOutputStream(), "----------------")
+		fmt.Fprintln(vzHelper.GetOutputStream())
+		fmt.Fprintf(vzHelper.GetOutputStream(), "ID: %s\n", sc.ID)
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Name: %s\n", sc.Name)
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Description: %s\n", sc.Description)
 
 		// If verbose
 		if verbose {
-			fmt.Println("Use cases:")
+			fmt.Fprintln(vzHelper.GetOutputStream(), "Use cases:")
 			for _, uc := range sc.Usecases {
-				fmt.Printf("Usecase path %s :  Description: %s\n", uc.UsecasePath, uc.Description)
+				fmt.Fprintf(vzHelper.GetOutputStream(), "Usecase path %s:  Description: %s\n", uc.UsecasePath, uc.Description)
 			}
 		}
 		if len(scenarioID) > 0 && sc.ID == scenarioID {

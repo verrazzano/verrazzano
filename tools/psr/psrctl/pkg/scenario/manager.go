@@ -23,7 +23,8 @@ type ScenarioMananger struct {
 
 // NewManager returns a scenario ScenarioMananger
 func NewManager(namespace string, helmOverrides ...helm.HelmOverrides) (ScenarioMananger, error) {
-	client, err := k8sutil.GetCoreV1Client(vzlog.DefaultLogger())
+	log := vzlog.DefaultLogger()
+	client, err := k8sutil.GetCoreV1Func(log)
 	if err != nil {
 		return ScenarioMananger{}, fmt.Errorf("Failed to get CoreV1 client: %v", err)
 	}

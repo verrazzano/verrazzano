@@ -422,6 +422,7 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 			}
 		}
 	}
+	messages = checkIfHelmPodsAdded(messages)
 	supportingData := make([]report.SupportData, 1)
 	supportingData[0] = report.SupportData{
 		Messages:    messages,
@@ -429,13 +430,42 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 	}
 	// If all of the problematic pods were pending only, just report that, otherwise report them as problematic if some are
 	// failing or unknown
-	if pendingPodsSeen > 0 && problematicNotPending == 0 {
-		report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PendingPods, clusterRoot, supportingData))
-	} else {
-		report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PodProblemsNotReported, clusterRoot, supportingData))
+	if len(messages) > 0 {
+		if pendingPodsSeen > 0 && problematicNotPending == 0 {
+			report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PendingPods, clusterRoot, supportingData))
+		} else {
+			report.ContributeIssue(log, report.NewKnownIssueSupportingData(report.PodProblemsNotReported, clusterRoot, supportingData))
+		}
 	}
 }
 
+// checkIfHelmPodsAdded tries to assess whether there is an issue with helm and rancher pods or not
+// in cattle-system namespace
+// if the helm pods are not fine and rancher pods are working, then it deletes the issues related to helm operation pods in cattle-system
+// it edits the message array to remove the messages related to helm-operation pods and returns the modified message array
+func checkIfHelmPodsAdded(messages []string) []string {
+	isHelm := false
+	isRancher := false
+	var indices []int
+	for i, data := range messages {
+		if strings.Contains(data, "Namespace cattle-system, Pod helm-operation") {
+			isHelm = true
+			indices = append(indices, i)
+		}
+		if strings.Contains(data, "Namespace cattle-system, Pod rancher") {
+			isRancher = true
+		}
+
+	}
+	if isHelm && !isRancher {
+		for i, index := range indices {
+			messages = append(messages[:(index-i)], messages[(index+1-i):]...)
+
+		}
+	}
+	return messages
+
+}
 func getPodListIfPresent(path string) (podList *corev1.PodList) {
 	podCacheMutex.Lock()
 	podListTest := podListMap[path]
