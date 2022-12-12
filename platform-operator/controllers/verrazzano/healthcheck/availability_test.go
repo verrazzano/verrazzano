@@ -93,7 +93,7 @@ func TestSetAvailabilityFields(t *testing.T) {
 	config.TestProfilesDir = reldir
 	defer func() { config.TestProfilesDir = "" }()
 	zeroOfZero := "0/0"
-	istio := "istio"
+	rancher := "rancher"
 	opensearch := "opensearch"
 	grafana := "grafana"
 
@@ -109,18 +109,18 @@ func TestSetAvailabilityFields(t *testing.T) {
 		},
 		{
 			"enabled but not available",
-			[]spi.Component{newFakeComponent(istio, istio, vzapi.ComponentUnavailable, true)},
+			[]spi.Component{newFakeComponent(rancher, rancher, vzapi.ComponentUnavailable, true)},
 			"0/1",
 		},
 		{
 			"enabled and available",
-			[]spi.Component{newFakeComponent(istio, istio, vzapi.ComponentAvailable, true)},
+			[]spi.Component{newFakeComponent(rancher, rancher, vzapi.ComponentAvailable, true)},
 			"1/1",
 		},
 		{
 			"multiple components",
 			[]spi.Component{
-				newFakeComponent(istio, istio, vzapi.ComponentAvailable, true),
+				newFakeComponent(rancher, rancher, vzapi.ComponentAvailable, true),
 				newFakeComponent(opensearch, opensearch, vzapi.ComponentAvailable, true),
 				newFakeComponent(grafana, grafana, vzapi.ComponentUnavailable, true),
 			},
