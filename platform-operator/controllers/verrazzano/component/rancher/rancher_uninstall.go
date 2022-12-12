@@ -128,12 +128,7 @@ func postUninstall(ctx spi.ComponentContext, monitor postUninstallMonitor) error
 }
 
 func forkPostUninstall(ctx spi.ComponentContext, monitor postUninstallMonitor) error {
-	log := ctx.Log()
-	log.Debugf("Creating background post-uninstall goroutine for Rancher")
-
-	// clone zap logger
-	clone := log.GetZapLogger().With()
-	log.SetZapLogger(clone)
+	ctx.Log().Debugf("Creating background post-uninstall goroutine for Rancher")
 
 	monitor.run(
 		postUninstallRoutineParams{
