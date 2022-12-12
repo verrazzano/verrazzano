@@ -15,6 +15,7 @@ import (
 	promnodeexporter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/nodeexporter"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/pushgateway"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
@@ -326,6 +327,10 @@ func StartMetricsServer(log *zap.SugaredLogger) {
 func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verrazzano) {
 	mapOfComponents := cr.Status.Components
 	for componentName, componentStatusDetails := range mapOfComponents {
+		// If component is not in the metricsMap, move on to the next component
+		if IsNonMetricComponent(componentName) {
+			continue
+		}
 		var installCompletionTime string
 		var upgradeCompletionTime string
 		var upgradeStartTime string
@@ -344,11 +349,17 @@ func AnalyzeVerrazzanoResourceMetrics(log vzlog.VerrazzanoLogger, cr vzapi.Verra
 				upgradeCompletionTime = status.LastTransitionTime
 			}
 		}
+		found, component := registry.FindComponent(componentName)
+		if !found {
+			log.Errorf("No component %s found", componentName)
+			return
+		}
+		componentJSONName := component.GetJSONName()
 		if installStartTime != "" && installCompletionTime != "" {
-			metricParserHelperFunction(log, metricName(componentName), installStartTime, installCompletionTime, constants.InstallOperation)
+			metricParserHelperFunction(log, metricName(componentJSONName), installStartTime, installCompletionTime, constants.InstallOperation)
 		}
 		if upgradeStartTime != "" && upgradeCompletionTime != "" {
-			metricParserHelperFunction(log, metricName(componentName), upgradeStartTime, upgradeCompletionTime, constants.UpgradeOperation)
+			metricParserHelperFunction(log, metricName(componentJSONName), upgradeStartTime, upgradeCompletionTime, constants.UpgradeOperation)
 		}
 	}
 }
