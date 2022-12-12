@@ -3812,9 +3812,10 @@
       {
         "allValue": null,
         "current": {
+          "isNone": true,
           "selected": false,
-          "text": "All",
-          "value": "$__all"
+          "text": "None",
+          "value": ""
         },
         "datasource": null,
         "definition": "label_values(wls_jvm_uptime{verrazzano_cluster=~\"$vzcluster\", weblogic_domainUID=\"$domainName\", weblogic_clusterName=\"$clusterName\",weblogic_serverName=\"$serverName\"},service)",
