@@ -5,6 +5,7 @@ package start
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
@@ -33,7 +34,6 @@ func NewCmdStart(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return RunCmdStart(cmd, vzHelper)
 	}
-	cmd.Args = cobra.ExactArgs(0)
 	cmd.Example = helpExample
 
 	cmd.PersistentFlags().StringVarP(&scenarioID, constants.FlagScenario, constants.FlagsScenarioShort, "", constants.FlagScenarioHelp)
@@ -65,13 +65,13 @@ func RunCmdStart(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("Failed to create scenario ScenarioMananger %v", err)
 	}
 
-	fmt.Printf("Starting scenario %s\n", scenarioMan.ID)
+	fmt.Fprintf(vzHelper.GetOutputStream(), "Starting scenario %s\n", scenarioMan.ID)
 	msg, err := m.StartScenario(manifestMan, scenarioMan)
 	if err != nil {
 		// Cobra will display failure message
 		return fmt.Errorf("Failed to start scenario %s/%s: %v\n%s", namespace, scenarioID, err, msg)
 	}
-	fmt.Printf("Scenario %s successfully started\n", scenarioMan.ID)
+	fmt.Fprintf(vzHelper.GetOutputStream(), "Scenario %s successfully started\n", scenarioMan.ID)
 
 	return nil
 }
