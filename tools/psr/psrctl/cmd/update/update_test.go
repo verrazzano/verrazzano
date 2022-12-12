@@ -74,15 +74,15 @@ Usecases:
 		return k8sfake.NewSimpleClientset(cm).CoreV1(), nil
 	}
 
-	defer func() { scenario.GetValuesFunc = helmcli.GetValues }()
-	scenario.GetValuesFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string) ([]byte, error) {
+	defer func() { scenario.UpdateGetValuesFunc = helmcli.GetValues }()
+	scenario.UpdateGetValuesFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string) ([]byte, error) {
 		assert.Equal(t, "psr-ops-s1-writelogs-0", releaseName)
 		assert.Equal(t, "psr", namespace)
 		return []byte("old-values"), nil
 	}
 
-	defer func() { scenario.UpgradeFunc = helmcli.Upgrade }()
-	scenario.UpgradeFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+	defer func() { scenario.UpdateUpgradeFunc = helmcli.Upgrade }()
+	scenario.UpdateUpgradeFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
 		assert.Equal(t, 3, len(overrides))
 		assert.Equal(t, "psr-ops-s1-writelogs-0", releaseName)
 		assert.Equal(t, "psr", namespace)

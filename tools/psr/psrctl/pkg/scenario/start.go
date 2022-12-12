@@ -14,6 +14,8 @@ import (
 	"strings"
 )
 
+var StartUpgradeFunc = helmcli.Upgrade
+
 // WorkerType is used to get the worker type from the worker use case YAML file.
 // Note: struct and fields must be public for YAML unmarshal to work.
 type WorkerType struct {
@@ -64,7 +66,7 @@ func (m ScenarioMananger) StartScenario(manifestMan manifest.ManifestManager, sc
 		if m.Verbose {
 			fmt.Printf("Installing use case %s as Helm release %s/%s\n", uc.UsecasePath, m.Namespace, relname)
 		}
-		_, stderr, err := helmcli.Upgrade(m.Log, relname, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
+		_, stderr, err := StartUpgradeFunc(m.Log, relname, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 		if err != nil {
 			return string(stderr), err
 		}
