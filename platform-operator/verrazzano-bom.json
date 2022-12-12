@@ -772,7 +772,7 @@
           "images": [
             {
               "image": "redis",
-              "tag": "6.2.7",
+              "tag": "v7.0.5",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
