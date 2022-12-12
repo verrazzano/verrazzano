@@ -243,11 +243,6 @@
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
-              "image": "prometheus",
-              "tag": "v2.34.0-20220809191930-6df068d2",
-              "helmFullImageKey": "monitoringOperator.prometheusImage"
-            },
-            {
               "image": "opensearch",
               "tag": "1.2.3-20220810140719-c1dbc115d8a",
               "helmFullImageKey": "monitoringOperator.esImage"
