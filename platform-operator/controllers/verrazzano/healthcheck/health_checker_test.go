@@ -6,8 +6,8 @@ package healthcheck
 import (
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"testing"
 	"time"
 )
@@ -27,7 +27,7 @@ func TestAddStatus(t *testing.T) {
 	p.Pause()
 
 	vz.Status.Components = map[string]*vzapi.ComponentStatusDetails{}
-	for _, component := range metricsexporter.GetMetricComponents() {
+	for _, component := range registry.GetComponents() {
 		vz.Status.Components[component.Name()] = &vzapi.ComponentStatusDetails{}
 	}
 	p = newTestHealthCheck(vz)
