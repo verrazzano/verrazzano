@@ -563,7 +563,7 @@ func CreateOrUpdateRoleTemplate(ctx spi.ComponentContext, role string) error {
 	data[RoleTemplateAttributeBuiltin] = false
 	data[RoleTemplateAttributeContext] = "cluster"
 	caser := cases.Title(language.English)
-	data[RoleTemplateAttributeDisplayName] = caser.String(strings.Replace(role, "-", " ", 1))
+	data[RoleTemplateAttributeDisplayName] = caser.String(strings.Replace(role, "-", " ", -1))
 	data[RoleTemplateAttributeExternal] = true
 	data[RoleTemplateAttributeHidden] = true
 	if clusterRole.Rules != nil && len(clusterRole.Rules) > 0 {

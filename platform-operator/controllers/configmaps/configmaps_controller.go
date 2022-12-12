@@ -5,7 +5,7 @@ package configmaps
 
 import (
 	"context"
-	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"time"
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"

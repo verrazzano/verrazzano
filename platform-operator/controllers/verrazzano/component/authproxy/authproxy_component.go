@@ -133,6 +133,12 @@ func (c authProxyComponent) PreInstall(ctx spi.ComponentContext) error {
 	return c.HelmComponent.PreInstall(ctx)
 }
 
+// PostInstall - actions to perform post installing this component
+func (c authProxyComponent) PostInstall(ctx spi.ComponentContext) error {
+	removeDeprecatedAuthProxyESServiceIfExists(ctx)
+	return c.HelmComponent.PostInstall(ctx)
+}
+
 // Uninstall Authproxy to handle upgrade case where Authproxy was not its own helm chart.
 // In that case, we need to delete the Authproxy resources explicitly
 func (c authProxyComponent) Uninstall(context spi.ComponentContext) error {

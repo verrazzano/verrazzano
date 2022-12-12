@@ -4,7 +4,7 @@
 package controllers
 
 import (
-	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
