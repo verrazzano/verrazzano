@@ -5,6 +5,7 @@ package metricsexporter
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"net/http"
 	"time"
 
@@ -388,4 +389,27 @@ func SetComponentAvailabilityMetric(name string, availability vzapi.ComponentAva
 	}
 	MetricsExp.internalData.componentHealth.SetComponentHealth(compMetric.metricName, availability == vzapi.ComponentAvailable, isEnabled)
 	return nil
+}
+
+func GetMetricComponents() []spi.Component {
+	return []spi.Component{
+		authproxy.NewComponent(),
+		istio.NewComponent(),
+		nginx.NewComponent(),
+		certmanager.NewComponent(),
+		externaldns.NewComponent(),
+		opensearch.NewComponent(),
+		opensearchdashboards.NewComponent(),
+		grafana.NewComponent(),
+		mysql.NewComponent(),
+		keycloak.NewComponent(),
+		kiali.NewComponent(),
+		promoperator.NewComponent(),
+		promadapter.NewComponent(),
+		kubestatemetrics.NewComponent(),
+		jaegeroperator.NewComponent(),
+		fluentd.NewComponent(),
+		velero.NewComponent(),
+		rancherbackup.NewComponent(),
+	}
 }

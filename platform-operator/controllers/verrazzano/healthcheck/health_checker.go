@@ -6,7 +6,7 @@ package healthcheck
 import (
 	"github.com/verrazzano/verrazzano/pkg/log"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
@@ -60,7 +60,7 @@ func (p *HealthChecker) Start() {
 			select {
 			case <-ticker.C:
 				// timer event causes availability update
-				err := p.updateAvailability(registry.GetMetricComponents())
+				err := p.updateAvailability(metricsexporter.GetMetricComponents())
 				if err != nil {
 					p.logger.Errorf("%v", err)
 				}
