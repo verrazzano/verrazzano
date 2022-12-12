@@ -25,6 +25,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+type fakeMonitor struct {
+	result  bool
+	err     error
+	running bool
+}
+
+func (f *fakeMonitor) run(args postUninstallRoutineParams) {
+}
+
+func (f *fakeMonitor) checkResult() (bool, error) { return f.result, f.err }
+
+func (f *fakeMonitor) reset() {}
+
+func (f *fakeMonitor) init() {}
+
+func (f *fakeMonitor) sendResult(r bool) {}
+
+func (f *fakeMonitor) isRunning() bool { return f.running }
+
+var _ postUninstallMonitor = &fakeMonitor{}
+
 // TestPostUninstall tests the post uninstall process for Rancher
 // GIVEN a call to postUninstall
 // WHEN the objects exist in the cluster
