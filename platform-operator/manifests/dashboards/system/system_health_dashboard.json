@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 23,
+  "id": 24,
   "links": [],
   "panels": [
     {
@@ -251,32 +251,7 @@
             ]
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "prometheusNodeExporter"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "PromNodeExporter"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "verrazzanoMonitoringOperator"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "vmo"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
       "gridPos": {
         "h": 10,
@@ -299,7 +274,7 @@
           "values": false
         },
         "text": {
-          "titleSize": 12
+          "titleSize": 11
         },
         "textMode": "value_and_name"
       },
@@ -331,5 +306,5 @@
   "timezone": "",
   "title": "System Health",
   "uid": "Q4BkmcOVk",
-  "version": 3
+  "version": 1
 }
