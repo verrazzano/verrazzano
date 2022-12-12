@@ -437,5 +437,9 @@ func SetComponentAvailabilityMetric(name string, availability vzapi.ComponentAva
 }
 
 func IsNonMetricComponent(componentName string) bool {
-	return componentName == vmo.ComponentName || componentName == networkpolicies.ComponentName
+	var nonMetricComponents = map[string]bool{
+		vmo.ComponentName:             true,
+		networkpolicies.ComponentName: true,
+	}
+	return nonMetricComponents[componentName]
 }
