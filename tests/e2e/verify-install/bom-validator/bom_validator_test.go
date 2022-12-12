@@ -66,7 +66,8 @@ type knownIssues struct {
 // Rancher Helm pods hang around for 1 hour, so during an upgrade there will be a mix of old and new Rancher
 // shell images, so exclude that image from validation
 var knownImageIssues = map[string]knownIssues{
-	"shell": {message: rancherWarningMessage},
+	"shell":       {message: rancherWarningMessage},
+	"install-cni": {message: "install-cni is not BFS yet"},
 }
 
 // BOM validations validates the images of below allowed namespaces only

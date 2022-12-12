@@ -115,12 +115,6 @@
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
-            },
-            {
-              "image": "install-cni",
-              "tag": "1.15.1",
-              "registry": "docker.io",
-              "repository": "istio"
             }
           ]
         }
