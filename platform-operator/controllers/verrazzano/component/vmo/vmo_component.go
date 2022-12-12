@@ -94,6 +94,14 @@ func (c vmoComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
 	return true, nil
 }
 
+// PreInstall applies the VMO CRDs
+func (c vmoComponent) PreInstall(ctx spi.ComponentContext) error {
+	if err := common.ApplyCRDYaml(ctx, config.GetHelmVMOChartsDir()); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreInstall(ctx)
+}
+
 // PreUpgrade VMO pre-upgrade processing
 func (c vmoComponent) PreUpgrade(context spi.ComponentContext) error {
 	if err := common.ApplyCRDYaml(context, config.GetHelmVMOChartsDir()); err != nil {
