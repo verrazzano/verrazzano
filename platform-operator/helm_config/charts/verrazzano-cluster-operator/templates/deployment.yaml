@@ -16,7 +16,18 @@ spec:
     metadata:
       labels:
         app: {{ .Values.name }}
+      annotations:
+        verrazzano.io/checksum: {{ tpl (toYaml .Values) . | sha256sum }}
     spec:
+      terminationGracePeriodSeconds: 0
+      initContainers:
+        - name: webhookswait
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ .Values.image }}
+          command: [ 'sh', '-c', "/usr/local/bin/wait4webhook.sh" ]
+      {{- if .Values.affinity }}
+      affinity: {{ toYaml .Values.affinity | nindent 8 }}
+      {{- end }}
       containers:
       - name: {{ .Values.name }}
         image: {{ .Values.image }}
@@ -30,12 +41,7 @@ spec:
         volumeMounts:
           - name: cluster-selector
             mountPath: /var/syncRancherClusters
-          - name: webhook-certs
-            mountPath: /etc/certs
         ports:
-          - containerPort: 9443
-            name: https-webhook
-            protocol: TCP
           - containerPort: 9100
             name: http-metric
             protocol: TCP
@@ -48,5 +54,69 @@ spec:
             - key: selector.yaml
               path: selector.yaml
             optional: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}-webhook
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}-webhook
+    app.kubernetes.io/version: {{ .Chart.Version }}
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}-webhook
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}-webhook
+        app.kubernetes.io/version: {{ .Chart.Version }}
+    spec:
+      terminationGracePeriodSeconds: 0
+      {{- if .Values.webhookAffinity }}
+      affinity: {{ toYaml .Values.webhookAffinity | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: initwebhooks
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          image: {{ .Values.image }}
+          args:
+            - --zap-log-level=info
+            - --run-webhook-init=true
+          resources:
+            requests:
+              memory: 72Mi
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/certs
+      containers:
+        - name: webhook-run
+          image: {{ .Values.image }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          args:
+            - --zap-log-level=info
+            - --run-webhooks=true
+          volumeMounts:
+            - name: webhook-certs
+              mountPath: /etc/certs
+          resources:
+            requests:
+              memory: 72Mi
+          ports:
+            - containerPort: 9100
+              name: http-metric
+              protocol: TCP
+            - containerPort: 9443
+              name: webhook
+              protocol: TCP
+      volumes:
         - name: webhook-certs
-          emptyDir: { }
+          emptyDir: {}
+      serviceAccountName: {{ .Values.name }}

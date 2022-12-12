@@ -65,6 +65,8 @@ spec:
                         topologyKey: kubernetes.io/hostname
                       weight: 100
               replicaCount: 1
+    clusterOperator:
+      enabled: true
     coherenceOperator:
       enabled: true
     console:

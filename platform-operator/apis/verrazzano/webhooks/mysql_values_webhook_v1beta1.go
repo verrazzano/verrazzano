@@ -62,15 +62,17 @@ func (v *MysqlValuesValidatorV1beta1) validateMysqlValuesV1beta1(log *zap.Sugare
 	versionToCompare := getVersion(oldVz.Status.Version, newVz.Spec.Version, v.BomVersion)
 	log.Debugf("Min version required %s, version to compare: %s", MinVersion, versionToCompare)
 	if isMinVersion(versionToCompare, MinVersion) {
+		log.Info("Validating v1alpha1 MySQL values")
 		if newVz.Spec.Components.Keycloak != nil {
 			newMySQLOverrides := newVz.Spec.Components.Keycloak.MySQL.ValueOverrides
 			for _, override := range newMySQLOverrides {
 				var err error
-				hasWarning, warning, err := inspectOverride(override.Values)
+				warning, err := inspectOverride(override.Values)
 				if err != nil {
 					return admission.Errored(http.StatusBadRequest, err)
 				}
-				if hasWarning {
+				if len(warning) > 0 {
+					log.Warnf(warning)
 					response = admission.Allowed("").WithWarnings(warning)
 				}
 			}
@@ -79,20 +81,20 @@ func (v *MysqlValuesValidatorV1beta1) validateMysqlValuesV1beta1(log *zap.Sugare
 	return response
 }
 
-func inspectOverride(override *apiextensionsv1.JSON) (bool, string, error) {
+func inspectOverride(override *apiextensionsv1.JSON) (string, error) {
 	overrideBytes, err := yaml.Marshal(override)
 	if err != nil {
-		return false, "", err
+		return "", err
 	}
 	serverPodSpecValue, err := extractValueFromOverrideString(string(overrideBytes), "podSpec")
 	if err != nil {
-		return false, "", err
+		return "", err
 	}
 	if serverPodSpecValue != nil {
-		return true, "Modifications to MySQL server pod specs do not trigger an automatic restart of the stateful set. " +
+		return "Modifications to MySQL server pod specs do not trigger an automatic restart of the stateful set. " +
 			"Please refer to the documentation for a rolling restart: https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands#rollout", nil
 	}
-	return false, "", nil
+	return "", nil
 }
 
 func getVersion(statusVersion string, newSpecVersion string, bomVersion string) string {

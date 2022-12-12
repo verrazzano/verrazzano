@@ -53,9 +53,6 @@ BRANCH_NAME=${BRANCH_NAME:-$(git branch --show-current)}
 SHORT_COMMIT_HASH=${SHORT_COMMIT_HASH:-$(git rev-parse --short=8 HEAD)}
 OCI_OS_LOCATION=${OCI_OS_LOCATION:-ephemeral/${BRANCH_NAME}/${SHORT_COMMIT_HASH}}
 
-TEST_OVERRIDE_CONFIGMAP_FILE="${TEST_SCRIPTS_DIR}/pre-install-overrides/test-overrides-configmap.yaml"
-TEST_OVERRIDE_SECRET_FILE="${TEST_SCRIPTS_DIR}/pre-install-overrides/test-overrides-secret.yaml"
-
 KIND_CACHING=${KIND_CACHING:="false"}
 KIND_NODE_COUNT=${KIND_NODE_COUNT:-1}
 
@@ -86,70 +83,7 @@ echo "Listing pods in kube-system namespace ..."
 kubectl get pods -n kube-system
 
 echo "Install metallb"
-#cd ${GO_REPO_PATH}/verrazzano
-${TEST_SCRIPTS_DIR}/install-metallb.sh
-
-echo "Create Image Pull Secrets"
-${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-# REVIEW: Do we need github-packages still?
-${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh github-packages "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}"
-if [ -n "${OCR_REPO}" ] && [ -n "${OCR_CREDS_USR}" ] && [ -n "${OCR_CREDS_PSW}" ]; then
-  echo "Creating Oracle Container Registry pull secret"
-  ${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh ocr "${OCR_REPO}" "${OCR_CREDS_USR}" "${OCR_CREDS_PSW}"
-fi
-
-if ! kubectl get cm test-overrides 2>&1 > /dev/null; then
-  echo "Creating Override ConfigMap"
-  kubectl create cm test-overrides --from-file=${TEST_OVERRIDE_CONFIGMAP_FILE}
-  if [ $? -ne 0 ]; then
-    echo "Could not create Override ConfigMap"
-    exit 1
-  fi
-fi
-
-if ! kubectl get secret test-overrides 2>&1 > /dev/null; then
-  echo "Creating Override Secret"
-  kubectl create secret generic test-overrides --from-file=${TEST_OVERRIDE_SECRET_FILE}
-  if [ $? -ne 0 ]; then
-    echo "Could not create Override Secret"
-    exit 1
-  fi
-fi
-
-# optionally create a cluster dump snapshot for verifying uninstalls
-if [ -n "${CLUSTER_SNAPSHOT_DIR}" ]; then
-  ${TEST_SCRIPTS_DIR}/looping-test/dump_cluster.sh ${CLUSTER_SNAPSHOT_DIR}
-fi
-
-echo "Install Platform Operator"
-if [ -z "$OPERATOR_YAML" ] && [ "" = "${OPERATOR_YAML}" ]; then
-  # Derive the name of the operator.yaml file, copy or generate the file, then install
-  if [ "NONE" = "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
-      echo "Using operator.yaml from object storage location ${OCI_OS_LOCATION}"
-      curl -s -L https://objectstorage.us-phoenix-1.oraclecloud.com/n/${OCI_OS_NAMESPACE}/b/${OCI_OS_COMMIT_BUCKET}/o/${OCI_OS_LOCATION}/operator.yaml > ${WORKSPACE}/downloaded-operator.yaml
-      cp ${WORKSPACE}/downloaded-operator.yaml ${WORKSPACE}/acceptance-test-operator.yaml
-  else
-      echo "Generating operator.yaml based on image name provided: ${VERRAZZANO_OPERATOR_IMAGE}"
-      env IMAGE_PULL_SECRETS=verrazzano-container-registry DOCKER_IMAGE=${VERRAZZANO_OPERATOR_IMAGE} ${VZ_ROOT}/tools/scripts/generate_operator_yaml.sh > ${WORKSPACE}/acceptance-test-operator.yaml
-  fi
-  kubectl apply -f ${WORKSPACE}/acceptance-test-operator.yaml
-else
-  # The operator.yaml filename was provided, install using that file.
-  echo "Using provided operator.yaml file: " ${OPERATOR_YAML}
-  kubectl apply -f ${OPERATOR_YAML}
-fi
-
-# make sure ns exists
-${TEST_SCRIPTS_DIR}/check_verrazzano_ns_exists.sh verrazzano-install
-
-# create secret in verrazzano-install ns
-${TEST_SCRIPTS_DIR}/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
-
-echo "Wait for Operator to be ready"
-kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
-if [ $? -ne 0 ]; then
-  echo "Operator is not ready"
-  exit 1
-fi
+METALLB_ADDRESS_RANGE=${METALLB_ADDRESS_RANGE:-"172.18.0.230-172.18.0.254"}
+${TEST_SCRIPTS_DIR}/install-metallb.sh "${METALLB_ADDRESS_RANGE}"
 
 exit 0

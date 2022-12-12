@@ -59,37 +59,37 @@ const (
 	ReconcileDuration              metricName = "reconcile duration"
 	AvailableComponents            metricName = "available components"
 	EnabledComponents              metricName = "enabled components"
-	authproxyMetricName            metricName = authproxy.ComponentName
-	oamMetricName                  metricName = oam.ComponentName
-	appoperMetricName              metricName = appoper.ComponentName
-	istioMetricName                metricName = istio.ComponentName
-	weblogicMetricName             metricName = weblogic.ComponentName
-	nginxMetricName                metricName = nginx.ComponentName
-	certmanagerMetricName          metricName = certmanager.ComponentName
-	clusterOperatorMetricName      metricName = clusteroperator.ComponentName
-	externaldnsMetricName          metricName = externaldns.ComponentName
-	rancherMetricName              metricName = rancher.ComponentName
-	verrazzanoMetricName           metricName = verrazzano.ComponentName
-	vmoMetricName                  metricName = vmo.ComponentName
-	opensearchMetricName           metricName = opensearch.ComponentName
-	opensearchdashboardsMetricName metricName = opensearchdashboards.ComponentName
-	grafanaMetricName              metricName = grafana.ComponentName
-	coherenceMetricName            metricName = coherence.ComponentName
-	mysqlMetricName                metricName = mysql.ComponentName
-	mysqlOperatorMetricName        metricName = mysqloperator.ComponentName
-	keycloakMetricname             metricName = keycloak.ComponentName
-	kialiMetricName                metricName = kiali.ComponentName
-	promoperatorMetricname         metricName = promoperator.ComponentName
-	promadapterMetricname          metricName = promadapter.ComponentName
-	kubestatemmetricsMetricName    metricName = kubestatemetrics.ComponentName
-	pushgatewayMetricName          metricName = pushgateway.ComponentName
-	promnodeexporterMetricname     metricName = promnodeexporter.ComponentName
-	jaegeroperatorMetricName       metricName = jaegeroperator.ComponentName
-	consoleMetricName              metricName = console.ComponentName
-	fluentdMetricName              metricName = fluentd.ComponentName
-	veleroMetricName               metricName = velero.ComponentName
-	rancherBackupMetricName        metricName = rancherbackup.ComponentName
-	networkpoliciesMetricName      metricName = networkpolicies.ComponentName
+	authproxyMetricName            metricName = authproxy.ComponentJSONName
+	oamMetricName                  metricName = oam.ComponentJSONName
+	appoperMetricName              metricName = appoper.ComponentJSONName
+	istioMetricName                metricName = istio.ComponentJSONName
+	weblogicMetricName             metricName = weblogic.ComponentJSONName
+	nginxMetricName                metricName = nginx.ComponentJSONName
+	certmanagerMetricName          metricName = certmanager.ComponentJSONName
+	clusterOperatorMetricName      metricName = clusteroperator.ComponentJSONName
+	externaldnsMetricName          metricName = externaldns.ComponentJSONName
+	rancherMetricName              metricName = rancher.ComponentJSONName
+	verrazzanoMetricName           metricName = verrazzano.ComponentJSONName
+	vmoMetricName                  metricName = vmo.ComponentJSONName
+	opensearchMetricName           metricName = opensearch.ComponentJSONName
+	opensearchdashboardsMetricName metricName = opensearchdashboards.ComponentJSONName
+	grafanaMetricName              metricName = grafana.ComponentJSONName
+	coherenceMetricName            metricName = coherence.ComponentJSONName
+	mysqlMetricName                metricName = mysql.ComponentJSONName
+	mysqlOperatorMetricName        metricName = mysqloperator.ComponentJSONName
+	keycloakMetricname             metricName = keycloak.ComponentJSONName
+	kialiMetricName                metricName = kiali.ComponentJSONName
+	promoperatorMetricname         metricName = promoperator.ComponentJSONName
+	promadapterMetricname          metricName = promadapter.ComponentJSONName
+	kubestatemmetricsMetricName    metricName = kubestatemetrics.ComponentJSONName
+	pushgatewayMetricName          metricName = pushgateway.ComponentJSONName
+	promnodeexporterMetricname     metricName = promnodeexporter.ComponentJSONName
+	jaegeroperatorMetricName       metricName = jaegeroperator.ComponentJSONName
+	consoleMetricName              metricName = console.ComponentJSONName
+	fluentdMetricName              metricName = fluentd.ComponentJSONName
+	veleroMetricName               metricName = velero.ComponentJSONName
+	rancherBackupMetricName        metricName = rancherbackup.ComponentJSONName
+	networkpoliciesMetricName      metricName = networkpolicies.ComponentJSONName
 )
 
 func init() {
@@ -163,37 +163,37 @@ func initSimpleCounterMetricMap() map[metricName]*SimpleCounterMetric {
 // This function initializes the metricComponentMap for the metricsExporter object
 func initMetricComponentMap() map[metricName]*MetricsComponent {
 	return map[metricName]*MetricsComponent{
-		authproxyMetricName:            newMetricsComponent("authproxy"),
-		oamMetricName:                  newMetricsComponent("oam"),
-		appoperMetricName:              newMetricsComponent("appoper"),
-		istioMetricName:                newMetricsComponent("istio"),
-		weblogicMetricName:             newMetricsComponent("weblogic"),
-		nginxMetricName:                newMetricsComponent("nginx"),
-		certmanagerMetricName:          newMetricsComponent("certManager"),
-		clusterOperatorMetricName:      newMetricsComponent("cluster_operator"),
-		externaldnsMetricName:          newMetricsComponent("externalDNS"),
-		rancherMetricName:              newMetricsComponent("rancher"),
-		verrazzanoMetricName:           newMetricsComponent("verrazzano"),
-		vmoMetricName:                  newMetricsComponent("verrazzano_monitoring_operator"),
-		opensearchMetricName:           newMetricsComponent("opensearch"),
-		opensearchdashboardsMetricName: newMetricsComponent("opensearch_dashboards"),
-		grafanaMetricName:              newMetricsComponent("grafana"),
-		coherenceMetricName:            newMetricsComponent("coherence"),
-		mysqlMetricName:                newMetricsComponent("mysql"),
-		mysqlOperatorMetricName:        newMetricsComponent("mysql_operator"),
-		keycloakMetricname:             newMetricsComponent("keycloak"),
-		kialiMetricName:                newMetricsComponent("kiali"),
-		promoperatorMetricname:         newMetricsComponent("prometheus_operator"),
-		promadapterMetricname:          newMetricsComponent("prometheus_adapter"),
-		kubestatemmetricsMetricName:    newMetricsComponent("kube_state_metrics"),
-		pushgatewayMetricName:          newMetricsComponent("prometheus_push_gateway"),
-		promnodeexporterMetricname:     newMetricsComponent("prometheus_node_exporter"),
-		jaegeroperatorMetricName:       newMetricsComponent("jaeger_operator"),
-		consoleMetricName:              newMetricsComponent("verrazzano_console"),
-		fluentdMetricName:              newMetricsComponent("fluentd"),
-		veleroMetricName:               newMetricsComponent("velero"),
-		rancherBackupMetricName:        newMetricsComponent("rancher_backup"),
-		networkpoliciesMetricName:      newMetricsComponent("networkpolicies"),
+		authproxyMetricName:            newMetricsComponent(authproxy.ComponentJSONName),
+		oamMetricName:                  newMetricsComponent(oam.ComponentJSONName),
+		appoperMetricName:              newMetricsComponent(appoper.ComponentJSONName),
+		istioMetricName:                newMetricsComponent(istio.ComponentJSONName),
+		weblogicMetricName:             newMetricsComponent(weblogic.ComponentJSONName),
+		nginxMetricName:                newMetricsComponent(nginx.ComponentJSONName),
+		certmanagerMetricName:          newMetricsComponent(certmanager.ComponentJSONName),
+		clusterOperatorMetricName:      newMetricsComponent(clusteroperator.ComponentJSONName),
+		externaldnsMetricName:          newMetricsComponent(externaldns.ComponentJSONName),
+		rancherMetricName:              newMetricsComponent(rancher.ComponentJSONName),
+		verrazzanoMetricName:           newMetricsComponent(verrazzano.ComponentJSONName),
+		vmoMetricName:                  newMetricsComponent(vmo.ComponentJSONName),
+		opensearchMetricName:           newMetricsComponent(opensearch.ComponentJSONName),
+		opensearchdashboardsMetricName: newMetricsComponent(opensearchdashboards.ComponentJSONName),
+		grafanaMetricName:              newMetricsComponent(grafana.ComponentJSONName),
+		coherenceMetricName:            newMetricsComponent(coherence.ComponentJSONName),
+		mysqlMetricName:                newMetricsComponent(mysql.ComponentJSONName),
+		mysqlOperatorMetricName:        newMetricsComponent(mysqloperator.ComponentJSONName),
+		keycloakMetricname:             newMetricsComponent(keycloak.ComponentJSONName),
+		kialiMetricName:                newMetricsComponent(kiali.ComponentJSONName),
+		promoperatorMetricname:         newMetricsComponent(promoperator.ComponentJSONName),
+		promadapterMetricname:          newMetricsComponent(promadapter.ComponentJSONName),
+		kubestatemmetricsMetricName:    newMetricsComponent(kubestatemetrics.ComponentJSONName),
+		pushgatewayMetricName:          newMetricsComponent(pushgateway.ComponentJSONName),
+		promnodeexporterMetricname:     newMetricsComponent(promnodeexporter.ComponentJSONName),
+		jaegeroperatorMetricName:       newMetricsComponent(jaegeroperator.ComponentJSONName),
+		consoleMetricName:              newMetricsComponent(console.ComponentJSONName),
+		fluentdMetricName:              newMetricsComponent(fluentd.ComponentJSONName),
+		veleroMetricName:               newMetricsComponent(velero.ComponentJSONName),
+		rancherBackupMetricName:        newMetricsComponent(rancherbackup.ComponentJSONName),
+		networkpoliciesMetricName:      newMetricsComponent(networkpolicies.ComponentJSONName),
 	}
 }
 

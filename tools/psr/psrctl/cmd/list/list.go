@@ -4,7 +4,9 @@
 package list
 
 import (
+	"encoding/json"
 	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
@@ -26,18 +28,20 @@ psrctl list -n foo
 var scenarioID string
 var namespace string
 var allNamepaces bool
+var outputFormat string
 
 func NewCmdList(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return RunCmdList(cmd, vzHelper)
 	}
-	cmd.Args = cobra.ExactArgs(0)
 	cmd.Example = helpExample
 
 	cmd.PersistentFlags().StringVarP(&scenarioID, constants.FlagScenario, constants.FlagsScenarioShort, "", constants.FlagScenarioHelp)
 	cmd.PersistentFlags().StringVarP(&namespace, constants.FlagNamespace, constants.FlagNamespaceShort, "default", constants.FlagNamespaceHelp)
 	cmd.PersistentFlags().BoolVarP(&allNamepaces, constants.FlagAll, constants.FlagAllShort, false, constants.FlagAllHelp)
+	cmd.PersistentFlags().StringVarP(&outputFormat, constants.OutputFormatName, constants.OutputFormatNameShort, "text", constants.OutputFormatHelp)
+	cmd.PersistentFlags().MarkHidden(constants.OutputFormatName)
 
 	return cmd
 }
@@ -59,30 +63,39 @@ func RunCmdList(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 	if len(scenarios) == 0 {
 		if len(namespace) == 0 {
-			fmt.Println("There are no scenarios running in the cluster")
+			fmt.Fprintln(vzHelper.GetOutputStream(), "There are no scenarios running in the cluster")
 		} else {
-			fmt.Printf("There are no scenarios running in namespace %s\n", namespace)
+			fmt.Fprintf(vzHelper.GetOutputStream(), "There are no scenarios running in namespace %s\n", namespace)
 		}
+		return nil
+	}
+
+	if outputFormat == "json" {
+		jsonOut, err := json.Marshal(scenarios)
+		if err != nil {
+			return err
+		}
+		fmt.Fprint(vzHelper.GetOutputStream(), string(jsonOut))
 		return nil
 	}
 
 	fmt.Println()
 	if len(namespace) > 0 {
-		fmt.Printf("Scenarios running in namespace %s\n", namespace)
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Scenarios running in namespace %s\n", namespace)
 	} else {
-		fmt.Println("Scenarios running in the cluster")
+		fmt.Fprintln(vzHelper.GetOutputStream(), "Scenarios running in the cluster")
 	}
 
 	for _, sc := range scenarios {
-		fmt.Println("----------------")
-		fmt.Printf("Namespace: %s\n", sc.Namespace)
-		fmt.Printf("%s %s\n", "ID: ", sc.ID)
-		fmt.Printf("%s %s\n", "Description: ", sc.Description)
-		fmt.Println("Helm releases:")
+		fmt.Fprintln(vzHelper.GetOutputStream(), "----------------")
+		fmt.Fprintf(vzHelper.GetOutputStream(), "Namespace: %s\n", sc.Namespace)
+		fmt.Fprintf(vzHelper.GetOutputStream(), "%s %s\n", "ID: ", sc.ID)
+		fmt.Fprintf(vzHelper.GetOutputStream(), "%s %s\n", "Description: ", sc.Description)
+		fmt.Fprintln(vzHelper.GetOutputStream(), "Helm releases:")
 		for _, h := range sc.HelmReleases {
-			fmt.Printf("%s/%s\n", h.Namespace, h.Name)
+			fmt.Fprintf(vzHelper.GetOutputStream(), "%s/%s\n", h.Namespace, h.Name)
 		}
-		fmt.Println()
+		fmt.Fprintln(vzHelper.GetOutputStream())
 	}
 
 	return nil

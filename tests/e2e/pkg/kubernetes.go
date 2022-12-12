@@ -704,6 +704,19 @@ func IsCoherenceOperatorEnabled(kubeconfigPath string) bool {
 	return *vz.Spec.Components.CoherenceOperator.Enabled
 }
 
+// IsCertManagerEnabled returns true if the Cert Manager component is not set, or the value of its Enabled field otherwise
+func IsCertManagerEnabled(kubeconfigPath string) bool {
+	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
+	if err != nil {
+		Log(Error, fmt.Sprintf("Error getting kubeconfig: %v", err))
+		return true
+	}
+	if vz.Spec.Components.CertManager == nil || vz.Spec.Components.CertManager.Enabled == nil {
+		return true
+	}
+	return *vz.Spec.Components.CertManager.Enabled
+}
+
 // IsWebLogicOperatorEnabled returns true if the WKO operator component is not set, or the value of its Enabled field otherwise
 func IsWebLogicOperatorEnabled(kubeconfigPath string) bool {
 	vz, err := GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
@@ -1005,6 +1018,44 @@ func GetNamespaceInCluster(name string, kubeconfigPath string) (*corev1.Namespac
 // CreateNamespace creates a namespace
 func CreateNamespace(name string, labels map[string]string) (*corev1.Namespace, error) {
 	return CreateNamespaceWithAnnotations(name, labels, nil)
+}
+
+// CreateOrUpdateNamespace creates or updates a namespace
+func CreateOrUpdateNamespace(name string, labels map[string]string, annotations map[string]string) (*corev1.Namespace, error) {
+	// Get the Kubernetes clientset
+	clientset, err := k8sutil.GetKubernetesClientset()
+	if err != nil {
+		return nil, err
+	}
+	var ns *corev1.Namespace
+	if ns, err = clientset.CoreV1().Namespaces().Get(context.TODO(), name, metav1.GetOptions{}); err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return nil, err
+		}
+		return clientset.CoreV1().Namespaces().Create(context.TODO(),
+			&corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        name,
+					Labels:      labels,
+					Annotations: annotations,
+				},
+			}, metav1.CreateOptions{})
+	}
+	ns.Labels = mergeMaps(ns.Labels, labels)
+	ns.Annotations = mergeMaps(ns.Annotations, annotations)
+	return clientset.CoreV1().Namespaces().Update(context.TODO(), ns, metav1.UpdateOptions{})
+}
+
+func mergeMaps(m1 map[string]string, m2 map[string]string) map[string]string {
+	result := m1
+	if result == nil {
+		result = map[string]string{}
+	}
+	// merge keys from m2 into m1, overwriting existing keys of m1.
+	for k, v := range m2 {
+		result[k] = v
+	}
+	return result
 }
 
 func CreateNamespaceWithAnnotations(name string, labels map[string]string, annotations map[string]string) (*corev1.Namespace, error) {

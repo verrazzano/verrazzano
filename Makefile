@@ -98,7 +98,7 @@ unit-test-coverage-ratcheting:
 
 .PHONY: unit-test
 unit-test:
-	go test $$(go list ./... | grep -Ev /tests/e2e)
+	go test $$(go list ./... | grep -Ev "/tests/e2e|/tools/psr")
 
 #
 #  Compliance check targets

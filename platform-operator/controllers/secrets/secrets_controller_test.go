@@ -6,7 +6,7 @@ package secrets
 import (
 	"context"
 	"fmt"
-	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/status"
+	vzstatus "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"testing"
 	"time"

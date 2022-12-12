@@ -16,6 +16,7 @@ import (
 	"github.com/golang/mock/gomock"
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	"github.com/verrazzano/verrazzano/pkg/test/mockmatchers"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
@@ -32,20 +33,20 @@ import (
 func TestCreateOrUpdateSecretRancherProxy(t *testing.T) {
 	a := asserts.New(t)
 
-	savedRetry := defaultRetry
+	savedRetry := rancherutil.DefaultRetry
 	defer func() {
-		defaultRetry = savedRetry
+		rancherutil.DefaultRetry = savedRetry
 	}()
-	defaultRetry = wait.Backoff{
+	rancherutil.DefaultRetry = wait.Backoff{
 		Steps:    1,
 		Duration: 1 * time.Millisecond,
 		Factor:   1.0,
 		Jitter:   0.1,
 	}
 
-	savedRancherHTTPClient := rancherHTTPClient
+	savedRancherHTTPClient := rancherutil.RancherHTTPClient
 	defer func() {
-		rancherHTTPClient = savedRancherHTTPClient
+		rancherutil.RancherHTTPClient = savedRancherHTTPClient
 	}()
 
 	secret := corev1.Secret{
@@ -89,8 +90,8 @@ func TestCreateOrUpdateSecretRancherProxy(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rancherHTTPClient = tt.mock
-			result, err := createOrUpdateSecretRancherProxy(&secret, &RancherConfig{}, clusterID, tt.f, vzlog.DefaultLogger())
+			rancherutil.RancherHTTPClient = tt.mock
+			result, err := createOrUpdateSecretRancherProxy(&secret, &rancherutil.RancherConfig{}, clusterID, tt.f, vzlog.DefaultLogger())
 			a.Nil(err)
 			a.Equal(tt.result, result)
 		})

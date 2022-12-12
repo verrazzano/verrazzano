@@ -28,7 +28,7 @@ import (
 	"golang.org/x/text/language"
 
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -100,9 +100,6 @@ const (
 	ClusterLocal                      = "local"
 	AuthConfigLocal                   = "local"
 	UserVerrazzano                    = "u-verrazzano"
-	UserVZMulticluster                = "u-verrazzano-multicluster"
-	UserVZMulticlusterUsername        = "verrazzanomc"
-	UserVZMulticlusterDescription     = "Verrazzano Multicluster"
 	UserVerrazzanoDescription         = "Verrazzano Admin"
 	GlobalRoleBindingVerrazzanoPrefix = "grb-"
 	SettingUIPL                       = "ui-pl"
@@ -538,19 +535,6 @@ func createOrUpdateRancherVerrazzanoUser(ctx spi.ComponentContext, vzUser *keycl
 	return createOrUpdateResource(ctx, nsn, GVKUser, data)
 }
 
-// createOrUpdateVZClusterUser creates or updates the Verrazzano Cluster user in Rancher
-func createOrUpdateVZClusterUser(ctx spi.ComponentContext) error {
-	nsn := types.NamespacedName{Name: UserVZMulticluster}
-	data := map[string]interface{}{}
-	data[UserAttributeUserName] = UserVZMulticlusterUsername
-	caser := cases.Title(language.English)
-	data[UserAttributeDisplayName] = caser.String(UserVZMulticlusterUsername)
-	data[UserAttributeDescription] = caser.String(UserVZMulticlusterDescription)
-	data[UserAttributePrincipalIDs] = []interface{}{UserPrincipalLocalPrefix + UserVZMulticluster}
-
-	return createOrUpdateResource(ctx, nsn, GVKUser, data)
-}
-
 // createOrUpdateRancherVerrazzanoUserGlobalRoleBinding used to make the verrazzano user admin
 func createOrUpdateRancherVerrazzanoUserGlobalRoleBinding(ctx spi.ComponentContext, rancherUsername string) error {
 	nsn := types.NamespacedName{Name: GlobalRoleBindingVerrazzanoPrefix + rancherUsername}
@@ -579,7 +563,7 @@ func CreateOrUpdateRoleTemplate(ctx spi.ComponentContext, role string) error {
 	data[RoleTemplateAttributeBuiltin] = false
 	data[RoleTemplateAttributeContext] = "cluster"
 	caser := cases.Title(language.English)
-	data[RoleTemplateAttributeDisplayName] = caser.String(strings.Replace(role, "-", " ", 1))
+	data[RoleTemplateAttributeDisplayName] = caser.String(strings.Replace(role, "-", " ", -1))
 	data[RoleTemplateAttributeExternal] = true
 	data[RoleTemplateAttributeHidden] = true
 	if clusterRole.Rules != nil && len(clusterRole.Rules) > 0 {
@@ -731,7 +715,7 @@ func getUserNameForPrincipal(principal string) string {
 }
 
 // getRancherLogoContentWithRetry gets the logo content from rancher and retries if the logo content returned is not a full svg file
-func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, cli kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, logoCommand []string) (string, error) {
+func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, cli kubernetes.Interface, cfg *rest.Config, pod *corev1.Pod, logoCommand []string) (string, error) {
 	var logoContent string
 	var backoff = wait.Backoff{
 		Steps:    3,

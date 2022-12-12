@@ -26,6 +26,9 @@ func (r Resource) Delete() error {
 	r.Object.SetNamespace(r.Namespace)
 	val := reflect.ValueOf(r.Object)
 	kind := val.Elem().Type().Name()
+	if kind == "Unstructured" {
+		kind = r.Object.GetObjectKind().GroupVersionKind().Kind
+	}
 	err := r.Client.Delete(context.TODO(), r.Object)
 	if client.IgnoreNotFound(err) != nil {
 		return r.Log.ErrorfNewErr("Failed to delete the resource of type %s, named %s/%s: %v", kind, r.Object.GetNamespace(), r.Object.GetName(), err)
@@ -48,6 +51,9 @@ func (r Resource) RemoveFinalizersAndDelete() error {
 func (r Resource) RemoveFinalizers() error {
 	val := reflect.ValueOf(r.Object)
 	kind := val.Elem().Type().Name()
+	if kind == "Unstructured" {
+		kind = r.Object.GetObjectKind().GroupVersionKind().Kind
+	}
 	err := r.Client.Get(context.TODO(), types.NamespacedName{Namespace: r.Namespace, Name: r.Name}, r.Object)
 	if client.IgnoreNotFound(err) != nil {
 		return r.Log.ErrorfNewErr("Failed to get the resource of type %s, named %s/%s: %v", kind, r.Object.GetNamespace(), r.Object.GetName(), err)
