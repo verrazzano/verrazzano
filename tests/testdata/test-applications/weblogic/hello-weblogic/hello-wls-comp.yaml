@@ -13,7 +13,7 @@ spec:
       template:
         apiVersion: weblogic.oracle/v9
         metadata:
-          name: hellodomain
+          name: hello-domain
         spec:
           adminServer:
             adminChannelPortForwardingEnabled: true
