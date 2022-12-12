@@ -96,6 +96,7 @@ var excludePodsVS = []string{
 var excludePodsIstio = []string{
 	"istiocoredns",
 	"istiod",
+	"istio-cni-node",
 }
 
 var t = framework.NewTestFramework("syscomponents")
