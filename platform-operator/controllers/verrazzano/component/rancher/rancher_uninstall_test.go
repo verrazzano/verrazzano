@@ -143,7 +143,7 @@ func TestPostUninstall(t *testing.T) {
 	delTimestamp := metav1.NewTime(time.Now())
 	crdAPIVersion := "apiextensions.k8s.io/v1"
 	crdKind := "CustomResourceDefinition"
-	rancherCRD := v12.CustomResourceDefinition{
+	rancherClusterCRD := v12.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       crdKind,
 			APIVersion: crdAPIVersion,
@@ -159,6 +159,27 @@ func TestPostUninstall(t *testing.T) {
 				Kind: "Setting",
 			},
 			Scope: "Cluster",
+			Versions: []v12.CustomResourceDefinitionVersion{
+				{
+					Name: "v3",
+				},
+			},
+		},
+	}
+	rancherNamespacedCRD := v12.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       crdKind,
+			APIVersion: crdAPIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "projects.management.cattle.io",
+		},
+		Spec: v12.CustomResourceDefinitionSpec{
+			Group: "management.cattle.io",
+			Names: v12.CustomResourceDefinitionNames{
+				Kind: "Project",
+			},
+			Scope: "Namespaced",
 			Versions: []v12.CustomResourceDefinitionVersion{
 				{
 					Name: "v3",
@@ -189,6 +210,16 @@ func TestPostUninstall(t *testing.T) {
 			"kind":       "Setting",
 			"metadata": map[string]interface{}{
 				"name": "cr-name",
+			},
+		},
+	}
+	projectCR := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "management.cattle.io/v3",
+			"kind":       "Project",
+			"metadata": map[string]interface{}{
+				"namespace": "cr-namespace",
+				"name":      "cr-name",
 			},
 		},
 	}
@@ -322,14 +353,16 @@ func TestPostUninstall(t *testing.T) {
 		{
 			name: "test CRD finalizer cleanup",
 			objects: []clipkg.Object{
-				&rancherCRD,
+				&rancherClusterCRD,
 			},
 		},
 		{
 			name: "test Rancher CR cleanup",
 			objects: []clipkg.Object{
-				&rancherCRD,
+				&rancherClusterCRD,
 				&settingCR,
+				&rancherNamespacedCRD,
+				&projectCR,
 			},
 		},
 	}
