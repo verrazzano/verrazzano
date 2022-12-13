@@ -58,6 +58,10 @@ func (p *HealthChecker) newStatus(log vzlog.VerrazzanoLogger, vz *vzapi.Verrazza
 		Components: map[string]vzapi.ComponentAvailability{},
 	}
 	for _, component := range components {
+		// If component is not in the metricsMap, move on to the next component
+		if metricsexporter.IsNonMetricComponent(component.Name()) {
+			continue
+		}
 		// If status is not fully initialized, do not check availability
 		componentStatus, ok := vz.Status.Components[component.Name()]
 		if !ok {
