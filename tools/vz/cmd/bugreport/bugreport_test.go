@@ -258,6 +258,7 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	//assert.Contains(t, buf.String(), captureLogErrMsg)
 	assert.Contains(t, buf.String(), "Created bug report")
 	assert.Contains(t, buf.String(), sensitiveDataErrMsg)
+
 }
 
 // TestBugReportV1Alpha1Verrazzano
