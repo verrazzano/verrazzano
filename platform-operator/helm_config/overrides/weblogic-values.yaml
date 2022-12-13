@@ -6,7 +6,3 @@
 
 annotations:
     traffic.sidecar.istio.io/excludeOutboundPorts: "443"
-
-
-# TEST
-image: phx.ocir.io/weblogick8s/weblogic-kubernetes-operator:diagnose-wme

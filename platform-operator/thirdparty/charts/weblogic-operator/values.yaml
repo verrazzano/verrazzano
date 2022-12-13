@@ -54,10 +54,10 @@ domainNamespaceSelectionStrategy: LabelSelector
 enableClusterRoleBinding: true
 
 # image specifies the container image containing the operator.
-image: "ghcr.io/oracle/weblogic-kubernetes-operator:4.0.2"
+image: "phx.ocir.io/weblogick8s/weblogic-kubernetes-operator:diagnose-wme"
 
 # imagePullPolicy specifies the image pull policy for the operator's container image.
-imagePullPolicy: IfNotPresent
+imagePullPolicy: Always
 
 # imagePullSecrets contains an optional list of Kubernetes Secrets, in the operator's namespace,
 # that are needed to access the registry containing the operator's container image.
