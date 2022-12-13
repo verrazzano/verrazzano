@@ -5,9 +5,11 @@ package rancher
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/stretchr/testify/assert"
@@ -20,7 +22,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	v12 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,20 +34,18 @@ type fakeMonitor struct {
 	running bool
 }
 
-func (f *fakeMonitor) run(args postUninstallRoutineParams) {
-}
-
-func (f *fakeMonitor) checkResult() (bool, error) { return f.result, f.err }
-
-func (f *fakeMonitor) reset() {}
-
-func (f *fakeMonitor) init() {}
-
-func (f *fakeMonitor) sendResult(r bool) {}
-
-func (f *fakeMonitor) isRunning() bool { return f.running }
+func (f *fakeMonitor) run(args postUninstallRoutineParams) {}
+func (f *fakeMonitor) checkResult() (bool, error)          { return f.result, f.err }
+func (f *fakeMonitor) reset()                              {}
+func (f *fakeMonitor) init()                               {}
+func (f *fakeMonitor) sendResult(r bool)                   {}
+func (f *fakeMonitor) isRunning() bool                     { return f.running }
 
 var _ postUninstallMonitor = &fakeMonitor{}
+
+type postUninstallFuncSig func(ctx spi.ComponentContext, monitor postUninstallMonitor) error
+
+var postUninstallFunc postUninstallFuncSig = postUninstall
 
 var nonRanNSName string = "local-not-rancher"
 var rancherNSName string = "local"
@@ -245,7 +244,8 @@ type testStruct struct {
 	objects        []clipkg.Object
 	nonRancherTest bool
 }
-var tests []testStruct = []testStruct {
+
+var tests []testStruct = []testStruct{
 	{
 		name: "test empty cluster",
 	},
@@ -460,7 +460,6 @@ func TestPostUninstallAllObjectsDeleted(t *testing.T) {
 // WHEN the objects exist in the cluster
 // THEN the post-uninstall starts a new attempt and returns a RetryableError to requeue
 func TestPostUninstall(t *testing.T) {
-	// TODO: write this
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
 
@@ -487,7 +486,6 @@ func TestPostUninstall(t *testing.T) {
 // WHEN the monitor goroutine fails to successfully complete
 // THEN the post-uninstall returns nil without calling the forkPostUninstall function
 func TestBackgroundPostUninstallCompletedSuccessfully(t *testing.T) {
-	// TODO: write this
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
 
@@ -514,7 +512,6 @@ func TestBackgroundPostUninstallCompletedSuccessfully(t *testing.T) {
 // WHEN the the monitor goroutine failed to successfully complete
 // THEN the postUninstall function calls the forkPostUninstall function and returns a retry error
 func TestBackgroundPostUninstallRetryOnFailure(t *testing.T) {
-	// TODO: write this
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
 
@@ -539,12 +536,80 @@ func TestBackgroundPostUninstallRetryOnFailure(t *testing.T) {
 	a.Equal(expectedErr, err, "Uninstall returned an unexpected error")
 }
 
+// Test_forkPostUninstallSuccess tests the forkPostUninstall function
+// GIVEN a call to rancher.forkPostUninstall()
+// WHEN when the monitor install successfully runs the rancher uninstall tool
+// THEN retryerrors are returned until the goroutine completes and sends a success message
 func Test_forkPostUninstallSuccess(t *testing.T) {
-	// TODO: write this
+	a := assert.New(t)
+	vz := v1alpha1.Verrazzano{}
+
+	tt := tests[2]
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.objects...).Build()
+	ctx := spi.NewFakeContext(c, &vz, nil, false)
+
+	crd1 := v12.CustomResourceDefinition{}
+	c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
+
+	// FIXME: current forkPostUninstall doesn't use this
+	postUninstallFunc = func(ctx spi.ComponentContext, monitor postUninstallMonitor) error {
+		return nil
+	}
+	defer func() { postUninstallFunc = postUninstall }()
+
+	var monitor = &postUninstallMonitorType{}
+	err := forkPostUninstall(ctx, monitor)
+	a.Equal(ctrlerrors.RetryableError{Source: ComponentName}, err)
+	for i := 0; i < 100; i++ {
+		result, retryError := monitor.checkResult()
+		if retryError != nil {
+			t.Log("Waiting for result...")
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		a.True(result)
+		a.Nil(retryError)
+		return
+	}
+	a.Fail("Did not detect completion in time")
 }
 
+// Test_forkPostUninstallFailure tests the forkPostUninstall function
+// GIVEN a call to rancher.forkPostUninstall()
+// WHEN when the monitor install unsuccessfully runs rancher post-uninstall
+// THEN retryerrors are returned until the goroutine completes and sends a failure message when the rancher uninstall tool fails
 func Test_forkPostUninstallFailure(t *testing.T) {
-	// TODO: write this
+	a := assert.New(t)
+	vz := v1alpha1.Verrazzano{}
+
+	tt := tests[2]
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.objects...).Build()
+	ctx := spi.NewFakeContext(c, &vz, nil, false)
+
+	crd1 := v12.CustomResourceDefinition{}
+	c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
+
+	// FIXME: current forkPostUninstall doesn't use this
+	postUninstallFunc = func(ctx spi.ComponentContext, monitor postUninstallMonitor) error {
+		return fmt.Errorf("Unexpected error on install")
+	}
+	defer func() { postUninstallFunc = postUninstall }()
+
+	var monitor = &postUninstallMonitorType{}
+	err := forkPostUninstall(ctx, monitor)
+	a.Equal(ctrlerrors.RetryableError{Source: ComponentName}, err)
+	for i := 0; i < 100; i++ {
+		result, retryError := monitor.checkResult()
+		if retryError != nil {
+			t.Log("Waiting for result...")
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		a.False(result)
+		a.Nil(retryError)
+		return
+	}
+	a.Fail("Did not detect completion in time")
 }
 
 // TestIsRancherNamespace tests the namespace belongs to Rancher

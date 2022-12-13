@@ -57,8 +57,9 @@ var rancherSystemNS = []string{
 }
 
 type forkPostUninstallFuncSig func(ctx spi.ComponentContext, monitor postUninstallMonitor) error
-
 var forkPostUninstallFunc forkPostUninstallFuncSig = forkPostUninstall
+
+// FIXME: define postUninstallFuncSig and postUninstallFunc here, then call postUninstallFunc inside run()?
 
 // postUninstallRoutineParams - Used to pass args to the postUninstall goroutine
 type postUninstallRoutineParams struct {
