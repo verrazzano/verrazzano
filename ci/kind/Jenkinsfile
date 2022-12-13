@@ -588,6 +588,13 @@ pipeline {
             }
 
             post {
+                aborted {
+                    script {
+                        if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
+                            dumpK8sCluster('new-kind-acceptance-tests-cluster-snapshot')
+                        }
+                    }
+                }
                 failure {
                     script {
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
