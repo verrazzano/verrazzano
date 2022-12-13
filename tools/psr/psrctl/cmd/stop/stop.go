@@ -27,7 +27,7 @@ func NewCmdStop(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return RunCmdStop(cmd, vzHelper)
 	}
-	cmd.Args = cobra.ExactArgs(0)
+	cmd.Args = cobra.ExactArgs(1)
 	cmd.Example = helpExample
 
 	cmd.PersistentFlags().StringVarP(&scenarioID, constants.FlagScenario, constants.FlagsScenarioShort, "", constants.FlagScenarioHelp)
@@ -43,13 +43,13 @@ func RunCmdStop(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return fmt.Errorf("Failed to create scenario ScenarioMananger %v", err)
 	}
 
-	fmt.Printf("Stopping scenario %s\n", scenarioID)
+	fmt.Fprintf(vzHelper.GetOutputStream(), "Stopping scenario %s\n", scenarioID)
 	msg, err := scenarioMan.StopScenarioByID(scenarioID)
 	if err != nil {
 		// Cobra will display failure message
 		return fmt.Errorf("Failed to stop scenario %s/%s: %v\n%s", namespace, scenarioID, err, msg)
 	}
-	fmt.Printf("Scenario %s successfully stopped\n", scenarioID)
+	fmt.Fprintf(vzHelper.GetOutputStream(), "Scenario %s successfully stopped\n", scenarioID)
 
 	return nil
 }

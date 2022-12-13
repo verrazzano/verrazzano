@@ -1,22 +1,22 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package start
+package stop
 
 import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/manifest"
-	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,11 +29,11 @@ const psrRoot = "../../.."
 
 var ID = "ops-s1"
 
-// TestStartCmd tests the NewCmdStart and RunCmdStart functions
+// TestStopCmd tests the NewCmdStop and RunCmdStop functions
 //
-//	WHEN 'psrctl start -s ops-s1 -n psr' is called
-//	THEN ensure the new scenario gets started
-func TestStartCmd(t *testing.T) {
+//	WHEN 'psrctl stop -s ops-s1 -n psr' is called
+//	THEN ensure the scenario is uninstalled
+func TestStopCmd(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:        psrRoot,
 		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
@@ -42,52 +42,6 @@ func TestStartCmd(t *testing.T) {
 	}
 
 	defer manifest.ResetManifests()
-
-	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
-	k8sutil.GetCoreV1Func = func(log ...vzlog.VerrazzanoLogger) (corev1cli.CoreV1Interface, error) {
-		return k8sfake.NewSimpleClientset().CoreV1(), nil
-	}
-
-	defer func() { scenario.StartUpgradeFunc = helmcli.Upgrade }()
-	scenario.StartUpgradeFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
-		assert.Equal(t, 4, len(overrides))
-		assert.Equal(t, "psr-ops-s1-ops-writelogs-0", releaseName)
-		assert.Equal(t, "psr", namespace)
-		assert.Contains(t, chartDir, "manifests/charts/worker")
-
-		return nil, nil, nil
-	}
-
-	// Send the command output to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-
-	cmd := NewCmdStart(rc)
-	cmd.PersistentFlags().Set(constants.FlagScenario, "ops-s1")
-	cmd.PersistentFlags().Set(constants.FlagNamespace, "psr")
-	assert.NotNil(t, cmd)
-
-	// Run start command, check for the expected status results to be displayed
-	err := cmd.Execute()
-	assert.NoError(t, err)
-	result := buf.String()
-
-	assert.Contains(t, result, fmt.Sprintf("Starting scenario %s", ID))
-	assert.Contains(t, result, fmt.Sprintf("Scenario %s successfully started", ID))
-}
-
-// TestStartExisting tests the NewCmdStart and RunCmdStart functions
-//
-//	WHEN 'psrctl start -s ops-s1 -n psr' is called when the scenario is already running
-//	THEN ensure the output correctly tells the user their operation is invalid
-func TestStartExisting(t *testing.T) {
-	manifest.Manifests = &manifest.PsrManifests{
-		RootTmpDir:        psrRoot,
-		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
-		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
-		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
-	}
 
 	// create scenario ConfigMap
 	cm := &corev1.ConfigMap{
@@ -126,31 +80,38 @@ Usecases:
 		return k8sfake.NewSimpleClientset(cm).CoreV1(), nil
 	}
 
+	defer func() { scenario.StopFunc = helmcli.Uninstall }()
+	scenario.StopFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+		assert.Equal(t, "psr-ops-s1-writelogs-0", releaseName)
+		assert.Equal(t, "psr", namespace)
+
+		return nil, nil, nil
+	}
+
 	// Send the command output to a byte buffer
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 
-	cmd := NewCmdStart(rc)
+	cmd := NewCmdStop(rc)
 	cmd.PersistentFlags().Set(constants.FlagScenario, "ops-s1")
 	cmd.PersistentFlags().Set(constants.FlagNamespace, "psr")
 	assert.NotNil(t, cmd)
 
-	// Run start command, check for the expected error to be thrown
+	// Run stop command, check for the expected status results to be displayed
 	err := cmd.Execute()
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), fmt.Sprintf("Scenario %s already running in namespace psr", ID))
-
+	assert.NoError(t, err)
 	result := buf.String()
-	assert.Contains(t, result, fmt.Sprintf("Starting scenario %s", ID))
+
+	assert.Contains(t, result, fmt.Sprintf("Stopping scenario %s", ID))
+	assert.Contains(t, result, fmt.Sprintf("Scenario %s successfully stopped", ID))
 }
 
-// TestStartInvalid tests the NewCmdStart and RunCmdStart functions
+// TestStopEmpty tests the NewCmdStop and RunCmdStop functions
 //
-//	WHEN 'psrctl start -s bad-manifest -n psr' is called when the scenario does not exist
+//	WHEN 'psrctl stop -s ops-s1 -n psr' is called when the scenario is not running
 //	THEN ensure the output correctly tells the user their operation is invalid
-func TestStartInvalid(t *testing.T) {
-
+func TestStopEmpty(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:        psrRoot,
 		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
@@ -168,15 +129,15 @@ func TestStartInvalid(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 
-	cmd := NewCmdStart(rc)
-	cmd.PersistentFlags().Set(constants.FlagScenario, "bad-manifest")
+	cmd := NewCmdStop(rc)
+	cmd.PersistentFlags().Set(constants.FlagScenario, "ops-s1")
 	cmd.PersistentFlags().Set(constants.FlagNamespace, "psr")
 	assert.NotNil(t, cmd)
 
-	// Run start command, check for the expected status results to be displayed
+	// Run stop command, check for the expected status results to be displayed
 	err := cmd.Execute()
 	assert.Error(t, err)
 	result := err.Error()
 
-	assert.Contains(t, result, "Failed to find scenario manifest with ID bad-manifest")
+	assert.Contains(t, result, fmt.Sprintf("Failed to stop scenario psr/%s", ID))
 }
