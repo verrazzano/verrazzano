@@ -213,17 +213,12 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 			pkg.Concurrently(
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", wlDomain)
+						return pkg.MetricsExist("wls_jvm_process_cpu_load", "domain", wlDomain)
 					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 				func() {
 					Eventually(func() bool {
-						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", wlDomain)
-					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
-				},
-				func() {
-					Eventually(func() bool {
-						return pkg.MetricsExist("wls_server_state_val", "weblogic_domainName", wlDomain)
+						return pkg.MetricsExist("wls_server_state_val", "domain", wlDomain)
 					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
 				},
 			)
