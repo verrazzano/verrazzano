@@ -5,6 +5,7 @@ package stop
 
 import (
 	"fmt"
+
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"

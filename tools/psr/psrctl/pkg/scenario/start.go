@@ -5,13 +5,14 @@ package scenario
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/manifest"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
-	"path/filepath"
 	"sigs.k8s.io/yaml"
-	"strings"
 )
 
 var StartUpgradeFunc = helmcli.Upgrade
