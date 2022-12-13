@@ -4,6 +4,7 @@
 package vmo
 
 import (
+	"context"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -14,8 +15,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"os/exec"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -23,6 +26,18 @@ import (
 )
 
 const profilesRelativePath = "../../../../manifests/profiles"
+const testHelmConfigDir = "../../../../helm_config"
+
+var testScheme *runtime.Scheme
+
+func init() {
+	testScheme = runtime.NewScheme()
+	_ = rbacv1.AddToScheme(testScheme)
+	_ = corev1.AddToScheme(testScheme)
+	_ = netv1.AddToScheme(testScheme)
+	_ = appsv1.AddToScheme(testScheme)
+	_ = apiextensionsv1.AddToScheme(testScheme)
+}
 
 // genericTestRunner is used to run generic OS commands with expected results
 type genericTestRunner struct {
@@ -173,13 +188,18 @@ func TestIsNotReady(t *testing.T) {
 func TestPostUpgrade(t *testing.T) {
 	// The actual post-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
-	scheme := runtime.NewScheme()
-	_ = rbacv1.AddToScheme(scheme)
-	_ = corev1.AddToScheme(scheme)
-	_ = netv1.AddToScheme(scheme)
-	_ = appsv1.AddToScheme(scheme)
-	err := NewComponent().PostUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).Build(), nil, nil, false))
+	err := NewComponent().PostUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), nil, nil, false))
 	assert.NoError(t, err)
+}
+
+func TestPreInstall(t *testing.T) {
+	config.TestHelmConfigDir = testHelmConfigDir
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, nil, nil, false)
+	assert.NoError(t, NewComponent().PreInstall(ctx))
+	vmoCRD := &apiextensionsv1.CustomResourceDefinition{}
+	// The VMO CRD should exist after PreInstall
+	assert.NoError(t, client.Get(context.TODO(), types.NamespacedName{Name: "verrazzanomonitoringinstances.verrazzano.io"}, vmoCRD))
 }
 
 // TestPreUpgrade tests the VMO PreUpgrade call
@@ -189,12 +209,8 @@ func TestPostUpgrade(t *testing.T) {
 func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
-	config.TestHelmConfigDir = "../../../../helm_config"
-	scheme := runtime.NewScheme()
-	_ = rbacv1.AddToScheme(scheme)
-	_ = corev1.AddToScheme(scheme)
-	_ = appsv1.AddToScheme(scheme)
-	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(scheme).Build(), nil, nil, false))
+	config.TestHelmConfigDir = testHelmConfigDir
+	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), nil, nil, false))
 	assert.NoError(t, err)
 }
 
