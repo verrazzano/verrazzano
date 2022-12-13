@@ -56,6 +56,10 @@ var rancherSystemNS = []string{
 	"local",
 }
 
+type forkPostUninstallFuncSig func(ctx spi.ComponentContext, monitor postUninstallMonitor) error
+
+var forkPostUninstallFunc forkPostUninstallFuncSig = forkPostUninstall
+
 // postUninstallRoutineParams - Used to pass args to the postUninstall goroutine
 type postUninstallRoutineParams struct {
 	ctx spi.ComponentContext
@@ -124,7 +128,7 @@ func postUninstall(ctx spi.ComponentContext, monitor postUninstallMonitor) error
 		ctx.Log().Debug("Error during rancher post-uninstall, retrying")
 	}
 
-	return forkPostUninstall(ctx, monitor)
+	return forkPostUninstallFunc(ctx, monitor)
 }
 
 func forkPostUninstall(ctx spi.ComponentContext, monitor postUninstallMonitor) error {
