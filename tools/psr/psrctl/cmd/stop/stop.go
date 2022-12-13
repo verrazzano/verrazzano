@@ -28,7 +28,7 @@ func NewCmdStop(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return RunCmdStop(cmd, vzHelper)
 	}
-	cmd.Args = cobra.ExactArgs(1)
+	cmd.Args = cobra.ExactArgs(0)
 	cmd.Example = helpExample
 
 	cmd.PersistentFlags().StringVarP(&scenarioID, constants.FlagScenario, constants.FlagsScenarioShort, "", constants.FlagScenarioHelp)
