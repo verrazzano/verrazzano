@@ -240,6 +240,10 @@ function dump_extra_details_per_namespace() {
   rm $CAPTURE_DIR/cluster-snapshot/namespace_list.out
 }
 
+function gather_cronological_events() {
+  find $CAPTURE_DIR/cluster-snapshot -name events.json -print0 | xargs -0 cat | jq '.items[] | [.firstTimestamp, .lastTimestamp, .reason, .message] | @csv' | sort > $CAPTURE_DIR/cluster-snapshot/cronological-event-messages.csv || true
+}
+
 function full_k8s_cluster_snapshot() {
   echo "Full capture of kubernetes cluster"
   # Get general cluster-info dump, this contains quite a bit but not everything, it also sets up the directory structure
@@ -271,6 +275,8 @@ function full_k8s_cluster_snapshot() {
     if kubectl get ns verrazzano-monitoring 2>&1 > /dev/null ; then
       kubectl get secret prometheus-prometheus-operator-kube-p-prometheus -n verrazzano-monitoring -o json | jq -r '.data["prometheus.yaml.gz"]' | base64 -d | gunzip > $CAPTURE_DIR/cluster-snapshot/prom-scrape-config.yaml || true
     fi
+    # Gather event messages in crhonological order
+    gather_cronological_events
   else
     echo "Failed to dump cluster, verify kubectl has access to the cluster"
   fi

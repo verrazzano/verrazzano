@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 	"path/filepath"
 	"strings"
 
@@ -447,7 +448,7 @@ func (i istioComponent) GetDependencies() []string {
 func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
 	if vzcr.IsApplicationOperatorEnabled(context.ActualCR()) {
 		context.Log().Infof("Stop WebLogic domains that have the old Envoy sidecar where istio version skew is more than 2 minor versions")
-		if err := StopDomainsUsingOldEnvoy(context.Log(), context.Client()); err != nil {
+		if err := restart.StopDomainsUsingOldEnvoy(context.Log(), context.Client()); err != nil {
 			return err
 		}
 	}
