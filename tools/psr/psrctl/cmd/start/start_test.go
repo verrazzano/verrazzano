@@ -7,16 +7,16 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
-	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/manifest"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/pkg/scenario"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -50,12 +50,10 @@ func TestStartCmd(t *testing.T) {
 
 	defer func() { scenario.StartUpgradeFunc = helmcli.Upgrade }()
 	scenario.StartUpgradeFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
-		//assert.Equal(t, 3, len(overrides))
-		//assert.Equal(t, "psr-ops-s1-writelogs-0", releaseName)
-		//assert.Equal(t, "psr", namespace)
-		//assert.Contains(t, chartDir, "manifests/charts/worker")
-
-		// TODO: add start assertions
+		assert.Equal(t, 4, len(overrides))
+		assert.Equal(t, "psr-ops-s1-ops-writelogs-0", releaseName)
+		assert.Equal(t, "psr", namespace)
+		assert.Contains(t, chartDir, "manifests/charts/worker")
 
 		return nil, nil, nil
 	}
