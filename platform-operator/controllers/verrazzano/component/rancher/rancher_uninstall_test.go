@@ -488,6 +488,25 @@ func TestPostUninstall(t *testing.T) {
 // THEN the post-uninstall returns nil without calling the forkPostUninstall function
 func TestBackgroundPostUninstallCompletedSuccessfully(t *testing.T) {
 	// TODO: write this
+	a := assert.New(t)
+	vz := v1alpha1.Verrazzano{}
+
+	tt := tests[2]
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.objects...).Build()
+	ctx := spi.NewFakeContext(c, &vz, nil, false)
+
+	crd1 := v12.CustomResourceDefinition{}
+	c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
+
+	forkPostUninstallFunc = func(_ spi.ComponentContext, _ postUninstallMonitor) error {
+		a.Fail("Unexpected call to forkPostUninstall() function")
+		return nil
+	}
+	defer func() { forkPostUninstallFunc = forkPostUninstall }()
+
+	monitor := &fakeMonitor{result: true, running: true}
+	err := postUninstall(ctx, monitor)
+	a.NoError(err)
 }
 
 // TestPostUninstall tests the post uninstall process for Rancher
@@ -496,6 +515,28 @@ func TestBackgroundPostUninstallCompletedSuccessfully(t *testing.T) {
 // THEN the postUninstall function calls the forkPostUninstall function and returns a retry error
 func TestBackgroundPostUninstallRetryOnFailure(t *testing.T) {
 	// TODO: write this
+	a := assert.New(t)
+	vz := v1alpha1.Verrazzano{}
+
+	tt := tests[2]
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.objects...).Build()
+	ctx := spi.NewFakeContext(c, &vz, nil, false)
+
+	crd1 := v12.CustomResourceDefinition{}
+	c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
+
+	forkFuncCalled := false
+	expectedErr := ctrlerrors.RetryableError{Source: ComponentName}
+	forkPostUninstallFunc = func(_ spi.ComponentContext, _ postUninstallMonitor) error {
+		forkFuncCalled = true
+		return expectedErr
+	}
+	defer func() { forkPostUninstallFunc = forkPostUninstall }()
+
+	monitor := &fakeMonitor{result: false, running: true}
+	err := postUninstall(ctx, monitor)
+	a.True(forkFuncCalled)
+	a.Equal(expectedErr, err, "Uninstall returned an unexpected error")
 }
 
 func Test_forkPostUninstallSuccess(t *testing.T) {
