@@ -66,7 +66,7 @@ func RunCmdStart(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 
 	fmt.Fprintf(vzHelper.GetOutputStream(), "Starting scenario %s\n", scenarioMan.ID)
-	msg, err := m.StartScenario(manifestMan, scenarioMan)
+	msg, err := m.StartScenario(manifestMan, scenarioMan, vzHelper)
 	if err != nil {
 		// Cobra will display failure message
 		return fmt.Errorf("Failed to start scenario %s/%s: %v\n%s", namespace, scenarioID, err, msg)

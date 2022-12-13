@@ -80,8 +80,8 @@ Usecases:
 		return k8sfake.NewSimpleClientset(cm).CoreV1(), nil
 	}
 
-	defer func() { scenario.StopFunc = helmcli.Uninstall }()
-	scenario.StopFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
+	defer func() { scenario.UninstallFunc = helmcli.Uninstall }()
+	scenario.UninstallFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
 		assert.Equal(t, "psr-ops-s1-writelogs-0", releaseName)
 		assert.Equal(t, "psr", namespace)
 

@@ -79,7 +79,7 @@ func RunCmdList(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return nil
 	}
 
-	fmt.Println()
+	fmt.Fprintln(vzHelper.GetOutputStream())
 	if len(namespace) > 0 {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Scenarios running in namespace %s\n", namespace)
 	} else {

@@ -180,3 +180,85 @@ func TestStartInvalid(t *testing.T) {
 
 	assert.Contains(t, result, "Failed to find scenario manifest with ID bad-manifest")
 }
+
+// TestStartDir tests the NewCmdStart and RunCmdStart functions
+//
+//	WHEN 'psrctl start -s ops-test -d psrctl/testdata/ops-test' is called
+//	THEN ensure the new scenario gets started
+func TestStartDir(t *testing.T) {
+	manifest.Manifests = &manifest.PsrManifests{
+		RootTmpDir:        psrRoot,
+		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
+		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
+		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
+	}
+
+	defer manifest.ResetManifests()
+
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+	k8sutil.GetCoreV1Func = func(log ...vzlog.VerrazzanoLogger) (corev1cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset().CoreV1(), nil
+	}
+
+	defer func() { scenario.StartUpgradeFunc = helmcli.Upgrade }()
+	scenario.StartUpgradeFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
+		assert.Equal(t, 4, len(overrides))
+		assert.Equal(t, "psr-ops-test-ops-writelogs-0", releaseName)
+		assert.Equal(t, "default", namespace)
+		assert.Contains(t, chartDir, "manifests/charts/worker")
+
+		return nil, nil, nil
+	}
+
+	// Send the command output to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+
+	cmd := NewCmdStart(rc)
+	cmd.PersistentFlags().Set(constants.FlagScenario, "ops-test")
+	cmd.PersistentFlags().Set(constants.FlagScenarioDir, "../../testdata/ops-test")
+	assert.NotNil(t, cmd)
+
+	// Run start command, check for the expected status results to be displayed
+	err := cmd.Execute()
+	assert.NoError(t, err)
+	result := buf.String()
+
+	assert.Contains(t, result, "Starting scenario ops-test")
+	assert.Contains(t, result, "Scenario ops-test successfully started")
+}
+
+// TestStartDirError tests the NewCmdStart and RunCmdStart functions
+//
+//	WHEN 'psrctl start -d psrctl/testdata/ops-test' is called without the scenario name
+//	THEN ensure the output correctly tells the user their operation is invalid
+func TestStartDirError(t *testing.T) {
+	manifest.Manifests = &manifest.PsrManifests{
+		RootTmpDir:        psrRoot,
+		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
+		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
+		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
+	}
+
+	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
+	k8sutil.GetCoreV1Func = func(log ...vzlog.VerrazzanoLogger) (corev1cli.CoreV1Interface, error) {
+		return k8sfake.NewSimpleClientset().CoreV1(), nil
+	}
+
+	// Send the command output to a byte buffer
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+
+	cmd := NewCmdStart(rc)
+	cmd.PersistentFlags().Set(constants.FlagScenarioDir, "../../testdata/ops-test")
+	assert.NotNil(t, cmd)
+
+	// Run start command, check for the expected status results to be displayed
+	err := cmd.Execute()
+	assert.Error(t, err)
+	result := err.Error()
+
+	assert.Contains(t, result, "Failed to find scenario manifest with ID")
+}

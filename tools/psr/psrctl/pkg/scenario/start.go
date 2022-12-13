@@ -5,6 +5,7 @@ package scenario
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"os"
 	"path/filepath"
 	"strings"
@@ -28,7 +29,7 @@ type WorkerType struct {
 }
 
 // StartScenario starts a Scenario
-func (m ScenarioMananger) StartScenario(manifestMan manifest.ManifestManager, scman *manifest.ScenarioManifest) (string, error) {
+func (m ScenarioMananger) StartScenario(manifestMan manifest.ManifestManager, scman *manifest.ScenarioManifest, vzHelper helpers.VZHelper) (string, error) {
 	helmReleases := []HelmRelease{}
 
 	// Make sure the scenario is not running already
@@ -65,7 +66,7 @@ func (m ScenarioMananger) StartScenario(manifestMan manifest.ManifestManager, sc
 		relname := fmt.Sprintf("psr-%s-%s-%v", scman.ID, wType, i)
 
 		if m.Verbose {
-			fmt.Printf("Installing use case %s as Helm release %s/%s\n", uc.UsecasePath, m.Namespace, relname)
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Installing use case %s as Helm release %s/%s\n", uc.UsecasePath, m.Namespace, relname)
 		}
 		_, stderr, err := StartUpgradeFunc(m.Log, relname, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 		if err != nil {
