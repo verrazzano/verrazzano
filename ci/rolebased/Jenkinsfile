@@ -3,7 +3,7 @@
 
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
-def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
+def agentLabel = env.JOB_NAME.contains('master') ? "1.5-large-phx" : "1.5-large"
 
 pipeline {
     options {
