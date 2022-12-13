@@ -101,10 +101,6 @@ pipeline {
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
-                    sh """
-                        ls -ltr ${WORKSPACE}/ci/
-                        ls -ltr ${WORKSPACE}/ci/tools/
-                    """
                     VERSION_FOR_INSTALL = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} versionForInstall").trim()
                     INTERIM_UPGRADE_VERSION = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} interimVersionForUpgrade").trim()
                     // update the description with some meaningful info
