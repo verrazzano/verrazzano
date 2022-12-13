@@ -97,16 +97,16 @@ pipeline {
                 }
 
                 script {
-                    echo "Generate git tags and save it to tags.txt file in the workspace"
-                    sh """
-                        cd ${workspace}
-                        git tag | awk '/v1[.]/' >  tags.txt
-                        cat tags.txt
-                    """
                     def props = readProperties file: '.verrazzano-development-version'
                     VERRAZZANO_DEV_VERSION = props['verrazzano-development-version']
                     TIMESTAMP = sh(returnStdout: true, script: "date +%Y%m%d%H%M%S").trim()
                     SHORT_COMMIT_HASH = sh(returnStdout: true, script: "git rev-parse --short=8 HEAD").trim()
+                    sh """
+                        ls -ltr ${WORKSPACE}/ci/
+                        ls -ltr ${WORKSPACE}/ci/tools/
+                    """
+                    VERSION_FOR_INSTALL = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} versionForInstall").trim()
+                    INTERIM_UPGRADE_VERSION = sh(returnStdout: true, script: "go run  ${WORKSPACE}/ci/tools/derive_upgrade_version.go ${workspace} interimVersionForUpgrade").trim()
                     // update the description with some meaningful info
                     currentBuild.description = SHORT_COMMIT_HASH + " : " + env.GIT_COMMIT + " : " + params.GIT_COMMIT_TO_USE
                     def currentCommitHash = env.GIT_COMMIT
@@ -129,8 +129,8 @@ pipeline {
                                 build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                        string(name: 'VERSION_FOR_INSTALL', value: getInstallVersion()),
-                                        string(name: 'INTERIM_UPGRADE_VERSION', value: getInterimRelease()),
+                                        string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
+                                        string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -149,8 +149,8 @@ pipeline {
                                 build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                             string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                            string(name: 'VERSION_FOR_INSTALL', value: getInstallVersion()),
-                                            string(name: 'INTERIM_UPGRADE_VERSION', value: getInterimRelease()),
+                                            string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
+                                            string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
                                             string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                             string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                             string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -169,8 +169,8 @@ pipeline {
                                 build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                        string(name: 'VERSION_FOR_INSTALL', value: getInstallVersion()),
-                                        string(name: 'INTERIM_UPGRADE_VERSION', value: getInterimRelease()),
+                                        string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
+                                        string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -189,8 +189,8 @@ pipeline {
                                 build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                        string(name: 'VERSION_FOR_INSTALL', value: getInstallVersion()),
-                                        string(name: 'INTERIM_UPGRADE_VERSION', value: getInterimRelease()),
+                                        string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
+                                        string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -209,8 +209,8 @@ pipeline {
                                 build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                        string(name: 'VERSION_FOR_INSTALL', value: getInstallVersion()),
-                                        string(name: 'INTERIM_UPGRADE_VERSION', value: getInterimRelease()),
+                                        string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
+                                        string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -229,8 +229,8 @@ pipeline {
                                 build job: "/verrazzano-chaos-tests/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_FOR_UPGRADE', value: env.GIT_COMMIT),
-                                        string(name: 'VERSION_FOR_INSTALL', value: getInstallVersion()),
-                                        string(name: 'INTERIM_UPGRADE_VERSION', value: getInterimRelease()),
+                                        string(name: 'VERSION_FOR_INSTALL', value: VERSION_FOR_INSTALL),
+                                        string(name: 'INTERIM_UPGRADE_VERSION', value: INTERIM_UPGRADE_VERSION),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
@@ -267,6 +267,7 @@ def isPagerDutyEnabled() {
     }
     return false
 }
+
 
 // Called in Stage Clean workspace and checkout steps
 @NonCPS
@@ -394,107 +395,3 @@ def getCronSchedule() {
     return ""
 }
 
-// getInterimRelease returns the interim version, where interim version =  latest minor release - 1 older release
-def getInterimRelease(){
-    // Read the tags from the file and create a list gitTags
-    final String fileContent = readFile(file: "${workspace}/tags.txt")
-    final List gitTags = extractReleaseTags(fileContent)
-
-    def latestReleaseTag = gitTags.pop() - "v"
-    def interimRelease
-    def latestPatch = 0
-    def latestReleaseTagSplit = latestReleaseTag.split("\\.")
-    def latestRelease = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
-    def minorInterimVersionValue =  Integer.parseInt(latestReleaseTagSplit[1]) - 1
-    def majorVersionValue = Integer.parseInt(latestReleaseTagSplit[0])
-
-    //Handles the major release case, ex: where the latest version is 2.0.0 and the previous version is 1.4.2
-    if(minorInterimVersionValue < 0){
-        minorInterimVersionValue = 0
-        majorVersionValue = Integer.parseInt(latestReleaseTagSplit[0]) - 1
-        for (version in gitTags){
-          if(version ==~ "^\\w{5}\\-\\w{4}\$"){
-             continue
-          }
-          version = version - "v"
-          def releaseTagSplit = version.split("\\.")
-          if(Integer.parseInt(releaseTagSplit[0]) == majorVersionValue && Integer.parseInt(releaseTagSplit[1]) > minorInterimVersionValue){
-            minorInterimVersionValue = Integer.parseInt(releaseTagSplit[1])
-          }
-        }
-    }else {
-        minorInterimVersionValue =  Integer.parseInt(latestReleaseTagSplit[1]) - 1
-    }
-
-    //Iterate over all releases to configure the latest patch release
-    for (version in gitTags) {
-         if(version ==~ "^\\w{5}\\-\\w{4}\$"){
-            continue
-         }
-        version = version - "v"
-        def releaseTagSplit = version.split("\\.")
-        if (Integer.parseInt(releaseTagSplit[0]) == majorVersionValue && Integer.parseInt(releaseTagSplit[1]) == minorInterimVersionValue) {
-            if (Integer.parseInt(releaseTagSplit[2]) > latestPatch){
-                latestPatch = Integer.parseInt(releaseTagSplit[2])
-            }
-            interimRelease = releaseTagSplit[0] + "." + minorInterimVersionValue + "." + latestPatch
-        }
-    }
-    return "v"+interimRelease
-}
-
-// getInstallVersion returns the install version, where install version =  latest minor release - 2 older release
-def getInstallVersion(){
-     // Read the tags from the file and create a list gitTags
-    final String fileContent = readFile(file: "${workspace}/tags.txt")
-    final List gitTags = extractReleaseTags(fileContent)
-
-    def latestReleaseTag = gitTags.pop() - "v"
-    def installRelease
-    def latestPatch = 0
-    def latestReleaseTagSplit = latestReleaseTag.split("\\.")
-    def latestRelease = latestReleaseTagSplit[0] + "." + latestReleaseTagSplit[1]
-    def minorInstallVersionValue =  Integer.parseInt(latestReleaseTagSplit[1]) - 2
-    def majorVersionValue = Integer.parseInt(latestReleaseTagSplit[0])
-
-    //Handles the major release case, ex: where the latest version is 2.0.0 and the previous version is 1.4.2
-    if(minorInstallVersionValue < 0){
-        minorInstallVersionValue = 0
-        majorVersionValue = Integer.parseInt(latestReleaseTagSplit[0]) - 1
-        for (version in gitTags){
-          if(version ==~ "^\\w{5}\\-\\w{4}\$"){
-             continue
-          }
-          version = version - "v"
-          def releaseTagSplit = version.split("\\.")
-          if(Integer.parseInt(releaseTagSplit[0]) == majorVersionValue && Integer.parseInt(releaseTagSplit[1]) > minorInstallVersionValue){
-            minorInstallVersionValue = Integer.parseInt(releaseTagSplit[1]) -1
-          }
-        }
-    }
-
-    //Iterate over all releases to configure the latest patch release
-    for (version in gitTags) {
-         if(version ==~ "^\\w{5}\\-\\w{4}\$"){
-            continue
-         }
-        version = version - "v"
-        def releaseTagSplit = version.split("\\.")
-        if (Integer.parseInt(releaseTagSplit[0]) == majorVersionValue && Integer.parseInt(releaseTagSplit[1]) == minorInstallVersionValue) {
-            if (Integer.parseInt(releaseTagSplit[2]) > latestPatch){
-                latestPatch = Integer.parseInt(releaseTagSplit[2])
-            }
-            installRelease = releaseTagSplit[0] + "." + minorInstallVersionValue + "." + latestPatch
-        }
-    }
-    return "v"+installRelease
-}
-
-@NonCPS
-List extractReleaseTags(final String fileContent) {
-    List releases = []
-    fileContent.eachLine { tag ->
-        releases << tag
-    }
-    return releases
-}
