@@ -1,7 +1,7 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package istio
+package restart
 
 import (
 	"context"
@@ -105,7 +105,7 @@ func TestWebLogicStopStart(t *testing.T) {
 			expectGetAndUpdate:     true,
 			initialLifeCycleAction: "",
 			f: func(mock *mocks.MockClient) error {
-				return RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions(vzlog.DefaultLogger(), mock, "1")
+				return RestartDomainsIfOutdatedSidecars(vzlog.DefaultLogger(), mock, "1")
 			},
 		},
 
@@ -116,7 +116,7 @@ func TestWebLogicStopStart(t *testing.T) {
 			expectGetAndUpdate:     false,
 			initialLifeCycleAction: "",
 			f: func(mock *mocks.MockClient) error {
-				return RestartDomainsUsingOldEnvoyMaxSkewTwoMinorVersions(vzlog.DefaultLogger(), mock, "1")
+				return RestartDomainsIfOutdatedSidecars(vzlog.DefaultLogger(), mock, "1")
 			},
 		},
 	}

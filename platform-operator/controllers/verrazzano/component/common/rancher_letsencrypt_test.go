@@ -90,6 +90,25 @@ func TestBuildLetsEncryptChain(t *testing.T) {
 	assert.Equal(t, "certcertcert", string(builder.cert))
 }
 
+// TestProcessAdditionalCertificatesRancherDisabled verifies no error when ProcessAdditionalCertificates is called and Rancher is disabled
+func TestProcessAdditionalCertificatesRancherDisabled(t *testing.T) {
+	disabled := false
+	vz := &v1alpha1.Verrazzano{
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				Rancher: &v1alpha1.RancherComponent{
+					Enabled: &disabled,
+				},
+			},
+		},
+	}
+	mock := gomock.NewController(t)
+	client := mocks.NewMockClient(mock)
+	ctx := spi.NewFakeContext(client, vz, nil, false)
+	err := ProcessAdditionalCertificates(ctx.Log(), client, vz)
+	assert.NoError(t, err)
+}
+
 // TestProcessAdditionalCertificates verifies building the LetsEncrypt staging certificate chain
 // GIVEN a logger, client and Verrazzano CR with valid Certmanager spec
 //
@@ -115,7 +134,6 @@ func TestProcessAdditionalCertificates(t *testing.T) {
 
 	err := ProcessAdditionalCertificates(ctx.Log(), client, &vz)
 	assert.Nil(t, err)
-
 }
 
 // TestProcessAdditionalCertificatesFailure verifies building the LetsEncrypt staging certificate chain
