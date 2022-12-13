@@ -45,19 +45,19 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	metrics.Emit(t.Metrics.With("deployment_elapsed_time", time.Since(start).Milliseconds()))
 
 	//Resources for application bar
-	update.ValidatePods(sleepWorkloadName, labelPodName, barNamespace, 1, false)
-	update.ValidatePods(springFrontWorkloadName, labelPodName, barNamespace, 1, false)
-	update.ValidatePods(springBackWorkloadName, labelPodName, barNamespace, 1, false)
+	update.ValidatePods(sleepWorkloadName, labelPodName, barNamespace, 2, false)
+	update.ValidatePods(springFrontWorkloadName, labelPodName, barNamespace, 2, false)
+	update.ValidatePods(springBackWorkloadName, labelPodName, barNamespace, 2, false)
 
 	//Resources for application foo
-	update.ValidatePods(sleepWorkloadName, labelPodName, fooNamespace, 1, false)
-	update.ValidatePods(springFrontWorkloadName, labelPodName, fooNamespace, 1, false)
-	update.ValidatePods(springBackWorkloadName, labelPodName, fooNamespace, 1, false)
+	update.ValidatePods(sleepWorkloadName, labelPodName, fooNamespace, 2, false)
+	update.ValidatePods(springFrontWorkloadName, labelPodName, fooNamespace, 3, false)
+	update.ValidatePods(springBackWorkloadName, labelPodName, fooNamespace, 4, false)
 
 	//Resources for application noIstio
-	update.ValidatePods(sleepWorkloadName, "app", noIstioNamespace, 1, false)
-	update.ValidatePods(springFrontWorkloadName, labelPodName, noIstioNamespace, 1, false)
-	update.ValidatePods(springBackWorkloadName, labelPodName, noIstioNamespace, 1, false)
+	update.ValidatePods(sleepWorkloadName, "app", noIstioNamespace, 3, false)
+	update.ValidatePods(springFrontWorkloadName, labelPodName, noIstioNamespace, 2, false)
+	update.ValidatePods(springBackWorkloadName, labelPodName, noIstioNamespace, 2, false)
 	beforeSuitePassed = true
 })
 
