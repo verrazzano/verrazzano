@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -204,25 +205,18 @@ func (o opensearchComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzan
 	if err := common.CompareStorageOverridesV1Beta1(old, new, ComponentJSONName); err != nil {
 		return err
 	}
-	if old.Spec.Components.OpenSearch == nil {
-		return nil
-	}
-	opensearchOld := old.Spec.Components.OpenSearch
-	if new.Spec.Components.OpenSearch == nil {
-		return nil
-	}
-	opensearchNew := new.Spec.Components.OpenSearch
+	if old.Spec.Components.OpenSearch != nil && new.Spec.Components.OpenSearch != nil {
+		opensearchOld := old.Spec.Components.OpenSearch
+		opensearchNew := new.Spec.Components.OpenSearch
 
-	numNodesold, _ := GetNodesNumber(opensearchOld)
-	numNodesnew, _ := GetNodesNumber(opensearchNew)
-	sum := numNodesnew["master"] + numNodesnew["data"] + numNodesnew["ingest"]
-	for role, replicas := range numNodesold {
+		numNodesold, _ := GetNodeRoleCounts(opensearchOld)
+		numNodesnew, totalNodesNew := GetNodeRoleCounts(opensearchNew)
 
-		if role != "ingest" && replicas-numNodesnew[role] > numNodesnew[role] && sum > 1 {
-			return errors.New("The number of nodes can't be scaled by more than half")
-
+		for role, replicas := range numNodesold {
+			if role != vmov1.NodeRole("ingest") && replicas > 2*numNodesnew[role] && totalNodesNew > int32(1) {
+				return errors.New("The number of nodes can't be scaled by more than half at once")
+			}
 		}
-
 	}
 	// Reject edits that duplicate names of install args or node groups
 	return validateNoDuplicatedConfiguration(new)

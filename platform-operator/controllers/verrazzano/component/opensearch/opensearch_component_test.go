@@ -1100,96 +1100,155 @@ func TestValidateUpdate(t *testing.T) {
 
 func TestValidateInstallCR(t *testing.T) {
 	trueVal := true
-	vz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Elasticsearch: &vzapi.ElasticsearchComponent{
-					Enabled: &(trueVal),
-					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+	tests := []struct {
+		name    string
+		vzCR    *vzapi.Verrazzano
+		wantErr bool
+	}{
+		{
+			name: "case-1",
+			vzCR: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							Enabled: &(trueVal),
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+						},
+					},
 				},
 			},
+			wantErr: false,
+		},
+		{
+			name: "case-2",
+			vzCR: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							Enabled: &(trueVal),
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 0, Roles: []vmov1.NodeRole{"ingest"}}},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "case-3",
+			vzCR: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							Enabled: &(trueVal),
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 1, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{"ingest"}}},
+						},
+					},
+				},
+			},
+			wantErr: true,
 		},
 	}
-	err := NewComponent().ValidateInstall(vz)
-	assert.NoError(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			err := c.ValidateInstall(tt.vzCR)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateInstall() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 
-	vz = &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Elasticsearch: &vzapi.ElasticsearchComponent{
-					Enabled: &(trueVal),
-					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 0, Roles: []vmov1.NodeRole{"ingest"}}},
-				},
-			},
-		},
-	}
-	err = NewComponent().ValidateInstall(vz)
-	assert.Error(t, err)
-
-	vz = &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Elasticsearch: &vzapi.ElasticsearchComponent{
-					Enabled: &(trueVal),
-					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{"ingest"}}},
-				},
-			},
-		},
-	}
-	err = NewComponent().ValidateInstall(vz)
-	assert.NoError(t, err)
 }
 
 func TestValidateUpdateCR(t *testing.T) {
 	trueVal := true
-	oldvz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Elasticsearch: &vzapi.ElasticsearchComponent{
-					Enabled: &(trueVal),
-					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 5, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{"ingest"}}},
+	tests := []struct {
+		name    string
+		old     *vzapi.Verrazzano
+		new     *vzapi.Verrazzano
+		wantErr bool
+	}{
+		{
+			name: "case-1",
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							Enabled: &(trueVal),
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 5, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{"ingest"}}},
+						},
+					},
 				},
 			},
-		},
-	}
-
-	newvz := &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Elasticsearch: &vzapi.ElasticsearchComponent{
-					Enabled: &(trueVal),
-					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 3, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							Enabled: &(trueVal),
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+						},
+					},
 				},
 			},
+			wantErr: true,
 		},
-	}
-	err := NewComponent().ValidateUpdate(oldvz, newvz)
-	assert.NoError(t, err)
-
-	newvz = &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Elasticsearch: &vzapi.ElasticsearchComponent{
-					Enabled: &(trueVal),
-					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+		{
+			name: "case-2",
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							Enabled: &(trueVal),
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 5, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{"ingest"}}},
+						},
+					},
 				},
 			},
-		},
-	}
-	err = NewComponent().ValidateUpdate(oldvz, newvz)
-	assert.Error(t, err)
-
-	newvz = &vzapi.Verrazzano{
-		Spec: vzapi.VerrazzanoSpec{
-			Components: vzapi.ComponentSpec{
-				Elasticsearch: &vzapi.ElasticsearchComponent{
-					Enabled: &(trueVal),
-					Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"master"}}},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							Enabled: &(trueVal),
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 2, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+						},
+					},
 				},
 			},
+			wantErr: false,
+		},
+		{
+			name: "case-3",
+			old: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							Enabled: &(trueVal),
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 5, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{"ingest"}}},
+						},
+					},
+				},
+			},
+			new: &vzapi.Verrazzano{
+				Spec: vzapi.VerrazzanoSpec{
+					Components: vzapi.ComponentSpec{
+						Elasticsearch: &vzapi.ElasticsearchComponent{
+							Enabled: &(trueVal),
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master", "ingest"}}},
+						},
+					},
+				},
+			},
+			wantErr: false,
 		},
 	}
-	err = NewComponent().ValidateUpdate(oldvz, newvz)
-	assert.NoError(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := NewComponent()
+			err := c.ValidateUpdate(tt.old, tt.new)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 
 }
