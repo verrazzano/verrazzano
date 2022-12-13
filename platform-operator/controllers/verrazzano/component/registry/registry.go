@@ -46,6 +46,8 @@ var getComponentsFn = getComponents
 
 var componentsRegistry []spi.Component
 
+var getComponentsMap map[string]spi.Component
+
 // OverrideGetComponentsFn Allows overriding the set of registry components for testing purposes
 func OverrideGetComponentsFn(fnType GetCompoentsFnType) {
 	getComponentsFn = fnType
@@ -91,6 +93,7 @@ func InitRegistry() {
 		rancherbackup.NewComponent(),
 		clusteroperator.NewComponent(),
 	}
+	getComponentsMap = make(map[string]spi.Component)
 }
 
 // GetComponents returns the list of components that are installable and upgradeable.
@@ -109,12 +112,19 @@ func getComponents() []spi.Component {
 }
 
 func FindComponent(componentName string) (bool, spi.Component) {
-	for _, comp := range GetComponents() {
-		if comp.Name() == componentName {
-			return true, comp
+	// check if component is in map of looked up components
+	existingComponent, ok := getComponentsMap[componentName]
+	if !ok {
+		for _, newComponent := range GetComponents() {
+			if newComponent.Name() == componentName {
+				getComponentsMap[componentName] = newComponent
+				return true, newComponent
+			}
 		}
+		// Component is not in registry
+		return false, nil
 	}
-	return false, nil
+	return true, existingComponent
 }
 
 // ComponentDependenciesMet Checks if the declared dependencies for the component are ready and available; this is
