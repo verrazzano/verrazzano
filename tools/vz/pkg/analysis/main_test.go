@@ -348,3 +348,25 @@ func TestPendingPods(t *testing.T) {
 //	}
 //	assert.True(t, problemsFound > 0)
 //}
+
+// TestIstioIngressInstallFailure Tests that analysis of a cluster dump when IstioIngressLoadBalancer was not created
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows private subnet not allowed in public LB.
+// THEN a report is generated with issues identified
+func TestIstioIngressInstallFailure(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	err := Analyze(logger, "cluster", "test/cluster/istio-loadbalancer-creation-issue")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	problemsFound := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.IstioIngressPrivateSubnet {
+			problemsFound++
+		}
+	}
+	assert.True(t, problemsFound > 0)
+}

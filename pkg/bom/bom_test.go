@@ -130,7 +130,8 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 	},
 	"weblogic-operator": {
 		kvs: map[string]string{
-			"image": "ghcr.io/oracle/weblogic-kubernetes-operator:3.2.2",
+			"image":                           "ghcr.io/oracle/weblogic-kubernetes-operator:3.2.2",
+			"weblogicMonitoringExporterImage": "ghcr.io/oracle/weblogic-monitoring-exporter:2.0.7",
 		},
 	},
 	"coherence-operator": {

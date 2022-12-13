@@ -37,10 +37,10 @@ pipeline {
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
 
         booleanParam (name: 'PERFORM_SCAN', defaultValue: false, description: 'Whether to perform a scan of the built images')
-        booleanParam (name: 'EMIT_METRICS', defaultValue: false, description: 'Whether to emit metrics from the pipeline')
         booleanParam (name: 'FAIL_IF_COVERAGE_DECREASED', defaultValue: false, description: 'Whether to fail build if UT coverage number decreases lower than its release-* coverage from object storage. This defaults to true, meaning Any non release-*/master branch will fail if its coverage is lower. This can be disabled so that jobs only WARN when coverage drops but not fail.')
         booleanParam (name: 'UPLOAD_UNIT_TEST_COVERAGE', defaultValue: false, description: 'Whether to write the UT coverage number to object storage. This always occurs for release-*/master branches. Defaults to true, but it can be disabled to not always upload.')
         booleanParam (name: 'SKIP_BUILD', defaultValue: false, description: "Skip the PSR tool and Worker builds")
+        booleanParam (name: 'SKIP_TEST', defaultValue: false, description: "Skip the psrctl scenario validation tests")
         booleanParam (name: 'VZ_TEST_DEBUG', defaultValue: true, description: "Enables debug of Verrazzano installation scripts")
         string (name: 'TAGGED_TESTS', defaultValue: '', trim: true, description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:')
         string (name: 'INCLUDED_TESTS', defaultValue: '.*', description: 'A regex matching any fully qualified test file that should be executed (e.g. examples/helidon/). Default: .*', trim: true)
@@ -89,15 +89,11 @@ pipeline {
         OCIR_SCAN_REPOSITORY_PATH = credentials('ocir-scan-repository-path')
         DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
 
-        //VZ_TEST_BRANCH = "${params.VZ_BRANCH_TO_USE}"
-
         // Environment variable for Verrazzano CLI executable
         VZ_COMMAND="${WORKSPACE}/vz"
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
-        GINKGO_REPORT_ARGS = "--junit-report=${TEST_REPORT} --keep-separate-reports=true"
-        TEST_REPORT_DIR = "${WORKSPACE}/tests/e2e"
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
 
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
@@ -254,8 +250,8 @@ pipeline {
                                     lineCoverageTargets: '68, 68, 68',
                                     packageCoverageTargets: '100, 0, 0',
                             )
-                            archiveArtifacts artifacts: '**/coverage.html,**/logs/**', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/**,**/*${TEST_REPORT}', allowEmptyArchive: true
+                            junit testResults: 'tests/**/*.xml', allowEmptyResults: true
                         }
                     }
                 }
@@ -276,12 +272,18 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '**/scanning-report*.json', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '**/scanning-report*.json,**/*${TEST_REPORT}', allowEmptyArchive: true
                }
             }
         }
 
         stage('Scenario Tests') {
+            when {
+                allOf {
+                    expression {params.SKIP_BUILD == false}
+                    expression {params.SKIP_TEST == false}
+                }
+            }
             environment {
                 DOCKER_REPO="${env.DOCKER_REGISTRY}"
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
@@ -299,8 +301,6 @@ pipeline {
             post {
                 success {
                     script {
-                        VZ_TEST_METRIC = metricJobName('psr-smoke-test')
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                         if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster('psr-tests-success-cluster-snapshot')
                         }
@@ -308,8 +308,6 @@ pipeline {
                 }
                 failure {
                     script {
-                        VZ_TEST_METRIC = metricJobName('psr-smoke-test')
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
                             dumpK8sCluster('psr-tests-failure-cluster-snapshot')
                         }
@@ -326,7 +324,7 @@ pipeline {
     post {
         always {
             archiveArtifacts artifacts: "**/scanning-report*.json,**/coverage.html,**/logs/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**,**/Screenshot*.png,**/ConsoleLog*.log,**/${TEST_REPORT}", allowEmptyArchive: true
-            junit testResults: '**/*test-result.xml', allowEmptyResults: true
+            junit testResults: 'tests/**/*.xml', allowEmptyResults: true
         }
         failure {
             sh """
@@ -397,7 +395,7 @@ def postFailureProcessing() {
     sh """
         curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o ${WORKSPACE}/build-console-output.log ${BUILD_URL}consoleText
     """
-    archiveArtifacts artifacts: '**/build-console-output.log', allowEmptyArchive: true
+    archiveArtifacts artifacts: '**/build-console-output.log,**/*${TEST_REPORT}', allowEmptyArchive: true
     sh """
         curl -k -u ${JENKINS_READ_USR}:${JENKINS_READ_PSW} -o archive.zip ${BUILD_URL}artifact/*zip*/archive.zip
         oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_ARTIFACT_BUCKET} --name ${env.JOB_NAME}/${env.BRANCH_NAME}/${env.BUILD_NUMBER}/archive.zip --file archive.zip

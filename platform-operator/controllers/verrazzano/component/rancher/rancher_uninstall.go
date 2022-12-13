@@ -163,11 +163,11 @@ func getCRDList(ctx spi.ComponentContext) *v1.CustomResourceDefinitionList {
 	return crds
 }
 
-// removeCRs deletes any remaining Rancher cattle.io cluster scoped custom resources
+// removeCRs deletes any remaining Rancher cattle.io custom resources
 func removeCRs(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) {
-	ctx.Log().Oncef("Removing Rancher cluster scoped custom resources")
+	ctx.Log().Oncef("Removing Rancher custom resources")
 	for _, crd := range crds.Items {
-		if strings.HasSuffix(crd.Name, ".cattle.io") && crd.Spec.Scope == v1.ClusterScoped {
+		if strings.HasSuffix(crd.Name, ".cattle.io") {
 			for _, version := range crd.Spec.Versions {
 				rancherCRs := unstructured.UnstructuredList{}
 				rancherCRs.SetAPIVersion(fmt.Sprintf("%s/%s", crd.Spec.Group, version.Name))
@@ -181,10 +181,11 @@ func removeCRs(ctx spi.ComponentContext, crds *v1.CustomResourceDefinitionList) 
 				for _, rancherCR := range rancherCRs.Items {
 					cr := rancherCR
 					resource.Resource{
-						Name:   cr.GetName(),
-						Client: ctx.Client(),
-						Object: &cr,
-						Log:    ctx.Log(),
+						Namespace: cr.GetNamespace(),
+						Name:      cr.GetName(),
+						Client:    ctx.Client(),
+						Object:    &cr,
+						Log:       ctx.Log(),
 					}.RemoveFinalizersAndDelete()
 
 				}

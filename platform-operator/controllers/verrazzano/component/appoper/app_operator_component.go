@@ -75,6 +75,14 @@ func (c applicationOperatorComponent) IsReady(context spi.ComponentContext) bool
 	return false
 }
 
+// PreInstall applies the Application Operator CRDs
+func (c applicationOperatorComponent) PreInstall(ctx spi.ComponentContext) error {
+	if err := common.ApplyCRDYaml(ctx, config.GetHelmAppOpChartsDir()); err != nil {
+		return err
+	}
+	return c.HelmComponent.PreInstall(ctx)
+}
+
 // PreUpgrade processing for the application-operator
 func (c applicationOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	err := common.ApplyCRDYaml(ctx, config.GetHelmAppOpChartsDir())

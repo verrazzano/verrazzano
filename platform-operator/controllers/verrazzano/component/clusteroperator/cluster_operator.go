@@ -7,6 +7,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"net/url"
+	"os"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/httputil"
@@ -22,8 +26,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"net/http"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -33,6 +35,8 @@ const (
 
 	dataField     = "data"
 	passwordField = "password"
+
+	clusterRegName = "Verrazzano Cluster Registrar"
 )
 
 // AppendOverrides appends any additional overrides needed by the Cluster Operator component
@@ -92,7 +96,7 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 	}
 
 	// Send a request to see if the user exists
-	reqURL := rc.BaseURL + usersByNamePath + vzconst.VerrazzanoClusterRancherUsername
+	reqURL := rc.BaseURL + usersByNamePath + url.PathEscape(clusterRegName)
 	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
 	response, body, err := rancherutil.SendRequest(http.MethodGet, reqURL, headers, "", rc, ctx.Log())
 	if err != nil {
@@ -126,7 +130,12 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 	}
 
 	headers["Content-Type"] = "application/json"
-	ctx.Log().Infof("Sending request message: Type: %s, URL: %s, headers: %v, payload %s", http.MethodPost, reqURL, headers, payload)
+
+	logMsg := fmt.Sprintf("Sending request message: Type: %s, URL: %s, headers: %v, payload %s", http.MethodPost, reqURL, headers, payload)
+	// Mask the bearer token in the log message
+	logMsg = vzpassword.MaskFunction("Authorization:Bearer ")(logMsg)
+	ctx.Log().Debugf(logMsg)
+
 	response, _, err = rancherutil.SendRequest(http.MethodPost, reqURL, headers, string(payload), rc, ctx.Log())
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed to create the Verrazzano cluster user in Rancher: %v", err)
@@ -155,10 +164,10 @@ func createVZClusterUser(ctx spi.ComponentContext) error {
 
 func constructVZUserJSON(pass string) ([]byte, error) {
 	userMap := map[string]interface{}{
-		"description":        "Verrazzano Cluster",
+		"description":        "Verrazzano Cluster Registrar grants permissions to transfer resources to managed clusters",
 		"enabled":            true,
 		"mustChangePassword": false,
-		"name":               vzconst.VerrazzanoClusterRancherUsername,
+		"name":               clusterRegName,
 		"password":           pass,
 		"username":           vzconst.VerrazzanoClusterRancherUsername,
 	}
