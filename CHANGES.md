@@ -3,6 +3,7 @@ Fixes:
 
 - Fixed a bug that resulted in user applications restarting during upgrade from a previous Verrazzano release.
 - Fixed Fluentd configuration to prevent duplication of logs in OpenSearch on Fluentd restarts or upgrade.
+- Fixed WebLogic Grafana dashboards to get the service label value correctly and display data properly.
 
 ### v1.4.2
 Fixes:
