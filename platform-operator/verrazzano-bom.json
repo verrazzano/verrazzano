@@ -169,10 +169,6 @@
             {
               "image": "gitjob",
               "tag": "v0.1.30"
-            },
-            {
-              "image": "local-path-provisioner",
-              "tag": "v0.0.14"
             }
           ]
         }
