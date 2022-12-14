@@ -380,79 +380,9 @@ var tests []testStruct = []testStruct{
 	},
 }
 
-// TODO: write description. Should cover the old TestPostUninstall
-func TestPostUninstallAllObjectsDeleted(t *testing.T) {
-	// TODO: modify to make sense with changes
-	assert := assert.New(t)
-	vz := v1alpha1.Verrazzano{}
-
-	setRancherSystemTool("echo")
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.objects...).Build()
-			ctx := spi.NewFakeContext(c, &vz, nil, false)
-
-			crd1 := v12.CustomResourceDefinition{}
-			c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
-
-			m := &postUninstallMonitorType{}
-			err := postUninstall(ctx, m)
-			assert.NoError(err)
-
-			// MutatingWebhookConfigurations should not exist
-			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &admv1.MutatingWebhookConfiguration{})
-			assert.True(apierrors.IsNotFound(err))
-			err = c.Get(context.TODO(), types.NamespacedName{Name: mwcName}, &admv1.MutatingWebhookConfiguration{})
-			assert.True(apierrors.IsNotFound(err))
-			// ValidatingWebhookConfigurations should not exist
-			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &admv1.ValidatingWebhookConfiguration{})
-			assert.True(apierrors.IsNotFound(err))
-			err = c.Get(context.TODO(), types.NamespacedName{Name: vwcName}, &admv1.ValidatingWebhookConfiguration{})
-			assert.True(apierrors.IsNotFound(err))
-			// ClusterRole should not exist
-			err = c.Get(context.TODO(), types.NamespacedName{Name: rancherCrName}, &rbacv1.ClusterRole{})
-			assert.True(apierrors.IsNotFound(err))
-			// ClusterRoleBinding should not exist
-			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &rbacv1.ClusterRoleBinding{})
-			assert.True(apierrors.IsNotFound(err))
-			if tt.nonRancherTest {
-				// Verify that non-Rancher components did not get cleaned up
-				err = c.Get(context.TODO(), types.NamespacedName{Name: randCR}, &rbacv1.ClusterRole{})
-				assert.Nil(err)
-				err = c.Get(context.TODO(), types.NamespacedName{Name: randCRB}, &rbacv1.ClusterRoleBinding{})
-				assert.Nil(err)
-				err = c.Get(context.TODO(), types.NamespacedName{Name: randPV}, &v1.PersistentVolume{})
-				assert.Nil(err)
-				err = c.Get(context.TODO(), types.NamespacedName{Name: nonRancherRBName}, &rbacv1.RoleBinding{})
-				assert.Nil(err)
-				err = c.Get(context.TODO(), types.NamespacedName{Name: nonRancherCRDName}, &v12.CustomResourceDefinition{})
-				assert.Nil(err)
-			}
-			// ConfigMaps should not exist
-			err = c.Get(context.TODO(), types.NamespacedName{Name: controllerCMName}, &v1.ConfigMap{})
-			assert.True(apierrors.IsNotFound(err))
-			err = c.Get(context.TODO(), types.NamespacedName{Name: lockCMName}, &v1.ConfigMap{})
-			assert.True(apierrors.IsNotFound(err))
-			// Persistent volume should not exist
-			err = c.Get(context.TODO(), types.NamespacedName{Name: pvName}, &v1.PersistentVolume{})
-			assert.True(apierrors.IsNotFound(err))
-			err = c.Get(context.TODO(), types.NamespacedName{Name: pv2Name}, &v1.PersistentVolume{})
-			assert.True(apierrors.IsNotFound(err))
-			// Role Binding should not exist
-			err = c.Get(context.TODO(), types.NamespacedName{Name: rbName}, &rbacv1.RoleBinding{})
-			assert.True(apierrors.IsNotFound(err))
-			// Rancher CRD finalizer should have been deleted which should cause it to go away
-			// since it had a deletion timestamp
-			crd := v12.CustomResourceDefinition{}
-			err = c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd)
-			assert.True(apierrors.IsNotFound(err))
-		})
-	}
-}
-
 // TestPostUninstall tests the post uninstall process for Rancher
 // GIVEN a call to postUninstall
-// WHEN the objects exist in the cluster
+// WHEN the background uninstall goroutine is not running yet
 // THEN the post-uninstall starts a new attempt and returns a RetryableError to requeue
 func TestPostUninstall(t *testing.T) {
 	a := assert.New(t)
@@ -478,7 +408,7 @@ func TestPostUninstall(t *testing.T) {
 
 // TestBackgroundPostUninstallCompletedSuccessfully tests the post uninstall process for Rancher
 // GIVEN a call to postUninstall
-// WHEN the monitor goroutine fails to successfully complete
+// WHEN the monitor goroutine fails to successfully complete FIXME: alter description
 // THEN the post-uninstall returns nil without calling the forkPostUninstall function
 func TestBackgroundPostUninstallCompletedSuccessfully(t *testing.T) {
 	a := assert.New(t)
@@ -605,12 +535,82 @@ func Test_forkPostUninstallFailure(t *testing.T) {
 	a.Fail("Did not detect completion in time")
 }
 
+// TestInvokeRancherSystemToolAndCleanup tests the deletion of objects in the post-uninstall process for Rancher
+// GIVEN a call to invokeRancherSystemToolAndCleanup
+// WHEN the objects exist in the cluster
+// THEN all objects are deleted
+func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
+	assert := assert.New(t)
+	vz := v1alpha1.Verrazzano{}
+
+	setRancherSystemTool("echo")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.objects...).Build()
+			ctx := spi.NewFakeContext(c, &vz, nil, false)
+
+			crd1 := v12.CustomResourceDefinition{}
+			c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
+
+			err := invokeRancherSystemToolAndCleanup(ctx)
+			assert.Nil(err)
+			
+			// MutatingWebhookConfigurations should not exist
+			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &admv1.MutatingWebhookConfiguration{})
+			assert.True(apierrors.IsNotFound(err))
+			err = c.Get(context.TODO(), types.NamespacedName{Name: mwcName}, &admv1.MutatingWebhookConfiguration{})
+			assert.True(apierrors.IsNotFound(err))
+			// ValidatingWebhookConfigurations should not exist
+			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &admv1.ValidatingWebhookConfiguration{})
+			assert.True(apierrors.IsNotFound(err))
+			err = c.Get(context.TODO(), types.NamespacedName{Name: vwcName}, &admv1.ValidatingWebhookConfiguration{})
+			assert.True(apierrors.IsNotFound(err))
+			// ClusterRole should not exist
+			err = c.Get(context.TODO(), types.NamespacedName{Name: rancherCrName}, &rbacv1.ClusterRole{})
+			assert.True(apierrors.IsNotFound(err))
+			// ClusterRoleBinding should not exist
+			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &rbacv1.ClusterRoleBinding{})
+			assert.True(apierrors.IsNotFound(err))
+			if tt.nonRancherTest {
+				// Verify that non-Rancher components did not get cleaned up
+				err = c.Get(context.TODO(), types.NamespacedName{Name: randCR}, &rbacv1.ClusterRole{})
+				assert.Nil(err)
+				err = c.Get(context.TODO(), types.NamespacedName{Name: randCRB}, &rbacv1.ClusterRoleBinding{})
+				assert.Nil(err)
+				err = c.Get(context.TODO(), types.NamespacedName{Name: randPV}, &v1.PersistentVolume{})
+				assert.Nil(err)
+				err = c.Get(context.TODO(), types.NamespacedName{Name: nonRancherRBName}, &rbacv1.RoleBinding{})
+				assert.Nil(err)
+				err = c.Get(context.TODO(), types.NamespacedName{Name: nonRancherCRDName}, &v12.CustomResourceDefinition{})
+				assert.Nil(err)
+			}
+			// ConfigMaps should not exist
+			err = c.Get(context.TODO(), types.NamespacedName{Name: controllerCMName}, &v1.ConfigMap{})
+			assert.True(apierrors.IsNotFound(err))
+			err = c.Get(context.TODO(), types.NamespacedName{Name: lockCMName}, &v1.ConfigMap{})
+			assert.True(apierrors.IsNotFound(err))
+			// Persistent volume should not exist
+			err = c.Get(context.TODO(), types.NamespacedName{Name: pvName}, &v1.PersistentVolume{})
+			assert.True(apierrors.IsNotFound(err))
+			err = c.Get(context.TODO(), types.NamespacedName{Name: pv2Name}, &v1.PersistentVolume{})
+			assert.True(apierrors.IsNotFound(err))
+			// Role Binding should not exist
+			err = c.Get(context.TODO(), types.NamespacedName{Name: rbName}, &rbacv1.RoleBinding{})
+			assert.True(apierrors.IsNotFound(err))
+			// Rancher CRD finalizer should have been deleted which should cause it to go away
+			// since it had a deletion timestamp
+			crd := v12.CustomResourceDefinition{}
+			err = c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd)
+			assert.True(apierrors.IsNotFound(err))
+		})
+	}
+}
+
 // TestIsRancherNamespace tests the namespace belongs to Rancher
 // GIVEN a call to isRancherNamespace
 // WHEN the namespace belings to Rancher or not
 // THEN we see true if it is and false if not
 func TestIsRancherNamespace(t *testing.T) {
-	// FIXME: perhaps need to change this?
 	assert := asserts.New(t)
 
 	assert.True(isRancherNamespace(&v1.Namespace{

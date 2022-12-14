@@ -56,6 +56,7 @@ var rancherSystemNS = []string{
 	"local",
 }
 
+// create func vars for unit tests
 type forkPostUninstallFuncSig func(ctx spi.ComponentContext, monitor postUninstallMonitor) error
 var forkPostUninstallFunc forkPostUninstallFuncSig = forkPostUninstall
 
