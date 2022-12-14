@@ -578,7 +578,7 @@
           "images": [
             {
               "image": "jaeger-agent",
-              "tag": "1.34.1-20220809161126-ae4bd702",
+              "tag": "1.34.1-20221208173501-7da07ddc",
               "helmFullImageKey": "jaegerAgentImage"
             }
           ]
@@ -589,7 +589,7 @@
           "images": [
             {
               "image": "jaeger-collector",
-              "tag": "1.34.1-20220809161126-ae4bd702",
+              "tag": "1.34.1-20221208173501-7da07ddc",
               "helmFullImageKey": "jaegerCollectorImage"
             }
           ]
@@ -600,7 +600,7 @@
           "images": [
             {
               "image": "jaeger-query",
-              "tag": "1.34.1-20220809161126-ae4bd702",
+              "tag": "1.34.1-20221208173501-7da07ddc",
               "helmFullImageKey": "jaegerQueryImage"
             }
           ]
@@ -611,7 +611,7 @@
           "images": [
             {
               "image": "jaeger-ingester",
-              "tag": "1.34.1-20220809161126-ae4bd702",
+              "tag": "1.34.1-20221208173501-7da07ddc",
               "helmFullImageKey": "jaegerIngesterImage"
             }
           ]
@@ -622,7 +622,7 @@
           "images": [
             {
               "image": "jaeger-es-index-cleaner",
-              "tag": "1.34.1-20220809161126-ae4bd702",
+              "tag": "1.34.1-20221208173501-7da07ddc",
               "helmFullImageKey": "jaegerESIndexCleanerImage"
             }
           ]
@@ -633,7 +633,7 @@
           "images": [
             {
               "image": "jaeger-es-rollover",
-              "tag": "1.34.1-20220809161126-ae4bd702",
+              "tag": "1.34.1-20221208173501-7da07ddc",
               "helmFullImageKey": "jaegerESRolloverImage"
             }
           ]
@@ -644,7 +644,7 @@
           "images": [
             {
               "image": "jaeger-all-in-one",
-              "tag": "1.34.1-20220809161126-ae4bd702",
+              "tag": "1.34.1-20221208173501-7da07ddc",
               "helmFullImageKey": "jaegerAllInOneImage"
             }
           ]
