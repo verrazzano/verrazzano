@@ -16,7 +16,6 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	admv1 "k8s.io/api/admissionregistration/v1"
@@ -547,10 +546,10 @@ func Test_forkPostUninstallSuccess(t *testing.T) {
 	crd1 := v12.CustomResourceDefinition{}
 	c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
 
-	rancherUninstallToolFunc = func(log vzlog.VerrazzanoLogger, nsName string) ([]byte, error) {
-		return []byte(""), nil
+	postUninstallFunc = func(ctx spi.ComponentContext) error {
+		return nil
 	}
-	defer func() { rancherUninstallToolFunc = invokeRancherSystemTool }()
+	defer func() { postUninstallFunc = invokeRancherSystemToolAndCleanup }()
 
 	var monitor = &postUninstallMonitorType{}
 	err := forkPostUninstall(ctx, monitor)
@@ -584,10 +583,10 @@ func Test_forkPostUninstallFailure(t *testing.T) {
 	crd1 := v12.CustomResourceDefinition{}
 	c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
 
-	rancherUninstallToolFunc = func(log vzlog.VerrazzanoLogger, nsName string) ([]byte, error) {
-		return []byte(""), fmt.Errorf("Unexpected error on uninstall")
+	postUninstallFunc = func(ctx spi.ComponentContext) error {
+		return fmt.Errorf("Unexpected error on uninstall")
 	}
-	defer func() { rancherUninstallToolFunc = invokeRancherSystemTool }()
+	defer func() { postUninstallFunc = invokeRancherSystemToolAndCleanup }()
 
 	var monitor = &postUninstallMonitorType{}
 	err := forkPostUninstall(ctx, monitor)
