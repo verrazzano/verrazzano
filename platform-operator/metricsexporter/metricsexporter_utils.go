@@ -146,13 +146,13 @@ func initSimpleCounterMetricMap() map[metricName]*SimpleCounterMetric {
 	return map[metricName]*SimpleCounterMetric{
 		ReconcileCounter: {
 			prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vpo_reconcile_counter",
+				Name: "vz_platform_operator_reconcile_counter",
 				Help: "The number of times the reconcile function has been called in the verrazzano-platform-operator",
 			}),
 		},
 		ReconcileError: {
 			prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vpo_error_reconcile_counter",
+				Name: "vz_platform_operator_error_reconcile_counter",
 				Help: "The number of times the reconcile function has returned an error in the verrazzano-platform-operator",
 			}),
 		},
@@ -197,7 +197,7 @@ func initMetricComponentMap() map[metricName]*MetricsComponent {
 func initComponentHealthMetrics() *ComponentHealth {
 	return &ComponentHealth{
 		available: prometheus.NewGaugeVec(prometheus.GaugeOpts{
-			Name: "vpo_component_health",
+			Name: "vz_platform_operator_component_health",
 			Help: "Is component enabled and available",
 		}, []string{"component"}),
 	}
@@ -208,13 +208,13 @@ func initSimpleGaugeMetricMap() map[metricName]*SimpleGaugeMetric {
 	return map[metricName]*SimpleGaugeMetric{
 		AvailableComponents: {
 			metric: prometheus.NewGauge(prometheus.GaugeOpts{
-				Name: "vpo_component_health_count",
+				Name: "vz_platform_operator_component_health_count",
 				Help: "The number of currently available Verrazzano components",
 			}),
 		},
 		EnabledComponents: {
 			metric: prometheus.NewGauge(prometheus.GaugeOpts{
-				Name: "vpo_component_enabled_count",
+				Name: "vz_platform_operator_component_enabled_count",
 				Help: "The number of currently enabled Verrazzano components",
 			}),
 		},
@@ -226,7 +226,7 @@ func initDurationMetricMap() map[metricName]*DurationMetric {
 	return map[metricName]*DurationMetric{
 		ReconcileDuration: {
 			metric: prometheus.NewSummary(prometheus.SummaryOpts{
-				Name: "vpo_reconcile_duration",
+				Name: "vz_platform_operator_reconcile_duration",
 				Help: "The duration in seconds of vpo reconcile process",
 			}),
 		},
