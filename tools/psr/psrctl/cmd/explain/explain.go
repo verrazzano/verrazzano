@@ -75,7 +75,7 @@ func RunCmdExplain(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 			break
 		}
 	}
-	fmt.Println()
+	fmt.Fprintln(vzHelper.GetOutputStream())
 
 	return nil
 }

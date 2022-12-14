@@ -6,6 +6,7 @@ package appoper
 import (
 	"context"
 	"fmt"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	"testing"
 
@@ -41,6 +42,17 @@ var crEnabled = v1alpha1.Verrazzano{
 			},
 		},
 	},
+}
+
+func TestPreInstall(t *testing.T) {
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VerrazzanoRootDir: relativeRootDir})
+	client := fake.NewClientBuilder().WithScheme(newScheme()).Build()
+	ctx := spi.NewFakeContext(client, nil, nil, false)
+	assert.NoError(t, NewComponent().PreInstall(ctx))
+	metricsBindingCRD := &apiextensionsv1.CustomResourceDefinition{}
+	// Metrics Binding CRD should exist after PreInstall
+	assert.NoError(t, client.Get(context.TODO(), types.NamespacedName{Name: "metricsbindings.app.verrazzano.io"}, metricsBindingCRD))
 }
 
 // TestPreUpgrade tests the PreUpgrade function
@@ -138,6 +150,7 @@ func newScheme() *runtime.Scheme {
 	_ = oamv1alpha1.AddToScheme(scheme)
 	_ = oamv1alpha2.SchemeBuilder.AddToScheme(scheme)
 	_ = rbacv1.AddToScheme(scheme)
+	_ = apiextensionsv1.AddToScheme(scheme)
 	return scheme
 }
 
