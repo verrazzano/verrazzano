@@ -154,16 +154,16 @@ var _ = t.Describe("Prometheus Metrics", Label("f:observability.monitoring.prom"
 			eventuallyMetricsContainLabels(containerStartTimeSeconds, map[string]string{})
 		})
 		t.ItMinimumVersion("Verify VPO summary counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsContainLabels("vpo_reconcile_duration_count", map[string]string{})
+			eventuallyMetricsContainLabels("vz_platform_operator_reconcile_duration_count", map[string]string{})
 		})
 		t.ItMinimumVersion("Verify VPO summary sum times can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsContainLabels("vpo_reconcile_duration_sum", map[string]string{})
+			eventuallyMetricsContainLabels("vz_platform_operator_reconcile_duration_sum", map[string]string{})
 		})
 		t.ItMinimumVersion("Verify VPO counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsContainLabels("vpo_reconcile_counter", map[string]string{})
+			eventuallyMetricsContainLabels("vz_platform_operator_reconcile_counter", map[string]string{})
 		})
 		t.ItMinimumVersion("Verify VPO error counter metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
-			eventuallyMetricsContainLabels("vpo_error_reconcile_counter", map[string]string{})
+			eventuallyMetricsContainLabels("vz_platform_operator_error_reconcile_counter", map[string]string{})
 		})
 		t.ItMinimumVersion("Verify VPO install metrics can be queried from Prometheus", metricsVersion, kubeConfig, func() {
 			eventuallyMetricsContainLabels("vz_ingressNGINX_install_duration_seconds", map[string]string{})
