@@ -13,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/stretchr/testify/assert"
-	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -37,26 +36,24 @@ type fakeMonitor struct {
 func (f *fakeMonitor) run(args postUninstallRoutineParams) {}
 func (f *fakeMonitor) checkResult() (bool, error)          { return f.result, f.err }
 func (f *fakeMonitor) reset()                              {}
-func (f *fakeMonitor) init()                               {}
-func (f *fakeMonitor) sendResult(r bool)                   {}
 func (f *fakeMonitor) isRunning() bool                     { return f.running }
 var _ postUninstallMonitor = &fakeMonitor{}
 
-var nonRanNSName string = "local-not-rancher"
-var rancherNSName string = "local"
-var rancherNSName2 string = "fleet-rancher"
-var rancherCrName string = "proxy-1234"
-var mwcName string = "mutating-webhook-configuration"
-var vwcName string = "validating-webhook-configuration"
-var pvName string = "pvc-12345"
-var pv2Name string = "ocid1.volume.oc1.ca-toronto-1.12345"
-var rbName string = "rb-test"
-var nonRancherRBName string = "testrb"
-var randPV string = "randomPV"
-var randCR string = "randomCR"
-var randCRB string = "randomCRB"
-var rancherCRDName string = "definitelyrancher.cattle.io"
-var nonRancherCRDName string = "other.cattle"
+var nonRanNSName = "local-not-rancher"
+var rancherNSName = "local"
+var rancherNSName2 = "fleet-rancher"
+var rancherCrName = "proxy-1234"
+var mwcName = "mutating-webhook-configuration"
+var vwcName = "validating-webhook-configuration"
+var pvName = "pvc-12345"
+var pv2Name = "ocid1.volume.oc1.ca-toronto-1.12345"
+var rbName = "rb-test"
+var nonRancherRBName = "testrb"
+var randPV = "randomPV"
+var randCR = "randomCR"
+var randCRB = "randomCRB"
+var rancherCRDName = "definitelyrancher.cattle.io"
+var nonRancherCRDName = "other.cattle"
 
 var nonRancherNs v1.Namespace = v1.Namespace{
 	ObjectMeta: metav1.ObjectMeta{
@@ -240,7 +237,7 @@ type testStruct struct {
 	nonRancherTest bool
 }
 
-var tests []testStruct = []testStruct{
+var tests = []testStruct{
 	{
 		name: "test empty cluster",
 	},
@@ -540,7 +537,7 @@ func Test_forkPostUninstallFailure(t *testing.T) {
 // WHEN the objects exist in the cluster
 // THEN all objects are deleted
 func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
-	assert := assert.New(t)
+	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
 
 	setRancherSystemTool("echo")
@@ -553,55 +550,55 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 			c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
 
 			err := invokeRancherSystemToolAndCleanup(ctx)
-			assert.Nil(err)
+			a.Nil(err)
 			
 			// MutatingWebhookConfigurations should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &admv1.MutatingWebhookConfiguration{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			err = c.Get(context.TODO(), types.NamespacedName{Name: mwcName}, &admv1.MutatingWebhookConfiguration{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			// ValidatingWebhookConfigurations should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &admv1.ValidatingWebhookConfiguration{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			err = c.Get(context.TODO(), types.NamespacedName{Name: vwcName}, &admv1.ValidatingWebhookConfiguration{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			// ClusterRole should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: rancherCrName}, &rbacv1.ClusterRole{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			// ClusterRoleBinding should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &rbacv1.ClusterRoleBinding{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			if tt.nonRancherTest {
 				// Verify that non-Rancher components did not get cleaned up
 				err = c.Get(context.TODO(), types.NamespacedName{Name: randCR}, &rbacv1.ClusterRole{})
-				assert.Nil(err)
+				a.Nil(err)
 				err = c.Get(context.TODO(), types.NamespacedName{Name: randCRB}, &rbacv1.ClusterRoleBinding{})
-				assert.Nil(err)
+				a.Nil(err)
 				err = c.Get(context.TODO(), types.NamespacedName{Name: randPV}, &v1.PersistentVolume{})
-				assert.Nil(err)
+				a.Nil(err)
 				err = c.Get(context.TODO(), types.NamespacedName{Name: nonRancherRBName}, &rbacv1.RoleBinding{})
-				assert.Nil(err)
+				a.Nil(err)
 				err = c.Get(context.TODO(), types.NamespacedName{Name: nonRancherCRDName}, &v12.CustomResourceDefinition{})
-				assert.Nil(err)
+				a.Nil(err)
 			}
 			// ConfigMaps should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: controllerCMName}, &v1.ConfigMap{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			err = c.Get(context.TODO(), types.NamespacedName{Name: lockCMName}, &v1.ConfigMap{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			// Persistent volume should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: pvName}, &v1.PersistentVolume{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			err = c.Get(context.TODO(), types.NamespacedName{Name: pv2Name}, &v1.PersistentVolume{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			// Role Binding should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: rbName}, &rbacv1.RoleBinding{})
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 			// Rancher CRD finalizer should have been deleted which should cause it to go away
 			// since it had a deletion timestamp
 			crd := v12.CustomResourceDefinition{}
 			err = c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd)
-			assert.True(apierrors.IsNotFound(err))
+			a.True(apierrors.IsNotFound(err))
 		})
 	}
 }
@@ -611,14 +608,14 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 // WHEN the namespace belings to Rancher or not
 // THEN we see true if it is and false if not
 func TestIsRancherNamespace(t *testing.T) {
-	assert := asserts.New(t)
+	a:= assert.New(t)
 
-	assert.True(isRancherNamespace(&v1.Namespace{
+	a.True(isRancherNamespace(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "cattle-system",
 		},
 	}))
-	assert.True(isRancherNamespace(&v1.Namespace{
+	a.True(isRancherNamespace(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "p-12345",
 			Annotations: map[string]string{
@@ -626,7 +623,7 @@ func TestIsRancherNamespace(t *testing.T) {
 			},
 		},
 	}))
-	assert.True(isRancherNamespace(&v1.Namespace{
+	a.True(isRancherNamespace(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "local",
 			Annotations: map[string]string{
@@ -634,7 +631,7 @@ func TestIsRancherNamespace(t *testing.T) {
 			},
 		},
 	}))
-	assert.False(isRancherNamespace(&v1.Namespace{
+	a.False(isRancherNamespace(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "p-12345",
 			Annotations: map[string]string{
@@ -642,7 +639,7 @@ func TestIsRancherNamespace(t *testing.T) {
 			},
 		},
 	}))
-	assert.False(isRancherNamespace(&v1.Namespace{
+	a.False(isRancherNamespace(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "p-12345",
 		},
