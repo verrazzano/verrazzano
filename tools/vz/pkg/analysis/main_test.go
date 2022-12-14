@@ -59,6 +59,7 @@ func TestProblemPodsInCattleSystem(t *testing.T) {
 func TestImagePull(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
+	report.ClearReports()
 	err := Analyze(logger, "cluster", "test/cluster/image-pull-case1")
 	assert.Nil(t, err)
 
@@ -81,6 +82,7 @@ func TestImagePull(t *testing.T) {
 func TestInsufficientMemory(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
+	report.ClearReports()
 	err := Analyze(logger, "cluster", "test/cluster/insufficient-mem")
 	assert.Nil(t, err)
 
@@ -104,6 +106,7 @@ func TestInsufficientMemory(t *testing.T) {
 func TestProblemPodsNotReportedUninstall(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
+	report.ClearReports()
 	err := Analyze(logger, "cluster", "test/cluster/problem-pods")
 	assert.Nil(t, err)
 
@@ -127,23 +130,21 @@ func TestProblemPodsNotReportedUninstall(t *testing.T) {
 func TestProblemPodsNotReportedInstall(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
+	report.ClearReports()
 	err := Analyze(logger, "cluster", "test/cluster/problem-pods-install")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.NotNil(t, reportedIssues)
 	assert.True(t, len(reportedIssues) > 0)
-	problemPodsFound := 0
+
 	exceededLBLimit := 0
 	for _, issue := range reportedIssues {
-		if issue.Type == report.PodProblemsNotReported {
-			problemPodsFound++
-		} else if issue.Type == report.IngressLBLimitExceeded {
+		if issue.Type == report.IngressLBLimitExceeded {
 			exceededLBLimit++
 		}
 
 	}
-	assert.True(t, problemPodsFound > 0)
 	assert.True(t, exceededLBLimit > 0)
 }
 
@@ -178,6 +179,7 @@ func TestProblemPodsNotReportedInstall(t *testing.T) {
 func TestLBIpNotFound(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
+	report.ClearReports()
 	err := Analyze(logger, "cluster", "test/cluster/ingress-ip-not-found")
 	assert.Nil(t, err)
 
@@ -200,6 +202,7 @@ func TestLBIpNotFound(t *testing.T) {
 func TestIstioLBIpNotFound(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
+	report.ClearReports()
 	err := Analyze(logger, "cluster", "test/cluster/istio-ingress-ip-not-found")
 	assert.Nil(t, err)
 
@@ -245,6 +248,7 @@ func TestIstioLBIpNotFound(t *testing.T) {
 func TestLBLimitExceeded(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
+	report.ClearReports()
 	err := Analyze(logger, "cluster", "test/cluster/ingress-lb-limit")
 	assert.Nil(t, err)
 
@@ -267,6 +271,7 @@ func TestLBLimitExceeded(t *testing.T) {
 func TestOciIPLimitExceeded(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
+	report.ClearReports()
 	err := Analyze(logger, "cluster", "test/cluster/ingress-oci-limit")
 	assert.Nil(t, err)
 
@@ -289,6 +294,7 @@ func TestOciIPLimitExceeded(t *testing.T) {
 func TestOciLBInvalidShape(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
+	report.ClearReports()
 	err := Analyze(logger, "cluster", "test/cluster/ingress-invalid-shape")
 	assert.Nil(t, err)
 
@@ -311,6 +317,7 @@ func TestOciLBInvalidShape(t *testing.T) {
 func TestPendingPods(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
+	report.ClearReports()
 	err := Analyze(logger, "cluster", "test/cluster/pending-pods")
 	assert.Nil(t, err)
 
@@ -356,6 +363,7 @@ func TestPendingPods(t *testing.T) {
 func TestIstioIngressInstallFailure(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
+	report.ClearReports()
 	err := Analyze(logger, "cluster", "test/cluster/istio-loadbalancer-creation-issue")
 	assert.Nil(t, err)
 
@@ -366,6 +374,32 @@ func TestIstioIngressInstallFailure(t *testing.T) {
 	for _, issue := range reportedIssues {
 		if issue.Type == report.IstioIngressPrivateSubnet {
 			problemsFound++
+		}
+	}
+	assert.True(t, problemsFound > 0)
+}
+
+// TestComponentsNotReadyNoErrorMsg Tests that analysis of a cluster dump where there are failed components with no error message in the VPO logs
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows that there is install failure with no known root cause
+// THEN a report is generated with supporting messages from the events related to those failed components' pods
+func TestComponentsNotReadyNoErrorMsg(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	report.ClearReports()
+	err := Analyze(logger, "cluster", "test/cluster/components-not-ready")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+
+	problemsFound := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.InstallFailure {
+			problemsFound++
+			// Two supporting messages are always included. Rest should come from events related to failed components
+			assert.True(t, len(issue.SupportingData[0].Messages) > 2)
 		}
 	}
 	assert.True(t, problemsFound > 0)
