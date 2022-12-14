@@ -180,7 +180,9 @@ func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	for i, ns := range nsList.Items {
 		if isRancherNamespace(&nsList.Items[i]) {
 			ctx.Log().Infof("Running the Rancher uninstall system tool for namespace %s", ns.Name)
-			stdErr, err := invokeRancherSystemTool(ns.Name)
+			args := []string{"remove", "-c", "/home/verrazzano/kubeconfig", "--namespace", ns.Name, "--force"}
+			cmd := osexec.Command(rancherSystemTool, args...) //nolint:gosec //#nosec G204
+			_, stdErr, err := os.DefaultRunner{}.Run(cmd)
 			if err != nil {
 				return ctx.Log().ErrorNewErr("Failed to run system tools for Rancher deletion: %s: %v", stdErr, err)
 			}
@@ -437,11 +439,4 @@ func isRancherNamespace(ns *corev1.Namespace) bool {
 // setRancherSystemTool sets the Rancher system tool to an arbitrary command
 func setRancherSystemTool(cmd string) {
 	rancherSystemTool = cmd
-}
-
-func invokeRancherSystemTool(nsName string) (stdErr []byte, err error) {
-	args := []string{"remove", "-c", "/home/verrazzano/kubeconfig", "--namespace", nsName, "--force"}
-	cmd := osexec.Command(rancherSystemTool, args...) //nolint:gosec //#nosec G204
-	_, stdErr, err = os.DefaultRunner{}.Run(cmd)
-	return
 }
