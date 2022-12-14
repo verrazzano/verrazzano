@@ -5,6 +5,7 @@ package mcagent
 
 import (
 	v1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -89,7 +90,8 @@ func (s *Syncer) listManagedClusterServiceMonitors() (*v1.ServiceMonitorList, er
 	listOptions := &client.ListOptions{Namespace: ""}
 	serviceMonitorsList := v1.ServiceMonitorList{}
 	err := s.LocalClient.List(s.Context, &serviceMonitorsList, listOptions)
-	if err != nil {
+	// Only return an error if the Prometheus CRDs are installed
+	if err != nil && !meta.IsNoMatchError(err) {
 		return nil, err
 	}
 	return &serviceMonitorsList, nil
@@ -99,7 +101,8 @@ func (s *Syncer) listManagedClusterPodMonitors() (*v1.PodMonitorList, error) {
 	listOptions := &client.ListOptions{Namespace: ""}
 	podMonitorsList := v1.PodMonitorList{}
 	err := s.LocalClient.List(s.Context, &podMonitorsList, listOptions)
-	if err != nil {
+	// Only return an error if the Prometheus CRDs are installed
+	if err != nil && !meta.IsNoMatchError(err) {
 		return nil, err
 	}
 	return &podMonitorsList, nil

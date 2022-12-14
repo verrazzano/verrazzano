@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "resourceVersion": "8693"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "mysql",
+        "namespace": "keycloak",
+        "uid": "b0677a71-46bb-488d-bd7f-99b8963be545",
+        "resourceVersion": "1733",
+        "creationTimestamp": "2022-12-05T05:30:54Z",
+        "labels": {
+          "app": "mysql",
+          "app.kubernetes.io/managed-by": "Helm",
+          "chart": "mysql-1.6.9",
+          "heritage": "Helm",
+          "release": "mysql"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "mysql",
+          "meta.helm.sh/release-namespace": "keycloak"
+        }
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ]
+}
