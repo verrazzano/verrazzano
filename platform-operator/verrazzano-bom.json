@@ -468,7 +468,7 @@
           "images": [
             {
               "image": "alertmanager",
-              "tag": "v0.24.0-20220805222028-0a54aa20",
+              "tag": "v0.24.0-20221206192620-fb73d30f",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
             }
