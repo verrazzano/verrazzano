@@ -480,7 +480,7 @@
           "images": [
             {
               "image": "prometheus",
-              "tag": "v2.34.0-20220809191930-6df068d2",
+              "tag": "v2.34.0-20221205144021-d0a9304a",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
             }
