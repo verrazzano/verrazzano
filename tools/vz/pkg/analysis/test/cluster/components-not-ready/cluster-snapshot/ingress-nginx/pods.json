@@ -1,0 +1,269 @@
+{
+  "metadata": {
+    "resourceVersion": "8693"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-5fbb974589-znsb4",
+        "generateName": "ingress-controller-ingress-nginx-controller-5fbb974589-",
+        "namespace": "ingress-nginx",
+        "uid": "5b49970c-4ea1-408b-bc5d-91de8219e77f",
+        "resourceVersion": "6138",
+        "creationTimestamp": "2022-12-05T05:52:57Z",
+        "labels": {
+          "app.kubernetes.io/component": "controller",
+          "app.kubernetes.io/instance": "ingress-controller",
+          "app.kubernetes.io/name": "ingress-nginx",
+          "istio.io/rev": "default",
+          "pod-template-hash": "5fbb974589",
+          "security.istio.io/tlsMode": "istio",
+          "service.istio.io/canonical-name": "ingress-nginx",
+          "service.istio.io/canonical-revision": "latest"
+        },
+        "annotations": {
+          "cni.projectcalico.org/podIP": "818b460bfe6540128c96415f37bcde503db2e64962aac3048ecac73e4413f8dd/32",
+          "cni.projectcalico.org/podIPs": "818b460bfe6540128c96415f37bcde503db2e64962aac3048ecac73e4413f8dd/32",
+          "kubectl.kubernetes.io/default-container": "controller",
+          "kubectl.kubernetes.io/default-logs-container": "controller",
+          "prometheus.io/port": "10254",
+          "prometheus.io/scrape": "true",
+          "sidecar.istio.io/rewriteAppHTTPProbers": "true",
+          "sidecar.istio.io/status": "{\"initContainers\":[\"istio-init\"],\"containers\":[\"istio-proxy\"],\"volumes\":[\"istio-envoy\",\"istio-data\",\"istio-podinfo\",\"istio-token\",\"istiod-ca-cert\"],\"imagePullSecrets\":[\"verrazzano-container-registry\"]}",
+          "system.io/scrape": "true",
+          "traffic.sidecar.istio.io/excludeInboundPorts": "80,443",
+          "traffic.sidecar.istio.io/includeInboundPorts": ""
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "ReplicaSet",
+            "name": "ingress-controller-ingress-nginx-controller-5fbb974589",
+            "uid": "1b0a74cc-42e5-4ed9-bbaf-67b5a447f70e",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "status": {
+        "phase": "Pending",
+        "conditions": [
+          {
+            "type": "Initialized",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2022-12-05T05:52:58Z"
+          },
+          {
+            "type": "Ready",
+            "status": "False",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2022-12-05T05:52:57Z",
+            "reason": "ContainersNotReady",
+            "message": "containers with unready status: [controller istio-proxy]"
+          },
+          {
+            "type": "ContainersReady",
+            "status": "False",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2022-12-05T05:52:57Z",
+            "reason": "ContainersNotReady",
+            "message": "containers with unready status: [controller istio-proxy]"
+          },
+          {
+            "type": "PodScheduled",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2022-12-05T05:52:57Z"
+          }
+        ],
+        "hostIP": "818b460bfe6540128c96415f37bcde503db2e64962aac3048ecac73e4413f8dd",
+        "podIP": "818b460bfe6540128c96415f37bcde503db2e64962aac3048ecac73e4413f8dd",
+        "podIPs": [
+          {
+            "ip": "818b460bfe6540128c96415f37bcde503db2e64962aac3048ecac73e4413f8dd"
+          }
+        ],
+        "startTime": "2022-12-05T05:52:57Z",
+        "initContainerStatuses": [
+          {
+            "name": "istio-init",
+            "state": {
+              "terminated": {
+                "exitCode": 0,
+                "reason": "Completed",
+                "startedAt": "2022-12-05T05:52:58Z",
+                "finishedAt": "2022-12-05T05:52:58Z",
+                "containerID": "containerd://87c989892a000c6bb8bfb13db42ec2542439a17fa0854aa5fbe3c41eabd70c71"
+              }
+            },
+            "lastState": {},
+            "ready": true,
+            "restartCount": 0,
+            "image": "ghcr.io/verrazzano/proxyv2:1.10.4",
+            "imageID": "docker.io/library/import-2022-11-08@sha256:00c24a8889e019fe01181065d20075e8ee2d715d0734ec4c0b89506c3852346b",
+            "containerID": "containerd://87c989892a000c6bb8bfb13db42ec2542439a17fa0854aa5fbe3c41eabd70c71"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "name": "controller",
+            "state": {
+              "waiting": {
+                "reason": "PodInitializing"
+              }
+            },
+            "lastState": {},
+            "ready": false,
+            "restartCount": 0,
+            "image": "ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20220301064424-ee602c1aa",
+            "imageID": "",
+            "started": false
+          },
+          {
+            "name": "istio-proxy",
+            "state": {
+              "waiting": {
+                "reason": "PodInitializing"
+              }
+            },
+            "lastState": {},
+            "ready": false,
+            "restartCount": 0,
+            "image": "ghcr.io/verrazzano/proxyv2:1.10.4",
+            "imageID": "",
+            "started": false
+          }
+        ],
+        "qosClass": "Burstable"
+      }
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-defaultbackend-7c64b98b75f6blt",
+        "generateName": "ingress-controller-ingress-nginx-defaultbackend-7c64b98b75-",
+        "namespace": "ingress-nginx",
+        "uid": "7e79981c-6996-46d1-8671-e4c0199e58cb",
+        "resourceVersion": "7873",
+        "creationTimestamp": "2022-12-05T05:52:57Z",
+        "labels": {
+          "app.kubernetes.io/component": "default-backend",
+          "app.kubernetes.io/instance": "ingress-controller",
+          "app.kubernetes.io/name": "ingress-nginx",
+          "istio.io/rev": "default",
+          "pod-template-hash": "7c64b98b75",
+          "security.istio.io/tlsMode": "istio",
+          "service.istio.io/canonical-name": "ingress-nginx",
+          "service.istio.io/canonical-revision": "latest"
+        },
+        "annotations": {
+          "cni.projectcalico.org/podIP": "818b460bfe6540128c96415f37bcde503db2e64962aac3048ecac73e4413f8dd/32",
+          "cni.projectcalico.org/podIPs": "818b460bfe6540128c96415f37bcde503db2e64962aac3048ecac73e4413f8dd/32",
+          "kubectl.kubernetes.io/default-container": "ingress-nginx-default-backend",
+          "kubectl.kubernetes.io/default-logs-container": "ingress-nginx-default-backend",
+          "sidecar.istio.io/status": "{\"initContainers\":[\"istio-init\"],\"containers\":[\"istio-proxy\"],\"volumes\":[\"istio-envoy\",\"istio-data\",\"istio-podinfo\",\"istio-token\",\"istiod-ca-cert\"],\"imagePullSecrets\":[\"verrazzano-container-registry\"]}"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "ReplicaSet",
+            "name": "ingress-controller-ingress-nginx-defaultbackend-7c64b98b75",
+            "uid": "5b3d9ed3-cbc9-4761-8577-20cacb72e463",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ]
+      },
+      "status": {
+        "phase": "Running",
+        "conditions": [
+          {
+            "type": "Initialized",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2022-12-05T05:52:58Z"
+          },
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2022-12-05T06:00:35Z"
+          },
+          {
+            "type": "ContainersReady",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2022-12-05T06:00:35Z"
+          },
+          {
+            "type": "PodScheduled",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2022-12-05T05:52:57Z"
+          }
+        ],
+        "hostIP": "818b460bfe6540128c96415f37bcde503db2e64962aac3048ecac73e4413f8dd",
+        "podIP": "818b460bfe6540128c96415f37bcde503db2e64962aac3048ecac73e4413f8dd",
+        "podIPs": [
+          {
+            "ip": "818b460bfe6540128c96415f37bcde503db2e64962aac3048ecac73e4413f8dd"
+          }
+        ],
+        "startTime": "2022-12-05T05:52:57Z",
+        "initContainerStatuses": [
+          {
+            "name": "istio-init",
+            "state": {
+              "terminated": {
+                "exitCode": 0,
+                "reason": "Completed",
+                "startedAt": "2022-12-05T05:52:58Z",
+                "finishedAt": "2022-12-05T05:52:58Z",
+                "containerID": "containerd://2151753a6d3673d8848b48cb355a9d1be9e7635df0e7500594c805cf6617b734"
+              }
+            },
+            "lastState": {},
+            "ready": true,
+            "restartCount": 0,
+            "image": "ghcr.io/verrazzano/proxyv2:1.10.4",
+            "imageID": "docker.io/library/import-2022-11-08@sha256:00c24a8889e019fe01181065d20075e8ee2d715d0734ec4c0b89506c3852346b",
+            "containerID": "containerd://2151753a6d3673d8848b48cb355a9d1be9e7635df0e7500594c805cf6617b734"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "name": "ingress-nginx-default-backend",
+            "state": {
+              "running": {
+                "startedAt": "2022-12-05T06:00:32Z"
+              }
+            },
+            "lastState": {},
+            "ready": true,
+            "restartCount": 0,
+            "image": "ghcr.io/verrazzano/nginx-ingress-default-backend:0.46.0-20220301064424-ee602c1aa",
+            "imageID": "ghcr.io/verrazzano/nginx-ingress-default-backend@sha256:c8fd3155436c4efe336e6e774e4c0eb50b62ad7e12b7b87d066486ff2acfa4a5",
+            "containerID": "containerd://17260bb52b1db73e59cccaccf3d847e64c39ac7d491188f219132fd44049402b",
+            "started": true
+          },
+          {
+            "name": "istio-proxy",
+            "state": {
+              "running": {
+                "startedAt": "2022-12-05T06:00:32Z"
+              }
+            },
+            "lastState": {},
+            "ready": true,
+            "restartCount": 0,
+            "image": "ghcr.io/verrazzano/proxyv2:1.10.4",
+            "imageID": "docker.io/library/import-2022-11-08@sha256:00c24a8889e019fe01181065d20075e8ee2d715d0734ec4c0b89506c3852346b",
+            "containerID": "containerd://af501c96f485260ea42431234f4a59e92d56f5ac96b48eb23faea84a9d9c3145",
+            "started": true
+          }
+        ],
+        "qosClass": "Burstable"
+      }
+    }
+  ]
+}
