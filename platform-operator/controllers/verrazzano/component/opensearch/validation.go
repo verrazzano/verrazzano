@@ -53,14 +53,14 @@ func validateNoDuplicateNodeGroups(opensearch *v1beta1.OpenSearchComponent) erro
 	numberNodes, totalNode := GetNodeRoleCounts(opensearch)
 
 	if totalNode > int32(1) {
-		if numberNodes[vmov1.NodeRole("master")] < 3 {
-			return errors.New("Number of master nodes should be atleast 3")
+		if numberNodes[vmov1.MasterRole] < 3 {
+			return errors.New("Number of master nodes should be at least 3")
 		}
-		if numberNodes[vmov1.NodeRole("data")] < 2 {
-			return errors.New("Number of data nodes should be atleast 2")
+		if numberNodes[vmov1.DataRole] < 2 {
+			return errors.New("Number of data nodes should be at least 2")
 		}
-		if numberNodes[vmov1.NodeRole("ingest")] < 1 {
-			return errors.New("Number of ingest nodes should be atleast 1")
+		if numberNodes[vmov1.IngestRole] < 1 {
+			return errors.New("Number of ingest nodes should be at least 1")
 		}
 	}
 	return nil

@@ -4,7 +4,7 @@
 package opensearch
 
 import (
-	"errors"
+	//"errors"
 	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -213,8 +213,8 @@ func (o opensearchComponent) ValidateUpdateV1Beta1(old *installv1beta1.Verrazzan
 		numNodesnew, totalNodesNew := GetNodeRoleCounts(opensearchNew)
 
 		for role, replicas := range numNodesold {
-			if role != vmov1.NodeRole("ingest") && replicas > 2*numNodesnew[role] && totalNodesNew > int32(1) {
-				return errors.New("The number of nodes can't be scaled by more than half at once")
+			if role != vmov1.IngestRole && replicas > 2*numNodesnew[role] && totalNodesNew > int32(1) {
+				return fmt.Errorf("The number of %v nodes can't be scaled by more than half at once", role)
 			}
 		}
 	}
