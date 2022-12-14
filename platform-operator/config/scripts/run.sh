@@ -13,7 +13,7 @@ function create-kubeconfig {
 
   # Get the endpoint for the kubernetes master server
   # The sed command is to strip out color escape sequences
-  master_server=$(kubectl cluster-info | grep master | awk '{ print $6 }' | sed $'s/\e\\[[0-9;:]*[a-zA-Z]//g' )
+  master_server=$(kubectl cluster-info | grep plane | awk '{ print $7 }' | sed $'s/\e\\[[0-9;:]*[a-zA-Z]//g' )
 
   # Create a kubeconfig for the pod
   cp /verrazzano/config/kubeconfig-template $VERRAZZANO_KUBECONFIG
