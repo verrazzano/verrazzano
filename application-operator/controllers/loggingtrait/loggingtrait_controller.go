@@ -126,7 +126,7 @@ func (r *LoggingTraitReconciler) reconcileTraitDelete(ctx context.Context, log v
 	if err != nil || workload == nil {
 		return reconcile.Result{}, err
 	}
-	if workload.GetKind() == constants.VerrazzanoCoherenceWorkloadKind || workload.GetKind() == constants.VerrazzanoWebLogicWorkloadKind {
+	if workload.GetKind() == "VerrazzanoCoherenceWorkload" || workload.GetKind() == "VerrazzanoWebLogicWorkload" {
 		return reconcile.Result{}, nil
 	}
 
@@ -289,7 +289,7 @@ func (r *LoggingTraitReconciler) reconcileTraitCreateOrUpdate(ctx context.Contex
 	if err != nil || workload == nil {
 		return reconcile.Result{}, true, err
 	}
-	if workload.GetKind() == constants.VerrazzanoCoherenceWorkloadKind || workload.GetKind() == constants.VerrazzanoWebLogicWorkloadKind {
+	if workload.GetKind() == "VerrazzanoCoherenceWorkload" || workload.GetKind() == "VerrazzanoWebLogicWorkload" {
 		return reconcile.Result{}, true, nil
 	}
 	// Retrieve the child resources of the workload

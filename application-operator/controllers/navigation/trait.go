@@ -5,7 +5,6 @@ package navigation
 
 import (
 	"context"
-	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"reflect"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -60,7 +59,7 @@ func FetchWorkloadFromTrait(ctx context.Context, cli client.Reader, log vzlog.Ve
 // (VerrazzanoWebLogicWorkload), false otherwise.
 func IsWeblogicWorkloadKind(trait oam.Trait) bool {
 	kind := trait.GetWorkloadReference().Kind
-	return kind == vzconst.VerrazzanoWebLogicWorkloadKind
+	return kind == "VerrazzanoWebLogicWorkload"
 }
 
 // FetchWorkloadResource fetches the underlying resource created by the workload.
