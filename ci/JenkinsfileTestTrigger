@@ -326,7 +326,7 @@ def isAncestor() {
    if (LAST_STABLE_COMMIT != null) {
        ANCESTOR = sh (
                           label: "Check for Ancestry",
-                          script: "git rev-list ${LAST_STABLE_COMMIT} | grep $(git rev-parse ${env.GIT_COMMIT})",
+                          script: "git rev-list $LAST_STABLE_COMMIT | grep $(git rev-parse ${env.GIT_COMMIT})",
                           returnStdout: true
                           ).trim()
    }
