@@ -6,7 +6,7 @@ enabled: false
 foldersFromFiles: false
 
 provider:
-  name: vmi-dashboard-provider
+  name: verrazzano-dashboard-provider
   dashboardDir: /etc/grafana/provisioning/dashboardjson
 
 dashboards:
