@@ -15,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/os"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -178,52 +177,52 @@ func (m *postUninstallMonitorType) run(args postUninstallRoutineParams) {
 			}
 		}
 
-		// FIXME: maybe don't run these in the background
-		// Remove the Rancher webhooks
-		err = deleteWebhooks(ctx)
-		if err != nil {
-			outputCh <- false
-			return
-		}
+		// // FIXME: maybe don't run these in the background
+		// // Remove the Rancher webhooks
+		// err = deleteWebhooks(ctx)
+		// if err != nil {
+		// 	outputCh <- false
+		// 	return
+		// }
 
-		// Delete the Rancher resources that need to be matched by a string
-		err = deleteMatchingResources(ctx)
-		if err != nil {
-			outputCh <- false
-			return
-		}
+		// // Delete the Rancher resources that need to be matched by a string
+		// err = deleteMatchingResources(ctx)
+		// if err != nil {
+		// 	outputCh <- false
+		// 	return
+		// }
 
-		// Delete the remaining Rancher ConfigMaps
-		err = resource.Resource{
-			Name:      controllerCMName,
-			Namespace: constants.KubeSystem,
-			Client:    ctx.Client(),
-			Object:    &corev1.ConfigMap{},
-			Log:       ctx.Log(),
-		}.Delete()
-		if err != nil {
-			outputCh <- false
-			return
-		}
-		err = resource.Resource{
-			Name:      lockCMName,
-			Namespace: constants.KubeSystem,
-			Client:    ctx.Client(),
-			Object:    &corev1.ConfigMap{},
-			Log:       ctx.Log(),
-		}.Delete()
-		if err != nil {
-			outputCh <- false
-			return
-		}
+		// // Delete the remaining Rancher ConfigMaps
+		// err = resource.Resource{
+		// 	Name:      controllerCMName,
+		// 	Namespace: constants.KubeSystem,
+		// 	Client:    ctx.Client(),
+		// 	Object:    &corev1.ConfigMap{},
+		// 	Log:       ctx.Log(),
+		// }.Delete()
+		// if err != nil {
+		// 	outputCh <- false
+		// 	return
+		// }
+		// err = resource.Resource{
+		// 	Name:      lockCMName,
+		// 	Namespace: constants.KubeSystem,
+		// 	Client:    ctx.Client(),
+		// 	Object:    &corev1.ConfigMap{},
+		// 	Log:       ctx.Log(),
+		// }.Delete()
+		// if err != nil {
+		// 	outputCh <- false
+		// 	return
+		// }
 
-		crds := getCRDList(ctx)
+		// crds := getCRDList(ctx)
 
-		// Remove any Rancher custom resources that remain
-		removeCRs(ctx, crds)
+		// // Remove any Rancher custom resources that remain
+		// removeCRs(ctx, crds)
 
-		// Remove any Rancher CRD finalizers that may be causing CRD deletion to hang
-		removeCRDFinalizers(ctx, crds)
+		// // Remove any Rancher CRD finalizers that may be causing CRD deletion to hang
+		// removeCRDFinalizers(ctx, crds)
 
 		outputCh <- true
 	}(m.inputCh, m.resultCh)
