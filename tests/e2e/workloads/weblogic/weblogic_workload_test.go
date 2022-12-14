@@ -204,6 +204,53 @@ var _ = t.Describe("Validate deployment of VerrazzanoWebLogicWorkload", Label("f
 		})
 	})
 
+	t.Context("Metrics", Label("f:observability.monitoring.prom"), FlakeAttempts(5), func() {
+		// Verify application Prometheus scraped metrics
+		// GIVEN the sample WebLogic app is deployed
+		// WHEN the application configuration uses a default metrics trait
+		// THEN confirm that metrics are being collected
+		t.It("Retrieve application Prometheus scraped metrics", func() {
+			pkg.Concurrently(
+				func() {
+					Eventually(func() bool {
+						return pkg.MetricsExist("wls_jvm_process_cpu_load", "weblogic_domainName", wlDomain)
+					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(func() bool {
+						return pkg.MetricsExist("wls_scrape_mbeans_count_total", "weblogic_domainName", wlDomain)
+					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+				func() {
+					Eventually(func() bool {
+						return pkg.MetricsExist("wls_server_state_val", "weblogic_domainName", wlDomain)
+					}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
+				},
+			)
+		})
+
+		// Verify Istio Prometheus scraped metrics
+		// GIVEN the sample WebLogic app is deployed
+		// WHEN the application configuration is deployed
+		// THEN confirm that Istio metrics are being collected
+		if istioInjection == "enabled" {
+			t.It("Retrieve Istio Prometheus scraped metrics", func() {
+				pkg.Concurrently(
+					func() {
+						Eventually(func() bool {
+							return pkg.MetricsExist("istio_tcp_received_bytes_total", "destination_canonical_service", "hello-domain")
+						}, shortWaitTimeout, shortPollingInterval).Should(BeTrue())
+					},
+					func() {
+						Eventually(func() bool {
+							return pkg.MetricsExist("envoy_cluster_http2_pending_send_bytes", "pod_name", wlsAdminServer)
+						}, shortWaitTimeout, longPollingInterval).Should(BeTrue())
+					},
+				)
+			})
+		}
+	})
+
 	t.Context("WebLogic logging", Label("f:observability.logging.es"), func() {
 		var indexName string
 		var err error
