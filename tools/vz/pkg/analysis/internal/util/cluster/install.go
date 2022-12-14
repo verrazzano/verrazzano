@@ -7,6 +7,7 @@ package cluster
 import (
 	encjson "encoding/json"
 	"fmt"
+	pkgconst "github.com/verrazzano/verrazzano/pkg/constants"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -395,10 +396,22 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 		}
 	}
 
-	// Create a a single message to display the list of components without specific error in the platform operator
+	// Create a single message to display the list of components without specific error in the platform operator
 	if len(compsNoMessages) > 0 {
 		errorMessage := "\t " + installErrorNotFound + strings.Join(compsNoMessages[:], ", ")
 		messages = append(messages, errorMessage)
+	}
+
+	// Get unique namespaces associated with the components with no error messages
+	namespacesCompNoMsg := getUniqueNamespaces(log, compsNoMessages)
+
+	// Check the events related to failed components namespace to provide additional support data
+	for _, namespace := range namespacesCompNoMsg {
+		eventList, err := GetEventsRelatedToComponentNamespace(log, clusterRoot, namespace, nil)
+		if err != nil {
+			log.Debugf("Failed to get events related to %s namespace", namespace)
+		}
+		messages.addMessages(CheckEventsForWarnings(log, eventList, "Warning", nil))
 	}
 
 	reportVzResource := ""
@@ -439,4 +452,19 @@ func analyzeIstioLoadBalancerIssue(log *zap.SugaredLogger, clusterRoot string, i
 			issueReporter.AddKnownIssueMessagesFiles(report.IstioIngressPrivateSubnet, clusterRoot, messages, servFiles)
 		}
 	}
+}
+
+func getUniqueNamespaces(log *zap.SugaredLogger, compsNoMessages []string) []string {
+	var uniqueNamespaces []string
+
+	for _, comp := range compsNoMessages {
+		componentNamespace, ok := pkgconst.ComponentNameToNamespacesMap[comp]
+		if !ok {
+			log.Debugf("Couldn't find the namespace related to %s component", comp)
+			continue
+		}
+		uniqueNamespaces = append(uniqueNamespaces, componentNamespace...)
+	}
+	uniqueNamespaces = helpers.RemoveDuplicate(uniqueNamespaces)
+	return uniqueNamespaces
 }

@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 )
 
-var UpgradeFunc = helmcli.Upgrade
-var GetValuesFunc = helmcli.GetValues
+var UpdateUpgradeFunc = helmcli.Upgrade
+var UpdateGetValuesFunc = helmcli.GetValues
 
 // UpdateScenario updates a running Scenario
 // The scenario manifest directory can be different that the one used to start the
@@ -42,7 +42,7 @@ func (m ScenarioMananger) doHelmUpgrade(manifestMan manifest.ManifestManager, sc
 	helmOverrides := m.HelmOverrides
 
 	// Get existing Helm values for the release.  These need to be passed since --reuse-values is not used.
-	stdout, err := GetValuesFunc(m.Log, hr.Name, hr.Namespace)
+	stdout, err := UpdateGetValuesFunc(m.Log, hr.Name, hr.Namespace)
 	if err != nil {
 		return "", err
 	}
@@ -65,7 +65,7 @@ func (m ScenarioMananger) doHelmUpgrade(manifestMan manifest.ManifestManager, sc
 	if m.Verbose {
 		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Updating use case %s for Helm release %s/%s\n", hr.Usecase.UsecasePath, hr.Namespace, hr.Name))
 	}
-	_, stderr, err := UpgradeFunc(m.Log, hr.Name, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
+	_, stderr, err := UpdateUpgradeFunc(m.Log, hr.Name, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 	if err != nil {
 		return string(stderr), err
 	}
