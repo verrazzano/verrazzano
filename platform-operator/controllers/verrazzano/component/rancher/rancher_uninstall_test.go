@@ -16,6 +16,7 @@ import (
 	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	admv1 "k8s.io/api/admissionregistration/v1"
@@ -40,12 +41,7 @@ func (f *fakeMonitor) reset()                              {}
 func (f *fakeMonitor) init()                               {}
 func (f *fakeMonitor) sendResult(r bool)                   {}
 func (f *fakeMonitor) isRunning() bool                     { return f.running }
-
 var _ postUninstallMonitor = &fakeMonitor{}
-
-type postUninstallFuncSig func(ctx spi.ComponentContext, monitor postUninstallMonitor) error
-
-var postUninstallFunc postUninstallFuncSig = postUninstall
 
 var nonRanNSName string = "local-not-rancher"
 var rancherNSName string = "local"
@@ -387,7 +383,7 @@ var tests []testStruct = []testStruct{
 
 // TODO: write description. Should cover the old TestPostUninstall
 func TestPostUninstallAllObjectsDeleted(t *testing.T) {
-	// TODO: write this
+	// TODO: modify to make sense with changes
 	assert := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
 
@@ -551,11 +547,10 @@ func Test_forkPostUninstallSuccess(t *testing.T) {
 	crd1 := v12.CustomResourceDefinition{}
 	c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
 
-	// FIXME: current forkPostUninstall doesn't use this
-	postUninstallFunc = func(ctx spi.ComponentContext, monitor postUninstallMonitor) error {
-		return nil
+	rancherUninstallToolFunc = func(log vzlog.VerrazzanoLogger, nsName string) ([]byte, error) {
+		return []byte(""), nil
 	}
-	defer func() { postUninstallFunc = postUninstall }()
+	defer func() { rancherUninstallToolFunc = invokeRancherSystemTool }()
 
 	var monitor = &postUninstallMonitorType{}
 	err := forkPostUninstall(ctx, monitor)
@@ -589,11 +584,10 @@ func Test_forkPostUninstallFailure(t *testing.T) {
 	crd1 := v12.CustomResourceDefinition{}
 	c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
 
-	// FIXME: current forkPostUninstall doesn't use this
-	postUninstallFunc = func(ctx spi.ComponentContext, monitor postUninstallMonitor) error {
-		return fmt.Errorf("Unexpected error on install")
+	rancherUninstallToolFunc = func(log vzlog.VerrazzanoLogger, nsName string) ([]byte, error) {
+		return []byte(""), fmt.Errorf("Unexpected error on uninstall")
 	}
-	defer func() { postUninstallFunc = postUninstall }()
+	defer func() { rancherUninstallToolFunc = invokeRancherSystemTool }()
 
 	var monitor = &postUninstallMonitorType{}
 	err := forkPostUninstall(ctx, monitor)
