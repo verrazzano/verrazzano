@@ -1112,7 +1112,7 @@ func TestValidateInstallCR(t *testing.T) {
 					Components: vzapi.ComponentSpec{
 						Elasticsearch: &vzapi.ElasticsearchComponent{
 							Enabled: &(trueVal),
-							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.DataRole, vmov1.MasterRole}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
 						},
 					},
 				},
@@ -1126,7 +1126,7 @@ func TestValidateInstallCR(t *testing.T) {
 					Components: vzapi.ComponentSpec{
 						Elasticsearch: &vzapi.ElasticsearchComponent{
 							Enabled: &(trueVal),
-							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 0, Roles: []vmov1.NodeRole{"ingest"}}},
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.DataRole, vmov1.MasterRole}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole}}, {Name: "node3", Replicas: 0, Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
 						},
 					},
 				},
@@ -1140,7 +1140,7 @@ func TestValidateInstallCR(t *testing.T) {
 					Components: vzapi.ComponentSpec{
 						Elasticsearch: &vzapi.ElasticsearchComponent{
 							Enabled: &(trueVal),
-							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 1, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{"ingest"}}},
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.DataRole, vmov1.MasterRole}}, {Name: "node2", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
 						},
 					},
 				},
@@ -1175,7 +1175,7 @@ func TestValidateUpdateCR(t *testing.T) {
 					Components: vzapi.ComponentSpec{
 						Elasticsearch: &vzapi.ElasticsearchComponent{
 							Enabled: &(trueVal),
-							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 5, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{"ingest"}}},
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 5, Roles: []vmov1.NodeRole{vmov1.DataRole}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{vmov1.MasterRole}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
 						},
 					},
 				},
@@ -1185,7 +1185,7 @@ func TestValidateUpdateCR(t *testing.T) {
 					Components: vzapi.ComponentSpec{
 						Elasticsearch: &vzapi.ElasticsearchComponent{
 							Enabled: &(trueVal),
-							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.DataRole, vmov1.MasterRole}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
 						},
 					},
 				},
@@ -1199,7 +1199,7 @@ func TestValidateUpdateCR(t *testing.T) {
 					Components: vzapi.ComponentSpec{
 						Elasticsearch: &vzapi.ElasticsearchComponent{
 							Enabled: &(trueVal),
-							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 5, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{"ingest"}}},
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 5, Roles: []vmov1.NodeRole{vmov1.DataRole}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{vmov1.MasterRole}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
 						},
 					},
 				},
@@ -1209,7 +1209,7 @@ func TestValidateUpdateCR(t *testing.T) {
 					Components: vzapi.ComponentSpec{
 						Elasticsearch: &vzapi.ElasticsearchComponent{
 							Enabled: &(trueVal),
-							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 2, Roles: []vmov1.NodeRole{"data", "master"}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{"master", "data"}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{"ingest"}}},
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 2, Roles: []vmov1.NodeRole{vmov1.DataRole, vmov1.MasterRole}}, {Name: "node2", Replicas: 2, Roles: []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole}}, {Name: "node3", Replicas: 8, Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
 						},
 					},
 				},
@@ -1223,7 +1223,7 @@ func TestValidateUpdateCR(t *testing.T) {
 					Components: vzapi.ComponentSpec{
 						Elasticsearch: &vzapi.ElasticsearchComponent{
 							Enabled: &(trueVal),
-							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 5, Roles: []vmov1.NodeRole{"data"}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{"master"}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{"ingest"}}},
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 5, Roles: []vmov1.NodeRole{vmov1.DataRole}}, {Name: "node2", Replicas: 7, Roles: []vmov1.NodeRole{vmov1.MasterRole}}, {Name: "node3", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.IngestRole}}},
 						},
 					},
 				},
@@ -1233,7 +1233,7 @@ func TestValidateUpdateCR(t *testing.T) {
 					Components: vzapi.ComponentSpec{
 						Elasticsearch: &vzapi.ElasticsearchComponent{
 							Enabled: &(trueVal),
-							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{"data", "master", "ingest"}}},
+							Nodes:   []vzapi.OpenSearchNode{{Name: "node1", Replicas: 1, Roles: []vmov1.NodeRole{vmov1.DataRole, vmov1.MasterRole, vmov1.IngestRole}}},
 						},
 					},
 				},
