@@ -540,10 +540,6 @@ func Test_forkPostUninstallSuccess(t *testing.T) {
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
 
-	comp := rancherComponent {
-
-	}
-
 	tt := tests[2]
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.objects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
@@ -552,7 +548,6 @@ func Test_forkPostUninstallSuccess(t *testing.T) {
 	c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
 
 	rancherUninstallToolFunc = func(log vzlog.VerrazzanoLogger, nsName string) ([]byte, error) {
-		fmt.Println("+++++ MARCO: returning no error from rancherUninstallToolFunc.")
 		return []byte(""), nil
 	}
 	defer func() { rancherUninstallToolFunc = invokeRancherSystemTool }()
@@ -590,7 +585,6 @@ func Test_forkPostUninstallFailure(t *testing.T) {
 	c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
 
 	rancherUninstallToolFunc = func(log vzlog.VerrazzanoLogger, nsName string) ([]byte, error) {
-		fmt.Println("+++++ MARCO: returning an error from rancherUninstallToolFunc.")
 		return []byte(""), fmt.Errorf("Unexpected error on uninstall")
 	}
 	defer func() { rancherUninstallToolFunc = invokeRancherSystemTool }()
