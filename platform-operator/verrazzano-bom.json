@@ -28,13 +28,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.1.1-20221108082245-a57d726fb",
+              "tag": "v1.1.1-20221205221956-31c1f6101",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "v1.1.1-20221108082245-a57d726fb",
+              "tag": "v1.1.1-20221205221956-31c1f6101",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
