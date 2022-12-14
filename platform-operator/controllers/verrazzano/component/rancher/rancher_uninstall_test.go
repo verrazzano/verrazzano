@@ -37,6 +37,7 @@ func (f *fakeMonitor) run(args postUninstallRoutineParams) {}
 func (f *fakeMonitor) checkResult() (bool, error)          { return f.result, f.err }
 func (f *fakeMonitor) reset()                              {}
 func (f *fakeMonitor) isRunning() bool                     { return f.running }
+
 var _ postUninstallMonitor = &fakeMonitor{}
 
 var nonRanNSName = "local-not-rancher"
@@ -148,8 +149,8 @@ var nonRancherPV v1.PersistentVolume = v1.PersistentVolume{
 	},
 }
 var delTimestamp metav1.Time = metav1.NewTime(time.Now())
-var crdAPIVersion string = "apiextensions.k8s.io/v1"
-var crdKind string = "CustomResourceDefinition"
+var crdAPIVersion = "apiextensions.k8s.io/v1"
+var crdKind = "CustomResourceDefinition"
 var rancherClusterCRD v12.CustomResourceDefinition = v12.CustomResourceDefinition{
 	TypeMeta: metav1.TypeMeta{
 		Kind:       crdKind,
@@ -384,9 +385,12 @@ var tests = []testStruct{
 func TestPostUninstall(t *testing.T) {
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
+	testObjects := []clipkg.Object{
+		&nonRancherNs,
+		&rancherNs,
+	}
 
-	tt := tests[2]
-	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.objects...).Build()
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 
 	crd1 := v12.CustomResourceDefinition{}
@@ -410,9 +414,12 @@ func TestPostUninstall(t *testing.T) {
 func TestBackgroundPostUninstallCompletedSuccessfully(t *testing.T) {
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
+	testObjects := []clipkg.Object{
+		&nonRancherNs,
+		&rancherNs,
+	}
 
-	tt := tests[2]
-	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.objects...).Build()
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 
 	crd1 := v12.CustomResourceDefinition{}
@@ -436,9 +443,12 @@ func TestBackgroundPostUninstallCompletedSuccessfully(t *testing.T) {
 func TestBackgroundPostUninstallRetryOnFailure(t *testing.T) {
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
+	testObjects := []clipkg.Object{
+		&nonRancherNs,
+		&rancherNs,
+	}
 
-	tt := tests[2]
-	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.objects...).Build()
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 
 	crd1 := v12.CustomResourceDefinition{}
@@ -465,9 +475,12 @@ func TestBackgroundPostUninstallRetryOnFailure(t *testing.T) {
 func Test_forkPostUninstallSuccess(t *testing.T) {
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
+	testObjects := []clipkg.Object{
+		&nonRancherNs,
+		&rancherNs,
+	}
 
-	tt := tests[2]
-	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.objects...).Build()
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 
 	crd1 := v12.CustomResourceDefinition{}
@@ -502,9 +515,12 @@ func Test_forkPostUninstallSuccess(t *testing.T) {
 func Test_forkPostUninstallFailure(t *testing.T) {
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
+	testObjects := []clipkg.Object{
+		&nonRancherNs,
+		&rancherNs,
+	}
 
-	tt := tests[2]
-	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(tt.objects...).Build()
+	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 
 	crd1 := v12.CustomResourceDefinition{}
@@ -551,7 +567,7 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 
 			err := invokeRancherSystemToolAndCleanup(ctx)
 			a.Nil(err)
-			
+
 			// MutatingWebhookConfigurations should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &admv1.MutatingWebhookConfiguration{})
 			a.True(apierrors.IsNotFound(err))
@@ -608,7 +624,7 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 // WHEN the namespace belings to Rancher or not
 // THEN we see true if it is and false if not
 func TestIsRancherNamespace(t *testing.T) {
-	a:= assert.New(t)
+	a := assert.New(t)
 
 	a.True(isRancherNamespace(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
