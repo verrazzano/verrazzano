@@ -101,134 +101,134 @@ func initCounterMetricMap() map[metricName]*SimpleCounterMetric {
 		AppconfigReconcileCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_appconfig_successful_reconcile_total",
-				Help: "Tracks how many times a the appconfig reconcile process is successful"}),
+				Help: "Tracks how many times the appconfig reconcile process has been successful"}),
 		},
 		AppconfigReconcileError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_appconfig_error_reconcile_total",
-				Help: "Tracks how many times a the appconfig reconcile process has failed"}),
+				Help: "Tracks how many times the appconfig reconcile process has failed"}),
 		},
 		CohworkloadReconcileCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vz_application_operator_cohworkload_error_reconcile_total",
-				Help: "Tracks how many times a the cohworkload reconcile process has failed"}),
+				Name: "vz_application_operator_cohworkload_successful_reconcile_total",
+				Help: "Tracks how many times the cohworkload reconcile process  has been successful"}),
 		},
 		CohworkloadReconcileError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_cohworkload_error_reconcile_total",
-				Help: "Tracks how many times a the cohworkload reconcile process has failed"}),
+				Help: "Tracks how many times the cohworkload reconcile process has failed"}),
 		},
 		HelidonReconcileCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vz_application_operator_helidonworkload_success_reconcile_total",
-				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+				Name: "vz_application_operator_helidonworkload_successful_reconcile_total",
+				Help: "Tracks how many times the helidonworkload reconcile process  has been successful"}),
 		},
 		HelidonReconcileError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_helidonworkload_error_reconcile_total",
-				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+				Help: "Tracks how many times the helidonworkload reconcile process has failed"}),
 		},
 		IngresstraitReconcileCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vz_application_operator_ingresstrait_success_reconcile_total",
-				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+				Name: "vz_application_operator_ingresstrait_successful_reconcile_total",
+				Help: "Tracks how many times the ingresstrait reconcile process has been successful"}),
 		},
 		IngresstraitReconcileError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_ingresstrait_error_reconcile_total",
-				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+				Help: "Tracks how many times the ingresstrait reconcile process has failed"}),
 		},
 		AppconfigHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_appconfig_handle_total",
-				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+				Help: "Tracks how many times the helidonworkload reconcile process is successful"}),
 		},
 		AppconfigHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_appconfig_error_handle_total",
-				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+				Help: "Tracks how many times the helidonworkload reconcile process has failed"}),
 		},
 		IstioHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_istio_handle_total",
-				Help: "Tracks how many times a the ingresstrait reconcile process has been successful"}),
+				Help: "Tracks how many times the ingresstrait reconcile process has been successful"}),
 		},
 		IstioHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_istio_error_handle_total",
-				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+				Help: "Tracks how many times the ingresstrait reconcile process has failed"}),
 		},
 		LabelerPodHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_labelerPod_handle_total",
-				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+				Help: "Tracks how many times the helidonworkload reconcile process has failed"}),
 		},
 		LabelerPodHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_labelerpod_error_handle_total",
-				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+				Help: "Tracks how many times the helidonworkload reconcile process has failed"}),
 		},
 		BindingUpdaterHandleCounter: {
 
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_bindingupdater_handle_total",
-				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+				Help: "Tracks how many times the ingresstrait reconcile process has failed"}),
 		},
 		BindingUpdaterHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_bindingupdater_error_handle_total",
-				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+				Help: "Tracks how many times the ingresstrait reconcile process has failed"}),
 		},
 		MultiClusterAppconfigPodHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_multiclusterappconfig_handle_total",
-				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+				Help: "Tracks how many times the helidonworkload reconcile process has failed"}),
 		},
 		MultiClusterAppconfigPodHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_multiclusterappconfig_error_handle_total",
-				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+				Help: "Tracks how many times the helidonworkload reconcile process has failed"}),
 		},
 		MultiClusterCompHandleCounter: {
 
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_multiclustercomp_handle_total",
-				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+				Help: "Tracks how many times the ingresstrait reconcile process has failed"}),
 		},
 		MultiClusterCompHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_multiclustercomp_error_handle_total",
-				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+				Help: "Tracks how many times the ingresstrait reconcile process has failed"}),
 		},
 		MultiClusterConfigmapHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_multiclustercomp_handle_total",
-				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+				Help: "Tracks how many times the ingresstrait reconcile process has failed"}),
 		},
 		MultiClusterConfigmapHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_multiclustercomp_error_handle_total",
-				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+				Help: "Tracks how many times the ingresstrait reconcile process has failed"}),
 		},
 		MultiClusterSecretHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_multiclustersecret_handle_total",
-				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+				Help: "Tracks how many times the ingresstrait reconcile process has failed"}),
 		},
 		MultiClusterSecretHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_multiclustersecret_error_handle_total",
-				Help: "Tracks how many times a the ingresstrait reconcile process has failed"}),
+				Help: "Tracks how many times the ingresstrait reconcile process has failed"}),
 		},
 		VzProjHandleCounter: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_vzproj_handle_total",
-				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+				Help: "Tracks how many times the helidonworkload reconcile process has failed"}),
 		},
 		VzProjHandleError: {
 			metric: prometheus.NewCounter(prometheus.CounterOpts{
 				Name: "vz_application_operator_vzproj_error_handle_total",
-				Help: "Tracks how many times a the helidonworkload reconcile process has failed"}),
+				Help: "Tracks how many times the helidonworkload reconcile process has failed"}),
 		},
 	}
 }
