@@ -10,7 +10,6 @@ import (
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -22,6 +21,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	v12 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -42,20 +42,6 @@ var _ postUninstallMonitor = &fakeMonitor{}
 
 var nonRanNSName = "local-not-rancher"
 var rancherNSName = "local"
-var rancherNSName2 = "fleet-rancher"
-var rancherCrName = "proxy-1234"
-var mwcName = "mutating-webhook-configuration"
-var vwcName = "validating-webhook-configuration"
-var pvName = "pvc-12345"
-var pv2Name = "ocid1.volume.oc1.ca-toronto-1.12345"
-var rbName = "rb-test"
-var nonRancherRBName = "testrb"
-var randPV = "randomPV"
-var randCR = "randomCR"
-var randCRB = "randomCRB"
-var rancherCRDName = "definitelyrancher.cattle.io"
-var nonRancherCRDName = "other.cattle"
-
 var nonRancherNs v1.Namespace = v1.Namespace{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: nonRanNSName,
@@ -64,317 +50,6 @@ var nonRancherNs v1.Namespace = v1.Namespace{
 var rancherNs v1.Namespace = v1.Namespace{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: rancherNSName,
-	},
-}
-var rancherNs2 v1.Namespace = v1.Namespace{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: rancherNSName2,
-	},
-}
-var mutWebhook admv1.MutatingWebhookConfiguration = admv1.MutatingWebhookConfiguration{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: webhookName,
-	},
-}
-var mutWebhook2 admv1.MutatingWebhookConfiguration = admv1.MutatingWebhookConfiguration{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: mwcName,
-	},
-}
-var valWebhook admv1.ValidatingWebhookConfiguration = admv1.ValidatingWebhookConfiguration{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: webhookName,
-	},
-}
-var valWebhook2 admv1.ValidatingWebhookConfiguration = admv1.ValidatingWebhookConfiguration{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: vwcName,
-	},
-}
-var crRancher rbacv1.ClusterRole = rbacv1.ClusterRole{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: rancherCrName,
-	},
-}
-var crbRancher rbacv1.ClusterRoleBinding = rbacv1.ClusterRoleBinding{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: webhookName,
-	},
-}
-var crNotRancher rbacv1.ClusterRole = rbacv1.ClusterRole{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: randCR,
-	},
-}
-var crbNotRancher rbacv1.ClusterRoleBinding = rbacv1.ClusterRoleBinding{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: randCRB,
-	},
-}
-var rbRancher rbacv1.RoleBinding = rbacv1.RoleBinding{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: rbName,
-	},
-}
-var rbNotRancher rbacv1.RoleBinding = rbacv1.RoleBinding{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: nonRancherRBName,
-	},
-}
-var controllerCM v1.ConfigMap = v1.ConfigMap{
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      controllerCMName,
-		Namespace: constants.KubeSystem,
-	},
-}
-var lockCM v1.ConfigMap = v1.ConfigMap{
-	ObjectMeta: metav1.ObjectMeta{
-		Name:      lockCMName,
-		Namespace: constants.KubeSystem,
-	},
-}
-var rancherPV v1.PersistentVolume = v1.PersistentVolume{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: pvName,
-	},
-}
-var rancherPV2 v1.PersistentVolume = v1.PersistentVolume{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: pv2Name,
-	},
-}
-var nonRancherPV v1.PersistentVolume = v1.PersistentVolume{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: randPV,
-	},
-}
-var delTimestamp metav1.Time = metav1.NewTime(time.Now())
-var crdAPIVersion = "apiextensions.k8s.io/v1"
-var crdKind = "CustomResourceDefinition"
-var rancherClusterCRD v12.CustomResourceDefinition = v12.CustomResourceDefinition{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       crdKind,
-		APIVersion: crdAPIVersion,
-	},
-	ObjectMeta: metav1.ObjectMeta{
-		Name:              rancherCRDName,
-		Finalizers:        []string{"somefinalizer"},
-		DeletionTimestamp: &delTimestamp,
-	},
-	Spec: v12.CustomResourceDefinitionSpec{
-		Group: "management.cattle.io",
-		Names: v12.CustomResourceDefinitionNames{
-			Kind: "Setting",
-		},
-		Scope: "Cluster",
-		Versions: []v12.CustomResourceDefinitionVersion{
-			{
-				Name: "v3",
-			},
-		},
-	},
-}
-var rancherNamespacedCRD v12.CustomResourceDefinition = v12.CustomResourceDefinition{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       crdKind,
-		APIVersion: crdAPIVersion,
-	},
-	ObjectMeta: metav1.ObjectMeta{
-		Name: "projects.management.cattle.io",
-	},
-	Spec: v12.CustomResourceDefinitionSpec{
-		Group: "management.cattle.io",
-		Names: v12.CustomResourceDefinitionNames{
-			Kind: "Project",
-		},
-		Scope: "Namespaced",
-		Versions: []v12.CustomResourceDefinitionVersion{
-			{
-				Name: "v3",
-			},
-		},
-	},
-}
-var nonRancherCRD v12.CustomResourceDefinition = v12.CustomResourceDefinition{
-	TypeMeta: metav1.TypeMeta{
-		Kind:       crdKind,
-		APIVersion: crdAPIVersion,
-	},
-	ObjectMeta: metav1.ObjectMeta{
-		Name: nonRancherCRDName,
-	},
-	Spec: v12.CustomResourceDefinitionSpec{
-		Group:                 "cattle.io",
-		Names:                 v12.CustomResourceDefinitionNames{},
-		Scope:                 "",
-		Versions:              nil,
-		Conversion:            nil,
-		PreserveUnknownFields: false,
-	},
-}
-var settingCR unstructured.Unstructured = unstructured.Unstructured{
-	Object: map[string]interface{}{
-		"apiVersion": "management.cattle.io/v3",
-		"kind":       "Setting",
-		"metadata": map[string]interface{}{
-			"name": "cr-name",
-		},
-	},
-}
-var projectCR unstructured.Unstructured = unstructured.Unstructured{
-	Object: map[string]interface{}{
-		"apiVersion": "management.cattle.io/v3",
-		"kind":       "Project",
-		"metadata": map[string]interface{}{
-			"namespace": "cr-namespace",
-			"name":      "cr-name",
-		},
-	},
-}
-
-type testStruct struct {
-	name           string
-	objects        []clipkg.Object
-	nonRancherTest bool
-}
-
-var tests = []testStruct{
-	{
-		name: "test empty cluster",
-	},
-	{
-		name: "test non Rancher ns",
-		objects: []clipkg.Object{
-			&nonRancherNs,
-		},
-	},
-	{
-		name: "test Rancher ns",
-		objects: []clipkg.Object{
-			&nonRancherNs,
-			&rancherNs,
-		},
-	},
-	{
-		name: "test multiple Rancher ns",
-		objects: []clipkg.Object{
-			&nonRancherNs,
-			&rancherNs,
-			&rancherNs2,
-		},
-	},
-	{
-		name: "test mutating webhook",
-		objects: []clipkg.Object{
-			&nonRancherNs,
-			&rancherNs,
-			&rancherNs2,
-			&mutWebhook,
-			&mutWebhook2,
-		},
-	},
-	{
-		name: "test validating webhook",
-		objects: []clipkg.Object{
-			&nonRancherNs,
-			&rancherNs,
-			&rancherNs2,
-			&mutWebhook,
-			&valWebhook,
-			&valWebhook2,
-		},
-	},
-	{
-		name: "test CR and CRB",
-		objects: []clipkg.Object{
-			&nonRancherNs,
-			&rancherNs,
-			&rancherNs2,
-			&mutWebhook,
-			&valWebhook,
-			&crRancher,
-			&crbRancher,
-		},
-	},
-	{
-		name: "test non Rancher components",
-		objects: []clipkg.Object{
-			&nonRancherNs,
-			&crNotRancher,
-			&crbNotRancher,
-			&nonRancherPV,
-			&rbNotRancher,
-			&nonRancherCRD,
-		},
-		nonRancherTest: true,
-	},
-	{
-		name: "test config maps",
-		objects: []clipkg.Object{
-			&nonRancherNs,
-			&rancherNs,
-			&rancherNs2,
-			&mutWebhook,
-			&valWebhook,
-			&crRancher,
-			&crbRancher,
-			&crNotRancher,
-			&crbNotRancher,
-			&controllerCM,
-			&lockCM,
-		},
-	},
-	{
-		name: "test persistent volume",
-		objects: []clipkg.Object{
-			&nonRancherNs,
-			&rancherNs,
-			&rancherNs2,
-			&mutWebhook,
-			&valWebhook,
-			&crRancher,
-			&crbRancher,
-			&crNotRancher,
-			&crbNotRancher,
-			&controllerCM,
-			&lockCM,
-			&rancherPV,
-			&rancherPV2,
-		},
-	},
-	{
-		name: "test clusterRole binding",
-		objects: []clipkg.Object{
-			&nonRancherNs,
-			&rancherNs,
-			&rancherNs2,
-			&mutWebhook,
-			&valWebhook,
-			&crRancher,
-			&crbRancher,
-			&crNotRancher,
-			&crbNotRancher,
-			&controllerCM,
-			&lockCM,
-			&rancherPV,
-			&rancherPV2,
-			&rbRancher,
-		},
-	},
-	{
-		name: "test CRD finalizer cleanup",
-		objects: []clipkg.Object{
-			&rancherClusterCRD,
-		},
-	},
-	{
-		name: "test Rancher CR cleanup",
-		objects: []clipkg.Object{
-			&rancherClusterCRD,
-			&settingCR,
-			&rancherNamespacedCRD,
-			&projectCR,
-		},
 	},
 }
 
@@ -392,9 +67,6 @@ func TestPostUninstall(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
-
-	crd1 := v12.CustomResourceDefinition{}
-	c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
 
 	expectedErr := ctrlerrors.RetryableError{Source: ComponentName}
 	forkPostUninstallFunc = func(_ spi.ComponentContext, _ postUninstallMonitor) error {
@@ -422,9 +94,6 @@ func TestBackgroundPostUninstallCompletedSuccessfully(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 
-	crd1 := v12.CustomResourceDefinition{}
-	c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
-
 	forkPostUninstallFunc = func(_ spi.ComponentContext, _ postUninstallMonitor) error {
 		a.Fail("Unexpected call to forkPostUninstall() function")
 		return nil
@@ -450,9 +119,6 @@ func TestBackgroundPostUninstallRetryOnFailure(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
-
-	crd1 := v12.CustomResourceDefinition{}
-	c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
 
 	forkFuncCalled := false
 	expectedErr := ctrlerrors.RetryableError{Source: ComponentName}
@@ -482,9 +148,6 @@ func Test_forkPostUninstallSuccess(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
-
-	crd1 := v12.CustomResourceDefinition{}
-	c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
 
 	postUninstallFunc = func(ctx spi.ComponentContext) error {
 		return nil
@@ -523,9 +186,6 @@ func Test_forkPostUninstallFailure(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(testObjects...).Build()
 	ctx := spi.NewFakeContext(c, &vz, nil, false)
 
-	crd1 := v12.CustomResourceDefinition{}
-	c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
-
 	postUninstallFunc = func(ctx spi.ComponentContext) error {
 		return fmt.Errorf("Unexpected error on uninstall")
 	}
@@ -556,6 +216,330 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
 
+	rancherNSName2 := "fleet-rancher"
+	rancherCrName := "proxy-1234"
+	mwcName := "mutating-webhook-configuration"
+	vwcName := "validating-webhook-configuration"
+	pvName := "pvc-12345"
+	pv2Name := "ocid1.volume.oc1.ca-toronto-1.12345"
+	rbName := "rb-test"
+	nonRancherRBName := "testrb"
+	randPV := "randomPV"
+	randCR := "randomCR"
+	randCRB := "randomCRB"
+	rancherCRDName := "definitelyrancher.cattle.io"
+	nonRancherCRDName := "other.cattle"
+
+	rancherNs2 := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: rancherNSName2,
+		},
+	}
+	mutWebhook := admv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: webhookName,
+		},
+	}
+	mutWebhook2 := admv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: mwcName,
+		},
+	}
+	valWebhook := admv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: webhookName,
+		},
+	}
+	valWebhook2 := admv1.ValidatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: vwcName,
+		},
+	}
+	crRancher := rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: rancherCrName,
+		},
+	}
+	crbRancher := rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: webhookName,
+		},
+	}
+	crNotRancher := rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: randCR,
+		},
+	}
+	crbNotRancher := rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: randCRB,
+		},
+	}
+	rbRancher := rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: rbName,
+		},
+	}
+	rbNotRancher := rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: nonRancherRBName,
+		},
+	}
+	controllerCM := v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      controllerCMName,
+			Namespace: constants.KubeSystem,
+		},
+	}
+	lockCM := v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      lockCMName,
+			Namespace: constants.KubeSystem,
+		},
+	}
+	rancherPV := v1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: pvName,
+		},
+	}
+	rancherPV2 := v1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: pv2Name,
+		},
+	}
+	nonRancherPV := v1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: randPV,
+		},
+	}
+
+	delTimestamp := metav1.NewTime(time.Now())
+	crdAPIVersion := "apiextensions.k8s.io/v1"
+	crdKind := "CustomResourceDefinition"
+	rancherClusterCRD := v12.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       crdKind,
+			APIVersion: crdAPIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              rancherCRDName,
+			Finalizers:        []string{"somefinalizer"},
+			DeletionTimestamp: &delTimestamp,
+		},
+		Spec: v12.CustomResourceDefinitionSpec{
+			Group: "management.cattle.io",
+			Names: v12.CustomResourceDefinitionNames{
+				Kind: "Setting",
+			},
+			Scope: "Cluster",
+			Versions: []v12.CustomResourceDefinitionVersion{
+				{
+					Name: "v3",
+				},
+			},
+		},
+	}
+	rancherNamespacedCRD := v12.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       crdKind,
+			APIVersion: crdAPIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "projects.management.cattle.io",
+		},
+		Spec: v12.CustomResourceDefinitionSpec{
+			Group: "management.cattle.io",
+			Names: v12.CustomResourceDefinitionNames{
+				Kind: "Project",
+			},
+			Scope: "Namespaced",
+			Versions: []v12.CustomResourceDefinitionVersion{
+				{
+					Name: "v3",
+				},
+			},
+		},
+	}
+	nonRancherCRD := v12.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       crdKind,
+			APIVersion: crdAPIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: nonRancherCRDName,
+		},
+		Spec: v12.CustomResourceDefinitionSpec{
+			Group:                 "cattle.io",
+			Names:                 v12.CustomResourceDefinitionNames{},
+			Scope:                 "",
+			Versions:              nil,
+			Conversion:            nil,
+			PreserveUnknownFields: false,
+		},
+	}
+	settingCR := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "management.cattle.io/v3",
+			"kind":       "Setting",
+			"metadata": map[string]interface{}{
+				"name": "cr-name",
+			},
+		},
+	}
+	projectCR := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "management.cattle.io/v3",
+			"kind":       "Project",
+			"metadata": map[string]interface{}{
+				"namespace": "cr-namespace",
+				"name":      "cr-name",
+			},
+		},
+	}
+	tests := []struct {
+		name           string
+		objects        []clipkg.Object
+		nonRancherTest bool
+	}{
+		{
+			name: "test empty cluster",
+		},
+		{
+			name: "test non Rancher ns",
+			objects: []clipkg.Object{
+				&nonRancherNs,
+			},
+		},
+		{
+			name: "test Rancher ns",
+			objects: []clipkg.Object{
+				&nonRancherNs,
+				&rancherNs,
+			},
+		},
+		{
+			name: "test multiple Rancher ns",
+			objects: []clipkg.Object{
+				&nonRancherNs,
+				&rancherNs,
+				&rancherNs2,
+			},
+		},
+		{
+			name: "test mutating webhook",
+			objects: []clipkg.Object{
+				&nonRancherNs,
+				&rancherNs,
+				&rancherNs2,
+				&mutWebhook,
+				&mutWebhook2,
+			},
+		},
+		{
+			name: "test validating webhook",
+			objects: []clipkg.Object{
+				&nonRancherNs,
+				&rancherNs,
+				&rancherNs2,
+				&mutWebhook,
+				&valWebhook,
+				&valWebhook2,
+			},
+		},
+		{
+			name: "test CR and CRB",
+			objects: []clipkg.Object{
+				&nonRancherNs,
+				&rancherNs,
+				&rancherNs2,
+				&mutWebhook,
+				&valWebhook,
+				&crRancher,
+				&crbRancher,
+			},
+		},
+		{
+			name: "test non Rancher components",
+			objects: []clipkg.Object{
+				&nonRancherNs,
+				&crNotRancher,
+				&crbNotRancher,
+				&nonRancherPV,
+				&rbNotRancher,
+				&nonRancherCRD,
+			},
+			nonRancherTest: true,
+		},
+		{
+			name: "test config maps",
+			objects: []clipkg.Object{
+				&nonRancherNs,
+				&rancherNs,
+				&rancherNs2,
+				&mutWebhook,
+				&valWebhook,
+				&crRancher,
+				&crbRancher,
+				&crNotRancher,
+				&crbNotRancher,
+				&controllerCM,
+				&lockCM,
+			},
+		},
+		{
+			name: "test persistent volume",
+			objects: []clipkg.Object{
+				&nonRancherNs,
+				&rancherNs,
+				&rancherNs2,
+				&mutWebhook,
+				&valWebhook,
+				&crRancher,
+				&crbRancher,
+				&crNotRancher,
+				&crbNotRancher,
+				&controllerCM,
+				&lockCM,
+				&rancherPV,
+				&rancherPV2,
+			},
+		},
+		{
+			name: "test clusterRole binding",
+			objects: []clipkg.Object{
+				&nonRancherNs,
+				&rancherNs,
+				&rancherNs2,
+				&mutWebhook,
+				&valWebhook,
+				&crRancher,
+				&crbRancher,
+				&crNotRancher,
+				&crbNotRancher,
+				&controllerCM,
+				&lockCM,
+				&rancherPV,
+				&rancherPV2,
+				&rbRancher,
+			},
+		},
+		{
+			name: "test CRD finalizer cleanup",
+			objects: []clipkg.Object{
+				&rancherClusterCRD,
+			},
+		},
+		{
+			name: "test Rancher CR cleanup",
+			objects: []clipkg.Object{
+				&rancherClusterCRD,
+				&settingCR,
+				&rancherNamespacedCRD,
+				&projectCR,
+			},
+		},
+	}
+
 	setRancherSystemTool("echo")
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -566,7 +550,7 @@ func TestInvokeRancherSystemToolAndCleanup(t *testing.T) {
 			c.Get(context.TODO(), types.NamespacedName{Name: rancherCRDName}, &crd1)
 
 			err := invokeRancherSystemToolAndCleanup(ctx)
-			a.Nil(err)
+			a.NoError(err)
 
 			// MutatingWebhookConfigurations should not exist
 			err = c.Get(context.TODO(), types.NamespacedName{Name: webhookName}, &admv1.MutatingWebhookConfiguration{})
