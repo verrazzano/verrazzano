@@ -29,8 +29,6 @@ func main() {
 
 	//Extract release tags from git tag command.
 	releaseTags := getReleaseTags(workspace)
-
-	fmt.Println(releaseTags)
 	if versionType == InterimVersionForUpgrade {
 		interimRelease := getInterimRelease(releaseTags)
 		fmt.Print(interimRelease)
