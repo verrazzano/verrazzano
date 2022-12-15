@@ -208,6 +208,7 @@ var specRestartVersionFields = []string{specField, "restartVersion"}
 var specServerStartPolicyFields = []string{specField, "serverStartPolicy"}
 var specLogHomeFields = []string{specField, "logHome"}
 var specLogHomeEnabledFields = []string{specField, "logHomeEnabled"}
+var specLogHomeLayoutFields = []string{specField, "logHomeLayout"}
 
 // this struct allows us to extract information from the unstructured WebLogic spec,
 // so we can interface with the FLUENTD code
@@ -695,6 +696,14 @@ func (r *Reconciler) addLogging(ctx context.Context, log vzlog.VerrazzanoLogger,
 		err = unstructured.SetNestedField(weblogic.Object, true, specLogHomeEnabledFields...)
 		if err != nil {
 			log.Errorf("Failed to set logHomeEnabled: %v", err)
+			return err
+		}
+	}
+
+	if !isV8(weblogic) {
+		err = unstructured.SetNestedField(weblogic.Object, "Flat", specLogHomeLayoutFields...)
+		if err != nil {
+			log.Errorf("Failed to set logHomeLayout: %v", err)
 			return err
 		}
 	}
