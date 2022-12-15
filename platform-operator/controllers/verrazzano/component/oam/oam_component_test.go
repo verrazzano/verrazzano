@@ -6,6 +6,7 @@ package oam
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,6 +23,7 @@ var testScheme = runtime.NewScheme()
 
 func init() {
 	_ = rbacv1.AddToScheme(testScheme)
+	_ = apiextensionsv1.AddToScheme(testScheme)
 }
 
 func TestValidateUpdate(t *testing.T) {
@@ -128,6 +130,18 @@ func TestValidateUpdateV1Beta1(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPreInstall(t *testing.T) {
+	config.TestHelmConfigDir = "../../../../thirdparty"
+	client := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	ctx := spi.NewFakeContext(client, nil, nil, false)
+	assert.NoError(t, NewComponent().PreInstall(ctx))
+
+	// After PreInstall, OAM CRDs should be present on the cluster
+	oamCRD := &apiextensionsv1.CustomResourceDefinition{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: "applicationconfigurations.core.oam.dev"}, oamCRD)
+	assert.NoError(t, err)
 }
 
 // TestPreUpgrade tests the OAM PreUpgrade call

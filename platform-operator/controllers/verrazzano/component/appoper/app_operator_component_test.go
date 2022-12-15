@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -22,7 +24,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-const profilesRelativePath = "../../../../manifests/profiles"
+const (
+	profilesRelativePath = "../../../../manifests/profiles"
+	relativeRootDir      = "../../../../../"
+)
 
 var crEnabled = v1alpha1.Verrazzano{
 	Spec: v1alpha1.VerrazzanoSpec{
@@ -34,10 +39,22 @@ var crEnabled = v1alpha1.Verrazzano{
 	},
 }
 
+func TestPreInstall(t *testing.T) {
+	defer config.Set(config.Get())
+	config.Set(config.OperatorConfig{VerrazzanoRootDir: relativeRootDir})
+	client := fake.NewClientBuilder().WithScheme(newScheme()).Build()
+	ctx := spi.NewFakeContext(client, nil, nil, false)
+	assert.NoError(t, NewComponent().PreInstall(ctx))
+	metricsBindingCRD := &apiextensionsv1.CustomResourceDefinition{}
+	// Metrics Binding CRD should exist after PreInstall
+	assert.NoError(t, client.Get(context.TODO(), types.NamespacedName{Name: "metricsbindings.app.verrazzano.io"}, metricsBindingCRD))
+}
+
 // TestAppOperatorPostUpgradeNoDeleteClusterRoleBinding tests the PostUpgrade function
 // GIVEN a call to PostUpgrade
-//  WHEN a VMC exists but no associated ClusterRoleBinding
-//  THEN no delete of a ClusterRoleBinding
+//
+//	WHEN a VMC exists but no associated ClusterRoleBinding
+//	THEN no delete of a ClusterRoleBinding
 func TestAppOperatorPostUpgradeNoDeleteClusterRoleBinding(t *testing.T) {
 	clusterName := "managed1"
 	vz := &v1alpha1.Verrazzano{
@@ -63,8 +80,9 @@ func TestAppOperatorPostUpgradeNoDeleteClusterRoleBinding(t *testing.T) {
 
 // TestAppOperatorPostUpgradeDeleteClusterRoleBinding tests the PostUpgrade function
 // GIVEN a call to PostUpgrade
-//  WHEN a VMC exists with an associated ClusterRoleBinding
-//  THEN successful delete of the ClusterRoleBinding
+//
+//	WHEN a VMC exists with an associated ClusterRoleBinding
+//	THEN successful delete of the ClusterRoleBinding
 func TestAppOperatorPostUpgradeDeleteClusterRoleBinding(t *testing.T) {
 	clusterName := "managed1"
 	vz := &v1alpha1.Verrazzano{
@@ -106,13 +124,15 @@ func newScheme() *runtime.Scheme {
 	_ = clustersv1alpha1.AddToScheme(scheme)
 	_ = v1alpha1.AddToScheme(scheme)
 	_ = rbacv1.AddToScheme(scheme)
+	_ = apiextensionsv1.AddToScheme(scheme)
 	return scheme
 }
 
 // TestIsEnabledNilApplicationOperator tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The ApplicationOperator component is nil
-//  THEN true is returned
+//
+//	WHEN The ApplicationOperator component is nil
+//	THEN true is returned
 func TestIsEnabledNilApplicationOperator(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.ApplicationOperator = nil
@@ -121,16 +141,18 @@ func TestIsEnabledNilApplicationOperator(t *testing.T) {
 
 // TestIsEnabledNilComponent tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The ApplicationOperator component is nil
-//  THEN false is returned
+//
+//	WHEN The ApplicationOperator component is nil
+//	THEN false is returned
 func TestIsEnabledNilComponent(t *testing.T) {
 	assert.True(t, NewComponent().IsEnabled(spi.NewFakeContext(nil, &v1alpha1.Verrazzano{}, nil, false, profilesRelativePath).EffectiveCR()))
 }
 
 // TestIsEnabledNilEnabled tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The ApplicationOperator component enabled is nil
-//  THEN true is returned
+//
+//	WHEN The ApplicationOperator component enabled is nil
+//	THEN true is returned
 func TestIsEnabledNilEnabled(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.ApplicationOperator.Enabled = nil
@@ -139,8 +161,9 @@ func TestIsEnabledNilEnabled(t *testing.T) {
 
 // TestIsEnabledExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The ApplicationOperator component is explicitly enabled
-//  THEN true is returned
+//
+//	WHEN The ApplicationOperator component is explicitly enabled
+//	THEN true is returned
 func TestIsEnabledExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.ApplicationOperator.Enabled = getBoolPtr(true)
@@ -149,8 +172,9 @@ func TestIsEnabledExplicit(t *testing.T) {
 
 // TestIsDisableExplicit tests the IsEnabled function
 // GIVEN a call to IsEnabled
-//  WHEN The ApplicationOperator component is explicitly disabled
-//  THEN false is returned
+//
+//	WHEN The ApplicationOperator component is explicitly disabled
+//	THEN false is returned
 func TestIsDisableExplicit(t *testing.T) {
 	cr := crEnabled
 	cr.Spec.Components.ApplicationOperator.Enabled = getBoolPtr(false)

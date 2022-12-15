@@ -169,10 +169,6 @@
             {
               "image": "gitjob",
               "tag": "v0.1.30"
-            },
-            {
-              "image": "local-path-provisioner",
-              "tag": "v0.0.14"
             }
           ]
         }
@@ -241,11 +237,6 @@
               "image": "grafana",
               "tag": "v7.5.15-20220809163103-24d2f584",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
-            },
-            {
-              "image": "prometheus",
-              "tag": "v2.34.0-1",
-              "helmFullImageKey": "monitoringOperator.prometheusImage"
             },
             {
               "image": "opensearch",
@@ -419,7 +410,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v15.0.2-20221010100849-3c526fbe0f",
+              "tag": "v15.0.2-20221214054602-c01654ffed",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
