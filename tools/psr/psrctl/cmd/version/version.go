@@ -5,11 +5,11 @@ package version
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	"os"
 	"regexp"
 
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/tools/psr/psrctl/cmd/constants"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/templates"

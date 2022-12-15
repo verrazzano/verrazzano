@@ -1,11 +1,12 @@
 // Copyright (c) 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package update
+package stop
 
 import (
 	"bytes"
 	"encoding/base64"
+	"fmt"
 	"os"
 	"testing"
 
@@ -26,8 +27,13 @@ import (
 
 const psrRoot = "../../.."
 
-// TestUpdateCmd tests that the psrctl command works correctly
-func TestUpdateCmd(t *testing.T) {
+var ID = "ops-s1"
+
+// TestStopCmd tests the NewCmdStop and RunCmdStop functions
+//
+//	WHEN 'psrctl stop -s ops-s1 -n psr' is called
+//	THEN ensure the scenario is uninstalled
+func TestStopCmd(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:        psrRoot,
 		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
@@ -74,19 +80,11 @@ Usecases:
 		return k8sfake.NewSimpleClientset(cm).CoreV1(), nil
 	}
 
-	defer func() { scenario.UpdateGetValuesFunc = helmcli.GetValues }()
-	scenario.UpdateGetValuesFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string) ([]byte, error) {
+	defer func() { scenario.UninstallFunc = helmcli.Uninstall }()
+	scenario.UninstallFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, dryRun bool) (stdout []byte, stderr []byte, err error) {
 		assert.Equal(t, "psr-ops-s1-writelogs-0", releaseName)
 		assert.Equal(t, "psr", namespace)
-		return []byte("old-values"), nil
-	}
 
-	defer func() { scenario.UpdateUpgradeFunc = helmcli.Upgrade }()
-	scenario.UpdateUpgradeFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (stdout []byte, stderr []byte, err error) {
-		assert.Equal(t, 3, len(overrides))
-		assert.Equal(t, "psr-ops-s1-writelogs-0", releaseName)
-		assert.Equal(t, "psr", namespace)
-		assert.Contains(t, chartDir, "manifests/charts/worker")
 		return nil, nil, nil
 	}
 
@@ -95,29 +93,31 @@ Usecases:
 	errBuf := new(bytes.Buffer)
 	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 
-	cmd := NewCmdUpdate(rc)
-	assert.NotNil(t, cmd)
-
+	cmd := NewCmdStop(rc)
 	cmd.PersistentFlags().Set(constants.FlagScenario, "ops-s1")
 	cmd.PersistentFlags().Set(constants.FlagNamespace, "psr")
-	cmd.PersistentFlags().Set(constants.ImageNameKey, "worker-image")
+	assert.NotNil(t, cmd)
 
+	// Run stop command, check for the expected status results to be displayed
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Contains(t, buf.String(), "Updating scenario")
-	assert.Contains(t, buf.String(), "Updating use case")
-	assert.Contains(t, buf.String(), "successfully updated")
+	result := buf.String()
+
+	assert.Contains(t, result, fmt.Sprintf("Stopping scenario %s", ID))
+	assert.Contains(t, result, fmt.Sprintf("Scenario %s successfully stopped", ID))
 }
 
-func TestUpdateNoConfigmap(t *testing.T) {
+// TestStopEmpty tests the NewCmdStop and RunCmdStop functions
+//
+//	WHEN 'psrctl stop -s ops-s1 -n psr' is called when the scenario is not running
+//	THEN ensure the output correctly tells the user their operation is invalid
+func TestStopEmpty(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:        psrRoot,
 		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
 		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
 		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
 	}
-
-	defer manifest.ResetManifests()
 
 	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()
 	k8sutil.GetCoreV1Func = func(log ...vzlog.VerrazzanoLogger) (corev1cli.CoreV1Interface, error) {
@@ -129,13 +129,15 @@ func TestUpdateNoConfigmap(t *testing.T) {
 	errBuf := new(bytes.Buffer)
 	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 
-	cmd := NewCmdUpdate(rc)
-	assert.NotNil(t, cmd)
-
+	cmd := NewCmdStop(rc)
 	cmd.PersistentFlags().Set(constants.FlagScenario, "ops-s1")
 	cmd.PersistentFlags().Set(constants.FlagNamespace, "psr")
-	cmd.PersistentFlags().Set(constants.ImageNameKey, "worker-image")
+	assert.NotNil(t, cmd)
 
+	// Run stop command, check for the expected status results to be displayed
 	err := cmd.Execute()
 	assert.Error(t, err)
+	result := err.Error()
+
+	assert.Contains(t, result, fmt.Sprintf("Failed to stop scenario psr/%s", ID))
 }
