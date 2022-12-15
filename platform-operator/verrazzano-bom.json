@@ -497,7 +497,7 @@
           "images": [
             {
               "image": "prometheus-adapter",
-              "tag": "v0.9.1-20220725190037-de39a05e",
+              "tag": "v0.9.1-20221205223816-ed53ffa2",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
