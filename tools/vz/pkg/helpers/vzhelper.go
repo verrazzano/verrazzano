@@ -8,11 +8,11 @@ import (
 	"fmt"
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/spf13/cobra"
-	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	v1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	vzconstants "github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
 	"io"
@@ -189,7 +189,10 @@ func GetNamespacesForAllComponents(vz v1beta1.Verrazzano) []string {
 	allComponents := getAllComponents(vz)
 	var nsList []string
 	for _, eachComp := range allComponents {
-		nsList = append(nsList, constants.ComponentNameToNamespacesMap[eachComp]...)
+		found, comp := registry.FindComponent(eachComp)
+		if found {
+			nsList = append(nsList, comp.Namespace())
+		}
 	}
 	if len(nsList) > 0 {
 		nsList = RemoveDuplicate(nsList)
