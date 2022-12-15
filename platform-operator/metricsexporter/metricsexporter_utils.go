@@ -146,13 +146,13 @@ func initSimpleCounterMetricMap() map[metricName]*SimpleCounterMetric {
 	return map[metricName]*SimpleCounterMetric{
 		ReconcileCounter: {
 			prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vz_platform_operator_reconcile_counter",
+				Name: "vz_platform_operator_reconcile_total",
 				Help: "The number of times the reconcile function has been called in the verrazzano-platform-operator",
 			}),
 		},
 		ReconcileError: {
 			prometheus.NewCounter(prometheus.CounterOpts{
-				Name: "vz_platform_operator_error_reconcile_counter",
+				Name: "vz_platform_operator_error_reconcile_total",
 				Help: "The number of times the reconcile function has returned an error in the verrazzano-platform-operator",
 			}),
 		},
@@ -208,13 +208,13 @@ func initSimpleGaugeMetricMap() map[metricName]*SimpleGaugeMetric {
 	return map[metricName]*SimpleGaugeMetric{
 		AvailableComponents: {
 			metric: prometheus.NewGauge(prometheus.GaugeOpts{
-				Name: "vz_platform_operator_component_health_count",
+				Name: "vz_platform_operator_component_health_total",
 				Help: "The number of currently available Verrazzano components",
 			}),
 		},
 		EnabledComponents: {
 			metric: prometheus.NewGauge(prometheus.GaugeOpts{
-				Name: "vz_platform_operator_component_enabled_count",
+				Name: "vz_platform_operator_component_enabled_total",
 				Help: "The number of currently enabled Verrazzano components",
 			}),
 		},
