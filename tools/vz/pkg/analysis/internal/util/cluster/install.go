@@ -7,8 +7,8 @@ package cluster
 import (
 	encjson "encoding/json"
 	"fmt"
-	pkgconst "github.com/verrazzano/verrazzano/pkg/constants"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -458,12 +458,12 @@ func getUniqueNamespaces(log *zap.SugaredLogger, compsNoMessages []string) []str
 	var uniqueNamespaces []string
 
 	for _, comp := range compsNoMessages {
-		componentNamespace, ok := pkgconst.ComponentNameToNamespacesMap[comp]
-		if !ok {
+		found, component := registry.FindComponent(comp)
+		if !found {
 			log.Debugf("Couldn't find the namespace related to %s component", comp)
 			continue
 		}
-		uniqueNamespaces = append(uniqueNamespaces, componentNamespace...)
+		uniqueNamespaces = append(uniqueNamespaces, component.Namespace())
 	}
 	uniqueNamespaces = helpers.RemoveDuplicate(uniqueNamespaces)
 	return uniqueNamespaces
