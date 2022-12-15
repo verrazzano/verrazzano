@@ -136,6 +136,7 @@ func postUninstall(ctx spi.ComponentContext, monitor postUninstallMonitor) error
 	return forkPostUninstallFunc(ctx, monitor)
 }
 
+// forkPostUninstall - the Rancher uninstall system tool blocks, so fork it to the background
 func forkPostUninstall(ctx spi.ComponentContext, monitor postUninstallMonitor) error {
 	ctx.Log().Debugf("Creating background post-uninstall goroutine for Rancher")
 
@@ -148,6 +149,7 @@ func forkPostUninstall(ctx spi.ComponentContext, monitor postUninstallMonitor) e
 	return ctrlerrors.RetryableError{Source: ComponentName}
 }
 
+// run - run the Rancher uninstall in another goroutine
 func (m *postUninstallMonitorType) run(args postUninstallRoutineParams) {
 	m.running = true
 	m.resultCh = make(chan bool, 2)
@@ -171,6 +173,7 @@ func (m *postUninstallMonitorType) run(args postUninstallRoutineParams) {
 	m.inputCh <- args
 }
 
+// invokeRancherSystemToolAndCleanup - responsible for the actual deletion of resources
 func invokeRancherSystemToolAndCleanup(ctx spi.ComponentContext) error {
 	// List all the namespaces that need to be cleaned from Rancher components
 	nsList := corev1.NamespaceList{}

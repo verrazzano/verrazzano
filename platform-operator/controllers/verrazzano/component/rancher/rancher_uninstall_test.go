@@ -81,8 +81,8 @@ func TestPostUninstall(t *testing.T) {
 
 // TestBackgroundPostUninstallCompletedSuccessfully tests the post uninstall process for Rancher
 // GIVEN a call to postUninstall
-// WHEN the monitor goroutine fails to successfully complete FIXME: alter description
-// THEN the post-uninstall returns nil without calling the forkPostUninstall function
+// WHEN the monitor goroutine failed to successfully complete
+// THEN postUninstall returns nil without calling the forkPostUninstall function
 func TestBackgroundPostUninstallCompletedSuccessfully(t *testing.T) {
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
@@ -108,7 +108,7 @@ func TestBackgroundPostUninstallCompletedSuccessfully(t *testing.T) {
 // TestPostUninstall tests the post uninstall process for Rancher
 // GIVEN a call to postUninstall
 // WHEN the the monitor goroutine failed to successfully complete
-// THEN the postUninstall function calls the forkPostUninstall function and returns a retry error
+// THEN the postUninstall function calls the forkPostUninstall function and returns a RetryableError
 func TestBackgroundPostUninstallRetryOnFailure(t *testing.T) {
 	a := assert.New(t)
 	vz := v1alpha1.Verrazzano{}
