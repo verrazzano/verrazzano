@@ -18,7 +18,7 @@ Component version updates:
 - kube-state-metrics v2.6.0
 - cert-manager v1.9.1
 - Prometheus Adapter for Kubernetes Metrics APIs v0.10.0
-- WebLogic Kubernetes Operator v4.0.2
+- WebLogic Kubernetes Operator v4.0.3
 - WebLogic Monitoring Exporter v2.1.0
 
 Components added:
