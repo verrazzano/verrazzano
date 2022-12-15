@@ -1,0 +1,264 @@
+{
+  "metadata": {},
+  "items": [
+    {
+      "metadata": {
+        "name": "my-verrazzano",
+        "namespace": "default",
+        "uid": "a57012d8-8d42-4ea0-8114-3ca8de5c9ab9",
+        "resourceVersion": "5863",
+        "generation": 2,
+        "creationTimestamp": "2022-12-05T05:30:22Z",
+        "finalizers": [
+          "install.verrazzano.io"
+        ]
+      },
+      "status": {
+        "components": {
+          "cert-manager": {
+            "conditions": [
+              {
+                "lastTransitionTime": "2022-12-05T05:30:26Z",
+                "message": "PreInstall started",
+                "status": "True",
+                "type": "PreInstall"
+              },
+              {
+                "lastTransitionTime": "2022-12-05T05:30:33Z",
+                "message": "Install started",
+                "status": "True",
+                "type": "InstallStarted"
+              },
+              {
+                "lastTransitionTime": "2022-12-05T05:51:42Z",
+                "message": "Install complete",
+                "status": "True",
+                "type": "InstallComplete"
+              }
+            ],
+            "name": "cert-manager",
+            "state": "Ready"
+          },
+          "coherence-operator": {
+            "conditions": [
+              {
+                "lastTransitionTime": "2022-12-05T05:30:26Z",
+                "message": "PreInstall started",
+                "status": "True",
+                "type": "PreInstall"
+              },
+              {
+                "lastTransitionTime": "2022-12-05T05:30:36Z",
+                "message": "Install started",
+                "status": "True",
+                "type": "InstallStarted"
+              },
+              {
+                "lastTransitionTime": "2022-12-05T05:31:02Z",
+                "message": "Install complete",
+                "status": "True",
+                "type": "InstallComplete"
+              }
+            ],
+            "name": "coherence-operator",
+            "state": "Ready"
+          },
+          "external-dns": {
+            "name": "external-dns",
+            "state": "Disabled"
+          },
+          "ingress-controller": {
+            "conditions": [
+              {
+                "lastTransitionTime": "2022-12-05T05:30:26Z",
+                "message": "PreInstall started",
+                "status": "True",
+                "type": "PreInstall"
+              },
+              {
+                "lastTransitionTime": "2022-12-05T05:30:51Z",
+                "message": "Install started",
+                "status": "True",
+                "type": "InstallStarted"
+              }
+            ],
+            "name": "ingress-controller",
+            "state": "Installing"
+          },
+          "istio": {
+            "conditions": [
+              {
+                "lastTransitionTime": "2022-12-05T05:30:26Z",
+                "message": "PreInstall started",
+                "status": "True",
+                "type": "PreInstall"
+              },
+              {
+                "lastTransitionTime": "2022-12-05T05:30:54Z",
+                "message": "Install started",
+                "status": "True",
+                "type": "InstallStarted"
+              },
+              {
+                "lastTransitionTime": "2022-12-05T05:30:57Z",
+                "message": "Install complete",
+                "status": "True",
+                "type": "InstallComplete"
+              }
+            ],
+            "name": "istio",
+            "state": "Ready"
+          },
+          "keycloak": {
+            "conditions": [
+              {
+                "lastTransitionTime": "2022-12-05T05:30:26Z",
+                "message": "PreInstall started",
+                "status": "True",
+                "type": "PreInstall"
+              }
+            ],
+            "name": "keycloak",
+            "state": "PreInstalling"
+          },
+          "kiali-server": {
+            "conditions": [
+              {
+                "lastTransitionTime": "2022-12-05T05:30:26Z",
+                "message": "PreInstall started",
+                "status": "True",
+                "type": "PreInstall"
+              }
+            ],
+            "name": "kiali-server",
+            "state": "PreInstalling"
+          },
+          "mysql": {
+            "conditions": [
+              {
+                "lastTransitionTime": "2022-12-05T05:30:26Z",
+                "message": "PreInstall started",
+                "status": "True",
+                "type": "PreInstall"
+              },
+              {
+                "lastTransitionTime": "2022-12-05T05:30:54Z",
+                "message": "Install started",
+                "status": "True",
+                "type": "InstallStarted"
+              }
+            ],
+            "name": "mysql",
+            "state": "Installing"
+          },
+          "oam-kubernetes-runtime": {
+            "conditions": [
+              {
+                "lastTransitionTime": "2022-12-05T05:30:26Z",
+                "message": "PreInstall started",
+                "status": "True",
+                "type": "PreInstall"
+              },
+              {
+                "lastTransitionTime": "2022-12-05T05:30:29Z",
+                "message": "Install started",
+                "status": "True",
+                "type": "InstallStarted"
+              },
+              {
+                "lastTransitionTime": "2022-12-05T05:30:36Z",
+                "message": "Install complete",
+                "status": "True",
+                "type": "InstallComplete"
+              }
+            ],
+            "name": "oam-kubernetes-runtime",
+            "state": "Ready"
+          },
+          "rancher": {
+            "conditions": [
+              {
+                "lastTransitionTime": "2022-12-05T05:30:26Z",
+                "message": "PreInstall started",
+                "status": "True",
+                "type": "PreInstall"
+              }
+            ],
+            "name": "rancher",
+            "state": "PreInstalling"
+          },
+          "verrazzano": {
+            "conditions": [
+              {
+                "lastTransitionTime": "2022-12-05T05:30:26Z",
+                "message": "PreInstall started",
+                "status": "True",
+                "type": "PreInstall"
+              }
+            ],
+            "name": "verrazzano",
+            "state": "PreInstalling"
+          },
+          "verrazzano-application-operator": {
+            "conditions": [
+              {
+                "lastTransitionTime": "2022-12-05T05:30:26Z",
+                "message": "PreInstall started",
+                "status": "True",
+                "type": "PreInstall"
+              },
+              {
+                "lastTransitionTime": "2022-12-05T05:30:49Z",
+                "message": "Install started",
+                "status": "True",
+                "type": "InstallStarted"
+              },
+              {
+                "lastTransitionTime": "2022-12-05T05:51:51Z",
+                "message": "Install complete",
+                "status": "True",
+                "type": "InstallComplete"
+              }
+            ],
+            "name": "verrazzano-application-operator",
+            "state": "Ready"
+          },
+          "weblogic-operator": {
+            "conditions": [
+              {
+                "lastTransitionTime": "2022-12-05T05:30:26Z",
+                "message": "PreInstall started",
+                "status": "True",
+                "type": "PreInstall"
+              },
+              {
+                "lastTransitionTime": "2022-12-05T05:30:44Z",
+                "message": "Install started",
+                "status": "True",
+                "type": "InstallStarted"
+              },
+              {
+                "lastTransitionTime": "2022-12-05T05:51:56Z",
+                "message": "Install complete",
+                "status": "True",
+                "type": "InstallComplete"
+              }
+            ],
+            "name": "weblogic-operator",
+            "state": "Ready"
+          }
+        },
+        "conditions": [
+          {
+            "lastTransitionTime": "2022-12-05T05:30:26Z",
+            "message": "Verrazzano install in progress",
+            "status": "True",
+            "type": "InstallStarted"
+          }
+        ],
+        "state": "Installing",
+        "version": "1.2.2"
+      }
+    }
+  ]
+}

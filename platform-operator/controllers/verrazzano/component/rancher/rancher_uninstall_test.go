@@ -5,6 +5,7 @@ package rancher
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"testing"
 	"time"
 
@@ -142,7 +143,7 @@ func TestPostUninstall(t *testing.T) {
 	delTimestamp := metav1.NewTime(time.Now())
 	crdAPIVersion := "apiextensions.k8s.io/v1"
 	crdKind := "CustomResourceDefinition"
-	rancherCRD := v12.CustomResourceDefinition{
+	rancherClusterCRD := v12.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       crdKind,
 			APIVersion: crdAPIVersion,
@@ -151,6 +152,39 @@ func TestPostUninstall(t *testing.T) {
 			Name:              rancherCRDName,
 			Finalizers:        []string{"somefinalizer"},
 			DeletionTimestamp: &delTimestamp,
+		},
+		Spec: v12.CustomResourceDefinitionSpec{
+			Group: "management.cattle.io",
+			Names: v12.CustomResourceDefinitionNames{
+				Kind: "Setting",
+			},
+			Scope: "Cluster",
+			Versions: []v12.CustomResourceDefinitionVersion{
+				{
+					Name: "v3",
+				},
+			},
+		},
+	}
+	rancherNamespacedCRD := v12.CustomResourceDefinition{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       crdKind,
+			APIVersion: crdAPIVersion,
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "projects.management.cattle.io",
+		},
+		Spec: v12.CustomResourceDefinitionSpec{
+			Group: "management.cattle.io",
+			Names: v12.CustomResourceDefinitionNames{
+				Kind: "Project",
+			},
+			Scope: "Namespaced",
+			Versions: []v12.CustomResourceDefinitionVersion{
+				{
+					Name: "v3",
+				},
+			},
 		},
 	}
 	nonRancherCRD := v12.CustomResourceDefinition{
@@ -168,6 +202,25 @@ func TestPostUninstall(t *testing.T) {
 			Versions:              nil,
 			Conversion:            nil,
 			PreserveUnknownFields: false,
+		},
+	}
+	settingCR := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "management.cattle.io/v3",
+			"kind":       "Setting",
+			"metadata": map[string]interface{}{
+				"name": "cr-name",
+			},
+		},
+	}
+	projectCR := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "management.cattle.io/v3",
+			"kind":       "Project",
+			"metadata": map[string]interface{}{
+				"namespace": "cr-namespace",
+				"name":      "cr-name",
+			},
 		},
 	}
 	tests := []struct {
@@ -300,12 +353,16 @@ func TestPostUninstall(t *testing.T) {
 		{
 			name: "test CRD finalizer cleanup",
 			objects: []clipkg.Object{
-				&nonRancherNs,
-				&rancherNs,
-				&rancherNs2,
-				&mutWebhook,
-				&valWebhook,
-				&rancherCRD,
+				&rancherClusterCRD,
+			},
+		},
+		{
+			name: "test Rancher CR cleanup",
+			objects: []clipkg.Object{
+				&rancherClusterCRD,
+				&settingCR,
+				&rancherNamespacedCRD,
+				&projectCR,
 			},
 		},
 	}

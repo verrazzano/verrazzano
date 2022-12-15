@@ -7,8 +7,6 @@ global:
     LOG_ENTRIES: 1
     LOG_LENGTH: 1
 
-istioInject: true
-
 # activate subchart
 opensearch:
   enabled: true

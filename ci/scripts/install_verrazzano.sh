@@ -122,7 +122,7 @@ cd ${GO_REPO_PATH}/verrazzano
 TARGET_OPERATOR_FILE=${TARGET_OPERATOR_FILE:-"${WORKSPACE}/acceptance-test-operator.yaml"}
 if [ -z "$OPERATOR_YAML" ]; then
   # Derive the name of the operator.yaml file, copy or generate the file, then install
-  if [ "NONE" == "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
+  if [ -z "${VERRAZZANO_OPERATOR_IMAGE}" ] || [ "NONE" == "${VERRAZZANO_OPERATOR_IMAGE}" ]; then
       echo "Using operator.yaml from object storage"
       oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${OCI_OS_LOCATION}/operator.yaml --file ${WORKSPACE}/downloaded-operator.yaml
       cp -v ${WORKSPACE}/downloaded-operator.yaml ${TARGET_OPERATOR_FILE}

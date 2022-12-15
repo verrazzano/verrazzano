@@ -53,7 +53,6 @@ pipeline {
                 defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
                 trim: true)
-        booleanParam (description: 'Whether to emit metrics from the pipeline', name: 'EMIT_METRICS', defaultValue: true)
     }
 
     environment {
@@ -109,7 +108,6 @@ pipeline {
         OCI_OS_REGION="us-phoenix-1"
 
         // used to emit metrics
-        PROMETHEUS_GW_URL = credentials('prometheus-dev-url')
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
 
         OCIR_SCAN_COMPARTMENT = credentials('ocir-scan-compartment')
@@ -238,15 +236,12 @@ pipeline {
                     when { not { buildingTag() } }
                     steps {
                         script {
-                            VZ_BUILD_METRIC = metricJobName('build')
-                            metricTimerStart("${VZ_BUILD_METRIC}")
                             buildImages("${DOCKER_IMAGE_TAG}")
                         }
                     }
                     post {
                         failure {
                             script {
-                                METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '0')
                                 SKIP_TRIGGERED_TESTS = true
                             }
                         }
@@ -254,7 +249,6 @@ pipeline {
                             echo "Saving generated files"
                             saveGeneratedFiles()
                             script {
-                                METRICS_PUSHED=metricTimerEnd("${VZ_BUILD_METRIC}", '1')
                                 archiveArtifacts artifacts: "generated-verrazzano-bom.json,verrazzano_images.txt", allowEmptyArchive: true
                             }
                         }
@@ -373,10 +367,6 @@ pipeline {
             }
 
             steps {
-                script {
-                    VZ_TEST_METRIC = metricJobName('kind_test')
-                    metricTimerStart("${VZ_TEST_METRIC}")
-                }
                 retry(count: JOB_PROMOTION_RETRIES) {
                     script {
                         build job: "verrazzano-new-kind-acceptance-tests/${BRANCH_NAME.replace("/", "%2F")}",
@@ -389,7 +379,6 @@ pipeline {
                                 booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS),
                                 booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: params.CREATE_CLUSTER_USE_CALICO),
                                 string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH),
-                                booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS)
                             ], wait: true
                     }
                 }
@@ -397,13 +386,7 @@ pipeline {
             post {
                 failure {
                     script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '0')
                         SKIP_TRIGGERED_TESTS = true
-                    }
-                }
-                success {
-                    script {
-                        METRICS_PUSHED=metricTimerEnd("${VZ_TEST_METRIC}", '1')
                     }
                 }
             }
@@ -427,7 +410,6 @@ pipeline {
                         parameters: [
                             string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                             string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                            booleanParam(name: 'EMIT_METRICS', value: params.EMIT_METRICS),
                             string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
                         ], wait: params.WAIT_FOR_TRIGGERED
                 }
@@ -540,7 +522,6 @@ pipeline {
             }
         }
         cleanup {
-            metricBuildDuration()
             deleteDir()
         }
     }
@@ -781,73 +762,4 @@ def getSuspectList(commitList, userMappings) {
     }
     echo "returning suspect list: ${retValue}"
     return retValue
-}
-
-def metricJobName(stageName) {
-    job = env.JOB_NAME.split("/")[0]
-    job = '_' + job.replaceAll('-','_')
-    if (stageName) {
-        job = job + '_' + stageName
-    }
-    return job
-}
-
-def metricTimerStart(metricName) {
-    def timerStartName = "${metricName}_START"
-    env."${timerStartName}" = sh(returnStdout: true, script: "date +%s").trim()
-}
-
-// Construct the set of labels/dimensions for the metrics
-def getMetricLabels() {
-    def buildNumber = String.format("%010d", env.BUILD_NUMBER.toInteger())
-    labels = 'build_number=\\"' + "${buildNumber}"+'\\",' +
-             'jenkins_build_number=\\"' + "${env.BUILD_NUMBER}"+'\\",' +
-             'jenkins_job=\\"' + "${env.JOB_NAME}".replace("%2F","/") + '\\",' +
-             'commit_sha=\\"' + "${env.GIT_COMMIT}"+'\\"'
-    return labels
-}
-
-def metricTimerEnd(metricName, status) {
-    def timerStartName = "${metricName}_START"
-    def timerEndName   = "${metricName}_END"
-    env."${timerEndName}" = sh(returnStdout: true, script: "date +%s").trim()
-    if (params.EMIT_METRICS) {
-        long x = env."${timerStartName}" as long;
-        long y = env."${timerEndName}" as long;
-        def dur = (y-x)
-        labels = getMetricLabels()
-        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
-            EMIT = sh(returnStdout: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${metricName} ${env.GIT_BRANCH} $labels ${status} ${dur}")
-            echo "emit prometheus metrics: $EMIT"
-            return EMIT
-        }
-    } else {
-        return ''
-    }
-}
-
-// Emit the metrics indicating the duration and result of the build
-def metricBuildDuration() {
-    def status = "${currentBuild.currentResult}".trim()
-    long duration = "${currentBuild.duration}" as long;
-    long durationInSec = (duration/1000)
-    testMetric = metricJobName('')
-    def metricValue = "-1"
-    statusLabel = status.substring(0,1)
-    if (status.equals("SUCCESS")) {
-        metricValue = "1"
-    } else if (status.equals("FAILURE")) {
-        metricValue = "0"
-    } else {
-        // Consider every other status as a single label
-        statusLabel = "A"
-    }
-    if (params.EMIT_METRICS) {
-        labels = getMetricLabels()
-        labels = labels + ',result=\\"' + "${statusLabel}"+'\\"'
-        withCredentials([usernameColonPassword(credentialsId: 'prometheus-credentials', variable: 'PROMETHEUS_CREDENTIALS')]) {
-            METRIC_STATUS = sh(returnStdout: true, returnStatus: true, script: "ci/scripts/metric_emit.sh ${PROMETHEUS_GW_URL} ${PROMETHEUS_CREDENTIALS} ${testMetric}_job ${env.BRANCH_NAME} $labels ${metricValue} ${durationInSec}")
-            echo "Publishing the metrics for build duration and status returned status code $METRIC_STATUS"
-        }
-    }
 }

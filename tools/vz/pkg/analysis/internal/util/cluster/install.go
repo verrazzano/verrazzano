@@ -8,6 +8,7 @@ import (
 	encjson "encoding/json"
 	"fmt"
 	installv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -32,7 +33,7 @@ var ephemeralIPLimitReachedRe = regexp.MustCompile(`.*Limit for non-ephemeral re
 var lbServiceLimitReachedRe = regexp.MustCompile(`.*The following service limits were exceeded: lb-.*`)
 var failedToEnsureLoadBalancer = regexp.MustCompile(`.*failed to ensure load balancer: awaiting load balancer.*`)
 var invalidLoadBalancerParameter = regexp.MustCompile(`.*Service error:InvalidParameter. Limits-Service returned 400.*Invalid service/quota load-balancer.*`)
-
+var loadBalancerCreationIssue = regexp.MustCompile(`.*Private subnet.* is not allowed in a public loadbalancer.*`)
 var vpoErrorMessages []string
 
 const logLevelError = "error"
@@ -158,6 +159,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		lbServiceLimitReachedCheck := false
 		errorSyncingLoadBalancerCheck := false
 		invalidLBShapeCheck := false
+		loadBalancerCheck := false
 
 		var reportPodIssue string
 		var reportEvent string
@@ -209,6 +211,13 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 				issueReporter.AddKnownIssueMessagesFiles(report.IngressShapeInvalid, clusterRoot, messages, files)
 				issueDetected = true
 				invalidLBShapeCheck = true
+				issueReporter.Contribute(log, clusterRoot)
+			} else if loadBalancerCreationIssue.MatchString(event.Message) && !loadBalancerCheck {
+				messages := make(StringSlice, 1)
+				messages[0] = event.Message
+				issueReporter.AddKnownIssueMessagesFiles(report.NginxIngressPrivateSubnet, clusterRoot, messages, files)
+				issueDetected = true
+				loadBalancerCheck = true
 				issueReporter.Contribute(log, clusterRoot)
 			}
 		}
@@ -266,12 +275,8 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) {
 	istioServicesFile := files.FindFileInNamespace(clusterRoot, istioSystem, servicesJSON)
 	serviceList, err := GetServiceList(log, istioServicesFile)
-	if err != nil {
-		log.Debugf("Failed to get the list of services for the given service file %s, skipping", serviceList)
-		return
-	}
-	if serviceList == nil {
-		log.Debugf("No service was returned, skipping")
+	if err != nil || serviceList == nil {
+		log.Debugf("Failed to get the list of services for the given service file %s, or no service was returned, skipping", serviceList)
 		return
 	}
 	for _, service := range serviceList.Items {
@@ -297,6 +302,7 @@ func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issu
 			}
 		}
 	}
+	analyzeIstioLoadBalancerIssue(log, clusterRoot, issueReporter)
 }
 
 // Read the Verrazzano resource and return the list of components which did not reach Ready state
@@ -390,10 +396,22 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 		}
 	}
 
-	// Create a a single message to display the list of components without specific error in the platform operator
+	// Create a single message to display the list of components without specific error in the platform operator
 	if len(compsNoMessages) > 0 {
 		errorMessage := "\t " + installErrorNotFound + strings.Join(compsNoMessages[:], ", ")
 		messages = append(messages, errorMessage)
+	}
+
+	// Get unique namespaces associated with the components with no error messages
+	namespacesCompNoMsg := getUniqueNamespaces(log, compsNoMessages)
+
+	// Check the events related to failed components namespace to provide additional support data
+	for _, namespace := range namespacesCompNoMsg {
+		eventList, err := GetEventsRelatedToComponentNamespace(log, clusterRoot, namespace, nil)
+		if err != nil {
+			log.Debugf("Failed to get events related to %s namespace", namespace)
+		}
+		messages.addMessages(CheckEventsForWarnings(log, eventList, "Warning", nil))
 	}
 
 	reportVzResource := ""
@@ -411,4 +429,42 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 	files[1] = reportVpoLog
 	issueReporter.AddKnownIssueMessagesFiles(report.ComponentsNotReady, clusterRoot, messages, files)
 	return nil
+}
+
+func analyzeIstioLoadBalancerIssue(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) {
+	eventsList, e := GetEventList(log, files.FindFileInNamespace(clusterRoot, istioSystem, eventsJSON))
+	if e != nil {
+		log.Debugf("Failed to get events file %s", eventsJSON)
+		return
+	}
+	log.Debugf("Found %d events in events file", len(eventsList.Items))
+	serviceEvents := make([]corev1.Event, 0, 1)
+	isIssueAlreadyExists := false
+	for _, event := range eventsList.Items {
+		if loadBalancerCreationIssue.MatchString(event.Message) && !isIssueAlreadyExists {
+			isIssueAlreadyExists = true
+			serviceEvents = append(serviceEvents, event)
+			messages := make(StringSlice, 1)
+			messages[0] = event.Message
+			// Create the service message from the object metadata
+			servFiles := make(StringSlice, 1)
+			servFiles[0] = report.GetRelatedServiceMessage(serviceEvents[0].ObjectMeta.Name, istioSystem)
+			issueReporter.AddKnownIssueMessagesFiles(report.IstioIngressPrivateSubnet, clusterRoot, messages, servFiles)
+		}
+	}
+}
+
+func getUniqueNamespaces(log *zap.SugaredLogger, compsNoMessages []string) []string {
+	var uniqueNamespaces []string
+
+	for _, comp := range compsNoMessages {
+		found, component := registry.FindComponent(comp)
+		if !found {
+			log.Debugf("Couldn't find the namespace related to %s component", comp)
+			continue
+		}
+		uniqueNamespaces = append(uniqueNamespaces, component.Namespace())
+	}
+	uniqueNamespaces = helpers.RemoveDuplicate(uniqueNamespaces)
+	return uniqueNamespaces
 }

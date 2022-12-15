@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/tests/e2e/jaeger"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
@@ -31,6 +32,13 @@ var (
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	m := JaegerOperatorEnabledModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+
+	// GIVEN a VZ custom resource in dev profile,
+	// WHEN Jaeger operator is enabled,
+	// THEN Jaeger operator and pods for jaeger-collector and jaeger-query components gets created.
+	update.ValidatePods(jaegerOperatorLabelValue, jaegerComponentLabel, constants.VerrazzanoMonitoringNamespace, 1, false)
+	update.ValidatePods(jaegerCollectorLabelValue, jaegerComponentLabel, constants.VerrazzanoMonitoringNamespace, 1, false)
+	update.ValidatePods(jaegerQueryLabelValue, jaegerComponentLabel, constants.VerrazzanoMonitoringNamespace, 1, false)
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -39,17 +47,8 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN Jaeger operator is enabled,
-	// THEN Jaeger operator and pods for jaeger-collector and jaeger-query components gets created.
-	t.It("Jaeger enable post install", func() {
-		update.ValidatePods(jaegerOperatorLabelValue, jaegerComponentLabel, constants.VerrazzanoMonitoringNamespace, 1, false)
-		update.ValidatePods(jaegerCollectorLabelValue, jaegerComponentLabel, constants.VerrazzanoMonitoringNamespace, 1, false)
-		update.ValidatePods(jaegerQueryLabelValue, jaegerComponentLabel, constants.VerrazzanoMonitoringNamespace, 1, false)
-	})
-
-	// GIVEN a VZ custom resource in dev profile,
-	// WHEN Jaeger operator is enabled,
 	// THEN Jaeger OpenSearch Index Cleaner cron job exists
-	t.It("should have a Jaeger OpenSearch Index Cleaner cron job", func() {
+	jaeger.WhenJaegerOperatorEnabledIt(t, "should have a Jaeger OpenSearch Index Cleaner cron job", func() {
 		validatorFn := pkg.ValidateEsIndexCleanerCronJobFunc()
 		Eventually(validatorFn).WithPolling(pollingInterval).WithTimeout(waitTimeout).Should(BeTrue())
 	})
@@ -57,7 +56,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN Jaeger operator is enabled,
 	// THEN we are able to get the traces
-	t.It("traces from verrazzano system components should be available when queried from Jaeger", func() {
+	jaeger.WhenJaegerOperatorEnabledIt(t, "traces from verrazzano system components should be available when queried from Jaeger", func() {
 		kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
 		if err != nil {
 			Fail(err.Error())
@@ -69,7 +68,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN Jaeger operator is enabled,
 	// THEN we are able to get the traces
-	t.It("traces from verrazzano system components should be available in the OS backend storage.", func() {
+	jaeger.WhenJaegerOperatorEnabledIt(t, "traces from verrazzano system components should be available in the OS backend storage.", func() {
 		validatorFn := pkg.ValidateSystemTracesInOSFunc(start)
 		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
@@ -77,7 +76,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN Jaeger operator is enabled,
 	// THEN we see that the metrics of Jaeger operator are present in prometheus
-	t.It("metrics of jaeger operator are available in prometheus", func() {
+	jaeger.WhenJaegerOperatorEnabledIt(t, "metrics of jaeger operator are available in prometheus", func() {
 		validatorFn := pkg.ValidateJaegerOperatorMetricFunc()
 		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
@@ -85,7 +84,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN Jaeger operator is enabled,
 	// THEN we see that the metrics of Jaeger collector are present in prometheus
-	t.It("metrics of jaeger collector are available in prometheus", func() {
+	jaeger.WhenJaegerOperatorEnabledIt(t, "metrics of jaeger collector are available in prometheus", func() {
 		validatorFn := pkg.ValidateJaegerCollectorMetricFunc()
 		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
@@ -93,7 +92,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN Jaeger operator is enabled,
 	// THEN we see that the metrics of Jaeger query are present in prometheus
-	t.It("metrics of jaeger query are available in prometheus", func() {
+	jaeger.WhenJaegerOperatorEnabledIt(t, "metrics of jaeger query are available in prometheus", func() {
 		validatorFn := pkg.ValidateJaegerQueryMetricFunc()
 		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
@@ -101,7 +100,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	// GIVEN a VZ custom resource in dev profile,
 	// WHEN Jaeger operator is enabled,
 	// THEN we see that the metrics of Jaeger agent are present in prometheus
-	t.It("metrics of jaeger agent are available in prometheus", func() {
+	jaeger.WhenJaegerOperatorEnabledIt(t, "metrics of jaeger agent are available in prometheus", func() {
 		validatorFn := pkg.ValidateJaegerAgentMetricFunc()
 		Eventually(validatorFn).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue())
 	})
@@ -109,7 +108,7 @@ var _ = t.Describe("Update Jaeger", Label("f:platform-lcm.update"), func() {
 	// GIVEN a VZ custom resource in dev profile with Jaeger operator enabled,
 	// WHEN user tries to disable it,
 	// THEN the operation should be denied with an error
-	t.It("disabling previously enabled Jaeger operator should be disallowed", func() {
+	jaeger.WhenJaegerOperatorEnabledIt(t, "disabling previously enabled Jaeger operator should be disallowed", func() {
 		m := JaegerOperatorCleanupModifier{}
 		Eventually(func() bool {
 			err := update.UpdateCR(m)
