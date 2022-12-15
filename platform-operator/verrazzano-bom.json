@@ -438,7 +438,7 @@
           "images": [
             {
               "image": "prometheus-operator",
-              "tag": "v0.55.1",
+              "tag": "v0.55.1-20221205224323-3af6e09b",
               "helmFullImageKey": "prometheusOperator.image.repository",
               "helmTagKey": "prometheusOperator.image.tag"
             },
