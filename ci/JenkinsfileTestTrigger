@@ -312,10 +312,25 @@ def storePipelineArtifacts() {
                             echo "forced-by-job=${env.BUILD_URL}" >> $WORKSPACE/last-stable-commit.txt
                         fi
                         cat $WORKSPACE/last-stable-commit.txt
-                        oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt
                     """
+            putLastStableCommit()
         }
+    }
+}
 
+// Sets Job Display Name based on last-stable-commit.txt put status
+def putLastStableCommit() {
+    putLastStableCommitCommandOutput = sh (
+                                               label: "Put last stable commit text file",
+                                               script: "oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/last-stable-commit.txt --file $WORKSPACE/last-stable-commit.txt 2>&1 || true",
+                                               returnStdout: true
+                                               ).trim()
+    echo "command out: ${putLastStableCommitCommandOutput}"
+    if (putLastStableCommitCommandOutput.length() > 0) {
+        if (putLastStableCommitCommandOutput =~ /(.*)status(.*)\d{1,4}(.*)/) {
+            currentBuild.displayName = "${currentBuild.displayName} : Put Last Stable Commit Failed"
+            slackSend ( channel: "$SLACK_ALERT_CHANNEL", message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nFailed to put last-stable-commit.txt in Object Store\n" )
+        }
     }
 }
 
