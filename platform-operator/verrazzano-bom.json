@@ -445,7 +445,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v15.0.2-20221010100849-3c526fbe0f",
+              "tag": "v15.0.2-20221214054602-c01654ffed",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
